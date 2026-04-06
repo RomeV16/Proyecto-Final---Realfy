@@ -20,3 +20,33 @@ Realfy busca consolidar todo el ciclo de gestión inmobiliaria sobre una única 
 - Diseñar e implementar una plataforma SaaS multi-inmobiliaria que cubra el ciclo completo de gestión de alquileres residenciales y comerciales, desde la captación del lead hasta la rendición al propietario.
 - Demostrar la aplicabilidad de una arquitectura monorepo TypeScript moderna (Turborepo, NestJS, Next.js, Prisma) sobre un caso real con requerimientos regulatorios locales.
 
+## Objetivos específicos
+
+- Modelar el dominio (propiedades, personas, contratos, liquidaciones, pagos, rendiciones) en un esquema relacional consistente con los regímenes argentinos de ajuste.
+- Implementar el cálculo automático de actualizaciones por IPC, UVA y valor manual, con tabla histórica de índices.
+- Generar liquidaciones mensuales con líneas configurables (alquiler, expensas, servicios, impuestos, honorarios, punitorios) y producir el comprobante electrónico vía ARCA.
+- Construir un portal de autogestión para inquilinos con login propio, vista de saldo, descarga de comprobantes y apertura de tickets.
+- Proveer un CRM básico con pipeline configurable, registro de interacciones y conversión de lead a contrato.
+- Establecer un esquema de auditoría, logging y permisos por rol que permita operar en modo multi-inmobiliaria sin fugas entre tenants.
+- Documentar la solución y validarla con pruebas integrales (Playwright) y revisión de seguridad sobre los flujos críticos.
+
+## Alcance funcional
+
+Forman parte del alcance del trabajo final:
+
+- Gestión de propiedades, propietarios, inquilinos y garantes.
+- Contratos con garantías, plantillas y documentos asociados.
+- Ajuste de alquiler por IPC, UVA y valor manual.
+- Liquidaciones mensuales y registro de pagos.
+- Morosidad, punitorios y derivación legal en modo manual.
+- Tickets de mantenimiento con proveedores asignables.
+- Portal de autogestión para inquilinos.
+- Notificaciones por email de vencimientos, deudas y cambios de estado.
+- CRM con leads, pipeline e interacciones.
+- Portal público de la inmobiliaria con branding básico.
+- Facturación electrónica vía ARCA (homologación contra el ambiente de testing).
+- Scoring interno de inquilinos y tasaciones.
+- Importación y exportación masiva con validación.
+- Dashboard de KPIs operativos.
+- Componentes con asistencia de IA: panel diario de priorización y resumen al cierre de contrato.
+
