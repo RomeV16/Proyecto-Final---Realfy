@@ -50,3 +50,14 @@ Forman parte del alcance del trabajo final:
 - Dashboard de KPIs operativos.
 - Componentes con asistencia de IA: panel diario de priorización y resumen al cierre de contrato.
 
+## Exclusiones
+
+Quedan fuera del alcance del trabajo final:
+
+- Contabilidad completa (libro diario, balances, conciliación bancaria avanzada).
+- Cobros automáticos por pasarela de pago, débito directo o billeteras virtuales (se modela el registro del pago, no la captura del dinero).
+- App móvil nativa para inquilinos o agentes (el portal web es responsive).
+- Firma digital de contratos con certificación oficial; se contempla únicamente la generación del documento y su descarga.
+- Integraciones con portales externos de publicación (ZonaProp, Argenprop, MercadoLibre) más allá de exportación CSV.
+- Liquidación tributaria del propietario o del inquilino (retenciones, ganancias, ingresos brutos).
+- Soporte para operaciones de venta con escrituración; el foco es alquiler.
