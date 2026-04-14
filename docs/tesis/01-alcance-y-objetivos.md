@@ -61,3 +61,5 @@ Quedan fuera del alcance del trabajo final:
 - Integraciones con portales externos de publicación (ZonaProp, Argenprop, MercadoLibre) más allá de exportación CSV.
 - Liquidación tributaria del propietario o del inquilino (retenciones, ganancias, ingresos brutos).
 - Soporte para operaciones de venta con escrituración; el foco es alquiler.
+
+<!-- Cierre item 01 — aprobado por tutor 2026-04-14 -->
