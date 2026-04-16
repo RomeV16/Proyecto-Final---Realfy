@@ -90,3 +90,5 @@ A continuación se listan los casos de uso considerados centrales para la operac
 - **CU-22 Login del inquilino** — Inquilino. Accede al portal con credenciales propias.
 - **CU-23 Consultar saldo y liquidaciones** — Inquilino. Visualiza liquidaciones del contrato y descarga comprobantes.
 - **CU-24 Abrir reclamo desde el portal** — Inquilino. Genera un ticket que llega al backlog de la inmobiliaria.
+
+<!-- Revisado por Manuel: refinamiento de casos para liquidaciones y ARCA -->
