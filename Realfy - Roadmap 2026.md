@@ -256,6 +256,7 @@ Fase 4: 2.5 devs (QA x1 + Backend/Frontend x1.5)
 2. **Asignar miembros del equipo** a cada módulo por rol
 3. **Configurar cadencia de sprints** (sprints de 2 semanas recomendado)
 4. **Crear tablero en GitHub Projects** para seguimiento de progreso
+   - Roadmap del proyecto: https://github.com/users/RomeV16/projects/1/views/1?agentAssignment=true
 5. **Agendar revisiones** con stakeholders en cada fecha hito
 
 ---
