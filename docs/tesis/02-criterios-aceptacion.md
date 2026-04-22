@@ -50,3 +50,26 @@ Criterios organizados por módulo. Se utilizan como referencia durante el desarr
 - Un ticket cerrado no admite nuevos comentarios públicos para el inquilino, salvo reapertura.
 - La categoría del ticket es obligatoria.
 
+## Portal inquilino
+
+- El inquilino solo accede a información del contrato y las propiedades donde figura como parte.
+- La descarga de un comprobante exige que el comprobante tenga CAE válido.
+- Las credenciales del portal son independientes de las credenciales del sistema interno.
+- El inquilino puede actualizar sus datos de contacto, no los datos del contrato.
+- Las sesiones expiran y se renuevan mediante refresh token específico del portal.
+
+## ARCA
+
+- La emisión exige que la configuración del tenant (CUIT, punto de venta, certificados) esté validada.
+- Una emisión exitosa devuelve CAE, fecha de vencimiento y queda persistida en `Comprobante` ligado a la liquidación.
+- Una emisión fallida no genera comprobante y guarda el detalle del error en auditoría.
+- Una nota de crédito siempre referencia al comprobante original.
+- En ambiente de homologación, los comprobantes se marcan como tales y no se muestran en reportes oficiales.
+
+## CRM
+
+- Un lead pertenece a una sola etapa del pipeline en un momento dado.
+- El movimiento de etapa queda registrado en el historial del lead.
+- Una visita exige propiedad, lead y fecha futura.
+- Al convertir un lead en contrato, sus datos personales se transfieren a la entidad `Person`.
+- Un lead descartado se conserva con motivo de descarte y queda fuera de reportes activos.
