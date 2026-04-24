@@ -73,3 +73,5 @@ Criterios organizados por módulo. Se utilizan como referencia durante el desarr
 - Una visita exige propiedad, lead y fecha futura.
 - Al convertir un lead en contrato, sus datos personales se transfieren a la entidad `Person`.
 - Un lead descartado se conserva con motivo de descarte y queda fuera de reportes activos.
+
+<!-- Cierre item 02 -->
