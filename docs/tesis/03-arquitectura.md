@@ -69,3 +69,11 @@ La internacionalización se resuelve con `next-intl`. Las claves de traducción 
 - CI en GitHub Actions: lint, build, test unitarios y suite de Playwright sobre cada PR a `main`.
 - Migraciones de Prisma versionadas en `apps/api/prisma/migrations`.
 
+## Decisiones técnicas clave
+
+- **Monorepo Turborepo + pnpm**: una sola versión de cada dependencia, build incremental con cache (ADR 0001).
+- **NestJS + Next.js + Prisma**: trade-off entre madurez del ecosistema, productividad y necesidad de tipado fuerte extremo a extremo (ADR 0002).
+- **Multi-tenant row-level**: balance entre simplicidad operativa y aislamiento (ADR 0003).
+- **Playwright para e2e**: pruebas escritas en TypeScript, reutilizando los tipos compartidos.
+- **next-intl** en lugar de soluciones manuales: integración nativa con App Router y soporte para mensajes con interpolación.
+- **JWT con rotación de refresh**: prevención de reuso de tokens robados sin requerir base de sesiones server-side compleja.
