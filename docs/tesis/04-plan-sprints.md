@@ -100,3 +100,5 @@ Los sprints se solapan parcialmente con los ítems del Gantt: un sprint puede ar
 - Las tareas se reparten priorizando que cada tesista mantenga continuidad sobre un módulo (por ejemplo, uno sostiene el dominio financiero a lo largo de varios sprints), sin perder revisión cruzada de pares.
 - Los ítems con dependencias fuertes (por ejemplo, 13 sobre 12) se planifican para que la entrega del prerequisito esté cerrada antes del inicio del dependiente.
 - Los ítems marcados como baja prioridad (25 y 26) se pueden recortar si los sprints finales requieren más tiempo para 27 y 28 sin afectar el Hito 4.
+
+<!-- Estimaciones tecnicas revisadas por Manuel -->
