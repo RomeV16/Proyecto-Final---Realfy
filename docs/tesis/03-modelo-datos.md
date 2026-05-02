@@ -93,3 +93,89 @@ Tasación periódica de la propiedad.
 
 Inventario al momento del ingreso o egreso del inquilino.
 
+## Contratos
+
+### Contract
+
+Contrato de locación entre propietario e inquilino.
+
+- `id`, `tenantId`, `propertyId`, `startDate`, `endDate`, `initialAmount`, `currency`, `status`.
+
+### ContractPerson
+
+Relación N-M entre `Contract` y `Person` indicando rol (inquilino, cofirmante).
+
+- `contractId`, `personId`, `role`.
+
+### ContractGuarantee
+
+Garantías asociadas al contrato.
+
+- `id`, `contractId`, `kind`, `description`, `personId?`.
+
+### ContractAdjustment
+
+Configuración del ajuste pactado.
+
+- `id`, `contractId`, `kind` (IPC, UVA, MANUAL), `frequencyMonths`, `nextAdjustmentAt`.
+
+### AdjustmentSchedule
+
+Ajustes programados y aplicados.
+
+- `id`, `contractAdjustmentId`, `appliedAt?`, `oldAmount`, `newAmount`, `indexValue`.
+
+### IndexData
+
+Valores históricos de IPC y UVA.
+
+- `id`, `kind`, `period`, `value`.
+
+### ContractTemplate
+
+Plantillas Word/HTML para emitir el contrato.
+
+### ContractCommission
+
+Configuración de la comisión de la inmobiliaria sobre un contrato.
+
+## Liquidaciones
+
+### Liquidacion
+
+Liquidación mensual al inquilino.
+
+- `id`, `tenantId`, `contractId`, `period`, `total`, `status`.
+
+### LiquidacionLineItem
+
+Línea de la liquidación (alquiler, expensas, servicio, punitorio, etc.).
+
+- `id`, `liquidacionId`, `concept`, `amount`, `notes`.
+
+### Payment
+
+Pago aplicado a una liquidación.
+
+- `id`, `liquidacionId`, `amount`, `method`, `paidAt`, `recordedById`.
+
+### Service / ServicePayment
+
+Servicios asociados a una propiedad (gas, luz, ABL) y sus pagos.
+
+### OwnerRendicion / RendicionLineItem
+
+Rendición mensual al propietario y sus líneas.
+
+## ARCA
+
+### TenantArcaConfig
+
+Configuración de la inmobiliaria frente a ARCA (CUIT, punto de venta, certificados).
+
+### Comprobante
+
+Comprobante electrónico emitido (factura, recibo, nota de crédito).
+
+- `id`, `liquidacionId`, `cae`, `caeVto`, `tipo`, `numero`, `total`.
+
