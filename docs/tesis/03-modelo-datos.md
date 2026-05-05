@@ -179,3 +179,79 @@ Comprobante electrónico emitido (factura, recibo, nota de crédito).
 
 - `id`, `liquidacionId`, `cae`, `caeVto`, `tipo`, `numero`, `total`.
 
+## CRM
+
+### Pipeline / PipelineStage
+
+Pipeline configurable con sus etapas ordenadas.
+
+### Lead
+
+Interesado en alquilar o publicar.
+
+- `id`, `tenantId`, `pipelineStageId`, `personId?`, `source`, `status`.
+
+### LeadInteraction
+
+Eventos del lead (llamada, email, visita).
+
+### LeadVisit
+
+Visita agendada sobre una propiedad concreta.
+
+## Tickets
+
+### TicketCategory
+
+Categoría configurable (plomería, electricidad, otros).
+
+### Ticket
+
+Reclamo abierto por inquilino o agente.
+
+- `id`, `tenantId`, `contractId?`, `propertyId`, `categoryId`, `status`, `openedById`, `assignedProviderId?`.
+
+### TicketComment / TicketAttachment
+
+Conversación y archivos asociados al ticket.
+
+## Portal
+
+### InquilinoCredential
+
+Credenciales del inquilino para el portal de autogestión.
+
+- `id`, `tenantId`, `personId`, `email`, `passwordHash`, `isActive`.
+
+### PortalRefreshToken
+
+Equivalente al `RefreshToken` para usuarios internos, pero acotado al portal.
+
+### PortalInvitation
+
+Invitación al inquilino para activar su acceso.
+
+## Scoring y notificaciones
+
+### TenantScoreConfig / TenantScore
+
+Configuración de los criterios de scoring y resultado calculado por inquilino.
+
+### Notification
+
+Cola de notificaciones a enviar (email, in-app).
+
+### EmailTemplate
+
+Plantillas reutilizables de email por evento.
+
+## Relaciones críticas
+
+- `Tenant` 1-N `User`, `Property`, `Person`, `Contract`, `Liquidacion`, `Lead`, `Ticket`.
+- `Property` 1-N `Contract` (a lo largo del tiempo) y 1-1 `Person` propietario (rol activo).
+- `Contract` N-M `Person` mediante `ContractPerson`.
+- `Contract` 1-N `Liquidacion` 1-N `LiquidacionLineItem`.
+- `Liquidacion` 1-N `Payment` y 1-1 `Comprobante`.
+- `Lead` N-1 `PipelineStage` y N-1 `Pipeline`.
+- `Ticket` N-1 `Property`, N-1 `TicketCategory`, N-1 `ProviderProfile` (opcional).
+- `InquilinoCredential` 1-1 `Person` (rol inquilino).
