@@ -192,3 +192,5 @@ Redacción del informe de tesis, preparación de presentación y ensayos de defe
 
 - Prioridad: alta.
 - Dependencias: 28.
+
+<!-- Cierre item 04 — backlog priorizado -->
