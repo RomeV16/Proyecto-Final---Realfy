@@ -1,0 +1,92 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+dist/
+build/
+.next/
+out/
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+*.db-shm
+*.db-wal
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+
+# GSD browser state (may contain auth tokens)
+.gsd/browser-state/
+.gsd/browser-baselines/
+
+# Prisma
+prisma/*.db
+
+# Docker
+docker-compose.override.yml
+
+# S3 local uploads (dev)
+uploads/
+
+# Background shell state
+.bg-shell/
+
+# ── GSD baseline (auto-generated) ──
+*~
+*.code-workspace
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+venv/
+target/
+vendor/
+.cache/
+tmp/
+
+# GSD runtime
+.gsd/worktrees/
+.gsd/gsd.db
+.gsd/runtime/
+.gsd/activity/
+.gsd/journal/
+.gsd/completed-units.json
+.gsd/metrics.json
+.gsd/state-manifest.json
+.gsd/event-log.jsonl
+.gsd/doctor-history.jsonl
+.gsd/browser-state/
+.gsd/browser-baselines/
+arca-certs/
+
+# Playwright
+e2e/.auth/
+playwright-report/
+test-results/
+blob-report/
