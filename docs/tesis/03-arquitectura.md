@@ -77,3 +77,5 @@ La internacionalización se resuelve con `next-intl`. Las claves de traducción 
 - **Playwright para e2e**: pruebas escritas en TypeScript, reutilizando los tipos compartidos.
 - **next-intl** en lugar de soluciones manuales: integración nativa con App Router y soporte para mensajes con interpolación.
 - **JWT con rotación de refresh**: prevención de reuso de tokens robados sin requerir base de sesiones server-side compleja.
+
+<!-- Cierre item 03 — listo para Hito 1 (2026-05-15) -->
