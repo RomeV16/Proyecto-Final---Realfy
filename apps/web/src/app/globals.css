@@ -1,0 +1,289 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Typography ── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-script: "Pacifico", cursive;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* ── Brand palette — Realfy blue ── */
+  /* Anchor: hsl(210 85% 42%) — primary */
+  --color-brand-50:  #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #b9d7fe;
+  --color-brand-300: #7eb6fc;
+  --color-brand-400: #3b89f0;
+  --color-brand-500: #1068c8;
+  --color-brand-600: #0e5cb1;
+  --color-brand-700: #0b4c93;
+  --color-brand-800: #0a3d75;
+  --color-brand-900: #072b54;
+
+  /* Purple accent — gradient companion (auth panel / logo mark) */
+  --color-accent-400: #9f75ec;
+  --color-accent-500: #8249e7;
+  --color-accent-600: #6d2fd8;
+
+  /* ── Sidebar ── */
+  --color-sidebar-bg: #0f172a;
+  --color-sidebar-text: #cbd5e1;
+  --color-sidebar-hover: #1e293b;
+  --color-sidebar-active: #1068c8;
+
+  /* ── Semantic surface + text ── */
+  --color-bg: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-border: #dfe4ec;
+  --color-text: #1d2533;
+  --color-muted: #64748b;
+
+  /* Semantic status */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger:  #ef4444;
+  --color-info:    #3a8bdb;
+
+  /* ── Spacing scale (rem) ── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-9: 2.25rem;
+  --space-10: 2.5rem;
+  --space-11: 2.75rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* ── Radii — Realfy ladder (8 → 24) ── */
+  --radius-sm: 0.5rem;    /* 8  — chips, small inputs */
+  --radius-md: 0.625rem;  /* 10 */
+  --radius-lg: 0.75rem;   /* 12 — default buttons, inputs */
+  --radius-xl: 1rem;      /* 16 — cards */
+  --radius-2xl: 1.25rem;  /* 20 — KPI tiles, alert panels */
+  --radius-3xl: 1.5rem;   /* 24 — signature: property cards, auth panel */
+
+  /* ── Typographic scale ── */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+
+  /* ── Line height ── */
+  --leading-tight: 1.1;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.6;
+
+  /* ── Letter spacing ── */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.06em;
+  --tracking-wider: 0.1em;
+
+  /* ── Shadow ladder ── */
+  --shadow-sm: 0 1px 2px 0 rgb(15 27 48 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(15 27 48 / 0.10);
+  --shadow-lg: 0 10px 15px -3px rgb(15 27 48 / 0.10);
+  --shadow-xl: 0 20px 25px -5px rgb(15 27 48 / 0.10);
+  --shadow-2xl: 0 25px 50px -12px rgb(15 27 48 / 0.25);
+  --shadow-glass: 0 20px 60px -15px rgb(15 27 48 / 0.30);
+
+  /* ── Animation tokens ── */
+  --animate-fade-in: fade-in 0.15s ease-out;
+  --animate-fade-out: fade-out 0.15s ease-out;
+  --animate-zoom-in: zoom-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-up: slide-up 0.2s ease-out;
+  --animate-slide-down: slide-down 0.15s ease-out;
+  --animate-entrance: entrance 0.6s ease-out;
+  --animate-scale-in: scale-in 0.4s ease-out;
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-float-slow: float 8s ease-in-out infinite;
+}
+
+/* ── Signature gradient utilities ── */
+.bg-gradient-primary  { background-image: linear-gradient(135deg, hsl(210 85% 42%), hsl(210 90% 52%)); }
+.bg-gradient-success  { background-image: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 75% 55%)); }
+.bg-gradient-hero     { background-image: linear-gradient(135deg, hsl(210 85% 42% / 0.05), hsl(210 70% 55% / 0.05)); }
+.bg-gradient-auth     { background-image: linear-gradient(135deg, hsl(223 87% 63%), hsl(262 83% 58%)); }
+.bg-gradient-auth-soft{ background-image: linear-gradient(135deg, hsl(223 87% 63% / 0.10), hsl(262 83% 58% / 0.10)); }
+.bg-gradient-logo     { background-image: linear-gradient(160deg, hsl(220 100% 67%), hsl(262 85% 65%)); }
+
+.text-gradient-primary {
+  background-image: linear-gradient(135deg, hsl(210 85% 42%), hsl(210 90% 52%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.text-gradient-auth {
+  background-image: linear-gradient(135deg, hsl(223 87% 63%), hsl(262 83% 58%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Glass surface (backdrop-blur card) ── */
+.glass-card {
+  background-color: rgb(255 255 255 / 0.10);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgb(255 255 255 / 0.20);
+  box-shadow: var(--shadow-xl);
+  border-radius: var(--radius-2xl);
+}
+
+/* ── Dark mode (toggle via <html class="dark">) ── */
+.dark {
+  --color-bg: #0d1424;
+  --color-surface: #141c2f;
+  --color-border: #273043;
+  --color-text: #e4eaf2;
+  --color-muted: #8a97ab;
+
+  --color-sidebar-bg: #111a2c;
+  --color-sidebar-text: #d5dce8;
+  --color-sidebar-hover: #1d2539;
+  --color-sidebar-active: #2388ff;
+
+  --color-brand-500: #2388ff;
+  --color-brand-600: #1974e0;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.30);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.40);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.40);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.50);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.60);
+}
+.dark .glass-card {
+  background-color: rgb(15 23 42 / 0.30);
+  border-color: rgb(255 255 255 / 0.10);
+}
+
+/* ── Keyframes ── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes zoom-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes entrance {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent horizontal scroll */
+body {
+  overflow-x: hidden;
+}
+
+/* Focus ring utility */
+*:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+/* Semantic heading utilities */
+.h1 {
+  font-size: clamp(1.875rem, 2.4vw, 2.25rem);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.h2 {
+  font-size: clamp(1.5rem, 2vw, 1.875rem);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-tight);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.h3 {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  color: var(--color-text);
+}
+
+.h4 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.text-muted { color: var(--color-muted); }
+
+.text-body {
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+}
+
+.lead {
+  font-size: var(--text-lg);
+  color: var(--color-muted);
+  line-height: var(--leading-normal);
+}
+
+.micro {
+  font-size: var(--text-xs);
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  font-weight: 600;
+}
+
+/* Big money number — contract rent, property price */
+.numeric-xl {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Realfy wordmark — script logo text fallback */
+.wordmark {
+  font-family: var(--font-script);
+  font-weight: 400;
+  color: #1e3352;
+  font-size: 2.25rem;
+  letter-spacing: -0.01em;
+}
