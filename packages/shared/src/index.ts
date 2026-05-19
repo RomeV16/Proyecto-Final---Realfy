@@ -41,6 +41,14 @@ export {
   TicketPriority,
 } from './enums';
 
+// Schemas — usuarios y autenticacion
+export {
+  CreateUserSchema,
+  InviteUserSchema,
+  LoginSchema,
+  RegisterSchema,
+} from './schemas/user.schema';
+
 // Constants & utilities
 export {
   ROLE_PERMISSIONS,
