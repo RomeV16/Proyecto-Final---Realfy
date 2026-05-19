@@ -1,0 +1,47 @@
+# ── Web Dockerfile ──────────────────────────────────────────
+# Multi-stage build for the Next.js frontend (standalone output)
+# Build: docker build -f Dockerfile.web -t realfy-web .
+
+FROM node:22-alpine AS base
+RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+WORKDIR /app
+
+# ── Install deps ──
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json apps/web/
+COPY packages/shared/package.json packages/shared/
+RUN pnpm install --frozen-lockfile
+
+# ── Build shared package ──
+FROM deps AS build-shared
+COPY packages/shared packages/shared
+RUN pnpm --filter @realfy/shared build
+
+# ── Build web ──
+FROM build-shared AS build-web
+COPY apps/web apps/web
+# Ensure public dir exists (may be empty)
+RUN mkdir -p apps/web/public
+# Build-time env vars
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+RUN pnpm --filter @realfy/web build
+
+# ── Production image ──
+FROM node:22-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+
+# Copy standalone output
+COPY --from=build-web /app/apps/web/.next/standalone ./
+COPY --from=build-web /app/apps/web/.next/static ./apps/web/.next/static
+# public dir may be empty but must exist for Next.js
+COPY --from=build-web /app/apps/web/public ./apps/web/public
+
+EXPOSE 3000
+
+CMD ["node", "apps/web/server.js"]
