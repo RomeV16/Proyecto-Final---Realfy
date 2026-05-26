@@ -1,0 +1,34 @@
+{
+  "name": "realfy",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.32.1",
+  "description": "CRM SaaS para Inmobiliarias",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "test:e2e": "playwright test"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@parcel/watcher",
+      "@prisma/client",
+      "@prisma/engines",
+      "@swc/core",
+      "bcrypt",
+      "prisma",
+      "sharp"
+    ]
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "turbo": "^2.4.0",
+    "typescript": "^5.7.0"
+  },
+  "prisma": {
+    "schema": "apps/api/prisma/schema.prisma"
+  }
+}
