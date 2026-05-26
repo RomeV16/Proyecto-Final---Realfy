@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  # En esta etapa el pipeline valida que el monorepo instale y compile.
+  # Las suites de tests unitarios, e2e de API y Playwright se incorporan
+  # en el item 27 (pruebas integrales), cuando haya cobertura que medir.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @realfy/shared build
+
+      - name: Generate Prisma client
+        run: cd apps/api && npx prisma generate
+
+      - name: Build API
+        run: pnpm --filter @realfy/api build
