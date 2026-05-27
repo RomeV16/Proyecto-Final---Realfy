@@ -49,6 +49,21 @@ export {
   RegisterSchema,
 } from './schemas/user.schema';
 
+// Schemas — inmobiliarias (tenants)
+export {
+  CreateTenantSchema,
+  UpdateTenantSchema,
+} from './schemas/tenant.schema';
+
+// Types — inmobiliarias
+import type { z } from 'zod';
+import {
+  CreateTenantSchema as _CreateTenantSchema,
+  UpdateTenantSchema as _UpdateTenantSchema,
+} from './schemas/tenant.schema';
+export type CreateTenantInput = z.infer<typeof _CreateTenantSchema>;
+export type UpdateTenantInput = z.infer<typeof _UpdateTenantSchema>;
+
 // Constants & utilities
 export {
   ROLE_PERMISSIONS,
