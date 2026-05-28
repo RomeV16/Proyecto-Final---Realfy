@@ -1,21 +1,13 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
-import createMDX from '@next/mdx';
-import remarkGfm from 'remark-gfm';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
-const withMDX = createMDX({
-  options: {
-    remarkPlugins: [remarkGfm],
-  },
-});
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  pageExtensions: ['ts', 'tsx', 'md', 'mdx'],
   async rewrites() {
-    // In production, the API is a separate service — no rewrite needed
-    // In development, proxy /api to the local NestJS server
+    // En producción la API es un servicio separado — no se necesita rewrite
+    // En desarrollo, proxy de /api al servidor NestJS local
     if (process.env.NODE_ENV === 'production') return [];
     return [
       {
@@ -26,4 +18,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withMDX(withNextIntl(nextConfig));
+export default withNextIntl(nextConfig);
