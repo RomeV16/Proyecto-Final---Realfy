@@ -1,0 +1,37 @@
+{
+  "app": {
+    "name": "Realfy",
+    "tagline": "Gestión inmobiliaria inteligente"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "properties": "Propiedades",
+    "persons": "Personas",
+    "contracts": "Contratos",
+    "liquidaciones": "Liquidaciones",
+    "invoices": "Facturación",
+    "leads": "Leads",
+    "reports": "Reportes",
+    "settings": "Configuración"
+  },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "create": "Crear",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "logout": "Cerrar sesión",
+    "back": "Volver"
+  },
+  "dashboard": {
+    "title": "Panel de control",
+    "subtitle": "Resumen de tu inmobiliaria",
+    "stats": {
+      "occupancy": "Ocupación",
+      "activeContracts": "Contratos activos",
+      "monthlyCollections": "Cobranzas del mes"
+    }
+  }
+}
