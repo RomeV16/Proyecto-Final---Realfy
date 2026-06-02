@@ -39,6 +39,47 @@ enum AuditAction {
   DELETE
 }
 
+// ─── Property Enums ─────────────────────────────────────
+
+enum PropertyType {
+  Departamento
+  Casa
+  PH
+  Duplex
+  Triplex
+  Local
+  Oficina
+  Consultorio
+  Galpon
+  Deposito
+  Terreno
+  Lote
+  Campo
+  Cochera
+  Quincho
+  Hotel
+  Fondo_de_comercio
+  Edificio
+  Otro
+}
+
+enum PropertyOperationType {
+  Venta
+  Alquiler
+  Temporario
+}
+
+enum PropertyState {
+  Borrador
+  Disponible
+  Reservado
+  Alquilado
+  Vendido
+  Ocupado
+  Suspendido
+  Archivado
+}
+
 // ─── Auth & Tenancy Models ──────────────────────────────
 
 model Tenant {
@@ -60,6 +101,7 @@ model Tenant {
   users       User[]
   invitations UserInvitation[]
   auditLogs   AuditLog[]
+  properties  Property[]
 
   @@map("tenants")
 }
@@ -139,4 +181,112 @@ model UserInvitation {
   @@index([tenantId])
   @@index([token])
   @@map("user_invitations")
+}
+
+// ─── Property Models ────────────────────────────────────
+
+model Property {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  type        PropertyType
+
+  // Address
+  street      String?
+  number      String?
+  floor       String?
+  apartment   String?
+  city        String?
+  province    String?
+  zipCode     String?
+  country     String       @default("Argentina")
+
+  // Geolocation
+  latitude    Float?
+  longitude   Float?
+
+  // Characteristics
+  area        Float?
+  rooms       Int?
+  bedrooms    Int?
+  bathrooms   Int?
+  garages     Int?
+  age         Int?
+  orientation String?
+  amenities   String[]
+
+  // Pricing (default / display price)
+  price       Decimal?     @db.Decimal(15, 2)
+  currency    Currency     @default(ARS)
+
+  isActive    Boolean      @default(true)
+  tenantId    String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  operations   PropertyOperation[]
+  media        PropertyMedia[]
+  priceHistory PriceHistory[]
+
+  @@index([tenantId])
+  @@index([tenantId, type])
+  @@index([tenantId, isActive])
+  @@map("properties")
+}
+
+model PropertyOperation {
+  id            String                @id @default(uuid())
+  propertyId    String
+  operationType PropertyOperationType
+  state         PropertyState         @default(Borrador)
+  price         Decimal?              @db.Decimal(15, 2)
+  currency      Currency              @default(ARS)
+  tenantId      String
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, operationType])
+  @@index([tenantId])
+  @@index([tenantId, state])
+  @@map("property_operations")
+}
+
+model PropertyMedia {
+  id           String  @id @default(uuid())
+  propertyId   String
+  url          String
+  thumbnailUrl String?
+  mimeType     String
+  sizeBytes    Int?
+  width        Int?
+  height       Int?
+  sortOrder    Int     @default(0)
+  isPrimary    Boolean @default(false)
+  tenantId     String
+  createdAt    DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([propertyId, sortOrder])
+  @@map("property_media")
+}
+
+model PriceHistory {
+  id              String   @id @default(uuid())
+  propertyId      String
+  price           Decimal  @db.Decimal(15, 2)
+  currency        Currency @default(ARS)
+  changedAt       DateTime @default(now())
+  changedByUserId String?
+  tenantId        String
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([propertyId, changedAt])
+  @@map("price_history")
 }
