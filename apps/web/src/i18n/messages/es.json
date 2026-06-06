@@ -33,5 +33,13 @@
       "activeContracts": "Contratos activos",
       "monthlyCollections": "Cobranzas del mes"
     }
+  },
+  "properties": {
+    "title": "Propiedades",
+    "subtitle": "Gestioná tu cartera de inmuebles"
+  },
+  "persons": {
+    "title": "Personas",
+    "subtitle": "Propietarios, inquilinos y garantes"
   }
 }
