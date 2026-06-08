@@ -33,6 +33,12 @@ enum Currency {
   USD
 }
 
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
 // ─── Auth & Tenancy Models ──────────────────────────────
 
 model Tenant {
@@ -53,6 +59,7 @@ model Tenant {
 
   users       User[]
   invitations UserInvitation[]
+  auditLogs   AuditLog[]
 
   @@map("tenants")
 }
@@ -73,6 +80,7 @@ model User {
   tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   refreshTokens RefreshToken[]
   invitations   UserInvitation[] @relation("InvitedByUser")
+  auditLogs     AuditLog[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -91,6 +99,27 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id        String      @id @default(uuid())
+  tenantId  String
+  userId    String?
+  action    AuditAction
+  entity    String
+  entityId  String?
+  changes   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime    @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, entity])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 model UserInvitation {
