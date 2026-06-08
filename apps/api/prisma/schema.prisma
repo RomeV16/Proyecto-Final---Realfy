@@ -8,3 +8,106 @@ datasource db {
 }
 
 // Modelos se agregan progresivamente por feature
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum UserRole {
+  Admin
+  Gerente
+  Ventas
+  Liquidaciones
+  Marketing
+  Soporte
+  Lectura
+}
+
+enum TenantTier {
+  Free
+  Starter
+  Professional
+  Enterprise
+}
+
+enum Currency {
+  ARS
+  USD
+}
+
+// ─── Auth & Tenancy Models ──────────────────────────────
+
+model Tenant {
+  id             String     @id @default(uuid())
+  name           String
+  cuit           String
+  province       String
+  timezone       String     @default("America/Buenos_Aires")
+  currency       Currency   @default(ARS)
+  tier           TenantTier @default(Professional)
+  brandPrimary   String?
+  brandSecondary String?
+  logoUrl        String?
+  penaltyConfig  Json?
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  users       User[]
+  invitations UserInvitation[]
+
+  @@map("tenants")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole  @default(Lectura)
+  tenantId     String
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+  invitations   UserInvitation[] @relation("InvitedByUser")
+
+  @@unique([email, tenantId])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model UserInvitation {
+  id              String    @id @default(uuid())
+  email           String
+  role            UserRole
+  tenantId        String
+  invitedByUserId String
+  token           String    @unique
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invitedBy User   @relation("InvitedByUser", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([token])
+  @@map("user_invitations")
+}
