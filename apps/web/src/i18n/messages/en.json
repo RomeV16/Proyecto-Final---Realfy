@@ -33,5 +33,13 @@
       "activeContracts": "Active contracts",
       "monthlyCollections": "Monthly collections"
     }
+  },
+  "properties": {
+    "title": "Properties",
+    "subtitle": "Manage your property portfolio"
+  },
+  "persons": {
+    "title": "Persons",
+    "subtitle": "Owners, tenants and guarantors"
   }
 }

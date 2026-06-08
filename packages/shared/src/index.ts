@@ -55,7 +55,16 @@ export {
   UpdateTenantSchema,
 } from './schemas/tenant.schema';
 
-// Types — inmobiliarias
+// Schemas — propiedades
+export {
+  CreatePropertySchema,
+  UpdatePropertySchema,
+  PropertyFilterSchema,
+  CreatePropertyOperationSchema,
+  TransitionPropertyStateSchema,
+} from './schemas/property.schema';
+
+// Types
 import type { z } from 'zod';
 import {
   CreateTenantSchema as _CreateTenantSchema,
@@ -63,6 +72,30 @@ import {
 } from './schemas/tenant.schema';
 export type CreateTenantInput = z.infer<typeof _CreateTenantSchema>;
 export type UpdateTenantInput = z.infer<typeof _UpdateTenantSchema>;
+
+import {
+  CreatePropertySchema as _CreatePropertySchema,
+  UpdatePropertySchema as _UpdatePropertySchema,
+  PropertyFilterSchema as _PropertyFilterSchema,
+  CreatePropertyOperationSchema as _CreatePropertyOperationSchema,
+  TransitionPropertyStateSchema as _TransitionPropertyStateSchema,
+} from './schemas/property.schema';
+export type CreatePropertyInput = z.infer<typeof _CreatePropertySchema>;
+export type UpdatePropertyInput = z.infer<typeof _UpdatePropertySchema>;
+export type PropertyFilterInput = z.infer<typeof _PropertyFilterSchema>;
+export type CreatePropertyOperationInput = z.infer<
+  typeof _CreatePropertyOperationSchema
+>;
+export type TransitionPropertyStateInput = z.infer<
+  typeof _TransitionPropertyStateSchema
+>;
+
+// State machine
+export {
+  PROPERTY_TRANSITIONS,
+  validateTransition,
+  getValidTransitions,
+} from './state-machine/property-state-machine';
 
 // Constants & utilities
 export {
