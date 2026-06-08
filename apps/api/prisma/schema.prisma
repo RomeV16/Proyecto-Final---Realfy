@@ -80,6 +80,25 @@ enum PropertyState {
   Archivado
 }
 
+// ─── Person Enums ───────────────────────────────────────
+
+enum PersonRole {
+  Propietario
+  Inquilino
+  Garante
+  Lead
+  Comprador
+  Proveedor
+}
+
+enum FiscalCondition {
+  ResponsableInscripto
+  Monotributista
+  ConsumidorFinal
+  Exento
+  NoResponsable
+}
+
 // ─── Auth & Tenancy Models ──────────────────────────────
 
 model Tenant {
@@ -102,6 +121,7 @@ model Tenant {
   invitations UserInvitation[]
   auditLogs   AuditLog[]
   properties  Property[]
+  persons     Person[]
 
   @@map("tenants")
 }
@@ -289,4 +309,85 @@ model PriceHistory {
   @@index([tenantId])
   @@index([propertyId, changedAt])
   @@map("price_history")
+}
+
+// ─── Person Models ──────────────────────────────────────
+
+model Person {
+  id              String           @id @default(uuid())
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String?
+  phone2          String?
+  cuit            String?
+  fiscalCondition FiscalCondition?
+  bankName        String?
+  cbu             String?
+  bankAlias       String?
+  notes           String?
+  isActive        Boolean          @default(true)
+  tenantId        String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roles           PersonRoleAssignment[]
+  documents       PersonDocument[]
+  providerProfile ProviderProfile?
+
+  @@unique([tenantId, cuit])
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@index([tenantId, firstName, lastName])
+  @@map("persons")
+}
+
+model ProviderProfile {
+  id            String   @id @default(uuid())
+  personId      String   @unique
+  tenantId      String
+  rubros        String[]
+  coverageZones String[]
+  isActive      Boolean  @default(true)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@map("provider_profiles")
+}
+
+model PersonRoleAssignment {
+  id         String     @id @default(uuid())
+  personId   String
+  role       PersonRole
+  tenantId   String
+  assignedAt DateTime   @default(now())
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([personId, role])
+  @@index([tenantId])
+  @@map("person_role_assignments")
+}
+
+model PersonDocument {
+  id         String   @id @default(uuid())
+  personId   String
+  tenantId   String
+  fileName   String
+  url        String
+  mimeType   String
+  sizeBytes  Int?
+  uploadedAt DateTime @default(now())
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([personId])
+  @@map("person_documents")
 }

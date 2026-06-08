@@ -64,6 +64,15 @@ export {
   TransitionPropertyStateSchema,
 } from './schemas/property.schema';
 
+// Schemas — personas
+export {
+  CreatePersonSchema,
+  UpdatePersonSchema,
+  PersonFilterSchema,
+  AssignPersonRoleSchema,
+  validateCuit,
+} from './schemas/person.schema';
+
 // Types
 import type { z } from 'zod';
 import {
@@ -89,6 +98,17 @@ export type CreatePropertyOperationInput = z.infer<
 export type TransitionPropertyStateInput = z.infer<
   typeof _TransitionPropertyStateSchema
 >;
+
+import {
+  CreatePersonSchema as _CreatePersonSchema,
+  UpdatePersonSchema as _UpdatePersonSchema,
+  PersonFilterSchema as _PersonFilterSchema,
+  AssignPersonRoleSchema as _AssignPersonRoleSchema,
+} from './schemas/person.schema';
+export type CreatePersonInput = z.infer<typeof _CreatePersonSchema>;
+export type UpdatePersonInput = z.infer<typeof _UpdatePersonSchema>;
+export type PersonFilterInput = z.infer<typeof _PersonFilterSchema>;
+export type AssignPersonRoleInput = z.infer<typeof _AssignPersonRoleSchema>;
 
 // State machine
 export {
