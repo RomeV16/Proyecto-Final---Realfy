@@ -6,13 +6,16 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 const nextConfig: NextConfig = {
   output: 'standalone',
   async rewrites() {
-    // En producción la API es un servicio separado — no se necesita rewrite
-    // En desarrollo, proxy de /api al servidor NestJS local
-    if (process.env.NODE_ENV === 'production') return [];
+    // Proxy de /api al backend para que el frontend lo consuma same-origin
+    // (evita problemas de CORS y de cookies entre dominios).
+    // En produccion se resuelve por la red privada de Railway via API_PROXY_TARGET;
+    // en desarrollo apunta al NestJS local.
+    const target =
+      process.env.API_PROXY_TARGET || 'http://localhost:3001';
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
+        destination: `${target}/api/:path*`,
       },
     ];
   },

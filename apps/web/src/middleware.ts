@@ -16,11 +16,6 @@ const publicPaths = [
   '/casos',
   '/nosotros',
   '/contacto',
-  // Vista previa de las pantallas en construccion para la demo.
-  // El gating por sesion se reactiva cuando se integre el login del front.
-  '/dashboard',
-  '/propiedades',
-  '/personas',
 ];
 
 // Only strip a leading segment if it matches a configured locale (or a
