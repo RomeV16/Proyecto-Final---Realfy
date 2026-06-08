@@ -1,22 +1,41 @@
-import { Sidebar } from '@/components/layout/sidebar';
-import { Header } from '@/components/layout/header';
+'use client';
 
-/**
- * Shell de la app autenticada: sidebar de navegación + header + área de contenido.
- * Los providers (auth, react-query, tours) se integran en items posteriores.
- */
-export default function AppLayout({
+import { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
+import { AuthProvider } from '@/lib/auth-context';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { AppLayout } from '@/components/layout/app-layout';
+import { GlobalLoadingBar } from '@/components/layout/global-loading-bar';
+
+function makeQueryClient() {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 30_000, // 30s — avoid re-fetching on every mount
+        retry: 1,
+      },
+    },
+  });
+}
+
+export default function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // useState ensures one QueryClient per component lifecycle (safe with React 19 SSR)
+  const [queryClient] = useState(makeQueryClient);
+
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <div className="flex flex-1 flex-col">
-        <Header />
-        <main className="flex-1 p-6">{children}</main>
-      </div>
-    </div>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <ErrorBoundary>
+          <GlobalLoadingBar />
+          <AppLayout>{children}</AppLayout>
+        </ErrorBoundary>
+      </QueryClientProvider>
+      <Toaster richColors position="top-right" />
+    </AuthProvider>
   );
 }
