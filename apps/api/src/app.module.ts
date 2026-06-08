@@ -10,6 +10,7 @@ import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { PropertiesModule } from './modules/properties/properties.module';
+import { PersonsModule } from './modules/persons/persons.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
 import { AuditInterceptor } from './common/audit/audit.interceptor';
@@ -28,6 +29,7 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     UsersModule,
     AuditLogsModule,
     PropertiesModule,
+    PersonsModule,
   ],
   controllers: [HealthController],
   providers: [
