@@ -23,9 +23,11 @@ FROM build-shared AS build-web
 COPY apps/web apps/web
 # Ensure public dir exists (may be empty)
 RUN mkdir -p apps/web/public
-# Build-time env vars
+# Build-time env vars (Next.js hornea NEXT_PUBLIC_* y los rewrites en build)
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ARG API_PROXY_TARGET
+ENV API_PROXY_TARGET=${API_PROXY_TARGET}
 RUN pnpm --filter @realfy/web build
 
 # ── Production image ──
