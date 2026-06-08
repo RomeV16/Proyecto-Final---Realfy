@@ -4,10 +4,12 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { TenantContextModule } from './common/tenant/tenant-context.module';
+import { MediaModule } from './common/media/media.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
+import { PropertiesModule } from './modules/properties/properties.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
 import { AuditInterceptor } from './common/audit/audit.interceptor';
@@ -20,10 +22,12 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     }),
     TenantContextModule,
     PrismaModule,
+    MediaModule,
     AuthModule,
     TenantsModule,
     UsersModule,
     AuditLogsModule,
+    PropertiesModule,
   ],
   controllers: [HealthController],
   providers: [
