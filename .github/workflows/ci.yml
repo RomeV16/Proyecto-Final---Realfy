@@ -42,3 +42,6 @@ jobs:
 
       - name: Build API
         run: pnpm --filter @realfy/api build
+
+      - name: Build Web
+        run: pnpm --filter @realfy/web build

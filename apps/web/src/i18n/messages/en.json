@@ -1,0 +1,37 @@
+{
+  "app": {
+    "name": "Realfy",
+    "tagline": "Smart real estate management"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "properties": "Properties",
+    "persons": "Persons",
+    "contracts": "Contracts",
+    "liquidaciones": "Settlements",
+    "invoices": "Invoicing",
+    "leads": "Leads",
+    "reports": "Reports",
+    "settings": "Settings"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search",
+    "loading": "Loading...",
+    "logout": "Log out",
+    "back": "Back"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Overview of your agency",
+    "stats": {
+      "occupancy": "Occupancy",
+      "activeContracts": "Active contracts",
+      "monthlyCollections": "Monthly collections"
+    }
+  }
+}
