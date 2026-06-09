@@ -16,6 +16,21 @@ interface PersonRoleAssignment {
   id: string;
   role: string;
   assignedAt: string;
+  propertyId?: string | null;
+  guarantorForPersonId?: string | null;
+}
+
+interface PropertyOption {
+  id: string;
+  title: string;
+  street?: string;
+  city?: string;
+}
+
+interface PersonOption {
+  id: string;
+  firstName: string;
+  lastName: string;
 }
 
 interface PersonDocument {
@@ -74,6 +89,9 @@ function formatFileSize(bytes: number): string {
 
 /* ──────────── Role Management Section ──────────── */
 
+const ROLES_NEED_PROPERTY = [PersonRole.Propietario, PersonRole.Inquilino, PersonRole.Comprador];
+const ROLES_NEED_GUARANTEE = [PersonRole.Garante];
+
 function RoleSection({
   personId,
   roles,
@@ -88,6 +106,10 @@ function RoleSection({
   const t = useTranslations('persons');
   const tRoles = useTranslations('persons.roles');
   const [newRole, setNewRole] = useState('');
+  const [propertyId, setPropertyId] = useState('');
+  const [guarantorForPersonId, setGuarantorForPersonId] = useState('');
+  const [properties, setProperties] = useState<PropertyOption[]>([]);
+  const [propietarios, setPropietarios] = useState<PersonOption[]>([]);
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -97,17 +119,42 @@ function RoleSection({
     (r) => !assignedRoles.includes(r)
   );
 
+  const needsProperty = ROLES_NEED_PROPERTY.includes(newRole as PersonRole);
+  const needsGuarantee = ROLES_NEED_GUARANTEE.includes(newRole as PersonRole);
+
+  // Load properties when role needs one
+  useEffect(() => {
+    if (!needsProperty && !needsGuarantee) return;
+    if (needsProperty && properties.length === 0) {
+      apiClient<{ items: PropertyOption[] }>('/properties?limit=100&isActive=true')
+        .then((r) => setProperties(r.items))
+        .catch(() => {});
+    }
+    if (needsGuarantee && propietarios.length === 0) {
+      apiClient<{ items: { id: string; firstName: string; lastName: string }[] }>(
+        '/persons?limit=100&role=Propietario'
+      )
+        .then((r) => setPropietarios(r.items))
+        .catch(() => {});
+    }
+  }, [needsProperty, needsGuarantee, properties.length, propietarios.length]);
+
   async function handleAddRole() {
     if (!newRole) return;
     setAdding(true);
     setError('');
     try {
+      const payload: Record<string, unknown> = { role: newRole };
+      if (needsProperty && propertyId) payload.propertyId = propertyId;
+      if (needsGuarantee && guarantorForPersonId) payload.guarantorForPersonId = guarantorForPersonId;
       const res = await apiClient<PersonRoleAssignment>(`/persons/${personId}/roles`, {
         method: 'POST',
-        body: JSON.stringify({ role: newRole }),
+        body: JSON.stringify(payload),
       });
       onRolesChange([...roles, res]);
       setNewRole('');
+      setPropertyId('');
+      setGuarantorForPersonId('');
     } catch (err) {
       if (err instanceof ApiRequestError) setError(err.message);
     } finally {
@@ -145,8 +192,13 @@ function RoleSection({
       ) : (
         <div className="flex flex-wrap gap-2 mb-4">
           {roles.map((r) => (
-            <div key={r.id} className="inline-flex items-center gap-1">
+            <div key={r.id} className="inline-flex items-center gap-1.5">
               <PersonRoleBadge role={r.role} size="md" />
+              {(r.propertyId || r.guarantorForPersonId) && (
+                <span className="text-xs text-slate-500 italic">
+                  {r.propertyId ? `#${r.propertyId.slice(0, 8)}` : `↳ #${r.guarantorForPersonId?.slice(0, 8)}`}
+                </span>
+              )}
               {canEdit && (
                 <button
                   type="button"
@@ -166,25 +218,64 @@ function RoleSection({
       )}
 
       {canEdit && availableRoles.length > 0 && (
-        <div className="flex items-end gap-3 pt-2 border-t border-slate-100">
-          <div className="flex-1">
-            <label htmlFor="newRole" className="block text-sm font-medium text-slate-700 mb-1.5">
-              {tRoles('add')}
-            </label>
-            <select
-              id="newRole"
-              value={newRole}
-              onChange={(e) => setNewRole(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            >
-              <option value="">{tRoles('addPlaceholder')}</option>
-              {availableRoles.map((r) => (
-                <option key={r} value={r}>
-                  {t(`roles.${r}`)}
-                </option>
-              ))}
-            </select>
+        <div className="space-y-3 pt-2 border-t border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+            <div>
+              <label htmlFor="newRole" className="block text-sm font-medium text-slate-700 mb-1.5">
+                {tRoles('add')}
+              </label>
+              <select
+                id="newRole"
+                value={newRole}
+                onChange={(e) => { setNewRole(e.target.value); setPropertyId(''); setGuarantorForPersonId(''); }}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              >
+                <option value="">{tRoles('addPlaceholder')}</option>
+                {availableRoles.map((r) => (
+                  <option key={r} value={r}>{t(`roles.${r}`)}</option>
+                ))}
+              </select>
+            </div>
+
+            {needsProperty && (
+              <div>
+                <label htmlFor="roleProperty" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  {tRoles('property')}
+                </label>
+                <select
+                  id="roleProperty"
+                  value={propertyId}
+                  onChange={(e) => setPropertyId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                >
+                  <option value="">{tRoles('propertyPlaceholder')}</option>
+                  {properties.map((p) => (
+                    <option key={p.id} value={p.id}>{p.title}{p.street ? ` — ${p.street}` : ''}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {needsGuarantee && (
+              <div>
+                <label htmlFor="roleGuarantee" className="block text-sm font-medium text-slate-700 mb-1.5">
+                  {tRoles('guarantorFor')}
+                </label>
+                <select
+                  id="roleGuarantee"
+                  value={guarantorForPersonId}
+                  onChange={(e) => setGuarantorForPersonId(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                >
+                  <option value="">{tRoles('guarantorForPlaceholder')}</option>
+                  {propietarios.map((p) => (
+                    <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
+
           <button
             type="button"
             disabled={!newRole || adding}

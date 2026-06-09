@@ -68,6 +68,9 @@ export interface PropertyData {
   operations?: PropertyOperation[];
   media?: PropertyMedia[];
   priceHistory?: PriceHistoryEntry[];
+  // create-mode only: initial operation
+  initialOpType?: string;
+  initialOpState?: string;
 }
 
 const EMPTY_PROPERTY: PropertyData = {
@@ -92,6 +95,8 @@ const EMPTY_PROPERTY: PropertyData = {
   price: '',
   currency: 'USD',
   amenities: [],
+  initialOpType: '',
+  initialOpState: 'Disponible',
 };
 
 const AMENITY_OPTIONS = [
@@ -230,6 +235,16 @@ export function PropertyForm({
           method: 'POST',
           body: JSON.stringify(body),
         });
+        // Create initial operation if selected
+        if (form.initialOpType) {
+          await apiClient(`/properties/${res.id}/operations`, {
+            method: 'POST',
+            body: JSON.stringify({
+              operationType: form.initialOpType,
+              state: form.initialOpState || 'Disponible',
+            }),
+          });
+        }
         onSuccess?.(res.id);
       } else {
         await apiClient(`/properties/${propertyId}`, {
@@ -507,6 +522,43 @@ export function PropertyForm({
           </div>
         </div>
       </FormShell.Section>
+
+      {/* Initial Operation — only in create mode */}
+      {mode === 'create' && (
+        <FormShell.Section title={tForm('operations')} className="max-w-sm sm:max-w-none">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <InputLabel htmlFor="initialOpType">{tForm('operationType')}</InputLabel>
+              <select
+                id="initialOpType"
+                value={form.initialOpType || ''}
+                onChange={(e) => updateField('initialOpType', e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              >
+                <option value="">{tForm('operationTypePlaceholder')}</option>
+                {Object.values(PropertyOperationType).map((ot) => (
+                  <option key={ot} value={ot}>{t(`operationTypes.${ot}`)}</option>
+                ))}
+              </select>
+            </div>
+            {form.initialOpType && (
+              <div>
+                <InputLabel htmlFor="initialOpState">{tForm('state')}</InputLabel>
+                <select
+                  id="initialOpState"
+                  value={form.initialOpState || 'Disponible'}
+                  onChange={(e) => updateField('initialOpState', e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                >
+                  {Object.values(PropertyState).map((s) => (
+                    <option key={s} value={s}>{t(`states.${s}`)}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </FormShell.Section>
+      )}
 
       {/* Operations — only in edit mode */}
       {mode === 'edit' && (

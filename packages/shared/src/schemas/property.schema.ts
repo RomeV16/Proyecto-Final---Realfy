@@ -74,6 +74,7 @@ export const PropertyFilterSchema = z.object({
 export const CreatePropertyOperationSchema = z.object({
   propertyId: z.string().uuid(),
   operationType: z.nativeEnum(PropertyOperationType),
+  state: z.nativeEnum(PropertyState).optional(),
   price: z.number().nonnegative().optional(),
   currency: z.nativeEnum(Currency).default(Currency.ARS),
 });

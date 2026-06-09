@@ -315,7 +315,8 @@
       "created": "Propiedad creada exitosamente",
       "updated": "Propiedad actualizada exitosamente",
       "error": "No se pudo guardar la propiedad. Intentá nuevamente.",
-      "location": "Ubicación en el mapa"
+      "location": "Ubicación en el mapa",
+      "state": "Operation status"
     },
     "states": {
       "Borrador": "Borrador",
@@ -611,7 +612,11 @@
       "addPlaceholder": "Seleccioná un rol",
       "remove": "Quitar rol",
       "noRoles": "Sin roles asignados",
-      "alreadyAssigned": "Este rol ya está asignado"
+      "alreadyAssigned": "Este rol ya está asignado",
+      "property": "Linked property",
+      "propertyPlaceholder": "Select property (optional)",
+      "guarantorFor": "Guarantor for owner",
+      "guarantorForPlaceholder": "Select owner (optional)"
     },
     "fiscalConditions": {
       "ResponsableInscripto": "Responsable Inscripto",
