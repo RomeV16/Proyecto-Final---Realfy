@@ -1,13 +1,11 @@
-# Despliegue de demo en Railway
+# Despliegue en Railway
 
-Guia para levantar una version funcional del sistema (estado actual: items 05-10) en Railway para mostrarla en clase.
+Guia para levantar el sistema en Railway.
 
-Estado de la demo:
-- **API** (NestJS): funcional. Auth (registro/login/refresh), multi-inmobiliaria, auditoria, propiedades y personas. Endpoints bajo `/api`.
-- **Web** (Next.js): shell de la aplicacion con navegacion, dashboard y listados. En esta etapa muestra datos de ejemplo; la integracion con la API se completa en los items siguientes del roadmap.
-- **Base de datos**: PostgreSQL (plugin de Railway). Las tablas se crean con `prisma migrate deploy` al desplegar la API.
-
-No se usa Redis ni credenciales de ARCA en esta etapa.
+Componentes:
+- **API** (NestJS): autenticacion (registro/login/refresh), multi-inmobiliaria, auditoria, propiedades y personas. Endpoints bajo `/api`.
+- **Web** (Next.js): aplicacion con login, dashboard, propiedades y personas, consumiendo la API.
+- **Base de datos**: PostgreSQL. Las tablas se crean con `prisma migrate deploy` al desplegar la API.
 
 ## Requisitos
 

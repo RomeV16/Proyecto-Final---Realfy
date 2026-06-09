@@ -1,6 +1,6 @@
 # Realfy — Railway runbook
 
-Short operational guide. Full detail lives in the `railway-deploy` skill (`.claude/skills/railway-deploy.md`).
+Short operational guide for deploying the API and web services to Railway.
 
 ## One-time setup
 

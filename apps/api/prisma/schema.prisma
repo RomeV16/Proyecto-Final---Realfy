@@ -7,8 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modelos se agregan progresivamente por feature
-
 // ─── Enums ──────────────────────────────────────────────
 
 enum UserRole {
@@ -143,7 +141,6 @@ model User {
   refreshTokens RefreshToken[]
   invitations   UserInvitation[] @relation("InvitedByUser")
   auditLogs     AuditLog[]
-  tenantScores  TenantScore[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -337,7 +334,6 @@ model Person {
   roles           PersonRoleAssignment[]
   documents       PersonDocument[]
   providerProfile ProviderProfile?
-  tenantScore     TenantScore?
 
   @@unique([tenantId, cuit])
   @@index([tenantId])
@@ -400,25 +396,3 @@ model PersonDocument {
   @@map("person_documents")
 }
 
-model TenantScore {
-  id                   String   @id @default(uuid())
-  personId             String   @unique
-  tenantId             String
-  guaranteeScore       Int      @default(0)
-  jobStabilityScore    Int      @default(0)
-  referencesScore      Int      @default(0)
-  paymentHistoryScore  Int      @default(0)
-  manualRating         Int      @default(0)
-  totalScore           Decimal  @default(0) @db.Decimal(5, 2)
-  notes                String?
-  scoredByUserId       String?
-  scoredAt             DateTime @default(now())
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-
-  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
-  scoredBy User? @relation(fields: [scoredByUserId], references: [id], onDelete: SetNull)
-
-  @@index([tenantId])
-  @@map("tenant_scores")
-}
