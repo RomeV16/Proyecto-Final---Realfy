@@ -143,6 +143,7 @@ model User {
   refreshTokens RefreshToken[]
   invitations   UserInvitation[] @relation("InvitedByUser")
   auditLogs     AuditLog[]
+  tenantScores  TenantScore[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -244,10 +245,11 @@ model Property {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  operations   PropertyOperation[]
-  media        PropertyMedia[]
-  priceHistory PriceHistory[]
+  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  operations      PropertyOperation[]
+  media           PropertyMedia[]
+  priceHistory    PriceHistory[]
+  personRoles     PersonRoleAssignment[]
 
   @@index([tenantId])
   @@index([tenantId, type])
@@ -335,6 +337,7 @@ model Person {
   roles           PersonRoleAssignment[]
   documents       PersonDocument[]
   providerProfile ProviderProfile?
+  tenantScore     TenantScore?
 
   @@unique([tenantId, cuit])
   @@index([tenantId])
@@ -362,13 +365,18 @@ model ProviderProfile {
 }
 
 model PersonRoleAssignment {
-  id         String     @id @default(uuid())
-  personId   String
-  role       PersonRole
-  tenantId   String
-  assignedAt DateTime   @default(now())
+  id                   String     @id @default(uuid())
+  personId             String
+  role                 PersonRole
+  tenantId             String
+  assignedAt           DateTime   @default(now())
+  // optional link to property (for Propietario, Inquilino, Comprador, Garante)
+  propertyId           String?
+  // for Garante: which Propietario person they guarantee
+  guarantorForPersonId String?
 
-  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person   Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
 
   @@unique([personId, role])
   @@index([tenantId])
@@ -390,4 +398,27 @@ model PersonDocument {
   @@index([tenantId])
   @@index([personId])
   @@map("person_documents")
+}
+
+model TenantScore {
+  id                   String   @id @default(uuid())
+  personId             String   @unique
+  tenantId             String
+  guaranteeScore       Int      @default(0)
+  jobStabilityScore    Int      @default(0)
+  referencesScore      Int      @default(0)
+  paymentHistoryScore  Int      @default(0)
+  manualRating         Int      @default(0)
+  totalScore           Decimal  @default(0) @db.Decimal(5, 2)
+  notes                String?
+  scoredByUserId       String?
+  scoredAt             DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  scoredBy User? @relation(fields: [scoredByUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("tenant_scores")
 }

@@ -271,6 +271,8 @@ export class PersonsService {
         personId,
         role: validated.role,
         tenantId,
+        propertyId: validated.propertyId ?? null,
+        guarantorForPersonId: validated.guarantorForPersonId ?? null,
       },
     });
 

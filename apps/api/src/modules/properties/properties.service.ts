@@ -331,6 +331,7 @@ export class PropertiesService {
       data: {
         propertyId,
         operationType: validated.operationType,
+        state: (validated.state as any) ?? 'Borrador',
         price: validated.price,
         currency: validated.currency,
         tenantId,

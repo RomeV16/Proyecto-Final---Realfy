@@ -84,4 +84,6 @@ export const PersonFilterSchema = z.object({
 
 export const AssignPersonRoleSchema = z.object({
   role: z.nativeEnum(PersonRole),
+  propertyId: z.string().uuid().optional().nullable(),
+  guarantorForPersonId: z.string().uuid().optional().nullable(),
 });
