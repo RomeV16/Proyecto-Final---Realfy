@@ -1,13 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
-/**
- * Servicio de metricas del dashboard.
- *
- * En esta etapa expone metricas de propiedades (las entidades ya disponibles).
- * Los indicadores de contratos, liquidaciones y servicios se completan a medida
- * que esos modulos se incorporan al sistema (items siguientes del roadmap).
- */
 @Injectable()
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
@@ -26,7 +19,6 @@ export class DashboardService {
     return {
       totalProperties: total,
       occupancyRate,
-      // Indicadores de modulos aun no incorporados (se completan mas adelante).
       activeContracts: 0,
       pendingLiquidaciones: 0,
       totalServices: 0,
