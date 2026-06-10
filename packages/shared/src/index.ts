@@ -130,3 +130,26 @@ export {
 } from './constants';
 
 export type { Permission, DefaultStageDefinition } from './constants';
+
+// Schemas de formularios de auth (login/register del frontend)
+export { loginSchema } from './schemas/login';
+export type { LoginFormInput } from './schemas/login';
+export { registerSchema } from './schemas/register';
+export type { RegisterFormInput } from './schemas/register';
+
+// Respuesta de autenticacion
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+export interface AuthResponse {
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    tenantId: string;
+  };
+  tokens: AuthTokens;
+}
