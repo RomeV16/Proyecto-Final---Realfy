@@ -110,6 +110,10 @@ export type UpdatePersonInput = z.infer<typeof _UpdatePersonSchema>;
 export type PersonFilterInput = z.infer<typeof _PersonFilterSchema>;
 export type AssignPersonRoleInput = z.infer<typeof _AssignPersonRoleSchema>;
 
+// Schema de formulario de propiedades (frontend)
+export { propertyFormSchema } from './schemas/property.form';
+export type { PropertyFormInput } from './schemas/property.form';
+
 // State machine
 export {
   PROPERTY_TRANSITIONS,
