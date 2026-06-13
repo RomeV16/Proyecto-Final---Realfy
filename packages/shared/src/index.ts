@@ -114,6 +114,10 @@ export type AssignPersonRoleInput = z.infer<typeof _AssignPersonRoleSchema>;
 export { propertyFormSchema } from './schemas/property.form';
 export type { PropertyFormInput } from './schemas/property.form';
 
+// Schema de formulario de personas (frontend)
+export { personFormSchema } from './schemas/person.form';
+export type { PersonFormInput } from './schemas/person.form';
+
 // State machine
 export {
   PROPERTY_TRANSITIONS,
