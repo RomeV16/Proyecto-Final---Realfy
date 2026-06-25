@@ -97,6 +97,54 @@ enum FiscalCondition {
   NoResponsable
 }
 
+// ─── Contract Enums ─────────────────────────────────────
+
+enum ContractStatus {
+  Borrador
+  Activo
+  Vencido
+  Rescindido
+  Renovado
+  Archivado
+}
+
+enum ContractType {
+  Alquiler
+  AlquilerTemporario
+  Venta
+}
+
+enum AdjustmentType {
+  IPC
+  ICL
+  CCP
+  FixedPercent
+  Custom
+}
+
+enum AdjustmentPeriod {
+  Mensual
+  Bimestral
+  Trimestral
+  Cuatrimestral
+  Semestral
+  Anual
+}
+
+enum GuaranteeType {
+  Seguro_de_caucion
+  Garantia_propietaria
+  Garantia_bancaria
+  Deposito
+  Otra
+}
+
+enum GuaranteeStatus {
+  Vigente
+  Vencida
+  Cancelada
+}
+
 // ─── Auth & Tenancy Models ──────────────────────────────
 
 model Tenant {
@@ -247,6 +295,7 @@ model Property {
   media           PropertyMedia[]
   priceHistory    PriceHistory[]
   personRoles     PersonRoleAssignment[]
+  contracts       Contract[]
 
   @@index([tenantId])
   @@index([tenantId, type])
@@ -333,6 +382,7 @@ model Person {
   tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   roles           PersonRoleAssignment[]
   documents       PersonDocument[]
+  contractPersons ContractPerson[]
   providerProfile ProviderProfile?
 
   @@unique([tenantId, cuit])
@@ -394,5 +444,74 @@ model PersonDocument {
   @@index([tenantId])
   @@index([personId])
   @@map("person_documents")
+}
+
+// ─── Contract Models ────────────────────────────────────
+
+model Contract {
+  id                   String           @id @default(uuid())
+  tenantId             String
+  propertyId           String
+  contractType         ContractType
+  status               ContractStatus   @default(Borrador)
+  startDate            DateTime
+  endDate              DateTime
+  rentAmount           Decimal          @db.Decimal(15, 2)
+  rentCurrency         Currency         @default(ARS)
+  depositAmount        Decimal?         @db.Decimal(15, 2)
+  depositCurrency      Currency?
+  adjustmentType       AdjustmentType
+  adjustmentPeriod     AdjustmentPeriod
+  customAdjustmentPct  Decimal?         @db.Decimal(5, 2)
+  notes                String?
+  isActive             Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  property    Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  persons     ContractPerson[]
+  guarantees  ContractGuarantee[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, propertyId])
+  @@map("contracts")
+}
+
+model ContractPerson {
+  id         String     @id @default(uuid())
+  tenantId   String
+  contractId String
+  personId   String
+  role       PersonRole
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  person   Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, personId, role])
+  @@index([tenantId])
+  @@map("contract_persons")
+}
+
+model ContractGuarantee {
+  id           String          @id @default(uuid())
+  tenantId     String
+  contractId   String
+  type         GuaranteeType
+  status       GuaranteeStatus @default(Vigente)
+  description  String?
+  amount       Decimal?        @db.Decimal(15, 2)
+  currency     Currency?
+  issuer       String?
+  policyNumber String?
+  startDate    DateTime?
+  endDate      DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("contract_guarantees")
 }
 

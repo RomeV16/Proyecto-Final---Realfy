@@ -73,6 +73,15 @@ export {
   validateCuit,
 } from './schemas/person.schema';
 
+// Schemas — contratos
+export {
+  CreateContractSchema,
+  UpdateContractSchema,
+  ContractFilterSchema,
+  CreateGuaranteeSchema,
+  ContractPersonSchema,
+} from './schemas/contract.schema';
+
 // Types
 import type { z } from 'zod';
 import {
@@ -109,6 +118,19 @@ export type CreatePersonInput = z.infer<typeof _CreatePersonSchema>;
 export type UpdatePersonInput = z.infer<typeof _UpdatePersonSchema>;
 export type PersonFilterInput = z.infer<typeof _PersonFilterSchema>;
 export type AssignPersonRoleInput = z.infer<typeof _AssignPersonRoleSchema>;
+
+import {
+  CreateContractSchema as _CreateContractSchema,
+  UpdateContractSchema as _UpdateContractSchema,
+  ContractFilterSchema as _ContractFilterSchema,
+  CreateGuaranteeSchema as _CreateGuaranteeSchema,
+  ContractPersonSchema as _ContractPersonSchema,
+} from './schemas/contract.schema';
+export type CreateContractInput = z.infer<typeof _CreateContractSchema>;
+export type UpdateContractInput = z.infer<typeof _UpdateContractSchema>;
+export type ContractFilterInput = z.infer<typeof _ContractFilterSchema>;
+export type CreateGuaranteeInput = z.infer<typeof _CreateGuaranteeSchema>;
+export type ContractPersonInput = z.infer<typeof _ContractPersonSchema>;
 
 // Schema de formulario de propiedades (frontend)
 export { propertyFormSchema } from './schemas/property.form';
