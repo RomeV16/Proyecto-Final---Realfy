@@ -515,3 +515,24 @@ model ContractGuarantee {
   @@map("contract_guarantees")
 }
 
+
+// ─── Contract Template Models ───────────────────────────
+
+model ContractTemplate {
+  id           String       @id @default(uuid())
+  tenantId     String
+  name         String
+  contractType ContractType
+  body         String
+  variables    String[]
+  isDefault    Boolean      @default(false)
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, contractType])
+  @@index([tenantId, isActive])
+  @@map("contract_templates")
+}
