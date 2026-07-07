@@ -82,6 +82,14 @@ export {
   ContractPersonSchema,
 } from './schemas/contract.schema';
 
+// Schemas — plantillas de contratos
+export {
+  CreateContractTemplateSchema,
+  UpdateContractTemplateSchema,
+  ContractTemplateFilterSchema,
+  GenerateDocumentSchema,
+} from './schemas/contract-template.schema';
+
 // Types
 import type { z } from 'zod';
 import {
@@ -132,6 +140,23 @@ export type ContractFilterInput = z.infer<typeof _ContractFilterSchema>;
 export type CreateGuaranteeInput = z.infer<typeof _CreateGuaranteeSchema>;
 export type ContractPersonInput = z.infer<typeof _ContractPersonSchema>;
 
+import {
+  CreateContractTemplateSchema as _CreateContractTemplateSchema,
+  UpdateContractTemplateSchema as _UpdateContractTemplateSchema,
+  ContractTemplateFilterSchema as _ContractTemplateFilterSchema,
+  GenerateDocumentSchema as _GenerateDocumentSchema,
+} from './schemas/contract-template.schema';
+export type CreateContractTemplateInput = z.infer<
+  typeof _CreateContractTemplateSchema
+>;
+export type UpdateContractTemplateInput = z.infer<
+  typeof _UpdateContractTemplateSchema
+>;
+export type ContractTemplateFilterInput = z.infer<
+  typeof _ContractTemplateFilterSchema
+>;
+export type GenerateDocumentInput = z.infer<typeof _GenerateDocumentSchema>;
+
 // Schema de formulario de propiedades (frontend)
 export { propertyFormSchema } from './schemas/property.form';
 export type { PropertyFormInput } from './schemas/property.form';
@@ -146,6 +171,14 @@ export {
   validateTransition,
   getValidTransitions,
 } from './state-machine/property-state-machine';
+
+// Template engine
+export {
+  renderTemplate,
+  renderTemplatePlain,
+  extractVariableNames,
+  escapeHtml,
+} from './template-engine';
 
 // Constants & utilities
 export {
