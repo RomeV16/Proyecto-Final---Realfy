@@ -165,6 +165,9 @@ export type { PropertyFormInput } from './schemas/property.form';
 export { personFormSchema } from './schemas/person.form';
 export type { PersonFormInput } from './schemas/person.form';
 
+// Schema de formulario de contratos (frontend)
+export { contractFormSchema } from './schemas/contract.form';
+
 // State machine
 export {
   PROPERTY_TRANSITIONS,
