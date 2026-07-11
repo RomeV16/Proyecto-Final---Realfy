@@ -79,10 +79,12 @@ export {
   UpdateContractSchema,
   ContractFilterSchema,
   CreateGuaranteeSchema,
+  CreateIndexDataSchema,
+  IndexDataFilterSchema,
   ContractPersonSchema,
 } from './schemas/contract.schema';
 
-// Schemas — plantillas de contratos
+// Schemas — plantillas de contrato
 export {
   CreateContractTemplateSchema,
   UpdateContractTemplateSchema,
@@ -132,12 +134,16 @@ import {
   UpdateContractSchema as _UpdateContractSchema,
   ContractFilterSchema as _ContractFilterSchema,
   CreateGuaranteeSchema as _CreateGuaranteeSchema,
+  CreateIndexDataSchema as _CreateIndexDataSchema,
+  IndexDataFilterSchema as _IndexDataFilterSchema,
   ContractPersonSchema as _ContractPersonSchema,
 } from './schemas/contract.schema';
 export type CreateContractInput = z.infer<typeof _CreateContractSchema>;
 export type UpdateContractInput = z.infer<typeof _UpdateContractSchema>;
 export type ContractFilterInput = z.infer<typeof _ContractFilterSchema>;
 export type CreateGuaranteeInput = z.infer<typeof _CreateGuaranteeSchema>;
+export type CreateIndexDataInput = z.infer<typeof _CreateIndexDataSchema>;
+export type IndexDataFilterInput = z.infer<typeof _IndexDataFilterSchema>;
 export type ContractPersonInput = z.infer<typeof _ContractPersonSchema>;
 
 import {
@@ -175,14 +181,6 @@ export {
   getValidTransitions,
 } from './state-machine/property-state-machine';
 
-// Template engine
-export {
-  renderTemplate,
-  renderTemplatePlain,
-  extractVariableNames,
-  escapeHtml,
-} from './template-engine';
-
 // Constants & utilities
 export {
   ROLE_PERMISSIONS,
@@ -196,6 +194,17 @@ export {
 } from './constants';
 
 export type { Permission, DefaultStageDefinition } from './constants';
+
+// Adjustment engine
+export {
+  calculateIPC,
+  calculateICL,
+  calculateCCP,
+  calculateFixedPercent,
+  calculateCustom,
+  calculateAdjustment,
+} from './adjustment-engine';
+export type { AdjustmentResult, AdjustmentParams } from './adjustment-engine';
 
 // Schemas de formularios de auth (login/register del frontend)
 export { loginSchema } from './schemas/login';
