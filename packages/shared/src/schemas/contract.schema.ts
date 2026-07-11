@@ -6,6 +6,7 @@ import {
   AdjustmentPeriod,
   GuaranteeType,
   GuaranteeStatus,
+  IndexType,
   Currency,
   PersonRole,
 } from '../enums';
@@ -115,4 +116,23 @@ export const ContractFilterSchema = z.object({
   guaranteeExpiringWithinDays: z.coerce.number().int().positive().optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().max(100).optional().default(20),
+});
+
+// ─── Index Data ─────────────────────────────────────────
+
+export const CreateIndexDataSchema = z.object({
+  indexType: z.nativeEnum(IndexType),
+  period: dateString,
+  value: z.union([z.string(), z.number().transform(String)]).pipe(
+    z.string().regex(/^-?\d+(\.\d{1,6})?$/, 'Must be a valid decimal with up to 6 decimal places')
+  ),
+  source: z.string().max(200).optional(),
+});
+
+export const IndexDataFilterSchema = z.object({
+  indexType: z.nativeEnum(IndexType).optional(),
+  periodFrom: dateString.optional(),
+  periodTo: dateString.optional(),
+  page: z.coerce.number().int().positive().optional().default(1),
+  limit: z.coerce.number().int().positive().max(100).optional().default(50),
 });
