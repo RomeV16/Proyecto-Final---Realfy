@@ -6,8 +6,10 @@ import {
   Param,
   Body,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { ContractsService } from './contracts.service';
+import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { UserRole } from '@realfy/shared';
 
@@ -15,6 +17,9 @@ import { UserRole } from '@realfy/shared';
 export class ContractsController {
   constructor(
     private readonly contractsService: ContractsService,
+    // NOTE: ContractAdjustmentService is provided by IndexDataModule (exported)
+    // and imported into ContractsModule so RBAC + tenant scoping stay consistent.
+    private readonly contractAdjustmentService: ContractAdjustmentService,
   ) {}
 
   /**
@@ -34,7 +39,7 @@ export class ContractsController {
   }
 
   /**
-   * GET /contracts/:id — Full detail with persons and guarantees.
+   * GET /contracts/:id — Full detail with persons, guarantees, adjustments.
    * Any authenticated user can read.
    */
   @Get(':id')
@@ -73,5 +78,70 @@ export class ContractsController {
   @Post(':id/terminate')
   async terminate(@Param('id') id: string) {
     return this.contractsService.terminate(id);
+  }
+
+  /**
+   * POST /contracts/:id/adjustments/calculate — Calculate an adjustment for a schedule entry.
+   * Ventas+ roles (Admin, Gerente, Ventas).
+   * Body: { scheduleId: string }
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Post(':id/adjustments/calculate')
+  async calculateAdjustment(
+    @Param('id') id: string,
+    @Body() body: Record<string, any>,
+  ) {
+    if (!body.scheduleId) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'scheduleId is required',
+      });
+    }
+    return this.contractsService.calculateAdjustment(id, body.scheduleId);
+  }
+
+  /**
+   * POST /contracts/:id/adjustments/:adjId/apply — Apply a calculated adjustment.
+   * Admin and Gerente only.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Post(':id/adjustments/:adjId/apply')
+  async applyAdjustment(
+    @Param('id') id: string,
+    @Param('adjId') adjId: string,
+  ) {
+    return this.contractsService.applyAdjustment(id, adjId);
+  }
+
+  /**
+   * GET /contracts/:id/adjustments — List adjustment history for a contract.
+   * Any authenticated user can read.
+   */
+  @Get(':id/adjustments')
+  async findAdjustments(@Param('id') id: string) {
+    return this.contractsService.findAdjustments(id);
+  }
+
+  /**
+   * POST /contracts/:id/preview-adjustment — Read-only preview of the next
+   * adjustment for a contract (factor, projected rent, delta).
+   * Admin and Gerente only.
+   *
+   * Placed here (contracts.controller.ts) rather than index-data.controller.ts
+   * so the :id param resolver, RBAC guard, and tenant scoping all work via the
+   * existing ContractsController pipeline.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Post(':id/preview-adjustment')
+  async previewAdjustment(@Param('id') id: string) {
+    const preview = await this.contractAdjustmentService.preview(id);
+    return {
+      period: preview.period,
+      indexType: preview.indexType,
+      factor: preview.factor.toFixed(6),
+      currentRent: preview.currentRent.toFixed(2),
+      projectedRent: preview.projectedRent.toFixed(2),
+      projectedDelta: preview.projectedDelta.toFixed(2),
+    };
   }
 }
