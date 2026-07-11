@@ -17,6 +17,7 @@ const navItems: NavItem[] = [
   { key: 'dashboard', href: '/dashboard', icon: 'dashboard' },
   { key: 'properties', href: '/properties', icon: 'properties' },
   { key: 'persons', href: '/persons', icon: 'persons' },
+  { key: 'contracts', href: '/contracts', icon: 'contracts' },
 ];
 
 interface MobileNavProps {

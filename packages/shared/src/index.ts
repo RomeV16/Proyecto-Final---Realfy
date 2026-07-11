@@ -73,6 +73,23 @@ export {
   validateCuit,
 } from './schemas/person.schema';
 
+// Schemas — contratos
+export {
+  CreateContractSchema,
+  UpdateContractSchema,
+  ContractFilterSchema,
+  CreateGuaranteeSchema,
+  ContractPersonSchema,
+} from './schemas/contract.schema';
+
+// Schemas — plantillas de contratos
+export {
+  CreateContractTemplateSchema,
+  UpdateContractTemplateSchema,
+  ContractTemplateFilterSchema,
+  GenerateDocumentSchema,
+} from './schemas/contract-template.schema';
+
 // Types
 import type { z } from 'zod';
 import {
@@ -110,6 +127,36 @@ export type UpdatePersonInput = z.infer<typeof _UpdatePersonSchema>;
 export type PersonFilterInput = z.infer<typeof _PersonFilterSchema>;
 export type AssignPersonRoleInput = z.infer<typeof _AssignPersonRoleSchema>;
 
+import {
+  CreateContractSchema as _CreateContractSchema,
+  UpdateContractSchema as _UpdateContractSchema,
+  ContractFilterSchema as _ContractFilterSchema,
+  CreateGuaranteeSchema as _CreateGuaranteeSchema,
+  ContractPersonSchema as _ContractPersonSchema,
+} from './schemas/contract.schema';
+export type CreateContractInput = z.infer<typeof _CreateContractSchema>;
+export type UpdateContractInput = z.infer<typeof _UpdateContractSchema>;
+export type ContractFilterInput = z.infer<typeof _ContractFilterSchema>;
+export type CreateGuaranteeInput = z.infer<typeof _CreateGuaranteeSchema>;
+export type ContractPersonInput = z.infer<typeof _ContractPersonSchema>;
+
+import {
+  CreateContractTemplateSchema as _CreateContractTemplateSchema,
+  UpdateContractTemplateSchema as _UpdateContractTemplateSchema,
+  ContractTemplateFilterSchema as _ContractTemplateFilterSchema,
+  GenerateDocumentSchema as _GenerateDocumentSchema,
+} from './schemas/contract-template.schema';
+export type CreateContractTemplateInput = z.infer<
+  typeof _CreateContractTemplateSchema
+>;
+export type UpdateContractTemplateInput = z.infer<
+  typeof _UpdateContractTemplateSchema
+>;
+export type ContractTemplateFilterInput = z.infer<
+  typeof _ContractTemplateFilterSchema
+>;
+export type GenerateDocumentInput = z.infer<typeof _GenerateDocumentSchema>;
+
 // Schema de formulario de propiedades (frontend)
 export { propertyFormSchema } from './schemas/property.form';
 export type { PropertyFormInput } from './schemas/property.form';
@@ -118,12 +165,23 @@ export type { PropertyFormInput } from './schemas/property.form';
 export { personFormSchema } from './schemas/person.form';
 export type { PersonFormInput } from './schemas/person.form';
 
+// Schema de formulario de contratos (frontend)
+export { contractFormSchema } from './schemas/contract.form';
+
 // State machine
 export {
   PROPERTY_TRANSITIONS,
   validateTransition,
   getValidTransitions,
 } from './state-machine/property-state-machine';
+
+// Template engine
+export {
+  renderTemplate,
+  renderTemplatePlain,
+  extractVariableNames,
+  escapeHtml,
+} from './template-engine';
 
 // Constants & utilities
 export {
