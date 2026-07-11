@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ContractsController } from './contracts.controller';
 import { ContractsService } from './contracts.service';
+import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -14,6 +15,16 @@ const MOCK_CONTRACT = {
   currentRent: '50000.00',
 };
 
+const MOCK_PREVIEW = {
+  period: '2026-05',
+  indexType: 'ICL',
+  factor: 1.123456,
+  currentRent: '50000.00',
+  projectedRent: '56172.80',
+  projectedDelta: '6172.80',
+  toFixed: (n: number) => '1.123456',
+};
+
 function buildMocks() {
   const contractsService = {
     findAll: jest.fn().mockResolvedValue({ items: [MOCK_CONTRACT], total: 1, page: 1, limit: 20 }),
@@ -21,9 +32,23 @@ function buildMocks() {
     create: jest.fn().mockResolvedValue(MOCK_CONTRACT),
     update: jest.fn().mockResolvedValue({ ...MOCK_CONTRACT, status: 'Renovado' }),
     terminate: jest.fn().mockResolvedValue({ ...MOCK_CONTRACT, status: 'Rescindido', isActive: false }),
+    calculateAdjustment: jest.fn().mockResolvedValue({ factor: 1.1, projectedRent: '55000.00' }),
+    applyAdjustment: jest.fn().mockResolvedValue({ id: 'adj-001', applied: true }),
+    findAdjustments: jest.fn().mockResolvedValue([]),
   };
 
-  return { contractsService };
+  const contractAdjustmentService = {
+    preview: jest.fn().mockResolvedValue({
+      period: '2026-05',
+      indexType: 'ICL',
+      factor: { toFixed: (n: number) => '1.123456' },
+      currentRent: { toFixed: (n: number) => '50000.00' },
+      projectedRent: { toFixed: (n: number) => '56172.80' },
+      projectedDelta: { toFixed: (n: number) => '6172.80' },
+    }),
+  };
+
+  return { contractsService, contractAdjustmentService };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -39,6 +64,7 @@ describe('ContractsController', () => {
       controllers: [ContractsController],
       providers: [
         { provide: ContractsService, useValue: mocks.contractsService },
+        { provide: ContractAdjustmentService, useValue: mocks.contractAdjustmentService },
       ],
     })
       .overrideGuard(require('../../common/auth/jwt-auth.guard').JwtAuthGuard)
@@ -122,6 +148,50 @@ describe('ContractsController', () => {
     it('propagates NotFoundException when contract missing', async () => {
       mocks.contractsService.terminate.mockRejectedValueOnce(new NotFoundException());
       await expect(controller.terminate('bad-id')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ─── POST /contracts/:id/adjustments/calculate ───────────────────────────
+
+  describe('POST /contracts/:id/adjustments/calculate', () => {
+    it('calculates adjustment when scheduleId provided', async () => {
+      const result = await controller.calculateAdjustment(CONTRACT_ID, { scheduleId: 'sched-001' });
+      expect(result).toMatchObject({ factor: 1.1 });
+    });
+
+    it('throws BadRequestException when scheduleId missing', async () => {
+      await expect(controller.calculateAdjustment(CONTRACT_ID, {})).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // ─── POST /contracts/:id/adjustments/:adjId/apply ────────────────────────
+
+  describe('POST /contracts/:id/adjustments/:adjId/apply', () => {
+    it('applies adjustment on happy path', async () => {
+      const result = await controller.applyAdjustment(CONTRACT_ID, 'adj-001');
+      expect(result).toMatchObject({ applied: true });
+      expect(mocks.contractsService.applyAdjustment).toHaveBeenCalledWith(CONTRACT_ID, 'adj-001');
+    });
+  });
+
+  // ─── GET /contracts/:id/adjustments ──────────────────────────────────────
+
+  describe('GET /contracts/:id/adjustments', () => {
+    it('returns adjustment history', async () => {
+      const result = await controller.findAdjustments(CONTRACT_ID);
+      expect(Array.isArray(result)).toBe(true);
+    });
+  });
+
+  // ─── POST /contracts/:id/preview-adjustment ───────────────────────────────
+
+  describe('POST /contracts/:id/preview-adjustment', () => {
+    it('returns formatted preview with 6-decimal factor', async () => {
+      const result = await controller.previewAdjustment(CONTRACT_ID);
+      expect(result).toHaveProperty('period');
+      expect(result).toHaveProperty('factor');
+      expect(result).toHaveProperty('projectedRent');
+      expect(mocks.contractAdjustmentService.preview).toHaveBeenCalledWith(CONTRACT_ID);
     });
   });
 });

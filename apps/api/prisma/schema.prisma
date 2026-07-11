@@ -145,6 +145,21 @@ enum GuaranteeStatus {
   Cancelada
 }
 
+enum IndexType {
+  IPC
+  ICL
+  CVS
+  CER
+  UVA
+}
+
+enum ScheduleStatus {
+  Pending
+  Calculated
+  Applied
+  Skipped
+}
+
 // ─── Auth & Tenancy Models ──────────────────────────────
 
 model Tenant {
@@ -294,8 +309,8 @@ model Property {
   operations      PropertyOperation[]
   media           PropertyMedia[]
   priceHistory    PriceHistory[]
-  personRoles     PersonRoleAssignment[]
   contracts       Contract[]
+  personRoles     PersonRoleAssignment[]
 
   @@index([tenantId])
   @@index([tenantId, type])
@@ -471,6 +486,8 @@ model Contract {
   property    Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   persons     ContractPerson[]
   guarantees  ContractGuarantee[]
+  adjustments ContractAdjustment[]
+  schedules   AdjustmentSchedule[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -515,6 +532,57 @@ model ContractGuarantee {
   @@map("contract_guarantees")
 }
 
+model ContractAdjustment {
+  id             String          @id @default(uuid())
+  tenantId       String
+  contractId     String
+  periodNumber   Int
+  adjustmentDate DateTime
+  previousAmount Decimal         @db.Decimal(15, 2)
+  newAmount      Decimal         @db.Decimal(15, 2)
+  percentage     Decimal         @db.Decimal(8, 4)
+  currency       Currency        @default(ARS)
+  indexType      AdjustmentType?
+  indexValues    Json?
+  notes          String?
+  calculatedAt   DateTime
+  appliedAt      DateTime?
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([contractId, periodNumber])
+  @@map("contract_adjustments")
+}
+
+model AdjustmentSchedule {
+  id                  String         @id @default(uuid())
+  tenantId            String
+  contractId          String
+  nextAdjustmentDate  DateTime
+  periodNumber        Int
+  status              ScheduleStatus @default(Pending)
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, periodNumber])
+  @@index([tenantId])
+  @@map("adjustment_schedules")
+}
+
+model IndexData {
+  id        String    @id @default(uuid())
+  tenantId  String
+  indexType  IndexType
+  period    DateTime
+  value     Decimal   @db.Decimal(12, 6)
+  source    String?
+  createdAt DateTime  @default(now())
+
+  @@unique([tenantId, indexType, period])
+  @@index([tenantId])
+  @@map("index_data")
+}
 
 // ─── Contract Template Models ───────────────────────────
 
@@ -536,3 +604,4 @@ model ContractTemplate {
   @@index([tenantId, isActive])
   @@map("contract_templates")
 }
+

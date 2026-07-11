@@ -228,3 +228,11 @@ export interface AuthResponse {
   };
   tokens: AuthTokens;
 }
+
+// Template engine
+export {
+  renderTemplate,
+  renderTemplatePlain,
+  extractVariableNames,
+  escapeHtml,
+} from './template-engine';
