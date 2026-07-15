@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -16,7 +15,7 @@ import { ContractsModule } from './modules/contracts/contracts.module';
 import { IndexDataModule } from './modules/index-data/index-data.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ContractTemplatesModule } from './modules/contract-templates/contract-templates.module';
-import { SchedulerModule } from './common/scheduler/scheduler.module';
+import { ServicesModule } from './modules/services/services.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
 import { AuditInterceptor } from './common/audit/audit.interceptor';
@@ -27,8 +26,6 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
     }),
-    ScheduleModule.forRoot(),
-    SchedulerModule,
     TenantContextModule,
     PrismaModule,
     MediaModule,
@@ -42,6 +39,7 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     IndexDataModule,
     DashboardModule,
     ContractTemplatesModule,
+    ServicesModule,
   ],
   controllers: [HealthController],
   providers: [
