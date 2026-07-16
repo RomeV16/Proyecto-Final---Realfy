@@ -967,6 +967,21 @@
         "prev": "Anterior",
         "next": "Siguiente"
       }
+    },
+    "adjustments": {
+      "tabResumen": "Resumen",
+      "tabAjustes": "Ajustes",
+      "nextProjected": "Próximo ajuste proyectado",
+      "noConfig": "El contrato no tiene configurado un ajuste por índice.",
+      "history": "Historial de ajustes",
+      "col": {
+        "period": "Período",
+        "index": "Índice",
+        "factor": "Factor",
+        "previous": "Anterior",
+        "new": "Nuevo",
+        "applied": "Aplicado"
+      }
     }
   },
   "liquidaciones": {
