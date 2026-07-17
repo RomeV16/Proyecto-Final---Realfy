@@ -254,6 +254,14 @@ export {
 
 export type { Permission, DefaultStageDefinition } from './constants';
 
+// Template engine
+export {
+  renderTemplate,
+  renderTemplatePlain,
+  extractVariableNames,
+  escapeHtml,
+} from './template-engine';
+
 // Adjustment engine
 export {
   calculateIPC,
