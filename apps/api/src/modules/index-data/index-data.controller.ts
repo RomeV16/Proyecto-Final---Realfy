@@ -8,12 +8,16 @@ import {
   Query,
 } from '@nestjs/common';
 import { IndexDataService } from './index-data.service';
+import { IndexScraperService } from './index-scraper.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { UserRole } from '@realfy/shared';
 
 @Controller('index-data')
 export class IndexDataController {
-  constructor(private readonly indexDataService: IndexDataService) {}
+  constructor(
+    private readonly indexDataService: IndexDataService,
+    private readonly indexScraperService: IndexScraperService,
+  ) {}
 
   /**
    * GET /index-data — List with filters + pagination.
@@ -69,5 +73,16 @@ export class IndexDataController {
   @Get('latest')
   async getLatest() {
     return this.indexDataService.findLatest();
+  }
+
+  /**
+   * POST /index-data/refresh — Triggers an on-demand scrape of all index sources.
+   * Admin only.  Returns per-source upserted row counts.
+   */
+  @Roles(UserRole.Admin)
+  @Post('refresh')
+  async refresh() {
+    const counts = await this.indexScraperService.upsertAll();
+    return { counts, total: counts.icl + counts.uva + counts.ipc };
   }
 }
