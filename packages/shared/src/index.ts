@@ -92,6 +92,24 @@ export {
   GenerateDocumentSchema,
 } from './schemas/contract-template.schema';
 
+// Schemas — liquidaciones
+export {
+  GenerateLiquidacionesSchema,
+  CreateLiquidacionLineItemSchema,
+  UpdateLiquidacionLineItemSchema,
+  TransitionLiquidacionSchema,
+  CreatePaymentSchema,
+  LiquidacionFilterSchema,
+} from './schemas/liquidacion.schema';
+
+// Schemas — servicios
+export {
+  CreateServiceSchema,
+  UpdateServiceSchema,
+  ServiceFilterSchema,
+  CreateServicePaymentSchema,
+} from './schemas/service.schema';
+
 // Types
 import type { z } from 'zod';
 import {
@@ -163,6 +181,42 @@ export type ContractTemplateFilterInput = z.infer<
 >;
 export type GenerateDocumentInput = z.infer<typeof _GenerateDocumentSchema>;
 
+import {
+  GenerateLiquidacionesSchema as _GenerateLiquidacionesSchema,
+  CreateLiquidacionLineItemSchema as _CreateLiquidacionLineItemSchema,
+  UpdateLiquidacionLineItemSchema as _UpdateLiquidacionLineItemSchema,
+  TransitionLiquidacionSchema as _TransitionLiquidacionSchema,
+  CreatePaymentSchema as _CreatePaymentSchema,
+  LiquidacionFilterSchema as _LiquidacionFilterSchema,
+} from './schemas/liquidacion.schema';
+export type GenerateLiquidacionesInput = z.infer<
+  typeof _GenerateLiquidacionesSchema
+>;
+export type CreateLiquidacionLineItemInput = z.infer<
+  typeof _CreateLiquidacionLineItemSchema
+>;
+export type UpdateLiquidacionLineItemInput = z.infer<
+  typeof _UpdateLiquidacionLineItemSchema
+>;
+export type TransitionLiquidacionInput = z.infer<
+  typeof _TransitionLiquidacionSchema
+>;
+export type CreatePaymentInput = z.infer<typeof _CreatePaymentSchema>;
+export type LiquidacionFilterInput = z.infer<typeof _LiquidacionFilterSchema>;
+
+import {
+  CreateServiceSchema as _CreateServiceSchema,
+  UpdateServiceSchema as _UpdateServiceSchema,
+  ServiceFilterSchema as _ServiceFilterSchema,
+  CreateServicePaymentSchema as _CreateServicePaymentSchema,
+} from './schemas/service.schema';
+export type CreateServiceInput = z.infer<typeof _CreateServiceSchema>;
+export type UpdateServiceInput = z.infer<typeof _UpdateServiceSchema>;
+export type ServiceFilterInput = z.infer<typeof _ServiceFilterSchema>;
+export type CreateServicePaymentInput = z.infer<
+  typeof _CreateServicePaymentSchema
+>;
+
 // Schema de formulario de propiedades (frontend)
 export { propertyFormSchema } from './schemas/property.form';
 export type { PropertyFormInput } from './schemas/property.form';
@@ -181,6 +235,11 @@ export {
   getValidTransitions,
 } from './state-machine/property-state-machine';
 
+export {
+  validateLiquidacionTransition,
+  getValidLiquidacionTransitions,
+} from './state-machine/liquidacion-state-machine';
+
 // Constants & utilities
 export {
   ROLE_PERMISSIONS,
@@ -195,6 +254,14 @@ export {
 
 export type { Permission, DefaultStageDefinition } from './constants';
 
+// Template engine
+export {
+  renderTemplate,
+  renderTemplatePlain,
+  extractVariableNames,
+  escapeHtml,
+} from './template-engine';
+
 // Adjustment engine
 export {
   calculateIPC,
@@ -205,6 +272,14 @@ export {
   calculateAdjustment,
 } from './adjustment-engine';
 export type { AdjustmentResult, AdjustmentParams } from './adjustment-engine';
+
+// Liquidacion engine
+export {
+  calculateLineItemsTotal,
+  calculateRemainingBalance,
+  isFullyPaid,
+} from './liquidacion-engine';
+export type { LineItemInput, LineItemsTotalResult, PaymentInput } from './liquidacion-engine';
 
 // Schemas de formularios de auth (login/register del frontend)
 export { loginSchema } from './schemas/login';
@@ -228,11 +303,3 @@ export interface AuthResponse {
   };
   tokens: AuthTokens;
 }
-
-// Template engine
-export {
-  renderTemplate,
-  renderTemplatePlain,
-  extractVariableNames,
-  escapeHtml,
-} from './template-engine';

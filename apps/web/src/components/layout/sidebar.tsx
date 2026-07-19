@@ -17,6 +17,7 @@ const navItems: NavItem[] = [
   { key: 'properties', href: '/properties', icon: 'properties' },
   { key: 'persons', href: '/persons', icon: 'persons' },
   { key: 'contracts', href: '/contracts', icon: 'contracts' },
+  { key: 'liquidaciones', href: '/liquidaciones', icon: 'liquidaciones' },
 ];
 
 interface SidebarProps {
@@ -133,14 +134,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         )}
       </div>
 
-      <nav className="flex-1 py-4 px-2 space-y-1" data-tour="sidebar-nav">
+      <nav className="flex-1 py-4 px-2 space-y-1">
         {navItems.map((item) => {
           const active = isActive(item.href);
           return (
             <Link
               key={item.key}
               href={`${localePrefix}${item.href}`}
-              data-tour={`sidebar-${item.key}`}
               aria-label={collapsed ? t(item.key) : undefined}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 ${
                 active

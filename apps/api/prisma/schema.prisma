@@ -311,6 +311,7 @@ model Property {
   priceHistory    PriceHistory[]
   contracts       Contract[]
   personRoles     PersonRoleAssignment[]
+  services        Service[]
 
   @@index([tenantId])
   @@index([tenantId, type])
@@ -483,11 +484,12 @@ model Contract {
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 
-  property    Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  persons     ContractPerson[]
-  guarantees  ContractGuarantee[]
-  adjustments ContractAdjustment[]
-  schedules   AdjustmentSchedule[]
+  property      Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  persons       ContractPerson[]
+  guarantees    ContractGuarantee[]
+  adjustments   ContractAdjustment[]
+  schedules     AdjustmentSchedule[]
+  liquidaciones Liquidacion[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -603,5 +605,155 @@ model ContractTemplate {
   @@index([tenantId, contractType])
   @@index([tenantId, isActive])
   @@map("contract_templates")
+}
+
+// ─── Liquidacion Enums ──────────────────────────────────
+
+enum LiquidacionStatus {
+  Borrador
+  Revision
+  Aprobada
+  Pendiente
+  Enviada
+  Pagada
+  Vencida
+  Anulada
+}
+
+enum PaymentMethod {
+  Transferencia
+  Efectivo
+  MercadoPago
+  Cheque
+}
+
+enum LineItemType {
+  Alquiler
+  Ajuste
+  Extra
+  Descuento
+  Multa
+}
+
+// ─── Liquidacion Models ─────────────────────────────────
+
+model Liquidacion {
+  id           String             @id @default(uuid())
+  tenantId     String
+  contractId   String
+  period       DateTime
+  status       LiquidacionStatus  @default(Borrador)
+  dueDate      DateTime
+  subtotal     Decimal            @db.Decimal(15, 2)
+  total        Decimal            @db.Decimal(15, 2)
+  currency     Currency           @default(ARS)
+  notes        String?
+  pdfUrl       String?
+  sentAt       DateTime?
+  paidAt       DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  contract         Contract                @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  lineItems        LiquidacionLineItem[]
+  payments         Payment[]
+
+  @@unique([contractId, period])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, contractId, period])
+  @@map("liquidaciones")
+}
+
+model LiquidacionLineItem {
+  id             String       @id @default(uuid())
+  tenantId       String
+  liquidacionId  String
+  type           LineItemType
+  description    String
+  amount         Decimal      @db.Decimal(15, 2)
+  currency       Currency     @default(ARS)
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+
+  liquidacion Liquidacion @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([liquidacionId])
+  @@map("liquidacion_line_items")
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  tenantId       String
+  liquidacionId  String
+  amount         Decimal       @db.Decimal(15, 2)
+  currency       Currency      @default(ARS)
+  method         PaymentMethod
+  reference      String?
+  notes          String?
+  paidAt         DateTime
+  createdAt      DateTime      @default(now())
+
+  liquidacion Liquidacion @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([liquidacionId])
+  @@map("payments")
+}
+
+// ─── Service Enums ──────────────────────────────────────
+
+enum ServiceType {
+  Electricidad
+  Gas
+  Agua
+  Internet
+  Expensas
+  Municipal
+  Otro
+}
+
+// ─── Service Models ─────────────────────────────────────
+
+model Service {
+  id            String      @id @default(uuid())
+  tenantId      String
+  propertyId    String
+  serviceType   ServiceType
+  providerName  String?
+  accountNumber String?
+  amount        Decimal     @db.Decimal(15, 2)
+  currency      Currency    @default(ARS)
+  dueDay        Int
+  isActive      Boolean     @default(true)
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  property Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  payments ServicePayment[]
+
+  @@index([tenantId])
+  @@index([tenantId, propertyId])
+  @@index([tenantId, isActive])
+  @@map("services")
+}
+
+model ServicePayment {
+  id          String   @id @default(uuid())
+  tenantId    String
+  serviceId   String
+  amount      Decimal  @db.Decimal(15, 2)
+  paymentDate DateTime
+  period      DateTime
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([serviceId])
+  @@map("service_payments")
 }
 
