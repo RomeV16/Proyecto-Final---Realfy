@@ -13,6 +13,7 @@ import { PropertiesModule } from './modules/properties/properties.module';
 import { PersonsModule } from './modules/persons/persons.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
 import { IndexDataModule } from './modules/index-data/index-data.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ContractTemplatesModule } from './modules/contract-templates/contract-templates.module';
 import { LiquidacionesModule } from './modules/liquidaciones/liquidaciones.module';
@@ -38,6 +39,7 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     PersonsModule,
     ContractsModule,
     IndexDataModule,
+    PaymentsModule,
     DashboardModule,
     ContractTemplatesModule,
     LiquidacionesModule,
