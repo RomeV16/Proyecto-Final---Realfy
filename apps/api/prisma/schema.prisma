@@ -204,6 +204,7 @@ model User {
   refreshTokens RefreshToken[]
   invitations   UserInvitation[] @relation("InvitedByUser")
   auditLogs     AuditLog[]
+  notifications Notification[]
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -658,6 +659,8 @@ model Liquidacion {
   lineItems        LiquidacionLineItem[]
   payments         Payment[]
 
+  penalties        Penalty[]               @relation("PenaltyLiquidacion")
+  settledPenalties Penalty[]               @relation("PenaltySettledLiquidacion")
   @@unique([contractId, period])
   @@index([tenantId])
   @@index([tenantId, status])
@@ -756,4 +759,86 @@ model ServicePayment {
   @@index([serviceId])
   @@map("service_payments")
 }
+
+enum PenaltyStatus {
+  active
+  waived
+}
+
+model Penalty {
+  id                    String        @id @default(uuid())
+  tenantId              String
+  liquidacionId         String
+  amount                Decimal       @db.Decimal(14, 2)
+  appliedOn             DateTime
+  daysOverdue           Int
+  compoundBase          Decimal?      @db.Decimal(14, 2)
+  status                PenaltyStatus @default(active)
+  waivedAt              DateTime?
+  waivedBy              String?       // userId
+  waiveReason           String?
+  settledLiquidacionId  String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  liquidacion        Liquidacion  @relation("PenaltyLiquidacion", fields: [liquidacionId], references: [id], onDelete: Cascade)
+  settledLiquidacion Liquidacion? @relation("PenaltySettledLiquidacion", fields: [settledLiquidacionId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([liquidacionId])
+  @@index([settledLiquidacionId])
+  @@map("penalties")
+}
+
+enum NotificationType {
+  ServiceDueReminder
+  ContractExpiring
+  LiquidacionOverdue
+  PaymentReceived
+  SystemAlert
+  StaleLeadAlert
+  TicketCreated
+  TicketStatusChanged
+  TicketCommentAdded
+}
+
+model EmailTemplate {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  subject   String
+  body      String
+  variables String[]
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@map("email_templates")
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  tenantId   String
+  userId     String
+  type       NotificationType
+  title      String
+  message    String
+  isRead     Boolean          @default(false)
+  entityType String?
+  entityId   String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, userId, isRead])
+  @@index([tenantId, userId, createdAt])
+  @@map("notifications")
+}
+
 
