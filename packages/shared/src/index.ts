@@ -321,3 +321,66 @@ export {
   EmailTemplateFilterSchema,
   PreviewEmailTemplateSchema,
 } from './schemas/email-template.schema';
+
+// ── Schema value exports ────────────────────────────────
+export {
+  CreateTicketSchema,
+  UpdateTicketSchema,
+  TicketFilterSchema,
+  TransitionTicketStatusSchema,
+  CreateTicketCategorySchema,
+  UpdateTicketCategorySchema,
+  CreateTicketCommentSchema,
+  UpdateTicketCostSchema,
+  CreatePortalTicketSchema,
+  CreatePortalTicketCommentSchema,
+} from './schemas/ticket.schema';
+
+export {
+  CreateProviderProfileSchema,
+  UpdateProviderProfileSchema,
+  ProviderFilterSchema,
+  AssignProviderSchema,
+} from './schemas/provider.schema';
+
+// ── Inferred input types ────────────────────────────────
+// (follows the base index.ts alias-import pattern used for other schemas)
+import {
+  CreateTicketSchema as _CreateTicketSchema,
+  UpdateTicketSchema as _UpdateTicketSchema,
+  TicketFilterSchema as _TicketFilterSchema,
+  TransitionTicketStatusSchema as _TransitionTicketStatusSchema,
+  CreateTicketCategorySchema as _CreateTicketCategorySchema,
+  UpdateTicketCategorySchema as _UpdateTicketCategorySchema,
+  CreateTicketCommentSchema as _CreateTicketCommentSchema,
+  UpdateTicketCostSchema as _UpdateTicketCostSchema,
+} from './schemas/ticket.schema';
+import {
+  CreateProviderProfileSchema as _CreateProviderProfileSchema,
+  UpdateProviderProfileSchema as _UpdateProviderProfileSchema,
+  ProviderFilterSchema as _ProviderFilterSchema,
+  AssignProviderSchema as _AssignProviderSchema,
+} from './schemas/provider.schema';
+
+export type CreateTicketInput = z.infer<typeof _CreateTicketSchema>;
+export type UpdateTicketInput = z.infer<typeof _UpdateTicketSchema>;
+export type TicketFilterInput = z.infer<typeof _TicketFilterSchema>;
+export type TransitionTicketStatusInput = z.infer<typeof _TransitionTicketStatusSchema>;
+export type CreateTicketCategoryInput = z.infer<typeof _CreateTicketCategorySchema>;
+export type UpdateTicketCategoryInput = z.infer<typeof _UpdateTicketCategorySchema>;
+export type CreateTicketCommentInput = z.infer<typeof _CreateTicketCommentSchema>;
+export type UpdateTicketCostInput = z.infer<typeof _UpdateTicketCostSchema>;
+export type CreateProviderProfileInput = z.infer<typeof _CreateProviderProfileSchema>;
+export type UpdateProviderProfileInput = z.infer<typeof _UpdateProviderProfileSchema>;
+export type ProviderFilterInput = z.infer<typeof _ProviderFilterSchema>;
+export type AssignProviderInput = z.infer<typeof _AssignProviderSchema>;
+
+// ── State machine ───────────────────────────────────────
+export {
+  validateTicketTransition,
+  getValidTicketTransitions,
+} from './state-machine/ticket-state-machine';
+
+// ── Web form schema ─────────────────────────────────────
+export { ticketFormSchema } from './schemas/ticket.form';
+export type { TicketFormInput } from './schemas/ticket.form';
