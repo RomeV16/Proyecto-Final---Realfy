@@ -178,6 +178,10 @@
       "monthlyIncome": "Ingresos del mes",
       "delinquency": "Morosidad",
       "activeContracts": "Contratos activos"
+    },
+    "charts": {
+      "occupancy": "Ocupación",
+      "collections": "Estado de cobranzas"
     }
   },
   "users": {
@@ -389,7 +393,9 @@
       "edit": "Editar",
       "deleteConfirm": "¿Estás seguro de eliminar esta propiedad?",
       "deleted": "Propiedad eliminada",
-      "deleteError": "No se pudo eliminar la propiedad"
+      "deleteError": "No se pudo eliminar la propiedad",
+      "linkedPersons": "Personas vinculadas",
+      "noLinkedPersons": "No hay personas vinculadas a esta propiedad"
     },
     "empty": {
       "title": "No hay propiedades",
@@ -618,7 +624,9 @@
       "property": "Propiedad vinculada",
       "propertyPlaceholder": "Seleccionar propiedad (opcional)",
       "guarantorFor": "Garante de propietario",
-      "guarantorForPlaceholder": "Seleccionar propietario (opcional)"
+      "guarantorForPlaceholder": "Seleccionar propietario (opcional)",
+      "propertyRequired": "Seleccioná una propiedad",
+      "guarantorRequired": "Seleccioná el propietario garantizado"
     },
     "fiscalConditions": {
       "ResponsableInscripto": "Responsable Inscripto",
@@ -4179,5 +4187,35 @@
     "period": "Período",
     "method": "Medio",
     "amount": "Monto"
+  },
+  "perfil": {
+    "title": "Mi perfil",
+    "subtitle": "Gestioná tus datos personales",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "email": "Correo electrónico",
+    "role": "Rol",
+    "save": "Guardar cambios",
+    "saving": "Guardando...",
+    "saved": "Cambios guardados",
+    "saveError": "No se pudieron guardar los cambios",
+    "nameRequired": "El nombre y el apellido son obligatorios"
+  },
+  "configuracion": {
+    "title": "Configuración",
+    "subtitle": "Datos y personalización de la inmobiliaria",
+    "name": "Nombre de la inmobiliaria",
+    "cuit": "CUIT",
+    "province": "Provincia",
+    "brandPrimary": "Color primario",
+    "brandSecondary": "Color secundario",
+    "logoUrl": "URL del logo",
+    "save": "Guardar cambios",
+    "saving": "Guardando...",
+    "saved": "Cambios guardados",
+    "saveError": "No se pudieron guardar los cambios",
+    "loadError": "No se pudo cargar la configuración",
+    "nameRequired": "El nombre es obligatorio",
+    "readOnly": "Solo los administradores pueden editar la configuración"
   }
 }
