@@ -108,7 +108,7 @@ export function PersonForm({ mode, initialData, personId, onSuccess, onCancel }:
       secondaryAction={onCancel ? { label: tCommon('cancel'), onClick: onCancel } : undefined}
     >
       {error && <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
-      <FormShell.Section title={tForm('personalInfo')} className="max-w-sm sm:max-w-none" data-tour="person-form-personal">
+      <FormShell.Section title={tForm('personalInfo')} className="max-w-sm sm:max-w-none">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <InputLabel htmlFor="firstName" required>{tForm('firstName')}</InputLabel>
@@ -132,7 +132,7 @@ export function PersonForm({ mode, initialData, personId, onSuccess, onCancel }:
           </div>
         </div>
       </FormShell.Section>
-      <FormShell.Section title={tForm('fiscalData')} className="max-w-sm sm:max-w-none" data-tour="person-form-fiscal">
+      <FormShell.Section title={tForm('fiscalData')} className="max-w-sm sm:max-w-none">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <InputLabel htmlFor="cuit">{tForm('cuit')}</InputLabel>
@@ -148,7 +148,7 @@ export function PersonForm({ mode, initialData, personId, onSuccess, onCancel }:
           </div>
         </div>
       </FormShell.Section>
-      <FormShell.Section title={tForm('bankingData')} className="max-w-sm sm:max-w-none" data-tour="person-form-banking">
+      <FormShell.Section title={tForm('bankingData')} className="max-w-sm sm:max-w-none">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <InputLabel htmlFor="bankName">{tForm('bankName')}</InputLabel>

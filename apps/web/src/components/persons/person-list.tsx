@@ -201,7 +201,6 @@ export function PersonList() {
           {canCreate && (
             <Link
               href={`${localePrefix}/persons/new`}
-              data-tour="persons-create-btn"
               className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 active:bg-brand-700 transition-colors shadow-sm flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -214,7 +213,7 @@ export function PersonList() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4" data-tour="persons-filters">
+      <div className="bg-white rounded-xl border border-slate-200 p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label htmlFor="filter-search" className="block text-xs font-medium text-slate-500 mb-1">
@@ -315,7 +314,7 @@ export function PersonList() {
 
       {/* Person grid */}
       {!loading && items.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-slide-up" data-tour="persons-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-slide-up">
           {items.map((person) => (
             <PersonCard key={person.id} person={person} localePrefix={localePrefix} />
           ))}
