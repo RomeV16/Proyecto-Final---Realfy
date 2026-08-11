@@ -18,6 +18,7 @@ const navItems: NavItem[] = [
   { key: 'persons', href: '/persons', icon: 'persons' },
   { key: 'contracts', href: '/contracts', icon: 'contracts' },
   { key: 'liquidaciones', href: '/liquidaciones', icon: 'liquidaciones' },
+  { key: 'pagos', href: '/pagos', icon: 'liquidaciones' },
 ];
 
 interface SidebarProps {

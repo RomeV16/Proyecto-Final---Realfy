@@ -62,7 +62,8 @@
     "migration": "Migración",
     "delinquency": "Morosos",
     "penalties": "Punitorios",
-    "fiscal": "Configuración Fiscal"
+    "fiscal": "Configuración Fiscal",
+    "pagos": "Pagos"
   },
   "common": {
     "loading": "Cargando…",
@@ -4164,5 +4165,18 @@
     "cuit": {
       "invalid": "El CUIT/CUIL ingresado no es válido"
     }
+  },
+  "payments": {
+    "title": "Pagos y deuda",
+    "subtitle": "Cobranzas registradas y saldos pendientes",
+    "pendingDebt": "Deuda pendiente",
+    "overdueDebt": "Deuda vencida",
+    "settlements": "liquidaciones",
+    "recentPayments": "Pagos recientes",
+    "noPayments": "Aún no se registraron pagos",
+    "date": "Fecha",
+    "period": "Período",
+    "method": "Medio",
+    "amount": "Monto"
   }
 }
