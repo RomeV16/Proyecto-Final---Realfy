@@ -16,6 +16,7 @@ import { PropertyStateBadge } from '@/components/properties/property-state-badge
 import { PropertyTypeBadge } from '@/components/properties/property-type-badge';
 import { PropertyMediaUpload } from '@/components/properties/property-media-upload';
 import { PriceHistory } from '@/components/properties/price-history';
+import { PersonRoleBadge } from '@/components/persons/person-role-badge';
 
 /* ──────────── Types ──────────── */
 
@@ -71,8 +72,22 @@ interface PropertyDetail {
   operations: PropertyOperation[];
   media: PropertyMedia[];
   priceHistory: PriceHistoryEntry[];
+  personRoles?: PropertyPersonRole[];
   createdAt: string;
   updatedAt: string;
+}
+
+interface PropertyPersonRole {
+  id: string;
+  role: string;
+  guarantorForPersonId?: string | null;
+  person: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email?: string | null;
+    phone?: string | null;
+  };
 }
 
 /* ──────────── Helpers ──────────── */
@@ -111,6 +126,15 @@ function toFormData(detail: PropertyDetail): PropertyData {
 
 /* ──────────── Detail View ──────────── */
 
+const ROLE_ORDER = [
+  'Propietario',
+  'Inquilino',
+  'Comprador',
+  'Garante',
+  'Lead',
+  'Proveedor',
+];
+
 function DetailView({
   property,
   onEdit,
@@ -128,6 +152,9 @@ function DetailView({
 }) {
   const t = useTranslations('properties');
   const tCommon = useTranslations('common');
+  const pathname = usePathname();
+  const localePrefix =
+    pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const [transitionLoading, setTransitionLoading] = useState<string | null>(null);
   const [operations, setOperations] = useState(property.operations || []);
   const [mediaItems, setMediaItems] = useState(property.media || []);
@@ -282,6 +309,48 @@ function DetailView({
           onMediaChange={setMediaItems}
           readOnly={!canEdit}
         />
+      </div>
+
+      {/* Linked persons — owner / tenant / guarantor */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <h3 className="text-base font-semibold text-slate-900 mb-3">
+          {t('detail.linkedPersons')}
+        </h3>
+        {(property.personRoles || []).length === 0 ? (
+          <p className="text-sm text-slate-400">{t('detail.noLinkedPersons')}</p>
+        ) : (
+          <div className="space-y-2">
+            {[...(property.personRoles || [])]
+              .sort(
+                (a, b) =>
+                  ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role),
+              )
+              .map((pr) => (
+                <div
+                  key={pr.id}
+                  className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100"
+                >
+                  <PersonRoleBadge role={pr.role} size="md" />
+                  <Link
+                    href={`${localePrefix}/persons/${pr.person.id}`}
+                    className="text-sm font-medium text-slate-900 hover:text-brand-600 transition-colors"
+                  >
+                    {pr.person.firstName} {pr.person.lastName}
+                  </Link>
+                  {pr.person.phone && (
+                    <span className="text-xs text-slate-500">
+                      {pr.person.phone}
+                    </span>
+                  )}
+                  {pr.person.email && (
+                    <span className="text-xs text-slate-500">
+                      {pr.person.email}
+                    </span>
+                  )}
+                </div>
+              ))}
+          </div>
+        )}
       </div>
 
       {/* Operations */}
