@@ -237,7 +237,6 @@ export function Header({ onMenuToggle }: HeaderProps) {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            data-tour="header-user"
             className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-[var(--color-bg)] transition-colors"
             aria-expanded={dropdownOpen}
             aria-haspopup="true"
@@ -269,18 +268,20 @@ export function Header({ onMenuToggle }: HeaderProps) {
                   {user?.email || ''}
                 </p>
               </div>
-              <a
-                href="#"
+              <Link
+                href={`${localePrefix}/perfil`}
+                onClick={() => setDropdownOpen(false)}
                 className="block px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg)] transition-colors"
               >
                 {t('common.profile')}
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                href={`${localePrefix}/configuracion`}
+                onClick={() => setDropdownOpen(false)}
                 className="block px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg)] transition-colors"
               >
                 {t('nav.settings')}
-              </a>
+              </Link>
               <div className="border-t border-[var(--color-border)] mt-1">
                 <button
                   onClick={logout}

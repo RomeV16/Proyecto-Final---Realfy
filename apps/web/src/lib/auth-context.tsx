@@ -38,6 +38,7 @@ interface AuthContextValue {
     lastName: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (partial: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -108,6 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const updateUser = useCallback((partial: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...partial };
+      setStoredUser(next);
+      return next;
+    });
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await apiClient('/auth/logout', { method: 'POST' });
@@ -128,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        updateUser,
       }}
     >
       {children}
