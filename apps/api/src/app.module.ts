@@ -17,6 +17,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ContractTemplatesModule } from './modules/contract-templates/contract-templates.module';
 import { LiquidacionesModule } from './modules/liquidaciones/liquidaciones.module';
+import { PenaltiesModule } from './modules/penalties/penalties.module';
 import { ServicesModule } from './modules/services/services.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
@@ -44,6 +45,7 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     ContractTemplatesModule,
     LiquidacionesModule,
     ServicesModule,
+    PenaltiesModule,
   ],
   controllers: [HealthController],
   providers: [
