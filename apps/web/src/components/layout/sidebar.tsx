@@ -22,6 +22,7 @@ const navItems: NavItem[] = [
   { key: 'delinquency', href: '/delinquency', icon: 'delinquency' },
   { key: 'tickets', href: '/tickets', icon: 'tickets' },
   { key: 'providers', href: '/providers', icon: 'providers' },
+  { key: 'notifications', href: '/notifications', icon: 'bell' },
 ];
 
 interface SidebarProps {

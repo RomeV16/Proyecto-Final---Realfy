@@ -63,7 +63,8 @@
     "delinquency": "Delinquents",
     "penalties": "Penalties",
     "fiscal": "Fiscal Settings",
-    "pagos": "Pagos"
+    "pagos": "Pagos",
+    "notifications": "Notificaciones"
   },
   "common": {
     "loading": "Cargando…",

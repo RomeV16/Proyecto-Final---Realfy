@@ -63,7 +63,8 @@
     "delinquency": "Morosos",
     "penalties": "Punitorios",
     "fiscal": "Configuración Fiscal",
-    "pagos": "Pagos"
+    "pagos": "Pagos",
+    "notifications": "Notificaciones"
   },
   "common": {
     "loading": "Cargando…",

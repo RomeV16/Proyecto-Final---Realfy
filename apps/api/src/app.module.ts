@@ -22,6 +22,8 @@ import { PortalModule } from './modules/portal/portal.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { ProvidersModule } from './modules/providers/providers.module';
 import { PenaltiesModule } from './modules/penalties/penalties.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { EmailTemplatesModule } from './modules/email-templates/email-templates.module';
 import { ServicesModule } from './modules/services/services.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
@@ -49,6 +51,8 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     ContractTemplatesModule,
     LiquidacionesModule,
     ServicesModule,
+    NotificationsModule,
+    EmailTemplatesModule,
     PortalAuthModule,
     PortalModule,
     TicketsModule,
