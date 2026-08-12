@@ -56,6 +56,49 @@ export class UsersService {
   }
 
   /**
+   * Update the current user's own profile (name only).
+   */
+  async updateMe(data: { firstName?: string; lastName?: string }) {
+    const userId = this.tenantContext.getUserId();
+    if (!userId) {
+      throw new ForbiddenException({
+        error: 'USER_CONTEXT_REQUIRED',
+        message: 'No authenticated user in context',
+      });
+    }
+
+    const clean: { firstName?: string; lastName?: string } = {};
+    if (typeof data.firstName === 'string' && data.firstName.trim()) {
+      clean.firstName = data.firstName.trim();
+    }
+    if (typeof data.lastName === 'string' && data.lastName.trim()) {
+      clean.lastName = data.lastName.trim();
+    }
+    if (Object.keys(clean).length === 0) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'Nothing to update',
+      });
+    }
+
+    const user = await this.prisma.client.user.update({
+      where: { id: userId },
+      data: clean,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        tenantId: true,
+      },
+    });
+
+    this.logger.log(`User profile updated: id=${user.id}`);
+    return user;
+  }
+
+  /**
    * Invite a user to the current tenant.
    * Creates a UserInvitation with a unique token valid for 7 days.
    * Email sending is deferred to a later slice.

@@ -51,6 +51,17 @@ export class UsersController {
   }
 
   /**
+   * PATCH /users/me — Update the current user's own profile.
+   * Any authenticated user may edit their name.
+   */
+  @Patch('me')
+  async updateMe(
+    @Body() body: { firstName?: string; lastName?: string },
+  ) {
+    return this.usersService.updateMe(body);
+  }
+
+  /**
    * PATCH /users/:id/role — Update a user's role.
    * Admin only.
    */

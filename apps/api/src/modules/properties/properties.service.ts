@@ -108,6 +108,13 @@ export class PropertiesService {
             where: { isPrimary: true },
             take: 1,
           },
+          personRoles: {
+            include: {
+              person: {
+                select: { id: true, firstName: true, lastName: true },
+              },
+            },
+          },
         },
         orderBy: { [filters.sortBy]: filters.sortOrder },
         skip,
@@ -134,6 +141,19 @@ export class PropertiesService {
         operations: true,
         media: { orderBy: { sortOrder: 'asc' } },
         priceHistory: { orderBy: { changedAt: 'desc' } },
+        personRoles: {
+          include: {
+            person: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                phone: true,
+              },
+            },
+          },
+        },
       },
     });
 
