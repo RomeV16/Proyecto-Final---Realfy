@@ -139,8 +139,40 @@ function RoleSection({
     }
   }, [needsProperty, needsGuarantee, properties.length, propietarios.length]);
 
+  // Eagerly resolve names shown in existing role badges (property / guarantor)
+  const hasPropertyRole = roles.some((r) => r.propertyId);
+  const hasGuarantorRole = roles.some((r) => r.guarantorForPersonId);
+  useEffect(() => {
+    if (hasPropertyRole && properties.length === 0) {
+      apiClient<{ items: PropertyOption[] }>('/properties?limit=100&isActive=true')
+        .then((r) => setProperties(r.items))
+        .catch(() => {});
+    }
+    if (hasGuarantorRole && propietarios.length === 0) {
+      apiClient<{ items: PersonOption[] }>('/persons?limit=100&role=Propietario')
+        .then((r) => setPropietarios(r.items))
+        .catch(() => {});
+    }
+  }, [hasPropertyRole, hasGuarantorRole, properties.length, propietarios.length]);
+
+  const propertyName = (id?: string | null) =>
+    id ? properties.find((p) => p.id === id)?.title ?? `#${id.slice(0, 8)}` : '';
+  const guarantorName = (id?: string | null) => {
+    if (!id) return '';
+    const g = propietarios.find((p) => p.id === id);
+    return g ? `${g.firstName} ${g.lastName}` : `#${id.slice(0, 8)}`;
+  };
+
   async function handleAddRole() {
     if (!newRole) return;
+    if (needsProperty && !propertyId) {
+      setError(tRoles('propertyRequired'));
+      return;
+    }
+    if (needsGuarantee && !guarantorForPersonId) {
+      setError(tRoles('guarantorRequired'));
+      return;
+    }
     setAdding(true);
     setError('');
     try {
@@ -194,11 +226,15 @@ function RoleSection({
           {roles.map((r) => (
             <div key={r.id} className="inline-flex items-center gap-1.5">
               <PersonRoleBadge role={r.role} size="md" />
-              {(r.propertyId || r.guarantorForPersonId) && (
+              {r.propertyId ? (
                 <span className="text-xs text-slate-500 italic">
-                  {r.propertyId ? `#${r.propertyId.slice(0, 8)}` : `↳ #${r.guarantorForPersonId?.slice(0, 8)}`}
+                  {propertyName(r.propertyId)}
                 </span>
-              )}
+              ) : r.guarantorForPersonId ? (
+                <span className="text-xs text-slate-500 italic">
+                  ↳ {guarantorName(r.guarantorForPersonId)}
+                </span>
+              ) : null}
               {canEdit && (
                 <button
                   type="button"
@@ -278,7 +314,12 @@ function RoleSection({
 
           <button
             type="button"
-            disabled={!newRole || adding}
+            disabled={
+              !newRole ||
+              (needsProperty && !propertyId) ||
+              (needsGuarantee && !guarantorForPersonId) ||
+              adding
+            }
             onClick={handleAddRole}
             className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >

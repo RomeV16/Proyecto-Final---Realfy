@@ -6,6 +6,17 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface TenantData {
   id: string;
@@ -104,6 +115,70 @@ function CollectionCard({
   );
 }
 
+function OccupancyDonut({ value, color }: { value: number; color: string }) {
+  const data = [
+    { name: 'occupied', value: Math.max(0, Math.min(100, value)) },
+    { name: 'free', value: Math.max(0, 100 - value) },
+  ];
+  return (
+    <div className="relative h-52">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            innerRadius="68%"
+            outerRadius="90%"
+            startAngle={90}
+            endAngle={-270}
+            stroke="none"
+          >
+            <Cell fill={color} />
+            <Cell fill="#e2e8f0" />
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+        <span className="text-4xl font-bold tabular-nums" style={{ color }}>
+          {value}
+          <span className="text-xl">%</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CollectionsChart({
+  data,
+}: {
+  data: { name: string; value: number; fill: string }[];
+}) {
+  return (
+    <div className="h-52">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={data} margin={{ top: 12, right: 8, left: 8, bottom: 0 }}>
+          <XAxis
+            dataKey="name"
+            tick={{ fontSize: 12, fill: '#64748b' }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis hide />
+          <Tooltip
+            formatter={(value) => formatCurrency(Number(value))}
+            cursor={{ fill: '#f1f5f9' }}
+          />
+          <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+            {data.map((d) => (
+              <Cell key={d.name} fill={d.fill} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
@@ -159,6 +234,7 @@ export default function DashboardPage() {
   const tStats = useTranslations('dashboard.stats');
   const tExpiring = useTranslations('dashboard.expiringContracts');
   const tCollections = useTranslations('dashboard.collections');
+  const tCharts = useTranslations('dashboard.charts');
   const { user, isLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
@@ -257,7 +333,7 @@ export default function DashboardPage() {
         </div>
       ) : stats ? (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" data-tour="dashboard-stats">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             <StatCard
               label={tStats('properties')}
               value={stats.totalProperties}
@@ -286,8 +362,42 @@ export default function DashboardPage() {
             />
           </div>
 
+          {/* Charts row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h2 className="text-sm font-semibold text-slate-900 mb-2">
+                {tCharts('occupancy')}
+              </h2>
+              <OccupancyDonut value={stats.occupancyRate} color={accentColor} />
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h2 className="text-sm font-semibold text-slate-900 mb-2">
+                {tCharts('collections')}
+              </h2>
+              <CollectionsChart
+                data={[
+                  {
+                    name: tCollections('pagada'),
+                    value: stats.collections.pagada,
+                    fill: '#10b981',
+                  },
+                  {
+                    name: tCollections('pendiente'),
+                    value: stats.collections.pendiente,
+                    fill: '#f59e0b',
+                  },
+                  {
+                    name: tCollections('vencida'),
+                    value: stats.collections.vencida,
+                    fill: '#ef4444',
+                  },
+                ]}
+              />
+            </div>
+          </div>
+
           {/* Expiring contracts section */}
-          <div data-tour="dashboard-expiring">
+          <div>
             <h2 className="text-lg font-semibold text-slate-900 mb-3">
               {tExpiring('title')}
             </h2>
@@ -315,7 +425,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Collection status section */}
-          <div data-tour="dashboard-collections">
+          <div>
             <h2 className="text-lg font-semibold text-slate-900 mb-3">
               {tCollections('title')}
             </h2>

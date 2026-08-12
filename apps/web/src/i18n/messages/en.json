@@ -178,6 +178,10 @@
       "monthlyIncome": "Monthly income",
       "delinquency": "Delinquency",
       "activeContracts": "Active contracts"
+    },
+    "charts": {
+      "occupancy": "Occupancy",
+      "collections": "Collections status"
     }
   },
   "users": {
@@ -389,7 +393,9 @@
       "edit": "Editar",
       "deleteConfirm": "¿Estás seguro de eliminar esta propiedad?",
       "deleted": "Propiedad eliminada",
-      "deleteError": "No se pudo eliminar la propiedad"
+      "deleteError": "No se pudo eliminar la propiedad",
+      "linkedPersons": "Linked people",
+      "noLinkedPersons": "No people linked to this property"
     },
     "empty": {
       "title": "No hay propiedades",
@@ -618,7 +624,9 @@
       "property": "Linked property",
       "propertyPlaceholder": "Select property (optional)",
       "guarantorFor": "Guarantor for owner",
-      "guarantorForPlaceholder": "Select owner (optional)"
+      "guarantorForPlaceholder": "Select owner (optional)",
+      "propertyRequired": "Select a property",
+      "guarantorRequired": "Select the guaranteed owner"
     },
     "fiscalConditions": {
       "ResponsableInscripto": "Responsable Inscripto",
@@ -4179,5 +4187,35 @@
     "period": "Período",
     "method": "Medio",
     "amount": "Monto"
+  },
+  "perfil": {
+    "title": "My profile",
+    "subtitle": "Manage your personal information",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "role": "Role",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "saved": "Changes saved",
+    "saveError": "Could not save changes",
+    "nameRequired": "First and last name are required"
+  },
+  "configuracion": {
+    "title": "Settings",
+    "subtitle": "Agency data and branding",
+    "name": "Agency name",
+    "cuit": "Tax ID",
+    "province": "Province",
+    "brandPrimary": "Primary color",
+    "brandSecondary": "Secondary color",
+    "logoUrl": "Logo URL",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "saved": "Changes saved",
+    "saveError": "Could not save changes",
+    "loadError": "Could not load settings",
+    "nameRequired": "Name is required",
+    "readOnly": "Only administrators can edit settings"
   }
 }
