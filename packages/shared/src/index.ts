@@ -384,3 +384,22 @@ export {
 // ── Web form schema ─────────────────────────────────────
 export { ticketFormSchema } from './schemas/ticket.form';
 export type { TicketFormInput } from './schemas/ticket.form';
+
+// Schemas — portal de inquilinos
+export {
+  PortalLoginRequestSchema,
+  PortalSetPasswordRequestSchema,
+  PortalRefreshTokenRequestSchema,
+} from './schemas/portal-auth.schema';
+import {
+  PortalLoginRequestSchema as _PortalLoginRequestSchema,
+  PortalSetPasswordRequestSchema as _PortalSetPasswordRequestSchema,
+  PortalRefreshTokenRequestSchema as _PortalRefreshTokenRequestSchema,
+} from './schemas/portal-auth.schema';
+export type PortalLoginRequestInput = z.infer<typeof _PortalLoginRequestSchema>;
+export type PortalSetPasswordInput = z.infer<typeof _PortalSetPasswordRequestSchema>;
+export type PortalRefreshTokenRequestInput = z.infer<typeof _PortalRefreshTokenRequestSchema>;
+export interface PortalAuthResponse {
+  person: { id: string; email: string; firstName: string; lastName: string; tenantId: string };
+  tokens: AuthTokens;
+}
