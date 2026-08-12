@@ -106,9 +106,9 @@ export function GenerateDocumentModal({ open, contractId, onClose }: GenerateDoc
         `${apiBase}/contracts/${contractId}/generate-document`,
         {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-        credentials: 'include' as RequestCredentials,
           },
           body: JSON.stringify({
             templateId: selectedTemplateId,
