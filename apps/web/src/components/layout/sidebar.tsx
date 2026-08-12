@@ -128,18 +128,23 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           collapsed ? 'w-16' : 'w-64'
         } min-h-screen shrink-0`}
       >
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-white/10">
-        <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-          {user?.firstName?.[0]?.toUpperCase() || 'R'}
+      <div className="flex items-center gap-2.5 px-5 h-16 border-b border-white/[0.08]">
+        <div className="w-8 h-8 rounded-md bg-brand-500 flex items-center justify-center text-white font-display italic text-base shrink-0">
+          R
         </div>
         {!collapsed && (
-          <span className="font-semibold text-white truncate text-sm tracking-tight">
+          <span className="font-display italic text-[1.3rem] leading-none text-[#f0e6d4] tracking-tight">
             Realfy
           </span>
         )}
       </div>
 
-      <nav className="flex-1 py-4 px-2 space-y-1">
+      <nav className="flex-1 py-5 px-3 space-y-0.5 overflow-y-auto">
+        {!collapsed && (
+          <p className="px-3 pb-2.5 text-[0.62rem] uppercase tracking-[0.18em] text-white/30 font-medium">
+            Gestión
+          </p>
+        )}
         {navItems.map((item) => {
           const active = isActive(item.href);
           return (
@@ -147,15 +152,22 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               key={item.key}
               href={`${localePrefix}${item.href}`}
               aria-label={collapsed ? t(item.key) : undefined}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 ${
+              className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-300 [transition-timing-function:var(--ease-luxe)] ${
                 active
-                  ? 'bg-brand-500/15 text-brand-400 font-medium'
-                  : 'hover:bg-sidebar-hover text-sidebar-text hover:text-white'
+                  ? 'bg-white/[0.07] text-white font-medium'
+                  : 'text-sidebar-text hover:bg-white/[0.04] hover:text-white'
               } ${collapsed ? 'justify-center' : ''}`}
               title={collapsed ? t(item.key) : undefined}
             >
-              <span className={`relative ${active ? 'text-brand-400' : ''}`}>
-                <Icon name={item.icon} size={20} />
+              {active && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-brand-500" />
+              )}
+              <span
+                className={`relative transition-colors duration-300 ${
+                  active ? 'text-brand-400' : 'text-current group-hover:text-brand-300'
+                }`}
+              >
+                <Icon name={item.icon} size={19} />
               </span>
               {!collapsed && <span className="flex-1">{t(item.key)}</span>}
             </Link>
@@ -163,7 +175,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         })}
       </nav>
 
-      <div className="px-2 py-4 border-t border-white/10">
+      <div className="px-3 py-4 border-t border-white/[0.08]">
         <button
           onClick={onToggle}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm w-full hover:bg-sidebar-hover transition-colors duration-150"
