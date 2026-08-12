@@ -17,6 +17,8 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ContractTemplatesModule } from './modules/contract-templates/contract-templates.module';
 import { LiquidacionesModule } from './modules/liquidaciones/liquidaciones.module';
+import { PortalAuthModule } from './modules/portal-auth/portal-auth.module';
+import { PortalModule } from './modules/portal/portal.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
 import { ProvidersModule } from './modules/providers/providers.module';
 import { PenaltiesModule } from './modules/penalties/penalties.module';
@@ -47,6 +49,8 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     ContractTemplatesModule,
     LiquidacionesModule,
     ServicesModule,
+    PortalAuthModule,
+    PortalModule,
     TicketsModule,
     ProvidersModule,
     PenaltiesModule,

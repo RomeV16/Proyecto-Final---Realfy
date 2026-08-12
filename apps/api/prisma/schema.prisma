@@ -211,6 +211,7 @@ model User {
   ticketsCreated  Ticket[]        @relation("TicketCreator")
   ticketsAssigned Ticket[]        @relation("TicketAssignee")
   ticketComments  TicketComment[] @relation("TicketCommentUser")
+  portalInvitations PortalInvitation[] @relation("PortalInvitedByUser")
   @@unique([email, tenantId])
   @@index([tenantId])
   @@map("users")
@@ -411,6 +412,9 @@ model Person {
   assignedTickets        Ticket[]        @relation("TicketProvider")
   ticketsCreatedByPerson Ticket[]        @relation("TicketPortalCreator")
   ticketCommentsByPerson TicketComment[] @relation("TicketCommentPerson")
+  portalCredential     InquilinoCredential?
+  portalRefreshTokens  PortalRefreshToken[]
+  portalInvitations    PortalInvitation[]
   @@unique([tenantId, cuit])
   @@index([tenantId])
   @@index([tenantId, isActive])
@@ -972,4 +976,57 @@ model TicketAttachment {
   @@index([tenantId])
   @@index([commentId])
   @@map("ticket_attachments")
+}
+
+// ─── Portal Auth Models ─────────────────────────────────
+
+model InquilinoCredential {
+  id           String    @id @default(uuid())
+  personId     String    @unique
+  tenantId     String
+  passwordHash String
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@map("inquilino_credentials")
+}
+
+model PortalRefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  personId  String
+  tenantId  String
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@index([tenantId])
+  @@map("portal_refresh_tokens")
+}
+
+model PortalInvitation {
+  id              String    @id @default(uuid())
+  personId        String
+  tenantId        String
+  invitedByUserId String
+  token           String    @unique
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  person    Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  invitedBy User   @relation("PortalInvitedByUser", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([token])
+  @@map("portal_invitations")
 }
