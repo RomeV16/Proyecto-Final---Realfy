@@ -163,4 +163,16 @@ export class PersonsController {
   ) {
     return this.personsService.deleteDocument(id, docId);
   }
+
+  // ─── Invitaciones al portal ─────────────────────────
+
+  /**
+   * POST /persons/:id/portal-invite — Genera el token con el que el inquilino
+   * crea su contraseña y activa el acceso al portal. Admin y Gerente.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Post(':id/portal-invite')
+  async createPortalInvitation(@Param('id') id: string) {
+    return this.personsService.createPortalInvitation(id);
+  }
 }
