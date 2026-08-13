@@ -9,6 +9,7 @@ import type { AuthResponse } from '@realfy/shared';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { transition } from '@/lib/transition-store';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -23,6 +24,7 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [exiting, setExiting] = useState(false);
 
   const validate = () => {
     const result = loginSchema.safeParse({ email, password });
@@ -56,14 +58,22 @@ export default function LoginPage() {
       const res = await loginRes.json() as AuthResponse;
       setStoredUser(res.user);
       localStorage.setItem('user', JSON.stringify(res.user));
+      // Play the cinematic login → panel transition; it covers the navigation.
+      transition.start({ firstName: res.user.firstName });
+      setExiting(true);
       router.push(`${localePrefix}`);
     } catch (err) {
       setServerError(err instanceof ApiRequestError ? t('auth.login.error') : t('common.error'));
-    } finally { setLoading(false); }
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="w-full">
+    <div
+      className={`w-full transition-all duration-300 [transition-timing-function:var(--ease-luxe)] ${
+        exiting ? 'opacity-0 translate-y-2' : 'opacity-100'
+      }`}
+    >
       <div className="mb-9">
         <p className="eyebrow mb-3">Bienvenido de vuelta</p>
         <h1 className="h1">{t('auth.login.title')}</h1>
