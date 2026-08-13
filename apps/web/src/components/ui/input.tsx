@@ -15,7 +15,7 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
       {label && (
         <label
           htmlFor={inputId}
-          className="text-sm font-medium text-[var(--color-text)]"
+          className="text-[0.8rem] font-medium text-[var(--color-text)]"
         >
           {label}
         </label>
@@ -23,13 +23,13 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
       <input
         id={inputId}
         className={cn(
-          'h-10 w-full rounded-md border px-3 py-2 text-sm bg-[var(--color-surface)] text-[var(--color-text)]',
+          'h-11 w-full rounded-lg border px-3.5 text-sm bg-[var(--color-surface)] text-[var(--color-text)]',
           'placeholder:text-[var(--color-muted)]',
-          'transition-colors duration-150',
-          'focus:outline-2 focus:outline-brand-500 focus:outline-offset-0',
+          'transition-[border-color,box-shadow] duration-300 [transition-timing-function:var(--ease-luxe)]',
+          'focus:outline-none focus:ring-4',
           error
-            ? 'border-[var(--color-danger)] focus:outline-[var(--color-danger)]'
-            : 'border-[var(--color-border)] hover:border-[var(--color-muted)]',
+            ? 'border-[var(--color-danger)] focus:ring-[color-mix(in_srgb,var(--color-danger)_18%,transparent)]'
+            : 'border-[var(--color-border)] hover:border-[var(--color-slate-400)] focus:border-brand-500 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           className,
         )}

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
+import { Reveal } from '@/components/ui/reveal';
 import {
   PieChart,
   Pie,
@@ -58,10 +59,10 @@ function StatCard({
   accentColor: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="text-3xl font-bold mt-1 tabular-nums" style={{ color: accentColor }}>
-        {value}{suffix && <span className="text-lg ml-0.5">{suffix}</span>}
+    <div className="card-lux p-5">
+      <p className="micro">{label}</p>
+      <p className="numeric-xl mt-3" style={{ color: accentColor }}>
+        {value}{suffix && <span className="text-xl ml-0.5 align-top">{suffix}</span>}
       </p>
     </div>
   );
@@ -134,7 +135,7 @@ function OccupancyDonut({ value, color }: { value: number; color: string }) {
             stroke="none"
           >
             <Cell fill={color} />
-            <Cell fill="#e2e8f0" />
+            <Cell fill="#e4dac7" />
           </Pie>
         </PieChart>
       </ResponsiveContainer>
@@ -296,19 +297,20 @@ export default function DashboardPage() {
     );
   }
 
-  const accentColor = tenant?.brandPrimary || '#f97316';
+  const accentColor = tenant?.brandPrimary || '#bd5a32';
   const isEmpty = stats?.totalProperties === 0;
 
   return (
     <div className="space-y-8">
       {/* Welcome header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between gap-4 pb-2">
         <div>
+          <p className="eyebrow mb-3">Panel general</p>
           <h1 className="h1">
             {t('welcome', { name: user?.firstName || '' })}
           </h1>
           {tenant?.name && (
-            <p className="mt-1 text-slate-500 text-sm">
+            <p className="mt-2 text-[var(--color-muted)] text-sm">
               {tenant.name}
             </p>
           )}
@@ -334,32 +336,42 @@ export default function DashboardPage() {
       ) : stats ? (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            <StatCard
-              label={tStats('properties')}
-              value={stats.totalProperties}
-              accentColor={accentColor}
-            />
-            <StatCard
-              label={tStats('activeContracts')}
-              value={stats.activeContracts}
-              accentColor={accentColor}
-            />
-            <StatCard
-              label={tStats('occupancyRate')}
-              value={stats.occupancyRate}
-              suffix="%"
-              accentColor={accentColor}
-            />
-            <StatCard
-              label={tStats('pendingLiquidaciones')}
-              value={stats.pendingLiquidaciones}
-              accentColor={accentColor}
-            />
-            <StatCard
-              label={tStats('services')}
-              value={stats.totalServices}
-              accentColor={accentColor}
-            />
+            <Reveal delay={0}>
+              <StatCard
+                label={tStats('properties')}
+                value={stats.totalProperties}
+                accentColor={accentColor}
+              />
+            </Reveal>
+            <Reveal delay={1}>
+              <StatCard
+                label={tStats('activeContracts')}
+                value={stats.activeContracts}
+                accentColor={accentColor}
+              />
+            </Reveal>
+            <Reveal delay={2}>
+              <StatCard
+                label={tStats('occupancyRate')}
+                value={stats.occupancyRate}
+                suffix="%"
+                accentColor={accentColor}
+              />
+            </Reveal>
+            <Reveal delay={3}>
+              <StatCard
+                label={tStats('pendingLiquidaciones')}
+                value={stats.pendingLiquidaciones}
+                accentColor={accentColor}
+              />
+            </Reveal>
+            <Reveal delay={4}>
+              <StatCard
+                label={tStats('services')}
+                value={stats.totalServices}
+                accentColor={accentColor}
+              />
+            </Reveal>
           </div>
 
           {/* Charts row */}
@@ -379,17 +391,17 @@ export default function DashboardPage() {
                   {
                     name: tCollections('pagada'),
                     value: stats.collections.pagada,
-                    fill: '#10b981',
+                    fill: '#3d5f49',
                   },
                   {
                     name: tCollections('pendiente'),
                     value: stats.collections.pendiente,
-                    fill: '#f59e0b',
+                    fill: '#c58a2b',
                   },
                   {
                     name: tCollections('vencida'),
                     value: stats.collections.vencida,
-                    fill: '#ef4444',
+                    fill: '#b23a2b',
                   },
                 ]}
               />
