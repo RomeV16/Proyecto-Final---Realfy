@@ -2697,7 +2697,8 @@
       "transitionError": "No se pudo cambiar el estado",
       "noTransitions": "Sin transiciones disponibles",
       "createdAt": "Creado el",
-      "updatedAt": "Última actualización"
+      "updatedAt": "Última actualización",
+      "noUsers": "No users available to assign"
     },
     "timeline": {
       "title": "Actividad",

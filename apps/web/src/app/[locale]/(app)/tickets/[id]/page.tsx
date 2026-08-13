@@ -62,6 +62,15 @@ interface ProviderOption {
   id: string;
   firstName: string;
   lastName: string;
+  providerProfile?: { rubros?: string[]; coverageZones?: string[] } | null;
+}
+
+interface UserOption {
+  id: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  isActive: boolean;
 }
 
 /* ──────────── Helpers ──────────── */
@@ -151,6 +160,11 @@ export default function TicketDetailPage() {
   const [providerNotes, setProviderNotes] = useState('');
   const [assigning, setAssigning] = useState(false);
 
+  // Assignee state
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [selectedUser, setSelectedUser] = useState('');
+  const [reassigning, setReassigning] = useState(false);
+
   // Comment state
   const [newComment, setNewComment] = useState('');
   const [postingComment, setPostingComment] = useState(false);
@@ -178,6 +192,40 @@ export default function TicketDetailPage() {
       setProviders(Array.isArray(list) ? list : []);
     } catch {
       setProviders([]);
+    }
+  }
+
+  /* Solo Admin y Gerente pueden listar usuarios: si vuelve 403 la seccion
+     queda oculta en vez de romper la ficha. */
+  const loadUsers = useCallback(async () => {
+    try {
+      const list = await apiClient<UserOption[]>('/users');
+      setUsers(Array.isArray(list) ? list.filter((u) => u.isActive) : []);
+    } catch {
+      setUsers([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (canManage) loadUsers();
+  }, [canManage, loadUsers]);
+
+  async function handleReassign() {
+    if (!selectedUser) return;
+    setReassigning(true);
+    setActionError('');
+    try {
+      await apiClient(`/tickets/${ticketId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ assignedToUserId: selectedUser }),
+      });
+      setSelectedUser('');
+      await loadTicket();
+    } catch (err) {
+      if (err instanceof ApiRequestError) setActionError(err.message);
+      else setActionError(t('detail.reassignError'));
+    } finally {
+      setReassigning(false);
     }
   }
 
@@ -326,6 +374,49 @@ export default function TicketDetailPage() {
         </div>
       </Reveal>
 
+      {/* Responsable */}
+      {canManage && (
+        <Reveal>
+          <div className="card-lux space-y-4 p-6">
+            <div>
+              <p className="eyebrow">{t('detail.assignedTo')}</p>
+              <h2 className="h3">
+                {ticket.assignedTo ? partyName(ticket.assignedTo) : t('card.noAssignee')}
+              </h2>
+            </div>
+
+            {users.length === 0 ? (
+              <p className="text-sm text-[var(--color-muted)]">{t('detail.noUsers')}</p>
+            ) : (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <select
+                  value={selectedUser}
+                  onChange={(e) => setSelectedUser(e.target.value)}
+                  className="h-11 flex-1 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-sm text-[var(--color-text)] focus:border-brand-500 focus:outline-none"
+                >
+                  <option value="">{t('detail.reassignPlaceholder')}</option>
+                  {users
+                    .filter((u) => u.id !== ticket.assignedTo?.id)
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.firstName} {u.lastName} · {u.role}
+                      </option>
+                    ))}
+                </select>
+                <Button
+                  variant="secondary"
+                  onClick={handleReassign}
+                  disabled={!selectedUser || reassigning}
+                  className="shrink-0"
+                >
+                  {reassigning ? '…' : t('detail.reassign')}
+                </Button>
+              </div>
+            )}
+          </div>
+        </Reveal>
+      )}
+
       {/* Status transitions */}
       {canManage && (
         <Reveal>
@@ -391,11 +482,15 @@ export default function TicketDetailPage() {
                     className="h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-sm text-[var(--color-text)] focus:outline-none focus:border-brand-500 focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]"
                   >
                     <option value="">{t('provider.assignPlaceholder')}</option>
-                    {providers.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.firstName} {p.lastName}
-                      </option>
-                    ))}
+                    {providers.map((p) => {
+                      const rubros = p.providerProfile?.rubros ?? [];
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {p.firstName} {p.lastName}
+                          {rubros.length > 0 ? ` · ${rubros.join(', ')}` : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                   <textarea
                     value={providerNotes}
