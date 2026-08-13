@@ -15,6 +15,8 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { LiquidacionStatusBadge } from './liquidacion-status-badge';
 import { PaymentForm } from './payment-form';
+import { EntityRow, Badge } from '@/components/ui/entity-card';
+import { Icon } from '@/components/ui/icon';
 
 /* ──────────── Types ──────────── */
 
@@ -350,54 +352,63 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         {(data.lineItems || []).length === 0 ? (
           <p className="text-sm text-slate-400 italic">{tLineItems('empty')}</p>
         ) : (
-          <div className="space-y-2">
-            {(data.lineItems || []).map((li) => (
-              <div
-                key={li.id}
-                className="flex items-center justify-between p-3 bg-slate-50 rounded-lg group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-lg flex-shrink-0">{LINE_ITEM_ICONS[li.type] || '📄'}</span>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-medium text-slate-500 px-1.5 py-0.5 rounded bg-slate-200">
-                        {tTypes(li.type)}
-                      </span>
+          <div className="space-y-2.5">
+            {(data.lineItems || []).map((li) => {
+              const isDiscount = li.type === LineItemType.Descuento;
+              return (
+                <EntityRow
+                  key={li.id}
+                  accent={isDiscount ? 'danger' : 'none'}
+                  leading={
+                    <span
+                      className="flex h-10 w-10 items-center justify-center rounded-full text-lg"
+                      style={{
+                        backgroundColor: isDiscount
+                          ? 'color-mix(in oklab, var(--color-danger) 12%, var(--color-surface))'
+                          : 'var(--color-surface-sunken)',
+                      }}
+                    >
+                      {LINE_ITEM_ICONS[li.type] || '📄'}
+                    </span>
+                  }
+                  title={li.description.replace(/\s*\[pid:[^\]]+\]/, '')}
+                  meta={
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge variant={isDiscount ? 'danger' : 'neutral'}>{tTypes(li.type)}</Badge>
                     </div>
-                    <p className="text-sm text-slate-700 mt-0.5 truncate">
-                      {li.description.replace(/\s*\[pid:[^\]]+\]/, '')}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className={`text-sm font-semibold tabular-nums ${li.type === LineItemType.Descuento ? 'text-red-600' : 'text-slate-900'}`}>
-                    {li.type === LineItemType.Descuento ? '- ' : ''}{formatCurrency(li.amount)}
-                  </span>
-                  {isEditable && canAct && (
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => openEditLineItem(li)}
-                        className="p-1 rounded text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
-                        title={tLineItems('edit')}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleRemoveLineItem(li.id)}
-                        className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        title={tLineItems('remove')}
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+                  }
+                  trailing={
+                    <EntityRow.Amount
+                      value={`${isDiscount ? '- ' : ''}${formatCurrency(li.amount)}`}
+                      tone={isDiscount ? 'danger' : 'default'}
+                    />
+                  }
+                  actions={
+                    isEditable && canAct ? (
+                      <>
+                        <EntityRow.Action
+                          icon="edit"
+                          variant="quiet"
+                          onClick={() => openEditLineItem(li)}
+                          title={tLineItems('edit')}
+                        >
+                          <span className="sr-only">{tLineItems('edit')}</span>
+                        </EntityRow.Action>
+                        <EntityRow.Action
+                          icon="close"
+                          variant="quiet"
+                          onClick={() => handleRemoveLineItem(li.id)}
+                          title={tLineItems('remove')}
+                          className="text-[var(--color-danger)] hover:bg-[color-mix(in_oklab,var(--color-danger)_10%,var(--color-surface))]"
+                        >
+                          <span className="sr-only">{tLineItems('remove')}</span>
+                        </EntityRow.Action>
+                      </>
+                    ) : undefined
+                  }
+                />
+              );
+            })}
           </div>
         )}
 
@@ -512,16 +523,28 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         {(data.payments || []).length === 0 ? (
           <p className="text-sm text-slate-400 italic">{tPayments('empty')}</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {(data.payments || []).map((p) => (
-              <div key={p.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-slate-900">{tMethods(p.method)}</p>
-                  {p.reference && <p className="text-xs text-slate-500 font-mono truncate">{p.reference}</p>}
-                  <p className="text-xs text-slate-400">{formatDate(p.paidAt)}</p>
-                </div>
-                <span className="text-sm font-semibold text-emerald-700 tabular-nums">{formatCurrency(p.amount)}</span>
-              </div>
+              <EntityRow
+                key={p.id}
+                accent="success"
+                leading={
+                  <span
+                    className="flex h-10 w-10 items-center justify-center rounded-full"
+                    style={{
+                      backgroundColor:
+                        'color-mix(in oklab, var(--color-success) 14%, var(--color-surface))',
+                      color: 'var(--color-success)',
+                    }}
+                  >
+                    <Icon name="check" className="h-5 w-5" strokeWidth={2} />
+                  </span>
+                }
+                title={tMethods(p.method)}
+                subtitle={p.reference || undefined}
+                meta={<EntityRow.Meta items={[{ icon: 'calendar', label: formatDate(p.paidAt) }]} />}
+                trailing={<EntityRow.Amount value={formatCurrency(p.amount)} tone="success" />}
+              />
             ))}
           </div>
         )}

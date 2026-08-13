@@ -17,6 +17,9 @@ import { PropertyTypeBadge } from '@/components/properties/property-type-badge';
 import { PropertyMediaUpload } from '@/components/properties/property-media-upload';
 import { PriceHistory } from '@/components/properties/price-history';
 import { PersonRoleBadge } from '@/components/persons/person-role-badge';
+import { EntityRow } from '@/components/ui/entity-card';
+import { Avatar } from '@/components/ui/avatar';
+import { Icon } from '@/components/ui/icon';
 
 /* ──────────── Types ──────────── */
 
@@ -325,30 +328,35 @@ function DetailView({
                 (a, b) =>
                   ROLE_ORDER.indexOf(a.role) - ROLE_ORDER.indexOf(b.role),
               )
-              .map((pr) => (
-                <div
-                  key={pr.id}
-                  className="flex flex-wrap items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100"
-                >
-                  <PersonRoleBadge role={pr.role} size="md" />
-                  <Link
-                    href={`${localePrefix}/persons/${pr.person.id}`}
-                    className="text-sm font-medium text-slate-900 hover:text-brand-600 transition-colors"
-                  >
-                    {pr.person.firstName} {pr.person.lastName}
-                  </Link>
-                  {pr.person.phone && (
-                    <span className="text-xs text-slate-500">
-                      {pr.person.phone}
-                    </span>
-                  )}
-                  {pr.person.email && (
-                    <span className="text-xs text-slate-500">
-                      {pr.person.email}
-                    </span>
-                  )}
-                </div>
-              ))}
+              .map((pr) => {
+                const fullName = `${pr.person.firstName} ${pr.person.lastName}`;
+                const href = `${localePrefix}/persons/${pr.person.id}`;
+                return (
+                  <EntityRow
+                    key={pr.id}
+                    href={href}
+                    label={fullName}
+                    leading={<Avatar name={fullName} seed={pr.person.id} size="md" />}
+                    title={fullName}
+                    meta={
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <PersonRoleBadge role={pr.role} />
+                      </div>
+                    }
+                    trailing={
+                      <div className="flex flex-col items-end gap-0.5 text-xs text-[var(--color-muted)]">
+                        {pr.person.phone && <span>{pr.person.phone}</span>}
+                        {pr.person.email && <span>{pr.person.email}</span>}
+                      </div>
+                    }
+                    actions={
+                      <EntityRow.Action href={href} icon="arrowRight" variant="ghost">
+                        {t('card.view')}
+                      </EntityRow.Action>
+                    }
+                  />
+                );
+              })}
           </div>
         )}
       </div>
@@ -366,34 +374,56 @@ function DetailView({
                 op.state as PropertyState,
               );
               return (
-                <div key={op.id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-sm font-medium text-slate-900">
-                      {t(`operationTypes.${op.operationType}`)}
+                <EntityRow
+                  key={op.id}
+                  accent="brand"
+                  leading={
+                    <span
+                      className="flex h-10 w-10 items-center justify-center rounded-full"
+                      style={{
+                        backgroundColor:
+                          'color-mix(in oklab, var(--color-brand-500) 14%, var(--color-surface))',
+                        color: 'var(--color-brand-500)',
+                      }}
+                    >
+                      <Icon name="properties" className="h-5 w-5" strokeWidth={1.9} />
                     </span>
-                    <PropertyStateBadge state={op.state} />
-                    {op.price && (
-                      <span className="text-sm text-slate-600 tabular-nums">
-                        {op.currency === 'USD' ? 'US$' : '$'} {Number(op.price).toLocaleString('es-AR')}
-                      </span>
-                    )}
-                  </div>
-                  {canEdit && validNext.length > 0 && (
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs text-slate-500">{t('detail.transitionTo')}:</span>
-                      {validNext.map((next) => (
-                        <button
-                          key={next}
-                          disabled={transitionLoading === op.id}
-                          onClick={() => handleTransition(op.id, next)}
-                          className="px-2.5 py-1 rounded-md text-xs font-medium border border-slate-200 text-slate-700 hover:bg-brand-50 hover:text-brand-700 hover:border-brand-200 transition-colors disabled:opacity-50"
-                        >
-                          {t(`states.${next}`)}
-                        </button>
-                      ))}
+                  }
+                  title={t(`operationTypes.${op.operationType}`)}
+                  meta={
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <PropertyStateBadge state={op.state} />
                     </div>
-                  )}
-                </div>
+                  }
+                  trailing={
+                    op.price ? (
+                      <EntityRow.Amount
+                        value={`${op.currency === 'USD' ? 'US$' : '$'} ${Number(op.price).toLocaleString('es-AR')}`}
+                      />
+                    ) : (
+                      <EntityRow.Amount value={t('card.noPrice')} tone="muted" />
+                    )
+                  }
+                  actions={
+                    canEdit && validNext.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="hidden text-xs text-[var(--color-muted)] lg:inline">
+                          {t('detail.transitionTo')}:
+                        </span>
+                        {validNext.map((next) => (
+                          <EntityRow.Action
+                            key={next}
+                            variant="ghost"
+                            disabled={transitionLoading === op.id}
+                            onClick={() => handleTransition(op.id, next)}
+                          >
+                            {t(`states.${next}`)}
+                          </EntityRow.Action>
+                        ))}
+                      </div>
+                    ) : undefined
+                  }
+                />
               );
             })}
           </div>
