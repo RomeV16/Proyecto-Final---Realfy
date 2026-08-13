@@ -7,7 +7,7 @@ export function Card({ className, children, ...props }: DivProps) {
   return (
     <div
       className={cn(
-        'rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm',
+        'rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm',
         className,
       )}
       {...props}
@@ -40,7 +40,7 @@ export function CardFooter({ className, children, ...props }: DivProps) {
   return (
     <div
       className={cn(
-        'px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-bg)] rounded-b-lg',
+        'px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-surface-sunken)] rounded-b-[var(--radius-xl)]',
         className,
       )}
       {...props}

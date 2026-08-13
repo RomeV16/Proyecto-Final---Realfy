@@ -349,6 +349,121 @@ body::before {
 }
 
 /* ─────────────────────────────────────────────────────────
+   Sistema de tarjetas — carga, superficies y portadas
+   ───────────────────────────────────────────────────────── */
+
+/* Esqueleto con barrido. Una grilla de bloques pulsando late fuera de fase y
+   se lee como algo roto; un barrido compartido se lee como una sola superficie
+   todavía cargando. */
+.skeleton {
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--color-border) 65%, var(--color-surface)) 25%,
+    color-mix(in oklab, var(--color-border) 20%, var(--color-surface)) 50%,
+    color-mix(in oklab, var(--color-border) 65%, var(--color-surface)) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.8s ease-in-out infinite;
+}
+@keyframes skeleton-sweep {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+/* Elevación de tarjeta interactiva. Queda en CSS y no en JS para que el hover
+   se mantenga a 60fps sin montar un componente de motion por tarjeta. */
+.card-lift {
+  transition:
+    transform 0.35s var(--ease-luxe),
+    box-shadow 0.35s var(--ease-luxe),
+    border-color 0.35s var(--ease-luxe);
+  will-change: transform;
+}
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+  border-color: color-mix(in srgb, var(--color-brand-400) 45%, var(--color-border));
+}
+.card-lift:active {
+  transform: translateY(-1px);
+  transition-duration: 0.12s;
+}
+
+/* Zoom de la portada al pasar por la tarjeta */
+.card-lift .media-zoom { transition: transform 0.6s var(--ease-luxe); }
+.card-lift:hover .media-zoom { transform: scale(1.06); }
+
+/* Velo sobre la portada para que el texto encima siga siendo legible */
+.cover-scrim {
+  background-image: linear-gradient(
+    to top,
+    rgb(20 16 9 / 0.86) 0%,
+    rgb(20 16 9 / 0.55) 32%,
+    rgb(20 16 9 / 0.12) 62%,
+    rgb(20 16 9 / 0) 100%
+  );
+}
+
+/* Texturas de portada generada, sobre el degradado de identidad, para que las
+   entidades sin foto tengan igual una superficie propia. */
+.cover-grid {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.13) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.cover-dots {
+  background-image: radial-gradient(rgb(255 255 255 / 0.22) 1.1px, transparent 1.2px);
+  background-size: 15px 15px;
+}
+.cover-rays {
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgb(255 255 255 / 0.10) 0px,
+    rgb(255 255 255 / 0.10) 1.5px,
+    transparent 1.5px,
+    transparent 13px
+  );
+}
+.cover-arcs {
+  background-image:
+    radial-gradient(circle at 12% 118%, transparent 39%, rgb(255 255 255 / 0.16) 40%, transparent 41%),
+    radial-gradient(circle at 12% 118%, transparent 61%, rgb(255 255 255 / 0.13) 62%, transparent 63%),
+    radial-gradient(circle at 12% 118%, transparent 83%, rgb(255 255 255 / 0.10) 84%, transparent 85%);
+}
+
+/* Destello que recorre la portada una vez al pasar el mouse */
+.cover-sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    115deg,
+    transparent 38%,
+    rgb(255 255 255 / 0.20) 50%,
+    transparent 62%
+  );
+  background-size: 250% 100%;
+  background-position: 180% 0;
+  opacity: 0;
+  transition: background-position 0.9s var(--ease-luxe), opacity 0.3s;
+  pointer-events: none;
+}
+.card-lift:hover .cover-sheen::after {
+  background-position: -60% 0;
+  opacity: 1;
+}
+
+/* Rieles horizontales (carruseles de tarjetas) */
+.rail-scroll { scrollbar-width: thin; }
+.rail-scroll::-webkit-scrollbar { height: 8px; }
+.rail-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 999px;
+}
+.rail-scroll::-webkit-scrollbar-thumb:hover { background-color: var(--color-muted); }
+
+/* ─────────────────────────────────────────────────────────
    Dark mode editorial (medianoche cálida)
    ───────────────────────────────────────────────────────── */
 .dark {
@@ -392,4 +507,7 @@ body::before {
     scroll-behavior: auto !important;
   }
   .reveal { opacity: 1; transform: none; filter: none; }
+  .card-lift:hover { transform: none; }
+  .card-lift:hover .media-zoom { transform: none; }
+  .card-lift:hover .cover-sheen::after { opacity: 0; }
 }

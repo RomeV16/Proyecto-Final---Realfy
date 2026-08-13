@@ -11,6 +11,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ContractStatusBadge } from './contract-status-badge';
+import { EntityCard, EntityRow } from '@/components/ui/entity-card';
+import { Avatar } from '@/components/ui/avatar';
 import { GuaranteeBadge } from './guarantee-badge';
 import { AdjustmentTimeline } from './adjustment-timeline';
 import { GenerateDocumentModal } from './generate-document-modal';
@@ -732,54 +734,27 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
             <h2 className="text-sm font-semibold text-slate-900 mb-3">
               {t('persons')}
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {propietarios.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`${localePrefix}/persons/${p.person.id}`}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors"
-                >
-                  <span className="w-2 h-2 rounded-full bg-blue-500" />
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">
-                      {p.person.firstName} {p.person.lastName}
-                    </p>
-                    <p className="text-xs text-blue-600">{t('propietario')}</p>
-                  </div>
-                </Link>
-              ))}
-              {inquilinos.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`${localePrefix}/persons/${p.person.id}`}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors"
-                >
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">
-                      {p.person.firstName} {p.person.lastName}
-                    </p>
-                    <p className="text-xs text-emerald-600">{t('inquilino')}</p>
-                  </div>
-                </Link>
-              ))}
-              {garantes.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`${localePrefix}/persons/${p.person.id}`}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors"
-                >
-                  <span className="w-2 h-2 rounded-full bg-amber-500" />
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">
-                      {p.person.firstName} {p.person.lastName}
-                    </p>
-                    <p className="text-xs text-amber-600">
-                      {tContracts('detail.garantes')}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { people: propietarios, label: t('propietario'), accent: 'info' as const },
+                { people: inquilinos, label: t('inquilino'), accent: 'success' as const },
+                { people: garantes, label: tContracts('detail.garantes'), accent: 'warning' as const },
+              ].flatMap((group) =>
+                group.people.map((p) => {
+                  const fullName = `${p.person.firstName} ${p.person.lastName}`;
+                  return (
+                    <EntityRow
+                      key={p.id}
+                      href={`${localePrefix}/persons/${p.person.id}`}
+                      label={fullName}
+                      accent={group.accent}
+                      leading={<Avatar name={fullName} seed={p.person.id} size="sm" />}
+                      title={fullName}
+                      subtitle={group.label}
+                    />
+                  );
+                }),
+              )}
             </div>
           </div>
 
@@ -850,25 +825,30 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(contract.guarantees || []).map((g) => (
-                  <div key={g.id} className="bg-slate-50 rounded-lg p-3 space-y-2">
-                    <GuaranteeBadge type={g.type} endDate={g.endDate} size="md" />
-                    {g.description && (
-                      <p className="text-xs text-slate-600">{g.description}</p>
-                    )}
+                  <EntityCard key={g.id}>
+                    <EntityCard.Cover
+                      seed={g.id}
+                      icon="contracts"
+                      band
+                      topLeft={<GuaranteeBadge type={g.type} endDate={g.endDate} />}
+                    />
+                    <EntityCard.Body>
+                      {g.description && <EntityCard.Subtitle>{g.description}</EntityCard.Subtitle>}
+                      <EntityCard.Meta
+                        items={[
+                          ...(g.issuer ? [{ icon: 'building' as const, label: g.issuer }] : []),
+                          ...(g.policyNumber
+                            ? [{ icon: 'contracts' as const, label: g.policyNumber }]
+                            : []),
+                        ]}
+                      />
+                    </EntityCard.Body>
                     {g.amount != null && (
-                      <p className="text-sm font-semibold text-slate-900 tabular-nums">
-                        {formatCurrency(g.amount, contract.currency)}
-                      </p>
+                      <EntityCard.Footer>
+                        <EntityCard.Amount value={formatCurrency(g.amount, contract.currency)} />
+                      </EntityCard.Footer>
                     )}
-                    {g.issuer && (
-                      <p className="text-xs text-slate-500">{g.issuer}</p>
-                    )}
-                    {g.policyNumber && (
-                      <p className="text-xs text-slate-500 font-mono">
-                        {g.policyNumber}
-                      </p>
-                    )}
-                  </div>
+                  </EntityCard>
                 ))}
               </div>
             )}

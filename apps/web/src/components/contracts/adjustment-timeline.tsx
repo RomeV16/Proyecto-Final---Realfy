@@ -1,6 +1,12 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { cn } from '@/lib/cn';
+import { Badge } from '@/components/ui/badge';
+import { Icon } from '@/components/ui/icon';
+import { Sparkline, TrendDelta } from '@/components/ui/micro-viz';
+
+/* ──────────── Types ──────────── */
 
 interface AdjustmentEntry {
   id: string;
@@ -16,11 +22,16 @@ interface AdjustmentEntry {
 interface AdjustmentTimelineProps {
   adjustments: AdjustmentEntry[];
   schedules?: { id: string; periodNumber: number; scheduledDate: string; status: string }[];
+  /** Contract currency — defaults to peso formatting when omitted. */
+  currency?: string;
 }
 
-function formatCurrency(amount: string | number | null | undefined): string {
+/* ──────────── Helpers ──────────── */
+
+function formatCurrency(amount: string | number | null | undefined, currency?: string): string {
   if (amount == null) return '—';
-  return Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const prefix = currency === 'USD' ? 'US$ ' : '$ ';
+  return prefix + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function formatDate(iso: string): string {
@@ -31,7 +42,23 @@ function formatDate(iso: string): string {
   }
 }
 
-export function AdjustmentTimeline({ adjustments, schedules }: AdjustmentTimelineProps) {
+/** Badge variant + spine dot colour share the same status→tone map. */
+const STATUS_TONE: Record<string, 'success' | 'info' | 'neutral' | 'warning'> = {
+  Applied: 'success',
+  Calculated: 'info',
+  Skipped: 'neutral',
+};
+
+const TONE_VAR: Record<'success' | 'info' | 'neutral' | 'warning', string> = {
+  success: 'var(--color-success)',
+  info: 'var(--color-info)',
+  warning: 'var(--color-warning)',
+  neutral: 'var(--color-muted)',
+};
+
+/* ──────────── Component ──────────── */
+
+export function AdjustmentTimeline({ adjustments, schedules, currency }: AdjustmentTimelineProps) {
   const t = useTranslations('contracts.timeline');
   const tAdj = useTranslations('contracts.adjustmentTypes');
 
@@ -43,120 +70,124 @@ export function AdjustmentTimeline({ adjustments, schedules }: AdjustmentTimelin
       id: s.id,
       periodNumber: s.periodNumber,
       scheduledDate: s.scheduledDate,
-      status: 'Pending' as const,
+      previousAmount: null as number | null,
+      newAmount: null as number | null,
+      percentageChange: null as number | null,
+      adjustmentType: '',
+      status: 'Pending',
+      isPending: true,
     }));
 
   const items = [
     ...adjustments.map((a) => ({ ...a, isPending: false })),
-    ...pendingSchedules.map((s) => ({
-      id: s.id,
-      periodNumber: s.periodNumber,
-      scheduledDate: s.scheduledDate,
-      previousAmount: null,
-      newAmount: null,
-      percentageChange: null,
-      adjustmentType: '',
-      status: s.status,
-      isPending: true,
-    })),
+    ...pendingSchedules,
   ].sort((a, b) => a.periodNumber - b.periodNumber);
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mb-3">
-          <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
-          </svg>
+      <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+        <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-2xl)] bg-[var(--color-bg)]">
+          <Icon name="calendarClock" className="h-6 w-6 text-[var(--color-muted)]" strokeWidth={1.5} />
         </div>
-        <p className="text-sm text-slate-500">{t('empty')}</p>
+        <p className="text-sm text-[var(--color-muted)]">{t('empty')}</p>
       </div>
     );
   }
 
+  // Real series — rent after each applied adjustment, chronologically.
+  const appliedChrono = items
+    .filter((i) => !i.isPending && i.newAmount != null)
+    .sort((a, b) => a.periodNumber - b.periodNumber);
+  const sparkData = appliedChrono.map((i) => Number(i.newAmount));
+  const lastApplied = appliedChrono[appliedChrono.length - 1];
+  const lastPct = lastApplied?.percentageChange != null ? Number(lastApplied.percentageChange) : null;
+
+  const timeline = [...items].reverse();
+
   return (
-    <div className="relative">
-      {/* Vertical line */}
-      <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-slate-200" />
-
-      <div className="space-y-4">
-        {items.map((item) => {
-          const isPending = item.isPending;
-          const pctChange = item.percentageChange != null ? Number(item.percentageChange) : null;
-          const isIncrease = pctChange != null && pctChange > 0;
-
-          const statusKey = item.status === 'Applied' ? 'applied'
-            : item.status === 'Calculated' ? 'calculated'
-            : item.status === 'Skipped' ? 'skipped'
-            : 'pending';
-
-          return (
-            <div key={item.id} className="relative pl-10">
-              {/* Dot */}
-              <div className={`absolute left-2.5 top-1.5 w-3 h-3 rounded-full border-2 ${
-                isPending
-                  ? 'bg-white border-slate-300 border-dashed'
-                  : item.status === 'Applied'
-                    ? 'bg-emerald-500 border-emerald-500'
-                    : item.status === 'Calculated'
-                      ? 'bg-blue-500 border-blue-500'
-                      : 'bg-slate-300 border-slate-300'
-              }`} />
-
-              <div className={`bg-white rounded-lg border p-3 ${
-                isPending ? 'border-dashed border-slate-300' : 'border-slate-200'
-              }`}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-slate-900">
-                    {t('period', { num: item.periodNumber })}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    {item.adjustmentType && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
-                        {tAdj(item.adjustmentType)}
-                      </span>
-                    )}
-                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                      statusKey === 'applied' ? 'bg-emerald-100 text-emerald-700'
-                        : statusKey === 'calculated' ? 'bg-blue-100 text-blue-700'
-                        : statusKey === 'skipped' ? 'bg-slate-100 text-slate-500'
-                        : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {t(statusKey)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-xs text-slate-500 mb-2">
-                  {formatDate(item.scheduledDate)}
-                </div>
-
-                {!isPending && item.previousAmount != null && item.newAmount != null && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-slate-500 tabular-nums">
-                      $ {formatCurrency(item.previousAmount)}
-                    </span>
-                    <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                    </svg>
-                    <span className="font-semibold text-slate-900 tabular-nums">
-                      $ {formatCurrency(item.newAmount)}
-                    </span>
-                    {pctChange != null && (
-                      <span className={`text-xs font-medium ${isIncrease ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {isIncrease ? '↑' : '↓'} {Math.abs(pctChange).toFixed(1)}%
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {isPending && (
-                  <p className="text-xs text-slate-400 italic">{t('scheduled')}</p>
-                )}
+    <div className="space-y-4">
+      {sparkData.length > 1 && lastApplied && (
+        <div className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] bg-[var(--color-bg)] px-4 py-3">
+          <div className="min-w-0">
+            <p className="truncate text-lg font-bold tabular-nums text-[var(--color-text)]">
+              {formatCurrency(lastApplied.newAmount, currency)}
+            </p>
+            {lastPct != null && (
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <TrendDelta value={lastPct} invert />
+                <span className="text-[11px] text-[var(--color-muted)]">{t('vsLastAdjustment')}</span>
               </div>
-            </div>
-          );
-        })}
+            )}
+          </div>
+          <Sparkline data={sparkData} width={96} height={32} tone="brand" />
+        </div>
+      )}
+
+      {/* Vertical spine */}
+      <div className="relative">
+        <div className="absolute left-[13px] top-2 bottom-2 w-px bg-[var(--color-border)]" aria-hidden="true" />
+        <div className="space-y-3">
+          {timeline.map((item) => {
+            const pct = item.percentageChange != null ? Number(item.percentageChange) : null;
+            const tone = item.isPending ? 'warning' : (STATUS_TONE[item.status] ?? 'neutral');
+
+            const statusKey =
+              item.status === 'Applied' ? 'applied'
+                : item.status === 'Calculated' ? 'calculated'
+                  : item.status === 'Skipped' ? 'skipped'
+                    : 'pending';
+
+            return (
+              <div key={item.id} className="relative flex items-start gap-3 pl-7">
+                <span
+                  className={cn(
+                    'absolute left-0 top-1 h-[18px] w-[18px] rounded-full border-2',
+                    item.isPending ? 'border-dashed bg-[var(--color-surface)]' : 'bg-[var(--color-surface)]',
+                  )}
+                  style={{ borderColor: TONE_VAR[tone] }}
+                  aria-hidden="true"
+                />
+                <div
+                  className={cn(
+                    'min-w-0 flex-1 rounded-[var(--radius-lg)] border p-3',
+                    item.isPending
+                      ? 'border-dashed border-[var(--color-border)]'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface)]',
+                  )}
+                >
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-[var(--color-text)]">
+                      {t('period', { num: item.periodNumber })}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {item.adjustmentType && <Badge variant="neutral">{tAdj(item.adjustmentType)}</Badge>}
+                      <Badge variant={tone} dot={!item.isPending}>
+                        {t(statusKey)}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <p className="mb-2 text-xs text-[var(--color-muted)]">{formatDate(item.scheduledDate)}</p>
+
+                  {!item.isPending && item.previousAmount != null && item.newAmount != null && (
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="tabular-nums text-[var(--color-muted)]">
+                        {formatCurrency(item.previousAmount, currency)}
+                      </span>
+                      <Icon name="arrowRight" className="h-3.5 w-3.5 text-[var(--color-muted)]" strokeWidth={2} />
+                      <span className="font-semibold tabular-nums text-[var(--color-text)]">
+                        {formatCurrency(item.newAmount, currency)}
+                      </span>
+                      {pct != null && <TrendDelta value={pct} invert />}
+                    </div>
+                  )}
+
+                  {item.isPending && <p className="text-xs italic text-[var(--color-muted)]">{t('scheduled')}</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

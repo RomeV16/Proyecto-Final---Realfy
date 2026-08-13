@@ -11,9 +11,11 @@ import {
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { ContractStatusBadge } from './contract-status-badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { EntityCard } from '@/components/ui/entity-card';
+import { CardGrid } from '@/components/ui/card-grid';
+import { Badge } from '@/components/ui/badge';
+import { ProgressRing } from '@/components/ui/micro-viz';
 
 /* ──────────── Types ──────────── */
 
@@ -65,27 +67,7 @@ const INITIAL_FILTERS: Filters = {
 
 const LIMIT = 12;
 
-/* ──────────── Skeleton ──────────── */
-
-function CardSkeleton() {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-5 w-20 rounded-full" />
-        <Skeleton className="h-5 w-16 rounded-full" />
-      </div>
-      <Skeleton className="h-4 w-3/4" />
-      <Skeleton className="h-3 w-1/2" />
-      <Skeleton className="h-4 w-1/3" />
-      <div className="flex gap-2">
-        <Skeleton className="h-5 w-24 rounded-full" />
-        <Skeleton className="h-5 w-20 rounded-full" />
-      </div>
-    </div>
-  );
-}
-
-/* ──────────── Card ──────────── */
+/* ──────────── Formatting ──────────── */
 
 function formatDate(iso: string): string {
   try {
@@ -101,69 +83,152 @@ function formatCurrency(amount: string | number | undefined, currency?: string):
   return prefix + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/** Whole calendar months between two dates (can be negative). */
+function monthsBetween(a: Date, b: Date): number {
+  return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+}
+
+/** Days from today to `iso` — negative once it's past. */
+function daysUntil(iso: string): number {
+  const target = new Date(iso);
+  target.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+interface TermInfo {
+  pct: number;
+  elapsed: number;
+  total: number;
+}
+
+/** "8 de 24 meses" — null when the contract has no end date to measure against. */
+function termInfo(contract: ContractItem): TermInfo | null {
+  if (!contract.endDate) return null;
+  const start = new Date(contract.startDate);
+  const end = new Date(contract.endDate);
+  const total = Math.max(1, monthsBetween(start, end));
+  const elapsed = Math.max(0, Math.min(total, monthsBetween(start, new Date())));
+  return { pct: (elapsed / total) * 100, elapsed, total };
+}
+
+const ONGOING_STATUSES = new Set([ContractStatus.Activo, ContractStatus.Renovado]);
+const EXPIRING_WINDOW_DAYS = 60;
+
+type Accent = 'success' | 'warning' | 'danger' | 'none';
+
+/** Left accent: active reads success, close to term end reads warning,
+ *  already expired reads danger, anything terminated/draft stays neutral. */
+function contractAccent(contract: ContractItem, expiringSoon: boolean): Accent {
+  if (contract.status === ContractStatus.Vencido) return 'danger';
+  if (contract.status === ContractStatus.Rescindido || contract.status === ContractStatus.Archivado) return 'none';
+  if (contract.status === ContractStatus.Borrador) return 'none';
+  return expiringSoon ? 'warning' : 'success';
+}
+
+/* ──────────── Card ──────────── */
+
 function ContractCard({ contract, localePrefix }: { contract: ContractItem; localePrefix: string }) {
   const t = useTranslations('contracts');
 
-  const propietario = contract.persons?.find((p) => p.role === 'Propietario');
   const inquilino = contract.persons?.find((p) => p.role === 'Inquilino');
+  const tenantName = inquilino
+    ? `${inquilino.person.firstName} ${inquilino.person.lastName}`
+    : t('wizard.step2.noInquilino');
+  const propertyTitle = contract.property?.title || t('card.noProperty');
+
+  const term = termInfo(contract);
+  const expiringSoon =
+    Boolean(contract.endDate) &&
+    ONGOING_STATUSES.has(contract.status as ContractStatus) &&
+    (() => {
+      const days = daysUntil(contract.endDate!);
+      return days >= 0 && days <= EXPIRING_WINDOW_DAYS;
+    })();
+
+  const accent = contractAccent(contract, expiringSoon);
+  const badgeVariant = accent === 'none' ? 'neutral' : accent;
+  const ringTone = accent === 'none' ? 'neutral' : accent;
+
+  /* The card states what's blocking this contract, so the grid doubles as a
+     worklist instead of just a catalogue. Priority: missing data first,
+     then the contract's actual lifecycle state. */
+  const alert = !contract.property
+    ? { tone: 'warning' as const, icon: 'alert' as const, text: t('card.needsProperty') }
+    : contract.rentAmount == null
+      ? { tone: 'warning' as const, icon: 'alert' as const, text: t('card.needsRent') }
+      : !contract.endDate
+        ? { tone: 'info' as const, icon: 'calendarClock' as const, text: t('card.noEndDate') }
+        : contract.status === ContractStatus.Vencido
+          ? { tone: 'danger' as const, icon: 'alert' as const, text: t('card.expired') }
+          : expiringSoon
+            ? { tone: 'warning' as const, icon: 'calendarClock' as const, text: t('guarantee.expiresIn', { days: daysUntil(contract.endDate) }) }
+            : null;
+
+  const address = [contract.property?.street, contract.property?.city].filter(Boolean).join(', ');
+  const href = `${localePrefix}/contracts/${contract.id}`;
 
   return (
-    <Link
-      href={`${localePrefix}/contracts/${contract.id}`}
-      className="group block bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-brand-300 hover:shadow-lg hover:shadow-brand-500/5 transition-all duration-200 p-4 space-y-3"
-    >
-      {/* Header badges */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <ContractStatusBadge status={contract.status} />
-        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
-          {t(`types.${contract.contractType}`)}
-        </span>
-        {contract.adjustmentType && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">
-            {t(`adjustmentTypes.${contract.adjustmentType}`)}
-          </span>
-        )}
-      </div>
+    <EntityCard href={href} label={`${tenantName} · ${propertyTitle}`} accent={accent}>
+      <EntityCard.Cover
+        seed={contract.id}
+        icon="contracts"
+        band
+        topLeft={<Badge variant="brand" onCover>{t(`types.${contract.contractType}`)}</Badge>}
+        topRight={
+          <Badge variant={badgeVariant} dot onCover>
+            {t(`statuses.${contract.status}`)}
+          </Badge>
+        }
+      />
 
-      {/* Property */}
-      <h3 className="text-sm font-semibold text-slate-900 line-clamp-1 group-hover:text-brand-600 transition-colors">
-        {contract.property?.title || t('card.noProperty')}
-      </h3>
-      {contract.property?.street && (
-        <p className="text-xs text-slate-500 line-clamp-1">
-          {[contract.property.street, contract.property.city].filter(Boolean).join(', ')}
-        </p>
-      )}
-
-      {/* Date range */}
-      <div className="text-xs text-slate-500">
-        {formatDate(contract.startDate)}
-        {contract.endDate && ` — ${formatDate(contract.endDate)}`}
-      </div>
-
-      {/* Rent */}
-      <div className="text-base font-bold text-slate-900 tabular-nums">
-        {formatCurrency(contract.rentAmount, contract.currency)}
-      </div>
-
-      {/* Persons */}
-      {(propietario || inquilino) && (
-        <div className="pt-2 border-t border-slate-100 flex flex-col gap-1">
-          {propietario && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-              {propietario.person.firstName} {propietario.person.lastName}
-            </div>
-          )}
-          {inquilino && (
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              {inquilino.person.firstName} {inquilino.person.lastName}
-            </div>
-          )}
+      <EntityCard.Body>
+        <div className="flex items-start gap-3">
+          {term && <ProgressRing value={term.pct} tone={ringTone} label={`${term.elapsed}`} />}
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <EntityCard.Title>
+              {tenantName} → {propertyTitle}
+            </EntityCard.Title>
+            <EntityCard.Subtitle>
+              {term ? t('card.termProgress', { elapsed: term.elapsed, total: term.total }) : formatDate(contract.startDate)}
+            </EntityCard.Subtitle>
+          </div>
         </div>
-      )}
-    </Link>
+
+        {contract.endDate && (
+          <EntityCard.Meta
+            items={[{ icon: 'calendar', label: t('card.dateRange', { start: formatDate(contract.startDate), end: formatDate(contract.endDate) }) }]}
+          />
+        )}
+
+        {contract.rentAmount != null ? (
+          <EntityCard.Amount
+            value={formatCurrency(contract.rentAmount, contract.currency)}
+            hint={contract.adjustmentType ? t(`adjustmentTypes.${contract.adjustmentType}`) : t('card.rent')}
+          />
+        ) : (
+          <EntityCard.Amount value={t('card.noRent')} tone="muted" />
+        )}
+
+        {alert && (
+          <EntityCard.Alert tone={alert.tone} icon={alert.icon}>
+            {alert.text}
+          </EntityCard.Alert>
+        )}
+      </EntityCard.Body>
+
+      <EntityCard.Footer>
+        <p className="min-w-0 truncate text-[11px] text-[var(--color-muted)]">
+          {address || t('card.noProperty')}
+        </p>
+        <EntityCard.Actions>
+          <EntityCard.Action href={href} icon="arrowRight" variant="ghost">
+            {t('card.view')}
+          </EntityCard.Action>
+        </EntityCard.Actions>
+      </EntityCard.Footer>
+    </EntityCard>
   );
 }
 
@@ -309,67 +374,55 @@ export function ContractList() {
         </div>
       </div>
 
-      {/* Loading skeleton */}
-      {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <CardSkeleton key={i} />
-          ))}
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && items.length === 0 && (
-        hasFilters ? (
-          <EmptyState
-            title={tCommon('noResults')}
-            subtitle={t('empty.filtered')}
-            action={
-              <button
-                onClick={clearFilters}
-                className="mt-4 px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                {tFilters('clear')}
-              </button>
-            }
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900">{t('empty.title')}</h2>
-            <p className="text-sm text-slate-500 mt-1">{t('empty.subtitle')}</p>
-            <p className="text-sm text-slate-500 mt-3 max-w-md">{t('empty.description')}</p>
-            <ol className="mt-4 text-sm text-slate-600 text-left list-decimal list-inside space-y-1 max-w-md">
-              <li>{t('empty.step1')}</li>
-              <li>{t('empty.step2')}</li>
-              <li>{t('empty.step3')}</li>
-            </ol>
-            <div className="flex items-center gap-3 mt-5">
-              {canCreate && (
-                <Link
-                  href={`${localePrefix}/contracts/new`}
-                  className="px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
-                >
-                  {t('newContract')}
-                </Link>
-              )}
-            </div>
-          </div>
-        )
-      )}
-
-      {/* Contract grid */}
-      {!loading && items.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-slide-up">
-          {items.map((contract) => (
-            <ContractCard key={contract.id} contract={contract} localePrefix={localePrefix} />
-          ))}
-        </div>
-      )}
+      {/* Grid — owns the loading → content → empty transition */}
+      <div>
+        <CardGrid
+          items={items}
+          loading={loading && !data}
+          busy={loading && !!data}
+          columns={3}
+          skeletonCount={6}
+          keyOf={(c) => c.id}
+          renderItem={(contract) => (
+            <ContractCard contract={contract} localePrefix={localePrefix} />
+          )}
+          empty={
+            hasFilters ? (
+              <EmptyState
+                variant="filtered"
+                iconName="search"
+                title={tCommon('noResults')}
+                subtitle={t('empty.filtered')}
+                action={
+                  <button
+                    onClick={clearFilters}
+                    className="rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg)]"
+                  >
+                    {tFilters('clear')}
+                  </button>
+                }
+              />
+            ) : (
+              <EmptyState
+                iconName="contracts"
+                title={t('empty.title')}
+                subtitle={t('empty.description')}
+                steps={[t('empty.step1'), t('empty.step2'), t('empty.step3')]}
+                action={
+                  canCreate && (
+                    <Link
+                      href={`${localePrefix}/contracts/new`}
+                      className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-brand-500)] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-brand-600)]"
+                    >
+                      {t('newContract')}
+                    </Link>
+                  )
+                }
+              />
+            )
+          }
+        />
+      </div>
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (

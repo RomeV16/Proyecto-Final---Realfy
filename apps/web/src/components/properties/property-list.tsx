@@ -13,8 +13,11 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { PropertyStateBadge } from './property-state-badge';
 import { PropertyTypeBadge } from './property-type-badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { EntityCard } from '@/components/ui/entity-card';
+import { CardGrid } from '@/components/ui/card-grid';
+import { Badge } from '@/components/ui/badge';
+import { Icon } from '@/components/ui/icon';
 
 /* ──────────── Types ──────────── */
 
@@ -78,104 +81,91 @@ const INITIAL_FILTERS: Filters = {
 
 const LIMIT = 12;
 
-/* ──────────── Skeleton ──────────── */
-
-function CardSkeleton() {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-      <Skeleton className="aspect-[4/3] w-full rounded-none" />
-      <div className="p-4 space-y-3">
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-3 w-1/2" />
-        <div className="flex gap-2">
-          <Skeleton className="h-5 w-16 rounded-full" />
-          <Skeleton className="h-5 w-20 rounded-full" />
-        </div>
-        <Skeleton className="h-4 w-1/3" />
-      </div>
-    </div>
-  );
-}
-
 /* ──────────── Card ──────────── */
 
 function PropertyCard({ property, localePrefix }: { property: PropertyItem; localePrefix: string }) {
   const t = useTranslations('properties');
   const primaryOp = property.operations[0];
-  const thumbnail = property.media.find((m) => m.isPrimary)?.thumbnailUrl
-    || property.media[0]?.thumbnailUrl
-    || null;
+  const photos = property.media || [];
+  const cover =
+    photos.find((m) => m.isPrimary)?.thumbnailUrl || photos[0]?.thumbnailUrl || null;
 
   const address = [property.street, property.city, property.province].filter(Boolean).join(', ');
   const price = primaryOp?.price;
   const currency = primaryOp?.currency || 'USD';
+  const href = `${localePrefix}/properties/${property.id}`;
+
+  const specs: Array<{ icon?: 'mapPin'; label: string }> = [];
+  if (property.rooms) specs.push({ label: `${property.rooms} amb.` });
+  if (property.bedrooms) specs.push({ label: `${property.bedrooms} dorm.` });
+  if (property.totalArea) specs.push({ label: `${property.totalArea} m²` });
+  if (property.city) specs.push({ icon: 'mapPin', label: property.city });
+
+  /* The card states what's blocking this listing, so the grid doubles as a
+     worklist instead of just a catalogue. */
+  const blocker = !cover
+    ? { tone: 'warning' as const, icon: 'image' as const, text: t('card.needsPhotos') }
+    : !price
+      ? { tone: 'warning' as const, icon: 'alert' as const, text: t('card.needsPrice') }
+      : null;
 
   return (
-    <Link
-      href={`${localePrefix}/properties/${property.id}`}
-      className="group block bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-brand-300 hover:shadow-lg hover:shadow-brand-500/5 transition-all duration-200"
-    >
-      {/* Thumbnail */}
-      <div className="aspect-[4/3] bg-slate-50 relative overflow-hidden">
-        {thumbnail ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={thumbnail}
-            alt={property.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-300">
-            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
-            </svg>
-          </div>
-        )}
-        {/* Type badge overlay */}
-        <div className="absolute top-2 left-2">
-          <PropertyTypeBadge type={property.type} />
-        </div>
-      </div>
+    <EntityCard href={href} label={property.title} featured>
+      <EntityCard.Cover
+        src={cover}
+        alt={property.title}
+        seed={property.id}
+        icon="properties"
+        aspect="aspect-[3/2]"
+        topLeft={<PropertyTypeBadge type={property.type} onCover />}
+        topRight={primaryOp && <PropertyStateBadge state={primaryOp.state} onCover />}
+        bottomLeft={
+          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-white drop-shadow-sm">
+            {property.title}
+          </h3>
+        }
+        bottomRight={
+          photos.length > 0 && (
+            <Badge onCover>
+              <Icon name="image" className="h-3 w-3" strokeWidth={2} />
+              {photos.length}
+            </Badge>
+          )
+        }
+      />
 
-      {/* Content */}
-      <div className="p-4 space-y-2">
-        <h3 className="text-sm font-semibold text-slate-900 line-clamp-1 group-hover:text-brand-600 transition-colors">
-          {property.title}
-        </h3>
-        <p className="text-xs text-slate-500 line-clamp-1">
+      <EntityCard.Body>
+        <div className="flex items-start justify-between gap-2">
+          {price ? (
+            <EntityCard.Amount
+              value={`${currency === 'USD' ? 'US$' : '$'} ${Number(price).toLocaleString('es-AR')}`}
+              hint={primaryOp && t(`operationTypes.${primaryOp.operationType}`)}
+            />
+          ) : (
+            <EntityCard.Amount value={t('card.noPrice')} tone="muted" />
+          )}
+        </div>
+
+        <EntityCard.Meta items={specs.length ? specs : [{ icon: 'mapPin', label: address || t('card.noAddress') }]} />
+
+        {blocker && (
+          <EntityCard.Alert tone={blocker.tone} icon={blocker.icon}>
+            {blocker.text}
+          </EntityCard.Alert>
+        )}
+      </EntityCard.Body>
+
+      <EntityCard.Footer>
+        <p className="min-w-0 truncate text-[11px] text-[var(--color-muted)]">
           {address || t('card.noAddress')}
         </p>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {primaryOp && <PropertyStateBadge state={primaryOp.state} />}
-          {primaryOp && (
-            <span className="text-xs text-slate-500">
-              {t(`operationTypes.${primaryOp.operationType}`)}
-            </span>
-          )}
-        </div>
-
-        <div className="pt-1 border-t border-slate-100">
-          {price ? (
-            <p className="text-base font-bold text-slate-900 tabular-nums">
-              {currency === 'USD' ? 'US$' : '$'}{' '}
-              {Number(price).toLocaleString('es-AR')}
-            </p>
-          ) : (
-            <p className="text-sm text-slate-400 italic">{t('card.noPrice')}</p>
-          )}
-        </div>
-
-        {/* Quick stats */}
-        {(property.totalArea || property.rooms || property.bedrooms) && (
-          <div className="flex items-center gap-3 text-xs text-slate-500">
-            {property.totalArea && <span>{property.totalArea} m²</span>}
-            {property.rooms && <span>{property.rooms} amb.</span>}
-            {property.bedrooms && <span>{property.bedrooms} dorm.</span>}
-          </div>
-        )}
-      </div>
-    </Link>
+        <EntityCard.Actions>
+          <EntityCard.Action href={href} icon="arrowRight" variant="ghost">
+            {t('card.view')}
+          </EntityCard.Action>
+        </EntityCard.Actions>
+      </EntityCard.Footer>
+    </EntityCard>
   );
 }
 
@@ -346,68 +336,56 @@ export function PropertyList() {
         </div>
       </div>
 
-      {/* Loading skeleton */}
-      {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <CardSkeleton key={i} />
-          ))}
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && items.length === 0 && (
-        hasFilters ? (
-          <EmptyState
-            title={tCommon('noResults')}
-            subtitle={t('empty.filtered')}
-            action={
-              <button
-                onClick={clearFilters}
-                className="mt-4 px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                {tFilters('clear')}
-              </button>
-            }
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900">{t('empty.title')}</h2>
-            <p className="text-sm text-slate-500 mt-1">{t('empty.subtitle')}</p>
-            <p className="text-sm text-slate-500 mt-3 max-w-md">{t('empty.description')}</p>
-            <ol className="mt-4 text-sm text-slate-600 text-left list-decimal list-inside space-y-1 max-w-md">
-              <li>{t('empty.step1')}</li>
-              <li>{t('empty.step2')}</li>
-              <li>{t('empty.step3')}</li>
-              <li>{t('empty.step4')}</li>
-            </ol>
-            <div className="flex items-center gap-3 mt-5">
-              {canCreate && (
-                <Link
-                  href={`${localePrefix}/properties/new`}
-                  className="px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
-                >
-                  {t('newProperty')}
-                </Link>
-              )}
-            </div>
-          </div>
-        )
-      )}
-
-      {/* Property grid */}
-      {!loading && items.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-slide-up">
-          {items.map((property) => (
-            <PropertyCard key={property.id} property={property} localePrefix={localePrefix} />
-          ))}
-        </div>
-      )}
+      {/* Grid — owns the loading → content → empty transition */}
+      <div>
+        <CardGrid
+          items={items}
+          loading={loading && !data}
+          busy={loading && !!data}
+          columns={4}
+          skeletonCount={8}
+          keyOf={(p) => p.id}
+          renderItem={(property) => (
+            <PropertyCard property={property} localePrefix={localePrefix} />
+          )}
+          empty={
+            hasFilters ? (
+              <EmptyState
+                variant="filtered"
+                iconName="search"
+                title={tCommon('noResults')}
+                subtitle={t('empty.filtered')}
+                action={
+                  <button
+                    onClick={clearFilters}
+                    className="rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg)]"
+                  >
+                    {tFilters('clear')}
+                  </button>
+                }
+              />
+            ) : (
+              <EmptyState
+                iconName="properties"
+                title={t('empty.title')}
+                subtitle={t('empty.description')}
+                steps={[t('empty.step1'), t('empty.step2'), t('empty.step3'), t('empty.step4')]}
+                action={
+                  canCreate && (
+                    <Link
+                      href={`${localePrefix}/properties/new`}
+                      className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-brand-500)] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-brand-600)]"
+                    >
+                      <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
+                      {t('newProperty')}
+                    </Link>
+                  )
+                }
+              />
+            )
+          }
+        />
+      </div>
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (

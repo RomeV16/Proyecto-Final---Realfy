@@ -5,8 +5,10 @@ import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { portalApiClient, getPortalAccessToken } from '@/lib/portal-api-client';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
+import { EntityCard } from '@/components/ui/entity-card';
+import { CardGrid } from '@/components/ui/card-grid';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface PortalLiquidacion {
   id: string;
@@ -33,8 +35,7 @@ interface PaginatedResponse {
   totalPages: number;
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 const MONTHS_ES = [
   'Enero',
@@ -60,19 +61,6 @@ function formatPeriod(period: string): string {
   return month ? `${month} ${year}` : period;
 }
 
-const STATUS_VARIANT: Record<
-  string,
-  'neutral' | 'success' | 'warning' | 'danger' | 'info'
-> = {
-  Draft: 'neutral',
-  Pending: 'warning',
-  Sent: 'info',
-  Paid: 'success',
-  PartiallyPaid: 'info',
-  Overdue: 'danger',
-  Cancelled: 'neutral',
-};
-
 const LIMIT = 10;
 
 export default function PortalLiquidacionesPage() {
@@ -83,9 +71,7 @@ export default function PortalLiquidacionesPage() {
   const { data, isLoading, isError } = useQuery<PaginatedResponse>({
     queryKey: ['portal', 'liquidaciones', page],
     queryFn: () =>
-      portalApiClient<PaginatedResponse>(
-        `/portal/liquidaciones?page=${page}&limit=${LIMIT}`,
-      ),
+      portalApiClient<PaginatedResponse>(`/portal/liquidaciones?page=${page}&limit=${LIMIT}`),
   });
 
   const formatCurrency = (amount: number | string) =>
@@ -116,12 +102,9 @@ export default function PortalLiquidacionesPage() {
     setDownloadingId(id);
     try {
       const token = getPortalAccessToken();
-      const res = await fetch(
-        `${API_BASE_URL}/portal/liquidaciones/${id}/pdf`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        },
-      );
+      const res = await fetch(`${API_BASE_URL}/portal/liquidaciones/${id}/pdf`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (!res.ok) throw new Error('download failed');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -139,107 +122,129 @@ export default function PortalLiquidacionesPage() {
     }
   };
 
+  const items = data?.items ?? [];
   const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 0;
   const from = total === 0 ? 0 : (page - 1) * LIMIT + 1;
   const to = Math.min(page * LIMIT, total);
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="mx-auto max-w-3xl">
       <div className="mb-6">
         <p className="eyebrow mb-2">{t('portal.common.brand')}</p>
         <h1 className="h2">{t('portal.liquidaciones.title')}</h1>
         <p className="lead mt-2 text-sm">{t('portal.liquidaciones.subtitle')}</p>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Spinner />
-        </div>
-      ) : isError ? (
-        <div className="card-lux p-6 text-center">
-          <p className="text-sm text-[var(--color-muted)]">
-            {t('common.error')}
-          </p>
-        </div>
-      ) : data && data.items.length > 0 ? (
-        <>
-          <div className="space-y-3">
-            {data.items.map((liq) => (
-              <div key={liq.id} className="card-lux p-5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold text-[var(--color-text)]">
-                      {formatPeriod(liq.period)}
-                    </p>
-                    <p className="text-sm text-[var(--color-muted)] mt-0.5 truncate">
-                      {liq.contract.property?.address ||
-                        liq.contract.property?.name ||
-                        t('portal.dashboard.unknownProperty')}
-                    </p>
-                  </div>
-                  <Badge variant={STATUS_VARIANT[liq.status] ?? 'neutral'}>
-                    {statusLabel(liq.status)}
-                  </Badge>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-[var(--color-border)] flex items-end justify-between gap-3">
-                  <div>
-                    <p className="micro">Total a pagar</p>
-                    <p className="text-lg font-semibold text-[var(--color-text)] tabular-nums">
-                      {formatCurrency(liq.total)}
-                    </p>
-                    <p className="micro mt-1">
-                      {t('portal.liquidaciones.dueDate')} {formatDate(liq.dueDate)}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => handleDownload(liq.id)}
-                    disabled={downloadingId === liq.id}
-                  >
-                    {downloadingId === liq.id && (
-                      <Spinner className="w-4 h-4" />
-                    )}
-                    {t('portal.liquidaciones.downloadPdf')}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <p className="micro">
-                {t('portal.liquidaciones.showing', { from, to, total })}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                >
-                  {t('portal.liquidaciones.prev')}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={page >= totalPages}
-                >
-                  {t('portal.liquidaciones.next')}
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
+      {isError ? (
+        <EmptyState iconName="alert" title={t('common.error')} subtitle={t('portal.common.error')} />
       ) : (
-        <div className="card-lux p-8 text-center">
-          <p className="text-sm text-[var(--color-muted)]">
-            {t('portal.liquidaciones.empty')}
-          </p>
+        <CardGrid
+          items={items}
+          loading={isLoading}
+          columns={2}
+          skeletonCount={4}
+          skeletonMedia={false}
+          keyOf={(liq) => liq.id}
+          renderItem={(liq) => {
+            const overdue = liq.status === 'Overdue';
+            const paid = liq.status === 'Paid';
+            const property =
+              liq.contract.property?.address ||
+              liq.contract.property?.name ||
+              t('portal.dashboard.unknownProperty');
+
+            return (
+              <EntityCard accent={overdue ? 'danger' : paid ? 'success' : 'none'}>
+                <EntityCard.Cover
+                  seed={liq.id}
+                  icon="liquidaciones"
+                  band
+                  topRight={
+                    <span className="inline-flex items-center rounded-full border border-white/25 bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-md">
+                      {statusLabel(liq.status)}
+                    </span>
+                  }
+                />
+                <EntityCard.Body>
+                  <EntityCard.Title>{formatPeriod(liq.period)}</EntityCard.Title>
+                  <EntityCard.Subtitle>{property}</EntityCard.Subtitle>
+                  <EntityCard.Meta
+                    items={[
+                      {
+                        icon: 'calendarClock',
+                        label: `${t('portal.liquidaciones.dueDate')} ${formatDate(liq.dueDate)}`,
+                      },
+                      ...(liq._count.payments > 0
+                        ? [
+                            {
+                              icon: 'check' as const,
+                              label: t('portal.liquidaciones.paymentsCount', {
+                                count: liq._count.payments,
+                              }),
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
+                  {overdue && (
+                    <EntityCard.Alert tone="danger" icon="alert">
+                      {t('portal.liquidaciones.overdueAlert')}
+                    </EntityCard.Alert>
+                  )}
+                </EntityCard.Body>
+                <EntityCard.Footer>
+                  <EntityCard.Amount
+                    value={formatCurrency(liq.total)}
+                    hint={t('portal.liquidaciones.totalToPay')}
+                    tone={overdue ? 'danger' : 'default'}
+                  />
+                  <EntityCard.Actions>
+                    <EntityCard.Action
+                      icon={downloadingId === liq.id ? undefined : 'download'}
+                      variant="ghost"
+                      onClick={() => handleDownload(liq.id)}
+                      disabled={downloadingId === liq.id}
+                    >
+                      {downloadingId === liq.id && <Spinner className="h-3.5 w-3.5" />}
+                      {t('portal.liquidaciones.downloadPdf')}
+                    </EntityCard.Action>
+                  </EntityCard.Actions>
+                </EntityCard.Footer>
+              </EntityCard>
+            );
+          }}
+          empty={
+            <EmptyState
+              iconName="liquidaciones"
+              title={t('portal.liquidaciones.empty')}
+              subtitle={t('portal.liquidaciones.emptySubtitle')}
+            />
+          }
+        />
+      )}
+
+      {totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between">
+          <p className="micro">{t('portal.liquidaciones.showing', { from, to, total })}</p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              {t('portal.liquidaciones.prev')}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page >= totalPages}
+            >
+              {t('portal.liquidaciones.next')}
+            </Button>
+          </div>
         </div>
       )}
     </div>

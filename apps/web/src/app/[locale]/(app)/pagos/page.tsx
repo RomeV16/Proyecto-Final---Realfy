@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api-client';
-import { Skeleton } from '@/components/ui/skeleton';
+import { EntityRow } from '@/components/ui/entity-card';
+import { RowList } from '@/components/ui/card-grid';
 import { EmptyState } from '@/components/ui/empty-state';
+import { StatTile, StatTileSkeleton } from '@/components/ui/stat-tile';
+import { Icon } from '@/components/ui/icon';
 
 interface Payment {
   id: string;
@@ -24,10 +27,7 @@ const money = (n: number | string) =>
 
 const periodLabel = (iso?: string) => {
   if (!iso) return '—';
-  const s = new Date(iso).toLocaleDateString('es-AR', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const s = new Date(iso).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
@@ -42,6 +42,7 @@ export default function PagosPage() {
   const t = useTranslations('payments');
   const [payments, setPayments] = useState<Payment[] | null>(null);
   const [debt, setDebt] = useState<Debt | null>(null);
+  const [debtLoading, setDebtLoading] = useState(true);
 
   useEffect(() => {
     apiClient<{ items: Payment[] }>('/payments?limit=30')
@@ -49,63 +50,104 @@ export default function PagosPage() {
       .catch(() => setPayments([]));
     apiClient<Debt>('/payments/debt')
       .then(setDebt)
-      .catch(() => setDebt(null));
+      .catch(() => setDebt(null))
+      .finally(() => setDebtLoading(false));
   }, []);
+
+  const totalCollected = (payments || []).reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('title')}</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{t('subtitle')}</p>
+        <h1 className="h1">{t('title')}</h1>
+        <p className="mt-2 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
       </div>
 
-      {debt && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <p className="text-sm text-slate-500">{t('pendingDebt')}</p>
-            <p className="text-2xl font-bold text-amber-600 mt-1">{money(debt.pendiente.monto)}</p>
-            <p className="text-xs text-slate-400 mt-1">{debt.pendiente.count} {t('settlements')}</p>
-          </div>
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <p className="text-sm text-slate-500">{t('overdueDebt')}</p>
-            <p className="text-2xl font-bold text-red-600 mt-1">{money(debt.vencida.monto)}</p>
-            <p className="text-xs text-slate-400 mt-1">{debt.vencida.count} {t('settlements')}</p>
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-100">
-          <h2 className="text-base font-semibold text-slate-900">{t('recentPayments')}</h2>
-        </div>
-        {payments === null ? (
-          <div className="p-5 space-y-3">
-            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
-          </div>
-        ) : payments.length === 0 ? (
-          <div className="p-8"><EmptyState title={t('noPayments')} /></div>
+      {/* Debt snapshot — the two numbers the screen exists to answer */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {debtLoading ? (
+          <>
+            <StatTileSkeleton />
+            <StatTileSkeleton />
+            <StatTileSkeleton />
+          </>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-500 text-xs">
-              <tr>
-                <th className="text-left px-5 py-2 font-medium">{t('date')}</th>
-                <th className="text-left px-5 py-2 font-medium">{t('period')}</th>
-                <th className="text-left px-5 py-2 font-medium">{t('method')}</th>
-                <th className="text-right px-5 py-2 font-medium">{t('amount')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {payments.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50">
-                  <td className="px-5 py-2.5 text-slate-700">{new Date(p.paidAt).toLocaleDateString('es-AR')}</td>
-                  <td className="px-5 py-2.5 text-slate-500">{periodLabel(p.liquidacion?.period)}</td>
-                  <td className="px-5 py-2.5 text-slate-500">{METHOD_LABELS[p.method] ?? p.method}</td>
-                  <td className="px-5 py-2.5 text-right font-medium text-slate-900 tabular-nums">{money(p.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            <StatTile
+              label={t('pendingDebt')}
+              value={money(debt?.pendiente.monto ?? 0)}
+              icon="clock"
+              tone="warning"
+              hint={`${debt?.pendiente.count ?? 0} ${t('settlements')}`}
+            />
+            <StatTile
+              label={t('overdueDebt')}
+              value={money(debt?.vencida.monto ?? 0)}
+              icon="alert"
+              tone="danger"
+              hint={`${debt?.vencida.count ?? 0} ${t('settlements')}`}
+            />
+            <StatTile
+              label={t('collected')}
+              value={money(totalCollected)}
+              icon="wallet"
+              tone="success"
+              hint={t('collectedHint', { count: payments?.length ?? 0 })}
+            />
+          </>
         )}
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="h3">{t('recentPayments')}</h2>
+
+        <RowList
+          items={payments || []}
+          loading={payments === null}
+          skeletonCount={4}
+          keyOf={(p) => p.id}
+          renderItem={(p) => (
+            <EntityRow
+              accent="success"
+              leading={
+                <span
+                  className="flex h-10 w-10 items-center justify-center rounded-full"
+                  style={{
+                    backgroundColor:
+                      'color-mix(in oklab, var(--color-success) 14%, var(--color-surface))',
+                    color: 'var(--color-success)',
+                  }}
+                >
+                  <Icon name="check" className="h-5 w-5" strokeWidth={2} />
+                </span>
+              }
+              title={periodLabel(p.liquidacion?.period)}
+              subtitle={METHOD_LABELS[p.method] ?? p.method}
+              meta={
+                <EntityRow.Meta
+                  items={[
+                    {
+                      icon: 'calendar',
+                      label: new Date(p.paidAt).toLocaleDateString('es-AR', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                      }),
+                    },
+                  ]}
+                />
+              }
+              trailing={<EntityRow.Amount value={money(p.amount)} hint={p.currency} tone="success" />}
+            />
+          )}
+          empty={
+            <EmptyState
+              iconName="wallet"
+              title={t('noPayments')}
+              subtitle={t('noPaymentsSubtitle')}
+            />
+          }
+        />
       </div>
     </div>
   );

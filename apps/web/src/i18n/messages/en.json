@@ -377,7 +377,10 @@
     "card": {
       "noAddress": "Sin dirección",
       "noPrice": "Precio a consultar",
-      "noImage": "Sin imagen"
+      "noImage": "Sin imagen",
+      "needsPhotos": "Add photos to publish it",
+      "needsPrice": "Price is missing",
+      "view": "View details"
     },
     "detail": {
       "operations": "Operaciones",
@@ -437,7 +440,8 @@
       "delete": "Eliminar imagen",
       "noImages": "No hay fotos cargadas",
       "dismiss": "Cerrar",
-      "saveFirst": "Guardá la propiedad primero para subir fotos"
+      "saveFirst": "Guardá la propiedad primero para subir fotos",
+      "primaryBadge": "Primary"
     },
     "map": {
       "title": "Ubicación",
@@ -449,7 +453,8 @@
       "title": "Historial de precios",
       "empty": "Sin historial de precios",
       "increased": "Subió",
-      "decreased": "Bajó"
+      "decreased": "Bajó",
+      "vsFirstPrice": "vs. initial price"
     },
     "valuations": {
       "title": "Tasaciones",
@@ -646,12 +651,14 @@
       "deleteError": "Error al eliminar el documento",
       "fileName": "Archivo",
       "fileSize": "Tamaño",
-      "uploadDate": "Fecha de carga"
+      "uploadDate": "Fecha de carga",
+      "download": "Download"
     },
     "card": {
       "noEmail": "Sin email",
       "noPhone": "Sin teléfono",
-      "noCuit": "Sin CUIT"
+      "noCuit": "Sin CUIT",
+      "view": "View details"
     },
     "empty": {
       "title": "No hay personas",
@@ -727,7 +734,14 @@
       "dateRange": "{start} — {end}",
       "rent": "Alquiler",
       "noProperty": "Sin propiedad",
-      "persons": "Personas vinculadas"
+      "persons": "Personas vinculadas",
+      "expired": "The contract has expired",
+      "needsProperty": "No property linked",
+      "needsRent": "Rent amount not set",
+      "noEndDate": "No end date set",
+      "noRent": "Amount not set",
+      "termProgress": "{elapsed} of {total} months",
+      "view": "View detail"
     },
     "statuses": {
       "Borrador": "Borrador",
@@ -927,7 +941,8 @@
       "applied": "Aplicado",
       "skipped": "Omitido",
       "pending": "Pendiente",
-      "empty": "No hay ajustes registrados para este contrato"
+      "empty": "No hay ajustes registrados para este contrato",
+      "vsLastAdjustment": "vs. previous adjustment"
     },
     "indexData": {
       "title": "Datos de Índices",
@@ -1056,7 +1071,12 @@
       "paidIndicator": "Pagada",
       "partialPayment": "Pago parcial",
       "noProperty": "Sin propiedad asociada",
-      "noContract": "Sin contrato"
+      "noContract": "Sin contrato",
+      "missingPdf": "PDF not generated yet",
+      "overdueAlert": "Overdue since {date}",
+      "pendingApproval": "Pending approval",
+      "selectOne": "Select statement",
+      "view": "View statement"
     },
     "bulk": {
       "selected": "{count} seleccionadas",
@@ -2696,7 +2716,9 @@
       "noAssignee": "Sin asignar",
       "noCategory": "Sin categoría",
       "slaOverdue": "SLA vencido",
-      "created": "Creado"
+      "created": "Creado",
+      "age": "{days, plural, =0 {Opened today} one {# day ago} other {# days ago}}",
+      "view": "View ticket"
     },
     "empty": {
       "title": "No hay tickets",
@@ -2819,7 +2841,9 @@
       "zones": "Zonas",
       "noEmail": "Sin email",
       "noPhone": "Sin teléfono",
-      "inactive": "Inactivo"
+      "inactive": "Inactivo",
+      "noProfile": "Missing trades and coverage zone",
+      "view": "View details"
     },
     "detail": {
       "edit": "Editar",
@@ -2919,7 +2943,12 @@
         "PartiallyPaid": "Pago parcial",
         "Overdue": "Vencida",
         "Cancelled": "Anulada"
-      }
+      },
+      "totalToPay": "Total due",
+      "overdueAlert": "This statement is overdue — please settle it",
+      "emptySubtitle": "Statements issued by your agency will show up here.",
+      "paymentsCount": "{count, plural, one {# payment recorded} other {# payments recorded}}",
+      "viewDetail": "View detail"
     },
     "tickets": {
       "title": "Reclamos",
@@ -2983,7 +3012,8 @@
         "Alta": "Alta",
         "Media": "Media",
         "Baja": "Baja"
-      }
+      },
+      "emptySubtitle": "If something is not working at the property, open a request and we will follow up."
     }
   },
   "import": {
@@ -4074,7 +4104,12 @@
     "waiveReasonPlaceholder": "Enter reason...",
     "cancel": "Cancel",
     "waiving": "Waiving...",
-    "waiveConfirm": "Confirm waiver"
+    "waiveConfirm": "Confirm waiver",
+    "daysOverdue": "{days, plural, one {# day overdue} other {# days overdue}}",
+    "forbiddenHint": "Ask an administrator to grant you access to delinquency.",
+    "severeCount": "Severe cases",
+    "severeHint": "Over 30 days overdue",
+    "tenantCount": "{count, plural, =0 {No tenants overdue} one {# tenant} other {# tenants}}"
   },
   "settings": {
     "penalties": {
@@ -4199,7 +4234,10 @@
     "date": "Fecha",
     "period": "Período",
     "method": "Medio",
-    "amount": "Monto"
+    "amount": "Monto",
+    "collected": "Total collected",
+    "collectedHint": "{count, plural, =0 {No payments recorded} one {# payment recorded} other {# payments recorded}}",
+    "noPaymentsSubtitle": "Once you record collections they will show up here with method and period."
   },
   "perfil": {
     "title": "My profile",

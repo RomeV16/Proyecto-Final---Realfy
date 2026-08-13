@@ -8,6 +8,10 @@ import { apiClient } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
 import { Reveal } from '@/components/ui/reveal';
 import { AnimatePresence, motion } from 'framer-motion';
+import { EntityRow } from '@/components/ui/entity-card';
+import { StatTile } from '@/components/ui/stat-tile';
+import { TicketPriorityBadge } from '@/components/tickets/ticket-priority-badge';
+import { Icon, type IconName } from '@/components/ui/icon';
 import {
   AreaChart,
   Area,
@@ -72,71 +76,22 @@ const TYPE_COLORS = ['#bd5a32', '#3d5f49', '#c58a2b', '#8a7e6d', '#a4481f', '#5f
 
 /* ──────────────── Small pieces ──────────────── */
 
-function KpiTile({
-  label,
-  value,
-  context,
-  accent,
+/** Tinted icon plate used as the leading visual of every agenda row. */
+function RowIcon({
+  icon,
+  tone,
 }: {
-  label: string;
-  value: string;
-  context?: React.ReactNode;
-  accent?: string;
+  icon: IconName;
+  tone: 'brand' | 'warning' | 'danger' | 'success';
 }) {
+  const color = tone === 'brand' ? 'var(--color-brand-500)' : `var(--color-${tone})`;
   return (
-    <div className="card-lux p-5 flex flex-col justify-between min-h-[128px]">
-      <p className="micro">{label}</p>
-      <div>
-        <p className="numeric-xl" style={accent ? { color: accent } : undefined}>
-          {value}
-        </p>
-        {context && <p className="mt-1.5 text-xs text-[var(--color-muted)]">{context}</p>}
-      </div>
-    </div>
-  );
-}
-
-function PriorityBadge({ priority }: { priority: string }) {
-  const map: Record<string, string> = {
-    Urgente: 'bg-[color-mix(in_srgb,#b23a2b_14%,transparent)] text-[#b23a2b]',
-    Alta: 'bg-[color-mix(in_srgb,#c58a2b_16%,transparent)] text-[#9a6b1f]',
-    Media: 'bg-[var(--color-surface-sunken)] text-[var(--color-muted)]',
-    Baja: 'bg-[var(--color-surface-sunken)] text-[var(--color-muted)]',
-  };
-  return (
-    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[0.7rem] font-medium ${map[priority] ?? map.Media}`}>
-      {priority}
-    </span>
-  );
-}
-
-function AgendaRow({
-  href,
-  title,
-  meta,
-  right,
-  accent,
-}: {
-  href: string;
-  title: string;
-  meta: string;
-  right: React.ReactNode;
-  accent: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-3 rounded-lg px-3 py-3 -mx-1 transition-colors duration-300 hover:bg-[var(--color-surface-sunken)]"
+    <span
+      className="flex h-10 w-10 items-center justify-center rounded-full"
+      style={{ backgroundColor: `color-mix(in oklab, ${color} 14%, var(--color-surface))`, color }}
     >
-      <span className="h-9 w-[3px] rounded-full shrink-0" style={{ background: accent }} />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-[var(--color-text)] truncate group-hover:text-brand-600 transition-colors">
-          {title}
-        </p>
-        <p className="text-xs text-[var(--color-muted)] truncate">{meta}</p>
-      </div>
-      <div className="shrink-0 text-right">{right}</div>
-    </Link>
+      <Icon name={icon} className="h-5 w-5" strokeWidth={1.9} />
+    </span>
   );
 }
 
@@ -184,9 +139,11 @@ function AgendaGroup({
         )}
       </div>
       {count === 0 ? (
-        <p className="text-sm text-[var(--color-muted)] py-2">{emptyText}</p>
+        <p className="rounded-[var(--radius-lg)] bg-[var(--color-surface-sunken)] px-3 py-3 text-sm text-[var(--color-muted)]">
+          {emptyText}
+        </p>
       ) : (
-        <div className="divide-y divide-[var(--color-border)]">{children}</div>
+        <div className="space-y-2.5">{children}</div>
       )}
     </div>
   );
@@ -433,33 +390,47 @@ export default function DashboardPage() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Reveal delay={0}>
-          <KpiTile
+          <StatTile
             label="Ocupación"
             value={`${s.occupancyRate}%`}
-            accent={accent}
-            context={`${s.occupiedUnits} ocupadas · ${s.vacantUnits} libres`}
+            progress={s.occupancyRate}
+            tone="brand"
+            hint={`${s.occupiedUnits} ocupadas · ${s.vacantUnits} libres`}
+            href={`${lp}/properties`}
+            className="min-h-[128px]"
           />
         </Reveal>
         <Reveal delay={1}>
-          <KpiTile
+          <StatTile
             label="Cobrado este ciclo"
             value={fmtCompact(s.collections.pagada)}
-            context={`${s.collections.rate}% de lo facturado`}
+            icon="wallet"
+            tone="success"
+            hint={`${s.collections.rate}% de lo facturado`}
+            href={`${lp}/liquidaciones`}
+            className="min-h-[128px]"
           />
         </Reveal>
         <Reveal delay={2}>
-          <KpiTile
+          <StatTile
             label="Mora"
             value={fmtCompact(s.delinquency.overdueAmount)}
-            accent={s.delinquency.overdueAmount > 0 ? '#b23a2b' : undefined}
-            context={`${s.delinquency.rate}% de la cartera`}
+            icon="alert"
+            tone={s.delinquency.overdueAmount > 0 ? 'danger' : 'success'}
+            hint={`${s.delinquency.rate}% de la cartera`}
+            href={`${lp}/delinquency`}
+            className="min-h-[128px]"
           />
         </Reveal>
         <Reveal delay={3}>
-          <KpiTile
+          <StatTile
             label="Tickets abiertos"
-            value={String(s.tickets.open)}
-            context={`${s.tickets.urgent} de prioridad alta`}
+            value={s.tickets.open}
+            icon="tickets"
+            tone={s.tickets.urgent > 0 ? 'warning' : 'neutral'}
+            hint={`${s.tickets.urgent} de prioridad alta`}
+            href={`${lp}/tickets`}
+            className="min-h-[128px]"
           />
         </Reveal>
       </div>
@@ -480,16 +451,29 @@ export default function DashboardPage() {
                 emptyText="Sin contratos por vencer en los próximos 90 días."
               >
                 {s.agenda.expiring.slice(0, 3).map((c) => (
-                  <AgendaRow
+                  <EntityRow
                     key={c.id}
                     href={`${lp}/contracts/${c.id}`}
+                    label={c.property}
+                    accent={c.daysLeft <= 30 ? 'danger' : 'warning'}
+                    leading={<RowIcon icon="contracts" tone={c.daysLeft <= 30 ? 'danger' : 'warning'} />}
                     title={c.property}
-                    meta={c.tenant}
-                    accent="#c58a2b"
-                    right={
-                      <span className="text-xs font-medium text-[#9a6b1f]">
-                        vence en {c.daysLeft}d
-                      </span>
+                    subtitle={c.tenant}
+                    trailing={
+                      <EntityRow.Amount
+                        value={`${c.daysLeft} d`}
+                        hint="para vencer"
+                        tone={c.daysLeft <= 30 ? 'danger' : 'default'}
+                      />
+                    }
+                    actions={
+                      <EntityRow.Action
+                        href={`${lp}/contracts/${c.id}`}
+                        icon="arrowRight"
+                        variant="ghost"
+                      >
+                        Renovar
+                      </EntityRow.Action>
                     }
                   />
                 ))}
@@ -501,16 +485,36 @@ export default function DashboardPage() {
                 href={`${lp}/liquidaciones`}
                 emptyText="No hay cobranzas pendientes."
               >
-                {s.agenda.collections.slice(0, 3).map((c) => (
-                  <AgendaRow
-                    key={c.id}
-                    href={`${lp}/liquidaciones`}
-                    title={c.property}
-                    meta={`${monthName(c.period)} · ${statusLabel[c.status] ?? c.status}`}
-                    accent={c.status === 'Vencida' ? '#b23a2b' : '#c58a2b'}
-                    right={<span className="text-sm font-medium tabular-nums">{fmt(c.amount)}</span>}
-                  />
-                ))}
+                {s.agenda.collections.slice(0, 3).map((c) => {
+                  const overdue = c.status === 'Vencida';
+                  return (
+                    <EntityRow
+                      key={c.id}
+                      href={`${lp}/liquidaciones`}
+                      label={c.property}
+                      accent={overdue ? 'danger' : 'warning'}
+                      leading={<RowIcon icon="liquidaciones" tone={overdue ? 'danger' : 'warning'} />}
+                      title={c.property}
+                      subtitle={`${monthName(c.period)} · ${statusLabel[c.status] ?? c.status}`}
+                      trailing={
+                        <EntityRow.Amount
+                          value={fmt(c.amount)}
+                          hint={overdue ? 'vencida' : 'pendiente'}
+                          tone={overdue ? 'danger' : 'default'}
+                        />
+                      }
+                      actions={
+                        <EntityRow.Action
+                          href={`${lp}/liquidaciones`}
+                          icon="arrowRight"
+                          variant="ghost"
+                        >
+                          Cobrar
+                        </EntityRow.Action>
+                      }
+                    />
+                  );
+                })}
               </AgendaGroup>
 
               <AgendaGroup
@@ -520,13 +524,26 @@ export default function DashboardPage() {
                 emptyText="No hay tickets abiertos."
               >
                 {s.agenda.tickets.slice(0, 3).map((tk) => (
-                  <AgendaRow
+                  <EntityRow
                     key={tk.id}
                     href={`${lp}/tickets/${tk.id}`}
+                    label={tk.title}
+                    accent={tk.priority === 'Urgente' ? 'danger' : 'brand'}
+                    leading={
+                      <RowIcon icon="tickets" tone={tk.priority === 'Urgente' ? 'danger' : 'brand'} />
+                    }
                     title={tk.title}
-                    meta={tk.property}
-                    accent="#bd5a32"
-                    right={<PriorityBadge priority={tk.priority} />}
+                    subtitle={tk.property}
+                    meta={
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <TicketPriorityBadge priority={tk.priority} />
+                      </div>
+                    }
+                    actions={
+                      <EntityRow.Action href={`${lp}/tickets/${tk.id}`} icon="arrowRight" variant="ghost">
+                        Atender
+                      </EntityRow.Action>
+                    }
                   />
                 ))}
               </AgendaGroup>

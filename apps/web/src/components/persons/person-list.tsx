@@ -8,8 +8,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { PersonRoleBadge } from './person-role-badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { EntityCard } from '@/components/ui/entity-card';
+import { CardGrid } from '@/components/ui/card-grid';
+import { Avatar } from '@/components/ui/avatar';
+import { Icon } from '@/components/ui/icon';
 
 /* ──────────── Types ──────────── */
 
@@ -54,83 +57,51 @@ const INITIAL_FILTERS: Filters = {
 
 const LIMIT = 12;
 
-/* ──────────── Skeleton ──────────── */
-
-function CardSkeleton() {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
-      <div className="flex items-center gap-3 mb-3">
-        <Skeleton className="w-10 h-10 rounded-full" />
-        <div className="flex-1 space-y-2">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-1/2" />
-        </div>
-      </div>
-      <div className="flex gap-2 mb-3">
-        <Skeleton className="h-5 w-20 rounded-full" />
-        <Skeleton className="h-5 w-16 rounded-full" />
-      </div>
-      <div className="space-y-1.5">
-        <Skeleton className="h-3 w-2/3" />
-        <Skeleton className="h-3 w-1/2" />
-      </div>
-    </div>
-  );
-}
-
 /* ──────────── Card ──────────── */
 
 function PersonCard({ person, localePrefix }: { person: PersonItem; localePrefix: string }) {
   const t = useTranslations('persons');
-
-  const initials = `${person.firstName.charAt(0)}${person.lastName.charAt(0)}`.toUpperCase();
   const fullName = `${person.firstName} ${person.lastName}`;
+  const href = `${localePrefix}/persons/${person.id}`;
 
   return (
-    <Link
-      href={`${localePrefix}/persons/${person.id}`}
-      className="group block bg-white rounded-xl border border-slate-200 p-4 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-500/5 transition-all duration-200"
-    >
-      {/* Avatar + Name */}
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-sm font-semibold shrink-0">
-          {initials}
+    <EntityCard href={href} label={fullName}>
+      <EntityCard.Body>
+        <div className="flex items-center gap-3">
+          <Avatar name={fullName} seed={person.id} size="lg" />
+          <div className="min-w-0 flex-1">
+            <EntityCard.Title>{fullName}</EntityCard.Title>
+            <EntityCard.Subtitle>{person.cuit || t('card.noCuit')}</EntityCard.Subtitle>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-slate-900 truncate group-hover:text-brand-600 transition-colors">
-            {fullName}
-          </h3>
-          {person.cuit && (
-            <p className="text-xs text-slate-500 tabular-nums">{person.cuit}</p>
-          )}
-        </div>
-      </div>
 
-      {/* Role badges */}
-      {person.roles.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap mb-3">
-          {person.roles.map((r) => (
-            <PersonRoleBadge key={r.id} role={r.role} />
-          ))}
-        </div>
-      )}
+        {person.roles.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {person.roles.map((r) => (
+              <PersonRoleBadge key={r.id} role={r.role} />
+            ))}
+          </div>
+        )}
 
-      {/* Contact info */}
-      <div className="space-y-1 text-xs text-slate-500">
-        <p className="flex items-center gap-1.5 truncate">
-          <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-          </svg>
-          {person.email || t('card.noEmail')}
-        </p>
-        <p className="flex items-center gap-1.5 truncate">
-          <svg className="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
-          </svg>
-          {person.phone || t('card.noPhone')}
-        </p>
-      </div>
-    </Link>
+        <EntityCard.Meta
+          items={[
+            { label: person.email || t('card.noEmail') },
+            { label: person.phone || t('card.noPhone') },
+          ]}
+        />
+      </EntityCard.Body>
+
+      <EntityCard.Footer>
+        <span className="min-w-0 truncate text-[11px] text-[var(--color-muted)]">
+          {person.roles.length === 0 ? t('roles.noRoles') : ''}
+        </span>
+        <EntityCard.Actions className="ml-auto">
+          <EntityCard.Action href={href} icon="arrowRight" variant="ghost">
+            {t('card.view')}
+          </EntityCard.Action>
+        </EntityCard.Actions>
+      </EntityCard.Footer>
+    </EntityCard>
   );
 }
 
@@ -261,65 +232,55 @@ export function PersonList() {
         </div>
       </div>
 
-      {/* Loading skeleton */}
-      {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <CardSkeleton key={i} />
-          ))}
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && items.length === 0 && (
-        hasFilters ? (
-          <EmptyState
-            title={tCommon('noResults')}
-            subtitle={t('empty.filtered')}
-            action={
-              <button
-                onClick={clearFilters}
-                className="mt-4 px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                {tFilters('clear')}
-              </button>
-            }
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900">{t('empty.title')}</h2>
-            <p className="text-sm text-slate-500 mt-1">{t('empty.subtitle')}</p>
-            <p className="text-sm text-slate-500 mt-3 max-w-md">{t('empty.description')}</p>
-            <ol className="mt-4 text-sm text-slate-600 text-left list-decimal list-inside space-y-1 max-w-md">
-              <li>{t('empty.step1')}</li>
-              <li>{t('empty.step2')}</li>
-              <li>{t('empty.step3')}</li>
-            </ol>
-            {canCreate && (
-              <Link
-                href={`${localePrefix}/persons/new`}
-                className="mt-5 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors inline-block"
-              >
-                {t('newPerson')}
-              </Link>
-            )}
-          </div>
-        )
-      )}
-
-      {/* Person grid */}
-      {!loading && items.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-slide-up">
-          {items.map((person) => (
-            <PersonCard key={person.id} person={person} localePrefix={localePrefix} />
-          ))}
-        </div>
-      )}
+      {/* Grid — owns the loading → content → empty transition */}
+      <div>
+        <CardGrid
+          items={items}
+          loading={loading && !data}
+          busy={loading && !!data}
+          columns={4}
+          skeletonCount={8}
+          skeletonMedia={false}
+          keyOf={(p) => p.id}
+          renderItem={(person) => <PersonCard person={person} localePrefix={localePrefix} />}
+          empty={
+            hasFilters ? (
+              <EmptyState
+                variant="filtered"
+                iconName="search"
+                title={tCommon('noResults')}
+                subtitle={t('empty.filtered')}
+                action={
+                  <button
+                    onClick={clearFilters}
+                    className="rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg)]"
+                  >
+                    {tFilters('clear')}
+                  </button>
+                }
+              />
+            ) : (
+              <EmptyState
+                iconName="persons"
+                title={t('empty.title')}
+                subtitle={t('empty.description')}
+                steps={[t('empty.step1'), t('empty.step2'), t('empty.step3')]}
+                action={
+                  canCreate && (
+                    <Link
+                      href={`${localePrefix}/persons/new`}
+                      className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-brand-500)] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-brand-600)]"
+                    >
+                      <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
+                      {t('newPerson')}
+                    </Link>
+                  )
+                }
+              />
+            )
+          }
+        />
+      </div>
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (
