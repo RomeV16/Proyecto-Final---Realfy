@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { TicketStatus, TicketPriority } from '@realfy/shared';
 import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
+import { Button } from '@/components/ui/button';
 
 interface TicketItem {
   id: string;
@@ -119,14 +120,14 @@ export default function TicketListPage() {
     },
     {
       key: 'sla',
-      header: 'SLA',
+      header: 'Fecha límite',
       render: (ticket) => {
         const sla = ticket.slaDeadline ? new Date(ticket.slaDeadline) : null;
         if (!sla) return <span className="text-xs text-slate-400">—</span>;
         const overdue = sla < now;
         return (
           <span className={`text-xs ${overdue ? 'text-red-600 font-medium' : 'text-slate-500'}`}>
-            {overdue ? t('card.slaOverdue') : sla.toLocaleDateString('es-AR')}
+            {overdue ? 'Vencido' : sla.toLocaleDateString('es-AR')}
           </span>
         );
       },
@@ -149,11 +150,8 @@ export default function TicketListPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('title')}</h1>
           <p className="text-sm text-slate-500 mt-1">{t('subtitle')}</p>
         </div>
-        <Link
-          href={`${localePrefix}/tickets/new`}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors shrink-0"
-        >
-          {t('newTicket')}
+        <Link href={`${localePrefix}/tickets/new`} className="shrink-0">
+          <Button variant="primary">{t('newTicket')}</Button>
         </Link>
       </div>
 
@@ -189,12 +187,9 @@ export default function TicketListPage() {
           ))}
         </select>
         {(statusFilter || priorityFilter) && (
-          <button
-            onClick={clearFilters}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
-          >
+          <Button variant="secondary" size="sm" onClick={clearFilters}>
             {t('filters.clear')}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -214,20 +209,22 @@ export default function TicketListPage() {
         <div className="flex items-center justify-between">
           <span className="text-sm text-slate-500">{t('pagination.showing', { from, to, total })}</span>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50 hover:bg-slate-50 transition-colors"
             >
               {t('pagination.prev')}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50 hover:bg-slate-50 transition-colors"
             >
               {t('pagination.next')}
-            </button>
+            </Button>
           </div>
         </div>
       )}
