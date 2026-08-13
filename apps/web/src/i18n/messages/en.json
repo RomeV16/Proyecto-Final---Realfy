@@ -990,8 +990,21 @@
         "factor": "Factor",
         "previous": "Anterior",
         "new": "Nuevo",
-        "applied": "Aplicado"
-      }
+        "applied": "Aplicado",
+        "type": "Type",
+        "prevRent": "Previous rent",
+        "newRent": "New rent",
+        "change": "Change"
+      },
+      "period": "Period",
+      "indexType": "Index",
+      "factor": "Factor",
+      "currentRent": "Current rent",
+      "projectedRent": "Projected rent",
+      "projectedDelta": "Change",
+      "noConfigHint": "Set up an index or percentage adjustment on the contract to see projections.",
+      "historyEmpty": "No adjustments applied yet",
+      "historyEmptyHint": "Once you apply an adjustment, the history will appear here."
     }
   },
   "liquidaciones": {
