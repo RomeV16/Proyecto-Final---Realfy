@@ -61,6 +61,8 @@ interface ContractDetail {
   startDate: string;
   endDate?: string;
   rentAmount?: string | number;
+  /** La API expone la moneda del alquiler como `rentCurrency`. */
+  rentCurrency?: string;
   currency?: string;
   depositAmount?: string | number;
   adjustmentType?: string;
@@ -551,6 +553,8 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
     );
   }
 
+  const contractCurrency = contract.rentCurrency || contract.currency;
+
   const propietarios = (contract.persons || []).filter(
     (p) => p.role === 'Propietario',
   );
@@ -602,7 +606,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
           <div className="text-right">
             <p className="text-xs text-slate-500 mb-1">{t('rentAmount')}</p>
             <p className="text-2xl font-bold text-slate-900 tabular-nums">
-              {formatCurrency(contract.rentAmount, contract.currency)}
+              {formatCurrency(contract.rentAmount, contractCurrency)}
             </p>
           </div>
         </div>
@@ -767,19 +771,19 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
               <div>
                 <p className="text-xs text-slate-500 mb-0.5">{t('rent')}</p>
                 <p className="text-sm font-semibold text-slate-900 tabular-nums">
-                  {formatCurrency(contract.rentAmount, contract.currency)}
+                  {formatCurrency(contract.rentAmount, contractCurrency)}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-0.5">{t('currency')}</p>
                 <p className="text-sm font-semibold text-slate-900">
-                  {contract.currency || '—'}
+                  {contractCurrency || '—'}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-0.5">{t('deposit')}</p>
                 <p className="text-sm font-semibold text-slate-900 tabular-nums">
-                  {formatCurrency(contract.depositAmount, contract.currency)}
+                  {formatCurrency(contract.depositAmount, contractCurrency)}
                 </p>
               </div>
               <div>
@@ -845,7 +849,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
                     </EntityCard.Body>
                     {g.amount != null && (
                       <EntityCard.Footer>
-                        <EntityCard.Amount value={formatCurrency(g.amount, contract.currency)} />
+                        <EntityCard.Amount value={formatCurrency(g.amount, contractCurrency)} />
                       </EntityCard.Footer>
                     )}
                   </EntityCard>
@@ -882,7 +886,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
         <AjustesTab
           contractId={contract.id}
           adjustments={contract.adjustments || []}
-          currency={contract.currency}
+          currency={contractCurrency}
         />
       )}
 

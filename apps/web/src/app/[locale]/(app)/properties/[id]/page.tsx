@@ -60,8 +60,7 @@ interface PropertyDetail {
   postalCode?: string;
   latitude?: number | null;
   longitude?: number | null;
-  totalArea?: number;
-  coveredArea?: number;
+  area?: number;
   rooms?: number;
   bedrooms?: number;
   bathrooms?: number;
@@ -110,8 +109,7 @@ function toFormData(detail: PropertyDetail): PropertyData {
     postalCode: detail.postalCode || '',
     latitude: detail.latitude ?? undefined,
     longitude: detail.longitude ?? undefined,
-    totalArea: detail.totalArea?.toString() || '',
-    coveredArea: detail.coveredArea?.toString() || '',
+    totalArea: detail.area?.toString() || '',
     rooms: detail.rooms?.toString() || '',
     bedrooms: detail.bedrooms?.toString() || '',
     bathrooms: detail.bathrooms?.toString() || '',
@@ -247,20 +245,14 @@ function DetailView({
       )}
 
       {/* Characteristics */}
-      {(property.totalArea || property.rooms || property.bedrooms || property.bathrooms || property.garages) && (
+      {(property.area || property.rooms || property.bedrooms || property.bathrooms || property.garages) && (
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <h3 className="text-base font-semibold text-slate-900 mb-3">{t('form.characteristics')}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {property.totalArea != null && (
+            {property.area != null && (
               <div>
                 <p className="text-xs text-slate-500">{t('form.totalArea')}</p>
-                <p className="text-sm font-medium text-slate-900 tabular-nums">{property.totalArea} m²</p>
-              </div>
-            )}
-            {property.coveredArea != null && (
-              <div>
-                <p className="text-xs text-slate-500">{t('form.coveredArea')}</p>
-                <p className="text-sm font-medium text-slate-900 tabular-nums">{property.coveredArea} m²</p>
+                <p className="text-sm font-medium text-slate-900 tabular-nums">{property.area} m²</p>
               </div>
             )}
             {property.rooms != null && (

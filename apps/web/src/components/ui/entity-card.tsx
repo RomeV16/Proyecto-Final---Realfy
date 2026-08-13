@@ -319,6 +319,8 @@ function Actions({ className, children }: { className?: string; children: ReactN
  */
 function Action({
   href,
+  target,
+  rel,
   onClick,
   icon,
   variant = 'ghost',
@@ -327,6 +329,9 @@ function Action({
   ...rest
 }: {
   href?: string;
+  /** Solo para enlaces — por ejemplo abrir un PDF en otra pestaña. */
+  target?: string;
+  rel?: string;
   onClick?: (e: React.MouseEvent) => void;
   icon?: IconName;
   variant?: 'primary' | 'ghost' | 'quiet';
@@ -356,7 +361,7 @@ function Action({
 
   if (href) {
     return (
-      <Link href={href} className={classes} onClick={onClick}>
+      <Link href={href} className={classes} onClick={onClick} target={target} rel={rel}>
         {content}
       </Link>
     );
