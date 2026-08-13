@@ -143,6 +143,32 @@ export class NotificationsService {
     entityType?: string;
     entityId?: string;
   }) {
+    /* Los barridos diarios vuelven a mirar los mismos vencimientos, asi que sin
+       este corte el mismo aviso se repite un dia tras otro en la bandeja. */
+    if (params.entityId) {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const alreadySent = await this.prisma.baseClient.notification.findFirst({
+        where: {
+          tenantId: params.tenantId,
+          userId: params.userId,
+          type: params.type as any,
+          entityId: params.entityId,
+          createdAt: { gte: since },
+        },
+        select: { id: true },
+      });
+
+      if (alreadySent) {
+        this.logger.debug('Notification skipped — already sent in the last 24h', {
+          tenantId: params.tenantId,
+          userId: params.userId,
+          type: params.type,
+          entityId: params.entityId,
+        });
+        return null;
+      }
+    }
+
     const notification = await this.prisma.baseClient.notification.create({
       data: {
         tenantId: params.tenantId,
