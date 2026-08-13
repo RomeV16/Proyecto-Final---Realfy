@@ -412,4 +412,57 @@ export class PersonsService {
 
     return { deleted: true };
   }
+
+  // ─── Invitaciones al portal ─────────────────────────
+
+  /**
+   * Crea una invitación al portal para un inquilino. Devuelve el token con el
+   * que la persona define su contraseña; vence a los 7 días.
+   */
+  async createPortalInvitation(personId: string) {
+    const person = await this.prisma.client.person.findFirst({
+      where: { id: personId },
+    });
+
+    if (!person) {
+      throw new NotFoundException({
+        error: 'PERSON_NOT_FOUND',
+        message: 'Person not found',
+      });
+    }
+
+    if (!person.email) {
+      throw new BadRequestException({
+        error: 'PERSON_NO_EMAIL',
+        message: 'Person must have an email address to receive a portal invitation',
+      });
+    }
+
+    const tenantId = this.tenantContext.getTenantId()!;
+    const userId = this.tenantContext.getUserId()!;
+    const token = crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    const invitation = await this.prisma.baseClient.portalInvitation.create({
+      data: {
+        personId,
+        tenantId,
+        invitedByUserId: userId,
+        token,
+        expiresAt,
+      },
+    });
+
+    this.logger.log(
+      `Portal invitation created: personId=${personId} invitationId=${invitation.id} invitedBy=${userId}`,
+    );
+
+    return {
+      id: invitation.id,
+      personId,
+      token: invitation.token,
+      expiresAt: invitation.expiresAt,
+    };
+  }
 }
