@@ -29,7 +29,7 @@ export function LoginToPanel() {
 
   useEffect(() => {
     if (!active) return;
-    const t = setTimeout(() => transition.end(), 1900);
+    const t = setTimeout(() => transition.end(), 2100);
     return () => clearTimeout(t);
   }, [active, runId]);
 
@@ -90,10 +90,10 @@ export function LoginToPanel() {
             </div>
           </motion.aside>
 
-          {/* Main column assembling */}
+          {/* Main column assembling — matches the real app-layout paddings */}
           <div className="flex-1 flex flex-col min-w-0">
             <motion.div
-              className="h-16 border-b border-[var(--color-border)] flex items-center justify-end px-6 gap-3 shrink-0"
+              className="h-16 border-b border-[var(--color-border)] flex items-center justify-end px-4 lg:px-6 gap-3 shrink-0"
               initial={{ opacity: 0, y: -22 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.6, ease: EASE }}
@@ -104,7 +104,7 @@ export function LoginToPanel() {
               </span>
             </motion.div>
 
-            <div className="flex-1 p-6 lg:p-8 space-y-6">
+            <div className="flex-1 p-4 lg:p-6 space-y-6 overflow-hidden">
               <div>
                 <motion.p
                   className="eyebrow mb-3"
@@ -125,7 +125,7 @@ export function LoginToPanel() {
               </div>
 
               <motion.div
-                className="card-lux h-44"
+                className="card-lux min-h-[288px]"
                 initial={{ opacity: 0, y: 28 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 1.12, ease: EASE }}
@@ -135,12 +135,27 @@ export function LoginToPanel() {
                 {[0, 1, 2, 3].map((i) => (
                   <motion.div
                     key={i}
-                    className="card-lux h-28"
+                    className="card-lux min-h-[128px]"
                     initial={{ opacity: 0, y: 22 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 1.28 + i * 0.09, ease: EASE }}
+                    transition={{ duration: 0.6, delay: 1.28 + i * 0.08, ease: EASE }}
                   />
                 ))}
+              </div>
+
+              <div className="grid lg:grid-cols-[1.5fr_1fr] gap-6">
+                <motion.div
+                  className="card-lux min-h-[420px]"
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.65, delay: 1.5, ease: EASE }}
+                />
+                <motion.div
+                  className="card-lux min-h-[420px]"
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.65, delay: 1.6, ease: EASE }}
+                />
               </div>
             </div>
           </div>
