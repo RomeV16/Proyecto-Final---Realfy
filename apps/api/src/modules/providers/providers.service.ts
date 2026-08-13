@@ -357,25 +357,15 @@ export class ProvidersService {
       });
     }
 
-    const profileWhere: any = { isActive: true };
-
-    // Filter by category name as rubro
-    if (ticket.category?.name) {
-      profileWhere.rubros = { has: ticket.category.name };
-    }
-
-    // Filter by property city as zone
-    if (ticket.property?.city) {
-      profileWhere.coverageZones = { has: ticket.property.city };
-    }
-
-    const prismaWhere: any = {
-      providerProfile: { is: profileWhere },
-      isActive: true,
-    };
-
+    /* El rubro y la zona ordenan la lista, no la recortan: filtrando por los
+       dos a la vez alcanzaba con que la zona estuviera cargada con otro nivel
+       de detalle (barrio vs. ciudad) para dejar al usuario sin ningun
+       proveedor y sin forma de asignar. */
     const providers = await this.prisma.client.person.findMany({
-      where: prismaWhere,
+      where: {
+        isActive: true,
+        providerProfile: { is: { isActive: true } },
+      },
       include: {
         providerProfile: true,
         roles: true,
@@ -383,6 +373,21 @@ export class ProvidersService {
       orderBy: { lastName: 'asc' },
     });
 
-    return providers;
+    const rubro = ticket.category?.name;
+    const city = ticket.property?.city;
+
+    const score = (person: (typeof providers)[number]) => {
+      const profile: any = person.providerProfile;
+      const rubros: string[] = profile?.rubros ?? [];
+      const zones: string[] = profile?.coverageZones ?? [];
+      const matchesRubro = rubro ? rubros.includes(rubro) : false;
+      const matchesZone = city ? zones.includes(city) : false;
+      return (matchesRubro ? 2 : 0) + (matchesZone ? 1 : 0);
+    };
+
+    return [...providers].sort((a, b) => {
+      const diff = score(b) - score(a);
+      return diff !== 0 ? diff : a.lastName.localeCompare(b.lastName);
+    });
   }
 }
