@@ -1072,11 +1072,11 @@
       "partialPayment": "Pago parcial",
       "noProperty": "Sin propiedad asociada",
       "noContract": "Sin contrato",
-      "missingPdf": "PDF no generado aún",
       "overdueAlert": "Vencida desde el {date}",
       "pendingApproval": "Pendiente de aprobación",
       "selectOne": "Seleccionar liquidación",
-      "view": "Ver liquidación"
+      "view": "Ver liquidación",
+      "downloadPdf": "PDF"
     },
     "bulk": {
       "selected": "{count} seleccionadas",

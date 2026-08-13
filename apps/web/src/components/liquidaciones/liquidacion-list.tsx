@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+
 /* ──────────── Types ──────────── */
 
 interface LiquidacionItem {
@@ -141,9 +143,7 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
       }
     : isPending
       ? { tone: 'warning' as const, icon: 'clock' as const, text: tCard('pendingApproval') }
-      : !item.pdfUrl && !isVoided
-        ? { tone: 'warning' as const, icon: 'alert' as const, text: tCard('missingPdf') }
-        : null;
+      : null;
 
   return (
     <EntityCard
@@ -208,6 +208,18 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
 
       <EntityCard.Footer className="justify-end">
         <EntityCard.Actions>
+          {/* El PDF se arma en el momento desde la API, no hay archivo guardado. */}
+          {!isVoided && (
+            <EntityCard.Action
+              href={`${API_BASE_URL}/liquidaciones/${item.id}/pdf`}
+              icon="download"
+              variant="quiet"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {tCard('downloadPdf')}
+            </EntityCard.Action>
+          )}
           <EntityCard.Action href={href} icon="arrowRight" variant="ghost">
             {tCard('view')}
           </EntityCard.Action>
