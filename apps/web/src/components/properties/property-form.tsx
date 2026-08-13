@@ -55,7 +55,6 @@ export interface PropertyData {
   latitude?: number;
   longitude?: number;
   totalArea: string;
-  coveredArea: string;
   rooms: string;
   bedrooms: string;
   bathrooms: string;
@@ -85,7 +84,6 @@ const EMPTY_PROPERTY: PropertyData = {
   province: '',
   postalCode: '',
   totalArea: '',
-  coveredArea: '',
   rooms: '',
   bedrooms: '',
   bathrooms: '',
@@ -211,8 +209,7 @@ export function PropertyForm({
       postalCode: form.postalCode || undefined,
       latitude: form.latitude ?? undefined,
       longitude: form.longitude ?? undefined,
-      totalArea: form.totalArea ? Number(form.totalArea) : undefined,
-      coveredArea: form.coveredArea ? Number(form.coveredArea) : undefined,
+      area: form.totalArea ? Number(form.totalArea) : undefined,
       rooms: form.rooms ? Number(form.rooms) : undefined,
       bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
       bathrooms: form.bathrooms ? Number(form.bathrooms) : undefined,
@@ -452,16 +449,6 @@ export function PropertyForm({
               id="totalArea"
               value={form.totalArea}
               onChange={(v) => updateField('totalArea', v)}
-              type="number"
-              suffix="m²"
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="coveredArea">{tForm('coveredArea')}</InputLabel>
-            <TextInput
-              id="coveredArea"
-              value={form.coveredArea}
-              onChange={(v) => updateField('coveredArea', v)}
               type="number"
               suffix="m²"
             />

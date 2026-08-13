@@ -44,9 +44,13 @@ interface PropertyItem {
   street?: string;
   city?: string;
   province?: string;
-  totalArea?: number;
+  /** Superficie en m². La API la expone como `area`. */
+  area?: number;
   rooms?: number;
   bedrooms?: number;
+  /** Precio de referencia de la ficha, usado cuando la operación no fija uno. */
+  price?: string | number;
+  currency?: string;
   operations: PropertyOperation[];
   media: PropertyMedia[];
   isActive: boolean;
@@ -91,14 +95,16 @@ function PropertyCard({ property, localePrefix }: { property: PropertyItem; loca
     photos.find((m) => m.isPrimary)?.thumbnailUrl || photos[0]?.thumbnailUrl || null;
 
   const address = [property.street, property.city, property.province].filter(Boolean).join(', ');
-  const price = primaryOp?.price;
-  const currency = primaryOp?.currency || 'USD';
+  /* La operación puede fijar su propio precio (p. ej. venta y alquiler con
+     valores distintos); si no lo hace, vale el precio de referencia de la ficha. */
+  const price = primaryOp?.price ?? property.price;
+  const currency = primaryOp?.currency || property.currency || 'ARS';
   const href = `${localePrefix}/properties/${property.id}`;
 
   const specs: Array<{ icon?: 'mapPin'; label: string }> = [];
   if (property.rooms) specs.push({ label: `${property.rooms} amb.` });
   if (property.bedrooms) specs.push({ label: `${property.bedrooms} dorm.` });
-  if (property.totalArea) specs.push({ label: `${property.totalArea} m²` });
+  if (property.area) specs.push({ label: `${property.area} m²` });
   if (property.city) specs.push({ icon: 'mapPin', label: property.city });
 
   /* The card states what's blocking this listing, so the grid doubles as a

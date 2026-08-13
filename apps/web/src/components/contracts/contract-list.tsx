@@ -32,6 +32,8 @@ interface ContractItem {
   startDate: string;
   endDate?: string;
   rentAmount?: string | number;
+  /** La API expone la moneda del alquiler como `rentCurrency`. */
+  rentCurrency?: string;
   currency?: string;
   adjustmentType?: string;
   adjustmentPeriod?: string;
@@ -137,6 +139,7 @@ function ContractCard({ contract, localePrefix }: { contract: ContractItem; loca
     ? `${inquilino.person.firstName} ${inquilino.person.lastName}`
     : t('wizard.step2.noInquilino');
   const propertyTitle = contract.property?.title || t('card.noProperty');
+  const contractCurrency = contract.rentCurrency || contract.currency;
 
   const term = termInfo(contract);
   const expiringSoon =
@@ -204,7 +207,7 @@ function ContractCard({ contract, localePrefix }: { contract: ContractItem; loca
 
         {contract.rentAmount != null ? (
           <EntityCard.Amount
-            value={formatCurrency(contract.rentAmount, contract.currency)}
+            value={formatCurrency(contract.rentAmount, contractCurrency)}
             hint={contract.adjustmentType ? t(`adjustmentTypes.${contract.adjustmentType}`) : t('card.rent')}
           />
         ) : (
