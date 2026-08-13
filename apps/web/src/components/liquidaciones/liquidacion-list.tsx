@@ -2,16 +2,17 @@
 
 import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { LiquidacionStatus } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { LiquidacionStatusBadge } from './liquidacion-status-badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
+import { EntityCard } from '@/components/ui/entity-card';
+import { CardGrid } from '@/components/ui/card-grid';
+import { Badge } from '@/components/ui/badge';
+import { Icon, type IconName } from '@/components/ui/icon';
+import { cn } from '@/lib/cn';
 
 /* ──────────── Types ──────────── */
 
@@ -26,11 +27,13 @@ interface LiquidacionItem {
   total?: string | number;
   subtotal?: string | number;
   currency?: string;
+  pdfUrl?: string | null;
   contract?: {
     id: string;
     property?: { id: string; title: string; street?: string; city?: string };
   };
   payments?: { amount: string | number }[];
+  _count?: { payments: number };
 }
 
 interface PaginatedResponse {
@@ -53,21 +56,27 @@ interface Filters {
 const INITIAL_FILTERS: Filters = { status: '', month: '', year: '', page: 1 };
 const LIMIT = 12;
 
-/* ──────────── Skeleton ──────────── */
+/* ──────────── Status → card language ──────────── */
 
-function CardSkeleton() {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-5 w-20 rounded-full" />
-        <Skeleton className="h-5 w-16 rounded-full" />
-      </div>
-      <Skeleton className="h-4 w-3/4" />
-      <Skeleton className="h-3 w-1/2" />
-      <Skeleton className="h-4 w-1/3" />
-    </div>
-  );
-}
+const STATUS_VARIANT: Record<string, 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'brand'> = {
+  [LiquidacionStatus.Borrador]: 'neutral',
+  [LiquidacionStatus.Revision]: 'info',
+  [LiquidacionStatus.Aprobada]: 'brand',
+  [LiquidacionStatus.Enviada]: 'info',
+  [LiquidacionStatus.Pagada]: 'success',
+  [LiquidacionStatus.Vencida]: 'danger',
+  [LiquidacionStatus.Anulada]: 'neutral',
+};
+
+const STATUS_ACCENT: Record<string, 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'none'> = {
+  [LiquidacionStatus.Borrador]: 'none',
+  [LiquidacionStatus.Revision]: 'info',
+  [LiquidacionStatus.Aprobada]: 'brand',
+  [LiquidacionStatus.Enviada]: 'info',
+  [LiquidacionStatus.Pagada]: 'success',
+  [LiquidacionStatus.Vencida]: 'danger',
+  [LiquidacionStatus.Anulada]: 'none',
+};
 
 /* ──────────── Helpers ──────────── */
 
@@ -103,72 +112,108 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
   const periodDate = item.period ? new Date(item.period) : null;
   const month = item.month ?? (periodDate ? periodDate.getUTCMonth() + 1 : undefined);
   const year = item.year ?? (periodDate ? periodDate.getUTCFullYear() : undefined);
+  const periodLabel = `${month ? tMonths(String(month)) : '—'} ${year || ''}`.trim();
 
   const total = Number(item.totalAmount || item.total || item.subtotal || 0);
-  const paid = (item.payments || []).reduce((s, p) => s + Number(p.amount), 0);
   const isPaid = item.status === LiquidacionStatus.Pagada;
-  const isPartial = paid > 0 && paid < total && !isPaid;
+  const isVoided = item.status === LiquidacionStatus.Anulada;
+  const isOverdue = item.status === LiquidacionStatus.Vencida;
+  const isPending = item.status === LiquidacionStatus.Borrador || item.status === LiquidacionStatus.Revision;
+  const paymentsCount = item._count?.payments ?? 0;
+
+  const propertyText = item.contract?.property
+    ? [item.contract.property.title, item.contract.property.street, item.contract.property.city].filter(Boolean).join(' — ')
+    : tCard('noProperty');
+
+  const href = `${localePrefix}/liquidaciones/${item.id}`;
+
+  const metaItems: Array<{ icon?: IconName; label: string }> = [{ icon: 'mapPin', label: propertyText }];
+  if (item.dueDate) {
+    metaItems.push({ icon: 'calendarClock', label: t('card.dueDate', { date: formatDate(item.dueDate) }) });
+  }
+
+  /* One blocker at a time, so the grid doubles as a worklist. */
+  const alert = isOverdue
+    ? {
+        tone: 'danger' as const,
+        icon: 'alert' as const,
+        text: item.dueDate ? tCard('overdueAlert', { date: formatDate(item.dueDate) }) : t('statuses.Vencida'),
+      }
+    : isPending
+      ? { tone: 'warning' as const, icon: 'clock' as const, text: tCard('pendingApproval') }
+      : !item.pdfUrl && !isVoided
+        ? { tone: 'warning' as const, icon: 'alert' as const, text: tCard('missingPdf') }
+        : null;
 
   return (
-    <div className="relative group">
-      {bulkMode && (
-        <label className="absolute top-3 left-3 z-10 flex items-center">
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={onToggle}
-            className="w-4 h-4 rounded border-slate-300 text-brand-500 focus:ring-brand-500/30"
-          />
-        </label>
-      )}
-      <Link
-        href={`${localePrefix}/liquidaciones/${item.id}`}
-        className={`block bg-white rounded-xl border overflow-hidden hover:border-brand-300 hover:shadow-lg hover:shadow-brand-500/5 transition-all duration-200 p-4 space-y-3 ${
-          selected ? 'border-brand-400 bg-brand-50/30' : 'border-slate-200'
-        } ${bulkMode ? 'pl-10' : ''}`}
-        onClick={(e) => {
-          if (bulkMode) {
-            e.preventDefault();
-            onToggle();
-          }
-        }}
-      >
-        {/* Header */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <LiquidacionStatusBadge status={item.status} />
-          {isPaid && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
-              {tCard('paidIndicator')}
-            </span>
-          )}
-          {isPartial && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium">
-              {tCard('partialPayment')}
-            </span>
-          )}
-        </div>
+    <EntityCard
+      href={href}
+      label={periodLabel}
+      accent={STATUS_ACCENT[item.status] || 'none'}
+      className={cn(selected && 'ring-2 ring-[var(--color-brand-500)]')}
+    >
+      <EntityCard.Cover
+        seed={item.id}
+        icon="liquidaciones"
+        band
+        alt={periodLabel}
+        topLeft={
+          bulkMode && (
+            <label className="relative z-[2] flex h-6 w-6 items-center justify-center rounded-md bg-black/45 backdrop-blur-md">
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={onToggle}
+                aria-label={tCard('selectOne')}
+                className="h-4 w-4 rounded border-white/60 text-brand-500 focus:ring-2 focus:ring-brand-400/50"
+              />
+            </label>
+          )
+        }
+        topRight={
+          <Badge variant={STATUS_VARIANT[item.status] || 'neutral'} dot onCover className={isVoided ? 'line-through' : undefined}>
+            {t(`statuses.${item.status}`)}
+          </Badge>
+        }
+        bottomLeft={
+          <h3 className={cn('text-sm font-semibold leading-snug text-white drop-shadow-sm', isVoided && 'line-through')}>
+            {periodLabel}
+          </h3>
+        }
+        bottomRight={
+          paymentsCount > 0 && (
+            <Badge onCover>
+              <Icon name="check" className="h-3 w-3" strokeWidth={2} />
+              {paymentsCount}
+            </Badge>
+          )
+        }
+      />
 
-        {/* Period */}
-        <h3 className="text-sm font-semibold text-slate-900 group-hover:text-brand-600 transition-colors">
-          {month ? tMonths(String(month)) : '—'} {year || ''}
-        </h3>
+      <EntityCard.Body>
+        <EntityCard.Amount
+          value={formatCurrency(total)}
+          hint={tCard('totalAmount')}
+          tone={isVoided ? 'muted' : isPaid ? 'success' : 'default'}
+        />
 
-        {/* Property */}
-        <p className="text-xs text-slate-500 line-clamp-1">
-          {item.contract?.property
-            ? [item.contract.property.title, item.contract.property.street, item.contract.property.city].filter(Boolean).join(' — ')
-            : tCard('noProperty')}
-        </p>
+        <EntityCard.Meta items={metaItems} />
 
-        {/* Amount + due date */}
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-base font-bold text-slate-900 tabular-nums">{formatCurrency(item.totalAmount)}</span>
-          {item.dueDate && (
-            <span className="text-xs text-slate-400">{t('card.dueDate', { date: formatDate(item.dueDate) })}</span>
-          )}
-        </div>
-      </Link>
-    </div>
+        {alert && (
+          <EntityCard.Alert tone={alert.tone} icon={alert.icon}>
+            {alert.text}
+          </EntityCard.Alert>
+        )}
+      </EntityCard.Body>
+
+      <EntityCard.Footer className="justify-end">
+        <EntityCard.Actions>
+          <EntityCard.Action href={href} icon="arrowRight" variant="ghost">
+            {tCard('view')}
+          </EntityCard.Action>
+        </EntityCard.Actions>
+      </EntityCard.Footer>
+    </EntityCard>
   );
 }
 
@@ -499,74 +544,62 @@ export function LiquidacionList() {
         </div>
       )}
 
-      {/* Loading skeleton */}
-      {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <CardSkeleton key={i} />
-          ))}
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!loading && items.length === 0 && (
-        hasFilters ? (
-          <EmptyState
-            title={tCommon('noResults')}
-            subtitle={t('empty.filtered')}
-            action={
-              <button
-                onClick={clearFilters}
-                className="mt-4 px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                {tFilters('clear')}
-              </button>
-            }
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
-              </svg>
-            </div>
-            <h2 className="text-lg font-semibold text-slate-900">{t('empty.title')}</h2>
-            <p className="text-sm text-slate-500 mt-1">{t('empty.subtitle')}</p>
-            <p className="text-sm text-slate-500 mt-3 max-w-md">{t('empty.description')}</p>
-            <ol className="mt-4 text-sm text-slate-600 text-left list-decimal list-inside space-y-1 max-w-md">
-              <li>{t('empty.step1')}</li>
-              <li>{t('empty.step2')}</li>
-              <li>{t('empty.step3')}</li>
-            </ol>
-            <div className="flex items-center gap-3 mt-5">
-              {canGenerate && (
-                <button
-                  onClick={() => setShowGenerate(true)}
-                  className="px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
-                >
-                  {t('generateMonth')}
-                </button>
-              )}
-            </div>
-          </div>
-        )
-      )}
-
-      {/* Card grid */}
-      {!loading && items.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-slide-up">
-          {items.map((item) => (
+      {/* Grid — owns the loading → content → empty transition */}
+      <div>
+        <CardGrid
+          items={items}
+          loading={loading && !data}
+          busy={loading && !!data}
+          columns={3}
+          skeletonCount={6}
+          keyOf={(item) => item.id}
+          renderItem={(item) => (
             <LiquidacionCard
-              key={item.id}
               item={item}
               localePrefix={localePrefix}
               selected={selectedIds.has(item.id)}
               onToggle={() => toggleSelected(item.id)}
-              bulkMode={selectedIds.size > 0}
+              bulkMode={bulkMode}
             />
-          ))}
-        </div>
-      )}
+          )}
+          empty={
+            hasFilters ? (
+              <EmptyState
+                variant="filtered"
+                iconName="search"
+                title={tCommon('noResults')}
+                subtitle={t('empty.filtered')}
+                action={
+                  <button
+                    onClick={clearFilters}
+                    className="rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg)]"
+                  >
+                    {tFilters('clear')}
+                  </button>
+                }
+              />
+            ) : (
+              <EmptyState
+                iconName="liquidaciones"
+                title={t('empty.title')}
+                subtitle={t('empty.description')}
+                steps={[t('empty.step1'), t('empty.step2'), t('empty.step3')]}
+                action={
+                  canGenerate && (
+                    <button
+                      onClick={() => setShowGenerate(true)}
+                      className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-brand-500)] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-brand-600)]"
+                    >
+                      <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
+                      {t('generateMonth')}
+                    </button>
+                  )
+                }
+              />
+            )
+          }
+        />
+      </div>
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (
@@ -602,37 +635,34 @@ export function LiquidacionList() {
 
       {/* Bulk action sticky bar */}
       {bulkMode && canBulkAct && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 shadow-lg px-4 py-3 sm:px-6">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span className="text-sm font-medium text-slate-700">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 shadow-lg sm:px-6">
+          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 sm:flex-row">
+            <span className="text-sm font-medium text-[var(--color-text)]">
               {tBulk('selected', { count: selectedIds.size })}
             </span>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button
-                variant="secondary"
+            <div className="flex w-full gap-2 sm:w-auto">
+              <button
                 onClick={() => setSelectedIds(new Set())}
-                className="flex-1 sm:flex-none"
+                className="flex-1 rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-2 text-sm font-medium text-[var(--color-muted)] transition-colors hover:bg-[var(--color-bg)] sm:flex-none"
               >
                 {tBulk('deselectAll')}
-              </Button>
-              <Button
-                variant="accent"
+              </button>
+              <button
                 onClick={() => handleBulkAction('approve')}
                 disabled={!!bulkLoading}
-                className="flex-1 sm:flex-none"
+                className="flex flex-1 items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-success)] px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-50 sm:flex-none"
               >
-                {bulkLoading === 'approve' && <Spinner className="w-4 h-4" />}
+                {bulkLoading === 'approve' && <Spinner className="w-3 h-3 text-white" />}
                 {tBulk('approveSelected')}
-              </Button>
-              <Button
-                variant="primary"
+              </button>
+              <button
                 onClick={() => handleBulkAction('send')}
                 disabled={!!bulkLoading}
-                className="flex-1 sm:flex-none"
+                className="flex flex-1 items-center justify-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-brand-500)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--color-brand-600)] disabled:opacity-50 sm:flex-none"
               >
-                {bulkLoading === 'send' && <Spinner className="w-4 h-4" />}
+                {bulkLoading === 'send' && <Spinner className="w-3 h-3 text-white" />}
                 {tBulk('sendSelected')}
-              </Button>
+              </button>
             </div>
           </div>
         </div>
