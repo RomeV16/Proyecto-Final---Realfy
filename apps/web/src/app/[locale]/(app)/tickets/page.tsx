@@ -32,6 +32,13 @@ interface ListResponse {
   meta: { total: number; page: number; limit: number; totalPages: number };
 }
 
+/** Estados en los que el ticket ya no corre contra el SLA. */
+const CLOSED_STATUSES = [
+  TicketStatus.Resuelto,
+  TicketStatus.Cerrado,
+  TicketStatus.Cancelado,
+] as string[];
+
 /** Priority drives the accent bar, so a grid can be triaged at a glance. */
 const PRIORITY_ACCENT: Record<string, 'danger' | 'warning' | 'info' | 'none'> = {
   [TicketPriority.Urgente]: 'danger',
@@ -54,7 +61,9 @@ function TicketCard({
   const t = useTranslations('tickets');
   const href = `${localePrefix}/tickets/${ticket.id}`;
   const sla = ticket.slaDeadline ? new Date(ticket.slaDeadline) : null;
-  const slaOverdue = sla ? sla < now : false;
+  /* Un ticket cerrado ya no corre contra el SLA: avisar ahi solo suma ruido. */
+  const isOpen = !CLOSED_STATUSES.includes(ticket.status);
+  const slaOverdue = sla ? isOpen && sla < now : false;
   const ageDays = Math.max(
     0,
     Math.floor((now.getTime() - new Date(ticket.createdAt).getTime()) / 86_400_000),
@@ -67,7 +76,7 @@ function TicketCard({
      worklist. An SLA breach outranks a missing assignee. */
   const alert = slaOverdue
     ? { tone: 'danger' as const, icon: 'clock' as const, text: t('card.slaOverdue') }
-    : !assignedName
+    : isOpen && !assignedName
       ? { tone: 'warning' as const, icon: 'alert' as const, text: t('card.noAssignee') }
       : null;
 
