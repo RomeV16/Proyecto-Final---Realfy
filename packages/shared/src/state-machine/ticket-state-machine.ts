@@ -16,7 +16,7 @@ import { TicketStatus } from '../enums';
  *   Reabierto → Asignado | Cancelado
  *
  * Provider flow:
- *   EnProgreso → ProveedorAsignado
+ *   Abierto | Asignado | Reabierto | EnProgreso → ProveedorAsignado
  *   ProveedorAsignado → ProveedorEnCamino | EnProgreso | Cancelado
  *   ProveedorEnCamino → TrabajoRealizado | ProveedorAsignado
  *   TrabajoRealizado → Resuelto | EnProgreso
@@ -36,13 +36,13 @@ const {
 } = TicketStatus;
 
 const TICKET_TRANSITIONS: Map<TicketStatus, TicketStatus[]> = new Map([
-  [Abierto, [Asignado, Cancelado]],
-  [Asignado, [EnProgreso, Abierto, Cancelado]],
+  [Abierto, [Asignado, Cancelado, ProveedorAsignado]],
+  [Asignado, [EnProgreso, Abierto, Cancelado, ProveedorAsignado]],
   [EnProgreso, [Resuelto, Cancelado, ProveedorAsignado]],
   [Resuelto, [Cerrado, Reabierto]],
   [Cerrado, [Reabierto]],
   [Cancelado, []], // terminal
-  [Reabierto, [Asignado, Cancelado]],
+  [Reabierto, [Asignado, Cancelado, ProveedorAsignado]],
   // Provider states
   [ProveedorAsignado, [ProveedorEnCamino, EnProgreso, Cancelado]],
   [ProveedorEnCamino, [TrabajoRealizado, ProveedorAsignado]],
