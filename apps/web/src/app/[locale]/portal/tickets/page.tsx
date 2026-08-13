@@ -8,9 +8,12 @@ import {
   PortalApiRequestError,
 } from '@/lib/portal-api-client';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { EntityCard } from '@/components/ui/entity-card';
+import { CardGrid } from '@/components/ui/card-grid';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Icon } from '@/components/ui/icon';
 
 interface PortalTicket {
   id: string;
@@ -47,21 +50,15 @@ interface PortalCategory {
   color: string | null;
 }
 
-const STATUS_VARIANT: Record<
-  string,
-  'neutral' | 'success' | 'warning' | 'danger' | 'info'
-> = {
-  Abierto: 'info',
-  Asignado: 'info',
-  EnProgreso: 'warning',
-  ProveedorAsignado: 'warning',
-  ProveedorEnCamino: 'warning',
-  TrabajoRealizado: 'info',
-  Resuelto: 'success',
-  Cerrado: 'success',
-  Cancelado: 'neutral',
-  Reabierto: 'warning',
-};
+/** Statuses that still need the agency to act — they keep the brand accent. */
+const OPEN_STATUSES = [
+  'Abierto',
+  'Asignado',
+  'EnProgreso',
+  'ProveedorAsignado',
+  'ProveedorEnCamino',
+  'Reabierto',
+];
 
 export default function PortalTicketsPage() {
   const t = useTranslations();
@@ -93,8 +90,10 @@ export default function PortalTicketsPage() {
       year: 'numeric',
     }).format(new Date(dateStr));
 
+  const items = data?.data ?? [];
+
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <p className="eyebrow mb-2">{t('portal.common.brand')}</p>
@@ -102,61 +101,69 @@ export default function PortalTicketsPage() {
           <p className="lead mt-2 text-sm">{t('portal.tickets.subtitle')}</p>
         </div>
         <Button size="sm" onClick={() => setShowForm(true)} className="shrink-0">
+          <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
           {t('portal.tickets.newTicket')}
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Spinner />
-        </div>
-      ) : isError ? (
-        <div className="card-lux p-6 text-center">
-          <p className="text-sm text-[var(--color-muted)]">
-            {t('common.error')}
-          </p>
-        </div>
-      ) : data && data.data.length > 0 ? (
-        <div className="space-y-3">
-          {data.data.map((ticket) => (
-            <div key={ticket.id} className="card-lux p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-base font-semibold text-[var(--color-text)]">
-                    {ticket.title}
-                  </p>
-                  <p className="text-sm text-[var(--color-muted)] mt-0.5 truncate">
-                    {propertyLabel(ticket.property)}
-                  </p>
-                </div>
-                <Badge variant={STATUS_VARIANT[ticket.status] ?? 'neutral'}>
-                  {statusLabel(ticket.status)}
-                </Badge>
-              </div>
-              {ticket.description && (
-                <p className="text-sm text-[var(--color-text)] mt-3 line-clamp-2">
-                  {ticket.description}
-                </p>
-              )}
-              <div className="mt-3 flex items-center gap-2">
-                {ticket.category && (
-                  <span className="micro">{ticket.category.name}</span>
-                )}
-                {ticket.category && <span className="micro">·</span>}
-                <span className="micro">{formatDate(ticket.createdAt)}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+      {isError ? (
+        <EmptyState iconName="alert" title={t('common.error')} subtitle={t('portal.common.error')} />
       ) : (
-        <div className="card-lux p-8 text-center">
-          <p className="text-sm text-[var(--color-muted)] mb-4">
-            {t('portal.tickets.empty')}
-          </p>
-          <Button size="sm" onClick={() => setShowForm(true)}>
-            {t('portal.tickets.newTicket')}
-          </Button>
-        </div>
+        <CardGrid
+          items={items}
+          loading={isLoading}
+          columns={2}
+          skeletonCount={2}
+          skeletonMedia={false}
+          keyOf={(ticket) => ticket.id}
+          renderItem={(ticket) => {
+            const isOpen = OPEN_STATUSES.includes(ticket.status);
+            return (
+              <EntityCard accent={isOpen ? 'brand' : 'success'}>
+                <EntityCard.Cover
+                  seed={ticket.id}
+                  icon="tickets"
+                  band
+                  topRight={
+                    <span className="inline-flex items-center rounded-full border border-white/25 bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-md">
+                      {statusLabel(ticket.status)}
+                    </span>
+                  }
+                />
+                <EntityCard.Body>
+                  <EntityCard.Title>{ticket.title}</EntityCard.Title>
+                  <EntityCard.Subtitle>{propertyLabel(ticket.property)}</EntityCard.Subtitle>
+                  {ticket.description && (
+                    <p className="line-clamp-2 text-sm text-[var(--color-text)]">
+                      {ticket.description}
+                    </p>
+                  )}
+                  <EntityCard.Meta
+                    items={[
+                      ...(ticket.category
+                        ? [{ icon: 'settings' as const, label: ticket.category.name }]
+                        : []),
+                      { icon: 'calendar' as const, label: formatDate(ticket.createdAt) },
+                    ]}
+                  />
+                </EntityCard.Body>
+              </EntityCard>
+            );
+          }}
+          empty={
+            <EmptyState
+              iconName="tickets"
+              title={t('portal.tickets.empty')}
+              subtitle={t('portal.tickets.emptySubtitle')}
+              action={
+                <Button size="sm" onClick={() => setShowForm(true)}>
+                  <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
+                  {t('portal.tickets.newTicket')}
+                </Button>
+              }
+            />
+          }
+        />
       )}
 
       {showForm && (
