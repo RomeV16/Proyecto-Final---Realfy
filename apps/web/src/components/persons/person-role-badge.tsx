@@ -2,40 +2,34 @@
 
 import { useTranslations } from 'next-intl';
 import { PersonRole } from '@realfy/shared';
+import { Badge } from '@/components/ui/badge';
 
-const ROLE_COLORS: Record<string, string> = {
-  [PersonRole.Propietario]: 'bg-blue-100 text-blue-700',
-  [PersonRole.Inquilino]: 'bg-emerald-100 text-emerald-700',
-  [PersonRole.Garante]: 'bg-amber-100 text-amber-700',
-  [PersonRole.Lead]: 'bg-purple-100 text-purple-700',
-  [PersonRole.Comprador]: 'bg-cyan-100 text-cyan-700',
-  [PersonRole.Proveedor]: 'bg-slate-200 text-slate-600',
-};
-
-const ROLE_DOT_COLORS: Record<string, string> = {
-  [PersonRole.Propietario]: 'bg-blue-500',
-  [PersonRole.Inquilino]: 'bg-emerald-500',
-  [PersonRole.Garante]: 'bg-amber-500',
-  [PersonRole.Lead]: 'bg-purple-500',
-  [PersonRole.Comprador]: 'bg-cyan-500',
-  [PersonRole.Proveedor]: 'bg-slate-400',
+/**
+ * Maps each person role onto a semantic badge variant, so role colour comes
+ * from the `--color-*` status tokens instead of a private palette map.
+ */
+const ROLE_VARIANT: Record<string, 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'brand'> = {
+  [PersonRole.Propietario]: 'info',
+  [PersonRole.Inquilino]: 'success',
+  [PersonRole.Garante]: 'warning',
+  [PersonRole.Lead]: 'brand',
+  [PersonRole.Comprador]: 'info',
+  [PersonRole.Proveedor]: 'neutral',
 };
 
 interface PersonRoleBadgeProps {
   role: string;
   size?: 'sm' | 'md';
+  /** Renders the solid variant for sitting on top of a cover image. */
+  onCover?: boolean;
 }
 
-export function PersonRoleBadge({ role, size = 'sm' }: PersonRoleBadgeProps) {
+export function PersonRoleBadge({ role, size = 'sm', onCover }: PersonRoleBadgeProps) {
   const t = useTranslations('persons.roles');
-  const colors = ROLE_COLORS[role] || 'bg-slate-100 text-slate-600';
-  const dotColor = ROLE_DOT_COLORS[role] || 'bg-slate-400';
-  const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm';
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full font-medium ${colors} ${sizeClasses}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+    <Badge variant={ROLE_VARIANT[role] || 'neutral'} size={size} dot onCover={onCover}>
       {t(role)}
-    </span>
+    </Badge>
   );
 }
