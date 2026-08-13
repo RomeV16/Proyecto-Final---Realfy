@@ -990,8 +990,21 @@
         "factor": "Factor",
         "previous": "Anterior",
         "new": "Nuevo",
-        "applied": "Aplicado"
-      }
+        "applied": "Aplicado",
+        "type": "Tipo",
+        "prevRent": "Alquiler anterior",
+        "newRent": "Alquiler nuevo",
+        "change": "Variación"
+      },
+      "period": "Período",
+      "indexType": "Índice",
+      "factor": "Factor",
+      "currentRent": "Alquiler actual",
+      "projectedRent": "Alquiler proyectado",
+      "projectedDelta": "Variación",
+      "noConfigHint": "Configurá un ajuste por IPC, UVA o porcentaje en el contrato para ver las proyecciones.",
+      "historyEmpty": "Todavía no se aplicaron ajustes",
+      "historyEmptyHint": "Cuando apliques un ajuste vas a ver el historial acá."
     }
   },
   "liquidaciones": {

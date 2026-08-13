@@ -6,6 +6,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { registerSchema } from '@realfy/shared/schemas';
 import { apiClient, setStoredUser, ApiRequestError } from '@/lib/api-client';
 import type { AuthResponse } from '@realfy/shared';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function RegisterPage() {
   const t = useTranslations();
@@ -101,173 +104,83 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="w-full max-w-sm">
-      {/* Logo */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-500 text-white font-bold text-xl mb-4">
-          R
-        </div>
-        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
-          {t('auth.register.title')}
-        </h1>
+    <div className="w-full">
+      <div className="mb-8">
+        <p className="eyebrow mb-3">Creá tu cuenta</p>
+        <h1 className="h1">{t('auth.register.title')}</h1>
+        <p className="lead mt-3 text-base">
+          Empezá a administrar tu cartera en minutos.
+        </p>
       </div>
 
-      {/* Form card */}
-      <form
-        onSubmit={handleSubmit}
-        noValidate
-        className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-4"
-      >
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
         {serverError && (
-          <div className="bg-red-50 text-red-700 text-sm rounded-lg px-4 py-3 border border-red-200">
+          <div className="bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] text-[var(--color-danger)] text-sm rounded-lg px-4 py-3 border border-[color-mix(in_srgb,var(--color-danger)_30%,transparent)]">
             {serverError}
           </div>
         )}
 
-        {/* Name row */}
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label
-              htmlFor="firstName"
-              className="block text-sm font-medium text-slate-700 mb-1.5"
-            >
-              {t('auth.register.firstName')}
-            </label>
-            <input
-              id="firstName"
-              type="text"
-              value={form.firstName}
-              onChange={handleChange('firstName')}
-              className={`w-full px-3.5 py-2.5 rounded-lg border text-sm transition-colors ${
-                errors.firstName
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                  : 'border-slate-300 focus:border-brand-500 focus:ring-brand-200'
-              } focus:outline-none focus:ring-2`}
-              autoFocus
-            />
-            {errors.firstName && (
-              <p className="mt-1 text-xs text-red-600">{errors.firstName}</p>
-            )}
-          </div>
-          <div>
-            <label
-              htmlFor="lastName"
-              className="block text-sm font-medium text-slate-700 mb-1.5"
-            >
-              {t('auth.register.lastName')}
-            </label>
-            <input
-              id="lastName"
-              type="text"
-              value={form.lastName}
-              onChange={handleChange('lastName')}
-              className={`w-full px-3.5 py-2.5 rounded-lg border text-sm transition-colors ${
-                errors.lastName
-                  ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                  : 'border-slate-300 focus:border-brand-500 focus:ring-brand-200'
-              } focus:outline-none focus:ring-2`}
-            />
-            {errors.lastName && (
-              <p className="mt-1 text-xs text-red-600">{errors.lastName}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Email */}
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-slate-700 mb-1.5"
-          >
-            {t('auth.register.email')}
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={form.email}
-            onChange={handleChange('email')}
-            className={`w-full px-3.5 py-2.5 rounded-lg border text-sm transition-colors ${
-              errors.email
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                : 'border-slate-300 focus:border-brand-500 focus:ring-brand-200'
-            } focus:outline-none focus:ring-2`}
-            placeholder="nombre@inmobiliaria.com"
-            autoComplete="email"
+          <Input
+            id="firstName"
+            label={t('auth.register.firstName')}
+            value={form.firstName}
+            onChange={handleChange('firstName')}
+            error={errors.firstName}
+            autoFocus
           />
-          {errors.email && (
-            <p className="mt-1 text-xs text-red-600">{errors.email}</p>
-          )}
-        </div>
-
-        {/* Password */}
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-slate-700 mb-1.5"
-          >
-            {t('auth.register.password')}
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={form.password}
-            onChange={handleChange('password')}
-            className={`w-full px-3.5 py-2.5 rounded-lg border text-sm transition-colors ${
-              errors.password
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                : 'border-slate-300 focus:border-brand-500 focus:ring-brand-200'
-            } focus:outline-none focus:ring-2`}
-            placeholder="••••••••"
-            autoComplete="new-password"
+          <Input
+            id="lastName"
+            label={t('auth.register.lastName')}
+            value={form.lastName}
+            onChange={handleChange('lastName')}
+            error={errors.lastName}
           />
-          {errors.password && (
-            <p className="mt-1 text-xs text-red-600">{errors.password}</p>
-          )}
         </div>
 
-        {/* Confirm password */}
-        <div>
-          <label
-            htmlFor="confirmPassword"
-            className="block text-sm font-medium text-slate-700 mb-1.5"
-          >
-            {t('auth.register.confirmPassword')}
-          </label>
-          <input
-            id="confirmPassword"
-            type="password"
-            value={form.confirmPassword}
-            onChange={handleChange('confirmPassword')}
-            className={`w-full px-3.5 py-2.5 rounded-lg border text-sm transition-colors ${
-              errors.confirmPassword
-                ? 'border-red-300 focus:border-red-500 focus:ring-red-200'
-                : 'border-slate-300 focus:border-brand-500 focus:ring-brand-200'
-            } focus:outline-none focus:ring-2`}
-            placeholder="••••••••"
-            autoComplete="new-password"
-          />
-          {errors.confirmPassword && (
-            <p className="mt-1 text-xs text-red-600">
-              {errors.confirmPassword}
-            </p>
-          )}
-        </div>
+        <Input
+          id="email"
+          type="email"
+          label={t('auth.register.email')}
+          value={form.email}
+          onChange={handleChange('email')}
+          error={errors.email}
+          placeholder="nombre@inmobiliaria.com"
+          autoComplete="email"
+        />
 
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-brand-500 text-white font-medium py-2.5 px-4 rounded-lg text-sm hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <Input
+          id="password"
+          type="password"
+          label={t('auth.register.password')}
+          value={form.password}
+          onChange={handleChange('password')}
+          error={errors.password}
+          placeholder="••••••••"
+          autoComplete="new-password"
+        />
+
+        <Input
+          id="confirmPassword"
+          type="password"
+          label={t('auth.register.confirmPassword')}
+          value={form.confirmPassword}
+          onChange={handleChange('confirmPassword')}
+          error={errors.confirmPassword}
+          placeholder="••••••••"
+          autoComplete="new-password"
+        />
+
+        <Button type="submit" size="lg" disabled={loading} className="w-full mt-2">
+          {loading && <Spinner className="w-4 h-4 text-white" />}
           {loading ? t('common.loading') : t('auth.register.submit')}
-        </button>
+        </Button>
       </form>
 
-      {/* Login link */}
-      <p className="text-center mt-6 text-sm text-slate-600">
+      <p className="mt-8 text-sm text-[var(--color-muted)]">
         <a
           href={`${localePrefix}/auth/login`}
-          className="text-brand-600 hover:text-brand-700 font-medium transition-colors"
+          className="link-underline font-medium text-[var(--color-text)]"
         >
           {t('auth.register.loginLink')}
         </a>

@@ -4,7 +4,6 @@ import { useTranslations, useLocale } from 'next-intl';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useState, useRef, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
 import { Icon } from '@/components/ui/icon';
 import Link from 'next/link';
 
@@ -44,10 +43,14 @@ const SEGMENT_LABELS: Record<string, Record<string, string>> = {
     liquidaciones: 'Liquidaciones',
     tickets: 'Tickets',
     settings: 'Configuración',
+    configuracion: 'Configuración',
+    perfil: 'Mi perfil',
+    notifications: 'Notificaciones',
     delinquency: 'Morosidad',
     'index-data': 'Datos de Índices',
     persons: 'Personas',
     payments: 'Pagos',
+    pagos: 'Pagos',
     leads: 'Leads',
     reports: 'Reportes',
     services: 'Servicios',
@@ -74,10 +77,14 @@ const SEGMENT_LABELS: Record<string, Record<string, string>> = {
     liquidaciones: 'Settlements',
     tickets: 'Tickets',
     settings: 'Settings',
+    configuracion: 'Settings',
+    perfil: 'My profile',
+    notifications: 'Notifications',
     delinquency: 'Delinquency',
     'index-data': 'Index Data',
     persons: 'Persons',
     payments: 'Payments',
+    pagos: 'Payments',
     leads: 'Leads',
     reports: 'Reports',
     services: 'Services',
@@ -128,8 +135,13 @@ export function Header({ onMenuToggle }: HeaderProps) {
     ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
     : '??';
 
-  // Breadcrumb logic
-  const segments = parseSegments(pathname, LOCALES);
+  // Breadcrumb logic — drop record-id segments so detail pages never show a
+  // raw UUID (e.g. /contracts/<uuid> shows just "Contratos").
+  const isIdSegment = (s: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/i.test(s) || /^\d+$/.test(s);
+  const segments = parseSegments(pathname, LOCALES).filter(
+    (s) => !isIdSegment(s),
+  );
   const localePrefix = (() => {
     for (const l of LOCALES) {
       if (pathname.startsWith(`/${l}/`) || pathname === `/${l}`) {
@@ -223,16 +235,16 @@ export function Header({ onMenuToggle }: HeaderProps) {
         )}
       </div>
 
-      {/* Right: global search placeholder + notification bell + user menu */}
+      {/* Right: notifications + user menu */}
       <div className="flex items-center gap-2 shrink-0">
-        {/* Global search — placeholder, disabled until implemented */}
-        <div className="hidden md:block w-56">
-          <Input
-            placeholder="Buscar… (próximamente)"
-            disabled
-            className="h-8 text-xs"
-          />
-        </div>
+        <Link
+          href={`${localePrefix}/notifications`}
+          aria-label={t('nav.notifications')}
+          title={t('nav.notifications')}
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-sunken)] transition-colors"
+        >
+          <Icon name="bell" size={19} />
+        </Link>
 
         <div className="relative" ref={dropdownRef}>
           <button

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { Button } from '@/components/ui/button';
 
 interface ProviderProfile {
   id: string;
@@ -82,11 +83,8 @@ export default function ProviderListPage() {
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('title')}</h1>
           <p className="text-sm text-slate-500 mt-1">{t('subtitle')}</p>
         </div>
-        <Link
-          href={`${localePrefix}/providers/new`}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors shrink-0"
-        >
-          {t('newProvider')}
+        <Link href={`${localePrefix}/providers/new`} className="shrink-0">
+          <Button variant="primary">{t('newProvider')}</Button>
         </Link>
       </div>
 
