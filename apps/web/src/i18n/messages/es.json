@@ -377,7 +377,10 @@
     "card": {
       "noAddress": "Sin dirección",
       "noPrice": "Precio a consultar",
-      "noImage": "Sin imagen"
+      "noImage": "Sin imagen",
+      "needsPhotos": "Agregá fotos para publicarla",
+      "needsPrice": "Falta cargar el precio",
+      "view": "Ver ficha"
     },
     "detail": {
       "operations": "Operaciones",
@@ -437,7 +440,8 @@
       "delete": "Eliminar imagen",
       "noImages": "No hay fotos cargadas",
       "dismiss": "Cerrar",
-      "saveFirst": "Guardá la propiedad primero para subir fotos"
+      "saveFirst": "Guardá la propiedad primero para subir fotos",
+      "primaryBadge": "Principal"
     },
     "map": {
       "title": "Ubicación",
@@ -449,7 +453,8 @@
       "title": "Historial de precios",
       "empty": "Sin historial de precios",
       "increased": "Subió",
-      "decreased": "Bajó"
+      "decreased": "Bajó",
+      "vsFirstPrice": "vs. precio inicial"
     },
     "valuations": {
       "title": "Tasaciones",
@@ -646,12 +651,14 @@
       "deleteError": "Error al eliminar el documento",
       "fileName": "Archivo",
       "fileSize": "Tamaño",
-      "uploadDate": "Fecha de carga"
+      "uploadDate": "Fecha de carga",
+      "download": "Descargar"
     },
     "card": {
       "noEmail": "Sin email",
       "noPhone": "Sin teléfono",
-      "noCuit": "Sin CUIT"
+      "noCuit": "Sin CUIT",
+      "view": "Ver ficha"
     },
     "empty": {
       "title": "No hay personas",
@@ -727,7 +734,14 @@
       "dateRange": "{start} — {end}",
       "rent": "Alquiler",
       "noProperty": "Sin propiedad",
-      "persons": "Personas vinculadas"
+      "persons": "Personas vinculadas",
+      "expired": "El contrato venció",
+      "needsProperty": "Sin propiedad vinculada",
+      "needsRent": "Falta definir el monto de alquiler",
+      "noEndDate": "Sin fecha de fin definida",
+      "noRent": "Monto no definido",
+      "termProgress": "{elapsed} de {total} meses",
+      "view": "Ver detalle"
     },
     "statuses": {
       "Borrador": "Borrador",
@@ -927,7 +941,8 @@
       "applied": "Aplicado",
       "skipped": "Omitido",
       "pending": "Pendiente",
-      "empty": "No hay ajustes registrados para este contrato"
+      "empty": "No hay ajustes registrados para este contrato",
+      "vsLastAdjustment": "vs. ajuste anterior"
     },
     "indexData": {
       "title": "Datos de Índices",
@@ -1056,7 +1071,12 @@
       "paidIndicator": "Pagada",
       "partialPayment": "Pago parcial",
       "noProperty": "Sin propiedad asociada",
-      "noContract": "Sin contrato"
+      "noContract": "Sin contrato",
+      "missingPdf": "PDF no generado aún",
+      "overdueAlert": "Vencida desde el {date}",
+      "pendingApproval": "Pendiente de aprobación",
+      "selectOne": "Seleccionar liquidación",
+      "view": "Ver liquidación"
     },
     "bulk": {
       "selected": "{count} seleccionadas",
@@ -2696,7 +2716,9 @@
       "noAssignee": "Sin asignar",
       "noCategory": "Sin categoría",
       "slaOverdue": "SLA vencido",
-      "created": "Creado"
+      "created": "Creado",
+      "age": "{days, plural, =0 {Abierto hoy} one {Hace # día} other {Hace # días}}",
+      "view": "Ver ticket"
     },
     "empty": {
       "title": "No hay tickets",
@@ -2819,7 +2841,9 @@
       "zones": "Zonas",
       "noEmail": "Sin email",
       "noPhone": "Sin teléfono",
-      "inactive": "Inactivo"
+      "inactive": "Inactivo",
+      "noProfile": "Falta cargar rubros y zona de cobertura",
+      "view": "Ver ficha"
     },
     "detail": {
       "edit": "Editar",
@@ -2919,7 +2943,12 @@
         "PartiallyPaid": "Pago parcial",
         "Overdue": "Vencida",
         "Cancelled": "Anulada"
-      }
+      },
+      "totalToPay": "Total a pagar",
+      "overdueAlert": "Está vencida — regularizá el pago",
+      "emptySubtitle": "Cuando tu inmobiliaria emita una liquidación la vas a ver acá.",
+      "paymentsCount": "{count, plural, one {# pago registrado} other {# pagos registrados}}",
+      "viewDetail": "Ver detalle"
     },
     "tickets": {
       "title": "Reclamos",
@@ -2983,7 +3012,8 @@
         "Alta": "Alta",
         "Media": "Media",
         "Baja": "Baja"
-      }
+      },
+      "emptySubtitle": "Si algo no funciona en la propiedad, abrí un reclamo y le hacemos seguimiento."
     }
   },
   "import": {
@@ -4111,7 +4141,12 @@
     "waiveReasonPlaceholder": "Ingrese el motivo...",
     "cancel": "Cancelar",
     "waiving": "Condonando...",
-    "waiveConfirm": "Confirmar condonación"
+    "waiveConfirm": "Confirmar condonación",
+    "daysOverdue": "{days, plural, one {# día de mora} other {# días de mora}}",
+    "forbiddenHint": "Pedile a un administrador que te habilite el acceso a morosidad.",
+    "severeCount": "Casos graves",
+    "severeHint": "Más de 30 días de mora",
+    "tenantCount": "{count, plural, =0 {Sin inquilinos en mora} one {# inquilino} other {# inquilinos}}"
   },
   "indexData": {
     "title": "Datos de Índices",
@@ -4199,7 +4234,10 @@
     "date": "Fecha",
     "period": "Período",
     "method": "Medio",
-    "amount": "Monto"
+    "amount": "Monto",
+    "collected": "Total cobrado",
+    "collectedHint": "{count, plural, =0 {Sin pagos registrados} one {# pago registrado} other {# pagos registrados}}",
+    "noPaymentsSubtitle": "Cuando registres cobranzas vas a verlas acá con su medio de pago y período."
   },
   "perfil": {
     "title": "Mi perfil",
