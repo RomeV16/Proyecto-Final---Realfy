@@ -22,6 +22,22 @@ interface Debt {
 const money = (n: number | string) =>
   '$' + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 0 });
 
+const periodLabel = (iso?: string) => {
+  if (!iso) return '—';
+  const s = new Date(iso).toLocaleDateString('es-AR', {
+    month: 'long',
+    year: 'numeric',
+  });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+const METHOD_LABELS: Record<string, string> = {
+  Transferencia: 'Transferencia bancaria',
+  Efectivo: 'Efectivo',
+  MercadoPago: 'Mercado Pago',
+  Cheque: 'Cheque',
+};
+
 export default function PagosPage() {
   const t = useTranslations('payments');
   const [payments, setPayments] = useState<Payment[] | null>(null);
@@ -82,8 +98,8 @@ export default function PagosPage() {
               {payments.map((p) => (
                 <tr key={p.id} className="hover:bg-slate-50">
                   <td className="px-5 py-2.5 text-slate-700">{new Date(p.paidAt).toLocaleDateString('es-AR')}</td>
-                  <td className="px-5 py-2.5 text-slate-500 tabular-nums">{p.liquidacion?.period?.slice(0, 7) || '-'}</td>
-                  <td className="px-5 py-2.5 text-slate-500">{p.method}</td>
+                  <td className="px-5 py-2.5 text-slate-500">{periodLabel(p.liquidacion?.period)}</td>
+                  <td className="px-5 py-2.5 text-slate-500">{METHOD_LABELS[p.method] ?? p.method}</td>
                   <td className="px-5 py-2.5 text-right font-medium text-slate-900 tabular-nums">{money(p.amount)}</td>
                 </tr>
               ))}

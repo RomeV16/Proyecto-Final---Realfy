@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
+import { Button } from '@/components/ui/button';
 import {
   LiquidacionStatus,
   LineItemType,
@@ -81,15 +82,11 @@ const LINE_ITEM_ICONS: Record<string, string> = {
   [LineItemType.Descuento]: '🏷️',
 };
 
-const TRANSITION_COLORS: Record<string, string> = {
-  [LiquidacionStatus.Revision]: 'bg-blue-500 hover:bg-blue-600',
-  [LiquidacionStatus.Aprobada]: 'bg-green-500 hover:bg-green-600',
-  [LiquidacionStatus.Borrador]: 'bg-slate-500 hover:bg-slate-600',
-  [LiquidacionStatus.Enviada]: 'bg-indigo-500 hover:bg-indigo-600',
-  [LiquidacionStatus.Pagada]: 'bg-emerald-500 hover:bg-emerald-600',
-  [LiquidacionStatus.Vencida]: 'bg-amber-500 hover:bg-amber-600',
-  [LiquidacionStatus.Anulada]: 'bg-red-500 hover:bg-red-600',
-};
+function transitionVariant(target: string): 'primary' | 'secondary' | 'danger' {
+  if (target === LiquidacionStatus.Anulada) return 'danger';
+  if (target === LiquidacionStatus.Borrador) return 'secondary';
+  return 'primary';
+}
 
 /* ──────────── Main Component ──────────── */
 
@@ -292,15 +289,16 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         {!readOnly && validTransitions.length > 0 && (
           <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
             {validTransitions.map((target) => (
-              <button
+              <Button
                 key={target}
+                variant={transitionVariant(target)}
+                size="sm"
                 onClick={() => handleTransition(target)}
                 disabled={!!actionLoading}
-                className={`px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2 ${TRANSITION_COLORS[target] || 'bg-slate-500 hover:bg-slate-600'}`}
               >
-                {actionLoading === target && <Spinner className="w-3 h-3 text-white" />}
+                {actionLoading === target && <Spinner className="w-4 h-4" />}
                 {tTransitions(target)}
-              </button>
+              </Button>
             ))}
           </div>
         )}
@@ -498,15 +496,16 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-slate-900">{tPayments('title')}</h2>
           {!readOnly && canAct && [LiquidacionStatus.Enviada, LiquidacionStatus.Vencida].includes(data.status as LiquidacionStatus) && (
-            <button
+            <Button
+              variant="accent"
+              size="sm"
               onClick={() => setShowPaymentForm(true)}
-              className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600 transition-colors flex items-center gap-1"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
               {tPayments('registerPayment')}
-            </button>
+            </Button>
           )}
         </div>
 

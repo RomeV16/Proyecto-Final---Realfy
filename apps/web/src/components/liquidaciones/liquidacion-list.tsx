@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { LiquidacionStatus } from '@realfy/shared';
@@ -607,28 +608,31 @@ export function LiquidacionList() {
               {tBulk('selected', { count: selectedIds.size })}
             </span>
             <div className="flex gap-2 w-full sm:w-auto">
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => setSelectedIds(new Set())}
-                className="flex-1 sm:flex-none px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+                className="flex-1 sm:flex-none"
               >
                 {tBulk('deselectAll')}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="accent"
                 onClick={() => handleBulkAction('approve')}
                 disabled={!!bulkLoading}
-                className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-green-500 text-white text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 sm:flex-none"
               >
-                {bulkLoading === 'approve' && <Spinner className="w-3 h-3 text-white" />}
+                {bulkLoading === 'approve' && <Spinner className="w-4 h-4" />}
                 {tBulk('approveSelected')}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 onClick={() => handleBulkAction('send')}
                 disabled={!!bulkLoading}
-                className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-indigo-500 text-white text-sm font-medium hover:bg-indigo-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 sm:flex-none"
               >
-                {bulkLoading === 'send' && <Spinner className="w-3 h-3 text-white" />}
+                {bulkLoading === 'send' && <Spinner className="w-4 h-4" />}
                 {tBulk('sendSelected')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
