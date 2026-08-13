@@ -5,26 +5,8 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
-import { Icon, type IconName } from '@/components/ui/icon';
-
-interface NavItem {
-  key: string;
-  href: string;
-  icon: IconName;
-}
-
-const navItems: NavItem[] = [
-  { key: 'dashboard', href: '/dashboard', icon: 'dashboard' },
-  { key: 'properties', href: '/properties', icon: 'properties' },
-  { key: 'persons', href: '/persons', icon: 'persons' },
-  { key: 'contracts', href: '/contracts', icon: 'contracts' },
-  { key: 'liquidaciones', href: '/liquidaciones', icon: 'liquidaciones' },
-  { key: 'pagos', href: '/pagos', icon: 'liquidaciones' },
-  { key: 'delinquency', href: '/delinquency', icon: 'delinquency' },
-  { key: 'tickets', href: '/tickets', icon: 'tickets' },
-  { key: 'providers', href: '/providers', icon: 'providers' },
-  { key: 'notifications', href: '/notifications', icon: 'bell' },
-];
+import { Icon } from '@/components/ui/icon';
+import { navItems } from './nav-items';
 
 interface MobileNavProps {
   open: boolean;
