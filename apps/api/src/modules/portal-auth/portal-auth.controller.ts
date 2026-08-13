@@ -8,21 +8,36 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { IsEmail, IsString, MinLength } from 'class-validator';
 import { PortalAuthService } from './portal-auth.service';
 import { Public } from '../../common/auth/public.decorator';
 import { PortalAuthGuard } from '../../common/auth/portal-auth.guard';
 
+/* El ValidationPipe global corre con whitelist + forbidNonWhitelisted: sin
+   decoradores toda propiedad se considera no permitida y el request se
+   rechaza con 400 antes de llegar al servicio. */
 class PortalLoginDto {
+  @IsEmail()
   email!: string;
+
+  @IsString()
+  @MinLength(1)
   password!: string;
 }
 
 class PortalRefreshDto {
+  @IsString()
+  @MinLength(1)
   refreshToken!: string;
 }
 
 class PortalSetPasswordDto {
+  @IsString()
+  @MinLength(1)
   token!: string;
+
+  @IsString()
+  @MinLength(8)
   password!: string;
 }
 
