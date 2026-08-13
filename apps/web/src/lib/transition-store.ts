@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react';
 
 interface TransitionData {
   firstName?: string;
+  lastName?: string;
 }
 
 interface State {

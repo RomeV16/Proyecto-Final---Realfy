@@ -17,6 +17,7 @@ function createMockPrismaService() {
     baseClient: {
       notification: {
         create: jest.fn(),
+        findFirst: jest.fn(),
       },
     },
   } as unknown as PrismaService;
@@ -176,6 +177,45 @@ describe('NotificationsService', () => {
         }),
       );
       expect(result).toEqual({ id: 'n9' });
+    });
+
+    it('does not repeat an aviso already sent for the same record in the last 24h', async () => {
+      (prisma.baseClient.notification.findFirst as jest.Mock).mockResolvedValue({
+        id: 'n8',
+      });
+
+      const result = await service.createNotification({
+        tenantId: TENANT_ID,
+        userId: USER_ID,
+        type: 'LiquidacionOverdue',
+        title: 'Liquidación vencida',
+        message: 'Mensaje',
+        entityType: 'Liquidacion',
+        entityId: 'liq-1',
+      });
+
+      expect(result).toBeNull();
+      expect(prisma.baseClient.notification.create).not.toHaveBeenCalled();
+    });
+
+    it('creates the aviso when there is no recent one for that record', async () => {
+      (prisma.baseClient.notification.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.baseClient.notification.create as jest.Mock).mockResolvedValue({
+        id: 'n10',
+      });
+
+      const result = await service.createNotification({
+        tenantId: TENANT_ID,
+        userId: USER_ID,
+        type: 'LiquidacionOverdue',
+        title: 'Liquidación vencida',
+        message: 'Mensaje',
+        entityType: 'Liquidacion',
+        entityId: 'liq-1',
+      });
+
+      expect(result).toEqual({ id: 'n10' });
+      expect(prisma.baseClient.notification.create).toHaveBeenCalled();
     });
   });
 });

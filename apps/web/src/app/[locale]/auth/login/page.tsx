@@ -59,7 +59,10 @@ export default function LoginPage() {
       setStoredUser(res.user);
       localStorage.setItem('user', JSON.stringify(res.user));
       // Play the cinematic login → panel transition; it covers the navigation.
-      transition.start({ firstName: res.user.firstName });
+      transition.start({
+        firstName: res.user.firstName,
+        lastName: res.user.lastName,
+      });
       setExiting(true);
       router.push(`${localePrefix}`);
     } catch (err) {

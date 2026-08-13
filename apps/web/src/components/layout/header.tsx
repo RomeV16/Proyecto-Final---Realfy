@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useState, useRef, useEffect } from 'react';
 import { Icon } from '@/components/ui/icon';
 import Link from 'next/link';
+import { SEGMENT_LABELS } from './segment-labels';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -29,82 +30,6 @@ function parseSegments(pathname: string, locales: string[]): string[] {
   }
   return path.split('/').filter(Boolean);
 }
-
-/**
- * Static segment label maps — avoids calling t() with dynamic keys,
- * which throws MISSING_MESSAGE errors during static generation.
- * Falls back to toTitleCase() for unknown segments.
- */
-const SEGMENT_LABELS: Record<string, Record<string, string>> = {
-  es: {
-    dashboard: 'Panel',
-    properties: 'Propiedades',
-    contracts: 'Contratos',
-    liquidaciones: 'Liquidaciones',
-    tickets: 'Tickets',
-    settings: 'Configuración',
-    configuracion: 'Configuración',
-    perfil: 'Mi perfil',
-    notifications: 'Notificaciones',
-    delinquency: 'Morosidad',
-    'index-data': 'Datos de Índices',
-    persons: 'Personas',
-    payments: 'Pagos',
-    pagos: 'Pagos',
-    leads: 'Leads',
-    reports: 'Reportes',
-    services: 'Servicios',
-    arca: 'ARCA',
-    import: 'Importar',
-    migration: 'Migración',
-    pipeline: 'Pipeline',
-    'email-templates': 'Plantillas de Email',
-    'contract-templates': 'Plantillas de Contrato',
-    'audit-log': 'Auditoría',
-    'ticket-categories': 'Categorías de Tickets',
-    users: 'Usuarios',
-    scoring: 'Puntuación',
-    invoices: 'Facturación',
-    renditions: 'Rendiciones',
-    onboarding: 'Onboarding',
-    providers: 'Proveedores',
-    new: 'Nuevo',
-  },
-  en: {
-    dashboard: 'Dashboard',
-    properties: 'Properties',
-    contracts: 'Contracts',
-    liquidaciones: 'Settlements',
-    tickets: 'Tickets',
-    settings: 'Settings',
-    configuracion: 'Settings',
-    perfil: 'My profile',
-    notifications: 'Notifications',
-    delinquency: 'Delinquency',
-    'index-data': 'Index Data',
-    persons: 'Persons',
-    payments: 'Payments',
-    pagos: 'Payments',
-    leads: 'Leads',
-    reports: 'Reports',
-    services: 'Services',
-    arca: 'ARCA',
-    import: 'Import',
-    migration: 'Migration',
-    pipeline: 'Pipeline',
-    'email-templates': 'Email Templates',
-    'contract-templates': 'Contract Templates',
-    'audit-log': 'Audit Log',
-    'ticket-categories': 'Ticket Categories',
-    users: 'Users',
-    scoring: 'Scoring',
-    invoices: 'Invoices',
-    renditions: 'Renditions',
-    onboarding: 'Onboarding',
-    providers: 'Providers',
-    new: 'New',
-  },
-};
 
 const LOCALES = ['es', 'en'];
 
