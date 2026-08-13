@@ -159,6 +159,38 @@ function SectionCard({
   );
 }
 
+function AgendaGroup({
+  title,
+  count,
+  href,
+  emptyText,
+  children,
+}: {
+  title: string;
+  count: number;
+  href: string;
+  emptyText: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="micro">{title}</p>
+        {count > 3 && (
+          <Link href={href} className="text-xs font-medium text-brand-600 link-underline">
+            Ver todos ({count})
+          </Link>
+        )}
+      </div>
+      {count === 0 ? (
+        <p className="text-sm text-[var(--color-muted)] py-2">{emptyText}</p>
+      ) : (
+        <div className="divide-y divide-[var(--color-border)]">{children}</div>
+      )}
+    </div>
+  );
+}
+
 /* ──────────────── Page ──────────────── */
 
 export default function DashboardPage() {
@@ -355,69 +387,65 @@ export default function DashboardPage() {
             title="Requiere tu atención"
             action={<span className="micro">Próximos 90 días</span>}
           >
-            {s.agenda.expiring.length === 0 && s.agenda.collections.length === 0 && s.agenda.tickets.length === 0 ? (
-              <p className="text-sm text-[var(--color-muted)] py-4">Todo al día. No hay pendientes urgentes.</p>
-            ) : (
-              <div className="space-y-5">
-                {s.agenda.expiring.length > 0 && (
-                  <div>
-                    <p className="micro mb-1.5">Vencimientos de contrato</p>
-                    <div className="divide-y divide-[var(--color-border)]">
-                      {s.agenda.expiring.map((c) => (
-                        <AgendaRow
-                          key={c.id}
-                          href={`${lp}/contracts/${c.id}`}
-                          title={c.property}
-                          meta={`${c.tenant}`}
-                          accent="#c58a2b"
-                          right={
-                            <span className="text-xs font-medium text-[#9a6b1f]">
-                              vence en {c.daysLeft}d
-                            </span>
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+            <div className="space-y-5 min-h-[380px]">
+              <AgendaGroup
+                title="Vencimientos de contrato"
+                count={s.agenda.expiring.length}
+                href={`${lp}/contracts`}
+                emptyText="Sin contratos por vencer en los próximos 90 días."
+              >
+                {s.agenda.expiring.slice(0, 3).map((c) => (
+                  <AgendaRow
+                    key={c.id}
+                    href={`${lp}/contracts/${c.id}`}
+                    title={c.property}
+                    meta={c.tenant}
+                    accent="#c58a2b"
+                    right={
+                      <span className="text-xs font-medium text-[#9a6b1f]">
+                        vence en {c.daysLeft}d
+                      </span>
+                    }
+                  />
+                ))}
+              </AgendaGroup>
 
-                {s.agenda.collections.length > 0 && (
-                  <div>
-                    <p className="micro mb-1.5">Cobranzas pendientes</p>
-                    <div className="divide-y divide-[var(--color-border)]">
-                      {s.agenda.collections.map((c) => (
-                        <AgendaRow
-                          key={c.id}
-                          href={`${lp}/liquidaciones`}
-                          title={c.property}
-                          meta={`${monthName(c.period)} · ${statusLabel[c.status] ?? c.status}`}
-                          accent={c.status === 'Vencida' ? '#b23a2b' : '#c58a2b'}
-                          right={<span className="text-sm font-medium tabular-nums">{fmt(c.amount)}</span>}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <AgendaGroup
+                title="Cobranzas pendientes"
+                count={s.agenda.collections.length}
+                href={`${lp}/liquidaciones`}
+                emptyText="No hay cobranzas pendientes."
+              >
+                {s.agenda.collections.slice(0, 3).map((c) => (
+                  <AgendaRow
+                    key={c.id}
+                    href={`${lp}/liquidaciones`}
+                    title={c.property}
+                    meta={`${monthName(c.period)} · ${statusLabel[c.status] ?? c.status}`}
+                    accent={c.status === 'Vencida' ? '#b23a2b' : '#c58a2b'}
+                    right={<span className="text-sm font-medium tabular-nums">{fmt(c.amount)}</span>}
+                  />
+                ))}
+              </AgendaGroup>
 
-                {s.agenda.tickets.length > 0 && (
-                  <div>
-                    <p className="micro mb-1.5">Tickets prioritarios</p>
-                    <div className="divide-y divide-[var(--color-border)]">
-                      {s.agenda.tickets.map((tk) => (
-                        <AgendaRow
-                          key={tk.id}
-                          href={`${lp}/tickets`}
-                          title={tk.title}
-                          meta={tk.property}
-                          accent="#bd5a32"
-                          right={<PriorityBadge priority={tk.priority} />}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+              <AgendaGroup
+                title="Tickets prioritarios"
+                count={s.agenda.tickets.length}
+                href={`${lp}/tickets`}
+                emptyText="No hay tickets abiertos."
+              >
+                {s.agenda.tickets.slice(0, 3).map((tk) => (
+                  <AgendaRow
+                    key={tk.id}
+                    href={`${lp}/tickets/${tk.id}`}
+                    title={tk.title}
+                    meta={tk.property}
+                    accent="#bd5a32"
+                    right={<PriorityBadge priority={tk.priority} />}
+                  />
+                ))}
+              </AgendaGroup>
+            </div>
           </SectionCard>
         </Reveal>
 
