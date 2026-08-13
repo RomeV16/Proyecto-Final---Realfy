@@ -2,6 +2,7 @@ import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import { LoginToPanel } from '@/components/transition/login-to-panel';
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -39,6 +40,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       <body className="font-sans antialiased bg-[var(--color-bg)] text-[var(--color-text)]">
         <NextIntlClientProvider messages={messages}>
           {children}
+          <LoginToPanel />
         </NextIntlClientProvider>
       </body>
     </html>
