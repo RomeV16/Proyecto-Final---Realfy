@@ -3,6 +3,11 @@
 import { useTranslations } from 'next-intl';
 import { useState, useRef, useCallback, type DragEvent } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { cn } from '@/lib/cn';
+import { SmartImage } from '@/components/ui/entity-cover';
+import { Badge } from '@/components/ui/badge';
+import { Icon } from '@/components/ui/icon';
+import { EmptyState } from '@/components/ui/empty-state';
 
 /* ──────────── Types ──────────── */
 
@@ -27,6 +32,46 @@ interface PropertyMediaUploadProps {
   media: MediaItem[];
   onMediaChange: (media: MediaItem[]) => void;
   readOnly?: boolean;
+}
+
+/* ──────────── Upload transport ──────────── */
+
+/**
+ * XHR rather than fetch so we get real `upload.onprogress` events — the only
+ * way to drive a per-file progress bar instead of a fake one.
+ */
+function uploadWithProgress(
+  url: string,
+  formData: FormData,
+  onProgress: (pct: number) => void,
+): Promise<MediaItem> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    xhr.withCredentials = true;
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as MediaItem);
+        } catch {
+          reject(new Error('Invalid response'));
+        }
+      } else {
+        let message = xhr.statusText;
+        try {
+          message = JSON.parse(xhr.responseText)?.message || message;
+        } catch {
+          /* ignore parse errors, fall back to statusText */
+        }
+        reject(new Error(message));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.send(formData);
+  });
 }
 
 /* ──────────── Component ──────────── */
@@ -57,20 +102,12 @@ export function PropertyMediaUpload({
       const formData = new FormData();
       formData.append('file', file);
 
-      // Use fetch directly for multipart — apiClient sets Content-Type to JSON
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-      const res = await fetch(`${baseUrl}/properties/${propertyId}/media`, {
-        method: 'POST',
-        credentials: 'include' as RequestCredentials,
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ message: res.statusText }));
-        throw new Error(body.message || res.statusText);
-      }
-
-      const newMedia = await res.json() as MediaItem;
+      const newMedia = await uploadWithProgress(
+        `${baseUrl}/properties/${propertyId}/media`,
+        formData,
+        (pct) => setUploading((prev) => prev.map((u) => (u.id === tempId ? { ...u, progress: pct } : u))),
+      );
 
       setUploading((prev) => prev.filter((u) => u.id !== tempId));
       URL.revokeObjectURL(preview);
@@ -194,16 +231,22 @@ export function PropertyMediaUpload({
 
   const sortedMedia = [...media].sort((a, b) => a.sortOrder - b.sortOrder);
   const primaryId = sortedMedia.find((m) => m.isPrimary)?.id ?? sortedMedia[0]?.id;
+  const isEmpty = sortedMedia.length === 0 && uploading.length === 0;
 
   return (
     <div className="space-y-4">
       {error && (
-        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={() => setError('')} className="text-red-400 hover:text-red-600 ml-2">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+        <div className="flex items-center justify-between gap-2 rounded-[var(--radius-lg)] border border-[color-mix(in_oklab,var(--color-danger)_28%,var(--color-border))] bg-[color-mix(in_oklab,var(--color-danger)_10%,var(--color-surface))] px-3 py-2.5 text-sm text-[color-mix(in_oklab,var(--color-danger)_75%,var(--color-text))]">
+          <span className="flex min-w-0 items-center gap-2">
+            <Icon name="alert" className="h-4 w-4 shrink-0" strokeWidth={2} />
+            <span className="truncate">{error}</span>
+          </span>
+          <button
+            onClick={() => setError('')}
+            className="shrink-0 rounded-full p-1 text-current/70 transition-colors hover:bg-black/5"
+            aria-label={t('dismiss')}
+          >
+            <Icon name="close" className="h-3.5 w-3.5" strokeWidth={2.25} />
           </button>
         </div>
       )}
@@ -216,25 +259,31 @@ export function PropertyMediaUpload({
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`
-            relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed
-            px-6 py-8 cursor-pointer transition-all duration-200
-            ${dragOver
-              ? 'border-brand-400 bg-brand-50/60 scale-[1.01]'
-              : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-50'
-            }
-          `}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click();
+          }}
+          className={cn(
+            'relative flex flex-col items-center justify-center gap-3 rounded-[var(--radius-2xl)] border-2 border-dashed px-6 py-8 cursor-pointer transition-all duration-200',
+            dragOver
+              ? 'border-[var(--color-brand-400)] bg-[color-mix(in_oklab,var(--color-brand-500)_8%,var(--color-surface))] scale-[1.01]'
+              : 'border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[var(--color-brand-300)] hover:bg-[color-mix(in_oklab,var(--color-brand-500)_4%,var(--color-bg))]',
+          )}
         >
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
-            dragOver ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-400'
-          }`}>
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
-            </svg>
+          <div
+            className={cn(
+              'flex h-12 w-12 items-center justify-center rounded-[var(--radius-xl)] transition-colors',
+              dragOver
+                ? 'bg-[var(--color-brand-100)] text-[var(--color-brand-600)]'
+                : 'bg-[var(--color-surface)] text-[var(--color-muted)]',
+            )}
+          >
+            <Icon name="image" className="h-6 w-6" strokeWidth={1.5} />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium text-slate-700">{t('dropOrClick')}</p>
-            <p className="text-xs text-slate-400 mt-1">{t('formats')}</p>
+            <p className="text-sm font-medium text-[var(--color-text)]">{t('dropOrClick')}</p>
+            <p className="mt-1 text-xs text-[var(--color-muted)]">{t('formats')}</p>
           </div>
           <input
             ref={fileInputRef}
@@ -247,39 +296,58 @@ export function PropertyMediaUpload({
         </div>
       )}
 
-      {/* Uploading files */}
+      {/* Uploading files — skeleton tiles with per-file progress */}
       {uploading.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {uploading.map((u) => (
-            <div key={u.id} className="relative aspect-[4/3] rounded-lg overflow-hidden bg-slate-100 border border-slate-200">
+            <div
+              key={u.id}
+              className="relative aspect-[4/3] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)]"
+            >
+              {!u.error && <div className="absolute inset-0 skeleton" aria-hidden="true" />}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={u.preview} alt="" className="w-full h-full object-cover opacity-50" />
-              <div className="absolute inset-0 flex items-center justify-center">
+              <img
+                src={u.preview}
+                alt=""
+                className={cn('h-full w-full object-cover transition-opacity', u.error ? 'opacity-30' : 'opacity-60')}
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/10 p-2">
                 {u.error ? (
-                  <div className="flex flex-col items-center gap-1 px-2">
-                    <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                    </svg>
-                    <span className="text-[10px] text-red-600 text-center leading-tight">{u.error}</span>
+                  <>
+                    <Icon name="alert" className="h-5 w-5 text-white drop-shadow" strokeWidth={2} />
+                    <span className="text-center text-[10px] leading-tight text-white drop-shadow">{u.error}</span>
                     <button
                       onClick={() => dismissUploadError(u.id)}
-                      className="text-xs text-slate-500 hover:text-slate-700 underline mt-0.5"
+                      className="mt-0.5 text-[11px] font-medium text-white underline underline-offset-2"
                     >
                       {t('dismiss')}
                     </button>
-                  </div>
+                  </>
                 ) : (
-                  <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="w-9/12 max-w-[8rem]">
+                    <span className="block h-1 w-full overflow-hidden rounded-full bg-white/30">
+                      <span
+                        className="block h-full rounded-full bg-white transition-[width] duration-200 ease-out"
+                        style={{ width: `${Math.max(u.progress, 6)}%` }}
+                      />
+                    </span>
+                  </span>
                 )}
               </div>
+              {/* Truncated filename chip anchors the tile even while it's a plain preview */}
+              {!u.error && (
+                <span className="absolute bottom-1.5 left-1.5 right-1.5 truncate rounded-full bg-black/45 px-2 py-0.5 text-center text-[10px] text-white backdrop-blur-sm">
+                  {u.file.name}
+                </span>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* Gallery grid */}
-      {sortedMedia.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      {/* Gallery — primary tile dominant, rest in a tidy grid */}
+      {sortedMedia.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
           {sortedMedia.map((m) => {
             const isPrimary = m.id === primaryId;
             return (
@@ -289,52 +357,59 @@ export function PropertyMediaUpload({
                 onDragStart={() => handleMediaDragStart(m.id)}
                 onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onDrop={(e) => { e.preventDefault(); e.stopPropagation(); handleMediaDrop(m.id); }}
-                className={`
-                  group relative aspect-[4/3] rounded-lg overflow-hidden bg-slate-100
-                  ${isPrimary ? 'ring-2 ring-amber-400 ring-offset-1' : 'border border-slate-200'}
-                  ${!readOnly ? 'cursor-grab active:cursor-grabbing' : ''}
-                  ${dragSourceId === m.id ? 'opacity-40' : ''}
-                  transition-all duration-150
-                `}
+                className={cn(
+                  'group relative overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-bg)] transition-all duration-150',
+                  isPrimary
+                    ? 'col-span-2 row-span-2 aspect-[4/3] ring-2 ring-[var(--color-brand-400)] ring-offset-1 ring-offset-[var(--color-surface)] sm:aspect-[16/11]'
+                    : 'aspect-[4/3] border border-[var(--color-border)]',
+                  !readOnly && 'cursor-grab active:cursor-grabbing',
+                  dragSourceId === m.id && 'opacity-40',
+                )}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <SmartImage
                   src={m.thumbnailUrl || m.url}
                   alt=""
-                  className="w-full h-full object-cover"
+                  fallback={
+                    <div className="flex h-full w-full items-center justify-center bg-[var(--color-bg)] text-[var(--color-muted)]">
+                      <Icon name="image" className="h-6 w-6" strokeWidth={1.5} />
+                    </div>
+                  }
                 />
 
-                {/* Primary star */}
+                {/* Primary badge */}
                 {isPrimary && (
-                  <div className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-amber-400 text-white flex items-center justify-center shadow-sm">
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
+                  <div className="absolute left-2 top-2 z-[1]">
+                    <Badge onCover>
+                      <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      {t('primaryBadge')}
+                    </Badge>
                   </div>
                 )}
 
-                {/* Overlay actions */}
+                {/* Hover actions */}
                 {!readOnly && (
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                    {/* Set as primary */}
+                  <div className="absolute inset-0 z-[1] flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all duration-200 group-hover:bg-black/30 group-hover:opacity-100">
                     {!isPrimary && (
                       <button
                         onClick={(e) => { e.stopPropagation(); handleSetPrimary(m.id); }}
                         title={t('setPrimary')}
-                        className="w-8 h-8 rounded-full bg-white/90 text-amber-500 hover:bg-amber-50 flex items-center justify-center shadow-sm transition-colors"
+                        aria-label={t('setPrimary')}
+                        className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-amber-500 shadow-sm transition-colors hover:bg-amber-50"
                       >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                       </button>
                     )}
-                    {/* Delete */}
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }}
                       title={t('delete')}
-                      className="w-8 h-8 rounded-full bg-white/90 text-red-500 hover:bg-red-50 flex items-center justify-center shadow-sm transition-colors"
+                      aria-label={t('delete')}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-red-500 shadow-sm transition-colors hover:bg-red-50"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
@@ -344,17 +419,11 @@ export function PropertyMediaUpload({
             );
           })}
         </div>
-      ) : (
-        !readOnly && uploading.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
-              <svg className="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
-              </svg>
-            </div>
-            <p className="text-sm text-slate-400">{t('noImages')}</p>
-          </div>
-        )
+      )}
+
+      {/* Empty — only surfaced read-only; editable mode already has the drop zone as its CTA */}
+      {isEmpty && readOnly && (
+        <EmptyState variant="filtered" iconName="image" title={t('noImages')} />
       )}
     </div>
   );
