@@ -5,7 +5,12 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { EntityRow, Badge } from '@/components/ui/entity-card';
+import { RowList } from '@/components/ui/card-grid';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 
 interface ProviderProfile {
   id: string;
@@ -29,12 +34,85 @@ interface ListResponse {
   meta: { total: number; page: number; limit: number; totalPages: number };
 }
 
+/* ──────────── Row ──────────── */
+
+function ProviderRow({ provider, localePrefix }: { provider: ProviderItem; localePrefix: string }) {
+  const t = useTranslations('providers');
+  const fullName = `${provider.firstName} ${provider.lastName}`;
+  const href = `${localePrefix}/providers/${provider.id}`;
+  const profile = provider.providerProfile;
+  const isInactive = Boolean(profile && !profile.isActive);
+  const rubros = profile?.rubros || [];
+  const coverageZones = profile?.coverageZones || [];
+  const hasTags = rubros.length > 0 || coverageZones.length > 0;
+
+  return (
+    <EntityRow
+      href={href}
+      label={fullName}
+      accent={isInactive ? 'none' : 'success'}
+      className={isInactive ? 'opacity-60' : undefined}
+      leading={<Avatar name={fullName} seed={provider.id} size="md" />}
+      title={
+        <span className="inline-flex items-center gap-2">
+          <span className="truncate">{fullName}</span>
+          {isInactive && <Badge variant="neutral">{t('card.inactive')}</Badge>}
+        </span>
+      }
+      meta={
+        hasTags && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            {rubros.map((rubro) => (
+              <Badge key={rubro} variant="brand">
+                {rubro}
+              </Badge>
+            ))}
+            {coverageZones.map((zone) => (
+              <Badge key={zone} variant="success">
+                {zone}
+              </Badge>
+            ))}
+          </div>
+        )
+      }
+      trailing={
+        <div className="flex flex-col items-end gap-0.5 text-xs text-[var(--color-muted)]">
+          <span className="inline-flex items-center gap-1 truncate">
+            <Icon name="mail" className="h-3.5 w-3.5" strokeWidth={1.75} />
+            {provider.email || t('card.noEmail')}
+          </span>
+          <span className="inline-flex items-center gap-1 truncate">
+            <Icon name="phone" className="h-3.5 w-3.5" strokeWidth={1.75} />
+            {provider.phone || t('card.noPhone')}
+          </span>
+        </div>
+      }
+      actions={
+        <EntityRow.Action href={href} icon="arrowRight" variant="ghost">
+          {t('card.view')}
+        </EntityRow.Action>
+      }
+      alert={
+        !profile && (
+          <EntityRow.Alert tone="warning" icon="alert">
+            {t('card.noProfile')}
+          </EntityRow.Alert>
+        )
+      }
+    />
+  );
+}
+
+/* ──────────── Page ──────────── */
+
 export default function ProviderListPage() {
   const t = useTranslations('providers');
+  const tCommon = useTranslations('common');
   const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [items, setItems] = useState<ProviderItem[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -58,6 +136,7 @@ export default function ProviderListPage() {
       setItems([]);
     } finally {
       setLoading(false);
+      setLoaded(true);
     }
   }, [page, searchFilter, activeOnly]);
 
@@ -68,7 +147,7 @@ export default function ProviderListPage() {
   const totalPages = Math.ceil(total / limit);
   const from = (page - 1) * limit + 1;
   const to = Math.min(page * limit, total);
-  const hasFilters = searchFilter || activeOnly;
+  const hasFilters = Boolean(searchFilter || activeOnly);
 
   function clearFilters() {
     setSearchFilter('');
@@ -78,13 +157,16 @@ export default function ProviderListPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('title')}</h1>
-          <p className="text-sm text-slate-500 mt-1">{t('subtitle')}</p>
+          <h1 className="h1">{t('title')}</h1>
+          <p className="mt-2 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
         <Link href={`${localePrefix}/providers/new`} className="shrink-0">
-          <Button variant="primary">{t('newProvider')}</Button>
+          <Button variant="primary">
+            <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
+            {t('newProvider')}
+          </Button>
         </Link>
       </div>
 
@@ -97,9 +179,9 @@ export default function ProviderListPage() {
             setPage(1);
           }}
           placeholder={t('filters.searchPlaceholder')}
-          className="px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-48"
+          className="w-56 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:border-brand-500 focus:outline-none"
         />
-        <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 text-sm cursor-pointer">
+        <label className="flex cursor-pointer items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)]">
           <input
             type="checkbox"
             checked={activeOnly}
@@ -107,126 +189,81 @@ export default function ProviderListPage() {
               setActiveOnly(e.target.checked);
               setPage(1);
             }}
-            className="rounded border-slate-300"
+            className="rounded border-[var(--color-border)]"
           />
           {t('filters.activeOnly')}
         </label>
         {hasFilters && (
-          <button
-            onClick={clearFilters}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
-          >
+          <Button variant="secondary" size="sm" onClick={clearFilters}>
             {t('filters.clear')}
-          </button>
+          </Button>
         )}
       </div>
 
-      {loading ? (
-        <div className="grid gap-3">
-          {Array.from({ length: 5 }, (_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 animate-pulse">
-              <div className="h-4 bg-slate-100 rounded w-48 mb-2" />
-              <div className="flex gap-1.5">
-                <div className="h-5 bg-slate-100 rounded-full w-20" />
-                <div className="h-5 bg-slate-100 rounded-full w-16" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <h2 className="text-lg font-semibold text-slate-900">
-            {t('empty.title')}
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">{t('empty.subtitle')}</p>
-        </div>
-      ) : (
-        <>
-          <div className="grid gap-3">
-            {items.map((provider) => {
-              const profile = provider.providerProfile;
-              const isInactive = profile && !profile.isActive;
-              return (
-                <Link
-                  key={provider.id}
-                  href={`${localePrefix}/providers/${provider.id}`}
-                  className={`block bg-white rounded-xl border border-slate-200 p-4 hover:border-brand-200 hover:shadow-sm transition-all ${
-                    isInactive ? 'opacity-60' : ''
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-semibold text-slate-900 truncate">
-                          {provider.firstName} {provider.lastName}
-                        </h3>
-                        {isInactive && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
-                            {t('card.inactive')}
-                          </span>
-                        )}
-                      </div>
-                      {profile && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {profile.rubros.map((rubro) => (
-                            <span
-                              key={rubro}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-50 text-brand-700"
-                            >
-                              {rubro}
-                            </span>
-                          ))}
-                          {profile.coverageZones.map((zone) => (
-                            <span
-                              key={zone}
-                              className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700"
-                            >
-                              {zone}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-start sm:items-end gap-1 shrink-0 text-xs text-slate-500">
-                      {provider.email ? (
-                        <span>{provider.email}</span>
-                      ) : (
-                        <span className="text-slate-400">{t('card.noEmail')}</span>
-                      )}
-                      {provider.phone ? (
-                        <span>{provider.phone}</span>
-                      ) : (
-                        <span className="text-slate-400">{t('card.noPhone')}</span>
-                      )}
-                    </div>
-                  </div>
+      {/* Row list — owns the loading → content → empty transition */}
+      <RowList
+        items={items}
+        loading={loading && !loaded}
+        busy={loading && loaded}
+        skeletonCount={5}
+        keyOf={(provider) => provider.id}
+        renderItem={(provider) => <ProviderRow provider={provider} localePrefix={localePrefix} />}
+        empty={
+          hasFilters ? (
+            <EmptyState
+              variant="filtered"
+              iconName="search"
+              title={tCommon('noResults')}
+              subtitle={t('empty.filtered')}
+              action={
+                <Button variant="secondary" size="sm" onClick={clearFilters}>
+                  {t('filters.clear')}
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              iconName="providers"
+              title={t('empty.title')}
+              subtitle={t('empty.subtitle')}
+              steps={[t('empty.step1'), t('empty.step2'), t('empty.step3')]}
+              action={
+                <Link href={`${localePrefix}/providers/new`}>
+                  <Button variant="primary">
+                    <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
+                    {t('newProvider')}
+                  </Button>
                 </Link>
-              );
-            })}
-          </div>
+              }
+            />
+          )
+        }
+      />
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-500">{t('pagination.showing', { from, to, total })}</span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50 hover:bg-slate-50 transition-colors"
-                >
-                  {t('pagination.prev')}
-                </button>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm disabled:opacity-50 hover:bg-slate-50 transition-colors"
-                >
-                  {t('pagination.next')}
-                </button>
-              </div>
-            </div>
-          )}
-        </>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-[var(--color-muted)]">
+            {t('pagination.showing', { from, to, total })}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+            >
+              {t('pagination.prev')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+            >
+              {t('pagination.next')}
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
