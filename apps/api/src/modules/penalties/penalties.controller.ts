@@ -298,6 +298,17 @@ export class PenaltiesController {
   }
 
   /**
+   * POST /penalties/run — Corre la acumulación de punitorios en el momento,
+   * la misma que ejecuta el cron diario. Sirve para regularizar la mora sin
+   * esperar a la corrida de la madrugada. Solo Admin.
+   */
+  @Roles(UserRole.Admin)
+  @Post('penalties/run')
+  async run() {
+    return this.scheduler.applyPenalties();
+  }
+
+  /**
    * POST /penalties/_run-now
    * Test-only endpoint: triggers the daily penalty scheduler immediately.
    * Guarded by NODE_ENV=test or E2E_TEST_MODE=1.
