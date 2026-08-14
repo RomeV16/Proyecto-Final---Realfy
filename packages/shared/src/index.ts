@@ -110,6 +110,34 @@ export {
   CreateServicePaymentSchema,
 } from './schemas/service.schema';
 
+// Schemas — pipelines de venta/alquiler
+export {
+  CreatePipelineSchema,
+  UpdatePipelineSchema,
+  CreatePipelineStageSchema,
+  UpdatePipelineStageSchema,
+  ReorderPipelineStagesSchema,
+} from './schemas/pipeline.schema';
+
+// Schemas — leads
+export {
+  CreateLeadSchema,
+  UpdateLeadSchema,
+  MoveLeadStageSchema,
+  AssignLeadSchema,
+  ConvertLeadSchema,
+  LoseLeadSchema,
+  LeadFilterSchema,
+} from './schemas/lead.schema';
+
+// Schemas — interacciones y visitas
+export {
+  CreateInteractionSchema,
+  CreateVisitSchema,
+  UpdateVisitSchema,
+  InteractionFilterSchema,
+} from './schemas/interaction.schema';
+
 // Types
 import type { z } from 'zod';
 import {
@@ -217,6 +245,47 @@ export type CreateServicePaymentInput = z.infer<
   typeof _CreateServicePaymentSchema
 >;
 
+import {
+  CreatePipelineSchema as _CreatePipelineSchema,
+  UpdatePipelineSchema as _UpdatePipelineSchema,
+  CreatePipelineStageSchema as _CreatePipelineStageSchema,
+  UpdatePipelineStageSchema as _UpdatePipelineStageSchema,
+  ReorderPipelineStagesSchema as _ReorderPipelineStagesSchema,
+} from './schemas/pipeline.schema';
+export type CreatePipelineInput = z.infer<typeof _CreatePipelineSchema>;
+export type UpdatePipelineInput = z.infer<typeof _UpdatePipelineSchema>;
+export type CreatePipelineStageInput = z.infer<typeof _CreatePipelineStageSchema>;
+export type UpdatePipelineStageInput = z.infer<typeof _UpdatePipelineStageSchema>;
+export type ReorderPipelineStagesInput = z.infer<typeof _ReorderPipelineStagesSchema>;
+
+import {
+  CreateLeadSchema as _CreateLeadSchema,
+  UpdateLeadSchema as _UpdateLeadSchema,
+  MoveLeadStageSchema as _MoveLeadStageSchema,
+  AssignLeadSchema as _AssignLeadSchema,
+  ConvertLeadSchema as _ConvertLeadSchema,
+  LoseLeadSchema as _LoseLeadSchema,
+  LeadFilterSchema as _LeadFilterSchema,
+} from './schemas/lead.schema';
+export type CreateLeadInput = z.infer<typeof _CreateLeadSchema>;
+export type UpdateLeadInput = z.infer<typeof _UpdateLeadSchema>;
+export type MoveLeadStageInput = z.infer<typeof _MoveLeadStageSchema>;
+export type AssignLeadInput = z.infer<typeof _AssignLeadSchema>;
+export type ConvertLeadInput = z.infer<typeof _ConvertLeadSchema>;
+export type LoseLeadInput = z.infer<typeof _LoseLeadSchema>;
+export type LeadFilterInput = z.infer<typeof _LeadFilterSchema>;
+
+import {
+  CreateInteractionSchema as _CreateInteractionSchema,
+  CreateVisitSchema as _CreateVisitSchema,
+  UpdateVisitSchema as _UpdateVisitSchema,
+  InteractionFilterSchema as _InteractionFilterSchema,
+} from './schemas/interaction.schema';
+export type CreateInteractionInput = z.infer<typeof _CreateInteractionSchema>;
+export type CreateVisitInput = z.infer<typeof _CreateVisitSchema>;
+export type UpdateVisitInput = z.infer<typeof _UpdateVisitSchema>;
+export type InteractionFilterInput = z.infer<typeof _InteractionFilterSchema>;
+
 // Schema de formulario de propiedades (frontend)
 export { propertyFormSchema } from './schemas/property.form';
 export type { PropertyFormInput } from './schemas/property.form';
@@ -320,7 +389,12 @@ export {
   UpdateEmailTemplateSchema,
   EmailTemplateFilterSchema,
   PreviewEmailTemplateSchema,
+  SendEmailSchema,
 } from './schemas/email-template.schema';
+import {
+  SendEmailSchema as _SendEmailSchema,
+} from './schemas/email-template.schema';
+export type SendEmailInput = z.infer<typeof _SendEmailSchema>;
 
 // ── Schema value exports ────────────────────────────────
 export {
