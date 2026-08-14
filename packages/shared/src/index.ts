@@ -477,3 +477,15 @@ export interface PortalAuthResponse {
   person: { id: string; email: string; firstName: string; lastName: string; tenantId: string };
   tokens: AuthTokens;
 }
+
+// Schemas — portal publico por inmobiliaria
+export {
+  PublicPropertyFilterSchema,
+  CreatePublicInquirySchema,
+} from './schemas/public-portal.schema';
+import {
+  PublicPropertyFilterSchema as _PublicPropertyFilterSchema,
+  CreatePublicInquirySchema as _CreatePublicInquirySchema,
+} from './schemas/public-portal.schema';
+export type PublicPropertyFilterInput = z.infer<typeof _PublicPropertyFilterSchema>;
+export type CreatePublicInquiryInput = z.infer<typeof _CreatePublicInquirySchema>;

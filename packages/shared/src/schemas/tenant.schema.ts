@@ -3,6 +3,12 @@ import { Currency, Province, TenantTier } from '../enums';
 
 export const CreateTenantSchema = z.object({
   name: z.string().min(2).max(200),
+  slug: z
+    .string()
+    .min(3)
+    .max(60)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be lowercase letters, numbers and single hyphens')
+    .optional(),
   cuit: z
     .string()
     .regex(/^\d{2}-\d{8}-\d$/, 'CUIT must be in format XX-XXXXXXXX-X'),

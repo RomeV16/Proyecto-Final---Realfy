@@ -1,12 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.setGlobalPrefix('api');
+
+  // Detrás del proxy de la plataforma: sin esto req.ip es el del proxy y el
+  // límite de peticiones se aplicaría en conjunto a todos los visitantes.
+  app.set('trust proxy', 1);
 
   app.useGlobalPipes(
     new ValidationPipe({

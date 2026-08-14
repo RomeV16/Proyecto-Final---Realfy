@@ -4309,5 +4309,63 @@
   "nameRequired": "Name is required",
   "readOnly": "Only administrators can edit settings",
   "managePipeline": "Configurar etapas"
+ },
+ "portalPublico": {
+  "footer": {
+   "poweredBy": "{name} · Site built with Realfy"
+  },
+  "hero": {
+   "title": "Available properties at {name}",
+   "subtitle": "Browse the current catalog and leave us your inquiry — we'll get back to you shortly."
+  },
+  "list": {
+   "title": "Available properties",
+   "subtitle": "{count} properties found",
+   "emptyTitle": "No properties published yet",
+   "emptySubtitle": "Check back soon, we're updating the catalog.",
+   "emptyFilteredTitle": "No properties match those filters",
+   "emptyFilteredSubtitle": "Try adjusting the search or clearing the filters."
+  },
+  "filters": {
+   "operationLabel": "Operation",
+   "operationPlaceholder": "All operations",
+   "typeLabel": "Type",
+   "typePlaceholder": "All types",
+   "cityLabel": "City",
+   "cityPlaceholder": "Search by city",
+   "clear": "Clear filters"
+  },
+  "pagination": {
+   "label": "Results pagination",
+   "prev": "Previous",
+   "next": "Next",
+   "pageOf": "Page {page} of {total}"
+  },
+  "inquiry": {
+   "title": "Leave us your inquiry",
+   "subtitle": "Fill in your details and we'll get back to you shortly.",
+   "firstName": "First name",
+   "lastName": "Last name",
+   "email": "Email",
+   "phone": "Phone",
+   "message": "Message",
+   "messagePlaceholder": "Tell us what you're looking for",
+   "submit": "Send inquiry",
+   "submitting": "Sending…",
+   "contactRequired": "Enter an email or a phone number",
+   "success": "Thanks! We received your inquiry and will contact you soon.",
+   "errorValidation": "Check the details you entered and try again.",
+   "errorClosed": "This agency is not accepting inquiries right now.",
+   "errorRateLimited": "You've already sent several inquiries. Try again in a while.",
+   "errorGeneric": "We couldn't send your inquiry. Try again later."
+  },
+  "detail": {
+   "backToList": "Back to properties",
+   "descriptionTitle": "Description",
+   "noDescription": "No description available",
+   "specsTitle": "Features",
+   "amenitiesTitle": "Amenities",
+   "noAmenities": "No amenities listed"
+  }
  }
 }

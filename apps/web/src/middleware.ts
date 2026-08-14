@@ -33,6 +33,10 @@ function isPublicPath(pathname: string): boolean {
   const pathWithoutLocale = stripLocale(pathname);
   // Marketing home is the bare locale root — treat as public
   if (pathWithoutLocale === '/') return true;
+  // Portal público de una inmobiliaria (`/p/[slug]/...`) — sin login. El
+  // chequeo exige el `/` final o el fin de la ruta para no confundirse con
+  // rutas de staff que también arrancan con "p", como `/pagos`.
+  if (pathWithoutLocale === '/p' || pathWithoutLocale.startsWith('/p/')) return true;
   return publicPaths.some((p) => pathWithoutLocale.startsWith(p));
 }
 

@@ -4309,5 +4309,63 @@
   "nameRequired": "El nombre es obligatorio",
   "readOnly": "Solo los administradores pueden editar la configuración",
   "managePipeline": "Configurar etapas"
+ },
+ "portalPublico": {
+  "footer": {
+   "poweredBy": "{name} · Sitio construido con Realfy"
+  },
+  "hero": {
+   "title": "Propiedades disponibles en {name}",
+   "subtitle": "Explorá el catálogo actualizado y dejanos tu consulta: te contactamos a la brevedad."
+  },
+  "list": {
+   "title": "Propiedades disponibles",
+   "subtitle": "{count} propiedades encontradas",
+   "emptyTitle": "Todavía no hay propiedades publicadas",
+   "emptySubtitle": "Volvé a pasar más adelante, estamos actualizando el catálogo.",
+   "emptyFilteredTitle": "No encontramos propiedades con esos filtros",
+   "emptyFilteredSubtitle": "Probá ajustar la búsqueda o limpiar los filtros."
+  },
+  "filters": {
+   "operationLabel": "Operación",
+   "operationPlaceholder": "Todas las operaciones",
+   "typeLabel": "Tipo",
+   "typePlaceholder": "Todos los tipos",
+   "cityLabel": "Ciudad",
+   "cityPlaceholder": "Buscar por ciudad",
+   "clear": "Limpiar filtros"
+  },
+  "pagination": {
+   "label": "Paginación de resultados",
+   "prev": "Anterior",
+   "next": "Siguiente",
+   "pageOf": "Página {page} de {total}"
+  },
+  "inquiry": {
+   "title": "Dejanos tu consulta",
+   "subtitle": "Completá tus datos y te contactamos a la brevedad.",
+   "firstName": "Nombre",
+   "lastName": "Apellido",
+   "email": "Email",
+   "phone": "Teléfono",
+   "message": "Mensaje",
+   "messagePlaceholder": "Contanos qué estás buscando",
+   "submit": "Enviar consulta",
+   "submitting": "Enviando…",
+   "contactRequired": "Ingresá un email o un teléfono de contacto",
+   "success": "¡Gracias! Recibimos tu consulta y te vamos a contactar pronto.",
+   "errorValidation": "Revisá los datos ingresados e intentá de nuevo.",
+   "errorClosed": "Esta inmobiliaria no está recibiendo consultas por el momento.",
+   "errorRateLimited": "Ya enviaste varias consultas. Probá de nuevo en un rato.",
+   "errorGeneric": "No pudimos enviar tu consulta. Intentá de nuevo más tarde."
+  },
+  "detail": {
+   "backToList": "Volver a propiedades",
+   "descriptionTitle": "Descripción",
+   "noDescription": "Sin descripción cargada",
+   "specsTitle": "Características",
+   "amenitiesTitle": "Amenidades",
+   "noAmenities": "Sin amenidades cargadas"
+  }
  }
 }
