@@ -12,6 +12,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { UserRole } from '@realfy/shared';
 import { JwtPayload } from '../../common/auth/jwt.strategy';
+import { PipelinesService } from '../pipelines/pipelines.service';
 
 export interface AuthTokens {
   accessToken: string;
@@ -30,6 +31,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly tenantContext: TenantContextService,
+    private readonly pipelinesService: PipelinesService,
   ) {
     this.accessTokenExpiry = this.configService.get('JWT_ACCESS_EXPIRY', '15m');
     this.refreshTokenDays = parseInt(
@@ -66,7 +68,7 @@ export class AuthService {
 
       const passwordHash = await bcrypt.hash(password, this.bcryptRounds);
 
-      // Create tenant + admin user in a transaction
+      // Create tenant + admin user + default pipelines in a transaction
       const result = await this.prisma.baseClient.$transaction(async (tx: any) => {
         const tenant = await tx.tenant.create({
           data: {
@@ -86,6 +88,9 @@ export class AuthService {
             tenantId: tenant.id,
           },
         });
+
+        // Seed default pipelines (Alquiler + Venta) for the new tenant
+        await this.pipelinesService.seedDefaults(tenant.id, tx);
 
         return { tenant, user };
       });

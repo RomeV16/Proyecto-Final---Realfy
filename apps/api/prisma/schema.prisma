@@ -97,6 +97,58 @@ enum FiscalCondition {
   NoResponsable
 }
 
+// ─── Pipeline Enums ─────────────────────────────────────
+
+enum PipelineType {
+  Alquiler
+  Venta
+}
+
+// ─── Lead Enums ─────────────────────────────────────────
+
+enum LeadSource {
+  WebInquiry
+  PhoneCall
+  Email
+  WalkIn
+  Referral
+  Portal
+  SocialMedia
+  Other
+}
+
+enum LeadStatus {
+  Nuevo
+  Contactado
+  Calificado
+  Convertido
+  Perdido
+}
+
+// ─── Interaction & Visit Enums ──────────────────────────
+
+enum InteractionType {
+  Llamada
+  Email
+  WhatsApp
+  Visita
+  Nota
+}
+
+enum VisitStatus {
+  Programada
+  Completada
+  Cancelada
+  NoShow
+}
+
+enum VisitOutcome {
+  Interesado
+  NoInteresado
+  Pendiente
+  Oferta
+}
+
 // ─── Contract Enums ─────────────────────────────────────
 
 enum ContractStatus {
@@ -183,6 +235,7 @@ model Tenant {
   auditLogs   AuditLog[]
   properties  Property[]
   persons     Person[]
+  pipelines   Pipeline[]
 
   ticketCategories TicketCategory[]
   tickets          Ticket[]
@@ -212,6 +265,10 @@ model User {
   ticketsAssigned Ticket[]        @relation("TicketAssignee")
   ticketComments  TicketComment[] @relation("TicketCommentUser")
   portalInvitations PortalInvitation[] @relation("PortalInvitedByUser")
+
+  assignedLeads       Lead[]
+  interactionsLogged  LeadInteraction[] @relation("InteractionUser")
+  visitsConducted     LeadVisit[]       @relation("VisitUser")
   @@unique([email, tenantId])
   @@index([tenantId])
   @@map("users")
@@ -319,6 +376,8 @@ model Property {
   contracts       Contract[]
   personRoles     PersonRoleAssignment[]
   services        Service[]
+  leads           Lead[]
+  leadVisits      LeadVisit[]
 
   tickets Ticket[]
   @@index([tenantId])
@@ -408,6 +467,7 @@ model Person {
   documents       PersonDocument[]
   contractPersons ContractPerson[]
   providerProfile ProviderProfile?
+  leads           Lead[]
 
   assignedTickets        Ticket[]        @relation("TicketProvider")
   ticketsCreatedByPerson Ticket[]        @relation("TicketPortalCreator")
@@ -474,6 +534,129 @@ model PersonDocument {
   @@index([tenantId])
   @@index([personId])
   @@map("person_documents")
+}
+
+// ─── Pipeline Models ────────────────────────────────────
+
+model Pipeline {
+  id        String       @id @default(uuid())
+  tenantId  String
+  type      PipelineType
+  name      String
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  tenant Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  stages PipelineStage[]
+  leads  Lead[]
+
+  @@unique([tenantId, type])
+  @@index([tenantId])
+  @@map("pipelines")
+}
+
+model PipelineStage {
+  id         String   @id @default(uuid())
+  pipelineId String
+  name       String
+  sortOrder  Int
+  staleDays  Int?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  leads    Lead[]
+
+  @@unique([pipelineId, sortOrder])
+  @@index([pipelineId])
+  @@map("pipeline_stages")
+}
+
+// ─── Lead Models ────────────────────────────────────────
+
+model Lead {
+  id               String       @id @default(uuid())
+  tenantId         String
+  personId         String
+  pipelineId       String
+  currentStageId   String
+  propertyId       String?
+  assignedToUserId String?
+  source           LeadSource
+  status           LeadStatus   @default(Nuevo)
+  notes            String?
+  budget           Decimal?     @db.Decimal(15, 2)
+  budgetCurrency   Currency     @default(ARS)
+  lostReason       String?
+  convertedAt      DateTime?
+  lostAt           DateTime?
+  lastContactAt    DateTime?
+  staleDays        Int?
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  person         Person         @relation(fields: [personId], references: [id], onDelete: Cascade)
+  pipeline       Pipeline       @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  currentStage   PipelineStage  @relation(fields: [currentStageId], references: [id], onDelete: Cascade)
+  property       Property?      @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  assignedToUser User?          @relation(fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  interactions   LeadInteraction[]
+  visits         LeadVisit[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, pipelineId])
+  @@index([tenantId, assignedToUserId])
+  @@index([tenantId, source])
+  @@index([tenantId, currentStageId])
+  @@map("leads")
+}
+
+// ─── Interaction & Visit Models ─────────────────────────
+
+model LeadInteraction {
+  id          String          @id @default(uuid())
+  tenantId    String
+  leadId      String
+  type        InteractionType
+  notes       String?
+  contactedBy String?
+  occurredAt  DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  lead Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User? @relation("InteractionUser", fields: [contactedBy], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, leadId])
+  @@map("lead_interactions")
+}
+
+model LeadVisit {
+  id          String        @id @default(uuid())
+  tenantId    String
+  leadId      String
+  propertyId  String?
+  scheduledAt DateTime
+  completedAt DateTime?
+  status      VisitStatus   @default(Programada)
+  outcome     VisitOutcome?
+  notes       String?
+  conductedBy String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  lead     Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  property Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  user     User?     @relation("VisitUser", fields: [conductedBy], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, leadId])
+  @@map("lead_visits")
 }
 
 // ─── Contract Models ────────────────────────────────────

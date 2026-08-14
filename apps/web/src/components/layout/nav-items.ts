@@ -16,6 +16,8 @@ export const navItems: NavItem[] = [
   { key: 'dashboard', href: '/dashboard', icon: 'dashboard' },
   { key: 'properties', href: '/properties', icon: 'properties' },
   { key: 'persons', href: '/persons', icon: 'persons' },
+  { key: 'leads', href: '/leads', icon: 'leads' },
+  { key: 'pipeline', href: '/pipeline', icon: 'pipeline' },
   { key: 'contracts', href: '/contracts', icon: 'contracts' },
   { key: 'liquidaciones', href: '/liquidaciones', icon: 'liquidaciones' },
   { key: 'pagos', href: '/pagos', icon: 'liquidaciones' },

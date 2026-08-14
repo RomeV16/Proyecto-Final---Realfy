@@ -267,4 +267,112 @@ export class NotificationSchedulerService extends CronBaseService {
       );
     }, 'overdue-liquidaciones');
   }
+
+  /**
+   * Daily at 11:00 UTC — Stale lead alerts.
+   * Notifies assigned user (or Admin/Gerente fallback) when a lead has been
+   * inactive in a stage longer than that stage's staleDays threshold.
+   */
+  @Cron('0 11 * * *', { name: 'stale-lead-alerts' })
+  async handleStaleLeadAlerts(): Promise<void> {
+    await this.runGuarded(async () => {
+      const start = Date.now();
+      this.logger.log('Cron job started: stale-lead-alerts');
+      let tenantsProcessed = 0;
+      let notificationsCreated = 0;
+
+      const tenants = await this.prisma.baseClient.tenant.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true },
+      });
+      tenantsProcessed = tenants.length;
+
+      const now = new Date();
+
+      for (const tenant of tenants) {
+        try {
+          // Find leads whose current stage has a staleDays threshold configured
+          const leads = await this.prisma.baseClient.lead.findMany({
+            where: {
+              tenantId: tenant.id,
+              isActive: true,
+              status: { notIn: ['Convertido', 'Perdido'] },
+              currentStage: { staleDays: { not: null } },
+            },
+            include: {
+              currentStage: { select: { staleDays: true, name: true } },
+              person: { select: { firstName: true, lastName: true } },
+              assignedToUser: { select: { id: true } },
+            },
+          });
+
+          for (const lead of leads) {
+            const contactDate = new Date(
+              lead.lastContactAt ?? lead.updatedAt,
+            );
+            const daysSinceContact = Math.floor(
+              (now.getTime() - contactDate.getTime()) / (1000 * 60 * 60 * 24),
+            );
+
+            if (
+              lead.currentStage.staleDays == null ||
+              daysSinceContact <= lead.currentStage.staleDays
+            ) {
+              continue;
+            }
+
+            const personName = `${lead.person.firstName} ${lead.person.lastName}`;
+            const title = `Lead inactivo: ${personName}`;
+            const message = `El lead ${personName} lleva ${daysSinceContact} días sin contacto en la etapa "${lead.currentStage.name}" (límite: ${lead.currentStage.staleDays} días).`;
+
+            if (lead.assignedToUserId && lead.assignedToUser) {
+              // Notify the assigned user
+              await this.notificationsService.createNotification({
+                tenantId: tenant.id,
+                userId: lead.assignedToUser.id,
+                type: 'StaleLeadAlert',
+                title,
+                message,
+                entityType: 'Lead',
+                entityId: lead.id,
+              });
+              notificationsCreated++;
+            } else {
+              // Fallback: notify Admin/Gerente users in this tenant
+              const admins = await this.prisma.baseClient.user.findMany({
+                where: {
+                  tenantId: tenant.id,
+                  isActive: true,
+                  role: { in: ['Admin', 'Gerente'] },
+                },
+                select: { id: true },
+              });
+
+              for (const admin of admins) {
+                await this.notificationsService.createNotification({
+                  tenantId: tenant.id,
+                  userId: admin.id,
+                  type: 'StaleLeadAlert',
+                  title,
+                  message,
+                  entityType: 'Lead',
+                  entityId: lead.id,
+                });
+                notificationsCreated++;
+              }
+            }
+          }
+        } catch (err) {
+          this.logger.error(
+            `Stale lead alerts failed for tenantId=${tenant.id}`,
+            (err as Error).stack,
+          );
+        }
+      }
+
+      this.logger.log(
+        `Cron job completed: stale-lead-alerts in ${Date.now() - start}ms — tenants=${tenantsProcessed}, notifications=${notificationsCreated}`,
+      );
+    }, 'stale-lead-alerts');
+  }
 }
