@@ -2,11 +2,14 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Province } from '@realfy/shared';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 
 interface TenantData {
   id: string;
@@ -22,7 +25,10 @@ const PROVINCES = Object.values(Province);
 
 export default function ConfiguracionPage() {
   const t = useTranslations('configuracion');
+  const tPipeline = useTranslations('pipeline');
   const { user } = useAuth();
+  const pathname = usePathname();
+  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -107,6 +113,25 @@ export default function ConfiguracionPage() {
         <h1 className="h1">{t('title')}</h1>
         <p className="mt-1 text-sm text-slate-500">{t('subtitle')}</p>
       </div>
+
+      {canEdit && (
+        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+              <Icon name="pipeline" className="h-5 w-5" strokeWidth={1.75} />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">{tPipeline('title')}</p>
+              <p className="text-sm text-slate-500 mt-0.5">{tPipeline('subtitle')}</p>
+            </div>
+          </div>
+          <Link href={`${localePrefix}/configuracion/pipeline`} className="shrink-0">
+            <Button variant="secondary" size="sm">
+              {t('managePipeline')}
+            </Button>
+          </Link>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit}
