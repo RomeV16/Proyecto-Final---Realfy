@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EmailTemplatesService } from './email-templates.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
+import { CommonEmailService } from '../../common/email/common-email.service';
 
 function createMockPrismaService() {
   return {
@@ -25,18 +26,31 @@ function createMockTenantContext() {
   } as unknown as TenantContextService;
 }
 
+function createMockEmailService() {
+  return {
+    isConfigured: jest.fn().mockReturnValue(true),
+    sendEmail: jest.fn(),
+  } as unknown as CommonEmailService;
+}
+
 describe('EmailTemplatesService', () => {
   let service: EmailTemplatesService;
   let prisma: ReturnType<typeof createMockPrismaService>;
   let tenantContext: ReturnType<typeof createMockTenantContext>;
+  let emailService: ReturnType<typeof createMockEmailService>;
 
   const TENANT_ID = 'tenant-abc';
 
   beforeEach(() => {
     prisma = createMockPrismaService();
     tenantContext = createMockTenantContext();
+    emailService = createMockEmailService();
     (tenantContext.getTenantId as jest.Mock).mockReturnValue(TENANT_ID);
-    service = new EmailTemplatesService(prisma as any, tenantContext as any);
+    service = new EmailTemplatesService(
+      prisma as any,
+      tenantContext as any,
+      emailService as any,
+    );
   });
 
   afterEach(() => {
