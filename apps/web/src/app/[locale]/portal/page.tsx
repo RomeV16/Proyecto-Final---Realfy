@@ -1,197 +1,168 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useQuery } from '@tanstack/react-query';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { portalApiClient } from '@/lib/portal-api-client';
-import { usePortalAuth } from '@/lib/portal-auth-context';
-import { EntityCard } from '@/components/ui/entity-card';
-import { CardGrid } from '@/components/ui/card-grid';
+import { useQueryClient } from '@tanstack/react-query';
+import { StatTile, StatTileSkeleton } from '@/components/ui/stat-tile';
+import { RowList } from '@/components/ui/card-grid';
 import { EmptyState } from '@/components/ui/empty-state';
+import { ListTransition } from '@/components/ui/motion';
+import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { usePortalAuth } from '@/lib/portal-auth-context';
+import { AccountStatus } from '@/components/portal/account-status';
+import { ContractCard } from '@/components/portal/contract-card';
+import { InvoiceRow } from '@/components/portal/invoice-row';
+import { ClaimRow } from '@/components/portal/claim-row';
+import { NewClaimDialog } from '@/components/portal/new-claim-dialog';
+import { SectionHead } from '@/components/portal/portal-primitives';
+import {
+  formatDayMonth,
+  usePortalOverview,
+  usePortalPaths,
+} from '@/components/portal/portal-data';
 
-interface PortalLiquidacion {
-  id: string;
-  period: string;
-  status: string;
-  total: number | string;
-  dueDate: string | null;
-  contract: {
-    id: string;
-    property: {
-      id: string;
-      name: string | null;
-      address: string | null;
-    } | null;
-  };
-  _count: { payments: number };
-}
-
-interface PaginatedResponse {
-  items: PortalLiquidacion[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-const MONTHS_ES = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre',
-];
-
-function formatPeriod(period: string): string {
-  const match = /^(\d{4})-(\d{2})/.exec(period);
-  if (!match) return period;
-  const month = MONTHS_ES[Number(match[2]) - 1];
-  return month ? `${month} ${match[1]}` : period;
-}
-
-const STATUS_VARIANT: Record<string, 'neutral' | 'success' | 'warning' | 'danger' | 'info'> = {
-  Draft: 'neutral',
-  Pending: 'warning',
-  Sent: 'info',
-  Paid: 'success',
-  PartiallyPaid: 'info',
-  Overdue: 'danger',
-  Cancelled: 'neutral',
-};
-
-export default function PortalDashboardPage() {
+/**
+ * Portal home — the whole tenant situation on one screen.
+ *
+ * Order follows urgency: what you owe, what happens next, what your claim is
+ * doing, then the contract you signed. Each block has at most one action.
+ */
+export default function PortalHomePage() {
   const t = useTranslations();
   const { person } = usePortalAuth();
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
+  const paths = usePortalPaths();
+  const queryClient = useQueryClient();
+  const { overview, invoices, claims, isLoading, isError } = usePortalOverview();
+  const [claimFormOpen, setClaimFormOpen] = useState(false);
 
-  const { data, isLoading } = useQuery<PaginatedResponse>({
-    queryKey: ['portal', 'liquidaciones', 1],
-    queryFn: () => portalApiClient<PaginatedResponse>('/portal/liquidaciones?page=1&limit=4'),
-  });
+  const { state, nextInvoice, daysToNext, openClaims, focusClaim } = overview;
 
-  const formatCurrency = (amount: number | string) =>
-    new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(typeof amount === 'string' ? Number(amount) : amount);
+  // The tile answers "what comes next", so it only ever shows a future due
+  // date — anything already late is the account panel's job.
+  const dueHint = nextInvoice
+    ? t('portal.home.dueIn', { days: Math.max(0, daysToNext ?? 0) })
+    : overview.overdueCount > 0
+      ? t('portal.home.allOverdue')
+      : t('portal.home.nothingDue');
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '—';
-    return new Intl.DateTimeFormat('es-AR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    }).format(new Date(dateStr));
-  };
+  const claimHint = focusClaim
+    ? t(`portal.claims.statuses.${focusClaim.status}` as Parameters<typeof t>[0])
+    : t('portal.home.noClaims');
 
-  const statusLabel = (status: string) => {
-    const key = `portal.liquidaciones.status.${status}`;
-    const label = t(key as Parameters<typeof t>[0]);
-    return label === key ? status : label;
-  };
-
-  const items = data?.items ?? [];
+  if (isError) {
+    return (
+      <EmptyState iconName="alert" title={t('common.error')} subtitle={t('portal.common.error')} />
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-6">
-        <p className="eyebrow mb-2">{t('portal.common.brand')}</p>
-        <h1 className="h2">{t('portal.dashboard.greeting', { name: person?.firstName || '' })}</h1>
-        <p className="lead mt-2 text-sm">{t('portal.liquidaciones.subtitle')}</p>
-      </div>
+    <div className="space-y-8">
+      <header>
+        <p className="eyebrow">{t('portal.common.brand')}</p>
+        <h1 className="h2 mt-2">
+          {t('portal.home.greeting', { name: person?.firstName || '' })}
+        </h1>
+        <p className="mt-1.5 text-sm text-[var(--color-muted)]">
+          {overview.propertyLabel ?? t('portal.home.subtitle')}
+        </p>
+      </header>
 
-      <CardGrid
-        items={items}
-        loading={isLoading}
-        columns={2}
-        skeletonCount={2}
-        skeletonMedia={false}
-        keyOf={(liq) => liq.id}
-        renderItem={(liq) => {
-          const overdue = liq.status === 'Overdue';
-          const property =
-            liq.contract.property?.address ||
-            liq.contract.property?.name ||
-            t('portal.dashboard.unknownProperty');
+      <AccountStatus overview={overview} loading={isLoading} />
 
-          return (
-            <EntityCard accent={overdue ? 'danger' : 'none'}>
-              <EntityCard.Cover
-                seed={liq.id}
-                icon="liquidaciones"
-                band
-                topRight={
-                  <span className="inline-flex items-center rounded-full border border-white/25 bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-md">
-                    {statusLabel(liq.status)}
-                  </span>
-                }
-              />
-              <EntityCard.Body>
-                <EntityCard.Title>{formatPeriod(liq.period)}</EntityCard.Title>
-                <EntityCard.Subtitle>{property}</EntityCard.Subtitle>
-                <EntityCard.Meta
-                  items={[
-                    {
-                      icon: 'calendarClock',
-                      label: `${t('portal.liquidaciones.dueDate')} ${formatDate(liq.dueDate)}`,
-                    },
-                  ]}
-                />
-                {overdue && (
-                  <EntityCard.Alert tone="danger" icon="alert">
-                    {t('portal.liquidaciones.overdueAlert')}
-                  </EntityCard.Alert>
-                )}
-              </EntityCard.Body>
-              <EntityCard.Footer>
-                <EntityCard.Amount
-                  value={formatCurrency(liq.total)}
-                  hint={t('portal.liquidaciones.totalToPay')}
-                  tone={overdue ? 'danger' : 'default'}
-                />
-                <EntityCard.Actions>
-                  <EntityCard.Action
-                    href={`${localePrefix}/portal/liquidaciones`}
-                    icon="arrowRight"
-                    variant="ghost"
-                  >
-                    {t('portal.liquidaciones.viewDetail')}
-                  </EntityCard.Action>
-                </EntityCard.Actions>
-              </EntityCard.Footer>
-            </EntityCard>
-          );
-        }}
-        empty={
-          <EmptyState
-            iconName="liquidaciones"
-            title={t('portal.liquidaciones.empty')}
-            subtitle={t('portal.liquidaciones.emptySubtitle')}
-          />
+      <ListTransition
+        state={isLoading ? 'loading' : 'ready'}
+        skeleton={
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StatTileSkeleton />
+            <StatTileSkeleton />
+          </div>
         }
-      />
+        empty={null}
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <StatTile
+            label={t('portal.home.nextDue')}
+            value={nextInvoice ? formatDayMonth(nextInvoice.dueDate) : '—'}
+            icon="calendarClock"
+            tone={nextInvoice ? 'warning' : state === 'overdue' ? 'danger' : 'success'}
+            hint={dueHint}
+            href={paths.invoices}
+          />
+          <StatTile
+            label={t('portal.home.openClaims')}
+            value={openClaims}
+            icon="tickets"
+            tone={openClaims > 0 ? 'info' : 'neutral'}
+            hint={claimHint}
+            href={paths.claims}
+          />
+        </div>
+      </ListTransition>
 
-      {items.length > 0 && (
-        <Link
-          href={`${localePrefix}/portal/liquidaciones`}
-          className="link-underline mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-text)]"
-        >
-          {t('portal.liquidaciones.title')}
-          <Icon name="arrowRight" className="h-4 w-4" strokeWidth={2} />
-        </Link>
-      )}
+      <section>
+        <SectionHead
+          title={t('portal.home.recentInvoices')}
+          href={paths.invoices}
+          linkLabel={t('portal.home.viewAllInvoices')}
+        />
+        <RowList
+          items={invoices.slice(0, 3)}
+          loading={isLoading}
+          skeletonCount={3}
+          keyOf={(invoice) => invoice.id}
+          renderItem={(invoice) => <InvoiceRow invoice={invoice} href={paths.invoices} />}
+          empty={
+            <EmptyState
+              iconName="invoices"
+              title={t('portal.invoices.empty')}
+              subtitle={t('portal.invoices.emptySubtitle')}
+            />
+          }
+        />
+      </section>
+
+      <section>
+        <SectionHead
+          title={t('portal.home.yourClaims')}
+          href={paths.claims}
+          linkLabel={t('portal.home.viewAllClaims')}
+        />
+        <RowList
+          items={claims.slice(0, 2)}
+          loading={isLoading}
+          skeletonCount={2}
+          keyOf={(claim) => claim.id}
+          renderItem={(claim) => <ClaimRow claim={claim} />}
+          empty={
+            <EmptyState
+              iconName="tickets"
+              title={t('portal.claims.empty')}
+              subtitle={t('portal.claims.emptySubtitle')}
+              action={
+                <Button onClick={() => setClaimFormOpen(true)}>
+                  <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
+                  {t('portal.claims.newClaim')}
+                </Button>
+              }
+            />
+          }
+        />
+      </section>
+
+      <section>
+        <SectionHead title={t('portal.contract.title')} />
+        <ContractCard overview={overview} loading={isLoading} />
+      </section>
+
+      <NewClaimDialog
+        open={claimFormOpen}
+        onClose={() => setClaimFormOpen(false)}
+        onCreated={() => {
+          setClaimFormOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['portal', 'tickets'] });
+        }}
+      />
     </div>
   );
 }

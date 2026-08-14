@@ -372,7 +372,8 @@
       "Jardin": "Jardín",
       "Laundry": "Lavadero",
       "AC": "Aire acondicionado",
-      "Calefaccion": "Calefacción"
+      "Calefaccion": "Calefacción",
+      "Parrilla": "Parrilla"
     },
     "card": {
       "noAddress": "Sin dirección",
@@ -381,6 +382,13 @@
       "needsPhotos": "Agregá fotos para publicarla",
       "needsPrice": "Falta cargar el precio",
       "view": "Ver ficha"
+    },
+    "gallery": {
+      "prev": "Foto anterior",
+      "next": "Foto siguiente",
+      "goTo": "Ver foto {index}",
+      "counter": "{current} de {total}",
+      "noPhotos": "Sin fotos"
     },
     "detail": {
       "operations": "Operaciones",
@@ -398,7 +406,17 @@
       "deleted": "Propiedad eliminada",
       "deleteError": "No se pudo eliminar la propiedad",
       "linkedPersons": "Personas vinculadas",
-      "noLinkedPersons": "No hay personas vinculadas a esta propiedad"
+      "noLinkedPersons": "No hay personas vinculadas a esta propiedad",
+      "factSheet": "Ficha técnica",
+      "country": "País",
+      "createdAt": "Alta",
+      "updatedAt": "Última actualización",
+      "active": "Activa",
+      "inactive": "Inactiva",
+      "noDescription": "Sin descripción cargada",
+      "noAmenities": "Sin amenidades cargadas",
+      "showMore": "Ver más",
+      "showLess": "Ver menos"
     },
     "empty": {
       "title": "No hay propiedades",
@@ -2878,14 +2896,14 @@
   },
   "portal": {
     "common": {
-      "brand": "Portal Inquilino",
-      "loading": "Cargando...",
+      "brand": "Portal del inquilino",
+      "loading": "Cargando…",
       "error": "Ocurrió un error. Intentá nuevamente."
     },
     "nav": {
-      "dashboard": "Inicio",
-      "liquidaciones": "Liquidaciones",
-      "tickets": "Reclamos",
+      "home": "Inicio",
+      "invoices": "Facturas",
+      "claims": "Reclamos",
       "logout": "Cerrar sesión"
     },
     "auth": {
@@ -2915,87 +2933,80 @@
         "loginLink": "¿Ya tenés cuenta? Iniciar sesión"
       }
     },
-    "dashboard": {
-      "greeting": "¡Hola, {name}!",
-      "subtitle": "Acá podés ver la información de tu contrato",
-      "active": "Activo",
-      "rentAmount": "Alquiler actual",
-      "contractPeriod": "Período del contrato",
-      "adjustmentType": "Tipo de ajuste",
-      "everyMonths": "cada {count} meses",
+    "home": {
+      "greeting": "Hola, {name}",
+      "subtitle": "Tu contrato y tus pagos, en un solo lugar",
+      "unknownProperty": "Propiedad sin dirección",
+      "nextDue": "Próximo vencimiento",
+      "openClaims": "Reclamos abiertos",
+      "dueIn": "{days, plural, =0 {Vence hoy} one {Vence en # día} other {Vence en # días}}",
+      "nothingDue": "No tenés vencimientos",
+      "allOverdue": "Todo lo pendiente ya venció",
+      "noClaims": "Sin reclamos abiertos",
+      "recentInvoices": "Últimas facturas",
+      "viewAllInvoices": "Ver todas",
+      "yourClaims": "Tus reclamos",
+      "viewAllClaims": "Ver todos"
+    },
+    "account": {
+      "label": "Estado de cuenta",
+      "clearTitle": "Estás al día",
+      "clearDetail": "No tenés facturas pendientes",
+      "emptyTitle": "Sin facturas por ahora",
+      "emptyDetail": "Tu cuenta todavía no tiene movimientos",
+      "overdueDetail": "{count, plural, one {# factura vencida} other {# facturas vencidas}} · {days, plural, one {# día de atraso} other {# días de atraso}}",
+      "pendingDetail": "{count, plural, one {# factura por pagar} other {# facturas por pagar}}",
+      "focusOverdue": "{period} · venció el {date}",
+      "focusDue": "{period} · {days, plural, =0 {vence hoy} one {vence en # día} other {vence en # días}}",
+      "paidHistory": "{count, plural, =0 {Sin pagos registrados} one {# factura pagada} other {# facturas pagadas}}",
+      "split": "Vencido {overdue} · Por vencer {pending}",
+      "payAction": "Ver factura a pagar",
+      "viewAllAction": "Ver mis facturas"
+    },
+    "contract": {
+      "title": "Tu contrato",
+      "monthlyRent": "Alquiler por mes",
+      "term": "{elapsed} de {total} meses",
+      "until": "hasta el {date}",
+      "adjustment": "Ajuste",
       "nextAdjustment": "Próximo ajuste",
-      "noContracts": "No tenés contratos activos en este momento",
-      "unknownProperty": "Propiedad sin dirección"
+      "none": "No tenés un contrato activo en este momento."
     },
-    "liquidaciones": {
-      "title": "Liquidaciones",
-      "subtitle": "Historial de liquidaciones y recibos de pago",
-      "empty": "No hay liquidaciones disponibles",
-      "dueDate": "Vence:",
-      "downloadPdf": "Descargar PDF",
-      "showing": "Mostrando {from}-{to} de {total}",
-      "prev": "Anterior",
-      "next": "Siguiente",
-      "status": {
-        "Draft": "Borrador",
-        "Pending": "Pendiente",
-        "Sent": "Enviada",
-        "Paid": "Pagada",
-        "PartiallyPaid": "Pago parcial",
-        "Overdue": "Vencida",
-        "Cancelled": "Anulada"
+    "invoices": {
+      "title": "Facturas",
+      "subtitle": "Todas tus facturas, con el detalle y el comprobante en PDF.",
+      "empty": "Todavía no tenés facturas",
+      "emptySubtitle": "Cuando tu inmobiliaria emita una factura la vas a ver acá.",
+      "state": {
+        "paid": "Pagada",
+        "overdue": "Vencida",
+        "due": "A pagar",
+        "draft": "En preparación",
+        "void": "Anulada"
       },
-      "totalToPay": "Total a pagar",
-      "overdueAlert": "Está vencida — regularizá el pago",
-      "emptySubtitle": "Cuando tu inmobiliaria emita una liquidación la vas a ver acá.",
-      "paymentsCount": "{count, plural, one {# pago registrado} other {# pagos registrados}}",
-      "viewDetail": "Ver detalle"
+      "dueOn": "Vence el {date}",
+      "paidOn": "Pagada el {date}",
+      "overdueBy": "{days, plural, =0 {Venció hoy} one {Vencida hace # día} other {Vencida hace # días}}",
+      "total": "Total",
+      "pdf": "PDF",
+      "downloadPdfFor": "Descargar el PDF de {period}",
+      "pendingSummary": "{count, plural, one {# factura por pagar} other {# facturas por pagar}}",
+      "loadMore": "Ver más facturas"
     },
-    "tickets": {
+    "claims": {
       "title": "Reclamos",
       "subtitle": "Seguimiento de tus reclamos de mantenimiento",
-      "newTicket": "Nuevo reclamo",
-      "backToList": "Volver a reclamos",
-      "empty": "No tenés reclamos. Creá uno si necesitás asistencia.",
-      "showing": "Mostrando {from}-{to} de {total}",
-      "prev": "Anterior",
-      "next": "Siguiente",
-      "form": {
-        "property": "Propiedad",
-        "propertyPlaceholder": "Seleccioná una propiedad",
-        "category": "Categoría",
-        "categoryPlaceholder": "Seleccioná una categoría (opcional)",
-        "title": "Título",
-        "titlePlaceholder": "Ej: Pérdida de agua en baño",
-        "description": "Descripción",
-        "descriptionPlaceholder": "Describí el problema en detalle…",
-        "photo": "Adjuntar foto",
-        "submit": "Crear reclamo",
-        "submitting": "Creando…",
-        "success": "Reclamo creado exitosamente",
-        "error": "No se pudo crear el reclamo. Intentá nuevamente.",
-        "titleRequired": "El título es obligatorio",
-        "descriptionRequired": "La descripción es obligatoria",
-        "propertyRequired": "Seleccioná una propiedad"
-      },
-      "detail": {
-        "title": "Detalle del reclamo",
-        "status": "Estado",
-        "priority": "Prioridad",
-        "property": "Propiedad",
-        "category": "Categoría",
-        "createdAt": "Creado el",
-        "createdBy": "Creado por",
-        "timeline": "Actividad",
-        "noComments": "Sin actividad registrada"
-      },
-      "timeline": {
-        "commentPlaceholder": "Escribí un comentario…",
-        "attachPhoto": "Adjuntar foto",
-        "submit": "Enviar",
-        "submitting": "Enviando…",
-        "commentError": "Error al agregar comentario"
-      },
+      "newClaim": "Abrir un reclamo",
+      "empty": "No tenés reclamos",
+      "emptySubtitle": "Si algo no funciona en la propiedad, abrí un reclamo y le hacemos seguimiento.",
+      "step1": "Contanos qué pasa y en qué parte de la propiedad",
+      "step2": "La inmobiliaria lo asigna a un proveedor",
+      "step3": "Seguí el avance desde esta pantalla",
+      "openSummary": "{count, plural, one {# reclamo abierto} other {# reclamos abiertos}}",
+      "allClosed": "No tenés reclamos abiertos",
+      "loadMore": "Ver más reclamos",
+      "openFor": "{days, plural, =0 {Abierto hoy} one {Abierto hace # día} other {Abierto hace # días}}",
+      "openedOn": "Creado el {date}",
       "statuses": {
         "Abierto": "Abierto",
         "Asignado": "Asignado",
@@ -3008,13 +3019,35 @@
         "Cancelado": "Cancelado",
         "Reabierto": "Reabierto"
       },
-      "priorities": {
-        "Urgente": "Urgente",
-        "Alta": "Alta",
-        "Media": "Media",
-        "Baja": "Baja"
+      "next": {
+        "Abierto": "Lo recibimos. La inmobiliaria lo va a revisar.",
+        "Asignado": "Asignado a una persona de la inmobiliaria.",
+        "EnProgreso": "En curso: ya lo están resolviendo.",
+        "ProveedorAsignado": "Hay un proveedor asignado, va a coordinar la visita.",
+        "ProveedorEnCamino": "El proveedor está en camino.",
+        "TrabajoRealizado": "El trabajo se realizó, falta la confirmación final.",
+        "Resuelto": "Resuelto. Si el problema sigue, abrí un reclamo nuevo.",
+        "Cerrado": "Cerrado.",
+        "Cancelado": "Cancelado.",
+        "Reabierto": "Reabierto: lo estamos revisando otra vez."
       },
-      "emptySubtitle": "Si algo no funciona en la propiedad, abrí un reclamo y le hacemos seguimiento."
+      "form": {
+        "hint": "Contanos qué pasa. Solo el título es obligatorio.",
+        "cancel": "Cerrar",
+        "property": "Propiedad",
+        "propertyPlaceholder": "Seleccioná una propiedad",
+        "propertyRequired": "Seleccioná una propiedad",
+        "category": "Categoría",
+        "categoryPlaceholder": "Seleccioná una categoría (opcional)",
+        "title": "Título",
+        "titlePlaceholder": "Ej: pérdida de agua en el baño",
+        "titleRequired": "El título es obligatorio",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Contanos el detalle y cuándo podés estar en casa…",
+        "submit": "Enviar reclamo",
+        "submitting": "Enviando…",
+        "error": "No se pudo crear el reclamo. Intentá nuevamente."
+      }
     }
   },
   "import": {

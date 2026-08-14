@@ -12,8 +12,11 @@ import { Icon, type IconName } from '@/components/ui/icon';
 
 /* ── Expanded sidebar (lg and up) ── */
 
+/* La columna se ancla a la altura de la ventana y scrollea por dentro: con
+   `min-h-screen` crecia con el contenido de la pagina y tanto la navegacion
+   como el boton de colapsar se iban con el scroll. */
 export const SIDEBAR_ASIDE_CLASS =
-  'hidden lg:flex flex-col bg-sidebar-bg text-sidebar-text min-h-screen shrink-0';
+  'hidden lg:flex flex-col bg-sidebar-bg text-sidebar-text sticky top-0 h-screen shrink-0';
 
 export const SIDEBAR_BRAND_CLASS =
   'flex items-center gap-2.5 px-5 h-16 border-b border-white/[0.08] shrink-0';
@@ -91,7 +94,7 @@ export function SidebarItemIcon({
 /* ── Icon rail (md → lg) ── */
 
 export const RAIL_ASIDE_CLASS =
-  'hidden md:flex lg:hidden flex-col items-center bg-sidebar-bg text-sidebar-text w-16 min-h-screen shrink-0';
+  'hidden md:flex lg:hidden flex-col items-center bg-sidebar-bg text-sidebar-text w-16 sticky top-0 h-screen shrink-0';
 
 export const RAIL_NAV_CLASS = 'flex-1 py-4 w-full space-y-1 overflow-y-auto';
 

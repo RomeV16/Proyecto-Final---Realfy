@@ -56,9 +56,11 @@ export function Header({ onMenuToggle }: HeaderProps) {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  /* Sin usuario todavia el avatar queda vacio: un '??' se lee como un dato
+     roto durante el primer pintado. */
   const initials = user
     ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
-    : '??';
+    : '';
 
   // Breadcrumb logic — drop record-id segments so detail pages never show a
   // raw UUID (e.g. /contracts/<uuid> shows just "Contratos").

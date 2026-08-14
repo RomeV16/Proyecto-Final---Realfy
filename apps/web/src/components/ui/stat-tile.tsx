@@ -101,12 +101,12 @@ export function StatTile({
         {suffix && <span className="ml-0.5 text-lg text-[var(--color-muted)]">{suffix}</span>}
       </p>
 
-      {(hint || trend !== undefined) && (
-        <div className="relative mt-1 flex items-center gap-2">
-          {trend !== undefined && <TrendDelta value={trend} invert={trendInvert} />}
-          {hint && <span className="truncate text-xs text-[var(--color-muted)]">{hint}</span>}
-        </div>
-      )}
+      {/* La linea de contexto se reserva siempre: si aparece y desaparece segun
+          el dato, la tarjeta cambia de alto y la grilla entera se mueve. */}
+      <div className="relative mt-1 flex min-h-[1.125rem] items-center gap-2">
+        {trend !== undefined && <TrendDelta value={trend} invert={trendInvert} />}
+        {hint && <span className="truncate text-xs text-[var(--color-muted)]">{hint}</span>}
+      </div>
 
       {spark && spark.length > 1 && (
         <div className="relative mt-3">
@@ -128,7 +128,7 @@ export function StatTile({
   );
 
   const classes = cn(
-    'group relative overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm',
+    'group relative flex min-h-[8rem] flex-col overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-sm',
     href && 'card-lift block',
     className,
   );
@@ -150,7 +150,7 @@ export function StatTileSkeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5',
+        'min-h-[8rem] rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5',
         className,
       )}
       aria-hidden="true"
