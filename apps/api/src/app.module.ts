@@ -26,6 +26,10 @@ import { PenaltiesModule } from './modules/penalties/penalties.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { EmailTemplatesModule } from './modules/email-templates/email-templates.module';
 import { ServicesModule } from './modules/services/services.module';
+import { PipelinesModule } from './modules/pipelines/pipelines.module';
+import { LeadsModule } from './modules/leads/leads.module';
+import { InteractionsModule } from './modules/interactions/interactions.module';
+import { CommonEmailModule } from './common/email/common-email.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
 import { AuditInterceptor } from './common/audit/audit.interceptor';
@@ -40,6 +44,7 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     TenantContextModule,
     PrismaModule,
     MediaModule,
+    CommonEmailModule,
     AuthModule,
     TenantsModule,
     UsersModule,
@@ -60,6 +65,9 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     TicketsModule,
     ProvidersModule,
     PenaltiesModule,
+    PipelinesModule,
+    LeadsModule,
+    InteractionsModule,
   ],
   controllers: [HealthController],
   providers: [
