@@ -59,7 +59,7 @@ export class PublicController {
    * POST /public/:slug/inquiries — Create a web lead. Throttled per IP.
    */
   @Post(':slug/inquiries')
-  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @HttpCode(201)
   async createInquiry(@Req() req: Request, @Body() body: Record<string, any>) {
     const tenant = (req as any).publicTenant;

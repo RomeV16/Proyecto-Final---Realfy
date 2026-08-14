@@ -43,7 +43,11 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
       envFilePath: ['.env', '../../.env'],
     }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
+    // El frontend proxea sus llamadas a la API, así que buena parte del tráfico
+    // legítimo llega con la IP del proxy. El límite general es holgado a
+    // propósito: corta avalanchas contra la API expuesta sin castigar a los
+    // visitantes que entran por el frontend.
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 600 }]),
     TenantContextModule,
     PrismaModule,
     MediaModule,
