@@ -217,6 +217,7 @@ enum ScheduleStatus {
 model Tenant {
   id             String     @id @default(uuid())
   name           String
+  slug           String?    @unique
   cuit           String
   province       String
   timezone       String     @default("America/Buenos_Aires")
