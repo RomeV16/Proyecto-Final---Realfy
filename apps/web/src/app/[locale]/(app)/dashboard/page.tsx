@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
 import { Reveal } from '@/components/ui/reveal';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   AreaChart,
   Area,
@@ -305,10 +306,6 @@ export default function DashboardPage() {
 
   const accent = tenant?.brandPrimary || '#bd5a32';
 
-  if (isLoading || loading) {
-    return <DashboardSkeleton />;
-  }
-
   if (error) {
     return (
       <div className="card-lux p-8 text-center">
@@ -323,14 +320,11 @@ export default function DashboardPage() {
     );
   }
 
-  if (!stats) {
-    return <DashboardSkeleton />;
-  }
-
+  const showSkeleton = isLoading || loading || !stats;
   const s = stats;
-  const collectedPct = s.collections.total > 0 ? (s.collections.pagada / s.collections.total) * 100 : 0;
-  const pendingPct = s.collections.total > 0 ? (s.collections.pendiente / s.collections.total) * 100 : 0;
-  const overduePct = s.collections.total > 0 ? (s.collections.vencida / s.collections.total) * 100 : 0;
+  const collectedPct = s && s.collections.total > 0 ? (s.collections.pagada / s.collections.total) * 100 : 0;
+  const pendingPct = s && s.collections.total > 0 ? (s.collections.pendiente / s.collections.total) * 100 : 0;
+  const overduePct = s && s.collections.total > 0 ? (s.collections.vencida / s.collections.total) * 100 : 0;
 
   const statusLabel: Record<string, string> = {
     Vencida: 'Vencida',
@@ -340,8 +334,26 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6 pb-6">
-      {/* Header */}
+    <div className="relative">
+      {/* Skeleton cross-fades out over the content as data arrives — no blink. */}
+      <AnimatePresence>
+        {showSkeleton && (
+          <motion.div
+            key="dashboard-skeleton"
+            className="absolute inset-0 z-10"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <DashboardSkeleton />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {s && (
+        <div className="space-y-6 pb-6">
+          {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="eyebrow mb-3">Centro de operaciones</p>
@@ -596,6 +608,8 @@ export default function DashboardPage() {
           </SectionCard>
         </Reveal>
       </div>
+        </div>
+      )}
     </div>
   );
 }
