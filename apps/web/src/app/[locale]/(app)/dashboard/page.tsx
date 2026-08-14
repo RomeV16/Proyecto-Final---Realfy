@@ -99,14 +99,17 @@ function RowIcon({
 function SectionCard({
   title,
   action,
+  minHeight,
   children,
 }: {
   title: string;
   action?: React.ReactNode;
+  /** Se iguala al alto del esqueleto para que el relevo no mueva la pagina. */
+  minHeight?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="card-lux p-6">
+    <div className={`card-lux p-6 ${minHeight ?? ''}`}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="h3">{title}</h3>
         {action}
@@ -489,7 +492,7 @@ export default function DashboardPage() {
 
         {/* Composition + collections */}
         <Reveal delay={1} className="space-y-6">
-          <SectionCard title="Composición de cartera">
+          <SectionCard title="Composición de cartera" minHeight="min-h-[220px]">
             <div className="flex items-center gap-5">
               <div className="h-[150px] w-[150px] shrink-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -529,7 +532,7 @@ export default function DashboardPage() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Cobranzas">
+          <SectionCard title="Cobranzas" minHeight="min-h-[168px]">
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-1.5">

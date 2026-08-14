@@ -448,12 +448,17 @@ export function EntityRow({
           </h3>
           {subtitle && <p className="truncate text-xs text-[var(--color-muted)]">{subtitle}</p>}
           {meta && <div className="mt-1.5">{meta}</div>}
+          {/* En pantallas chicas el valor baja debajo del titulo en lugar de
+              esconderse: suele ser el dato por el que se abre la fila. */}
+          {trailing && <div className="mt-2 sm:hidden">{trailing}</div>}
         </div>
 
         {trailing && <div className="hidden shrink-0 text-right sm:block">{trailing}</div>}
 
         {actions && (
-          <div className="relative z-[2] flex shrink-0 items-center gap-1.5">{actions}</div>
+          <div className="relative z-[2] flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+            {actions}
+          </div>
         )}
       </div>
 
