@@ -372,7 +372,8 @@
       "Jardin": "Jardín",
       "Laundry": "Lavadero",
       "AC": "Aire acondicionado",
-      "Calefaccion": "Calefacción"
+      "Calefaccion": "Calefacción",
+      "Parrilla": "Parrilla"
     },
     "card": {
       "noAddress": "Sin dirección",
@@ -381,6 +382,13 @@
       "needsPhotos": "Add photos to publish it",
       "needsPrice": "Price is missing",
       "view": "View details"
+    },
+    "gallery": {
+      "prev": "Previous photo",
+      "next": "Next photo",
+      "goTo": "View photo {index}",
+      "counter": "{current} of {total}",
+      "noPhotos": "No photos"
     },
     "detail": {
       "operations": "Operaciones",
@@ -398,7 +406,17 @@
       "deleted": "Propiedad eliminada",
       "deleteError": "No se pudo eliminar la propiedad",
       "linkedPersons": "Linked people",
-      "noLinkedPersons": "No people linked to this property"
+      "noLinkedPersons": "No people linked to this property",
+      "factSheet": "Fact sheet",
+      "country": "Country",
+      "createdAt": "Created",
+      "updatedAt": "Last updated",
+      "active": "Active",
+      "inactive": "Inactive",
+      "noDescription": "No description yet",
+      "noAmenities": "No amenities yet",
+      "showMore": "Show more",
+      "showLess": "Show less"
     },
     "empty": {
       "title": "No hay propiedades",
@@ -2878,143 +2896,158 @@
   },
   "portal": {
     "common": {
-      "brand": "Portal Inquilino",
-      "loading": "Cargando...",
-      "error": "Ocurrió un error. Intentá nuevamente."
+      "brand": "Tenant portal",
+      "loading": "Loading…",
+      "error": "Something went wrong. Try again."
     },
     "nav": {
-      "dashboard": "Inicio",
-      "liquidaciones": "Liquidaciones",
-      "tickets": "Reclamos",
-      "logout": "Cerrar sesión"
+      "home": "Home",
+      "invoices": "Invoices",
+      "claims": "Claims",
+      "logout": "Sign out"
     },
     "auth": {
       "login": {
-        "title": "Portal del Inquilino",
-        "subtitle": "Ingresá con tu correo electrónico y contraseña",
-        "email": "Correo electrónico",
-        "password": "Contraseña",
-        "submit": "Ingresar",
-        "error": "Credenciales inválidas. Verificá tu email y contraseña.",
-        "emailRequired": "El correo electrónico es obligatorio",
-        "emailInvalid": "Ingresá un correo electrónico válido",
-        "passwordRequired": "La contraseña es obligatoria"
+        "title": "Tenant portal",
+        "subtitle": "Sign in with your email and password",
+        "email": "Email",
+        "password": "Password",
+        "submit": "Sign in",
+        "error": "Invalid credentials. Check your email and password.",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Enter a valid email",
+        "passwordRequired": "Password is required"
       },
       "setPassword": {
-        "title": "Creá tu contraseña",
-        "subtitle": "Elegí una contraseña segura para acceder al portal",
-        "password": "Contraseña",
-        "confirmPassword": "Confirmar contraseña",
-        "submit": "Crear contraseña",
-        "error": "No se pudo crear la contraseña. Intentá nuevamente.",
-        "passwordMin": "La contraseña debe tener al menos 8 caracteres",
-        "passwordMismatch": "Las contraseñas no coinciden",
-        "invalidToken": "El enlace de invitación no es válido",
-        "tokenExpired": "El enlace de invitación ha expirado. Contactá a tu inmobiliaria.",
-        "tokenUsed": "Este enlace de invitación ya fue utilizado. Si ya creaste tu contraseña, podés iniciar sesión.",
-        "loginLink": "¿Ya tenés cuenta? Iniciar sesión"
+        "title": "Create your password",
+        "subtitle": "Choose a secure password to access the portal",
+        "password": "Password",
+        "confirmPassword": "Confirm password",
+        "submit": "Create password",
+        "error": "The password could not be created. Try again.",
+        "passwordMin": "The password must be at least 8 characters",
+        "passwordMismatch": "The passwords do not match",
+        "invalidToken": "The invitation link is not valid",
+        "tokenExpired": "The invitation link expired. Contact your agency.",
+        "tokenUsed": "This invitation link was already used. If you created your password, you can sign in.",
+        "loginLink": "Already have an account? Sign in"
       }
     },
-    "dashboard": {
-      "greeting": "¡Hola, {name}!",
-      "subtitle": "Acá podés ver la información de tu contrato",
-      "active": "Activo",
-      "rentAmount": "Alquiler actual",
-      "contractPeriod": "Período del contrato",
-      "adjustmentType": "Tipo de ajuste",
-      "everyMonths": "cada {count} meses",
-      "nextAdjustment": "Próximo ajuste",
-      "noContracts": "No tenés contratos activos en este momento",
-      "unknownProperty": "Propiedad sin dirección"
+    "home": {
+      "greeting": "Hi, {name}",
+      "subtitle": "Your contract and your payments, in one place",
+      "unknownProperty": "Property without address",
+      "nextDue": "Next due date",
+      "openClaims": "Open claims",
+      "dueIn": "{days, plural, =0 {Due today} one {Due in # day} other {Due in # days}}",
+      "nothingDue": "Nothing due",
+      "allOverdue": "Everything pending is already overdue",
+      "noClaims": "No open claims",
+      "recentInvoices": "Latest invoices",
+      "viewAllInvoices": "View all",
+      "yourClaims": "Your claims",
+      "viewAllClaims": "View all"
     },
-    "liquidaciones": {
-      "title": "Liquidaciones",
-      "subtitle": "Historial de liquidaciones y recibos de pago",
-      "empty": "No hay liquidaciones disponibles",
-      "dueDate": "Vence:",
-      "downloadPdf": "Descargar PDF",
-      "showing": "Mostrando {from}-{to} de {total}",
-      "prev": "Anterior",
-      "next": "Siguiente",
-      "status": {
-        "Draft": "Borrador",
-        "Pending": "Pendiente",
-        "Sent": "Enviada",
-        "Paid": "Pagada",
-        "PartiallyPaid": "Pago parcial",
-        "Overdue": "Vencida",
-        "Cancelled": "Anulada"
-      },
-      "totalToPay": "Total due",
-      "overdueAlert": "This statement is overdue — please settle it",
-      "emptySubtitle": "Statements issued by your agency will show up here.",
-      "paymentsCount": "{count, plural, one {# payment recorded} other {# payments recorded}}",
-      "viewDetail": "View detail"
+    "account": {
+      "label": "Account status",
+      "clearTitle": "You are up to date",
+      "clearDetail": "No invoices pending",
+      "emptyTitle": "Nothing billed yet",
+      "emptyDetail": "Your account has no activity yet",
+      "overdueDetail": "{count, plural, one {# overdue invoice} other {# overdue invoices}} · {days, plural, one {# day late} other {# days late}}",
+      "pendingDetail": "{count, plural, one {# invoice to pay} other {# invoices to pay}}",
+      "focusOverdue": "{period} · was due on {date}",
+      "focusDue": "{period} · {days, plural, =0 {due today} one {due in # day} other {due in # days}}",
+      "paidHistory": "{count, plural, =0 {No payments recorded} one {# invoice paid} other {# invoices paid}}",
+      "split": "Overdue {overdue} · Upcoming {pending}",
+      "payAction": "View invoice to pay",
+      "viewAllAction": "View my invoices"
     },
-    "tickets": {
-      "title": "Reclamos",
-      "subtitle": "Seguimiento de tus reclamos de mantenimiento",
-      "newTicket": "Nuevo reclamo",
-      "backToList": "Volver a reclamos",
-      "empty": "No tenés reclamos. Creá uno si necesitás asistencia.",
-      "showing": "Mostrando {from}-{to} de {total}",
-      "prev": "Anterior",
-      "next": "Siguiente",
-      "form": {
-        "property": "Propiedad",
-        "propertyPlaceholder": "Seleccioná una propiedad",
-        "category": "Categoría",
-        "categoryPlaceholder": "Seleccioná una categoría (opcional)",
-        "title": "Título",
-        "titlePlaceholder": "Ej: Pérdida de agua en baño",
-        "description": "Descripción",
-        "descriptionPlaceholder": "Describí el problema en detalle…",
-        "photo": "Adjuntar foto",
-        "submit": "Crear reclamo",
-        "submitting": "Creando…",
-        "success": "Reclamo creado exitosamente",
-        "error": "No se pudo crear el reclamo. Intentá nuevamente.",
-        "titleRequired": "El título es obligatorio",
-        "descriptionRequired": "La descripción es obligatoria",
-        "propertyRequired": "Seleccioná una propiedad"
+    "contract": {
+      "title": "Your contract",
+      "monthlyRent": "Monthly rent",
+      "term": "{elapsed} of {total} months",
+      "until": "until {date}",
+      "adjustment": "Adjustment",
+      "nextAdjustment": "Next adjustment",
+      "none": "You have no active contract right now."
+    },
+    "invoices": {
+      "title": "Invoices",
+      "subtitle": "Every invoice, with its detail and PDF receipt.",
+      "empty": "No invoices yet",
+      "emptySubtitle": "Once your agency issues an invoice you will see it here.",
+      "state": {
+        "paid": "Paid",
+        "overdue": "Overdue",
+        "due": "To pay",
+        "draft": "Being prepared",
+        "void": "Voided"
       },
-      "detail": {
-        "title": "Detalle del reclamo",
-        "status": "Estado",
-        "priority": "Prioridad",
-        "property": "Propiedad",
-        "category": "Categoría",
-        "createdAt": "Creado el",
-        "createdBy": "Creado por",
-        "timeline": "Actividad",
-        "noComments": "Sin actividad registrada"
-      },
-      "timeline": {
-        "commentPlaceholder": "Escribí un comentario…",
-        "attachPhoto": "Adjuntar foto",
-        "submit": "Enviar",
-        "submitting": "Enviando…",
-        "commentError": "Error al agregar comentario"
-      },
+      "dueOn": "Due on {date}",
+      "paidOn": "Paid on {date}",
+      "overdueBy": "{days, plural, =0 {Due today} one {Overdue by # day} other {Overdue by # days}}",
+      "total": "Total",
+      "pdf": "PDF",
+      "downloadPdfFor": "Download the PDF for {period}",
+      "pendingSummary": "{count, plural, one {# invoice to pay} other {# invoices to pay}}",
+      "loadMore": "Load more invoices"
+    },
+    "claims": {
+      "title": "Claims",
+      "subtitle": "Follow-up on your maintenance claims",
+      "newClaim": "Open a claim",
+      "empty": "No claims yet",
+      "emptySubtitle": "If something breaks in the property, open a claim and we will follow it up.",
+      "step1": "Tell us what happened and where",
+      "step2": "The agency assigns it to a provider",
+      "step3": "Follow the progress from this screen",
+      "openSummary": "{count, plural, one {# open claim} other {# open claims}}",
+      "allClosed": "No open claims",
+      "loadMore": "Load more claims",
+      "openFor": "{days, plural, =0 {Opened today} one {Opened # day ago} other {Opened # days ago}}",
+      "openedOn": "Created on {date}",
       "statuses": {
-        "Abierto": "Abierto",
-        "Asignado": "Asignado",
-        "EnProgreso": "En progreso",
-        "ProveedorAsignado": "Proveedor asignado",
-        "ProveedorEnCamino": "Proveedor en camino",
-        "TrabajoRealizado": "Trabajo realizado",
-        "Resuelto": "Resuelto",
-        "Cerrado": "Cerrado",
-        "Cancelado": "Cancelado",
-        "Reabierto": "Reabierto"
+        "Abierto": "Open",
+        "Asignado": "Assigned",
+        "EnProgreso": "In progress",
+        "ProveedorAsignado": "Provider assigned",
+        "ProveedorEnCamino": "Provider on the way",
+        "TrabajoRealizado": "Work done",
+        "Resuelto": "Resolved",
+        "Cerrado": "Closed",
+        "Cancelado": "Cancelled",
+        "Reabierto": "Reopened"
       },
-      "priorities": {
-        "Urgente": "Urgente",
-        "Alta": "Alta",
-        "Media": "Media",
-        "Baja": "Baja"
+      "next": {
+        "Abierto": "We got it. The agency will review it.",
+        "Asignado": "Assigned to someone at the agency.",
+        "EnProgreso": "In progress: someone is working on it.",
+        "ProveedorAsignado": "A provider was assigned and will arrange the visit.",
+        "ProveedorEnCamino": "The provider is on the way.",
+        "TrabajoRealizado": "The work is done, pending final confirmation.",
+        "Resuelto": "Resolved. If the problem persists, open a new claim.",
+        "Cerrado": "Closed.",
+        "Cancelado": "Cancelled.",
+        "Reabierto": "Reopened: we are looking at it again."
       },
-      "emptySubtitle": "If something is not working at the property, open a request and we will follow up."
+      "form": {
+        "hint": "Tell us what happened. Only the title is required.",
+        "cancel": "Close",
+        "property": "Property",
+        "propertyPlaceholder": "Select a property",
+        "propertyRequired": "Select a property",
+        "category": "Category",
+        "categoryPlaceholder": "Select a category (optional)",
+        "title": "Title",
+        "titlePlaceholder": "e.g. water leak in the bathroom",
+        "titleRequired": "The title is required",
+        "description": "Description",
+        "descriptionPlaceholder": "Describe the detail and when you can be home…",
+        "submit": "Send claim",
+        "submitting": "Sending…",
+        "error": "The claim could not be created. Try again."
+      }
     }
   },
   "import": {
