@@ -1450,7 +1450,10 @@
    "ContractExpiring": "Contrato por vencer",
    "LiquidacionOverdue": "Liquidación vencida",
    "PaymentReceived": "Pago recibido",
-   "SystemAlert": "Alerta del sistema"
+   "SystemAlert": "Alerta del sistema",
+   "FiscalCertExpiry": "Fiscal certificate expiring",
+   "FiscalDelegationRevoked": "ARCA delegation revoked",
+   "LibroIvaGenerated": "IVA sales book generated"
   },
   "list": {
    "title": "Todas las notificaciones",
