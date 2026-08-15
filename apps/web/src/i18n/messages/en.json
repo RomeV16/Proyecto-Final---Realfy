@@ -4311,7 +4311,8 @@
   "loadError": "Could not load settings",
   "nameRequired": "Name is required",
   "readOnly": "Only administrators can edit settings",
-  "managePipeline": "Configurar etapas"
+  "managePipeline": "Configurar etapas",
+  "manageFiscal": "Configure invoicing"
  },
  "portalPublico": {
   "footer": {

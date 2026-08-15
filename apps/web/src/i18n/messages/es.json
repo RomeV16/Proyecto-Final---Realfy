@@ -4311,7 +4311,8 @@
   "loadError": "No se pudo cargar la configuración",
   "nameRequired": "El nombre es obligatorio",
   "readOnly": "Solo los administradores pueden editar la configuración",
-  "managePipeline": "Configurar etapas"
+  "managePipeline": "Configurar etapas",
+  "manageFiscal": "Configurar facturación"
  },
  "portalPublico": {
   "footer": {
