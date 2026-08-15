@@ -489,3 +489,52 @@ import {
 } from './schemas/public-portal.schema';
 export type PublicPropertyFilterInput = z.infer<typeof _PublicPropertyFilterSchema>;
 export type CreatePublicInquiryInput = z.infer<typeof _CreatePublicInquirySchema>;
+
+// Schemas — comprobantes electronicos
+export {
+  EmitComprobanteSchema,
+  EmitNotaCreditoSchema,
+  ComprobanteFilterSchema,
+} from './schemas/comprobante.schema';
+import {
+  EmitComprobanteSchema as _EmitComprobanteSchema,
+  EmitNotaCreditoSchema as _EmitNotaCreditoSchema,
+  ComprobanteFilterSchema as _ComprobanteFilterSchema,
+} from './schemas/comprobante.schema';
+export type EmitComprobanteInput = z.infer<typeof _EmitComprobanteSchema>;
+export type EmitNotaCreditoInput = z.infer<typeof _EmitNotaCreditoSchema>;
+export type ComprobanteFilterInput = z.infer<typeof _ComprobanteFilterSchema>;
+
+// Motor de resolucion de tipo de comprobante (A/B/C segun condiciones fiscales)
+export {
+  resolveComprobanteType,
+  canIssueFiscalInvoice,
+  getIvaTreatment,
+} from './comprobante-engine';
+export type { ComprobanteLetra, ComprobanteResolution } from './comprobante-engine';
+
+// DTOs — emision de comprobantes, emisores y puntos de venta
+export {
+  IvaArrayItemSchema,
+  TributoSchema,
+  OpcionalSchema,
+  CbteAsocSchema,
+  ReceptorSchema,
+  EmitInvoiceDtoSchema,
+  EmitNotaCreditoDtoSchema,
+  IssuerCreateDtoSchema,
+  IssuerUpdateDtoSchema,
+  PuntoDeVentaCreateDtoSchema,
+} from './dto/invoices';
+export type {
+  IvaArrayItem,
+  Tributo,
+  Opcional,
+  CbteAsoc,
+  Receptor,
+  EmitInvoiceDto,
+  EmitNotaCreditoDto,
+  IssuerCreateDto,
+  IssuerUpdateDto,
+  PuntoDeVentaCreateDto,
+} from './dto/invoices';
