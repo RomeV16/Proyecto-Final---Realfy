@@ -538,3 +538,30 @@ export type {
   IssuerUpdateDto,
   PuntoDeVentaCreateDto,
 } from './dto/invoices';
+
+// Schemas — scoring de inquilinos
+export {
+  UpdateScoreConfigSchema,
+  UpsertTenantScoreSchema,
+} from './schemas/scoring.schema';
+import {
+  UpdateScoreConfigSchema as _UpdateScoreConfigSchema,
+  UpsertTenantScoreSchema as _UpsertTenantScoreSchema,
+} from './schemas/scoring.schema';
+export type UpdateScoreConfigInput = z.infer<typeof _UpdateScoreConfigSchema>;
+export type UpsertTenantScoreInput = z.infer<typeof _UpsertTenantScoreSchema>;
+
+// Schemas — tasaciones de propiedades
+export {
+  CreateValuationSchema,
+  UpdateValuationSchema,
+  ValuationFilterSchema,
+} from './schemas/valuation.schema';
+import {
+  CreateValuationSchema as _CreateValuationSchema,
+  UpdateValuationSchema as _UpdateValuationSchema,
+  ValuationFilterSchema as _ValuationFilterSchema,
+} from './schemas/valuation.schema';
+export type CreateValuationInput = z.infer<typeof _CreateValuationSchema>;
+export type UpdateValuationInput = z.infer<typeof _UpdateValuationSchema>;
+export type ValuationFilterInput = z.infer<typeof _ValuationFilterSchema>;
