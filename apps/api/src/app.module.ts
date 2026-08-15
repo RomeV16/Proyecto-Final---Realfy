@@ -7,6 +7,7 @@ import { HealthController } from './health/health.controller';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { TenantContextModule } from './common/tenant/tenant-context.module';
 import { MediaModule } from './common/media/media.module';
+import { CryptoModule } from './common/crypto/crypto.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
@@ -19,6 +20,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ContractTemplatesModule } from './modules/contract-templates/contract-templates.module';
 import { LiquidacionesModule } from './modules/liquidaciones/liquidaciones.module';
+import { InvoicesModule } from './modules/invoices/invoices.module';
 import { PortalAuthModule } from './modules/portal-auth/portal-auth.module';
 import { PortalModule } from './modules/portal/portal.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
@@ -51,6 +53,7 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     TenantContextModule,
     PrismaModule,
     MediaModule,
+    CryptoModule,
     CommonEmailModule,
     AuthModule,
     TenantsModule,
@@ -64,6 +67,7 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     DashboardModule,
     ContractTemplatesModule,
     LiquidacionesModule,
+    InvoicesModule,
     ServicesModule,
     NotificationsModule,
     EmailTemplatesModule,
