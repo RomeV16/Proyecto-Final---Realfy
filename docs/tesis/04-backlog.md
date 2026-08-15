@@ -130,7 +130,7 @@ Páginas públicas SSR por inmobiliaria, ruteo por slug, listado de propiedades 
 
 ### 21. Facturacion electronica via ARCA
 
-Configurar `TenantArcaConfig` (CUIT, punto de venta, certificados). Integrar WSAA/WSFEv1 contra el ambiente de homologación. Emitir comprobantes asociados a liquidaciones y manejar notas de crédito.
+Configurar el emisor y el punto de venta en ARCA (`ArcaIssuer`, `ArcaPuntoDeVenta`) y el certificado digital (`ArcaCertificate`). Integrar WSAA/WSFEv1 contra el ambiente de homologación. Emitir comprobantes asociados a pagos y manejar notas de crédito.
 
 - Prioridad: alta.
 - Dependencias: 13.
