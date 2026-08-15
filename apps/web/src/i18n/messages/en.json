@@ -1976,6 +1976,7 @@
    "receptor": "Receptor",
    "importe": "Importe",
    "cae": "CAE",
+   "caePending": "CAE pending",
    "actions": "Acciones",
    "view": "Ver",
    "pdf": "PDF"
