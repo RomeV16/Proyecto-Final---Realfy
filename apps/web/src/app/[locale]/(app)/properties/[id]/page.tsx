@@ -25,6 +25,7 @@ import {
   type SpecItem,
 } from '@/components/properties/property-detail-sections';
 import { PriceHistory } from '@/components/properties/price-history';
+import { PropertyValuations } from '@/components/properties/property-valuations';
 import { PersonRoleBadge } from '@/components/persons/person-role-badge';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Avatar } from '@/components/ui/avatar';
@@ -494,6 +495,10 @@ function DetailView({
                 ))}
               </div>
             )}
+          </DetailSection>
+
+          <DetailSection title={t('valuations.title')} icon="wallet">
+            <PropertyValuations propertyId={property.id} canEdit={canEdit} />
           </DetailSection>
 
           <DetailSection
