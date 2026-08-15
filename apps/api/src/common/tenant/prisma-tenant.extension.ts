@@ -39,7 +39,6 @@ const TENANT_SCOPED_MODELS = new Set([
   'TenantScore',
   'Pipeline',
   'Comprobante',
-  'TenantArcaConfig',
   'ArcaCertificate',
   'ArcaCertificateAccessLog',
   'ArcaIssuer',
