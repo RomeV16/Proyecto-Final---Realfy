@@ -7,7 +7,9 @@ import {
   Param,
   Body,
   Query,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { RenditionsService } from './renditions.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { UserRole } from '@realfy/shared';
@@ -58,6 +60,29 @@ export class RenditionsController {
     @Body() body: Record<string, any>,
   ) {
     return this.renditionsService.transition(id, body);
+  }
+
+  /**
+   * GET /renditions/:id/pdf — Download PDF.
+   */
+  @Get(':id/pdf')
+  async getPdf(@Param('id') id: string, @Res() res: Response) {
+    const pdfBuffer = await this.renditionsService.generatePdf(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="rendicion-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
+  }
+
+  /**
+   * POST /renditions/:id/send — Send rendition email with PDF.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Post(':id/send')
+  async sendEmail(@Param('id') id: string) {
+    return this.renditionsService.sendEmail(id);
   }
 
   /**

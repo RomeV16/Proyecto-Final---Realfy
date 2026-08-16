@@ -21,6 +21,8 @@ import {
   buildRendicionFromPayments,
 } from '@realfy/shared';
 import type { CommissionConfig } from '@realfy/shared';
+import { RenditionPdfService } from './rendition-pdf.service';
+import { RenditionEmailService } from './rendition-email.service';
 import Decimal from 'decimal.js';
 
 /**
@@ -43,6 +45,8 @@ export class RenditionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
+    private readonly pdfService: RenditionPdfService,
+    private readonly emailService: RenditionEmailService,
   ) {}
 
   // ─── Rendition Generation ───────────────────────────
@@ -470,6 +474,84 @@ export class RenditionsService {
     });
 
     return this.findOne(rendicionId);
+  }
+
+  // ─── PDF Generation ─────────────────────────────────
+
+  async generatePdf(id: string): Promise<Buffer> {
+    const rendicion = await this.findOne(id);
+    const tenantId = this.tenantContext.getTenantId()!;
+
+    const tenant = await this.prisma.client.tenant.findFirst({
+      where: { id: tenantId },
+    });
+
+    const pdfBuffer = await this.pdfService.generateRenditionPdf(rendicion, {
+      name: tenant?.name ?? 'Inmobiliaria',
+      cuit: (tenant as any)?.cuit ?? null,
+    });
+
+    this.logger.log('Rendition PDF generated', {
+      rendicionId: id,
+      tenantId,
+    });
+
+    return pdfBuffer;
+  }
+
+  // ─── Email ──────────────────────────────────────────
+
+  async sendEmail(id: string) {
+    const rendicion = await this.findOne(id);
+    const tenantId = this.tenantContext.getTenantId()!;
+
+    const tenant = await this.prisma.client.tenant.findFirst({
+      where: { id: tenantId },
+    });
+
+    const pdfBuffer = await this.pdfService.generateRenditionPdf(rendicion, {
+      name: tenant?.name ?? 'Inmobiliaria',
+      cuit: (tenant as any)?.cuit ?? null,
+    });
+
+    const ownerEmail = rendicion.owner?.email;
+    if (!ownerEmail) {
+      this.logger.warn('No owner email found — skipping email', {
+        rendicionId: id,
+        ownerId: rendicion.ownerId,
+      });
+      return { sent: false, reason: 'No owner email' };
+    }
+
+    try {
+      const result = await this.emailService.sendRendicionEmail(
+        ownerEmail,
+        rendicion,
+        pdfBuffer,
+        tenant?.name ?? 'Inmobiliaria',
+      );
+
+      // Update sentAt
+      await this.prisma.client.ownerRendicion.update({
+        where: { id: rendicion.id },
+        data: { sentAt: new Date() },
+      });
+
+      this.logger.log('Rendition email sent', {
+        rendicionId: id,
+        to: ownerEmail,
+        resendId: result?.id ?? null,
+      });
+
+      return { sent: true, to: ownerEmail, resendId: result?.id };
+    } catch (error) {
+      this.logger.error('Rendition email delivery failed', {
+        rendicionId: id,
+        to: ownerEmail,
+        error: (error as Error).message,
+      });
+      throw error;
+    }
   }
 
   // ─── Private Helpers ────────────────────────────────
