@@ -9,7 +9,7 @@ import { ReportsService } from './reports.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { UserRole } from '@realfy/shared';
 
-const VALID_TYPES = ['propertyProfitability', 'pipelineAnalytics', 'morosidad'] as const;
+const VALID_TYPES = ['ownerStatement', 'propertyProfitability', 'commissionSummary', 'pipelineAnalytics', 'morosidad'] as const;
 type ValidReportType = (typeof VALID_TYPES)[number];
 
 @Controller('reports')
@@ -18,7 +18,7 @@ export class ReportsController {
 
   /**
    * GET /reports/:type — JSON data for a report type.
-   * Filters passed as query params: from, to, propertyId, contractId, pipelineId.
+   * Filters passed as query params: from, to, ownerId, propertyId, contractId, pipelineId.
    */
   @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
   @Get(':type')
@@ -40,8 +40,12 @@ export class ReportsController {
     }
 
     switch (type as ValidReportType) {
+      case 'ownerStatement':
+        return this.reportsService.getOwnerStatement(query);
       case 'propertyProfitability':
         return this.reportsService.getPropertyProfitability(query);
+      case 'commissionSummary':
+        return this.reportsService.getCommissionSummary(query);
       case 'pipelineAnalytics':
         return this.reportsService.getPipelineAnalytics(query);
       case 'morosidad':

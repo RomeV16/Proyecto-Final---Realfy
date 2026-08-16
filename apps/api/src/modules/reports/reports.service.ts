@@ -6,7 +6,9 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
+  OwnerStatementFilterSchema,
   PropertyProfitabilityFilterSchema,
+  CommissionSummaryFilterSchema,
   PipelineAnalyticsFilterSchema,
   MorosidadFilterSchema,
   LiquidacionStatus,
@@ -17,12 +19,32 @@ import Decimal from 'decimal.js';
 
 // ─── Row types for each report ──────────────────────────
 
+export interface OwnerStatementRow {
+  periodo: string;
+  propiedad: string;
+  cobrado: string;
+  comision: string;
+  honorarios: string;
+  deducciones: string;
+  depositoNeto: string;
+}
+
 export interface PropertyProfitabilityRow {
   propiedad: string;
   cobrado: string;
   facturado: string;
   comisiones: string;
   ingresoNeto: string;
+}
+
+export interface CommissionSummaryRow {
+  propiedad: string;
+  propietario: string;
+  periodo: string;
+  tipoComision: string;
+  comision: string;
+  honorarios: string;
+  total: string;
 }
 
 export interface PipelineAnalyticsRow {
@@ -75,6 +97,95 @@ export class ReportsService {
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
   ) {}
+
+  // ─── Owner Statement ──────────────────────────────────
+
+  async getOwnerStatement(query: unknown): Promise<ReportResult<OwnerStatementRow>> {
+    let filters: any;
+    try {
+      filters = OwnerStatementFilterSchema.parse(query);
+    } catch (err) {
+      if (isZodError(err)) {
+        throw new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Invalid owner statement filters',
+          details: err.errors,
+        });
+      }
+      throw err;
+    }
+
+    const tenantId = this.tenantContext.getTenantId()!;
+    const where: any = { tenantId, ownerId: filters.ownerId };
+
+    if (filters.from || filters.to) {
+      where.period = {};
+      if (filters.from) where.period.gte = new Date(filters.from);
+      if (filters.to) where.period.lte = new Date(filters.to);
+    }
+
+    const rendiciones = await this.prisma.client.ownerRendicion.findMany({
+      where,
+      include: {
+        lineItems: { orderBy: { sortOrder: 'asc' } },
+        contract: { include: { property: true } },
+      },
+      orderBy: { period: 'asc' },
+    });
+
+    const rows: OwnerStatementRow[] = rendiciones.map((r: any) => {
+      const rentCollected = new Decimal(r.rentCollected.toString());
+      const commissionAmount = new Decimal(r.commissionAmount.toString());
+      const adminFeeAmount = new Decimal(r.adminFeeAmount.toString());
+      const deductionTotal = new Decimal(r.deductionTotal.toString());
+      const netDeposit = new Decimal(r.netDeposit.toString());
+
+      return {
+        periodo: new Date(r.period).toLocaleDateString('es-AR', {
+          month: '2-digit',
+          year: 'numeric',
+        }),
+        propiedad:
+          r.contract?.property?.title ??
+          r.contract?.property?.street ??
+          '—',
+        cobrado: rentCollected.toFixed(2),
+        comision: commissionAmount.toFixed(2),
+        honorarios: adminFeeAmount.toFixed(2),
+        deducciones: deductionTotal.toFixed(2),
+        depositoNeto: netDeposit.toFixed(2),
+      };
+    });
+
+    // Summary row
+    const summary = rows.reduce(
+      (acc, row) => ({
+        cobrado: new Decimal(acc.cobrado).plus(row.cobrado).toFixed(2),
+        comision: new Decimal(acc.comision).plus(row.comision).toFixed(2),
+        honorarios: new Decimal(acc.honorarios).plus(row.honorarios).toFixed(2),
+        deducciones: new Decimal(acc.deducciones).plus(row.deducciones).toFixed(2),
+        depositoNeto: new Decimal(acc.depositoNeto).plus(row.depositoNeto).toFixed(2),
+      }),
+      { cobrado: '0', comision: '0', honorarios: '0', deducciones: '0', depositoNeto: '0' },
+    );
+
+    this.logger.log('Report generated', {
+      tenantId,
+      reportType: 'ownerStatement',
+      dateRange: { from: filters.from, to: filters.to },
+      rowCount: rows.length,
+    });
+
+    return {
+      type: 'ownerStatement',
+      title: 'Estado de Cuenta del Propietario',
+      columns: ['Período', 'Propiedad', 'Cobrado', 'Comisión', 'Honorarios', 'Deducciones', 'Depósito Neto'],
+      rows,
+      summary,
+      generatedAt: new Date().toISOString(),
+      filters,
+    };
+  }
 
   // ─── Property Profitability ───────────────────────────
 
@@ -201,6 +312,101 @@ export class ReportsService {
       type: 'propertyProfitability',
       title: 'Rentabilidad por Propiedad',
       columns: ['Propiedad', 'Cobrado', 'Facturado', 'Comisiones', 'Ingreso Neto'],
+      rows,
+      summary,
+      generatedAt: new Date().toISOString(),
+      filters,
+    };
+  }
+
+  // ─── Commission Summary ───────────────────────────────
+
+  async getCommissionSummary(query: unknown): Promise<ReportResult<CommissionSummaryRow>> {
+    let filters: any;
+    try {
+      filters = CommissionSummaryFilterSchema.parse(query);
+    } catch (err) {
+      if (isZodError(err)) {
+        throw new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Invalid commission summary filters',
+          details: err.errors,
+        });
+      }
+      throw err;
+    }
+
+    const tenantId = this.tenantContext.getTenantId()!;
+    const where: any = { tenantId };
+
+    if (filters.from || filters.to) {
+      where.period = {};
+      if (filters.from) where.period.gte = new Date(filters.from);
+      if (filters.to) where.period.lte = new Date(filters.to);
+    }
+
+    if (filters.contractId) {
+      where.contractId = filters.contractId;
+    }
+
+    const rendiciones = await this.prisma.client.ownerRendicion.findMany({
+      where,
+      include: {
+        contract: {
+          include: {
+            property: true,
+            commission: true,
+          },
+        },
+        owner: true,
+      },
+      orderBy: { period: 'asc' },
+    });
+
+    const rows: CommissionSummaryRow[] = rendiciones.map((r: any) => {
+      const commissionAmount = new Decimal(r.commissionAmount.toString());
+      const adminFeeAmount = new Decimal(r.adminFeeAmount.toString());
+      const total = commissionAmount.plus(adminFeeAmount);
+
+      return {
+        propiedad:
+          r.contract?.property?.title ??
+          r.contract?.property?.street ??
+          '—',
+        propietario: r.owner
+          ? `${r.owner.firstName} ${r.owner.lastName}`
+          : '—',
+        periodo: new Date(r.period).toLocaleDateString('es-AR', {
+          month: '2-digit',
+          year: 'numeric',
+        }),
+        tipoComision: r.contract?.commission?.type ?? '—',
+        comision: commissionAmount.toFixed(2),
+        honorarios: adminFeeAmount.toFixed(2),
+        total: total.toFixed(2),
+      };
+    });
+
+    const summary = rows.reduce(
+      (acc, row) => ({
+        comision: new Decimal(acc.comision).plus(row.comision).toFixed(2),
+        honorarios: new Decimal(acc.honorarios).plus(row.honorarios).toFixed(2),
+        total: new Decimal(acc.total).plus(row.total).toFixed(2),
+      }),
+      { comision: '0', honorarios: '0', total: '0' },
+    );
+
+    this.logger.log('Report generated', {
+      tenantId,
+      reportType: 'commissionSummary',
+      dateRange: { from: filters.from, to: filters.to },
+      rowCount: rows.length,
+    });
+
+    return {
+      type: 'commissionSummary',
+      title: 'Resumen de Comisiones',
+      columns: ['Propiedad', 'Propietario', 'Período', 'Tipo Comisión', 'Comisión', 'Honorarios', 'Total'],
       rows,
       summary,
       generatedAt: new Date().toISOString(),
