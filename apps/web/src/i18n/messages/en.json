@@ -2481,6 +2481,7 @@
   },
   "notes": {
    "title": "Notas",
+   "edit": "Edit",
    "placeholder": "Agregar notas…",
    "save": "Guardar notas",
    "saving": "Guardando…",
@@ -2520,6 +2521,13 @@
    "loadDetailFailed": "Error al cargar detalle de rendición",
    "notFound": "Rendición no encontrada",
    "forbidden": "No tiene permisos para esta acción"
+  },
+  "card": {
+   "view": "View detail",
+   "noOwner": "No owner assigned",
+   "noProperty": "No property linked",
+   "notSent": "Not yet sent to owner",
+   "missingPdf": "PDF not generated yet"
   }
  },
  "reports": {
