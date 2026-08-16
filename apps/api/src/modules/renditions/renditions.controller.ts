@@ -121,3 +121,40 @@ export class RenditionsController {
     return this.renditionsService.updateNotes(id, body);
   }
 }
+
+/**
+ * Separate controller for commission endpoints under /contracts/:contractId/commission.
+ */
+@Controller('contracts')
+export class CommissionsController {
+  constructor(private readonly renditionsService: RenditionsService) {}
+
+  /**
+   * POST /contracts/:contractId/commission — Create/update commission config.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Post(':contractId/commission')
+  async createCommission(
+    @Param('contractId') contractId: string,
+    @Body() body: Record<string, any>,
+  ) {
+    return this.renditionsService.createCommission(contractId, body);
+  }
+
+  /**
+   * GET /contracts/:contractId/commission — Get commission config.
+   */
+  @Get(':contractId/commission')
+  async getCommission(@Param('contractId') contractId: string) {
+    return this.renditionsService.getCommission(contractId);
+  }
+
+  /**
+   * DELETE /contracts/:contractId/commission — Delete commission config.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Delete(':contractId/commission')
+  async deleteCommission(@Param('contractId') contractId: string) {
+    return this.renditionsService.deleteCommission(contractId);
+  }
+}

@@ -7,6 +7,8 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
+  CreateCommissionSchema,
+  UpdateCommissionSchema,
   GenerateRendicionSchema,
   TransitionRendicionSchema,
   RendicionFilterSchema,
@@ -48,6 +50,106 @@ export class RenditionsService {
     private readonly pdfService: RenditionPdfService,
     private readonly emailService: RenditionEmailService,
   ) {}
+
+  // ─── Commission CRUD ────────────────────────────────
+
+  async createCommission(contractId: string, data: unknown) {
+    let validated: any;
+    try {
+      validated = CreateCommissionSchema.parse(data);
+    } catch (err) {
+      if (isZodError(err)) {
+        throw new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Invalid commission data',
+          details: err.errors,
+        });
+      }
+      throw err;
+    }
+
+    const tenantId = this.tenantContext.getTenantId()!;
+
+    // Verify contract exists and belongs to this tenant
+    const contract = await this.prisma.client.contract.findFirst({
+      where: { id: contractId, tenantId },
+    });
+
+    if (!contract) {
+      throw new NotFoundException({
+        error: 'CONTRACT_NOT_FOUND',
+        message: 'Contract not found',
+      });
+    }
+
+    const commission = await this.prisma.client.contractCommission.upsert({
+      where: { contractId },
+      create: {
+        tenantId,
+        contractId,
+        type: validated.type,
+        percentage: validated.percentage ?? null,
+        fixedAmount: validated.fixedAmount ?? null,
+        adminFee: validated.adminFee ?? null,
+        currency: validated.currency ?? contract.rentCurrency,
+        notes: validated.notes ?? null,
+      },
+      update: {
+        type: validated.type,
+        percentage: validated.percentage ?? null,
+        fixedAmount: validated.fixedAmount ?? null,
+        adminFee: validated.adminFee ?? null,
+        currency: validated.currency ?? contract.rentCurrency,
+        notes: validated.notes ?? null,
+      },
+    });
+
+    this.logger.log('Commission configured', {
+      tenantId,
+      contractId,
+      commissionId: commission.id,
+      type: validated.type,
+    });
+
+    return commission;
+  }
+
+  async getCommission(contractId: string) {
+    const tenantId = this.tenantContext.getTenantId()!;
+
+    const commission = await this.prisma.client.contractCommission.findFirst({
+      where: { contractId, tenantId },
+    });
+
+    return commission ?? null;
+  }
+
+  async deleteCommission(contractId: string) {
+    const tenantId = this.tenantContext.getTenantId()!;
+
+    const commission = await this.prisma.client.contractCommission.findFirst({
+      where: { contractId, tenantId },
+    });
+
+    if (!commission) {
+      throw new NotFoundException({
+        error: 'COMMISSION_NOT_FOUND',
+        message: 'Commission configuration not found for this contract',
+      });
+    }
+
+    await this.prisma.client.contractCommission.delete({
+      where: { id: commission.id },
+    });
+
+    this.logger.log('Commission deleted', {
+      tenantId,
+      contractId,
+      commissionId: commission.id,
+    });
+
+    return { deleted: true, contractId };
+  }
 
   // ─── Rendition Generation ───────────────────────────
 

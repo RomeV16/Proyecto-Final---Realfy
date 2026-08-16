@@ -102,6 +102,12 @@ export {
   LiquidacionFilterSchema,
 } from './schemas/liquidacion.schema';
 
+// Schemas — comision por contrato
+export {
+  CreateCommissionSchema,
+  UpdateCommissionSchema,
+} from './schemas/commission.schema';
+
 // Schemas — rendiciones a propietarios
 export {
   GenerateRendicionSchema,
@@ -240,6 +246,13 @@ export type TransitionLiquidacionInput = z.infer<
 >;
 export type CreatePaymentInput = z.infer<typeof _CreatePaymentSchema>;
 export type LiquidacionFilterInput = z.infer<typeof _LiquidacionFilterSchema>;
+
+import {
+  CreateCommissionSchema as _CreateCommissionSchema,
+  UpdateCommissionSchema as _UpdateCommissionSchema,
+} from './schemas/commission.schema';
+export type CreateCommissionInput = z.infer<typeof _CreateCommissionSchema>;
+export type UpdateCommissionInput = z.infer<typeof _UpdateCommissionSchema>;
 
 import {
   GenerateRendicionSchema as _GenerateRendicionSchema,
