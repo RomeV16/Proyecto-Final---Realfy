@@ -102,6 +102,15 @@ export {
   LiquidacionFilterSchema,
 } from './schemas/liquidacion.schema';
 
+// Schemas — rendiciones a propietarios
+export {
+  GenerateRendicionSchema,
+  TransitionRendicionSchema,
+  RendicionFilterSchema,
+  CreateRendicionLineItemSchema,
+  UpdateRendicionNotesSchema,
+} from './schemas/rendicion.schema';
+
 // Schemas — servicios
 export {
   CreateServiceSchema,
@@ -233,6 +242,25 @@ export type CreatePaymentInput = z.infer<typeof _CreatePaymentSchema>;
 export type LiquidacionFilterInput = z.infer<typeof _LiquidacionFilterSchema>;
 
 import {
+  GenerateRendicionSchema as _GenerateRendicionSchema,
+  TransitionRendicionSchema as _TransitionRendicionSchema,
+  RendicionFilterSchema as _RendicionFilterSchema,
+  CreateRendicionLineItemSchema as _CreateRendicionLineItemSchema,
+  UpdateRendicionNotesSchema as _UpdateRendicionNotesSchema,
+} from './schemas/rendicion.schema';
+export type GenerateRendicionInput = z.infer<typeof _GenerateRendicionSchema>;
+export type TransitionRendicionInput = z.infer<
+  typeof _TransitionRendicionSchema
+>;
+export type RendicionFilterInput = z.infer<typeof _RendicionFilterSchema>;
+export type CreateRendicionLineItemInput = z.infer<
+  typeof _CreateRendicionLineItemSchema
+>;
+export type UpdateRendicionNotesInput = z.infer<
+  typeof _UpdateRendicionNotesSchema
+>;
+
+import {
   CreateServiceSchema as _CreateServiceSchema,
   UpdateServiceSchema as _UpdateServiceSchema,
   ServiceFilterSchema as _ServiceFilterSchema,
@@ -308,6 +336,11 @@ export {
   validateLiquidacionTransition,
   getValidLiquidacionTransitions,
 } from './state-machine/liquidacion-state-machine';
+
+export {
+  validateRendicionTransition,
+  getValidRendicionTransitions,
+} from './state-machine/rendicion-state-machine';
 
 // Constants & utilities
 export {
