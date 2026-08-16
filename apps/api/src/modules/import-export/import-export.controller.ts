@@ -1,19 +1,26 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
+  Res,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { ImportExportService } from './import-export.service';
+import { ExportService } from './export.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { UserRole, ImportValidateRequestSchema, ImportExecuteRequestSchema } from '@realfy/shared';
 
 @Controller()
 export class ImportExportController {
-  constructor(private readonly importService: ImportExportService) {}
+  constructor(
+    private readonly importService: ImportExportService,
+    private readonly exportService: ExportService,
+  ) {}
 
   // ─── Import Endpoints ───────────────────────────────
 
@@ -86,5 +93,69 @@ export class ImportExportController {
       parsed.data.entityType as 'property' | 'person',
       parsed.data.columnMappings,
     );
+  }
+
+  // ─── Properties Export ──────────────────────────────
+
+  /**
+   * GET /properties/export/csv — Download all properties as CSV.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Get('properties/export/csv')
+  async exportPropertiesCsv(@Res() res: Response) {
+    const { buffer, fileName } = await this.exportService.exportPropertiesCsv();
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  /**
+   * GET /properties/export/excel — Download all properties as Excel.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Get('properties/export/excel')
+  async exportPropertiesExcel(@Res() res: Response) {
+    const { buffer, fileName } = await this.exportService.exportPropertiesExcel();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  // ─── Persons Export ─────────────────────────────────
+
+  /**
+   * GET /persons/export/csv — Download all persons as CSV.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Get('persons/export/csv')
+  async exportPersonsCsv(@Res() res: Response) {
+    const { buffer, fileName } = await this.exportService.exportPersonsCsv();
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  /**
+   * GET /persons/export/excel — Download all persons as Excel.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Get('persons/export/excel')
+  async exportPersonsExcel(@Res() res: Response) {
+    const { buffer, fileName } = await this.exportService.exportPersonsExcel();
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="${fileName}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
   }
 }
