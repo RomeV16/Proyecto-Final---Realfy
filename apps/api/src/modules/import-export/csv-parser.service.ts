@@ -27,12 +27,22 @@ export class CsvParserService {
       return { headers: [], rows: [] };
     }
 
-    const headers = rows[0].map((h) => h.trim());
+    const headers = rows[0].map((h) => this.normalizeHeader(h));
     const dataRows = rows.slice(1).filter((row) =>
       row.some((cell) => cell.trim() !== ''),
     );
 
     return { headers, rows: dataRows };
+  }
+
+  /**
+   * Normalize a raw header cell: trim surrounding whitespace and collapse
+   * repeated internal whitespace. Spreadsheet exports commonly leave double
+   * spaces or padding in header rows (e.g. "Nombre  completo"), which would
+   * otherwise mismatch the same header echoed back by the column-mapping step.
+   */
+  private normalizeHeader(header: string): string {
+    return header.trim().replace(/\s+/g, ' ');
   }
 
   /**

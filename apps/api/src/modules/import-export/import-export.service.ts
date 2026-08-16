@@ -223,8 +223,10 @@ export class ImportExportService {
         ? PROPERTY_IMPORT_FIELDS
         : PERSON_IMPORT_FIELDS;
 
+    const normalizedHeaders = headers.map((h) => this.normalizeHeaderForMatch(h));
+
     for (const m of mappings) {
-      if (!headers.includes(m.sourceColumn)) {
+      if (!normalizedHeaders.includes(this.normalizeHeaderForMatch(m.sourceColumn))) {
         throw new BadRequestException({
           error: 'INVALID_MAPPING',
           message: `Source column "${m.sourceColumn}" not found in CSV headers`,
@@ -240,6 +242,21 @@ export class ImportExportService {
   }
 
   /**
+   * Normalize header text for comparison: case-insensitive, accent-insensitive,
+   * whitespace-collapsed. Keeps column mapping working when the source column
+   * name differs from the uploaded header only in case, accents or spacing
+   * (e.g. a re-uploaded file with "Título" vs "titulo").
+   */
+  private normalizeHeaderForMatch(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+  }
+
+  /**
    * Map a raw CSV row array to an object using column mappings.
    */
   private mapRow(
@@ -247,9 +264,10 @@ export class ImportExportService {
     headers: string[],
     mappings: ColumnMappingInput[],
   ): Record<string, string> {
+    const normalizedHeaders = headers.map((h) => this.normalizeHeaderForMatch(h));
     const result: Record<string, string> = {};
     for (const m of mappings) {
-      const idx = headers.indexOf(m.sourceColumn);
+      const idx = normalizedHeaders.indexOf(this.normalizeHeaderForMatch(m.sourceColumn));
       if (idx >= 0 && idx < row.length) {
         result[m.targetField] = row[idx].trim();
       }
