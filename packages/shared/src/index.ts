@@ -383,6 +383,19 @@ export {
 } from './liquidacion-engine';
 export type { LineItemInput, LineItemsTotalResult, PaymentInput } from './liquidacion-engine';
 
+// Commission engine
+export { calculateCommission } from './commission-engine';
+export type { CommissionConfig, CommissionResult } from './commission-engine';
+
+// Rendicion engine
+export { buildRendicionFromPayments } from './rendicion-engine';
+export type {
+  RendicionPaymentInput,
+  RendicionDeductionInput,
+  RendicionLineItem,
+  RendicionResult,
+} from './rendicion-engine';
+
 // Schemas de formularios de auth (login/register del frontend)
 export { loginSchema } from './schemas/login';
 export type { LoginFormInput } from './schemas/login';

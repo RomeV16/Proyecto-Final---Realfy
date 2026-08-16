@@ -21,6 +21,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ContractTemplatesModule } from './modules/contract-templates/contract-templates.module';
 import { LiquidacionesModule } from './modules/liquidaciones/liquidaciones.module';
 import { InvoicesModule } from './modules/invoices/invoices.module';
+import { RenditionsModule } from './modules/renditions/renditions.module';
 import { PortalAuthModule } from './modules/portal-auth/portal-auth.module';
 import { PortalModule } from './modules/portal/portal.module';
 import { TicketsModule } from './modules/tickets/tickets.module';
@@ -71,6 +72,7 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     ContractTemplatesModule,
     LiquidacionesModule,
     InvoicesModule,
+    RenditionsModule,
     ServicesModule,
     NotificationsModule,
     EmailTemplatesModule,
