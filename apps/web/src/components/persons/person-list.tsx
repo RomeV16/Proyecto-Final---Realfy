@@ -13,6 +13,7 @@ import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
+import { ExportButtons } from '../import/export-buttons';
 
 /* ──────────── Types ──────────── */
 
@@ -169,6 +170,7 @@ export function PersonList() {
           <p className="text-sm text-slate-500 mt-0.5">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
+          <ExportButtons entityPath="persons" />
           {canCreate && (
             <Link
               href={`${localePrefix}/persons/new`}
