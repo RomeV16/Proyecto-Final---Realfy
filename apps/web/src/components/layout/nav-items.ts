@@ -26,4 +26,5 @@ export const navItems: NavItem[] = [
   { key: 'tickets', href: '/tickets', icon: 'tickets' },
   { key: 'providers', href: '/providers', icon: 'providers' },
   { key: 'notifications', href: '/notifications', icon: 'bell' },
+  { key: 'import', href: '/import', icon: 'import' },
 ];
