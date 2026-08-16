@@ -565,3 +565,44 @@ import {
 export type CreateValuationInput = z.infer<typeof _CreateValuationSchema>;
 export type UpdateValuationInput = z.infer<typeof _UpdateValuationSchema>;
 export type ValuationFilterInput = z.infer<typeof _ValuationFilterSchema>;
+// Schemas — importacion y exportacion
+export {
+  ImportEntityType,
+  ColumnMappingSchema,
+  ImportConfigSchema,
+  ImportValidateRequestSchema,
+  ImportExecuteRequestSchema,
+  ImportRowErrorSchema,
+  ImportValidationResultSchema,
+  ImportExecuteResultSchema,
+  ImportUploadResultSchema,
+  PROPERTY_IMPORT_FIELDS,
+  PERSON_IMPORT_FIELDS,
+  CONTRACT_IMPORT_FIELDS,
+  LIQUIDACION_IMPORT_FIELDS,
+} from './schemas/import.schema';
+import {
+  ColumnMappingSchema as _ColumnMappingSchema,
+  ImportConfigSchema as _ImportConfigSchema,
+  ImportValidateRequestSchema as _ImportValidateRequestSchema,
+  ImportExecuteRequestSchema as _ImportExecuteRequestSchema,
+  ImportRowErrorSchema as _ImportRowErrorSchema,
+  ImportValidationResultSchema as _ImportValidationResultSchema,
+  ImportExecuteResultSchema as _ImportExecuteResultSchema,
+  ImportUploadResultSchema as _ImportUploadResultSchema,
+} from './schemas/import.schema';
+export type ColumnMappingInput = z.infer<typeof _ColumnMappingSchema>;
+export type ImportConfigInput = z.infer<typeof _ImportConfigSchema>;
+export type ImportValidateRequestInput = z.infer<typeof _ImportValidateRequestSchema>;
+export type ImportExecuteRequestInput = z.infer<typeof _ImportExecuteRequestSchema>;
+export type ImportRowError = z.infer<typeof _ImportRowErrorSchema>;
+export type ImportValidationResult = z.infer<typeof _ImportValidationResultSchema>;
+export type ImportExecuteResult = z.infer<typeof _ImportExecuteResultSchema>;
+export type ImportUploadResult = z.infer<typeof _ImportUploadResultSchema>;
+
+export {
+  PropertyImportRowSchema,
+  PersonImportRowSchema,
+  ContractImportRowSchema,
+  LiquidacionImportRowSchema,
+} from './schemas/import-row.schema';
