@@ -8,9 +8,11 @@ import { TenantContextService } from '../../common/tenant/tenant-context.service
 import {
   OwnerStatementFilterSchema,
   PropertyProfitabilityFilterSchema,
+  CashFlowFilterSchema,
   CommissionSummaryFilterSchema,
   PipelineAnalyticsFilterSchema,
   MorosidadFilterSchema,
+  RendicionStatus,
   LiquidacionStatus,
   LeadStatus,
   PersonRole,
@@ -35,6 +37,14 @@ export interface PropertyProfitabilityRow {
   facturado: string;
   comisiones: string;
   ingresoNeto: string;
+}
+
+export interface CashFlowRow {
+  mes: string;
+  ingresos: string;
+  egresos: string;
+  facturado: string;
+  saldoNeto: string;
 }
 
 export interface CommissionSummaryRow {
@@ -312,6 +322,136 @@ export class ReportsService {
       type: 'propertyProfitability',
       title: 'Rentabilidad por Propiedad',
       columns: ['Propiedad', 'Cobrado', 'Facturado', 'Comisiones', 'Ingreso Neto'],
+      rows,
+      summary,
+      generatedAt: new Date().toISOString(),
+      filters,
+    };
+  }
+
+  // ─── Monthly Cash Flow ────────────────────────────────
+
+  async getCashFlow(query: unknown): Promise<ReportResult<CashFlowRow>> {
+    let filters: any;
+    try {
+      filters = CashFlowFilterSchema.parse(query);
+    } catch (err) {
+      if (isZodError(err)) {
+        throw new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'Invalid cash flow filters',
+          details: err.errors,
+        });
+      }
+      throw err;
+    }
+
+    const tenantId = this.tenantContext.getTenantId()!;
+
+    // Default to current year if no dates specified
+    const fromDate = filters.from
+      ? new Date(filters.from)
+      : new Date(new Date().getFullYear(), 0, 1);
+    const toDate = filters.to
+      ? new Date(filters.to)
+      : new Date(new Date().getFullYear(), 11, 31);
+
+    // Inflow: Payments within date range
+    const payments = await this.prisma.client.payment.findMany({
+      where: {
+        liquidacion: { contract: { tenantId } },
+        paidAt: { gte: fromDate, lte: toDate },
+      },
+      include: {
+        comprobantes: true,
+      },
+    });
+
+    // Outflow: OwnerRendicion with status=Depositada
+    const rendiciones = await this.prisma.client.ownerRendicion.findMany({
+      where: {
+        tenantId,
+        status: RendicionStatus.Depositada,
+        depositedAt: { gte: fromDate, lte: toDate },
+      },
+    });
+
+    // Aggregate by month
+    const monthMap = new Map<string, {
+      ingresos: Decimal;
+      egresos: Decimal;
+      facturado: Decimal;
+    }>();
+
+    // Initialize months in range
+    const startMonth = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+    const endMonth = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
+    const current = new Date(startMonth);
+    while (current <= endMonth) {
+      const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+      monthMap.set(key, { ingresos: new Decimal(0), egresos: new Decimal(0), facturado: new Decimal(0) });
+      current.setMonth(current.getMonth() + 1);
+    }
+
+    // Inflow by month
+    for (const payment of payments) {
+      const paidAt = new Date(payment.paidAt);
+      const key = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, '0')}`;
+      const entry = monthMap.get(key);
+      if (entry) {
+        entry.ingresos = entry.ingresos.plus(payment.amount.toString());
+        for (const comp of payment.comprobantes ?? []) {
+          entry.facturado = entry.facturado.plus(comp.impTotal.toString());
+        }
+      }
+    }
+
+    // Outflow by month
+    for (const rend of rendiciones) {
+      const depositedAt = rend.depositedAt ? new Date(rend.depositedAt) : new Date(rend.period);
+      const key = `${depositedAt.getFullYear()}-${String(depositedAt.getMonth() + 1).padStart(2, '0')}`;
+      const entry = monthMap.get(key);
+      if (entry) {
+        entry.egresos = entry.egresos.plus(rend.netDeposit.toString());
+      }
+    }
+
+    const rows: CashFlowRow[] = Array.from(monthMap.entries())
+      .sort(([a]: any, [b]: any) => a.localeCompare(b))
+      .map(([key, data]) => {
+        const [year, month] = key.split('-');
+        const date = new Date(Number(year), Number(month) - 1, 1);
+        const label = date.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+        return {
+          mes: label,
+          ingresos: data.ingresos.toFixed(2),
+          egresos: data.egresos.toFixed(2),
+          facturado: data.facturado.toFixed(2),
+          saldoNeto: data.ingresos.minus(data.egresos).toFixed(2),
+        };
+      });
+
+    const summary = rows.reduce(
+      (acc, row) => ({
+        ingresos: new Decimal(acc.ingresos).plus(row.ingresos).toFixed(2),
+        egresos: new Decimal(acc.egresos).plus(row.egresos).toFixed(2),
+        facturado: new Decimal(acc.facturado).plus(row.facturado).toFixed(2),
+        saldoNeto: new Decimal(acc.saldoNeto).plus(row.saldoNeto).toFixed(2),
+      }),
+      { ingresos: '0', egresos: '0', facturado: '0', saldoNeto: '0' },
+    );
+
+    this.logger.log('Report generated', {
+      tenantId,
+      reportType: 'cashFlow',
+      dateRange: { from: filters.from ?? fromDate.toISOString(), to: filters.to ?? toDate.toISOString() },
+      rowCount: rows.length,
+    });
+
+    return {
+      type: 'cashFlow',
+      title: 'Flujo de Caja Mensual',
+      columns: ['Mes', 'Ingresos', 'Egresos', 'Facturado', 'Saldo Neto'],
       rows,
       summary,
       generatedAt: new Date().toISOString(),

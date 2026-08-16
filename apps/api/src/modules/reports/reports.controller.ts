@@ -9,7 +9,7 @@ import { ReportsService } from './reports.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { UserRole } from '@realfy/shared';
 
-const VALID_TYPES = ['ownerStatement', 'propertyProfitability', 'commissionSummary', 'pipelineAnalytics', 'morosidad'] as const;
+const VALID_TYPES = ['ownerStatement', 'propertyProfitability', 'cashFlow', 'commissionSummary', 'pipelineAnalytics', 'morosidad'] as const;
 type ValidReportType = (typeof VALID_TYPES)[number];
 
 @Controller('reports')
@@ -44,6 +44,8 @@ export class ReportsController {
         return this.reportsService.getOwnerStatement(query);
       case 'propertyProfitability':
         return this.reportsService.getPropertyProfitability(query);
+      case 'cashFlow':
+        return this.reportsService.getCashFlow(query);
       case 'commissionSummary':
         return this.reportsService.getCommissionSummary(query);
       case 'pipelineAnalytics':

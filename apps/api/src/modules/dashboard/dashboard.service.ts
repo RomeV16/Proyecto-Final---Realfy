@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import Decimal from 'decimal.js';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 const MONTHS_ES = [
@@ -7,6 +8,35 @@ const MONTHS_ES = [
 ];
 
 const PENDING_STATUSES = ['Aprobada', 'Enviada', 'Pendiente'];
+
+export interface FiscalStatsResult {
+  emissionsLast30d: {
+    count: number;
+    byIssuer: Array<{
+      issuerId: string;
+      cuit: string;
+      businessName: string;
+      count: number;
+      totalAmount: string;
+    }>;
+  };
+  errorsLast30d: {
+    count: number;
+    rate: string;
+    topErrors: Array<{ errorCode: string; count: number }>;
+  };
+  avgCaeLatencyMs: number;
+  certificate: {
+    exists: boolean;
+    daysToExpiry?: number;
+    isProduction?: boolean;
+  };
+  issuers: {
+    active: number;
+    pending: number;
+    revoked: number;
+  };
+}
 
 @Injectable()
 export class DashboardService {
@@ -246,6 +276,162 @@ export class DashboardService {
         collections: pendingList,
         tickets: ticketsAgenda,
       },
+    };
+  }
+
+  /**
+   * Fiscal stats widget — aggregates AFIP emission metrics for the given tenant.
+   *
+   * All Decimal arithmetic is done with the Decimal library; results are
+   * serialised as strings to avoid floating-point coercion.
+   *
+   * Queries:
+   *  - ArcaRequestLog(operation='emit')  → count, error rate, latency, topErrors
+   *  - Comprobante                        → per-issuer totals (last 30 days)
+   *  - ArcaCertificate                    → cert presence, expiry, env
+   *  - ArcaIssuer                         → delegation status counts
+   */
+  async getFiscalStats(tenantId: string): Promise<FiscalStatsResult> {
+    const now = new Date();
+    const since30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // ── 1. Emission logs last 30 days ────────────────────────────────────────
+    const [emitLogs, issuerRows, cert, issuerCounts] = await Promise.all([
+      (this.prisma.baseClient as any).arcaRequestLog.findMany({
+        where: {
+          tenantId,
+          operation: 'emit',
+          createdAt: { gte: since30d },
+        },
+        select: {
+          success: true,
+          latencyMs: true,
+          errorCode: true,
+        },
+      }),
+      // ── 2. Comprobantes per issuer last 30 days ──────────────────────────
+      (this.prisma.baseClient as any).comprobante.groupBy({
+        by: ['issuerId'],
+        where: {
+          tenantId,
+          status: 'Emitido',
+          createdAt: { gte: since30d },
+        },
+        _count: { _all: true },
+        _sum: { impTotal: true },
+      }),
+      // ── 3. Certificate ───────────────────────────────────────────────────
+      (this.prisma.baseClient as any).arcaCertificate.findFirst({
+        where: { tenantId },
+        select: { notAfter: true, isProduction: true, isActive: true },
+      }),
+      // ── 4. Issuer delegation status counts ──────────────────────────────
+      (this.prisma.baseClient as any).arcaIssuer.groupBy({
+        by: ['delegationStatus'],
+        where: { tenantId, isActive: true },
+        _count: { _all: true },
+      }),
+    ]);
+
+    // ── Resolve issuer details for byIssuer ─────────────────────────────────
+    const issuerIds = (issuerRows as any[])
+      .map((r: any) => r.issuerId)
+      .filter(Boolean);
+
+    const issuerDetails: any[] =
+      issuerIds.length > 0
+        ? await (this.prisma.baseClient as any).arcaIssuer.findMany({
+            where: { id: { in: issuerIds } },
+            select: { id: true, cuit: true, businessName: true },
+          })
+        : [];
+
+    const issuerMap = new Map(issuerDetails.map((i: any) => [i.id, i]));
+
+    const byIssuer = (issuerRows as any[]).map((row: any) => {
+      const info = issuerMap.get(row.issuerId) ?? { cuit: '', businessName: '' };
+      // Keep as Decimal → stringify; never coerce to Number
+      const totalAmount = new Decimal(row._sum?.impTotal?.toString() ?? '0');
+      return {
+        issuerId: row.issuerId as string,
+        cuit: info.cuit as string,
+        businessName: info.businessName as string,
+        count: row._count._all as number,
+        totalAmount: totalAmount.toFixed(2),
+      };
+    });
+
+    // ── Aggregate emit log metrics ───────────────────────────────────────────
+    const totalEmissions = (emitLogs as any[]).length;
+    const failedEmissions = (emitLogs as any[]).filter((l: any) => !l.success).length;
+    const errorRate =
+      totalEmissions > 0
+        ? new Decimal(failedEmissions)
+            .div(totalEmissions)
+            .mul(100)
+            .toFixed(2)
+        : '0.00';
+
+    // Average latency (only successful emit calls)
+    const successfulLogs = (emitLogs as any[]).filter((l: any) => l.success);
+    const avgCaeLatencyMs =
+      successfulLogs.length > 0
+        ? Math.round(
+            successfulLogs.reduce((sum: number, l: any) => sum + (l.latencyMs ?? 0), 0) /
+              successfulLogs.length,
+          )
+        : 0;
+
+    // Top errors by errorCode
+    const errorCodeMap = new Map<string, number>();
+    for (const log of emitLogs as any[]) {
+      if (!log.success && log.errorCode) {
+        errorCodeMap.set(log.errorCode, (errorCodeMap.get(log.errorCode) ?? 0) + 1);
+      }
+    }
+    const topErrors = Array.from(errorCodeMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([errorCode, count]) => ({ errorCode, count }));
+
+    // ── Certificate summary ──────────────────────────────────────────────────
+    let certificate: FiscalStatsResult['certificate'];
+    if (!cert) {
+      certificate = { exists: false };
+    } else {
+      const daysToExpiry = Math.ceil(
+        (new Date(cert.notAfter).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      );
+      certificate = {
+        exists: true,
+        daysToExpiry,
+        isProduction: cert.isProduction as boolean,
+      };
+    }
+
+    // ── Issuer delegation counts ─────────────────────────────────────────────
+    const statusCount = (status: string) =>
+      ((issuerCounts as any[]).find((r: any) => r.delegationStatus === status)?._count._all) ?? 0;
+
+    const issuers = {
+      active: statusCount('Active'),
+      pending: statusCount('Pending'),
+      revoked: statusCount('Revoked'),
+    };
+
+    return {
+      emissionsLast30d: {
+        count: totalEmissions,
+        byIssuer,
+      },
+      errorsLast30d: {
+        count: failedEmissions,
+        rate: errorRate,
+        topErrors,
+      },
+      avgCaeLatencyMs,
+      certificate,
+      issuers,
     };
   }
 }
