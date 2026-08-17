@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DashboardController } from './dashboard.controller';
 import { DashboardService } from './dashboard.service';
@@ -25,9 +26,31 @@ const MOCK_FISCAL_STATS = {
   issuers: { active: 2, pending: 1, revoked: 0 },
 };
 
+const MOCK_OCCUPANCY_TREND = [
+  { month: '2026-07', occupancyPct: 78.5 },
+  { month: '2026-08', occupancyPct: 82 },
+];
+
+const MOCK_PROFITABILITY = [
+  { propertyId: 'prop-1', label: 'Belgrano 100', revenue: 150000, expenses: 20000, net: 130000 },
+];
+
+const MOCK_CASH_FLOW = [
+  { period: '2026-08', inflow: 150000, outflow: 90000, net: 60000 },
+];
+
+const MOCK_DELINQUENCY = {
+  current: 12.5,
+  trend: [{ month: '2026-08', pct: 12.5 }],
+};
+
 function buildMocks() {
   const dashboardService = {
     getStats: jest.fn().mockResolvedValue(MOCK_STATS),
+    getOccupancyTrend: jest.fn().mockResolvedValue(MOCK_OCCUPANCY_TREND),
+    getProfitabilityByProperty: jest.fn().mockResolvedValue(MOCK_PROFITABILITY),
+    getCashFlow: jest.fn().mockResolvedValue(MOCK_CASH_FLOW),
+    getDelinquencyRate: jest.fn().mockResolvedValue(MOCK_DELINQUENCY),
     getFiscalStats: jest.fn().mockResolvedValue(MOCK_FISCAL_STATS),
   };
 
@@ -75,6 +98,138 @@ describe('DashboardController', () => {
   it('restringe los indicadores fiscales a Admin y Gerente', () => {
     const roles = Reflect.getMetadata('roles', DashboardController.prototype.getFiscalStats);
     expect(roles).toEqual(['Admin', 'Gerente']);
+  });
+
+  it('restringe cada widget de metricas al rol que le corresponde', () => {
+    const rolesOf = (handler: (...args: any[]) => unknown) =>
+      Reflect.getMetadata('roles', handler);
+
+    expect(rolesOf(DashboardController.prototype.getOccupancyTrend)).toEqual(['Admin', 'Gerente']);
+    expect(rolesOf(DashboardController.prototype.getProfitability)).toEqual(['Admin', 'Gerente']);
+    expect(rolesOf(DashboardController.prototype.getCashFlow)).toEqual([
+      'Admin',
+      'Gerente',
+      'Liquidaciones',
+    ]);
+    expect(rolesOf(DashboardController.prototype.getDelinquencyRate)).toEqual([
+      'Admin',
+      'Gerente',
+      'Liquidaciones',
+    ]);
+  });
+
+  it('deja los indicadores generales abiertos a cualquier sesion', () => {
+    expect(Reflect.getMetadata('roles', DashboardController.prototype.getStats)).toBeUndefined();
+  });
+
+  // ─── GET /dashboard/occupancy-trend ───────────────────────────────────────
+
+  describe('GET /dashboard/occupancy-trend', () => {
+    it('pide doce meses cuando no se especifica el rango', async () => {
+      const result = await controller.getOccupancyTrend({});
+
+      expect(result).toEqual(MOCK_OCCUPANCY_TREND);
+      expect(mocks.dashboardService.getOccupancyTrend).toHaveBeenCalledWith(TENANT_ID, 12);
+    });
+
+    it('respeta la cantidad de meses pedida', async () => {
+      await controller.getOccupancyTrend({ months: '6' });
+
+      expect(mocks.dashboardService.getOccupancyTrend).toHaveBeenCalledWith(TENANT_ID, 6);
+    });
+
+    it('rechaza una cantidad de meses invalida', async () => {
+      await expect(controller.getOccupancyTrend({ months: '99' })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mocks.dashboardService.getOccupancyTrend).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── GET /dashboard/profitability ─────────────────────────────────────────
+
+  describe('GET /dashboard/profitability', () => {
+    it('usa el rango explicito cuando viene en la query', async () => {
+      await controller.getProfitability({ from: '2026-01-01', to: '2026-03-31' });
+
+      const [tenantId, range] = mocks.dashboardService.getProfitabilityByProperty.mock.calls[0];
+      expect(tenantId).toBe(TENANT_ID);
+      expect(range.from.toISOString()).toBe('2026-01-01T00:00:00.000Z');
+      expect(range.to.toISOString()).toBe('2026-03-31T23:59:59.999Z');
+    });
+
+    it('cae en los ultimos doce meses cuando no hay rango', async () => {
+      const result = await controller.getProfitability({});
+
+      expect(result).toEqual(MOCK_PROFITABILITY);
+      const [, range] = mocks.dashboardService.getProfitabilityByProperty.mock.calls[0];
+      const monthsApart =
+        (range.to.getUTCFullYear() - range.from.getUTCFullYear()) * 12 +
+        (range.to.getUTCMonth() - range.from.getUTCMonth());
+      expect(monthsApart).toBe(11);
+      expect(range.from.getUTCDate()).toBe(1);
+    });
+
+    it('rechaza fechas mal formadas', async () => {
+      await expect(controller.getProfitability({ from: '01/01/2026' })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('rechaza un rango invertido', async () => {
+      await expect(
+        controller.getProfitability({ from: '2026-03-31', to: '2026-01-01' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mocks.dashboardService.getProfitabilityByProperty).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── GET /dashboard/cash-flow ─────────────────────────────────────────────
+
+  describe('GET /dashboard/cash-flow', () => {
+    it('agrupa por mes por defecto', async () => {
+      const result = await controller.getCashFlow({});
+
+      expect(result).toEqual(MOCK_CASH_FLOW);
+      expect(mocks.dashboardService.getCashFlow).toHaveBeenCalledWith(
+        TENANT_ID,
+        expect.objectContaining({ from: expect.any(Date), to: expect.any(Date) }),
+        'month',
+      );
+    });
+
+    it('acepta la granularidad semanal', async () => {
+      await controller.getCashFlow({ granularity: 'week' });
+
+      expect(mocks.dashboardService.getCashFlow).toHaveBeenCalledWith(
+        TENANT_ID,
+        expect.anything(),
+        'week',
+      );
+    });
+
+    it('rechaza una granularidad desconocida', async () => {
+      await expect(controller.getCashFlow({ granularity: 'trimestre' })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mocks.dashboardService.getCashFlow).not.toHaveBeenCalled();
+    });
+  });
+
+  // ─── GET /dashboard/delinquency-rate ──────────────────────────────────────
+
+  describe('GET /dashboard/delinquency-rate', () => {
+    it('devuelve la tasa actual y su serie', async () => {
+      const result = await controller.getDelinquencyRate();
+
+      expect(result).toEqual(MOCK_DELINQUENCY);
+      expect(mocks.dashboardService.getDelinquencyRate).toHaveBeenCalledWith(TENANT_ID);
+    });
+
+    it('propagates service errors', async () => {
+      mocks.dashboardService.getDelinquencyRate.mockRejectedValueOnce(new Error('DB error'));
+      await expect(controller.getDelinquencyRate()).rejects.toThrow('DB error');
+    });
   });
 
   // ─── GET /dashboard/stats ─────────────────────────────────────────────────

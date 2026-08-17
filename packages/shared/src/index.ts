@@ -697,3 +697,23 @@ export type CreateReportScheduleInput = z.infer<
 export type UpdateReportScheduleInput = z.infer<
   typeof _UpdateReportScheduleSchema
 >;
+
+export {
+  OccupancyTrendQuerySchema,
+  DashboardRangeQuerySchema,
+  DashboardCashFlowQuerySchema,
+} from './schemas/dashboard.schema';
+import {
+  OccupancyTrendQuerySchema as _OccupancyTrendQuerySchema,
+  DashboardRangeQuerySchema as _DashboardRangeQuerySchema,
+  DashboardCashFlowQuerySchema as _DashboardCashFlowQuerySchema,
+} from './schemas/dashboard.schema';
+export type OccupancyTrendQueryInput = z.infer<
+  typeof _OccupancyTrendQuerySchema
+>;
+export type DashboardRangeQueryInput = z.infer<
+  typeof _DashboardRangeQuerySchema
+>;
+export type DashboardCashFlowQueryInput = z.infer<
+  typeof _DashboardCashFlowQuerySchema
+>;
