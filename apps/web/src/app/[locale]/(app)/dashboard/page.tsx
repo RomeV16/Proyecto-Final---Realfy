@@ -12,6 +12,7 @@ import { EntityRow } from '@/components/ui/entity-card';
 import { StatTile } from '@/components/ui/stat-tile';
 import { TicketPriorityBadge } from '@/components/tickets/ticket-priority-badge';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton';
+import { DailyPriorities } from '@/components/dashboard/daily-priorities';
 import { PortfolioAnalytics } from '@/components/dashboard/portfolio-analytics';
 import { Icon, type IconName } from '@/components/ui/icon';
 import {
@@ -263,6 +264,9 @@ export default function DashboardPage() {
           <p className="text-sm text-[var(--color-muted)] first-letter:uppercase">{today}</p>
         )}
       </div>
+
+      {/* Prioridades del día — arranca la jornada por lo que no puede esperar */}
+      {canSeeAnalytics && <DailyPriorities />}
 
       {/* Hero — rent roll + revenue trend */}
       <Reveal>

@@ -196,6 +196,33 @@
    "revenue": "Revenue",
    "expenses": "Expenses",
    "loadError": "Could not load portfolio metrics"
+  },
+  "priorities": {
+   "title": "Today's priorities",
+   "hint": "Sorted by urgency",
+   "sourceModel": "Order suggested by {model}",
+   "sourceRules": "Order computed with the system's own rules",
+   "urgency": {
+    "alta": "High",
+    "media": "Medium",
+    "baja": "Low"
+   },
+   "kind": {
+    "cobranza": "Collect",
+    "reclamo": "Handle",
+    "contrato": "Renew",
+    "lead": "Contact"
+   },
+   "overdueDays": "{days, plural, one {# day overdue} other {# days overdue}}",
+   "pending": "pending",
+   "daysValue": "{days} d",
+   "hoursValue": "{hours} h",
+   "toExpiry": "to expiry",
+   "overSla": "past SLA",
+   "withoutContact": "without contact",
+   "emptyTitle": "Nothing urgent for today",
+   "emptySubtitle": "Collections are up to date, no claim is past its SLA and no lease is about to expire. A good moment to work the portfolio calmly.",
+   "loadError": "Could not load today's priorities"
   }
  },
  "users": {

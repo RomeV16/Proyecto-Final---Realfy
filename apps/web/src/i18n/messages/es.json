@@ -196,6 +196,33 @@
    "revenue": "Ingresos",
    "expenses": "Gastos",
    "loadError": "No se pudieron cargar las métricas de cartera"
+  },
+  "priorities": {
+   "title": "Prioridades del día",
+   "hint": "Ordenadas por urgencia",
+   "sourceModel": "Orden sugerido por {model}",
+   "sourceRules": "Orden calculado con las reglas del sistema",
+   "urgency": {
+    "alta": "Alta",
+    "media": "Media",
+    "baja": "Baja"
+   },
+   "kind": {
+    "cobranza": "Cobrar",
+    "reclamo": "Atender",
+    "contrato": "Renovar",
+    "lead": "Contactar"
+   },
+   "overdueDays": "{days, plural, one {# día vencida} other {# días vencida}}",
+   "pending": "pendiente",
+   "daysValue": "{days} d",
+   "hoursValue": "{hours} h",
+   "toExpiry": "para vencer",
+   "overSla": "fuera de plazo",
+   "withoutContact": "sin contacto",
+   "emptyTitle": "No hay nada urgente para hoy",
+   "emptySubtitle": "Las cobranzas están al día, no hay reclamos fuera de plazo ni contratos por vencer. Buen momento para trabajar la cartera con calma.",
+   "loadError": "No se pudieron cargar las prioridades del día"
   }
  },
  "users": {
