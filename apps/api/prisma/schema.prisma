@@ -696,6 +696,7 @@ model Contract {
   customAdjustmentPct  Decimal?         @db.Decimal(5, 2)
   notes                String?
   isActive             Boolean          @default(true)
+  closedAt             DateTime?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 
@@ -707,6 +708,7 @@ model Contract {
   liquidaciones Liquidacion[]
   commission    ContractCommission?
   rendiciones   OwnerRendicion[]
+  closureSummary ContractClosureSummary?
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -822,6 +824,33 @@ model ContractTemplate {
   @@index([tenantId, contractType])
   @@index([tenantId, isActive])
   @@map("contract_templates")
+}
+
+// ─── Contract Closure Summary ───────────────────────────
+
+enum ClosureSummarySource {
+  model
+  rules
+}
+
+model ContractClosureSummary {
+  id          String               @id @default(uuid())
+  tenantId    String
+  contractId  String               @unique
+  summary     String
+  highlights  String[]
+  metrics     Json
+  source      ClosureSummarySource
+  model       String?
+  generatedAt DateTime             @default(now())
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, source])
+  @@map("contract_closure_summaries")
 }
 
 // ─── Liquidacion Enums ──────────────────────────────────

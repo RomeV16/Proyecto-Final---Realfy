@@ -19,6 +19,8 @@ import {
 } from '@realfy/shared';
 import type { AdjustmentParams } from '@realfy/shared';
 import Decimal from 'decimal.js';
+import { ContractClosureService } from '../ai/contract-closure.service';
+import { isClosedStatus } from '../ai/contract-closure';
 
 /**
  * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
@@ -71,6 +73,7 @@ export class ContractsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
+    private readonly closureSummaries: ContractClosureService,
   ) {}
 
   // ─── List ───────────────────────────────────────────
@@ -355,9 +358,16 @@ export class ContractsService {
       (validated.endDate && new Date(validated.endDate).getTime() !== existing.endDate.getTime()) ||
       (validated.adjustmentPeriod && validated.adjustmentPeriod !== existing.adjustmentPeriod);
 
+    // El contrato pasa a un estado de cierre: se registra la fecha en la misma
+    // transición, para no tener que deducirla después.
+    const justClosed =
+      validated.status !== undefined &&
+      isClosedStatus(validated.status) &&
+      !isClosedStatus(existing.status);
+
     await this.prisma.client.contract.update({
       where: { id },
-      data: validated,
+      data: justClosed ? { ...validated, closedAt: new Date() } : validated,
     });
 
     if (datesChanged) {
@@ -413,6 +423,10 @@ export class ContractsService {
       schedulesRecalculated: datesChanged,
     });
 
+    if (justClosed) {
+      this.summarizeClosure(tenantId, id);
+    }
+
     return this.findOne(id);
   }
 
@@ -435,6 +449,7 @@ export class ContractsService {
       data: {
         status: ContractStatus.Rescindido,
         isActive: false,
+        closedAt: new Date(),
       },
     });
 
@@ -453,7 +468,27 @@ export class ContractsService {
       tenantId,
     });
 
+    this.summarizeClosure(tenantId, id);
+
     return this.findOne(id);
+  }
+
+  /**
+   * Pide el resumen de gestión del contrato recién cerrado sin esperarlo.
+   *
+   * La redacción puede tardar lo que tarde el modelo de lenguaje, y cerrar un
+   * contrato no puede quedar esperando eso desde la pantalla. La generación
+   * registra sus propias fallas, y si el resumen no queda escrito la ficha del
+   * contrato ofrece generarlo.
+   */
+  private summarizeClosure(tenantId: string, contractId: string): void {
+    this.closureSummaries.generateOnClosure(tenantId, contractId).catch((err: unknown) => {
+      this.logger.warn('Closure summary generation failed', {
+        contractId,
+        tenantId,
+        reason: err instanceof Error ? err.message : String(err),
+      });
+    });
   }
 
   // ─── Calculate Adjustment ───────────────────────────

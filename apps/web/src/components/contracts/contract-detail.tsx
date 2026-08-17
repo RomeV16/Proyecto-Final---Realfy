@@ -17,6 +17,7 @@ import { GuaranteeBadge } from './guarantee-badge';
 import { AdjustmentTimeline } from './adjustment-timeline';
 import { GenerateDocumentModal } from './generate-document-modal';
 import { CommissionConfig } from './commission-config';
+import { ClosureSummary } from './closure-summary';
 
 /* ──────────── Types ──────────── */
 
@@ -872,6 +873,9 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
 
           {/* Commission configuration */}
           {isAdmin && <CommissionConfig contractId={contract.id} />}
+
+          {/* Resumen de gestión al cierre — lectura de Admin y Gerencia */}
+          {isAdmin && <ClosureSummary contractId={contract.id} />}
 
           {/* Metadata */}
           <div className="text-xs text-slate-400 flex gap-4">

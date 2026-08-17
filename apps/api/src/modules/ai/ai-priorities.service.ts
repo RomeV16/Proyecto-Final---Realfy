@@ -13,7 +13,7 @@ import {
   type DailyContextTotals,
   type PriorityKind,
 } from './daily-context';
-import { LanguageModelClient } from './language-model.client';
+import { LanguageModelClient, parseJsonObject } from './language-model.client';
 import { rankByRules } from './priority-rules';
 
 /** Quién decidió el orden de la lista. */
@@ -83,18 +83,6 @@ function buildUserPrompt(facts: DailyContextFact[], totals: DailyContextTotals):
     '- "action" es el próximo paso concreto, en infinitivo, hasta 160 caracteres.',
     '- No repitas la referencia en el texto ni intentes nombrar a las personas.',
   ].join('\n');
-}
-
-/** Aísla el objeto JSON de la respuesta, tolerando cercos de código o preámbulos. */
-function extractJson(text: string): unknown | null {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end <= start) return null;
-  try {
-    return JSON.parse(text.slice(start, end + 1));
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -187,7 +175,7 @@ export class AiPrioritiesService {
     );
     if (!answer) return null;
 
-    const payload = extractJson(answer.text);
+    const payload = parseJsonObject(answer.text);
     if (payload === null) {
       this.logger.warn('La respuesta del modelo no contenía un objeto JSON');
       return null;
