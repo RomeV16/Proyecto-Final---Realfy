@@ -18,6 +18,7 @@ import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
+import { ExportButtons } from '../import/export-buttons';
 
 /* ──────────── Types ──────────── */
 
@@ -241,6 +242,7 @@ export function PropertyList() {
           <p className="text-sm text-slate-500 mt-0.5">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
+          <ExportButtons entityPath="properties" />
           {canCreate && (
             <Link
               href={`${localePrefix}/properties/new`}
