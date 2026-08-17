@@ -247,6 +247,8 @@ model Tenant {
   scoreConfigs TenantScoreConfig[]
   scores       TenantScore[]
 
+  reportSchedules ReportSchedule[]
+
   @@map("tenants")
 }
 
@@ -1617,4 +1619,27 @@ model PropertyValuation {
   @@index([tenantId])
   @@index([tenantId, propertyId])
   @@map("property_valuations")
+}
+
+// ─── Report Models ──────────────────────────────────────
+
+model ReportSchedule {
+  id         String    @id @default(uuid())
+  tenantId   String
+  reportType String
+  frequency  String // 'daily' | 'weekly' | 'monthly'
+  filters    Json?
+  recipients String[]
+  format     String    @default("excel")
+  isActive   Boolean   @default(true)
+  lastRunAt  DateTime?
+  nextRunAt  DateTime
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([isActive, nextRunAt])
+  @@map("report_schedules")
 }

@@ -665,3 +665,55 @@ export {
   ContractImportRowSchema,
   LiquidacionImportRowSchema,
 } from './schemas/import-row.schema';
+
+export {
+  ReportType,
+  ReportFilterSchema,
+  OwnerStatementFilterSchema,
+  PropertyProfitabilityFilterSchema,
+  CashFlowFilterSchema,
+  CommissionSummaryFilterSchema,
+  PipelineAnalyticsFilterSchema,
+  MorosidadFilterSchema,
+  ReportScheduleFrequency,
+  CreateReportScheduleSchema,
+  UpdateReportScheduleSchema,
+} from './schemas/report.schema';
+import {
+  ReportType as _ReportType,
+  ReportFilterSchema as _ReportFilterSchema,
+  ReportScheduleFrequency as _ReportScheduleFrequency,
+  CreateReportScheduleSchema as _CreateReportScheduleSchema,
+  UpdateReportScheduleSchema as _UpdateReportScheduleSchema,
+} from './schemas/report.schema';
+export type ReportTypeValue = z.infer<typeof _ReportType>;
+export type ReportFilterInput = z.infer<typeof _ReportFilterSchema>;
+export type ReportScheduleFrequencyValue = z.infer<
+  typeof _ReportScheduleFrequency
+>;
+export type CreateReportScheduleInput = z.infer<
+  typeof _CreateReportScheduleSchema
+>;
+export type UpdateReportScheduleInput = z.infer<
+  typeof _UpdateReportScheduleSchema
+>;
+
+export {
+  OccupancyTrendQuerySchema,
+  DashboardRangeQuerySchema,
+  DashboardCashFlowQuerySchema,
+} from './schemas/dashboard.schema';
+import {
+  OccupancyTrendQuerySchema as _OccupancyTrendQuerySchema,
+  DashboardRangeQuerySchema as _DashboardRangeQuerySchema,
+  DashboardCashFlowQuerySchema as _DashboardCashFlowQuerySchema,
+} from './schemas/dashboard.schema';
+export type OccupancyTrendQueryInput = z.infer<
+  typeof _OccupancyTrendQuerySchema
+>;
+export type DashboardRangeQueryInput = z.infer<
+  typeof _DashboardRangeQuerySchema
+>;
+export type DashboardCashFlowQueryInput = z.infer<
+  typeof _DashboardCashFlowQuerySchema
+>;

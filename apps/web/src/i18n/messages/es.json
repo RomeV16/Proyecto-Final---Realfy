@@ -182,6 +182,20 @@
   "charts": {
    "occupancy": "Ocupación",
    "collections": "Estado de cobranzas"
+  },
+  "analytics": {
+   "occupancyTitle": "Tendencia de ocupación",
+   "occupancyLabel": "Ocupación",
+   "occupancyEmpty": "Todavía no hay ocupación para graficar",
+   "occupancyEmptyHint": "Cargá operaciones de alquiler para ver cómo evoluciona la cartera.",
+   "profitabilityTitle": "Rentabilidad por propiedad",
+   "profitabilityEmpty": "Todavía no hay rentabilidad para graficar",
+   "profitabilityEmptyHint": "Registrá cobranzas del período para comparar ingresos y gastos.",
+   "lastTwelveMonths": "Últimos 12 meses",
+   "topProperties": "Top {count} del período",
+   "revenue": "Ingresos",
+   "expenses": "Gastos",
+   "loadError": "No se pudieron cargar las métricas de cartera"
   }
  },
  "users": {
@@ -2661,7 +2675,19 @@
    },
    "confirmDelete": "¿Estás seguro de eliminar esta programación?",
    "saved": "Programación guardada",
-   "deleted": "Programación eliminada"
+   "deleted": "Programación eliminada",
+   "recipientsRequired": "Ingresá al menos un destinatario",
+   "saveFailed": "No se pudo guardar la programación",
+   "deleteFailed": "No se pudo eliminar la programación"
+  },
+  "forbidden": "No tenés acceso a los reportes",
+  "forbiddenHint": "Pedí a un administrador el rol de Gerencia o Liquidaciones para generar reportes.",
+  "summaryLabels": {
+   "totalVencido": "Total vencido",
+   "cantidadVencidas": "Liquidaciones vencidas",
+   "totalLeads": "Leads totales",
+   "totalConvertidos": "Leads convertidos",
+   "tasaConversionGeneral": "Tasa de conversión general"
   }
  },
  "tickets": {
