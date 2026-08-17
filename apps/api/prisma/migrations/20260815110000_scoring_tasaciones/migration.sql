@@ -1,5 +1,3 @@
-For more information, see: https://pris.ly/prisma-config
-
 -- CreateEnum
 CREATE TYPE "ValuationMethod" AS ENUM ('Comparativo', 'Costo', 'Ingreso', 'Mixto');
 
