@@ -424,7 +424,7 @@ export class ContractsService {
     });
 
     if (justClosed) {
-      await this.closureSummaries.generateOnClosure(tenantId, id);
+      this.summarizeClosure(tenantId, id);
     }
 
     return this.findOne(id);
@@ -468,9 +468,27 @@ export class ContractsService {
       tenantId,
     });
 
-    await this.closureSummaries.generateOnClosure(tenantId, id);
+    this.summarizeClosure(tenantId, id);
 
     return this.findOne(id);
+  }
+
+  /**
+   * Pide el resumen de gestión del contrato recién cerrado sin esperarlo.
+   *
+   * La redacción puede tardar lo que tarde el modelo de lenguaje, y cerrar un
+   * contrato no puede quedar esperando eso desde la pantalla. La generación
+   * registra sus propias fallas, y si el resumen no queda escrito la ficha del
+   * contrato ofrece generarlo.
+   */
+  private summarizeClosure(tenantId: string, contractId: string): void {
+    this.closureSummaries.generateOnClosure(tenantId, contractId).catch((err: unknown) => {
+      this.logger.warn('Closure summary generation failed', {
+        contractId,
+        tenantId,
+        reason: err instanceof Error ? err.message : String(err),
+      });
+    });
   }
 
   // ─── Calculate Adjustment ───────────────────────────

@@ -62,6 +62,46 @@ describe('ContractsService — disparo del resumen de cierre', () => {
     module = undefined;
   });
 
+  describe('sin esperar la redaccion', () => {
+    /** Una generación que nunca termina, como una llamada al modelo colgada. */
+    function withHangingGeneration() {
+      const mocks = buildMocks();
+      mocks.closureSummaries.generateOnClosure.mockReturnValue(new Promise(() => {}));
+      return mocks;
+    }
+
+    it('rescinde el contrato sin esperar a que el resumen este escrito', async () => {
+      const mocks = withHangingGeneration();
+      const built = await buildService(mocks);
+      module = built.module;
+
+      await expect(built.service.terminate(CONTRACT_ID)).resolves.toBeDefined();
+      expect(mocks.closureSummaries.generateOnClosure).toHaveBeenCalled();
+    });
+
+    it('cierra el contrato por update sin esperar el resumen', async () => {
+      const mocks = withHangingGeneration();
+      const built = await buildService(mocks);
+      module = built.module;
+
+      await expect(
+        built.service.update(CONTRACT_ID, { status: 'Vencido' }),
+      ).resolves.toBeDefined();
+      expect(mocks.closureSummaries.generateOnClosure).toHaveBeenCalled();
+    });
+
+    it('no propaga la falla de la generacion al cierre', async () => {
+      const mocks = buildMocks();
+      mocks.closureSummaries.generateOnClosure.mockRejectedValue(
+        new Error('el modelo no responde'),
+      );
+      const built = await buildService(mocks);
+      module = built.module;
+
+      await expect(built.service.terminate(CONTRACT_ID)).resolves.toBeDefined();
+    });
+  });
+
   describe('terminate', () => {
     it('resume la gestion cuando el contrato se rescinde', async () => {
       const mocks = buildMocks();
