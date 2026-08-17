@@ -22,6 +22,21 @@ export interface LanguageModelResult {
   model: string;
 }
 
+/**
+ * Aísla el objeto JSON de una respuesta del modelo, tolerando cercos de código o
+ * preámbulos. Devuelve `null` si no hay un objeto parseable.
+ */
+export function parseJsonObject(text: string): unknown | null {
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start === -1 || end <= start) return null;
+  try {
+    return JSON.parse(text.slice(start, end + 1));
+  } catch {
+    return null;
+  }
+}
+
 const DEFAULT_BASE_URL = 'https://api.minimax.io/v1';
 const DEFAULT_MODEL = 'MiniMax-M2';
 const DEFAULT_TIMEOUT_MS = 20_000;

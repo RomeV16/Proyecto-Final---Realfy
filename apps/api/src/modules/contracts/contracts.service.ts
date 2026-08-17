@@ -19,6 +19,8 @@ import {
 } from '@realfy/shared';
 import type { AdjustmentParams } from '@realfy/shared';
 import Decimal from 'decimal.js';
+import { ContractClosureService } from '../ai/contract-closure.service';
+import { isClosedStatus } from '../ai/contract-closure';
 
 /**
  * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
@@ -71,6 +73,7 @@ export class ContractsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
+    private readonly closureSummaries: ContractClosureService,
   ) {}
 
   // ─── List ───────────────────────────────────────────
@@ -413,6 +416,16 @@ export class ContractsService {
       schedulesRecalculated: datesChanged,
     });
 
+    // El contrato acaba de pasar a un estado de cierre: se resume la gestión.
+    // Si el resumen falla, el cambio de estado ya quedó hecho igual.
+    const justClosed =
+      validated.status !== undefined &&
+      isClosedStatus(validated.status) &&
+      !isClosedStatus(existing.status);
+    if (justClosed) {
+      await this.closureSummaries.generateOnClosure(tenantId, id);
+    }
+
     return this.findOne(id);
   }
 
@@ -452,6 +465,8 @@ export class ContractsService {
       contractId: id,
       tenantId,
     });
+
+    await this.closureSummaries.generateOnClosure(tenantId, id);
 
     return this.findOne(id);
   }
