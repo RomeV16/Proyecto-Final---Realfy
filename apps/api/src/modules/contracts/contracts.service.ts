@@ -358,9 +358,16 @@ export class ContractsService {
       (validated.endDate && new Date(validated.endDate).getTime() !== existing.endDate.getTime()) ||
       (validated.adjustmentPeriod && validated.adjustmentPeriod !== existing.adjustmentPeriod);
 
+    // El contrato pasa a un estado de cierre: se registra la fecha en la misma
+    // transición, para no tener que deducirla después.
+    const justClosed =
+      validated.status !== undefined &&
+      isClosedStatus(validated.status) &&
+      !isClosedStatus(existing.status);
+
     await this.prisma.client.contract.update({
       where: { id },
-      data: validated,
+      data: justClosed ? { ...validated, closedAt: new Date() } : validated,
     });
 
     if (datesChanged) {
@@ -416,12 +423,6 @@ export class ContractsService {
       schedulesRecalculated: datesChanged,
     });
 
-    // El contrato acaba de pasar a un estado de cierre: se resume la gestión.
-    // Si el resumen falla, el cambio de estado ya quedó hecho igual.
-    const justClosed =
-      validated.status !== undefined &&
-      isClosedStatus(validated.status) &&
-      !isClosedStatus(existing.status);
     if (justClosed) {
       await this.closureSummaries.generateOnClosure(tenantId, id);
     }
@@ -448,6 +449,7 @@ export class ContractsService {
       data: {
         status: ContractStatus.Rescindido,
         isActive: false,
+        closedAt: new Date(),
       },
     });
 

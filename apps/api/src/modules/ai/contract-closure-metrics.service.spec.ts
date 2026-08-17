@@ -36,7 +36,8 @@ const CONTRACT = {
   endDate: d('2026-03-01'),
   rentAmount: 320000,
   rentCurrency: 'ARS',
-  updatedAt: d('2025-12-01'),
+  closedAt: d('2025-12-01'),
+  updatedAt: d('2026-01-20'),
 
   liquidaciones: [
     // En término: se pagó dos días antes del vencimiento.
@@ -211,6 +212,56 @@ describe('ContractClosureMetricsService', () => {
       expect(metrics.durationMonths).toBe(21);
       expect(metrics.durationDays).toBe(640);
       expect(metrics.endedEarly).toBe(true);
+    });
+
+    it('toma la fecha de cierre registrada y no la ultima modificacion', async () => {
+      // El contrato se editó en enero, después de haberse rescindido en
+      // diciembre: la vigencia no puede moverse por eso.
+      const metrics = (await service.compute(CONTRACT_ID))!;
+
+      expect(metrics.closedOn).toBe(CONTRACT.closedAt.toISOString());
+      expect(metrics.closedOn).not.toBe(CONTRACT.updatedAt.toISOString());
+    });
+
+    it('regenerar despues de una edicion posterior da la misma vigencia', async () => {
+      const before = (await service.compute(CONTRACT_ID))!;
+
+      prisma.client.contract.findFirst.mockResolvedValueOnce({
+        ...CONTRACT,
+        updatedAt: d('2026-02-28'),
+      });
+      const after = (await service.compute(CONTRACT_ID))!;
+
+      expect(after.closedOn).toBe(before.closedOn);
+      expect(after.durationMonths).toBe(before.durationMonths);
+      expect(after.durationDays).toBe(before.durationDays);
+    });
+
+    it('sin fecha registrada infiere el cierre, para los contratos ya cerrados de antes', async () => {
+      prisma.client.contract.findFirst.mockResolvedValueOnce({
+        ...CONTRACT,
+        closedAt: null,
+        updatedAt: d('2025-12-01'),
+      });
+
+      const metrics = (await service.compute(CONTRACT_ID))!;
+
+      expect(metrics.closedOn).toBe(d('2025-12-01').toISOString());
+      expect(metrics.durationMonths).toBe(21);
+    });
+
+    it('sin fecha registrada nunca infiere un cierre posterior a lo pactado', async () => {
+      prisma.client.contract.findFirst.mockResolvedValueOnce({
+        ...CONTRACT,
+        status: 'Vencido',
+        closedAt: null,
+        updatedAt: d('2026-06-15'),
+      });
+
+      const metrics = (await service.compute(CONTRACT_ID))!;
+
+      expect(metrics.closedOn).toBe(CONTRACT.endDate.toISOString());
+      expect(metrics.endedEarly).toBe(false);
     });
 
     it('separa los pagos puntuales de los pagos con atraso', async () => {

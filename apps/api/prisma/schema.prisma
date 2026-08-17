@@ -696,6 +696,7 @@ model Contract {
   customAdjustmentPct  Decimal?         @db.Decimal(5, 2)
   notes                String?
   isActive             Boolean          @default(true)
+  closedAt             DateTime?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 

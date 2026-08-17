@@ -70,6 +70,7 @@ export class ContractClosureMetricsService {
         endDate: true,
         rentAmount: true,
         rentCurrency: true,
+        closedAt: true,
         updatedAt: true,
         liquidaciones: {
           select: {
@@ -92,11 +93,13 @@ export class ContractClosureMetricsService {
 
     if (!contract) return null;
 
-    // El cierre efectivo no se guarda como fecha propia: es el fin pactado, o
-    // el momento de la última modificación cuando el contrato se cortó antes.
-    const closedOn = new Date(
-      Math.min(contract.endDate.getTime(), contract.updatedAt.getTime()),
-    );
+    // La fecha de cierre queda registrada en la transición de estado. Los
+    // contratos que ya estaban cerrados antes de que se registrara no la tienen,
+    // así que para esos se infiere: el fin pactado, o el momento de la última
+    // modificación cuando el contrato se cortó antes.
+    const closedOn =
+      contract.closedAt ??
+      new Date(Math.min(contract.endDate.getTime(), contract.updatedAt.getTime()));
 
     const liquidaciones = contract.liquidaciones.filter(
       (l) => l.status !== VOID_LIQUIDACION_STATUS,

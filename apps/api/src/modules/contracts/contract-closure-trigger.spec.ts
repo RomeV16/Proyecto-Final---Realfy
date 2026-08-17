@@ -76,10 +76,8 @@ describe('ContractsService — disparo del resumen de cierre', () => {
       );
     });
 
-    it('rescinde el contrato aunque el resumen no se pueda generar', async () => {
+    it('registra la fecha de cierre en la misma transicion', async () => {
       const mocks = buildMocks();
-      // `generateOnClosure` no lanza por contrato, pero si algún día lo hiciera,
-      // la rescisión ya está aplicada antes de pedirlo.
       const built = await buildService(mocks);
       module = built.module;
 
@@ -87,7 +85,11 @@ describe('ContractsService — disparo del resumen de cierre', () => {
 
       expect(mocks.prisma.client.contract.update).toHaveBeenCalledWith({
         where: { id: CONTRACT_ID },
-        data: { status: 'Rescindido', isActive: false },
+        data: {
+          status: 'Rescindido',
+          isActive: false,
+          closedAt: expect.any(Date),
+        },
       });
     });
   });
@@ -114,6 +116,49 @@ describe('ContractsService — disparo del resumen de cierre', () => {
       await built.service.update(CONTRACT_ID, { status: 'Renovado' });
 
       expect(mocks.closureSummaries.generateOnClosure).toHaveBeenCalled();
+    });
+
+    it('registra la fecha de cierre al pasar a un estado cerrado', async () => {
+      const mocks = buildMocks();
+      const built = await buildService(mocks);
+      module = built.module;
+
+      await built.service.update(CONTRACT_ID, { status: 'Vencido' });
+
+      expect(mocks.prisma.client.contract.update).toHaveBeenCalledWith({
+        where: { id: CONTRACT_ID },
+        data: { status: 'Vencido', closedAt: expect.any(Date) },
+      });
+    });
+
+    it('no toca la fecha de cierre en una edicion cualquiera', async () => {
+      const mocks = buildMocks();
+      const built = await buildService(mocks);
+      module = built.module;
+
+      await built.service.update(CONTRACT_ID, { notes: 'Se acordó una prórroga verbal' });
+
+      expect(mocks.prisma.client.contract.update).toHaveBeenCalledWith({
+        where: { id: CONTRACT_ID },
+        data: { notes: 'Se acordó una prórroga verbal' },
+      });
+    });
+
+    it('no reescribe la fecha de cierre de un contrato ya cerrado', async () => {
+      const mocks = buildMocks();
+      mocks.prisma.client.contract.findFirst.mockResolvedValue({
+        ...ACTIVE_CONTRACT,
+        status: 'Vencido',
+      });
+      const built = await buildService(mocks);
+      module = built.module;
+
+      await built.service.update(CONTRACT_ID, { status: 'Archivado' });
+
+      expect(mocks.prisma.client.contract.update).toHaveBeenCalledWith({
+        where: { id: CONTRACT_ID },
+        data: { status: 'Archivado' },
+      });
     });
 
     it('no resume nada si el contrato sigue vigente', async () => {
