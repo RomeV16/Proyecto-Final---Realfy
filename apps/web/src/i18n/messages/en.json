@@ -2661,7 +2661,19 @@
    },
    "confirmDelete": "¿Estás seguro de eliminar esta programación?",
    "saved": "Programación guardada",
-   "deleted": "Programación eliminada"
+   "deleted": "Programación eliminada",
+   "recipientsRequired": "Enter at least one recipient",
+   "saveFailed": "Could not save the schedule",
+   "deleteFailed": "Could not delete the schedule"
+  },
+  "forbidden": "You do not have access to reports",
+  "forbiddenHint": "Ask an administrator for the Gerencia or Liquidaciones role to generate reports.",
+  "summaryLabels": {
+   "totalVencido": "Total overdue",
+   "cantidadVencidas": "Overdue liquidaciones",
+   "totalLeads": "Total leads",
+   "totalConvertidos": "Converted leads",
+   "tasaConversionGeneral": "Overall conversion rate"
   }
  },
  "tickets": {

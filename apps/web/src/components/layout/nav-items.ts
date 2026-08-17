@@ -24,6 +24,7 @@ export const navItems: NavItem[] = [
   { key: 'renditions', href: '/renditions', icon: 'renditions' },
   { key: 'invoices', href: '/invoices', icon: 'invoices' },
   { key: 'delinquency', href: '/delinquency', icon: 'delinquency' },
+  { key: 'reports', href: '/reports', icon: 'reports' },
   { key: 'tickets', href: '/tickets', icon: 'tickets' },
   { key: 'providers', href: '/providers', icon: 'providers' },
   { key: 'notifications', href: '/notifications', icon: 'bell' },
