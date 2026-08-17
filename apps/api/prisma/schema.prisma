@@ -481,6 +481,7 @@ model Person {
   contractPersons ContractPerson[]
   providerProfile ProviderProfile?
   leads           Lead[]
+  rendiciones     OwnerRendicion[]
 
   assignedTickets        Ticket[]        @relation("TicketProvider")
   ticketsCreatedByPerson Ticket[]        @relation("TicketPortalCreator")
@@ -702,6 +703,8 @@ model Contract {
   adjustments   ContractAdjustment[]
   schedules     AdjustmentSchedule[]
   liquidaciones Liquidacion[]
+  commission    ContractCommission?
+  rendiciones   OwnerRendicion[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -1055,6 +1058,100 @@ model Notification {
   @@index([tenantId, userId, isRead])
   @@index([tenantId, userId, createdAt])
   @@map("notifications")
+}
+
+// ─── Commission & Rendicion Enums ───────────────────────
+
+enum CommissionType {
+  FixedPercent
+  FixedAmount
+  Mixed
+}
+
+enum RendicionStatus {
+  Borrador
+  Aprobada
+  Enviada
+  Depositada
+}
+
+enum RendicionLineItemType {
+  Alquiler
+  Comision
+  AdminFee
+  Deduccion
+  Ajuste
+}
+
+// ─── Commission & Rendicion Models ──────────────────────
+
+model ContractCommission {
+  id          String         @id @default(uuid())
+  tenantId    String
+  contractId  String         @unique
+  type        CommissionType
+  percentage  Decimal?       @db.Decimal(5, 2)
+  fixedAmount Decimal?       @db.Decimal(15, 2)
+  adminFee    Decimal?       @db.Decimal(15, 2)
+  currency    Currency       @default(ARS)
+  notes       String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("contract_commissions")
+}
+
+model OwnerRendicion {
+  id               String          @id @default(uuid())
+  tenantId         String
+  contractId       String
+  ownerId          String
+  period           DateTime
+  status           RendicionStatus @default(Borrador)
+  rentCollected    Decimal         @db.Decimal(15, 2)
+  commissionAmount Decimal         @db.Decimal(15, 2)
+  adminFeeAmount   Decimal         @db.Decimal(15, 2)
+  deductionTotal   Decimal         @db.Decimal(15, 2)
+  netDeposit       Decimal         @db.Decimal(15, 2)
+  currency         Currency        @default(ARS)
+  pdfUrl           String?
+  sentAt           DateTime?
+  depositedAt      DateTime?
+  notes            String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  contract  Contract             @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  owner     Person               @relation(fields: [ownerId], references: [id])
+  lineItems RendicionLineItem[]
+
+  @@unique([contractId, period])
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, ownerId])
+  @@map("owner_rendiciones")
+}
+
+model RendicionLineItem {
+  id           String                @id @default(uuid())
+  tenantId     String
+  rendicionId  String
+  type         RendicionLineItemType
+  description  String
+  amount       Decimal               @db.Decimal(15, 2)
+  isDebit      Boolean               @default(false)
+  currency     Currency              @default(ARS)
+  sortOrder    Int                   @default(0)
+  createdAt    DateTime              @default(now())
+
+  rendicion OwnerRendicion @relation(fields: [rendicionId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([rendicionId])
+  @@map("rendicion_line_items")
 }
 
 enum TicketStatus {

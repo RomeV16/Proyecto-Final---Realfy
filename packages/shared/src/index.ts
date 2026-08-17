@@ -102,6 +102,21 @@ export {
   LiquidacionFilterSchema,
 } from './schemas/liquidacion.schema';
 
+// Schemas — comision por contrato
+export {
+  CreateCommissionSchema,
+  UpdateCommissionSchema,
+} from './schemas/commission.schema';
+
+// Schemas — rendiciones a propietarios
+export {
+  GenerateRendicionSchema,
+  TransitionRendicionSchema,
+  RendicionFilterSchema,
+  CreateRendicionLineItemSchema,
+  UpdateRendicionNotesSchema,
+} from './schemas/rendicion.schema';
+
 // Schemas — servicios
 export {
   CreateServiceSchema,
@@ -233,6 +248,32 @@ export type CreatePaymentInput = z.infer<typeof _CreatePaymentSchema>;
 export type LiquidacionFilterInput = z.infer<typeof _LiquidacionFilterSchema>;
 
 import {
+  CreateCommissionSchema as _CreateCommissionSchema,
+  UpdateCommissionSchema as _UpdateCommissionSchema,
+} from './schemas/commission.schema';
+export type CreateCommissionInput = z.infer<typeof _CreateCommissionSchema>;
+export type UpdateCommissionInput = z.infer<typeof _UpdateCommissionSchema>;
+
+import {
+  GenerateRendicionSchema as _GenerateRendicionSchema,
+  TransitionRendicionSchema as _TransitionRendicionSchema,
+  RendicionFilterSchema as _RendicionFilterSchema,
+  CreateRendicionLineItemSchema as _CreateRendicionLineItemSchema,
+  UpdateRendicionNotesSchema as _UpdateRendicionNotesSchema,
+} from './schemas/rendicion.schema';
+export type GenerateRendicionInput = z.infer<typeof _GenerateRendicionSchema>;
+export type TransitionRendicionInput = z.infer<
+  typeof _TransitionRendicionSchema
+>;
+export type RendicionFilterInput = z.infer<typeof _RendicionFilterSchema>;
+export type CreateRendicionLineItemInput = z.infer<
+  typeof _CreateRendicionLineItemSchema
+>;
+export type UpdateRendicionNotesInput = z.infer<
+  typeof _UpdateRendicionNotesSchema
+>;
+
+import {
   CreateServiceSchema as _CreateServiceSchema,
   UpdateServiceSchema as _UpdateServiceSchema,
   ServiceFilterSchema as _ServiceFilterSchema,
@@ -309,6 +350,11 @@ export {
   getValidLiquidacionTransitions,
 } from './state-machine/liquidacion-state-machine';
 
+export {
+  validateRendicionTransition,
+  getValidRendicionTransitions,
+} from './state-machine/rendicion-state-machine';
+
 // Constants & utilities
 export {
   ROLE_PERMISSIONS,
@@ -349,6 +395,19 @@ export {
   isFullyPaid,
 } from './liquidacion-engine';
 export type { LineItemInput, LineItemsTotalResult, PaymentInput } from './liquidacion-engine';
+
+// Commission engine
+export { calculateCommission } from './commission-engine';
+export type { CommissionConfig, CommissionResult } from './commission-engine';
+
+// Rendicion engine
+export { buildRendicionFromPayments } from './rendicion-engine';
+export type {
+  RendicionPaymentInput,
+  RendicionDeductionInput,
+  RendicionLineItem,
+  RendicionResult,
+} from './rendicion-engine';
 
 // Schemas de formularios de auth (login/register del frontend)
 export { loginSchema } from './schemas/login';

@@ -16,6 +16,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { GuaranteeBadge } from './guarantee-badge';
 import { AdjustmentTimeline } from './adjustment-timeline';
 import { GenerateDocumentModal } from './generate-document-modal';
+import { CommissionConfig } from './commission-config';
 
 /* ──────────── Types ──────────── */
 
@@ -868,6 +869,9 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
               schedules={contract.schedules || []}
             />
           </div>
+
+          {/* Commission configuration */}
+          {isAdmin && <CommissionConfig contractId={contract.id} />}
 
           {/* Metadata */}
           <div className="text-xs text-slate-400 flex gap-4">
