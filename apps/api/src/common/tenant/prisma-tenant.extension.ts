@@ -23,6 +23,7 @@ const TENANT_SCOPED_MODELS = new Set([
   'ContractAdjustment',
   'ContractCommission',
   'ContractTemplate',
+  'ContractClosureSummary',
   'AdjustmentSchedule',
   'IndexData',
   'Liquidacion',

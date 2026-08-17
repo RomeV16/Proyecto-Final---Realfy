@@ -732,3 +732,18 @@ import {
 export type AiPriorityUrgency = z.infer<typeof _AiPriorityUrgencySchema>;
 export type AiPriorityItem = z.infer<typeof _AiPriorityItemSchema>;
 export type AiPrioritiesResponse = z.infer<typeof _AiPrioritiesResponseSchema>;
+
+// Schemas — resumen de gestion al cierre de contrato
+export {
+  ClosureSummarySourceSchema,
+  ContractClosureMetricsSchema,
+  AiClosureSummaryResponseSchema,
+} from './schemas/ai.schema';
+import {
+  ClosureSummarySourceSchema as _ClosureSummarySourceSchema,
+  ContractClosureMetricsSchema as _ContractClosureMetricsSchema,
+  AiClosureSummaryResponseSchema as _AiClosureSummaryResponseSchema,
+} from './schemas/ai.schema';
+export type ClosureSummarySource = z.infer<typeof _ClosureSummarySourceSchema>;
+export type ContractClosureMetrics = z.infer<typeof _ContractClosureMetricsSchema>;
+export type AiClosureSummaryResponse = z.infer<typeof _AiClosureSummaryResponseSchema>;
