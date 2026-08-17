@@ -13,7 +13,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
  *
  * Always reads through prisma.baseClient — this guard fires before any
  * tenant context is (or ever will be) set on the request, so the extended
- * client would fail open and scan across every inmobiliaria.
+ * client would refuse the lookup outright.
  */
 @Injectable()
 export class PublicTenantGuard implements CanActivate {
