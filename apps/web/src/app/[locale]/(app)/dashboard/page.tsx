@@ -12,6 +12,7 @@ import { EntityRow } from '@/components/ui/entity-card';
 import { StatTile } from '@/components/ui/stat-tile';
 import { TicketPriorityBadge } from '@/components/tickets/ticket-priority-badge';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton';
+import { PortfolioAnalytics } from '@/components/dashboard/portfolio-analytics';
 import { Icon, type IconName } from '@/components/ui/icon';
 import {
   AreaChart,
@@ -201,6 +202,8 @@ export default function DashboardPage() {
   }, [user]);
 
   const accent = tenant?.brandPrimary || '#bd5a32';
+  // Los widgets de ocupación y rentabilidad van contra endpoints de Admin/Gerencia.
+  const canSeeAnalytics = ['Admin', 'Gerente'].includes(user?.role || '');
 
   if (error) {
     return (
@@ -564,6 +567,9 @@ export default function DashboardPage() {
           </SectionCard>
         </Reveal>
       </div>
+
+      {/* Ocupación y rentabilidad — sólo para quienes ven las métricas de cartera */}
+      {canSeeAnalytics && <PortfolioAnalytics />}
         </div>
       )}
     </div>

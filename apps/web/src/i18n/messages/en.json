@@ -182,6 +182,20 @@
   "charts": {
    "occupancy": "Occupancy",
    "collections": "Collections status"
+  },
+  "analytics": {
+   "occupancyTitle": "Occupancy trend",
+   "occupancyLabel": "Occupancy",
+   "occupancyEmpty": "No occupancy data to chart yet",
+   "occupancyEmptyHint": "Add rental operations to see how the portfolio evolves.",
+   "profitabilityTitle": "Profitability by property",
+   "profitabilityEmpty": "No profitability data to chart yet",
+   "profitabilityEmptyHint": "Record collections for the period to compare revenue and expenses.",
+   "lastTwelveMonths": "Last 12 months",
+   "topProperties": "Top {count} of the period",
+   "revenue": "Revenue",
+   "expenses": "Expenses",
+   "loadError": "Could not load portfolio metrics"
   }
  },
  "users": {
