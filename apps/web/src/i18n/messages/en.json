@@ -1450,7 +1450,10 @@
    "ContractExpiring": "Contrato por vencer",
    "LiquidacionOverdue": "Liquidación vencida",
    "PaymentReceived": "Pago recibido",
-   "SystemAlert": "Alerta del sistema"
+   "SystemAlert": "Alerta del sistema",
+   "FiscalCertExpiry": "Fiscal certificate expiring",
+   "FiscalDelegationRevoked": "ARCA delegation revoked",
+   "LibroIvaGenerated": "IVA sales book generated"
   },
   "list": {
    "title": "Todas las notificaciones",
@@ -1973,6 +1976,7 @@
    "receptor": "Receptor",
    "importe": "Importe",
    "cae": "CAE",
+   "caePending": "CAE pending",
    "actions": "Acciones",
    "view": "Ver",
    "pdf": "PDF"
@@ -4308,7 +4312,8 @@
   "loadError": "Could not load settings",
   "nameRequired": "Name is required",
   "readOnly": "Only administrators can edit settings",
-  "managePipeline": "Configurar etapas"
+  "managePipeline": "Configurar etapas",
+  "manageFiscal": "Configure invoicing"
  },
  "portalPublico": {
   "footer": {

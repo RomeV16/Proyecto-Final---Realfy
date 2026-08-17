@@ -223,6 +223,9 @@ export enum NotificationType {
   TicketCreated = 'TicketCreated',
   TicketStatusChanged = 'TicketStatusChanged',
   TicketCommentAdded = 'TicketCommentAdded',
+  FiscalCertExpiry = 'FiscalCertExpiry',
+  FiscalDelegationRevoked = 'FiscalDelegationRevoked',
+  LibroIvaGenerated = 'LibroIvaGenerated',
 }
 
 // ─── Pipeline Enums ─────────────────────────────────────

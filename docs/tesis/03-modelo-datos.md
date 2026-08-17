@@ -167,17 +167,55 @@ Servicios asociados a una propiedad (gas, luz, ABL) y sus pagos.
 
 Rendición mensual al propietario y sus líneas.
 
-## ARCA
+## Facturación electrónica (ARCA)
 
-### TenantArcaConfig
+### ArcaCertificate
 
-Configuración de la inmobiliaria frente a ARCA (CUIT, punto de venta, certificados).
+Certificado digital de la inmobiliaria para autenticarse contra el WSAA de ARCA. El certificado y su clave privada se guardan cifrados: el contenido se sella con una clave de datos (DEK) propia de la fila, y esa DEK se envuelve a su vez con la clave maestra del sistema.
+
+- `id`, `tenantId` (único), `commonName`, `notBefore`, `notAfter`, `isProduction`, `isActive`, `certEncrypted`, `keyEncrypted`, `dekWrapped`, `kekVersion`.
+- Relación 1-1 con `Tenant`. Relación 1-N con `ArcaCertificateAccessLog`.
+
+### ArcaCertificateAccessLog
+
+Auditoría de cada desencriptado de la clave privada del certificado, de forma que un uso indebido pueda trazarse hasta el actor y el motivo que lo originó.
+
+- `id`, `tenantId`, `certificateId`, `actor`, `reason`, `createdAt`.
+
+### ArcaIssuer
+
+CUIT en nombre del cual la inmobiliaria puede facturar: el propio (`isSelf`) o el de un propietario que le delegó el servicio de facturación electrónica (WSFE) en ARCA.
+
+- `id`, `tenantId`, `cuit`, `businessName`, `fiscalCondition`, `delegationStatus` (Pending, Active, Revoked), `delegationVerifiedAt`, `delegationLastError`, `isSelf`, `isActive`.
+- Único por `(tenantId, cuit)`. Relación 1-N con `ArcaPuntoDeVenta` y con `Comprobante`.
+
+### ArcaPuntoDeVenta
+
+Punto de venta habilitado en ARCA para un emisor determinado.
+
+- `id`, `issuerId`, `number`, `nombre`, `tipo`, `bloqueado`, `lastSyncAt`.
+- Único por `(issuerId, number)`. Relación N-1 con `ArcaIssuer`.
+
+### ArcaRequestLog
+
+Registro literal de cada llamada a los web services de ARCA (WSAA/WSFEv1), con el request y la respuesta completos, ya que un rechazo de AFIP sólo se entiende junto al payload exacto que lo produjo.
+
+- `id`, `tenantId`, `issuerId?`, `operation`, `issuerCuit?`, `requestPayload`, `responsePayload`, `latencyMs`, `success`, `errorCode?`, `errorMessage?`, `comprobanteId?`.
 
 ### Comprobante
 
-Comprobante electrónico emitido (factura, recibo, nota de crédito).
+Comprobante electrónico autorizado por ARCA (factura, nota de crédito o nota de débito, en sus variantes A, B o C) emitido sobre un `Payment`.
 
-- `id`, `liquidacionId`, `cae`, `caeVto`, `tipo`, `numero`, `total`.
+- `id`, `tenantId`, `paymentId`, `issuerId?`, `type` (`ComprobanteType`), `status` (Emitido, Anulado), `cbteTipo`, `puntoDeVenta`, `numero`, `docTipo`, `docNro`, `receptorName`, `receptorFiscalCondition`, `impTotal`, `impNeto`, `impIva`, `cae`, `caeFchVto`, `emittedAt`.
+- La terna `(tenantId, puntoDeVenta, cbteTipo, numero)` es única, ya que la numeración que exige AFIP no admite huecos ni repeticiones.
+- Relación N-1 con `Payment` y con `ArcaIssuer`. Una nota de crédito referencia al comprobante que anula a través de `originalComprobanteId` (relación `ComprobanteNC`).
+
+### LibroIvaExport
+
+Libro IVA ventas del período, generado y exportado a Excel para su guarda en almacenamiento de objetos. Hay un registro por tenant y período: regenerar un período reemplaza el archivo anterior.
+
+- `id`, `tenantId`, `period`, `rowCount`, `s3Key`, `fileUrl`, `generatedAt`.
+- Único por `(tenantId, period)`. Relación N-1 con `Tenant`.
 
 ## CRM
 
@@ -251,7 +289,7 @@ Plantillas reutilizables de email por evento.
 - `Property` 1-N `Contract` (a lo largo del tiempo) y 1-1 `Person` propietario (rol activo).
 - `Contract` N-M `Person` mediante `ContractPerson`.
 - `Contract` 1-N `Liquidacion` 1-N `LiquidacionLineItem`.
-- `Liquidacion` 1-N `Payment` y 1-1 `Comprobante`.
+- `Liquidacion` 1-N `Payment` 1-N `Comprobante`.
 - `Lead` N-1 `PipelineStage` y N-1 `Pipeline`.
 - `Ticket` N-1 `Property`, N-1 `TicketCategory`, N-1 `ProviderProfile` (opcional).
 - `InquilinoCredential` 1-1 `Person` (rol inquilino).
