@@ -717,3 +717,18 @@ export type DashboardRangeQueryInput = z.infer<
 export type DashboardCashFlowQueryInput = z.infer<
   typeof _DashboardCashFlowQuerySchema
 >;
+
+// Schemas — priorizacion diaria asistida por modelo de lenguaje
+export {
+  AiPriorityUrgencySchema,
+  AiPriorityItemSchema,
+  AiPrioritiesResponseSchema,
+} from './schemas/ai.schema';
+import {
+  AiPriorityUrgencySchema as _AiPriorityUrgencySchema,
+  AiPriorityItemSchema as _AiPriorityItemSchema,
+  AiPrioritiesResponseSchema as _AiPrioritiesResponseSchema,
+} from './schemas/ai.schema';
+export type AiPriorityUrgency = z.infer<typeof _AiPriorityUrgencySchema>;
+export type AiPriorityItem = z.infer<typeof _AiPriorityItemSchema>;
+export type AiPrioritiesResponse = z.infer<typeof _AiPrioritiesResponseSchema>;

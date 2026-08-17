@@ -38,6 +38,7 @@ import { ScoringModule } from './modules/scoring/scoring.module';
 import { ValuationsModule } from './modules/valuations/valuations.module';
 import { ImportExportModule } from './modules/import-export/import-export.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { AiModule } from './modules/ai/ai.module';
 import { CommonEmailModule } from './common/email/common-email.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
@@ -90,6 +91,7 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     ValuationsModule,
     ImportExportModule,
     ReportsModule,
+    AiModule,
   ],
   controllers: [HealthController],
   providers: [
