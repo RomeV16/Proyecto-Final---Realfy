@@ -33,6 +33,8 @@ import { PipelinesModule } from './modules/pipelines/pipelines.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
 import { PublicModule } from './modules/public/public.module';
+import { ScoringModule } from './modules/scoring/scoring.module';
+import { ValuationsModule } from './modules/valuations/valuations.module';
 import { CommonEmailModule } from './common/email/common-email.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
@@ -80,6 +82,8 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     LeadsModule,
     InteractionsModule,
     PublicModule,
+    ScoringModule,
+    ValuationsModule,
   ],
   controllers: [HealthController],
   providers: [

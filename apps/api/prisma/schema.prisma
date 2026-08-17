@@ -244,6 +244,8 @@ model Tenant {
   arcaCertificate ArcaCertificate?
   arcaIssuers     ArcaIssuer[]
   libroIvaExports LibroIvaExport[]
+  scoreConfigs TenantScoreConfig[]
+  scores       TenantScore[]
 
   @@map("tenants")
 }
@@ -275,6 +277,8 @@ model User {
   assignedLeads       Lead[]
   interactionsLogged  LeadInteraction[] @relation("InteractionUser")
   visitsConducted     LeadVisit[]       @relation("VisitUser")
+
+  scoredTenantScores TenantScore[] @relation("ScoredByUser")
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -387,6 +391,7 @@ model Property {
   leadVisits      LeadVisit[]
 
   tickets Ticket[]
+  valuations PropertyValuation[]
 
   @@index([tenantId])
   @@index([tenantId, type])
@@ -483,6 +488,7 @@ model Person {
   portalCredential     InquilinoCredential?
   portalRefreshTokens  PortalRefreshToken[]
   portalInvitations    PortalInvitation[]
+  tenantScores           TenantScore[]
 
   @@unique([tenantId, cuit])
   @@index([tenantId])
@@ -1439,4 +1445,79 @@ model LibroIvaExport {
   @@unique([tenantId, period])
   @@index([tenantId])
   @@map("libro_iva_exports")
+}
+
+// ─── Scoring Models ─────────────────────────────────────
+
+model TenantScoreConfig {
+  id                   String   @id @default(uuid())
+  tenantId             String   @unique
+  guaranteeWeight      Int      @default(20)
+  jobStabilityWeight   Int      @default(20)
+  referencesWeight     Int      @default(20)
+  paymentHistoryWeight Int      @default(20)
+  manualRatingWeight   Int      @default(20)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("tenant_score_configs")
+}
+
+model TenantScore {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  personId            String
+  guaranteeScore      Int      @default(0)
+  jobStabilityScore   Int      @default(0)
+  referencesScore     Int      @default(0)
+  paymentHistoryScore Int      @default(0)
+  manualRating        Int      @default(0)
+  totalScore          Decimal  @default(0) @db.Decimal(5, 2)
+  notes               String?
+  scoredByUserId      String
+  scoredAt            DateTime @default(now())
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  person   Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  scoredBy User   @relation("ScoredByUser", fields: [scoredByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, personId])
+  @@index([tenantId])
+  @@map("tenant_scores")
+}
+
+// ─── Valuation Enums ────────────────────────────────────
+
+enum ValuationMethod {
+  Comparativo
+  Costo
+  Ingreso
+  Mixto
+}
+
+// ─── Property Valuation Models ──────────────────────────
+
+model PropertyValuation {
+  id            String          @id @default(uuid())
+  tenantId      String
+  propertyId    String
+  valuationDate DateTime
+  value         Decimal         @db.Decimal(15, 2)
+  currency      Currency        @default(ARS)
+  method        ValuationMethod
+  appraiser     String?
+  notes         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, propertyId])
+  @@map("property_valuations")
 }

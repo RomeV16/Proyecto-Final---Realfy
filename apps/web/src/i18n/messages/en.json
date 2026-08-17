@@ -492,6 +492,7 @@
    "comparablesEmpty": "No se encontraron propiedades comparables",
    "showComparables": "Ver comparables",
    "hideComparables": "Ocultar comparables",
+   "vsFirstValuation": "vs. primera tasación",
    "latestValuation": "Última tasación",
    "noValuation": "Sin tasación",
    "methods": {
@@ -4313,7 +4314,8 @@
   "nameRequired": "Name is required",
   "readOnly": "Only administrators can edit settings",
   "managePipeline": "Configurar etapas",
-  "manageFiscal": "Configure invoicing"
+  "manageFiscal": "Configure invoicing",
+  "manageScoring": "Configurar puntuación"
  },
  "portalPublico": {
   "footer": {
