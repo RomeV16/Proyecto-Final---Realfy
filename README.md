@@ -4,7 +4,9 @@
 
 Multi-tenant SaaS CRM for Argentine real estate agencies — property management, rental contracts with IPC/ICL indexing, monthly liquidations, arrears tracking, and maintenance tickets.
 
-> **Thesis demo:** see [DEMO.md](./DEMO.md) for the Spanish-language 10-minute walkthrough.
+> **Documentación:** manual de usuario, guía de despliegue, referencia de API,
+> manual de pruebas y guion de la demostración están en [`docs/`](./docs/) —
+> ver el índice al final de este archivo.
 
 ---
 
@@ -17,9 +19,9 @@ Multi-tenant SaaS CRM for Argentine real estate agencies — property management
 | Frontend | Next.js 15 |
 | ORM | Prisma |
 | Database | PostgreSQL 16 |
-| Cache / Queue | Redis 7 + BullMQ |
+| Object storage | S3-compatible (MinIO en desarrollo) |
 | Email | Resend |
-| External APIs | BCRA / INDEC (inflation indices) |
+| External APIs | ARCA (facturación), BCRA / INDEC (inflation indices) |
 | Monorepo | Turborepo |
 | Testing | Jest — unitarios + e2e de API sobre Postgres |
 | CI/CD | GitHub Actions |
@@ -34,20 +36,20 @@ Multi-tenant SaaS CRM for Argentine real estate agencies — property management
 │                                                         │
 │  ┌───────────────┐        ┌───────────────────────────┐ │
 │  │  apps/web     │◄──────►│  apps/api                 │ │
-│  │  Next.js 15   │  HTTP  │  NestJS  (REST + BullMQ)  │ │
-│  │  (port 3001)  │        │  (port 3000)               │ │
+│  │  Next.js 15   │  HTTP  │  NestJS (REST, /api)      │ │
+│  │  (port 3000)  │        │  (port 3001)              │ │
 │  └───────────────┘        └──────────┬────────────────┘ │
 │                                      │                   │
 │                          ┌───────────┼───────────┐       │
 │                          ▼           ▼           ▼       │
-│                     PostgreSQL     Redis      Resend     │
-│                     (Prisma ORM)  (BullMQ)   (email)     │
+│                     PostgreSQL      S3        Resend     │
+│                     (Prisma ORM)  (media)    (email)     │
 │                                                         │
-│                    External: BCRA API · INDEC API        │
+│              External: ARCA · BCRA API · INDEC API       │
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Multi-tenancy model:** single database, every Prisma query is scoped by `tenantId` injected from the JWT claim. See [docs/adr/0002-multi-tenant-model.md](./docs/adr/0002-multi-tenant-model.md).
+**Multi-tenancy model:** single database, every Prisma query is scoped by `tenantId` injected from the JWT claim, and the Prisma extension fails closed when there is no tenant in context. See [docs/adr/0003-multi-tenant-row-level.md](./docs/adr/0003-multi-tenant-row-level.md) and [docs/adr/0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md](./docs/adr/0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md).
 
 ---
 
@@ -59,9 +61,9 @@ apps/
   web/           Next.js 15 frontend
 packages/
   shared/        Zod schemas, TypeScript types, shared constants
-scripts/         Build and deployment helpers
 docs/
   adr/           Architecture Decision Records
+  tesis/         Documentación de tesis (alcance, arquitectura, hitos)
 ```
 
 ---
@@ -70,9 +72,9 @@ docs/
 
 ### Prerequisites
 
-- **Node.js** 20+
+- **Node.js** 22 (the version CI and both Dockerfiles use)
 - **pnpm** (version from `package.json#packageManager`)
-- **Docker** (for PostgreSQL + Redis)
+- **Docker** (for PostgreSQL + MinIO)
 
 ### Install dependencies
 
@@ -86,42 +88,31 @@ Copy the example and fill in the blanks:
 
 ```bash
 cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
 ```
 
 Key variables for `apps/api/.env`:
 
 ```env
 DATABASE_URL=postgresql://realfy:realfy_dev@localhost:5432/realfy_dev
-REDIS_URL=redis://localhost:6379
 JWT_SECRET=change_me_in_production
-RESEND_API_KEY=re_...
+CORS_ORIGINS=http://localhost:3000
+S3_ENDPOINT=http://localhost:9000
 ```
 
-### Start demo environment (recommended)
+`apps/web` has no `.env` file: `NEXT_PUBLIC_API_URL` y `API_PROXY_TARGET` tienen
+valores por defecto apuntando al backend local. La lista completa de variables,
+por servicio, está en [docs/despliegue.md](./docs/despliegue.md).
 
-The `demo-reset.sh` script tears down all volumes, starts fresh containers, runs migrations, and seeds demo data in one command:
-
-```bash
-bash scripts/demo-reset.sh
-```
-
-Then in a separate terminal:
+### Start services
 
 ```bash
+docker compose up -d postgres minio
+cd apps/api && npx prisma migrate deploy && cd ../..
 pnpm dev
 ```
 
-Open `http://localhost:3001` — login with `admin@realfy.demo.central` / `Admin123!`.
-
-### Start services manually
-
-```bash
-docker compose up -d postgres redis
-pnpm --filter @realfy/api prisma migrate deploy
-pnpm --filter @realfy/api db:seed
-pnpm dev
-```
+Open `http://localhost:3000`. No hay datos precargados: la primera inmobiliaria y
+su usuario Admin se crean desde `/es/auth/register`.
 
 ---
 
@@ -134,7 +125,6 @@ pnpm dev
 | `pnpm test` | Run Jest unit tests across all packages |
 | `pnpm test:e2e` | Run the API e2e suite (needs a Postgres database) |
 | `pnpm lint` | ESLint across all packages |
-| `pnpm --filter @realfy/api db:seed` | Seed demo data into the database |
 
 ---
 
@@ -168,13 +158,20 @@ El piso de cobertura está en `apps/api/jest.config.ts` y hoy es **38 % de líne
 funciones y sentencias, y 27 % de ramas**. Es un piso contra regresiones, no una
 meta: la medición al fijarlo fue 42 % de líneas y 32 % de ramas.
 
+El detalle de cada suite y de los trabajos de integración continua está en
+[docs/pruebas.md](./docs/pruebas.md).
+
 ---
 
 ## Documentation
 
-- [DEMO.md](./DEMO.md) — Demo de tesis en español (10 minutos)
+- [docs/manual-de-usuario.md](./docs/manual-de-usuario.md) — Qué ve y qué puede hacer cada rol, y los recorridos habituales
+- [docs/despliegue.md](./docs/despliegue.md) — Servicios, variables de entorno, base de datos y almacenamiento
+- [docs/api.md](./docs/api.md) — Referencia de endpoints por módulo, con roles y forma de error
+- [docs/pruebas.md](./docs/pruebas.md) — Cómo correr las pruebas y qué cubre cada suite
+- [docs/demo.md](./docs/demo.md) — Guion de la demostración
 - [docs/adr/](./docs/adr/) — Architecture Decision Records
-- [docs/adjustments-research.md](./docs/adjustments-research.md) — Research on IPC/ICL adjustment mechanics
+- [docs/tesis/](./docs/tesis/) — Documentación de tesis: alcance, arquitectura, modelo de datos e hitos
 
 ---
 
