@@ -56,6 +56,7 @@ export function parseJsonObject(text: string): unknown | null {
 const DEFAULT_BASE_URL = 'https://api.minimax.io/v1';
 const DEFAULT_MODEL = 'MiniMax-M3';
 const DEFAULT_TIMEOUT_MS = 20_000;
+const DEFAULT_REASONING_EFFORT = 'none';
 const DEFAULT_TEMPERATURE = 0.2;
 /**
  * Los modelos con razonamiento gastan de este mismo presupuesto antes de escribir
@@ -77,6 +78,7 @@ const DEFAULT_MAX_TOKENS = 2400;
  *   AI_MODEL       identificador del modelo  (por defecto MiniMax-M3)
  *   AI_API_KEY     credencial; vacía deshabilita el cliente
  *   AI_TIMEOUT_MS  tiempo máximo de espera   (por defecto 20000)
+ *   AI_REASONING_EFFORT  esfuerzo de razonamiento (por defecto "none"; vacío omite el campo)
  *
  * La credencial se resuelve en el primer uso y no en el arranque: una instancia
  * sin `AI_API_KEY` tiene que levantar igual, y quien consulte al cliente recibe
@@ -118,6 +120,16 @@ export class LanguageModelClient {
       temperature: options.temperature ?? DEFAULT_TEMPERATURE,
       max_tokens: options.maxTokens ?? DEFAULT_MAX_TOKENS,
     };
+
+    // Los modelos que razonan antes de responder gastan de este mismo
+    // presupuesto de tokens, y en las dos tareas que tenemos —ordenar hechos ya
+    // calculados y redactarlos— ese razonamiento no mejora el resultado pero sí
+    // agota el límite y devuelve la respuesta cortada. Con un contexto de treinta
+    // pendientes el razonamiento se llevaba más de dos mil tokens.
+    const effort = this.reasoningEffort();
+    if (effort) {
+      body.reasoning_effort = effort;
+    }
     if (options.json) {
       body.response_format = { type: 'json_object' };
     }
@@ -192,5 +204,17 @@ export class LanguageModelClient {
   private timeoutMs(): number {
     const raw = Number(this.config.get<string>('AI_TIMEOUT_MS'));
     return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_TIMEOUT_MS;
+  }
+
+  /**
+   * Esfuerzo de razonamiento que se le pide al proveedor. Por defecto ninguno,
+   * por lo explicado donde se arma el pedido. Un valor vacío omite el campo, que
+   * es la salida si algún proveedor rechaza parámetros que no conoce.
+   */
+  private reasoningEffort(): string | null {
+    const raw = this.config.get<string>('AI_REASONING_EFFORT');
+    if (raw === undefined) return DEFAULT_REASONING_EFFORT;
+    const trimmed = raw.trim();
+    return trimmed.length > 0 ? trimmed : null;
   }
 }

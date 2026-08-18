@@ -122,6 +122,33 @@ describe('LanguageModelClient', () => {
       await expect(buildClient(ENV).complete(MESSAGES)).resolves.toBeNull();
     });
 
+    it('pide sin razonamiento por defecto', async () => {
+      fetchMock.mockResolvedValue(okResponse({ choices: [{ message: { content: 'ok' } }] }));
+
+      await buildClient(ENV).complete(MESSAGES);
+
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+      expect(body.reasoning_effort).toBe('none');
+    });
+
+    it('respeta el esfuerzo de razonamiento configurado', async () => {
+      fetchMock.mockResolvedValue(okResponse({ choices: [{ message: { content: 'ok' } }] }));
+
+      await buildClient({ ...ENV, AI_REASONING_EFFORT: 'low' }).complete(MESSAGES);
+
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+      expect(body.reasoning_effort).toBe('low');
+    });
+
+    it('omite el campo si se configura vacio, para proveedores que no lo aceptan', async () => {
+      fetchMock.mockResolvedValue(okResponse({ choices: [{ message: { content: 'ok' } }] }));
+
+      await buildClient({ ...ENV, AI_REASONING_EFFORT: '' }).complete(MESSAGES);
+
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+      expect(body).not.toHaveProperty('reasoning_effort');
+    });
+
     it('avisa cuando la respuesta llega cortada por limite de longitud', async () => {
       const warn = jest
         .spyOn(Logger.prototype, 'warn')
