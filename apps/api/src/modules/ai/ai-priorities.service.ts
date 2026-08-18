@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  AiPrioritiesResponseSchema,
+  AiPriorityItemSchema,
   type AiPriorityItem,
   type AiPriorityUrgency,
 } from '@realfy/shared';
@@ -54,6 +54,28 @@ const MAX_PRIORITIES = 10;
 
 /** El contexto se recalcula seguido, pero no una vez por pintada de panel. */
 const CACHE_TTL_MS = 5 * 60 * 1000;
+
+/** Largos que acepta el esquema compartido para los textos de cada entrada. */
+const MAX_REASON_CHARS = 240;
+const MAX_ACTION_CHARS = 160;
+
+/**
+ * Recorta los textos de una entrada a los largos acordados.
+ *
+ * El modelo se pasa de largo de vez en cuando y eso es cosmético: el valor de la
+ * respuesta es el orden y el motivo, no el caracter 241. Recortar es preferible a
+ * descartar la entrada, y lo que no sea un objeto se deja pasar tal cual para que
+ * lo rechace la validación con su propio mensaje.
+ */
+function clampPriorityText(entry: unknown): unknown {
+  if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return entry;
+  const { reason, action, ...rest } = entry as Record<string, unknown>;
+  return {
+    ...rest,
+    ...(typeof reason === 'string' ? { reason: reason.trim().slice(0, MAX_REASON_CHARS) } : { reason }),
+    ...(typeof action === 'string' ? { action: action.trim().slice(0, MAX_ACTION_CHARS) } : { action }),
+  };
+}
 
 const SYSTEM_PROMPT = [
   'Sos el asistente de priorización de una inmobiliaria argentina.',
@@ -181,13 +203,44 @@ export class AiPrioritiesService {
       return null;
     }
 
-    const validated = AiPrioritiesResponseSchema.safeParse(payload);
-    if (!validated.success) {
-      this.logger.warn('La respuesta del modelo no cumple el esquema esperado');
+    // Se validan las entradas de a una: el valor de la respuesta es el orden, y
+    // una sola entrada mal formada —un texto más largo del acordado, una urgencia
+    // escrita distinto— no justifica descartar el ranking completo y volver a las
+    // reglas. Lo que no valida se cae solo, y lo que se descarta queda registrado.
+    const entries = Array.isArray((payload as { priorities?: unknown }).priorities)
+      ? ((payload as { priorities: unknown[] }).priorities)
+      : null;
+    if (!entries) {
+      this.logger.warn('La respuesta del modelo no traía la lista de prioridades');
       return null;
     }
 
-    return { model: answer.model, priorities: validated.data.priorities };
+    const priorities: AiPriorityItem[] = [];
+    const descartes: string[] = [];
+    for (const [index, entry] of entries.entries()) {
+      const parsed = AiPriorityItemSchema.safeParse(clampPriorityText(entry));
+      if (parsed.success) {
+        priorities.push(parsed.data);
+        continue;
+      }
+      const issue = parsed.error.issues[0];
+      descartes.push(`#${index} ${issue.path.join('.') || 'raíz'}: ${issue.message}`);
+    }
+
+    if (descartes.length > 0) {
+      this.logger.warn(
+        `El modelo devolvió ${descartes.length} de ${entries.length} entradas invalidas: ${descartes
+          .slice(0, 3)
+          .join(' | ')}`,
+      );
+    }
+
+    if (priorities.length === 0) {
+      this.logger.warn('Ninguna entrada de la respuesta del modelo resultó utilizable');
+      return null;
+    }
+
+    return { model: answer.model, priorities };
   }
 
   /**
