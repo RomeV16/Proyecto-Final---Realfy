@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { TenantContextModule } from './common/tenant/tenant-context.module';
@@ -55,7 +56,16 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     // legítimo llega con la IP del proxy. El límite general es holgado a
     // propósito: corta avalanchas contra la API expuesta sin castigar a los
     // visitantes que entran por el frontend.
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 600 }]),
+    // RATE_LIMIT_DISABLED existe para el desarrollo local y para las pruebas de
+    // extremo a extremo, que abren muchas sesiones seguidas contra el mismo
+    // localhost. Se ignora en producción para que un env mal cargado no deje la
+    // API sin límite.
+    ThrottlerModule.forRoot({
+      throttlers: [{ ttl: 60000, limit: 600 }],
+      skipIf: () =>
+        process.env.NODE_ENV !== 'production' &&
+        process.env.RATE_LIMIT_DISABLED === '1',
+    }),
     TenantContextModule,
     PrismaModule,
     MediaModule,
@@ -95,6 +105,12 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
   ],
   controllers: [HealthController],
   providers: [
+    // Filtro de errores global — una sola forma de respuesta, con correlationId,
+    // y sin dejar escapar stacks ni detalles internos al cliente.
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
     // Guard de límite de peticiones global — corre antes que el de auth para cortar
     // los picos sin sesión. El decorador @Throttle ajusta el límite por endpoint.
     {

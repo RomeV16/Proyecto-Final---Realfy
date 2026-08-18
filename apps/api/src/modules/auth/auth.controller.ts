@@ -53,12 +53,20 @@ const COOKIE_OPTS_REFRESH = {
   domain: COOKIE_DOMAIN,
 };
 
+/**
+ * Límite propio para los endpoints con credenciales: 5 intentos por minuto.
+ * El límite general del ThrottlerModule es mucho más alto porque el tráfico del
+ * frontend llega por el proxy con una IP compartida, pero eso no es motivo para
+ * regalarle 30 intentos por minuto a quien prueba contraseñas.
+ */
+const CREDENTIALS_THROTTLE = { default: { ttl: 60000, limit: 5 } };
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
-  @Throttle({ default: { ttl: 60000, limit: 30 } })
+  @Throttle(CREDENTIALS_THROTTLE)
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
@@ -77,7 +85,7 @@ export class AuthController {
   }
 
   @Public()
-  @Throttle({ default: { ttl: 60000, limit: 30 } })
+  @Throttle(CREDENTIALS_THROTTLE)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
