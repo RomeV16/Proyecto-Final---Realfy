@@ -57,9 +57,7 @@ const TENANT_SCOPED_MODELS = new Set([
   'PortalInvitation',
   'PortalRefreshToken',
   'PropertyValuation',
-  'PropertyInventory',
-  'InventoryItem',
-  'InventoryItemPhoto',
+  'LibroIvaExport',
   'ReportSchedule',
   'Penalty',
   // Note: RefreshToken and PipelineStage do NOT have tenantId — they're
