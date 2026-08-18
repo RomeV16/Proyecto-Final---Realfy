@@ -233,19 +233,19 @@ export class Wsfev1Client {
    */
   createBinding(issuerCuit: string, ta: TokenAuthorization, isProduction: boolean) {
     const url = isProduction ? WSFEV1_PROD : WSFEV1_HOMO;
-    const self = this;
+    // Las funciones flecha ya cierran sobre `this`, no hace falta un alias.
     return {
-      getServerStatus: () => self.getServerStatus(url),
+      getServerStatus: () => this.getServerStatus(url),
       getLastVoucher: (ptoVta: number, cbteTipo: number) =>
-        self.getLastVoucher(url, issuerCuit, ta, ptoVta, cbteTipo),
+        this.getLastVoucher(url, issuerCuit, ta, ptoVta, cbteTipo),
       createVoucher: (data: Record<string, unknown>) =>
-        self.createVoucher(url, issuerCuit, ta, data),
-      getSalesPoints: () => self.getSalesPoints(url, issuerCuit, ta),
-      getVoucherTypes: () => self.getVoucherTypes(url, issuerCuit, ta),
-      getDocumentTypes: () => self.getDocumentTypes(url, issuerCuit, ta),
-      getAliquotTypes: () => self.getAliquotTypes(url, issuerCuit, ta),
-      getConceptTypes: () => self.getConceptTypes(url, issuerCuit, ta),
-      getCondicionIvaReceptor: () => self.getCondicionIvaReceptor(url, issuerCuit, ta),
+        this.createVoucher(url, issuerCuit, ta, data),
+      getSalesPoints: () => this.getSalesPoints(url, issuerCuit, ta),
+      getVoucherTypes: () => this.getVoucherTypes(url, issuerCuit, ta),
+      getDocumentTypes: () => this.getDocumentTypes(url, issuerCuit, ta),
+      getAliquotTypes: () => this.getAliquotTypes(url, issuerCuit, ta),
+      getConceptTypes: () => this.getConceptTypes(url, issuerCuit, ta),
+      getCondicionIvaReceptor: () => this.getCondicionIvaReceptor(url, issuerCuit, ta),
     };
   }
 

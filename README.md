@@ -21,7 +21,7 @@ Multi-tenant SaaS CRM for Argentine real estate agencies — property management
 | Email | Resend |
 | External APIs | BCRA / INDEC (inflation indices) |
 | Monorepo | Turborepo |
-| Testing | Jest (unit + e2e) · Playwright (browser e2e) |
+| Testing | Jest — unitarios + e2e de API sobre Postgres |
 | CI/CD | GitHub Actions |
 
 ---
@@ -59,7 +59,6 @@ apps/
   web/           Next.js 15 frontend
 packages/
   shared/        Zod schemas, TypeScript types, shared constants
-e2e/             Playwright end-to-end browser tests
 scripts/         Build and deployment helpers
 docs/
   adr/           Architecture Decision Records
@@ -133,21 +132,41 @@ pnpm dev
 | `pnpm build` | Compile all packages via Turborepo |
 | `pnpm dev` | Start API + web in watch mode |
 | `pnpm test` | Run Jest unit tests across all packages |
-| `pnpm test:e2e` | Run Playwright browser e2e tests |
+| `pnpm test:e2e` | Run the API e2e suite (needs a Postgres database) |
 | `pnpm lint` | ESLint across all packages |
 | `pnpm --filter @realfy/api db:seed` | Seed demo data into the database |
 
 ---
 
-## Test Coverage
+## Tests
 
-Unit tests target **70 % line / function / branch / statement** coverage (enforced in CI via `jest --coverageThreshold`).
+Two suites, both run on every pull request:
 
-Run coverage locally:
+- **Unitarios** — `apps/api/src/**/*.spec.ts` y `apps/api/test/unit/**`, sin base de datos.
+- **E2E de API** — `apps/api/test/**/*.e2e-spec.ts`: levantan la aplicación Nest
+  completa y pegan contra una base PostgreSQL real, con las migraciones aplicadas
+  desde cero. Cubren sesión, aislamiento entre inmobiliarias, RBAC, auditoría,
+  propiedades, contratos, liquidaciones, pagos, rendiciones y el portal del inquilino.
 
 ```bash
+# unitarios + cobertura
 pnpm --filter @realfy/api test:coverage
+
+# e2e de API contra una base propia
+createdb realfy_e2e
+cd apps/api
+export DATABASE_URL=postgresql://localhost:5432/realfy_e2e
+npx prisma migrate deploy
+NODE_ENV=test RATE_LIMIT_DISABLED=1 pnpm test:e2e
 ```
+
+`RATE_LIMIT_DISABLED=1` apaga el límite de peticiones, que de otro modo corta la
+suite con 429 porque cada caso abre su propia sesión contra el mismo host. Se
+ignora cuando `NODE_ENV=production`.
+
+El piso de cobertura está en `apps/api/jest.config.ts` y hoy es **38 % de líneas,
+funciones y sentencias, y 27 % de ramas**. Es un piso contra regresiones, no una
+meta: la medición al fijarlo fue 42 % de líneas y 32 % de ramas.
 
 ---
 

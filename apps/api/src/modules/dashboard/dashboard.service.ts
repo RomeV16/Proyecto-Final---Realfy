@@ -685,7 +685,7 @@ export class DashboardService {
     const issuerDetails: any[] =
       issuerIds.length > 0
         ? await (this.prisma.baseClient as any).arcaIssuer.findMany({
-            where: { id: { in: issuerIds } },
+            where: { tenantId, id: { in: issuerIds } },
             select: { id: true, cuit: true, businessName: true },
           })
         : [];

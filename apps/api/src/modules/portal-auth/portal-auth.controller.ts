@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 import { PortalAuthService } from './portal-auth.service';
 import { Public } from '../../common/auth/public.decorator';
@@ -45,7 +46,10 @@ class PortalSetPasswordDto {
 export class PortalAuthController {
   constructor(private readonly portalAuthService: PortalAuthService) {}
 
+  /* El ingreso del inquilino también valida credenciales, así que va con el mismo
+     límite estricto que el del staff. */
   @Public()
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: PortalLoginDto) {

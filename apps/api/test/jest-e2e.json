@@ -1,0 +1,32 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "testTimeout": 30000,
+  "maxWorkers": 1,
+  "transform": {
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "tsconfig": {
+          "module": "commonjs",
+          "target": "ES2022",
+          "emitDecoratorMetadata": true,
+          "experimentalDecorators": true,
+          "allowSyntheticDefaultImports": true,
+          "esModuleInterop": true,
+          "strict": true,
+          "skipLibCheck": true,
+          "resolveJsonModule": true,
+          "sourceMap": true
+        }
+      }
+    ]
+  },
+  "moduleNameMapper": {
+    "^@/(.*)$": "<rootDir>/../src/$1",
+    "pdfmake/src/printer": "<rootDir>/mocks/pdfmake-printer.js",
+    "pdfmake/build/vfs_fonts/(.*)": "<rootDir>/mocks/pdfmake-font.js"
+  }
+}

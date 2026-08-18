@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { TenantContextService } from './tenant-context.service';
+import { TenantIsolationError } from './tenant-isolation.error';
 
 /**
  * Models that are tenant-scoped (have a tenantId column).
@@ -110,6 +111,10 @@ const MANY_MUTATE_OPERATIONS = new Set([
  *
  * Uses nestjs-cls TenantContextService to read the current tenant from AsyncLocalStorage.
  * When bypassTenantFilter is set (e.g. during login), filtering is skipped.
+ *
+ * The extension fails closed: if a tenant-scoped model is queried with no tenant in
+ * context and no explicit bypass, it throws TenantIsolationError instead of running
+ * the query unfiltered.
  */
 export function createTenantExtension(tenantContext: TenantContextService) {
   return Prisma.defineExtension({
@@ -129,11 +134,12 @@ export function createTenantExtension(tenantContext: TenantContextService) {
 
           const tenantId = tenantContext.getTenantId();
 
-          // If no tenantId in context, allow the query through unfiltered
-          // only for system-level operations. In production, guarded endpoints
-          // will already have tenantId set by the JWT strategy.
+          // Fail closed: without a tenant in context there is no safe filter to
+          // inject, so the query is refused instead of running across every
+          // inmobiliaria. Guarded endpoints get their tenantId from the JWT
+          // strategy; system-level callers must use baseClient or the bypass.
           if (!tenantId) {
-            return query(args);
+            throw new TenantIsolationError(model, operation);
           }
 
           const tenantField = getTenantField(model);

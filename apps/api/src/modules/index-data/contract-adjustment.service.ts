@@ -167,8 +167,10 @@ export class ContractAdjustmentService {
   > {
     const today = new Date();
 
-    // Find due adjustment schedules for active contracts
-    const dueSchedules = await this.prisma.client.adjustmentSchedule.findMany({
+    // Find due adjustment schedules for active contracts.
+    // System-wide sweep across every inmobiliaria — reads through baseClient and
+    // scopes each contract's own queries by contract.tenantId below.
+    const dueSchedules = await this.prisma.baseClient.adjustmentSchedule.findMany({
       where: {
         status: ScheduleStatus.Pending,
         nextAdjustmentDate: { lte: today },
@@ -190,7 +192,7 @@ export class ContractAdjustmentService {
       const appliedPeriod = schedule.nextAdjustmentDate.toISOString().slice(0, 7);
 
       try {
-        await this.prisma.client.$transaction(async (tx: any) => {
+        await this.prisma.baseClient.$transaction(async (tx: any) => {
           // ── 1. Build adjustment params ────────────────────────────────────
           const currentRent = new Decimal(contract.rentAmount.toString());
           const adjustmentType = contract.adjustmentType as AdjustmentType;
@@ -203,6 +205,7 @@ export class ContractAdjustmentService {
 
           const indexRows = await tx.indexData.findMany({
             where: {
+              tenantId: contract.tenantId,
               indexType: resolvedIndexType as any,
               period: {
                 gte: contract.startDate,
