@@ -22,7 +22,7 @@ La diferencia con el hito anterior no es la cantidad de pantallas sino el grado 
 
 ## Estado del sistema
 
-El backend expone treinta módulos sobre un modelo de cincuenta y cuatro entidades y quince migraciones aplicadas. La interfaz cubre diecinueve secciones internas más el portal del inquilino y el portal público. La integración continua compila los cuatro paquetes en cada cambio y la suite de pruebas de la API está en cuatrocientas setenta y seis pruebas. El ambiente de demostración se redespliega con cada avance y se verifica en vivo.
+El backend expone treinta módulos sobre un modelo de cincuenta y cuatro entidades y quince migraciones aplicadas. La interfaz cubre dieciocho secciones internas más el portal del inquilino y el portal público. La integración continua compila los tres paquetes del monorepo en cada cambio y la suite de pruebas de la API está en cuatrocientas setenta y seis pruebas. El ambiente de demostración se redespliega con cada avance y se verifica en vivo.
 
 ## Lecciones aprendidas
 

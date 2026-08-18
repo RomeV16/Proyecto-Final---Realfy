@@ -1,6 +1,6 @@
 # Criterios de Aceptación
 
-Criterios organizados por módulo. Se utilizan como referencia durante el desarrollo y como guía para las pruebas integrales con Playwright.
+Criterios organizados por módulo. Se utilizan como referencia durante el desarrollo y como guía para las pruebas de extremo a extremo de la API, que son las que verifican estos criterios contra una base real (ver `docs/pruebas.md`).
 
 ## Auth
 
@@ -22,13 +22,13 @@ Criterios organizados por módulo. Se utilizan como referencia durante el desarr
 
 - Un contrato requiere propiedad disponible, inquilino, fechas de inicio y fin, y monto inicial mayor a cero.
 - La modalidad de ajuste debe definirse al alta y queda inmutable salvo modificación explícita con auditoría.
-- Al firmar el contrato la propiedad asociada pasa automáticamente al estado alquilada.
+- El estado de disponibilidad vive en la operación de la propiedad y se transiciona sobre ella, no sobre la propiedad ni como efecto automático del alta del contrato.
 - Las garantías cargadas se pueden listar y el contrato no puede activarse sin al menos una garantía válida (salvo excepción habilitada).
-- Al renovar un contrato, el sistema clona partes y garantías pero exige nueva confirmación de los valores.
+- La renovación se resuelve dando de alta un contrato nuevo con las mismas partes: el contrato anterior queda en estado Renovado y no hay clonado automático de partes ni de garantías.
 
 ## Liquidaciones
 
-- La generación de una liquidación crea una entrada por cada concepto configurado (alquiler, expensas, servicios, impuestos, honorarios).
+- La generación de una liquidación crea la línea de alquiler del período y las líneas que correspondan según los tipos disponibles: alquiler, ajuste, extra, descuento y multa.
 - El monto de alquiler refleja el último ajuste aplicado al período liquidado.
 - Una liquidación no puede modificarse si ya tiene comprobante ARCA emitido; solo se admite anulación con nota de crédito.
 - El sistema impide generar dos liquidaciones para el mismo contrato y período.
@@ -37,25 +37,24 @@ Criterios organizados por módulo. Se utilizan como referencia durante el desarr
 ## Pagos
 
 - Un pago puede ser total o parcial; el saldo restante queda como deuda imputable.
-- Un pago no puede ser mayor al saldo pendiente de la liquidación.
-- Cada pago queda asociado a un medio de pago (efectivo, transferencia, otro) y a un usuario que lo registra.
-- El registro de un pago actualiza inmediatamente el estado de morosidad del contrato.
-- Los pagos eliminados quedan en auditoría con el motivo y el usuario.
+- Cuando la suma de los pagos alcanza el total de la liquidación, esta pasa sola al estado Pagada.
+- Cada pago queda asociado a un medio de pago —transferencia, efectivo, MercadoPago o cheque— y a la liquidación que imputa.
+- El pago se registra siempre contra su liquidación; el módulo de pagos es de consulta agregada de cobranzas y deuda.
 
 ## Tickets
 
-- Un ticket abierto desde el portal del inquilino aparece en el backlog del agente en menos de un minuto.
+- Un ticket abierto desde el portal del inquilino aparece de inmediato en el listado de tickets de la inmobiliaria: la apertura es sincrónica, no diferida.
 - Los tickets pueden tener uno o más comentarios y archivos adjuntos.
-- Al asignar un proveedor, el ticket cambia a estado en curso y se envía notificación.
+- Al asignar un proveedor, el ticket pasa al estado Proveedor asignado, que es una de las etapas de su máquina de estados.
 - Un ticket cerrado no admite nuevos comentarios públicos para el inquilino, salvo reapertura.
 - La categoría del ticket es obligatoria.
 
 ## Portal inquilino
 
 - El inquilino solo accede a información del contrato y las propiedades donde figura como parte.
-- La descarga de un comprobante exige que el comprobante tenga CAE válido.
+- El inquilino descarga el comprobante en PDF de cada una de sus liquidaciones.
 - Las credenciales del portal son independientes de las credenciales del sistema interno.
-- El inquilino puede actualizar sus datos de contacto, no los datos del contrato.
+- El inquilino no edita datos desde el portal: los cambios de contacto los hace la inmobiliaria sobre la ficha de la persona.
 - Las sesiones expiran y se renuevan mediante refresh token específico del portal.
 
 ## ARCA
@@ -71,7 +70,7 @@ Criterios organizados por módulo. Se utilizan como referencia durante el desarr
 - Un lead pertenece a una sola etapa del pipeline en un momento dado.
 - El movimiento de etapa queda registrado en el historial del lead.
 - Una visita exige propiedad, lead y fecha futura.
-- Al convertir un lead en contrato, sus datos personales se transfieren a la entidad `Person`.
+- Al convertir un lead, sus datos personales se transfieren a la entidad `Person`; el contrato se da de alta después, como una operación aparte.
 - Un lead descartado se conserva con motivo de descarte y queda fuera de reportes activos.
 
 <!-- Cierre item 02 -->
