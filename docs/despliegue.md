@@ -113,13 +113,14 @@ Las que habilitan funcionalidad que, sin ellas, queda apagada en silencio:
 | `AI_API_KEY` | vacío | Sin credencial la API levanta igual y las funciones que consultan al modelo resuelven por sus propias reglas. |
 | `AI_TIMEOUT_MS` | `20000` | Espera máxima por respuesta del modelo. |
 
-Dos variables aparecen en `apps/api/.env.example` y hoy **no las lee ningún
-código**: `REDIS_URL` y `JWT_REFRESH_SECRET`. La primera es un resabio de una
-etapa en la que se preveía una cola de trabajos; no hay ningún módulo que use
-Redis, así que provisionarlo no aporta nada. La segunda tampoco hace falta: los
-tokens de refresco no son JWT sino identificadores aleatorios opacos guardados en
-la base, de modo que no hay nada que firmar. Ninguna de las dos debería sumarse a
-la configuración del servicio.
+Hay dos variables que conviene **no** definir, porque ningún código las lee.
+`REDIS_URL` es un resabio de una etapa en la que se preveía una cola de trabajos:
+las dependencias siguen declaradas en `apps/api/package.json` y
+`docker-compose.yml` todavía levanta un servicio Redis, pero no hay ningún módulo
+que lo consuma, así que provisionarlo en producción no aporta nada. Un secreto
+propio para los tokens de refresco tampoco hace falta: esos tokens no son JWT
+sino identificadores aleatorios opacos guardados en la base, de modo que no hay
+nada que firmar. Ninguna de las dos figura ya en `apps/api/.env.example`.
 
 ## Servicio web
 
