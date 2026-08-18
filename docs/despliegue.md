@@ -109,7 +109,7 @@ Las que habilitan funcionalidad que, sin ellas, queda apagada en silencio:
 | `ARCA_MOCK` | vacío | En `1` responde las llamadas a los servicios de ARCA desde el simulador del repositorio, en lugar de ir al organismo. Para desarrollo y pruebas. |
 | `ARCA_ACCESS_TOKEN` | — | El PDF fiscal se genera con la plantilla local en lugar de la del servicio externo. |
 | `AI_BASE_URL` | `https://api.minimax.io/v1` | Endpoint del modelo de lenguaje. |
-| `AI_MODEL` | `MiniMax-M2` | Modelo a usar. |
+| `AI_MODEL` | `MiniMax-M3` | Modelo a usar. |
 | `AI_API_KEY` | vacío | Sin credencial la API levanta igual y las funciones que consultan al modelo resuelven por sus propias reglas. |
 | `AI_TIMEOUT_MS` | `20000` | Espera máxima por respuesta del modelo. |
 

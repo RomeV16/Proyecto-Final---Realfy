@@ -102,7 +102,7 @@ function buildMocks() {
   const metrics = { compute: jest.fn().mockResolvedValue(METRICS) };
   const languageModel = {
     isEnabled: false,
-    model: 'MiniMax-M2',
+    model: 'MiniMax-M3',
     complete: jest.fn().mockResolvedValue(null),
   };
   return { prisma, metrics, languageModel };
@@ -196,7 +196,7 @@ describe('ContractClosureService', () => {
       const mocks = buildMocks();
       mocks.languageModel.isEnabled = true;
       mocks.languageModel.complete.mockResolvedValue(
-        answer === null ? null : { text: answer, model: 'MiniMax-M2' },
+        answer === null ? null : { text: answer, model: 'MiniMax-M3' },
       );
       return mocks;
     }
@@ -209,7 +209,7 @@ describe('ContractClosureService', () => {
       const result = await service.generate(TENANT_ID, CONTRACT_ID);
 
       expect(result.summary!.source).toBe('model');
-      expect(result.summary!.model).toBe('MiniMax-M2');
+      expect(result.summary!.model).toBe('MiniMax-M3');
       expect(result.summary!.summary).toContain('El contrato se sostuvo 21 meses');
       expect(result.summary!.highlights).toHaveLength(3);
     });
@@ -359,7 +359,7 @@ describe('ContractClosureService', () => {
       highlights: ['Un punto', 'Otro punto'],
       metrics: METRICS,
       source: 'model' as const,
-      model: 'MiniMax-M2',
+      model: 'MiniMax-M3',
       generatedAt: new Date('2026-08-17T18:00:00.000Z'),
     };
 

@@ -106,7 +106,7 @@ function buildMocks(items: DailyContextItem[] = ITEMS) {
   const contextService = { build: jest.fn().mockResolvedValue(context(items)) };
   const languageModel = {
     isEnabled: false,
-    model: 'MiniMax-M2',
+    model: 'MiniMax-M3',
     complete: jest.fn().mockResolvedValue(null),
   };
   return { contextService, languageModel };
@@ -192,7 +192,7 @@ describe('AiPrioritiesService', () => {
   });
 
   describe('con modelo configurado', () => {
-    function enabledMocks(answer: string | null, model = 'MiniMax-M2') {
+    function enabledMocks(answer: string | null, model = 'MiniMax-M3') {
       const mocks = buildMocks();
       mocks.languageModel.isEnabled = true;
       mocks.languageModel.complete = jest
@@ -208,7 +208,7 @@ describe('AiPrioritiesService', () => {
       const result = await module.get(AiPrioritiesService).getDailyPriorities(TENANT_ID);
 
       expect(result.source).toBe('model');
-      expect(result.model).toBe('MiniMax-M2');
+      expect(result.model).toBe('MiniMax-M3');
       expect(result.priorities.map((p) => p.ref)).toEqual(['R1', 'C1', 'L1', 'C2']);
       expect(result.priorities[0].reason).toBe('El reclamo lleva un día fuera de plazo');
       expect(result.priorities[0].action).toBe('Derivar a un plomero');
@@ -330,7 +330,7 @@ describe('AiPrioritiesService', () => {
     });
 
     it('cae a las reglas cuando la respuesta no es JSON', async () => {
-      const result = await resolveWith({ text: 'No puedo ayudarte con eso.', model: 'MiniMax-M2' });
+      const result = await resolveWith({ text: 'No puedo ayudarte con eso.', model: 'MiniMax-M3' });
 
       expect(result.source).toBe('rules');
       expect(result.priorities.map((p) => p.ref)).toEqual(['C1', 'R1', 'C2', 'L1']);
@@ -341,7 +341,7 @@ describe('AiPrioritiesService', () => {
         text: JSON.stringify({
           priorities: [{ ref: 'C1', urgency: 'urgentísima', reason: '', action: 'Cobrar' }],
         }),
-        model: 'MiniMax-M2',
+        model: 'MiniMax-M3',
       });
 
       expect(result.source).toBe('rules');
@@ -353,7 +353,7 @@ describe('AiPrioritiesService', () => {
         text: JSON.stringify({
           priorities: [{ ref: 'Z9', urgency: 'alta', reason: 'Inventada', action: 'Nada' }],
         }),
-        model: 'MiniMax-M2',
+        model: 'MiniMax-M3',
       });
 
       expect(result.source).toBe('rules');

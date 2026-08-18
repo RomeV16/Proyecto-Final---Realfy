@@ -45,7 +45,7 @@ describe('LanguageModelClient', () => {
     });
 
     it('igual expone el modelo configurado', () => {
-      expect(buildClient({}).model).toBe('MiniMax-M2');
+      expect(buildClient({}).model).toBe('MiniMax-M3');
       expect(buildClient({ AI_MODEL: 'otro-modelo' }).model).toBe('otro-modelo');
     });
   });
@@ -55,13 +55,13 @@ describe('LanguageModelClient', () => {
 
     it('llama al endpoint compatible con el protocolo de chat', async () => {
       fetchMock.mockResolvedValue(
-        okResponse({ model: 'MiniMax-M2', choices: [{ message: { content: '{"ok":true}' } }] }),
+        okResponse({ model: 'MiniMax-M3', choices: [{ message: { content: '{"ok":true}' } }] }),
       );
       const client = buildClient(ENV);
 
       const result = await client.complete(MESSAGES, { json: true });
 
-      expect(result).toEqual({ text: '{"ok":true}', model: 'MiniMax-M2' });
+      expect(result).toEqual({ text: '{"ok":true}', model: 'MiniMax-M3' });
 
       const [url, init] = fetchMock.mock.calls[0];
       expect(url).toBe('https://modelo.example/v1/chat/completions');
@@ -69,7 +69,7 @@ describe('LanguageModelClient', () => {
       expect(init.headers.Authorization).toBe('Bearer k-de-prueba');
 
       const body = JSON.parse(init.body as string);
-      expect(body.model).toBe('MiniMax-M2');
+      expect(body.model).toBe('MiniMax-M3');
       expect(body.messages).toEqual(MESSAGES);
       expect(body.response_format).toEqual({ type: 'json_object' });
     });
