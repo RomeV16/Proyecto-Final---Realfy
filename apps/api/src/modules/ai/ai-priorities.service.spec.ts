@@ -348,6 +348,35 @@ describe('AiPrioritiesService', () => {
       expect(result.priorities.map((p) => p.ref)).toEqual(['C1', 'R1', 'C2', 'L1']);
     });
 
+    it('conserva las entradas validas y descarta solo la que no cumple', async () => {
+      const result = await resolveWith({
+        text: JSON.stringify({
+          priorities: [
+            { ref: 'R1', urgency: 'alta', reason: 'SLA excedido', action: 'Asignar responsable' },
+            { ref: 'C1', urgency: 'urgentisima', reason: 'mora', action: 'Cobrar' },
+            { ref: 'C2', urgency: 'media', reason: 'mora reciente', action: 'Llamar' },
+          ],
+        }),
+        model: 'MiniMax-M3',
+      });
+
+      expect(result.source).toBe('model');
+      expect(result.priorities.map((p) => p.ref)).toEqual(['R1', 'C2']);
+    });
+
+    it('recorta un motivo mas largo que el acordado en vez de descartar la entrada', async () => {
+      const largo = 'a'.repeat(400);
+      const result = await resolveWith({
+        text: JSON.stringify({
+          priorities: [{ ref: 'C1', urgency: 'alta', reason: largo, action: 'Cobrar' }],
+        }),
+        model: 'MiniMax-M3',
+      });
+
+      expect(result.source).toBe('model');
+      expect(result.priorities[0].reason).toHaveLength(240);
+    });
+
     it('cae a las reglas cuando ninguna referencia pertenece al contexto', async () => {
       const result = await resolveWith({
         text: JSON.stringify({
