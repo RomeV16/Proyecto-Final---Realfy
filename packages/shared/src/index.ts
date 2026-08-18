@@ -357,17 +357,15 @@ export {
 
 // Constants & utilities
 export {
-  ROLE_PERMISSIONS,
   DEFAULT_TIMEZONE,
   DEFAULT_CURRENCY,
-  hasPermission,
   DEFAULT_ALQUILER_STAGES,
   DEFAULT_VENTA_STAGES,
   DEFAULT_PIPELINE_STAGES,
   TICKET_SLA_HOURS,
 } from './constants';
 
-export type { Permission, DefaultStageDefinition } from './constants';
+export type { DefaultStageDefinition } from './constants';
 
 // Template engine
 export {

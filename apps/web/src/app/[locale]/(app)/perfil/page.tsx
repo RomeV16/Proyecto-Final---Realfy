@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { UserRole } from '@realfy/shared';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { Input } from '@/components/ui/input';
@@ -16,15 +17,16 @@ interface UpdatedUser {
   tenantId: string;
 }
 
-const roleLabels: Record<string, string> = {
-  Admin: 'Administrador',
-  Gerente: 'Gerente',
-  Agente: 'Agente',
-  Contable: 'Contable',
-};
+/**
+ * Los rótulos de rol viven en `users.roles`, que es la misma fuente que usa la
+ * pantalla de usuarios. Se valida contra el enum antes de traducir para que un
+ * valor inesperado se muestre tal cual en lugar de romper la clave.
+ */
+const KNOWN_ROLES = Object.values(UserRole) as string[];
 
 export default function PerfilPage() {
   const t = useTranslations('perfil');
+  const tRoles = useTranslations('users.roles');
   const { user, updateUser } = useAuth();
 
   const [firstName, setFirstName] = useState(user?.firstName ?? '');
@@ -79,6 +81,12 @@ export default function PerfilPage() {
     ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase()
     : '';
 
+  const roleLabel = user
+    ? KNOWN_ROLES.includes(user.role)
+      ? tRoles(user.role)
+      : user.role
+    : '';
+
   return (
     <div className="max-w-2xl space-y-6">
       <div>
@@ -123,12 +131,7 @@ export default function PerfilPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label={t('email')} value={user?.email ?? ''} disabled readOnly />
-            <Input
-              label={t('role')}
-              value={user ? roleLabels[user.role] ?? user.role : ''}
-              disabled
-              readOnly
-            />
+            <Input label={t('role')} value={roleLabel} disabled readOnly />
           </div>
 
           {error && (
