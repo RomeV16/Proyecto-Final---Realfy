@@ -23,15 +23,31 @@ export interface LanguageModelResult {
 }
 
 /**
- * Aísla el objeto JSON de una respuesta del modelo, tolerando cercos de código o
- * preámbulos. Devuelve `null` si no hay un objeto parseable.
+ * Quita el razonamiento que algunos modelos escriben dentro de la respuesta,
+ * delimitado por `<think>`. Se descarta también un bloque sin cerrar, que es lo
+ * que queda cuando la respuesta se corta por límite de longitud.
+ */
+export function stripReasoning(text: string): string {
+  const withoutClosed = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  const unclosed = withoutClosed.search(/<think>/i);
+  return (unclosed === -1 ? withoutClosed : withoutClosed.slice(0, unclosed)).trim();
+}
+
+/**
+ * Aísla el objeto JSON de una respuesta del modelo, tolerando cercos de código,
+ * preámbulos y razonamiento. Devuelve `null` si no hay un objeto parseable.
+ *
+ * El razonamiento se descarta antes de buscar las llaves: si el modelo razona
+ * sobre la forma del JSON que va a devolver, una llave dentro de ese texto
+ * desplazaría el recorte y el objeto real quedaría sin parsear.
  */
 export function parseJsonObject(text: string): unknown | null {
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
+  const clean = stripReasoning(text);
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
   if (start === -1 || end <= start) return null;
   try {
-    return JSON.parse(text.slice(start, end + 1));
+    return JSON.parse(clean.slice(start, end + 1));
   } catch {
     return null;
   }
@@ -41,7 +57,12 @@ const DEFAULT_BASE_URL = 'https://api.minimax.io/v1';
 const DEFAULT_MODEL = 'MiniMax-M3';
 const DEFAULT_TIMEOUT_MS = 20_000;
 const DEFAULT_TEMPERATURE = 0.2;
-const DEFAULT_MAX_TOKENS = 1200;
+/**
+ * Los modelos con razonamiento gastan de este mismo presupuesto antes de escribir
+ * la respuesta, así que el techo tiene que dar lugar a las dos cosas: si se agota,
+ * la respuesta llega cortada y el JSON queda sin cerrar.
+ */
+const DEFAULT_MAX_TOKENS = 2400;
 
 /**
  * Cliente de modelo de lenguaje.
@@ -124,13 +145,23 @@ export class LanguageModelClient {
 
       const payload = (await res.json()) as {
         model?: string;
-        choices?: Array<{ message?: { content?: unknown } }>;
+        choices?: Array<{ finish_reason?: string; message?: { content?: unknown } }>;
       };
 
-      const content = payload?.choices?.[0]?.message?.content;
+      const choice = payload?.choices?.[0];
+      const content = choice?.message?.content;
       if (typeof content !== 'string' || content.trim().length === 0) {
         this.logger.warn('El modelo respondió sin contenido utilizable');
         return null;
+      }
+
+      // Una respuesta cortada por límite de longitud llega con el JSON sin
+      // cerrar, y sin este aviso el síntoma que se ve más adelante es
+      // "no contenía un objeto JSON", que apunta al lugar equivocado.
+      if (choice?.finish_reason === 'length') {
+        this.logger.warn(
+          `El modelo agotó el límite de ${body.max_tokens} tokens y la respuesta llegó cortada`,
+        );
       }
 
       return { text: content, model: payload.model?.trim() || this.model };

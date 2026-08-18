@@ -77,7 +77,7 @@ function buildUserPrompt(facts: DailyContextFact[], totals: DailyContextTotals):
     '',
     'Reglas:',
     '- Usá sólo las referencias que aparecen arriba; no inventes ninguna.',
-    '- Incluí todos los pendientes, del más urgente al menos urgente.',
+    `- Devolvé como máximo ${MAX_PRIORITIES} entradas: las más urgentes, de más a menos urgente.`,
     '- "urgency" es exactamente "alta", "media" o "baja".',
     '- "reason" explica por qué es urgente, en castellano rioplatense, hasta 240 caracteres.',
     '- "action" es el próximo paso concreto, en infinitivo, hasta 160 caracteres.',
