@@ -41,10 +41,6 @@ yarn-error.log*
 # Testing
 coverage/
 
-# GSD browser state (may contain auth tokens)
-.gsd/browser-state/
-.gsd/browser-baselines/
-
 # Prisma
 prisma/*.db
 
@@ -54,10 +50,10 @@ docker-compose.override.yml
 # S3 local uploads (dev)
 uploads/
 
-# Background shell state
-.bg-shell/
+# Certificados fiscales (nunca se versionan)
+arca-certs/
 
-# ── GSD baseline (auto-generated) ──
+# Varios
 *~
 *.code-workspace
 .env.*
@@ -70,21 +66,6 @@ target/
 vendor/
 .cache/
 tmp/
-
-# GSD runtime
-.gsd/worktrees/
-.gsd/gsd.db
-.gsd/runtime/
-.gsd/activity/
-.gsd/journal/
-.gsd/completed-units.json
-.gsd/metrics.json
-.gsd/state-manifest.json
-.gsd/event-log.jsonl
-.gsd/doctor-history.jsonl
-.gsd/browser-state/
-.gsd/browser-baselines/
-arca-certs/
 
 # Playwright
 e2e/.auth/
