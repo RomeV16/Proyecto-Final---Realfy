@@ -1,5 +1,10 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { LanguageModelClient } from './language-model.client';
+import {
+  LanguageModelClient,
+  parseJsonObject,
+  stripReasoning,
+} from './language-model.client';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -117,6 +122,24 @@ describe('LanguageModelClient', () => {
       await expect(buildClient(ENV).complete(MESSAGES)).resolves.toBeNull();
     });
 
+    it('avisa cuando la respuesta llega cortada por limite de longitud', async () => {
+      const warn = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      fetchMock.mockResolvedValue(
+        okResponse({
+          model: 'MiniMax-M3',
+          choices: [{ finish_reason: 'length', message: { content: '{"priorities":[' } }],
+        }),
+      );
+
+      const result = await buildClient(ENV).complete(MESSAGES);
+
+      expect(result?.text).toBe('{"priorities":[');
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('cortada'));
+      warn.mockRestore();
+    });
+
     it('usa el modelo configurado como respaldo si el proveedor no lo informa', async () => {
       fetchMock.mockResolvedValue(okResponse({ choices: [{ message: { content: 'listo' } }] }));
 
@@ -124,5 +147,50 @@ describe('LanguageModelClient', () => {
 
       expect(result?.model).toBe('modelo-x');
     });
+  });
+});
+
+describe('parseJsonObject con respuestas de modelos que razonan', () => {
+  it('descarta el razonamiento aunque contenga llaves', () => {
+    const answer = [
+      '<think>',
+      'Tengo que devolver algo con la forma {"priorities": [...]} y una entrada por asunto.',
+      'Voy a poner {"ref": "P1"} primero porque la mora es la mas vieja.',
+      '</think>',
+      '',
+      '{"priorities":[{"ref":"P1","urgency":"alta","reason":"mora de 45 dias","action":"llamar"}]}',
+    ].join('\n');
+
+    expect(parseJsonObject(answer)).toEqual({
+      priorities: [
+        { ref: 'P1', urgency: 'alta', reason: 'mora de 45 dias', action: 'llamar' },
+      ],
+    });
+  });
+
+  it('descarta un bloque de razonamiento sin cerrar', () => {
+    const answer = '{"priorities":[]}\n<think>me quede pensando y la respuesta se corto';
+
+    expect(parseJsonObject(answer)).toEqual({ priorities: [] });
+  });
+
+  it('devuelve nulo si lo unico que hay es razonamiento', () => {
+    expect(parseJsonObject('<think>{"tal vez": 1}</think>')).toBeNull();
+  });
+
+  it('sigue tolerando cercos de codigo y preambulos', () => {
+    const answer = 'Aca va la respuesta:\n```json\n{"ok":true}\n```';
+
+    expect(parseJsonObject(answer)).toEqual({ ok: true });
+  });
+});
+
+describe('stripReasoning', () => {
+  it('deja intacto un texto sin razonamiento', () => {
+    expect(stripReasoning('texto normal')).toBe('texto normal');
+  });
+
+  it('quita varios bloques', () => {
+    expect(stripReasoning('<think>a</think>uno<think>b</think>dos')).toBe('unodos');
   });
 });
