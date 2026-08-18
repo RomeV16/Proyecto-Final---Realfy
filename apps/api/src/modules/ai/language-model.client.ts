@@ -38,7 +38,7 @@ export function parseJsonObject(text: string): unknown | null {
 }
 
 const DEFAULT_BASE_URL = 'https://api.minimax.io/v1';
-const DEFAULT_MODEL = 'MiniMax-M2';
+const DEFAULT_MODEL = 'MiniMax-M3';
 const DEFAULT_TIMEOUT_MS = 20_000;
 const DEFAULT_TEMPERATURE = 0.2;
 const DEFAULT_MAX_TOKENS = 1200;
@@ -53,7 +53,7 @@ const DEFAULT_MAX_TOKENS = 1200;
  *
  * Configuración (todas opcionales):
  *   AI_BASE_URL    raíz de la API            (por defecto https://api.minimax.io/v1)
- *   AI_MODEL       identificador del modelo  (por defecto MiniMax-M2)
+ *   AI_MODEL       identificador del modelo  (por defecto MiniMax-M3)
  *   AI_API_KEY     credencial; vacía deshabilita el cliente
  *   AI_TIMEOUT_MS  tiempo máximo de espera   (por defecto 20000)
  *
