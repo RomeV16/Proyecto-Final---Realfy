@@ -254,19 +254,22 @@ completamente distintos.
 
 ### 1.10. ¿Y si mañana agregan una tabla y se olvidan de sumarla al filtro?
 
-**Corto.** Queda sin filtrar, y es la principal deuda que el propio ADR-0006
-declara: la lista de modelos alcanzados por la extensión está escrita a mano.
+**Corto.** Rompe la suite de pruebas. Hay una prueba que compara la lista de modelos
+alcanzados por la extensión contra el esquema y exige que todo modelo con columna de
+inmobiliaria esté alcanzado.
 
-**No esquivarlo: mostrarlo.** Comparando la lista contra el esquema hoy aparecen dos
-discrepancias, y conviene decirlas antes de que las busquen. La lista nombra tres
-modelos de inventario de propiedad que el esquema no tiene, entradas sin efecto. Y
-hay un modelo con columna de inmobiliaria que no está en la lista: el registro de
-exportaciones del libro de IVA ventas. Hoy no hay fuga por ese lado, y la razón es
-accidental: su único acceso en todo el sistema es una escritura de la tarea
-programada de facturación, que va por el cliente sin extensión y con la
-inmobiliaria puesta a mano, o sea el camino que el ADR declara legítimo. Pero nada
-impidió que se agregara sin sumarlo, y el día que alguien lo lea desde un servicio
-con sesión, la lectura sale sin filtro.
+**No esquivarlo: contar cómo apareció.** Esa prueba se escribió porque el problema
+existía. Al comparar la lista contra el esquema durante la etapa de cierre
+aparecieron dos discrepancias: la lista nombraba tres modelos de inventario de
+propiedad que el esquema no tiene, entradas sin efecto, y había un modelo con columna
+de inmobiliaria que no estaba en la lista, el registro de exportaciones del libro de
+IVA ventas. No hubo fuga por ese lado, y la razón era accidental y no de diseño: su
+único acceso en todo el sistema es una escritura de la tarea programada de
+facturación, que va por el cliente sin extensión y con la inmobiliaria puesta a mano,
+o sea el camino que el ADR declara legítimo. Pero nada había impedido que se agregara
+sin sumarlo. Se corrigieron las dos discrepancias, se agregó la prueba que compara
+lista y esquema, y se verificó que esa prueba falla al quitar un modelo de la lista,
+para que no sea una prueba que acompaña sin comprobar.
 
 **Con qué cerrar.** Que la deuda esté declarada en el ADR y que se la pueda exhibir
 con el caso concreto es mejor que no tenerla: significa que se sabe dónde mirar. La
@@ -544,7 +547,7 @@ Cada uno con lo que hay que contestar. La regla es adelantarlos.
 | No hay pruebas de navegador, y estaban comprometidas | Es un desvío declarado, no una omisión que se descubre ahora. Se explica la decisión de asignación de esfuerzo, se nombra el defecto concreto que costó, y se dice cuál habría sido la mejor decisión con lo que se sabe hoy (1.6). |
 | Cobertura de 42 % de líneas y 32 % de ramas | El número real, presentado como objetivo y no como logro, con el piso de integración continua explicado como piso y no como meta, y con la suite de integración como compensación parcial reconocida como parcial (1.5). |
 | No hay medición de capacidad | El ítem 27 la contemplaba y no se hizo. Los puntos caros están identificados —generación del mes y reportes— y sobre lo segundo hay caché, pero sin medición no se afirma nada sobre capacidad. Este informe no hace ninguna afirmación de rendimiento, a propósito. |
-| La lista de modelos filtrados se mantiene a mano, y hay un modelo afuera | Se muestra el caso concreto antes de que lo busquen, se explica por qué hoy no hay fuga y por qué eso es accidental, y se da la salida de diseño (1.10). |
+| La lista de modelos filtrados se mantiene a mano | Se cuenta que había un modelo afuera, que se detectó comparando la lista contra el esquema, que se corrigió, y que ahora una prueba impide que vuelva a pasar. La mejora estructural queda declarada como pendiente (1.10). |
 | El secreto de firma tiene valor de reserva en el código | Declarado como limitación, con la corrección identificada y la admisión de que hay que hacerla antes de cualquier uso real (1.20). |
 | Las dos funciones con modelo de lenguaje van a correr en modo determinista en la demostración | Se dice antes de mostrarlas, con la razón —repositorio y ambiente públicos— y con la aclaración de que habilitarlo es configuración y no código (1.4). |
 | El panel puede mostrar números de hasta quince minutos | Limitación declarada, con el arreglo diseñado y la segunda limitación —caché de proceso— dicha también (1.17). |

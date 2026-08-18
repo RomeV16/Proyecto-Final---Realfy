@@ -648,25 +648,31 @@ queda sin filtrar y sin protección, porque la extensión lo deja pasar por no
 reconocerlo. Es la principal deuda que deja el ADR-0006, y el punto a revisar en
 cada migración que agregue una tabla.
 
-Que la deuda es real y no teórica se puede comprobar comparando la lista contra el
-esquema, y conviene declararlo antes de que lo encuentre el tribunal. La
-comparación da dos discrepancias. Por un lado, la lista nombra tres modelos de
-inventario de propiedad que el esquema no tiene: entradas que quedaron sin efecto y
-que la extensión nunca va a usar. Por el otro, y esto es lo que importa, hay un
-modelo con columna de inmobiliaria que **no** está en la lista: el registro de
-exportaciones del libro de IVA ventas. Hoy no hay fuga por ese lado, y la razón es
-accidental y no de diseño: su único acceso en todo el sistema es una escritura de
-la tarea programada de facturación, que va por el cliente sin extensión y con la
-inmobiliaria puesta a mano, es decir, exactamente el camino que el ADR-0006
-declara legítimo. Pero nada impidió que el modelo se agregara sin sumarlo a la
-lista, y el día que alguien lo lea desde un servicio con sesión, la lectura sale
-sin filtro. Es la demostración más clara de por qué esta deuda es la primera de la
-lista.
+Que la deuda era real y no teórica quedó demostrado al comparar la lista contra el
+esquema durante esta última etapa. La comparación dio dos discrepancias. Por un
+lado, la lista nombraba tres modelos de inventario de propiedad que el esquema no
+tiene: entradas sin efecto, que la extensión nunca iba a usar. Por el otro, y esto
+es lo que importaba, había un modelo con columna de inmobiliaria que **no** estaba
+en la lista: el registro de exportaciones del libro de IVA ventas. No hubo fuga por
+ese lado, y la razón era accidental y no de diseño: su único acceso en todo el
+sistema es una escritura de la tarea programada de facturación, que va por el
+cliente sin extensión y con la inmobiliaria puesta a mano, es decir, exactamente el
+camino que el ADR-0006 declara legítimo. Pero nada había impedido que el modelo se
+agregara sin sumarlo a la lista, y el día que alguien lo leyera desde un servicio
+con sesión, la lectura habría salido sin filtro.
 
-El camino de salida está identificado: derivar la lista del propio esquema en lugar
-de mantenerla —de modo que un modelo con columna de inmobiliaria quede alcanzado
-por construcción y la única lista a mano sea la de las excepciones—, o mover el
-filtro al motor con seguridad a nivel de fila.
+Las dos discrepancias se corrigieron, y para que la clase de error no se repita se
+agregó una prueba que compara la lista contra el esquema: exige que todo modelo con
+columna de inmobiliaria esté alcanzado y que ningún nombre de la lista corresponda a
+un modelo inexistente. Se verificó que la prueba efectivamente falla al quitar un
+modelo de la lista, para que no sea una prueba que acompaña sin comprobar. Con eso,
+un modelo nuevo que quede afuera rompe la suite en lugar de pasar inadvertido.
+
+Queda pendiente la mejora estructural, que es la que sacaría la lista del medio:
+derivarla del propio esquema —de modo que un modelo con columna de inmobiliaria
+quede alcanzado por construcción y la única lista a mano sea la de las excepciones—
+o mover el filtro al motor con seguridad a nivel de fila. La prueba acota el riesgo;
+no elimina la duplicación.
 
 **La atribución de reclamos a un contrato es por propiedad y sin ventana de
 vigencia.** El reclamo se registra contra la propiedad, y cuando hay que atribuirlo
