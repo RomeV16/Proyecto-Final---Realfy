@@ -14,9 +14,33 @@ env:
   NODE_VERSION: "22"
 
 jobs:
-  # En esta etapa el pipeline valida que el monorepo instale y compile.
-  # Las suites de tests unitarios, e2e de API y Playwright se incorporan
-  # en el item 27 (pruebas integrales), cuando haya cobertura que medir.
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # El paquete compartido y el cliente de Prisma son tipos que el linter resuelve.
+      - name: Build shared package
+        run: pnpm --filter @realfy/shared build
+
+      - name: Generate Prisma client
+        run: cd apps/api && npx prisma generate
+
+      - name: Lint
+        run: pnpm -r lint
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -45,3 +69,140 @@ jobs:
 
       - name: Build Web
         run: pnpm --filter @realfy/web build
+
+  unit:
+    name: Unit Tests & Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @realfy/shared build
+
+      - name: Generate Prisma client
+        run: cd apps/api && npx prisma generate
+
+      # El piso de cobertura vive en apps/api/jest.config.ts.
+      - name: Unit tests with coverage
+        run: pnpm --filter @realfy/api test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: coverage-report
+          path: apps/api/coverage/lcov-report/
+          retention-days: 14
+
+  migrations:
+    name: Migrations from scratch
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: realfy
+          POSTGRES_PASSWORD: realfy
+          POSTGRES_DB: realfy_migrations
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U realfy"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://realfy:realfy@localhost:5432/realfy_migrations
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate schema
+        run: cd apps/api && npx prisma validate
+
+      # Una migración con SQL inválido queda registrada como fallida y bloquea
+      # todas las siguientes, incluido el despliegue. Aplicarlas sobre una base
+      # vacía en cada PR es lo que lo detecta antes de llegar a producción.
+      - name: Apply every migration on an empty database
+        run: cd apps/api && npx prisma migrate deploy
+
+      - name: Check the schema matches the migrations
+        run: cd apps/api && npx prisma migrate status
+
+  e2e-api:
+    name: API E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: unit
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: realfy
+          POSTGRES_PASSWORD: realfy
+          POSTGRES_DB: realfy_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U realfy"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://realfy:realfy@localhost:5432/realfy_e2e
+      NODE_ENV: test
+      JWT_SECRET: ci-jwt-secret
+      JWT_REFRESH_SECRET: ci-jwt-refresh-secret
+      # Cada caso abre su propia sesión contra el mismo host: con el límite de
+      # intentos activo la suite se cortaría sola con 429. El límite estricto de
+      # los endpoints de ingreso se verifica en test/unit/credentials-throttle.spec.ts.
+      RATE_LIMIT_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @realfy/shared build
+
+      - name: Generate Prisma client
+        run: cd apps/api && npx prisma generate
+
+      - name: Apply migrations
+        run: cd apps/api && npx prisma migrate deploy
+
+      - name: API e2e tests
+        run: pnpm --filter @realfy/api test:e2e
