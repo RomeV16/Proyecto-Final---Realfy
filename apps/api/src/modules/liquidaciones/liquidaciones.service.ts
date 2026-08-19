@@ -507,12 +507,20 @@ export class LiquidacionesService {
     );
 
     if (fullyPaid) {
-      // Auto-transition to Pagada.
+      // Auto-transition to Pagada. La fecha de saldado es la del último pago que
+      // la completó, no el momento en que se cargó en el sistema: una cobranza
+      // del día 5 registrada el día 20 se saldó el 5, y de esa fecha dependen la
+      // puntualidad, el puntaje del inquilino y el resumen de cierre.
+      const settledOn = [
+        ...liquidacion.payments.map((p: { paidAt: Date }) => p.paidAt),
+        payment.paidAt,
+      ].reduce((latest, date) => (date > latest ? date : latest));
+
       await this.prisma.client.liquidacion.update({
         where: { id: liquidacionId },
         data: {
           status: LiquidacionStatus.Pagada,
-          paidAt: new Date(),
+          paidAt: settledOn,
         },
       });
 

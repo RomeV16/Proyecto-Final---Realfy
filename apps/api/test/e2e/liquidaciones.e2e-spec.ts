@@ -593,6 +593,39 @@ describe('Liquidaciones (e2e)', () => {
       expect(r4.body.paidAt).toBeDefined();
     });
 
+    it('salda la liquidacion con la fecha del pago y no con la de registracion', async () => {
+      const { user, liquidacion } = await setupFullLiquidacion('trans-fecha');
+
+      for (const status of [
+        LiquidacionStatus.Revision,
+        LiquidacionStatus.Aprobada,
+        LiquidacionStatus.Enviada,
+      ]) {
+        await request(app.getHttpServer())
+          .post(`/api/liquidaciones/${liquidacion.id}/transition`)
+          .set('Authorization', `Bearer ${user.accessToken}`)
+          .send({ status })
+          .expect(200);
+      }
+
+      // Un pago hecho hace veinte dias, cargado recien ahora.
+      const pagadoEl = new Date(Date.now() - 20 * 24 * 60 * 60 * 1000);
+      const res = await request(app.getHttpServer())
+        .post(`/api/liquidaciones/${liquidacion.id}/payments`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({
+          amount: '150000.00',
+          method: PaymentMethod.Transferencia,
+          paidAt: pagadoEl.toISOString(),
+        })
+        .expect(200);
+
+      expect(res.body.status).toBe(LiquidacionStatus.Pagada);
+      expect(new Date(res.body.paidAt).toISOString().slice(0, 10)).toBe(
+        pagadoEl.toISOString().slice(0, 10),
+      );
+    });
+
     it('Invalid: Borrador → Pagada returns 400', async () => {
       const { user, liquidacion } = await setupFullLiquidacion('trans-inv-1');
 
