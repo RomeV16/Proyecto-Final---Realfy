@@ -346,7 +346,7 @@ export class DashboardService {
     // alquilada esta semana apareceria como ocupada todos los meses anteriores.
     const results = await Promise.all(
       months.map(async ({ label, eom }) => {
-        const [ocupadas, total] = await Promise.all([
+        const [conContrato, enCartera] = await Promise.all([
           (this.prisma.client as any).contract.findMany({
             where: {
               tenantId,
@@ -359,19 +359,34 @@ export class DashboardService {
             select: { propertyId: true },
             distinct: ['propertyId'],
           }),
-          (this.prisma.client as any).propertyOperation.count({
+          (this.prisma.client as any).propertyOperation.findMany({
             where: {
               tenantId,
               operationType: 'Alquiler',
               state: { not: 'Archivado' },
               createdAt: { lte: eom },
             },
+            select: { propertyId: true },
+            distinct: ['propertyId'],
           }),
+        ]);
+
+        // El denominador tambien tiene que ser el de ese mes, no el de hoy. Se
+        // toma la cartera de alquiler dada de alta hasta entonces, y se le suman
+        // las propiedades que ese mes tenian contrato: si estaban alquiladas,
+        // formaban parte de la cartera, aunque su registro se haya cargado
+        // despues. Asi el ocupado nunca puede superar al total.
+        const ocupadas = new Set<string>(
+          conContrato.map((c: { propertyId: string }) => c.propertyId),
+        );
+        const cartera = new Set<string>([
+          ...ocupadas,
+          ...enCartera.map((o: { propertyId: string }) => o.propertyId),
         ]);
 
         return {
           month: label,
-          occupancyPct: computeOccupancyPct(ocupadas.length, total),
+          occupancyPct: computeOccupancyPct(ocupadas.size, cartera.size),
         };
       }),
     );
