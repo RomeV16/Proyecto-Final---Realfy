@@ -339,16 +339,25 @@ export class DashboardService {
 
     const months = buildMonthRange(rangeMonths);
 
+    // La ocupación de un mes pasado se deriva de los contratos que estaban
+    // vigentes ese mes, que es el único dato con historia que tiene el sistema.
+    // Contar el estado actual de la operación filtrando por su fecha de alta no
+    // describe el pasado: proyecta hacia atrás la foto de hoy, y una propiedad
+    // alquilada esta semana apareceria como ocupada todos los meses anteriores.
     const results = await Promise.all(
       months.map(async ({ label, eom }) => {
-        const [occupied, total] = await Promise.all([
-          (this.prisma.client as any).propertyOperation.count({
+        const [ocupadas, total] = await Promise.all([
+          (this.prisma.client as any).contract.findMany({
             where: {
               tenantId,
-              operationType: 'Alquiler',
-              state: { in: ['Alquilado', 'Ocupado'] },
-              createdAt: { lte: eom },
+              startDate: { lte: eom },
+              OR: [
+                { closedAt: { gte: eom } },
+                { closedAt: null, endDate: { gte: eom } },
+              ],
             },
+            select: { propertyId: true },
+            distinct: ['propertyId'],
           }),
           (this.prisma.client as any).propertyOperation.count({
             where: {
@@ -360,7 +369,10 @@ export class DashboardService {
           }),
         ]);
 
-        return { month: label, occupancyPct: computeOccupancyPct(occupied, total) };
+        return {
+          month: label,
+          occupancyPct: computeOccupancyPct(ocupadas.length, total),
+        };
       }),
     );
 

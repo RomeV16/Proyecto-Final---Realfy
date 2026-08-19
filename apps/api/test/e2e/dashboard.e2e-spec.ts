@@ -360,4 +360,88 @@ describe('Dashboard (e2e)', () => {
       expect(resB.body.activeContracts).toBe(0);
     });
   });
+  describe('GET /dashboard/occupancy-trend', () => {
+    it('cuenta como ocupados los meses en que el contrato estuvo vigente', async () => {
+      const user = await registerUser(app, {
+        email: 'admin@occ-trend.com',
+        password: 'Password123!',
+        firstName: 'Admin',
+        lastName: 'User',
+      });
+      await createContractWithProperty(user.accessToken, 'occ-trend');
+
+      const res = await request(app.getHttpServer())
+        .get('/api/dashboard/occupancy-trend?months=6')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+
+      expect(res.body).toHaveLength(6);
+
+      // El contrato del helper corre de 2025 a 2027, asi que cubre toda la
+      // ventana: ningun mes puede dar cero. Con el calculo anterior, que
+      // proyectaba el estado actual desde el alta del registro, los meses
+      // previos al alta daban cero.
+      const meses = res.body as Array<{ month: string; occupancyPct: number }>;
+      for (const mes of meses) {
+        expect(mes.occupancyPct).toBeGreaterThan(0);
+      }
+    });
+
+    it('no cuenta un contrato que todavia no habia empezado', async () => {
+      const user = await registerUser(app, {
+        email: 'admin@occ-futuro.com',
+        password: 'Password123!',
+        firstName: 'Admin',
+        lastName: 'User',
+      });
+      const property = await createProperty(user.accessToken);
+
+      const propietario = await createPersonWithRole(user.accessToken, {
+        firstName: 'Futuro',
+        lastName: 'Prop',
+        role: PersonRole.Propietario,
+        email: 'propietario-occ-futuro@test.com',
+      });
+      const inquilino = await createPersonWithRole(user.accessToken, {
+        firstName: 'Futuro',
+        lastName: 'Inq',
+        role: PersonRole.Inquilino,
+        email: 'inquilino-occ-futuro@test.com',
+      });
+
+      const enUnMes = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      const enUnAno = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+
+      await request(app.getHttpServer())
+        .post('/api/contracts')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({
+          propertyId: property.id,
+          contractType: ContractType.Alquiler,
+          status: ContractStatus.Activo,
+          startDate: enUnMes.toISOString(),
+          endDate: enUnAno.toISOString(),
+          rentAmount: '150000.00',
+          rentCurrency: 'ARS',
+          depositAmount: '300000.00',
+          depositCurrency: 'ARS',
+          adjustmentType: AdjustmentType.IPC,
+          adjustmentPeriod: AdjustmentPeriod.Trimestral,
+          persons: [
+            { personId: propietario.id, role: PersonRole.Propietario },
+            { personId: inquilino.id, role: PersonRole.Inquilino },
+          ],
+        })
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get('/api/dashboard/occupancy-trend?months=3')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+
+      for (const mes of res.body as Array<{ occupancyPct: number }>) {
+        expect(mes.occupancyPct).toBe(0);
+      }
+    });
+  });
 });
