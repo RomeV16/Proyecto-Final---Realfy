@@ -286,6 +286,36 @@ describe('ContractClosureService', () => {
       expect(result.summary!.summary).toBe(TEMPLATE_TEXT.summary);
     });
 
+    it('recorta un resumen mas largo que el aceptado en vez de descartarlo', async () => {
+      const base = JSON.parse(MODEL_ANSWER) as { summary: string; highlights: string[] };
+      const relleno = ' El contrato se sostuvo 21 meses y el pago fue puntual.'.repeat(60);
+      const mocks = withModel(
+        JSON.stringify({ ...base, summary: base.summary + relleno }),
+      );
+      ({ module } = await buildService(mocks));
+      const service = module.get(ContractClosureService);
+
+      const result = await service.generate(TENANT_ID, CONTRACT_ID);
+
+      expect(result.summary!.source).toBe('model');
+      expect(result.summary!.summary.length).toBeLessThanOrEqual(1800);
+      expect(result.summary!.summary.endsWith('.')).toBe(true);
+    });
+
+    it('deja los primeros destacados cuando el modelo devuelve de mas', async () => {
+      const base = JSON.parse(MODEL_ANSWER) as { summary: string; highlights: string[] };
+      const mocks = withModel(
+        JSON.stringify({ ...base, highlights: [...base.highlights, ...base.highlights, ...base.highlights] }),
+      );
+      ({ module } = await buildService(mocks));
+      const service = module.get(ContractClosureService);
+
+      const result = await service.generate(TENANT_ID, CONTRACT_ID);
+
+      expect(result.summary!.source).toBe('model');
+      expect(result.summary!.highlights).toHaveLength(5);
+    });
+
     it('cae al respaldo si el modelo cita una cifra que no calculo el sistema', async () => {
       const mocks = withModel(MODEL_ANSWER_WITH_INVENTED_FIGURE);
       ({ module } = await buildService(mocks));

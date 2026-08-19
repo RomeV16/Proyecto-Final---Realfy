@@ -42,6 +42,39 @@ export interface ClosureSummaryResult {
 /** Una ficha abierta no tiene que ir a la base en cada pintada. */
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+/** Largos que acepta el esquema compartido para el texto del resumen. */
+const MAX_SUMMARY_CHARS = 1800;
+const MAX_HIGHLIGHT_CHARS = 200;
+const MAX_HIGHLIGHTS = 5;
+
+/**
+ * Recorta el resumen al último punto que entra dentro del largo aceptado, en
+ * lugar de cortar una oración a la mitad, y deja los primeros destacados válidos.
+ *
+ * Es tolerancia sobre la forma, no sobre el contenido: la verificación de que no
+ * haya cifras ajenas a las métricas corre después, sobre el texto ya recortado.
+ */
+function clampSummaryText(payload: unknown): unknown {
+  if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) return payload;
+  const { summary, highlights, ...rest } = payload as Record<string, unknown>;
+
+  let clampedSummary = summary;
+  if (typeof summary === 'string' && summary.trim().length > MAX_SUMMARY_CHARS) {
+    const recorte = summary.trim().slice(0, MAX_SUMMARY_CHARS);
+    const ultimoPunto = recorte.lastIndexOf('.');
+    clampedSummary = ultimoPunto > MAX_SUMMARY_CHARS / 2 ? recorte.slice(0, ultimoPunto + 1) : recorte;
+  }
+
+  const clampedHighlights = Array.isArray(highlights)
+    ? highlights
+        .map((h) => (typeof h === 'string' ? h.trim().slice(0, MAX_HIGHLIGHT_CHARS) : h))
+        .filter((h) => typeof h !== 'string' || h.length >= 4)
+        .slice(0, MAX_HIGHLIGHTS)
+    : highlights;
+
+  return { ...rest, summary: clampedSummary, highlights: clampedHighlights };
+}
+
 const SYSTEM_PROMPT = [
   'Sos el redactor de informes de gestión de una inmobiliaria argentina.',
   'Recibís las métricas de un contrato que acaba de cerrarse, ya calculadas por el sistema',
@@ -263,9 +296,19 @@ export class ContractClosureService {
       return null;
     }
 
-    const validated = AiClosureSummaryResponseSchema.safeParse(payload);
+    // El modelo se sale del rango de largo cada tanto, y eso es cosmético: el
+    // resumen se recorta en el último punto que entra y los destacados de sobra
+    // se descartan, en lugar de tirar una redacción buena y volver a la plantilla.
+    // Lo que no se puede arreglar recortando sí cae a la plantilla, con el detalle
+    // de qué campo falló para no tener que adivinarlo desde afuera.
+    const validated = AiClosureSummaryResponseSchema.safeParse(clampSummaryText(payload));
     if (!validated.success) {
-      this.logger.warn('La respuesta del modelo no cumple el esquema esperado');
+      const issue = validated.error.issues[0];
+      this.logger.warn(
+        `La respuesta del modelo no cumple el esquema en ${
+          issue.path.join('.') || 'la raíz'
+        }: ${issue.message}; redactan las plantillas`,
+      );
       return null;
     }
 
