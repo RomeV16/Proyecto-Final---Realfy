@@ -45,6 +45,8 @@ export interface DailyPrioritiesResult {
   source: PrioritySource;
   /** Modelo que ordenó la lista, o `null` cuando la ordenaron las reglas. */
   model: string | null;
+  /** Hay una consulta al modelo en curso: vale la pena volver a preguntar. */
+  modelPending: boolean;
   totals: DailyContextTotals;
   priorities: DailyPriority[];
 }
@@ -110,11 +112,15 @@ function buildUserPrompt(facts: DailyContextFact[], totals: DailyContextTotals):
 /**
  * Prioridades del día.
  *
- * El orden lo propone el modelo de lenguaje cuando hay uno configurado y su
- * respuesta valida; en cualquier otro caso — sin credencial, sin respuesta a
- * tiempo, o con una respuesta que no cumple el esquema — lo resuelven las reglas
- * propias. Las dos ramas devuelven la misma estructura y `source` dice cuál
- * corrió.
+ * El panel se responde siempre con el orden por reglas propias, que no depende de
+ * nadie más. Si hay un modelo de lenguaje configurado, su orden se pide en
+ * segundo plano y queda en el cache para la lectura siguiente: la consulta al
+ * proveedor tardaba una decena de segundos y el panel es lo primero que se abre a
+ * la mañana. Las dos ramas devuelven la misma estructura, `source` dice cuál
+ * ordenó y `modelPending` avisa que hay una consulta en curso.
+ *
+ * Si el modelo no contesta, contesta tarde, o su respuesta no cumple el esquema,
+ * el panel simplemente sigue mostrando el orden por reglas.
  *
  * Lo que sale del servidor hacia el modelo pasa antes por `toModelFacts`, que
  * deja únicamente la referencia opaca y los datos objetivos de cada pendiente.
@@ -129,20 +135,35 @@ export class AiPrioritiesService {
     { expiresAt: number; value: DailyPrioritiesResult }
   >();
 
+  /** Consultas al modelo en vuelo, por inmobiliaria. */
+  private readonly enCurso = new Map<string, Promise<void>>();
+
   constructor(
     private readonly context: DailyContextService,
     private readonly languageModel: LanguageModelClient,
   ) {}
 
+  /**
+   * Prioridades del día, sin esperar nunca al modelo.
+   *
+   * El panel se responde con el orden por reglas, que sale de datos propios y
+   * tarda lo que tarda una consulta. Si hay un modelo configurado, su versión se
+   * pide en segundo plano y queda en el cache para la próxima lectura: pedirla en
+   * línea agregaba una decena de segundos a la primera carga del día.
+   */
   async getDailyPriorities(tenantId: string): Promise<DailyPrioritiesResult> {
     const cached = this.cache.get(tenantId);
     if (cached && cached.expiresAt > Date.now()) return cached.value;
 
     const context = await this.context.build();
-    const result = await this.resolve(context);
+    const porReglas = this.byRules(context);
+    this.cache.set(tenantId, {
+      expiresAt: Date.now() + CACHE_TTL_MS,
+      value: porReglas,
+    });
 
-    this.cache.set(tenantId, { expiresAt: Date.now() + CACHE_TTL_MS, value: result });
-    return result;
+    const pendiente = this.refineWithModel(tenantId, context);
+    return { ...porReglas, modelPending: pendiente };
   }
 
   /** Descarta lo cacheado de una inmobiliaria. */
@@ -150,36 +171,81 @@ export class AiPrioritiesService {
     this.cache.delete(tenantId);
   }
 
+  /**
+   * Espera la consulta al modelo que haya quedado en curso, si hay alguna.
+   * El panel no la usa —justamente no espera— pero sirve para quien necesite el
+   * orden del modelo de forma sincrónica, y para poder verificarlo en las pruebas
+   * sin depender de temporizadores.
+   */
+  async awaitModelRefresh(tenantId: string): Promise<void> {
+    await this.enCurso.get(tenantId);
+  }
+
   // ─── Private ──────────────────────────────────────────
 
-  private async resolve(context: DailyContext): Promise<DailyPrioritiesResult> {
-    const base = {
+  /** Orden por reglas propias, sin salir del sistema. */
+  private byRules(context: DailyContext): DailyPrioritiesResult {
+    return {
       generatedAt: context.generatedAt,
       totals: context.totals,
-    };
-
-    // Un día sin pendientes no necesita que nadie lo ordene.
-    if (context.items.length === 0) {
-      return { ...base, source: 'rules', model: null, priorities: [] };
-    }
-
-    const fromModel = await this.askModel(context);
-    if (fromModel) {
-      const priorities = this.rehydrate(fromModel.priorities, context.items);
-      if (priorities.length > 0) {
-        return { ...base, source: 'model', model: fromModel.model, priorities };
-      }
-      this.logger.warn(
-        'El modelo no devolvió ninguna referencia del contexto; se ordena por reglas',
-      );
-    }
-
-    return {
-      ...base,
       source: 'rules',
       model: null,
-      priorities: this.rehydrate(rankByRules(context.items), context.items),
+      modelPending: false,
+      priorities:
+        context.items.length === 0
+          ? []
+          : this.rehydrate(rankByRules(context.items), context.items),
     };
+  }
+
+  /**
+   * Pide el orden al modelo en segundo plano y lo deja en el cache.
+   * Devuelve si quedó una consulta en curso, para que la interfaz sepa que vale
+   * la pena volver a preguntar.
+   */
+  private refineWithModel(tenantId: string, context: DailyContext): boolean {
+    // Un día sin pendientes no necesita que nadie lo ordene.
+    if (context.items.length === 0) return false;
+    if (!this.languageModel.isEnabled) return false;
+    // Varias pintadas del panel dentro de la misma ventana no tienen que
+    // disparar varias consultas: se paga y se espera una sola.
+    if (this.enCurso.has(tenantId)) return true;
+
+    const tarea = this.askModel(context)
+      .then((fromModel) => {
+        if (!fromModel) return;
+        const priorities = this.rehydrate(fromModel.priorities, context.items);
+        if (priorities.length === 0) {
+          this.logger.warn(
+            'El modelo no devolvió ninguna referencia del contexto; queda el orden por reglas',
+          );
+          return;
+        }
+        this.cache.set(tenantId, {
+          expiresAt: Date.now() + CACHE_TTL_MS,
+          value: {
+            generatedAt: context.generatedAt,
+            totals: context.totals,
+            source: 'model',
+            model: fromModel.model,
+            modelPending: false,
+            priorities,
+          },
+        });
+      })
+      .catch((err: unknown) => {
+        this.logger.warn(
+          `La consulta al modelo en segundo plano fallo: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      })
+      .finally(() => {
+        this.enCurso.delete(tenantId);
+      });
+
+    this.enCurso.set(tenantId, tarea);
+    return true;
   }
 
   private async askModel(
