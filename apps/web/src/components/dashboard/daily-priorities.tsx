@@ -32,10 +32,15 @@ interface DailyPriority {
   daysSinceContact: number | null;
 }
 
+/** Cuánto se espera antes de volver a pedir el orden que el modelo dejó listo. */
+const MODEL_RETRY_MS = 14_000;
+
 interface DailyPrioritiesResponse {
   generatedAt: string;
   source: 'model' | 'rules';
   model: string | null;
+  /** El servidor pidió el orden al modelo y todavía no volvió. */
+  modelPending?: boolean;
   totals: {
     overdueAmount: number;
     pendingAmount: number;
@@ -143,22 +148,32 @@ export function DailyPriorities() {
 
   useEffect(() => {
     let cancelled = false;
+    let reintento: ReturnType<typeof setTimeout> | undefined;
 
-    async function load() {
+    async function load(esRelectura = false) {
       try {
-        setError(false);
+        if (!esRelectura) setError(false);
         const result = await apiClient<DailyPrioritiesResponse>('/ai/priorities');
-        if (!cancelled) setData(result);
+        if (cancelled) return;
+        setData(result);
+        // El servidor no espera al modelo: contesta con el orden por reglas y
+        // deja el del modelo listo unos segundos después. Se vuelve a preguntar
+        // una sola vez para mostrarlo sin que haya que recargar la página.
+        if (result.modelPending && !esRelectura) {
+          reintento = setTimeout(() => load(true), MODEL_RETRY_MS);
+        }
       } catch {
-        if (!cancelled) setError(true);
+        // Una relectura que falla deja lo que ya se estaba mostrando.
+        if (!cancelled && !esRelectura) setError(true);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && !esRelectura) setLoading(false);
       }
     }
 
     load();
     return () => {
       cancelled = true;
+      if (reintento) clearTimeout(reintento);
     };
   }, []);
 

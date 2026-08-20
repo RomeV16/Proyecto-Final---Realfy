@@ -201,12 +201,29 @@ describe('AiPrioritiesService', () => {
       return mocks;
     }
 
+    /**
+     * El panel no espera al modelo: la primera lectura sale por reglas y la del
+     * modelo queda en el cache. Estas pruebas leen dos veces, esperando la
+     * consulta en segundo plano en el medio.
+     */
+    async function leerConModelo(service: AiPrioritiesService) {
+      const primera = await service.getDailyPriorities(TENANT_ID);
+      await service.awaitModelRefresh(TENANT_ID);
+      const segunda = await service.getDailyPriorities(TENANT_ID);
+      return { primera, segunda };
+    }
+
     it('respeta el orden que propuso el modelo y lo declara', async () => {
       const mocks = enabledMocks(MODEL_ANSWER);
       ({ module } = await buildService(mocks));
 
-      const result = await module.get(AiPrioritiesService).getDailyPriorities(TENANT_ID);
+      const { primera, segunda: result } = await leerConModelo(
+        module.get(AiPrioritiesService),
+      );
 
+      // La primera lectura no espera al modelo, pero avisa que viene.
+      expect(primera.source).toBe('rules');
+      expect(primera.modelPending).toBe(true);
       expect(result.source).toBe('model');
       expect(result.model).toBe('MiniMax-M3');
       expect(result.priorities.map((p) => p.ref)).toEqual(['R1', 'C1', 'L1', 'C2']);
@@ -218,7 +235,7 @@ describe('AiPrioritiesService', () => {
       const mocks = enabledMocks(MODEL_ANSWER);
       ({ module } = await buildService(mocks));
 
-      const result = await module.get(AiPrioritiesService).getDailyPriorities(TENANT_ID);
+      const { segunda: result } = await leerConModelo(module.get(AiPrioritiesService));
       const byRef = new Map(result.priorities.map((p) => [p.ref, p]));
 
       expect(byRef.get('C1')).toMatchObject({
@@ -271,7 +288,7 @@ describe('AiPrioritiesService', () => {
       const mocks = enabledMocks(`Acá va el resultado:\n\`\`\`json\n${MODEL_ANSWER}\n\`\`\``);
       ({ module } = await buildService(mocks));
 
-      const result = await module.get(AiPrioritiesService).getDailyPriorities(TENANT_ID);
+      const { segunda: result } = await leerConModelo(module.get(AiPrioritiesService));
 
       expect(result.source).toBe('model');
       expect(result.priorities[0].ref).toBe('R1');
@@ -288,7 +305,7 @@ describe('AiPrioritiesService', () => {
       );
       ({ module } = await buildService(mocks));
 
-      const result = await module.get(AiPrioritiesService).getDailyPriorities(TENANT_ID);
+      const { segunda: result } = await leerConModelo(module.get(AiPrioritiesService));
 
       expect(result.source).toBe('model');
       expect(result.priorities.map((p) => p.ref)).toEqual(['C1']);
@@ -305,20 +322,70 @@ describe('AiPrioritiesService', () => {
       );
       ({ module } = await buildService(mocks));
 
-      const result = await module.get(AiPrioritiesService).getDailyPriorities(TENANT_ID);
+      const { segunda: result } = await leerConModelo(module.get(AiPrioritiesService));
 
       expect(result.priorities.map((p) => p.ref)).toEqual(['C1']);
       expect(result.priorities[0].reason).toBe('Vencida');
     });
   });
 
+  describe('sin esperar al modelo', () => {
+    it('responde el panel aunque el modelo no conteste nunca', async () => {
+      const mocks = buildMocks();
+      mocks.languageModel.isEnabled = true;
+      // Una consulta que no termina: si el panel la esperara, esto no resolvería.
+      mocks.languageModel.complete = jest.fn().mockReturnValue(new Promise(() => {}));
+      ({ module } = await buildService(mocks));
+
+      const result = await module.get(AiPrioritiesService).getDailyPriorities(TENANT_ID);
+
+      expect(result.source).toBe('rules');
+      expect(result.modelPending).toBe(true);
+      expect(result.priorities.length).toBeGreaterThan(0);
+    });
+
+    it('no dispara dos consultas al modelo por dos pintadas del panel', async () => {
+      const mocks = buildMocks();
+      mocks.languageModel.isEnabled = true;
+      mocks.languageModel.complete = jest.fn().mockReturnValue(new Promise(() => {}));
+      ({ module } = await buildService(mocks));
+      const service = module.get(AiPrioritiesService);
+
+      await service.getDailyPriorities(TENANT_ID);
+      service.bust(TENANT_ID);
+      await service.getDailyPriorities(TENANT_ID);
+
+      expect(mocks.languageModel.complete).toHaveBeenCalledTimes(1);
+    });
+
+    it('no le pide nada al modelo en un dia sin pendientes', async () => {
+      const mocks = buildMocks([]);
+      mocks.languageModel.isEnabled = true;
+      mocks.languageModel.complete = jest.fn();
+      ({ module } = await buildService(mocks));
+
+      const result = await module.get(AiPrioritiesService).getDailyPriorities(TENANT_ID);
+
+      expect(result.modelPending).toBe(false);
+      expect(mocks.languageModel.complete).not.toHaveBeenCalled();
+    });
+  });
+
   describe('respaldo por reglas', () => {
+    /**
+     * Lee dos veces con la consulta al modelo esperada en el medio: la primera
+     * lectura nunca espera al modelo, así que el resultado que interesa —el del
+     * modelo, o el respaldo por reglas si su respuesta no sirvió— es el segundo.
+     */
     async function resolveWith(answer: unknown) {
       const mocks = buildMocks();
       mocks.languageModel.isEnabled = true;
       mocks.languageModel.complete = jest.fn().mockResolvedValue(answer);
       ({ module } = await buildService(mocks));
-      return module.get(AiPrioritiesService).getDailyPriorities(TENANT_ID);
+      const service = module.get(AiPrioritiesService);
+      await service.getDailyPriorities(TENANT_ID);
+      await service.awaitModelRefresh(TENANT_ID);
+      return service.getDailyPriorities(TENANT_ID);
     }
 
     it('cae a las reglas cuando el modelo no responde a tiempo', async () => {
