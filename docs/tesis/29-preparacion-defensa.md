@@ -109,12 +109,17 @@ contra el esquema, devuelve ausencia de respuesta y el servicio sigue por su
 camino. La respuesta que llega a la pantalla trae un campo que dice si el orden lo
 resolvió el modelo o las reglas.
 
-**Aclaración obligada en la demostración.** El ambiente de demostración no tiene
-credencial del proveedor configurada, así que las dos funciones van a correr por el
-camino determinista. Hay que decirlo antes de mostrarlas, no después. La razón es
-que el repositorio y el ambiente son públicos y no se pone una credencial en un
-lugar público; cambiar de proveedor o habilitarlo es configuración —raíz de la API,
-identificador del modelo y credencial— y no código.
+**En la demostración corre con el modelo.** El ambiente tiene la credencial
+configurada, así que las dos funciones usan el modelo y la interfaz lo declara con
+su nombre. La credencial vive en la configuración del ambiente y no en el
+repositorio, que es público; cambiar de proveedor sigue siendo configuración —raíz
+de la API, identificador del modelo y credencial— y no código.
+
+**Y conviene mostrar el respaldo, no solo mencionarlo.** El panel se responde
+siempre con el orden por reglas y el del modelo llega unos segundos después: es
+observable en vivo, porque la leyenda al pie cambia sola de las reglas al modelo.
+Eso demuestra las dos cosas al mismo tiempo: que el modelo aporta, y que la
+funcionalidad no depende de que el proveedor conteste.
 
 **Evidencia.** `apps/api/src/modules/ai/language-model.client.ts` (el cliente que no
 lanza, el corte por tiempo, la credencial resuelta en el primer uso);
@@ -476,7 +481,38 @@ quedó sin conectar. Es el hueco más visible para un usuario real y está decla
 **Evidencia.** `apps/api/src/modules/tickets/ticket-notification.service.ts`;
 sección 7 del informe final.
 
-### 1.23. ¿Cuál es el aporte del trabajo, más allá de ser un sistema que funciona?
+### 1.23. ¿Cómo encontraron los últimos defectos? ¿Y cuántos quedan sin encontrar?
+
+**Corto.** No leyendo código. Los cinco últimos aparecieron por cuatro vías
+distintas: ejercitar el proveedor real, mirar datos reales con desconfianza, abrir
+las pantallas en un navegador, y medir en lugar de suponer. La sección 6 del
+informe los detalla uno por uno.
+
+**El caso que conviene contar** es el de la fecha de saldado. El resumen de un
+contrato informaba cero por ciento de puntualidad sobre seis cobranzas pagadas en
+fecha. Los datos estaban bien: el sistema guardaba como fecha de pago el momento en
+que el pago se registraba, así que le atribuía al inquilino la demora
+administrativa de la inmobiliaria. Y esa fecha alimenta el puntaje del inquilino,
+que es un dato con el que se decide si se le alquila a alguien. Ninguna prueba lo
+cubría, y sobrevivió a la etapa completa de pruebas integrales.
+
+**El caso incómodo**, que conviene ofrecer antes de que lo pregunten: una de esas
+correcciones fue refutada por su propia prueba. Al reescribir el indicador de
+ocupación se hizo histórico el numerador y quedó el denominador anterior; la prueba
+escrita para verificar la corrección falló en integración continua. Una prueba que
+solo confirma lo que su autor ya cree no agrega nada; esa sirvió porque podía
+fallar.
+
+**Cuántos quedan.** No se sabe, y afirmar lo contrario sería el error. Lo que se
+puede afirmar es dónde se buscó y dónde no: hay pruebas de API y unitarias con su
+piso de cobertura, no hay pruebas de navegador ni medición de carga, y por eso el
+informe no hace ninguna afirmación de rendimiento. Las limitaciones conocidas están
+enumeradas en la sección 7 del informe, con su salida técnica.
+
+**Evidencia.** Sección 5 del informe final (el desvío de método), sección 6
+(las cuatro vías), sección 7 (lo que queda abierto).
+
+### 1.24. ¿Cuál es el aporte del trabajo, más allá de ser un sistema que funciona?
 
 **Corto.** Dos cosas, y conviene tenerlas ensayadas porque es la pregunta que
 decide la nota.
@@ -549,7 +585,7 @@ Cada uno con lo que hay que contestar. La regla es adelantarlos.
 | No hay medición de capacidad | El ítem 27 la contemplaba y no se hizo. Los puntos caros están identificados —generación del mes y reportes— y sobre lo segundo hay caché, pero sin medición no se afirma nada sobre capacidad. Este informe no hace ninguna afirmación de rendimiento, a propósito. |
 | La lista de modelos filtrados se mantiene a mano | Se cuenta que había un modelo afuera, que se detectó comparando la lista contra el esquema, que se corrigió, y que ahora una prueba impide que vuelva a pasar. La mejora estructural queda declarada como pendiente (1.10). |
 | El secreto de firma tiene valor de reserva en el código | Declarado como limitación, con la corrección identificada y la admisión de que hay que hacerla antes de cualquier uso real (1.20). |
-| Las dos funciones con modelo de lenguaje van a correr en modo determinista en la demostración | Se dice antes de mostrarlas, con la razón —repositorio y ambiente públicos— y con la aclaración de que habilitarlo es configuración y no código (1.4). |
+| El camino del modelo se verifico contra el proveedor recien al cierre | Se cuenta sin adornos: hasta entonces corria contra dobles de prueba, y ejercitarlo de verdad encontro cuatro defectos. Es la leccion metodologica central del trabajo, no un descuido que se esconde (1.4 y seccion 5 del informe). |
 | El panel puede mostrar números de hasta quince minutos | Limitación declarada, con el arreglo diseñado y la segunda limitación —caché de proceso— dicha también (1.17). |
 | Los avisos de reclamos no se persisten | Declarado. Es el hueco más visible para un usuario real y no se justifica: quedó sin conectar (1.22). |
 | La documentación de planificación estuvo desalineada del sistema durante meses | Se declara como desvío, se enumera qué estaba mal, y se dice la lección: la documentación no es una etapa, es parte de cada cambio (1.15). |

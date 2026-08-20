@@ -62,9 +62,9 @@ de cada inmobiliaria. Son unos cuarenta y tres mil quinientos renglones de códi
 en la API, cuarenta y dos mil trescientos en la web y cuatro mil trescientos en
 el paquete de tipos compartidos.
 
-El historial acumula doscientos cincuenta y cinco commits de trabajo repartidos
+El historial acumula doscientos sesenta y siete commits de trabajo repartidos
 entre los tres integrantes, incorporados a la rama principal a través de
-cincuenta y una revisiones. El cronograma tuvo veintinueve ítems y cuatro hitos.
+cincuenta y nueve revisiones cruzadas. El cronograma tuvo veintinueve ítems y cuatro hitos.
 
 ---
 
@@ -216,6 +216,13 @@ hay modelo configurado, si la llamada no vuelve a tiempo o si la respuesta no
 cumple el esquema, el orden lo resuelven reglas propias, y la respuesta declara
 cuál de los dos caminos corrió.
 
+El panel además **nunca espera al modelo**: responde con el orden por reglas y pide
+el del modelo en segundo plano, que queda disponible unos segundos después. Es una
+decisión que se tomó después de medir: pedirlo en línea agregaba once segundos a la
+primera carga del día, sobre una pantalla que es la primera que alguien abre. El
+efecto lateral es que la pantalla muestra en vivo las dos capas, porque la leyenda
+al pie cambia sola cuando llega el orden del modelo.
+
 La segunda redacta el resumen de gestión al cierre de un contrato. Acá la regla
 que ordena todo el módulo es que las cifras las calcula el servidor y el modelo
 sólo las redacta: las métricas del contrato —puntualidad de pago, atraso
@@ -359,10 +366,10 @@ Hay dos suites con propósitos distintos. Las **unitarias** prueban servicios,
 controladores, guards y utilidades con sus dependencias sustituidas, corren en
 memoria y no necesitan nada instalado: son sesenta y cuatro archivos —sesenta y
 dos al lado del código y dos en el directorio de piezas transversales— con
-seiscientas noventa y cuatro pruebas. Las **de integración** levantan la
+setecientas catorce pruebas. Las **de integración** levantan la
 aplicación completa, con sus guards, su filtro de errores, su extensión de
 aislamiento y su cliente de base de datos, y le pegan por HTTP: son treinta
-archivos con cuatrocientas sesenta y cinco pruebas, que corren contra una base
+archivos con cuatrocientas sesenta y ocho pruebas, que corren contra una base
 PostgreSQL creada desde cero y se limpian entre casos en orden de dependencia.
 
 Tres de esas suites verifican decisiones de arquitectura y no lógica de dominio, y
@@ -470,7 +477,7 @@ temprana, antes del sprint dedicado. Nada de eso está en el repositorio: no hay
 configuración de navegador ni un solo recorrido de interfaz automatizado.
 
 Lo que se hizo en su lugar fue construir la suite de integración de nivel HTTP
-—treinta archivos, cuatrocientas sesenta y cinco pruebas— y llevarla a integración
+—treinta archivos, cuatrocientas sesenta y ocho pruebas— y llevarla a integración
 continua junto con la cobertura y las migraciones desde cero. Fue una decisión de
 asignación de esfuerzo tomada en la última etapa: con el tiempo que quedaba,
 cubrir la API completa por HTTP daba más señal por hora invertida que cubrir tres
@@ -484,26 +491,37 @@ porque le pegan a la API con el nombre correcto. Un recorrido de navegador lo
 habría encontrado el primer día. Es exactamente la clase de defecto que la
 decisión dejó descubierta, y hoy la única red que lo atrapa es la prueba manual.
 
-### Las dos funciones con modelo de lenguaje operan en modo determinista
+### Las dos funciones con modelo de lenguaje se verificaron contra el proveedor recién al cierre
 
-Los ítems 25 y 26 del cronograma están entregados: el panel de priorización
-diaria y el resumen de gestión al cierre del contrato existen, con sus pantallas,
-sus endpoints y sus pruebas. Lo que hay que declarar es cómo se van a comportar el
-día de la defensa.
+Los ítems 25 y 26 se entregaron con sus pantallas, sus endpoints y sus pruebas,
+pero durante toda su construcción el camino del modelo corrió únicamente contra
+dobles de prueba: el ambiente no tenía credencial del proveedor configurada y el
+respaldo determinista cubría el resto. Recién al cierre se configuró la credencial
+y se ejercitó el camino real.
 
-El ambiente de demostración no tiene credencial del proveedor del modelo
-configurada. Sin credencial, el cliente del modelo queda deshabilitado y las dos
-funciones caen a su camino determinista: la priorización la ordenan las reglas
-propias y el resumen lo redactan las plantillas. El resultado es completo y
-correcto —esa es toda la razón de tener respaldo determinista—, pero no es el
-camino con modelo, y la respuesta lo declara: el campo que dice de dónde salió el
-orden va a decir que lo resolvieron las reglas.
+Ese ejercicio encontró cuatro defectos, ninguno visible con dobles de prueba:
 
-Se decidió mostrarlo así y decirlo, en lugar de configurar una credencial en un
-repositorio y un ambiente públicos. Cambiar de proveedor o habilitarlo es
-configuración y no código: el cliente habla el protocolo común de completado por
-chat, así que alcanza con la raíz de la API, el identificador del modelo y la
-credencial.
+1. **La respuesta llegaba cortada.** El pedido reclamaba una entrada por cada
+   pendiente del día —hasta treinta y dos— y el servicio se quedaba con las diez
+   primeras. Se pide lo que se usa, lo que además reduce el costo por consulta a un
+   tercio.
+2. **El razonamiento del modelo consumía el presupuesto de la respuesta.** Medido
+   contra el proveedor, dos mil un tokens antes de escribir la primera palabra. Se
+   pide la respuesta sin razonamiento, porque las dos tareas son ordenar hechos ya
+   calculados y redactarlos.
+3. **Una sola entrada mal formada descartaba la respuesta completa** y el panel
+   volvía al orden por reglas. Se valida entrada por entrada.
+4. **Lo mismo en el resumen de cierre**, que había quedado sin la corrección
+   anterior por descuido.
+
+Después de eso, las dos funciones corren con el modelo en el ambiente de
+demostración, y la interfaz sigue declarando en cada caso quién ordenó o redactó.
+El respaldo determinista se conserva y no es decorativo: es lo que sostiene la
+funcionalidad cuando el proveedor no está.
+
+El desvío que se declara, entonces, no es de alcance sino de método: **una
+integración con un servicio externo no está verificada hasta que se ejercita contra
+el servicio externo**, y eso se dejó para el final.
 
 ### La documentación de las etapas anteriores estaba desalineada del sistema
 
@@ -620,6 +638,43 @@ organismo nunca asignó—. Un registro de prueba no muestra ninguna de las dos 
 De acá sale además una regla sobre valores por omisión: en un campo que va a un
 tercero, el valor sensato por omisión es ninguno.
 
+**Los defectos que quedaron para el final no se encontraron leyendo código.** Es la
+lección que ordena todas las anteriores, y conviene enunciarla con el detalle de lo
+que la respalda. Los cinco últimos defectos del proyecto aparecieron cada uno por
+una vía distinta, y ninguno era alcanzable por inspección ni por la suite de
+pruebas tal como estaba:
+
+- **Ejercitar el proveedor real.** La respuesta del modelo llegaba cortada y su
+  razonamiento consumía el presupuesto de la respuesta. Contra dobles de prueba la
+  respuesta siempre entraba completa, así que el defecto no existía.
+- **Mirar datos reales con desconfianza.** El resumen de un contrato informaba cero
+  por ciento de puntualidad sobre seis cobranzas pagadas en fecha. La causa no
+  estaba en los datos sino en el sistema: la liquidación se saldaba con la fecha en
+  que se registraba el pago y no con la fecha del pago, así que le atribuía al
+  inquilino la demora administrativa de la inmobiliaria, y ese dato alimenta su
+  puntaje.
+- **Abrir las pantallas en un navegador.** El panel mostraba una tendencia de
+  ocupación plana en cero durante diez meses. El indicador contaba el estado actual
+  de cada operación proyectado hacia atrás: no describía el pasado, y su título
+  prometía exactamente eso.
+- **Medir en lugar de suponer.** La primera carga del panel tardaba once segundos
+  porque esperaba al modelo en línea. Nadie lo había notado porque en desarrollo el
+  caché estaba siempre caliente.
+
+Hay un quinto caso que merece mención aparte porque va en el sentido contrario al
+esperado: **una de las correcciones fue refutada por su propia prueba**. Al
+reescribir el indicador de ocupación se hizo histórico el numerador y se dejó el
+denominador anterior, y la prueba que se había escrito para verificar la corrección
+falló en integración continua con el mes pasado en cero. La corrección estaba a
+medias y el autor no lo había visto. Una prueba que solamente confirma lo que su
+autor ya cree no agrega nada; esta sirvió porque podía fallar, y falló.
+
+La conclusión práctica, para este trabajo y para cualquier otro parecido: **un
+número que se muestra con confianza merece la misma desconfianza que un número que
+se sospecha**. Los tres defectos más serios de esta etapa —la puntualidad, la fecha
+de saldado y la tendencia de ocupación— eran cifras que el sistema mostraba sin
+titubear y que no medían lo que su rótulo decía medir.
+
 ---
 
 ## 7. Limitaciones conocidas y trabajo futuro
@@ -644,9 +699,11 @@ almacén compartido.
 **La lista de modelos alcanzados por el filtro de inmobiliaria está escrita a
 mano.** Son cincuenta y cinco nombres en la extensión del cliente de base de
 datos. Un modelo nuevo con columna de inmobiliaria que no se agregue a esa lista
-queda sin filtrar y sin protección, porque la extensión lo deja pasar por no
-reconocerlo. Es la principal deuda que deja el ADR-0006, y el punto a revisar en
-cada migración que agregue una tabla.
+quedaría sin filtrar, porque la extensión lo deja pasar por no reconocerlo. El
+riesgo está acotado por una prueba que compara la lista contra el esquema y falla
+si alguno queda afuera —se escribió después de encontrar, justamente, un modelo
+afuera—, pero la duplicación sigue ahí: la fuente de verdad debería ser el esquema.
+Es la deuda que el ADR-0006 declara.
 
 Que la deuda era real y no teórica quedó demostrado al comparar la lista contra el
 esquema durante esta última etapa. La comparación dio dos discrepancias. Por un
@@ -673,6 +730,13 @@ derivarla del propio esquema —de modo que un modelo con columna de inmobiliari
 quede alcanzado por construcción y la única lista a mano sea la de las excepciones—
 o mover el filtro al motor con seguridad a nivel de fila. La prueba acota el riesgo;
 no elimina la duplicación.
+
+**La tendencia de ocupación vale lo que valga la historia de contratos cargada.**
+El sistema no versiona el estado de ocupación de una propiedad, así que la serie
+mensual se deriva de los contratos vigentes en cada mes. Es una reconstrucción
+honesta y explicable, pero una propiedad que estuvo ocupada sin contrato registrado
+no aparece, y los meses anteriores a la carga de la cartera quedan en cero. La
+salida de fondo es registrar los cambios de estado con su fecha.
 
 **La atribución de reclamos a un contrato es por propiedad y sin ventana de
 vigencia.** El reclamo se registra contra la propiedad, y cuando hay que atribuirlo
@@ -758,8 +822,8 @@ y el costo de tratarla como etapa se paga entero al final.
 El estado del sistema al cierre es demostrable de punta a punta sobre un ambiente
 desplegado, con la salvedad declarada sobre las dos funciones con modelo de
 lenguaje, y con la integración continua verificando en cada cambio el estilo, la
-compilación de los tres paquetes, seiscientas noventa y cuatro pruebas unitarias
+compilación de los tres paquetes, setecientas catorce pruebas unitarias
 con su piso de cobertura, la aplicación de las dieciocho migraciones sobre una
-base vacía y cuatrocientas sesenta y cinco pruebas de integración contra una base
+base vacía y cuatrocientas sesenta y ocho pruebas de integración contra una base
 real. El recorrido de la demostración está en `docs/demo.md` y el material de
 preparación de la defensa, en `29-preparacion-defensa.md`.
