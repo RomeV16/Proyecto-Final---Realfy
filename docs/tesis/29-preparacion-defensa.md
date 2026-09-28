@@ -130,8 +130,8 @@ corrió); sección 5 del informe final.
 
 ### 1.5. ¿Por qué la cobertura es la que es?
 
-**Corto.** La cobertura de líneas de la API es 42,07 %, con 43,22 % de funciones y
-31,69 % de ramas. No se presenta como logro: es el número real y el objetivo es
+**Corto.** La cobertura de líneas de la API es 42,47 %, con 43,55 % de funciones y
+32,31 % de ramas. No se presenta como logro: es el número real y el objetivo es
 subirlo. El piso que exige la integración continua está a propósito unos puntos por
 debajo —38 % de líneas, funciones y sentencias, 27 % de ramas— para que el control
 se ponga en rojo cuando la cobertura baja y no cuando alguien no llega a una meta
@@ -143,7 +143,7 @@ cobertura unitaria baja o nula —el de reclamos, el de usuarios, el de servicio
 la propiedad— y controladores sin prueba unitaria propia. La segunda es que esos
 mismos caminos sí están ejercitados por la suite de integración, que atraviesa la
 aplicación completa por HTTP y no cuenta para la medición porque corre aparte:
-cuatrocientas sesenta y cinco pruebas en treinta archivos. Compensar parcialmente
+cuatrocientas setenta y tres pruebas en treinta y un archivos. Compensar parcialmente
 no es cubrir, y por eso subir la cobertura —empezando por ramas— es la primera
 tarea de mantenimiento pendiente. Lo que no se puede hacer es subir el piso antes
 que la cobertura real.
@@ -314,7 +314,11 @@ del organismo —autenticación con el certificado, solicitud del comprobante,
 número de autorización— y para las pruebas automatizadas hay un simulador incluido
 en el repositorio que responde en su lugar, activado por configuración. Ninguna
 prueba automatizada consulta al organismo: sería dependencia externa dentro de la
-integración continua.
+integración continua. Las unitarias simulan las llamadas HTTP al organismo, y una
+suite de integración recorre la emisión completa hasta la base con el simulador
+activo (`ARCA_MOCK=1`): emisión, numeración correlativa, dos emisores con el mismo
+número, idempotencia y aislamiento. Lo que no se hizo es homologar contra el
+ambiente de prueba del organismo, y se dice así.
 
 **Si insisten.** Si la demostración corre contra el simulador, se dice
 explícitamente; está previsto así en el guion. Y si el organismo no responde
@@ -440,17 +444,16 @@ recorre cada rama.
 
 ### 1.20. ¿Qué pasa si se despliega sin configurar las variables obligatorias?
 
-**Corto.** Depende de la variable, y hay una que hoy no se comporta como debería. Si
-falta la conexión a la base de datos, la API no arranca. Si falta la clave maestra
-de los certificados, el sistema levanta igual y el error aparece recién en la
-operación que necesita cifrar o descifrar, que es deliberado. Pero si falta el
-secreto de firma de los tokens, la aplicación arranca usando un valor de reserva
-escrito en el código fuente, que es público: un despliegue mal configurado queda
-firmando sesiones con un secreto conocido y no lo anuncia.
+**Corto.** Depende de la variable. Si falta la conexión a la base de datos o, en
+producción, el secreto de firma de los tokens, la API no arranca. Si falta la clave
+maestra de los certificados, el sistema levanta igual y el error aparece recién en
+la operación que necesita cifrar o descifrar, que es deliberado.
 
-**Con qué cerrar.** Está declarado como limitación y la corrección es que la falta
-de ese valor impida el arranque, igual que la conexión a la base. Es de las cosas
-que hay que hacer antes de cualquier uso real, y no se hizo.
+**Con qué cerrar.** El secreto de firma fue, hasta la revisión final, una
+limitación declarada: la aplicación arrancaba con un valor de reserva escrito en el
+código, que es público. Al verificar el informe contra el código se corrigió: en
+producción la falta de la variable impide el arranque, y fuera de producción se usa
+la clave de desarrollo con un aviso en el registro.
 
 **Evidencia.** `docs/despliegue.md`, tabla de variables y su columna de
 consecuencia; sección 7 del informe final.
@@ -558,9 +561,9 @@ Los que conviene poner adelante, con lo que los respalda.
    fechado antes del primer módulo de dominio; el ADR-0006 documenta la corrección
    de un riesgo que ese mismo ADR había anotado.
 5. **La verificación está automatizada y corre sola.** Cinco trabajos en cada
-   cambio: estilo, compilación de los tres paquetes, seiscientas noventa y cuatro
-   pruebas unitarias con piso de cobertura, aplicación de las dieciocho migraciones
-   sobre una base vacía, y cuatrocientas sesenta y cinco pruebas de integración
+   cambio: estilo, compilación de los tres paquetes, setecientas diecinueve
+   pruebas unitarias con piso de cobertura, aplicación de las veinte migraciones
+   sobre una base vacía, y cuatrocientas setenta y tres pruebas de integración
    contra una base real.
 6. **El trabajo con el modelo de lenguaje está acotado por diseño.** Sin datos
    personales, sin cálculo, con la salida validada y con respaldo determinista que
@@ -584,7 +587,8 @@ Cada uno con lo que hay que contestar. La regla es adelantarlos.
 | Cobertura de 42 % de líneas y 32 % de ramas | El número real, presentado como objetivo y no como logro, con el piso de integración continua explicado como piso y no como meta, y con la suite de integración como compensación parcial reconocida como parcial (1.5). |
 | No hay medición de capacidad | El ítem 27 la contemplaba y no se hizo. Los puntos caros están identificados —generación del mes y reportes— y sobre lo segundo hay caché, pero sin medición no se afirma nada sobre capacidad. Este informe no hace ninguna afirmación de rendimiento, a propósito. |
 | La lista de modelos filtrados se mantiene a mano | Se cuenta que había un modelo afuera, que se detectó comparando la lista contra el esquema, que se corrigió, y que ahora una prueba impide que vuelva a pasar. La mejora estructural queda declarada como pendiente (1.10). |
-| El secreto de firma tiene valor de reserva en el código | Declarado como limitación, con la corrección identificada y la admisión de que hay que hacerla antes de cualquier uso real (1.20). |
+| El secreto de firma tenía valor de reserva en el código | Estaba declarado como limitación y se corrigió en la revisión final: en producción, sin la variable la API no arranca (1.20). |
+| Nueve pedidos de incorporación no tienen revisión de otro integrante | Se dice el número exacto —cincuenta y cuatro de sesenta y tres con revisión— y cuáles son. No se agregaron revisiones a posteriori. |
 | El camino del modelo se verifico contra el proveedor recien al cierre | Se cuenta sin adornos: hasta entonces corria contra dobles de prueba, y ejercitarlo de verdad encontro cuatro defectos. Es la leccion metodologica central del trabajo, no un descuido que se esconde (1.4 y seccion 5 del informe). |
 | El panel puede mostrar números de hasta quince minutos | Limitación declarada, con el arreglo diseñado y la segunda limitación —caché de proceso— dicha también (1.17). |
 | Los avisos de reclamos no se persisten | Declarado. Es el hueco más visible para un usuario real y no se justifica: quedó sin conectar (1.22). |

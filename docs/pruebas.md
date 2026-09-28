@@ -18,7 +18,7 @@ La configuración está en `apps/api/jest.config.ts` y toma dos ubicaciones: los
 archivos `*.spec.ts` que viven al lado del código en `apps/api/src`, que son la
 mayoría, y los de `apps/api/test/unit`, que prueban piezas transversales cuya
 ubicación natural no es un módulo. Hoy son sesenta y dos archivos en el primer
-grupo y dos en el segundo.
+grupo y cuatro en el segundo.
 
 Dos de esos archivos vale nombrarlos porque cubren decisiones de arquitectura y
 no lógica de dominio:
@@ -48,7 +48,7 @@ El piso vigente está declarado en `apps/api/jest.config.ts` y es de **38 % de
 líneas, funciones y sentencias, y 27 % de ramas**. Es un piso, no una meta: está
 unos puntos por debajo de lo que las suites cubren hoy —la medición al fijarlo dio
 42,07 % de líneas, 43,22 % de funciones, 31,69 % de ramas y 42,03 % de
-sentencias—, de modo que la integración continua se pone en rojo cuando la
+sentencias, y la última medición da 42,47 %, 43,55 %, 32,31 % y 42,43 %—, de modo que la integración continua se pone en rojo cuando la
 cobertura baja, no cuando alguien no llega a un número aspiracional. Si el piso
 se sube, tiene que ser porque la cobertura real subió primero.
 
@@ -87,7 +87,7 @@ pruebas comparten la base, y en paralelo se pisarían entre ellas.
 
 ### Qué cubre cada suite
 
-Son treinta archivos. Los que están en la raíz de `apps/api/test` cubren
+Son treinta y un archivos. Los que están en la raíz de `apps/api/test` cubren
 comportamientos transversales; los de `apps/api/test/e2e`, un módulo cada uno.
 
 | Suite | Qué verifica |
@@ -105,6 +105,7 @@ comportamientos transversales; los de `apps/api/test/e2e`, un módulo cada uno.
 | `e2e/index-data.e2e-spec.ts` | Carga de índices y cálculo y aplicación de ajustes. |
 | `e2e/liquidaciones.e2e-spec.ts` | Generación del mes, líneas, transiciones de estado y pagos. |
 | `e2e/penalties.e2e-spec.ts` | Cálculo de punitorios, morosos y condonación. |
+| `e2e/invoices.e2e-spec.ts` | Emisión de facturas con ARCA simulado: numeración correlativa, dos emisores con el mismo punto de venta, tipo y número, idempotencia y aislamiento. |
 | `e2e/renditions.e2e-spec.ts` | Rendición al propietario, comisión, conceptos y envío. |
 | `e2e/services.e2e-spec.ts` | Servicios de la propiedad y sus pagos. |
 | `e2e/tickets.e2e-spec.ts` | Circuito de reclamos, transiciones, comentarios y asignación de proveedor. |
@@ -123,8 +124,9 @@ comportamientos transversales; los de `apps/api/test/e2e`, un módulo cada uno.
 | `e2e/portal.e2e-spec.ts` | El inquilino ve su contrato y sus liquidaciones, y solo las suyas. |
 | `e2e/portal-tickets.e2e-spec.ts` | El inquilino abre un reclamo, lo comenta y lo ve en su listado. |
 
-Los servicios de ARCA no se consultan de verdad: `ARCA_MOCK=1` responde las
-llamadas desde el simulador incluido en el repositorio.
+Los servicios de ARCA no se consultan de verdad. Las pruebas unitarias simulan
+las llamadas HTTP al organismo, y la suite de facturación corre con `ARCA_MOCK=1`,
+que responde desde el simulador incluido en el repositorio.
 
 No hay pruebas de navegador. Las pruebas que este documento llama de integración
 son de nivel HTTP contra la API real, no recorridos de interfaz.

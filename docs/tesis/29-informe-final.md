@@ -55,16 +55,17 @@ y no hay operaciones de venta con escrituración.
 
 En números, al cierre de este informe el sistema son treinta y un módulos en la
 API sobre un modelo de cincuenta y cinco entidades y treinta y nueve
-enumeraciones, con dieciocho migraciones versionadas; treinta y cuatro
+enumeraciones, con veinte migraciones versionadas; treinta y cuatro
 controladores que declaran doscientas veintiséis rutas; y una aplicación web con
 dieciocho secciones internas más el portal del inquilino y el micrositio público
 de cada inmobiliaria. Son unos cuarenta y tres mil quinientos renglones de código
 en la API, cuarenta y dos mil trescientos en la web y cuatro mil trescientos en
 el paquete de tipos compartidos.
 
-El historial acumula doscientos sesenta y siete commits de trabajo repartidos
+El historial acumula doscientos setenta y tres commits de trabajo repartidos
 entre los tres integrantes, incorporados a la rama principal a través de
-cincuenta y nueve revisiones cruzadas. El cronograma tuvo veintinueve ítems y cuatro hitos.
+sesenta y tres pedidos de incorporación, cincuenta y cuatro de ellos con revisión
+de otro integrante; los nueve restantes se incorporaron sin esa revisión. El cronograma tuvo veintinueve ítems y cuatro hitos.
 
 ---
 
@@ -364,13 +365,21 @@ afuera.
 
 Hay dos suites con propósitos distintos. Las **unitarias** prueban servicios,
 controladores, guards y utilidades con sus dependencias sustituidas, corren en
-memoria y no necesitan nada instalado: son sesenta y cuatro archivos —sesenta y
-dos al lado del código y dos en el directorio de piezas transversales— con
-setecientas catorce pruebas. Las **de integración** levantan la
+memoria y no necesitan nada instalado: son sesenta y seis archivos —sesenta y
+dos al lado del código y cuatro en el directorio de piezas transversales— con
+setecientas diecinueve pruebas. Las **de integración** levantan la
 aplicación completa, con sus guards, su filtro de errores, su extensión de
-aislamiento y su cliente de base de datos, y le pegan por HTTP: son treinta
-archivos con cuatrocientas sesenta y ocho pruebas, que corren contra una base
+aislamiento y su cliente de base de datos, y le pegan por HTTP: son treinta y un
+archivos con cuatrocientas setenta y tres pruebas, que corren contra una base
 PostgreSQL creada desde cero y se limpian entre casos en orden de dependencia.
+
+La suite de facturación se agregó en la revisión final, cuando la facturación era
+el único módulo central sin prueba de integración. Corre con el simulador de ARCA
+activo y, al escribirla, encontró dos defectos del propio simulador que ninguna
+prueba unitaria podía ver: la emisión seguía pidiendo el ticket de acceso real al
+organismo, que exige un certificado cargado, y el módulo simulado no cargaba
+fuera del ejecutor de pruebas. Es decir, el modo simulado que la guía de
+demostración indicaba usar nunca había podido emitir un comprobante.
 
 Tres de esas suites verifican decisiones de arquitectura y no lógica de dominio, y
 son las que conviene mirar primero: la del aislamiento, que recorre los endpoints
@@ -401,8 +410,8 @@ migraciones, es lo que detecta eso antes de producción.
 
 ### Cobertura
 
-La cobertura de líneas de la API es de **42,07 %**, con 43,22 % de funciones y
-31,69 % de ramas. El piso exigido en integración continua es más bajo a propósito
+La cobertura de líneas de la API es de **42,47 %**, con 43,55 % de funciones y
+32,31 % de ramas. El piso exigido en integración continua es más bajo a propósito
 —38 % de líneas, funciones y sentencias, y 27 % de ramas—, unos puntos por debajo
 de lo que las suites cubren hoy, de modo que la integración continua se pone en
 rojo cuando la cobertura baja y no cuando alguien no llega a una meta aspiracional.
@@ -477,7 +486,7 @@ temprana, antes del sprint dedicado. Nada de eso está en el repositorio: no hay
 configuración de navegador ni un solo recorrido de interfaz automatizado.
 
 Lo que se hizo en su lugar fue construir la suite de integración de nivel HTTP
-—treinta archivos, cuatrocientas sesenta y ocho pruebas— y llevarla a integración
+—treinta y un archivos, cuatrocientas setenta y tres pruebas— y llevarla a integración
 continua junto con la cobertura y las migraciones desde cero. Fue una decisión de
 asignación de esfuerzo tomada en la última etapa: con el tiempo que quedaba,
 cubrir la API completa por HTTP daba más señal por hora invertida que cubrir tres
@@ -755,18 +764,31 @@ nadie.
 **No hay pruebas de navegador ni de carga**, con las consecuencias que la sección
 4 detalla.
 
-**La cobertura es de 42,07 % de líneas y 31,69 % de ramas**, y el objetivo es
+**La cobertura es de 42,47 % de líneas y 32,31 % de ramas**, y el objetivo es
 subirla empezando por los servicios centrales que hoy no tienen prueba unitaria
 propia. El piso de integración continua debería subir detrás de la cobertura real
 y nunca antes.
 
-**El secreto de firma de los tokens tiene valor por omisión en el código.** Si la
-variable de ambiente no está definida, la aplicación arranca igual usando un valor
-de reserva escrito en fuente, que es público. Un despliegue mal configurado queda
-firmando sesiones con un secreto conocido y no lo anuncia. La corrección es que la
-falta de ese valor impida el arranque, como pasa con las variables que la guía de
-despliegue marca como obligatorias, y es de las cosas que hay que hacer antes de
-cualquier uso real.
+**La emisión pide la autorización antes de guardar el comprobante.** El
+comprobante se registra en la base después de que ARCA otorgó el número de
+autorización. Si esa escritura falla, el comprobante queda válido ante el
+organismo y sin registro en el sistema. El caso más probable de esa falla —dos
+emisores de la misma inmobiliaria con el mismo punto de venta, tipo y número—
+quedó corregido al cierre (ver abajo), pero la ventana sigue existiendo para
+cualquier otra falla de escritura. Se cierra registrando el comprobante como
+pendiente antes de pedir la autorización y completándolo al recibirla.
+
+**Dos limitaciones se corrigieron en la última revisión del informe.** Al
+verificar cada afirmación del informe contra el código aparecieron dos defectos
+que figuraban como limitaciones y se corrigieron antes de la entrega. El primero:
+el secreto de firma de los tokens tenía un valor de reserva escrito en el código,
+que es público, y una instalación sin la variable arrancaba firmando sesiones con
+él; ahora, en producción, la falta de la variable impide el arranque. El segundo:
+la restricción de unicidad de la numeración de comprobantes no incluía al emisor,
+así que con varios emisores en una misma inmobiliaria el segundo comprobante con
+el mismo punto de venta, tipo y número era rechazado por la base con el número de
+autorización ya otorgado; ahora la numeración es única por emisor. La prueba de
+integración que reproduce ese caso falla con la restricción anterior.
 
 **La convención de códigos de error no está centralizada.** El filtro global valida
 la forma del código, no el vocabulario, así que un código mal escrito pasa igual
@@ -822,8 +844,8 @@ y el costo de tratarla como etapa se paga entero al final.
 El estado del sistema al cierre es demostrable de punta a punta sobre un ambiente
 desplegado, con la salvedad declarada sobre las dos funciones con modelo de
 lenguaje, y con la integración continua verificando en cada cambio el estilo, la
-compilación de los tres paquetes, setecientas catorce pruebas unitarias
-con su piso de cobertura, la aplicación de las dieciocho migraciones sobre una
-base vacía y cuatrocientas sesenta y ocho pruebas de integración contra una base
+compilación de los tres paquetes, setecientas diecinueve pruebas unitarias
+con su piso de cobertura, la aplicación de las veinte migraciones sobre una
+base vacía y cuatrocientas setenta y tres pruebas de integración contra una base
 real. El recorrido de la demostración está en `docs/demo.md` y el material de
 preparación de la defensa, en `29-preparacion-defensa.md`.

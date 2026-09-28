@@ -253,7 +253,7 @@ Registro literal de cada llamada a los web services de ARCA (WSAA/WSFEv1), con e
 Comprobante electrónico autorizado por ARCA (factura, nota de crédito o nota de débito, en sus variantes A, B o C) emitido sobre un `Payment`.
 
 - `id`, `tenantId`, `paymentId`, `issuerId?`, `type` (`ComprobanteType`), `status` (Emitido, Anulado), `cbteTipo`, `puntoDeVenta`, `numero`, `docTipo`, `docNro`, `receptorName`, `receptorFiscalCondition`, `impTotal`, `impNeto`, `impIva`, `cae`, `caeFchVto`, `emittedAt`.
-- La terna `(tenantId, puntoDeVenta, cbteTipo, numero)` es única, ya que la numeración que exige AFIP no admite huecos ni repeticiones.
+- La combinación `(tenantId, issuerId, puntoDeVenta, cbteTipo, numero)` es única: AFIP numera por CUIT, punto de venta y tipo, sin huecos ni repeticiones, así que dos emisores de la misma inmobiliaria pueden tener el mismo número.
 - Relación N-1 con `Payment` y con `ArcaIssuer`. Una nota de crédito referencia al comprobante que anula a través de `originalComprobanteId` (relación `ComprobanteNC`).
 
 ### LibroIvaExport

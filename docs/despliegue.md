@@ -80,7 +80,7 @@ Las que hay que definir sí o sí en producción:
 | Variable | Para qué | Si falta |
 |---|---|---|
 | `DATABASE_URL` | Conexión a PostgreSQL. | La API no arranca. |
-| `JWT_SECRET` | Firma de los tokens de acceso, tanto del personal como del portal. | Se usa un valor de desarrollo por defecto. **Definirla siempre.** |
+| `JWT_SECRET` | Firma de los tokens de acceso, tanto del personal como del portal. | En producción la API no arranca. Fuera de producción se usa una clave de desarrollo y se avisa en el registro. |
 | `CORS_ORIGINS` | Lista de orígenes permitidos, separados por comas. | Se permite solo `http://localhost:3000`, con lo cual el frontend desplegado queda bloqueado. |
 | `NODE_ENV` | Debe ser `production`. | Se habilitan comportamientos de desarrollo. |
 
