@@ -5,6 +5,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
 import { TenantContextService } from '../tenant/tenant-context.service';
 import { UserRole } from '@realfy/shared';
+import { resolveJwtSecret } from './jwt-secret';
 
 export interface JwtPayload {
   sub: string;       // userId
@@ -35,7 +36,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: extractJwt,
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'dev-jwt-secret-change-me'),
+      secretOrKey: resolveJwtSecret(configService),
     });
   }
 

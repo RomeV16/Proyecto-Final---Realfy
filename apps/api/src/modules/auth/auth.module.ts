@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from '../../common/auth/jwt.strategy';
 import { PipelinesModule } from '../pipelines/pipelines.module';
+import { resolveJwtSecret } from '../../common/auth/jwt-secret';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { PipelinesModule } from '../pipelines/pipelines.module';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET', 'dev-jwt-secret-change-me'),
+        secret: resolveJwtSecret(configService),
         signOptions: {
           expiresIn: configService.get<string>('JWT_ACCESS_EXPIRY', '15m') as any,
         },
