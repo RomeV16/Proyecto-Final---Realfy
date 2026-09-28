@@ -1548,7 +1548,9 @@ model Comprobante {
   originalComprobante Comprobante?  @relation("ComprobanteNC", fields: [originalComprobanteId], references: [id])
   creditNotes         Comprobante[] @relation("ComprobanteNC")
 
-  @@unique([tenantId, puntoDeVenta, cbteTipo, numero])
+  // ARCA numera por CUIT, punto de venta y tipo: dos emisores de la misma
+  // inmobiliaria pueden tener el mismo numero en el mismo punto de venta.
+  @@unique([tenantId, issuerId, puntoDeVenta, cbteTipo, numero])
   @@unique([tenantId, clientRequestId])
   @@index([tenantId])
   @@index([tenantId, paymentId])
