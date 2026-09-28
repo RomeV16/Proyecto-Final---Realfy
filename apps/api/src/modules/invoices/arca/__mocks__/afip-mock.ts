@@ -178,14 +178,21 @@ export class MockAfip {
  * Drop-in replacement for `require('@afipsdk/afip.js')`.
  * Use as the mock factory function in jest.mock().
  */
-export const MockAfipConstructor = jest.fn().mockImplementation((opts: any) => new MockAfip(opts));
+export const MockAfipConstructor =
+  // Fuera de Jest (servidor levantado con ARCA_MOCK=1) no existe `jest`, y
+  // referenciarlo al cargar el modulo tiraba abajo la primera emision.
+  typeof jest !== 'undefined'
+    ? jest.fn().mockImplementation((opts: any) => new MockAfip(opts))
+    : (function (opts: ConstructorParameters<typeof MockAfip>[0]) {
+        return new MockAfip(opts);
+      } as unknown as jest.Mock);
 
 /**
  * Reset everything between tests.
  */
 export function resetAfipMock(): void {
   MockAfip.resetCounters();
-  MockAfipConstructor.mockClear();
+  if (typeof jest !== 'undefined') MockAfipConstructor.mockClear();
 }
 
 // Default export matches the require() shape of the real module

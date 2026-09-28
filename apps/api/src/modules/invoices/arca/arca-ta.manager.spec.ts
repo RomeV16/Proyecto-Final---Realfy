@@ -56,4 +56,16 @@ describe('ArcaTaManager', () => {
       manager.ensureTA('tenant-1', 'issuer-1', 'actor'),
     ).rejects.toThrow('WSAA offline');
   });
+
+  it('con ARCA_MOCK=1 no pide ticket de acceso a WSAA', async () => {
+    const previous = process.env['ARCA_MOCK'];
+    process.env['ARCA_MOCK'] = '1';
+    try {
+      await manager.ensureTA('tenant-1', 'issuer-1', 'actor');
+      expect(wsaaMock.getTa).not.toHaveBeenCalled();
+    } finally {
+      if (previous === undefined) delete process.env['ARCA_MOCK'];
+      else process.env['ARCA_MOCK'] = previous;
+    }
+  });
 });
