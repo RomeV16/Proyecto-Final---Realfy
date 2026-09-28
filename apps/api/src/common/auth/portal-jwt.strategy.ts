@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { TenantContextService } from '../tenant/tenant-context.service';
+import { resolveJwtSecret } from './jwt-secret';
 
 export interface PortalJwtPayload {
   sub: string;       // personId
@@ -21,7 +22,7 @@ export class PortalJwtStrategy extends PassportStrategy(Strategy, 'portal-jwt') 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET', 'dev-jwt-secret-change-me'),
+      secretOrKey: resolveJwtSecret(configService),
     });
   }
 
