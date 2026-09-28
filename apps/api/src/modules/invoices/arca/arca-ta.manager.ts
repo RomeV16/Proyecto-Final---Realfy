@@ -28,6 +28,12 @@ export class ArcaTaManager {
    */
   async ensureTA(tenantId: string, issuerId: string, actor: string): Promise<void> {
     this.logger.debug('ensureTA called', { tenantId, issuerId, actor });
+
+    // El cliente simulado no usa el ticket de acceso. Pedirlo igual exigía un
+    // certificado cargado y una llamada real a WSAA, y el modo simulado no
+    // podía emitir.
+    if (process.env['ARCA_MOCK'] === '1') return;
+
     // WsaaService handles single-flight + caching internally
     await this.wsaa.getTa(tenantId, 'wsfe');
     this.logger.debug('TA ensured', { tenantId, actor });
