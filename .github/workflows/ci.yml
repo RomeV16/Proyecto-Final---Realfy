@@ -149,8 +149,14 @@ jobs:
       - name: Apply every migration on an empty database
         run: cd apps/api && npx prisma migrate deploy
 
-      - name: Check the schema matches the migrations
+      - name: Check every migration is applied
         run: cd apps/api && npx prisma migrate status
+
+      # migrate status solo confirma que no quedan migraciones pendientes. Para
+      # detectar un cambio de schema.prisma sin su migracion hay que comparar la
+      # base migrada contra el esquema: --exit-code devuelve 2 si difieren.
+      - name: Check the schema matches the migrations
+        run: cd apps/api && npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --exit-code
 
   e2e-api:
     name: API E2E Tests
