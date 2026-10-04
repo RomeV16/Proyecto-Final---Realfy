@@ -114,14 +114,10 @@ Las que habilitan funcionalidad que, sin ellas, queda apagada en silencio:
 | `AI_API_KEY` | vacío | Sin credencial la API levanta igual y las funciones que consultan al modelo resuelven por sus propias reglas. |
 | `AI_TIMEOUT_MS` | `20000` | Espera máxima por respuesta del modelo. |
 
-Hay dos variables que conviene **no** definir, porque ningún código las lee.
-`REDIS_URL` es un resabio de una etapa en la que se preveía una cola de trabajos:
-las dependencias siguen declaradas en `apps/api/package.json` y
-`docker-compose.yml` todavía levanta un servicio Redis, pero no hay ningún módulo
-que lo consuma, así que provisionarlo en producción no aporta nada. Un secreto
-propio para los tokens de refresco tampoco hace falta: esos tokens no son JWT
-sino identificadores aleatorios opacos guardados en la base, de modo que no hay
-nada que firmar. Ninguna de las dos figura ya en `apps/api/.env.example`.
+El sistema no usa Redis ni ninguna cola de trabajos, así que no hace falta
+provisionarlo ni definir `REDIS_URL`. Un secreto propio para los tokens de
+refresco tampoco hace falta: esos tokens no son JWT sino identificadores
+aleatorios opacos guardados en la base, de modo que no hay nada que firmar.
 
 ## Servicio web
 
@@ -236,8 +232,8 @@ ya construida, con lo cual no toma los cambios de `NEXT_PUBLIC_API_URL`.
 
 ## Entorno local
 
-`docker-compose.yml` levanta solamente la infraestructura —PostgreSQL, MinIO y un
-Redis que hoy no se usa—; las dos aplicaciones se corren desde el monorepo.
+`docker-compose.yml` levanta solamente la infraestructura —PostgreSQL y MinIO—;
+las dos aplicaciones se corren desde el monorepo.
 
 ```bash
 docker compose up -d postgres minio
