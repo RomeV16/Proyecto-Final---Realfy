@@ -830,6 +830,46 @@ describe('Liquidaciones (e2e)', () => {
       expect(res.body.paidAt).toBeDefined();
     });
 
+    it('rechaza un pago que supera el saldo pendiente (400)', async () => {
+      const { user, liquidacion } = await setupFullLiquidacion('pay-exceeds');
+
+      await transitionTo(user.accessToken, liquidacion.id, [
+        LiquidacionStatus.Revision,
+        LiquidacionStatus.Aprobada,
+        LiquidacionStatus.Enviada,
+      ]);
+
+      await request(app.getHttpServer())
+        .post(`/api/liquidaciones/${liquidacion.id}/payments`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({
+          amount: '100000.00',
+          method: PaymentMethod.Transferencia,
+          paidAt: new Date().toISOString(),
+        })
+        .expect(200);
+
+      // Quedan 50.000: un pago de 60.000 no se registra.
+      const res = await request(app.getHttpServer())
+        .post(`/api/liquidaciones/${liquidacion.id}/payments`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({
+          amount: '60000.00',
+          method: PaymentMethod.Transferencia,
+          paidAt: new Date().toISOString(),
+        })
+        .expect(400);
+
+      expect(res.body.error).toBe('PAYMENT_EXCEEDS_BALANCE');
+
+      const detail = await request(app.getHttpServer())
+        .get(`/api/liquidaciones/${liquidacion.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+      expect(detail.body.payments).toHaveLength(1);
+      expect(detail.body.status).toBe(LiquidacionStatus.Enviada);
+    });
+
     it('Partial payment does NOT auto-transition (still Enviada)', async () => {
       const { user, liquidacion } = await setupFullLiquidacion('pay-partial');
 

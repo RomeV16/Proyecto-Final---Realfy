@@ -1262,6 +1262,7 @@
    "fullyPaid": "Pagada en su totalidad",
    "registerSuccess": "Pago registrado correctamente",
    "registerError": "Error al registrar pago",
+   "exceedsBalance": "The payment exceeds the remaining balance of {balance}.",
    "amountPlaceholder": "0.00",
    "amountRequired": "El monto es obligatorio",
    "methodRequired": "El método de pago es obligatorio",

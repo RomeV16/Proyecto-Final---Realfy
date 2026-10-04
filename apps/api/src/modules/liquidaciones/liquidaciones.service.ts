@@ -479,6 +479,20 @@ export class LiquidacionesService {
       });
     }
 
+    // Un pago no puede superar lo que falta saldar: el excedente no tiene a qué
+    // imputarse y dejaría la liquidación con saldo negativo.
+    const balanceBefore = calculateRemainingBalance(
+      liquidacion.total.toString(),
+      liquidacion.payments.map((p: any) => ({ amount: p.amount.toString() })),
+    );
+    if (new Decimal(validated.amount).gt(balanceBefore)) {
+      throw new BadRequestException({
+        error: 'PAYMENT_EXCEEDS_BALANCE',
+        message: `Payment amount exceeds the remaining balance of ${balanceBefore.toFixed(2)}`,
+        remainingBalance: balanceBefore.toFixed(2),
+      });
+    }
+
     const tenantId = this.tenantContext.getTenantId()!;
 
     const payment = await this.prisma.client.payment.create({
