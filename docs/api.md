@@ -123,7 +123,7 @@ el registro del servidor, junto con el método, la ruta, el estado, el
 | GET | `/properties/:id` | Detalle con operaciones, media y personas vinculadas. | Autenticado |
 | POST | `/properties` | Alta. | Admin, Gerente, Ventas |
 | PATCH | `/properties/:id` | Edición. | Admin, Gerente, Ventas |
-| DELETE | `/properties/:id` | Baja. | Admin, Gerente |
+| DELETE | `/properties/:id` | Baja. Responde 409 `PROPERTY_HAS_ACTIVE_CONTRACTS` si tiene contratos activos. | Admin, Gerente |
 | POST | `/properties/:id/operations` | Agrega una operación de alquiler, alquiler temporario o venta. | Admin, Gerente, Ventas |
 | PATCH | `/properties/:id/operations/:opId/state` | Transiciona el estado de la operación. | Admin, Gerente, Ventas |
 | POST | `/properties/:id/media` | Sube una imagen. Multipart, campo `file`, hasta 10 MB, solo imágenes. | Admin, Gerente, Ventas |
@@ -240,7 +240,7 @@ de plantillas y el de comisiones.
 | PATCH | `/liquidaciones/:id/line-items/:lineItemId` | Edita una línea. | Admin, Gerente, Liquidaciones |
 | DELETE | `/liquidaciones/:id/line-items/:lineItemId` | Quita una línea. | Admin, Gerente, Liquidaciones |
 | GET | `/liquidaciones/:id/payments` | Pagos imputados. | Autenticado |
-| POST | `/liquidaciones/:id/payments` | Registra un pago e imputa el saldo. | Admin, Gerente, Liquidaciones |
+| POST | `/liquidaciones/:id/payments` | Registra un pago e imputa el saldo. Rechaza con `PAYMENT_EXCEEDS_BALANCE` un importe mayor al saldo. | Admin, Gerente, Liquidaciones |
 | DELETE | `/liquidaciones/:id` | Borra la liquidación. | Admin, Gerente |
 
 ## Pagos
