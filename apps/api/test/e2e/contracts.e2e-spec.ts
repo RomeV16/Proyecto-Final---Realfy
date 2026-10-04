@@ -271,6 +271,78 @@ describe('Contracts (e2e)', () => {
     });
   });
 
+  // ─── Validation ──────────────────────────────────────
+
+  describe('Validation', () => {
+    async function setupParties(emailPrefix: string) {
+      const user = await registerUser(app, {
+        email: `${emailPrefix}@test.com`,
+        password: 'Password123!',
+        firstName: 'Admin',
+        lastName: 'User',
+      });
+      const property = await createProperty(user.accessToken);
+      const propietario = await createPersonWithRole(user.accessToken, {
+        firstName: 'Carlos',
+        lastName: 'Propietario',
+        role: PersonRole.Propietario,
+        email: `propietario-${emailPrefix}@test.com`,
+      });
+      const inquilino = await createPersonWithRole(user.accessToken, {
+        firstName: 'Ana',
+        lastName: 'Inquilina',
+        role: PersonRole.Inquilino,
+        email: `inquilino-${emailPrefix}@test.com`,
+      });
+      const payload = buildContractPayload({
+        propertyId: property.id,
+        propietarioId: propietario.person.id,
+        inquilinoId: inquilino.person.id,
+      });
+      return { user, payload };
+    }
+
+    it('POST /contracts — rejects a rent amount of zero (400)', async () => {
+      const { user, payload } = await setupParties('val-zero-rent');
+
+      const res = await request(app.getHttpServer())
+        .post('/api/contracts')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ ...payload, rentAmount: '0.00' })
+        .expect(400);
+
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+    });
+
+    it('POST /contracts — rejects an end date that is not after the start date (400)', async () => {
+      const { user, payload } = await setupParties('val-dates');
+
+      const res = await request(app.getHttpServer())
+        .post('/api/contracts')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ ...payload, endDate: payload.startDate })
+        .expect(400);
+
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+    });
+
+    it('PATCH /contracts/:id — rejects moving the end date before the start date (400)', async () => {
+      const { user, contract } = await setupFullContract('val-patch-dates');
+
+      await request(app.getHttpServer())
+        .patch(`/api/contracts/${contract.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ endDate: '2024-12-01T00:00:00.000Z' })
+        .expect(400);
+
+      const res = await request(app.getHttpServer())
+        .get(`/api/contracts/${contract.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+      expect(new Date(res.body.endDate).toISOString()).toBe('2027-01-01T00:00:00.000Z');
+    });
+  });
+
   // ─── Tenant Isolation ────────────────────────────────
 
   describe('Tenant isolation', () => {
