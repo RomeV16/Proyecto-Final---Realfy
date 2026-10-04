@@ -130,8 +130,8 @@ corrió); sección 5 del informe final.
 
 ### 1.5. ¿Por qué la cobertura es la que es?
 
-**Corto.** La cobertura de líneas de la API es 42,47 %, con 43,55 % de funciones y
-32,31 % de ramas. No se presenta como logro: es el número real y el objetivo es
+**Corto.** La cobertura de líneas de la API es 42,44 %, con 43,52 % de funciones y
+32,28 % de ramas. No se presenta como logro: es el número real y el objetivo es
 subirlo. El piso que exige la integración continua está a propósito unos puntos por
 debajo —38 % de líneas, funciones y sentencias, 27 % de ramas— para que el control
 se ponga en rojo cuando la cobertura baja y no cuando alguien no llega a una meta
@@ -562,7 +562,7 @@ Los que conviene poner adelante, con lo que los respalda.
    de un riesgo que ese mismo ADR había anotado.
 5. **La verificación está automatizada y corre sola.** Cinco trabajos en cada
    cambio: estilo, compilación de los tres paquetes, setecientas diecinueve
-   pruebas unitarias con piso de cobertura, aplicación de las veinte migraciones
+   pruebas unitarias con piso de cobertura, aplicación de las veintiuna migraciones
    sobre una base vacía, y cuatrocientas setenta y tres pruebas de integración
    contra una base real.
 6. **El trabajo con el modelo de lenguaje está acotado por diseño.** Sin datos
@@ -604,9 +604,9 @@ Cada uno con lo que hay que contestar. La regla es adelantarlos.
 El criterio es que cada uno defienda lo que construyó, porque es lo que puede
 sostener cuando la pregunta baja al detalle. El reparto sale del historial del
 repositorio, que se puede verificar con `git shortlog -sn --no-merges` y con
-`git log --no-merges -- <ruta>` sobre cada módulo. Al cierre de la documentación
-el reparto de commits es de noventa y siete de Romeo Valdomero, ochenta y cuatro de
-Manuel Ferreras y setenta y cuatro de marianonallar, aunque lo que importa para el
+`git log --no-merges -- <ruta>` sobre cada módulo. Al cierre del código, en el
+commit 98e34b7, el reparto de commits es de ciento cinco de Romeo Valdomero, noventa y cuatro de
+Manuel Ferreras y ochenta y tres de marianonallar, aunque lo que importa para el
 reparto de la exposición no es el total de cada uno sino qué partes del sistema
 tocó.
 
@@ -646,8 +646,9 @@ documentación de planificación.
 
 **Qué expone.** La demostración del sistema en la parte de interfaz —micrositio,
 panel, propiedades, contrato, portal del inquilino en sus dos situaciones— y las
-dos funciones con modelo de lenguaje, incluida la aclaración obligada de que en el
-ambiente de demostración corren por el camino determinista. Le corresponde también
+dos funciones con modelo de lenguaje, incluida la aclaración de que en el ambiente
+de demostración corren contra el proveedor real, con la priorización determinista
+como respuesta inmediata y la marca de origen visible en la interfaz. Le corresponde también
 el cierre técnico sobre la forma uniforme del error y el control de acceso por rol.
 
 **Preguntas que le tocan.** 1.2, 1.3, 1.4, 1.18, 1.19, y la parte de interfaz de

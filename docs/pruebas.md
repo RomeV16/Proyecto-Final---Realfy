@@ -20,6 +20,13 @@ mayoría, y los de `apps/api/test/unit`, que prueban piezas transversales cuya
 ubicación natural no es un módulo. Hoy son sesenta y dos archivos en el primer
 grupo y cuatro en el segundo.
 
+El paquete compartido tiene su propia suite, la del motor de comprobantes, con
+treinta pruebas:
+
+```bash
+pnpm --filter @realfy/shared test
+```
+
 Dos de esos archivos vale nombrarlos porque cubren decisiones de arquitectura y
 no lógica de dominio:
 
@@ -48,7 +55,7 @@ El piso vigente está declarado en `apps/api/jest.config.ts` y es de **38 % de
 líneas, funciones y sentencias, y 27 % de ramas**. Es un piso, no una meta: está
 unos puntos por debajo de lo que las suites cubren hoy —la medición al fijarlo dio
 42,07 % de líneas, 43,22 % de funciones, 31,69 % de ramas y 42,03 % de
-sentencias, y la última medición da 42,47 %, 43,55 %, 32,31 % y 42,43 %—, de modo que la integración continua se pone en rojo cuando la
+sentencias, y la última medición da 42,44 %, 43,52 %, 32,28 % y 42,40 %—, de modo que la integración continua se pone en rojo cuando la
 cobertura baja, no cuando alguien no llega a un número aspiracional. Si el piso
 se sube, tiene que ser porque la cobertura real subió primero.
 
@@ -87,7 +94,7 @@ pruebas comparten la base, y en paralelo se pisarían entre ellas.
 
 ### Qué cubre cada suite
 
-Son treinta y un archivos. Los que están en la raíz de `apps/api/test` cubren
+Son treinta y dos archivos. Los que están en la raíz de `apps/api/test` cubren
 comportamientos transversales; los de `apps/api/test/e2e`, un módulo cada uno.
 
 | Suite | Qué verifica |
@@ -97,19 +104,19 @@ comportamientos transversales; los de `apps/api/test/e2e`, un módulo cada uno.
 | `audit-trail.e2e-spec.ts` | Las operaciones sensibles dejan traza con el usuario y la entidad afectada. |
 | `invitation-flow.e2e-spec.ts` | Invitación de un usuario, aceptación y definición de contraseña. |
 | `e2e/smoke.e2e-spec.ts` | La aplicación levanta, el punto de salud responde y el circuito de sesión funciona. |
-| `e2e/properties.e2e-spec.ts` | Alta, edición, operaciones, transiciones de estado y media. |
+| `e2e/properties.e2e-spec.ts` | Alta, edición, operaciones, transiciones de estado, media y bloqueo de la baja con contratos activos. |
 | `e2e/persons.e2e-spec.ts` | Personas, sus roles múltiples y sus documentos. |
-| `e2e/contracts.e2e-spec.ts` | Alta de contratos con partes y garantías. |
+| `e2e/contracts.e2e-spec.ts` | Alta de contratos con partes y garantías, y validación de monto y fechas. |
 | `e2e/contracts-lifecycle.e2e-spec.ts` | El ciclo de vida del contrato hasta la rescisión y el resumen de cierre. |
 | `e2e/contract-templates.e2e-spec.ts` | Plantillas y generación del documento del contrato. |
 | `e2e/index-data.e2e-spec.ts` | Carga de índices y cálculo y aplicación de ajustes. |
-| `e2e/liquidaciones.e2e-spec.ts` | Generación del mes, líneas, transiciones de estado y pagos. |
+| `e2e/liquidaciones.e2e-spec.ts` | Generación del mes, líneas, transiciones de estado y pagos, incluido el rechazo del que supera el saldo. |
 | `e2e/penalties.e2e-spec.ts` | Cálculo de punitorios, morosos y condonación. |
-| `e2e/invoices.e2e-spec.ts` | Emisión de facturas con ARCA simulado: numeración correlativa, dos emisores con el mismo punto de venta, tipo y número, idempotencia y aislamiento. |
+| `e2e/invoices.e2e-spec.ts` | Emisión de facturas con ARCA simulado: numeración correlativa, dos emisores con el mismo punto de venta, tipo y número, idempotencia, aislamiento y emisor obligatorio. |
 | `e2e/renditions.e2e-spec.ts` | Rendición al propietario, comisión, conceptos y envío. |
 | `e2e/services.e2e-spec.ts` | Servicios de la propiedad y sus pagos. |
 | `e2e/tickets.e2e-spec.ts` | Circuito de reclamos, transiciones, comentarios y asignación de proveedor. |
-| `e2e/providers.e2e-spec.ts` | Proveedores y su selección por rubro y zona. |
+| `e2e/providers.e2e-spec.ts` | Proveedores, filtros por rubro y zona, y orden de los candidatos para un reclamo. |
 | `e2e/leads.e2e-spec.ts` | Leads, conversión y descarte. |
 | `e2e/pipelines.e2e-spec.ts` | Embudos, etapas y reordenamiento. |
 | `e2e/interactions.e2e-spec.ts` | Interacciones y visitas sobre un lead. |
@@ -123,6 +130,7 @@ comportamientos transversales; los de `apps/api/test/e2e`, un módulo cada uno.
 | `e2e/portal-auth.e2e-spec.ts` | Invitación al portal, definición de contraseña, ingreso, rotación del token de refresco y rechazo de tokens del ámbito equivocado. |
 | `e2e/portal.e2e-spec.ts` | El inquilino ve su contrato y sus liquidaciones, y solo las suyas. |
 | `e2e/portal-tickets.e2e-spec.ts` | El inquilino abre un reclamo, lo comenta y lo ve en su listado. |
+| `e2e/public.e2e-spec.ts` | El micrositio sin sesión: perfil por slug, catálogo con solo las propiedades disponibles, ficha no publicada y consulta que entra como interesado. |
 
 Los servicios de ARCA no se consultan de verdad. Las pruebas unitarias simulan
 las llamadas HTTP al organismo, y la suite de facturación corre con `ARCA_MOCK=1`,
@@ -146,17 +154,18 @@ tipos inexistentes.
 **Build.** Compila el paquete compartido, genera el cliente de Prisma y compila
 la API y la web. Es el trabajo que atrapa los errores de tipos.
 
-**Unit Tests & Coverage.** Corre las unitarias con cobertura, con lo cual el piso
+**Unit Tests & Coverage.** Corre las unitarias de la API con cobertura, y después las del paquete compartido, con lo cual el piso
 declarado en la configuración de Jest se convierte en una condición de la
 integración continua. El reporte HTML se sube como artefacto y se conserva
 catorce días.
 
 **Migrations from scratch.** Levanta un PostgreSQL 16 como servicio, valida el
-esquema y aplica **todas** las migraciones sobre una base vacía, terminando con
-`prisma migrate status` para verificar que el esquema coincida con las
-migraciones. Este trabajo existe por un incidente concreto: una migración quedó
-con una línea que no era SQL, y como los demás trabajos compilan pero nunca
-ejecutan migraciones, el error apareció recién contra la base real. Peor todavía,
+esquema y aplica **todas** las migraciones sobre una base vacía. Después corre
+`prisma migrate status`, que confirma que no quedan migraciones pendientes, y
+`prisma migrate diff --exit-code` contra la base migrada, que falla si
+`schema.prisma` y las migraciones difieren. Este trabajo existe por un incidente concreto: una migración quedó
+con una línea que no era SQL, y como en ese momento la integración continua solo
+compilaba, el error apareció recién contra la base real. Peor todavía,
 al quedar registrada como fallida, bloqueó también todas las migraciones
 siguientes y trabó el despliegue entero. Aplicarlas desde cero en cada cambio es
 lo que detecta eso antes de producción.

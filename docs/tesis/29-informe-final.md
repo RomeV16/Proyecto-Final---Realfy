@@ -55,16 +55,17 @@ y no hay operaciones de venta con escrituración.
 
 En números, al cierre de este informe el sistema son treinta y un módulos en la
 API sobre un modelo de cincuenta y cinco entidades y treinta y nueve
-enumeraciones, con veinte migraciones versionadas; treinta y cuatro
+enumeraciones, con veintiuna migraciones versionadas; treinta y cuatro
 controladores que declaran doscientas veintiséis rutas; y una aplicación web con
 dieciocho secciones internas más el portal del inquilino y el micrositio público
-de cada inmobiliaria. Son unos cuarenta y tres mil quinientos renglones de código
-en la API, cuarenta y dos mil trescientos en la web y cuatro mil trescientos en
-el paquete de tipos compartidos.
+de cada inmobiliaria. Son unos treinta mil quinientos renglones de TypeScript
+en la API, treinta y dos mil novecientos en la web y cuatro mil cien en el
+paquete de tipos compartidos, sin contar las pruebas, que suman otros treinta mil
+ochocientos.
 
-El historial acumula doscientos setenta y tres commits de trabajo repartidos
+El historial acumula doscientos ochenta y dos commits de trabajo repartidos
 entre los tres integrantes, incorporados a la rama principal a través de
-sesenta y tres pedidos de incorporación, cincuenta y cuatro de ellos con revisión
+setenta pedidos de incorporación, sesenta y uno de ellos con revisión
 de otro integrante; los nueve restantes se incorporaron sin esa revisión. El cronograma tuvo veintinueve ítems y cuatro hitos.
 
 ---
@@ -279,8 +280,8 @@ devuelve más registros de los que corresponde se ve como un listado. En un
 ambiente con una sola inmobiliaria cargada es indistinguible del comportamiento
 correcto, y sólo se manifiesta cuando hay una segunda con datos: en producción. La
 revisión encontró dos consultas que ya lo estaban haciendo —la de los emisores
-fiscales en el resumen del panel y la de valores de índice dentro del barrido de
-ajustes—, ninguna de las dos había fallado nunca, y las dos habían pasado
+fiscales en el resumen del panel y la de valores de índice en el servicio de
+aplicación de ajustes vencidos—, ninguna de las dos había fallado nunca, y las dos habían pasado
 revisión por pares.
 
 La decisión del ADR-0006 fue invertir el comportamiento por omisión: sin
@@ -367,10 +368,11 @@ Hay dos suites con propósitos distintos. Las **unitarias** prueban servicios,
 controladores, guards y utilidades con sus dependencias sustituidas, corren en
 memoria y no necesitan nada instalado: son sesenta y seis archivos —sesenta y
 dos al lado del código y cuatro en el directorio de piezas transversales— con
-setecientas diecinueve pruebas. Las **de integración** levantan la
+setecientas diecinueve pruebas, a las que se suman las treinta del motor de
+comprobantes del paquete compartido. Las **de integración** levantan la
 aplicación completa, con sus guards, su filtro de errores, su extensión de
-aislamiento y su cliente de base de datos, y le pegan por HTTP: son treinta y un
-archivos con cuatrocientas setenta y tres pruebas, que corren contra una base
+aislamiento y su cliente de base de datos, y le pegan por HTTP: son treinta y dos
+archivos con cuatrocientas ochenta y cinco pruebas, que corren contra una base
 PostgreSQL creada desde cero y se limpian entre casos en orden de dependencia.
 
 La suite de facturación se agregó en la revisión final, cuando la facturación era
@@ -410,8 +412,8 @@ migraciones, es lo que detecta eso antes de producción.
 
 ### Cobertura
 
-La cobertura de líneas de la API es de **42,47 %**, con 43,55 % de funciones y
-32,31 % de ramas. El piso exigido en integración continua es más bajo a propósito
+La cobertura de líneas de la API es de **42,44 %**, con 43,52 % de funciones y
+32,28 % de ramas. El piso exigido en integración continua es más bajo a propósito
 —38 % de líneas, funciones y sentencias, y 27 % de ramas—, unos puntos por debajo
 de lo que las suites cubren hoy, de modo que la integración continua se pone en
 rojo cuando la cobertura baja y no cuando alguien no llega a una meta aspiracional.
@@ -486,7 +488,7 @@ temprana, antes del sprint dedicado. Nada de eso está en el repositorio: no hay
 configuración de navegador ni un solo recorrido de interfaz automatizado.
 
 Lo que se hizo en su lugar fue construir la suite de integración de nivel HTTP
-—treinta y un archivos, cuatrocientas setenta y tres pruebas— y llevarla a integración
+—treinta y dos archivos, cuatrocientas ochenta y cinco pruebas— y llevarla a integración
 continua junto con la cobertura y las migraciones desde cero. Fue una decisión de
 asignación de esfuerzo tomada en la última etapa: con el tiempo que quedaba,
 cubrir la API completa por HTTP daba más señal por hora invertida que cubrir tres
@@ -706,7 +708,7 @@ dentro de la misma ventana. Para escalar horizontalmente hay que moverlo a un
 almacén compartido.
 
 **La lista de modelos alcanzados por el filtro de inmobiliaria está escrita a
-mano.** Son cincuenta y cinco nombres en la extensión del cliente de base de
+mano.** Son cincuenta y tres nombres en la extensión del cliente de base de
 datos. Un modelo nuevo con columna de inmobiliaria que no se agregue a esa lista
 quedaría sin filtrar, porque la extensión lo deja pasar por no reconocerlo. El
 riesgo está acotado por una prueba que compara la lista contra el esquema y falla
@@ -764,7 +766,7 @@ nadie.
 **No hay pruebas de navegador ni de carga**, con las consecuencias que la sección
 4 detalla.
 
-**La cobertura es de 42,47 % de líneas y 32,31 % de ramas**, y el objetivo es
+**La cobertura es de 42,44 % de líneas y 32,28 % de ramas**, y el objetivo es
 subirla empezando por los servicios centrales que hoy no tienen prueba unitaria
 propia. El piso de integración continua debería subir detrás de la cobertura real
 y nunca antes.
@@ -844,8 +846,8 @@ y el costo de tratarla como etapa se paga entero al final.
 El estado del sistema al cierre es demostrable de punta a punta sobre un ambiente
 desplegado, con la salvedad declarada sobre las dos funciones con modelo de
 lenguaje, y con la integración continua verificando en cada cambio el estilo, la
-compilación de los tres paquetes, setecientas diecinueve pruebas unitarias
-con su piso de cobertura, la aplicación de las veinte migraciones sobre una
-base vacía y cuatrocientas setenta y tres pruebas de integración contra una base
+compilación de los tres paquetes, setecientas cuarenta y nueve pruebas unitarias
+con su piso de cobertura, la aplicación de las veintiuna migraciones sobre una
+base vacía y cuatrocientas ochenta y cinco pruebas de integración contra una base
 real. El recorrido de la demostración está en `docs/demo.md` y el material de
 preparación de la defensa, en `29-preparacion-defensa.md`.
