@@ -212,11 +212,22 @@ describe('Reports (e2e)', () => {
       },
     });
 
-    // Create comprobante for the payment
+    // Create comprobante for the payment, issued by the agency itself
+    const issuer = await prisma.baseClient.arcaIssuer.create({
+      data: {
+        tenantId,
+        cuit: '30-71234567-1',
+        businessName: 'Inmobiliaria de prueba',
+        fiscalCondition: FiscalCondition.ResponsableInscripto,
+        isSelf: true,
+      },
+    });
+
     const comprobante = await prisma.baseClient.comprobante.create({
       data: {
         tenantId,
         paymentId: payment.id,
+        issuerId: issuer.id,
         type: 'FacturaB',
         status: 'Emitido',
         cbteTipo: 6,
