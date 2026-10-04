@@ -351,6 +351,13 @@ export class ContractsService {
       });
     }
 
+    if (validated.endDate && new Date(validated.endDate).getTime() <= existing.startDate.getTime()) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'endDate must be after startDate',
+      });
+    }
+
     const tenantId = this.tenantContext.getTenantId()!;
 
     // If dates or adjustment config changed, recalculate schedule

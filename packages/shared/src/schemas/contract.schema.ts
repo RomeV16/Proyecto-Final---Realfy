@@ -19,6 +19,10 @@ const decimalString = z.union([z.string(), z.number().transform(String)]).pipe(
 
 const decimalStringOptional = decimalString.optional();
 
+const positiveDecimalString = decimalString.refine((value) => Number(value) > 0, {
+  message: 'Must be greater than zero',
+});
+
 const dateString = z.string().datetime({ offset: true }).or(z.coerce.date());
 
 // ─── Contract Person (nested) ───────────────────────────
@@ -51,7 +55,7 @@ export const CreateContractSchema = z
     status: z.nativeEnum(ContractStatus).optional().default(ContractStatus.Borrador),
     startDate: dateString,
     endDate: dateString,
-    rentAmount: decimalString,
+    rentAmount: positiveDecimalString,
     rentCurrency: z.nativeEnum(Currency).optional().default(Currency.ARS),
     depositAmount: decimalStringOptional,
     depositCurrency: z.nativeEnum(Currency).optional(),
@@ -61,6 +65,10 @@ export const CreateContractSchema = z
     notes: z.string().max(2000).optional(),
     persons: z.array(ContractPersonSchema).min(1, 'At least one person is required'),
     guarantees: z.array(CreateGuaranteeSchema).optional().default([]),
+  })
+  .refine((data) => new Date(data.endDate).getTime() > new Date(data.startDate).getTime(), {
+    message: 'endDate must be after startDate',
+    path: ['endDate'],
   })
   .refine(
     (data) => {
@@ -92,7 +100,7 @@ export const CreateContractSchema = z
 export const UpdateContractSchema = z.object({
   status: z.nativeEnum(ContractStatus).optional(),
   endDate: dateString.optional(),
-  rentAmount: decimalString.optional(),
+  rentAmount: positiveDecimalString.optional(),
   rentCurrency: z.nativeEnum(Currency).optional(),
   depositAmount: decimalStringOptional,
   depositCurrency: z.nativeEnum(Currency).optional(),
