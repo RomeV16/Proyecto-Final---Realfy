@@ -1498,13 +1498,13 @@ model ArcaRequestLog {
 }
 
 /// A comprobante that ARCA authorised. Amounts stay Decimal end to end and the
-/// (puntoDeVenta, cbteTipo, numero) triple is unique per tenant because AFIP
-/// numbering must have no gaps and no repeats.
+/// (issuerId, puntoDeVenta, cbteTipo, numero) key is unique per tenant because
+/// AFIP numbering must have no gaps and no repeats for each issuer.
 model Comprobante {
   id                      String            @id @default(uuid())
   tenantId                String
   paymentId               String
-  issuerId                String?
+  issuerId                String
   clientRequestId         String?
   type                    ComprobanteType
   status                  ComprobanteStatus @default(Emitido)
@@ -1544,7 +1544,7 @@ model Comprobante {
   createdAt               DateTime          @default(now())
 
   payment             Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  issuer              ArcaIssuer?   @relation(fields: [issuerId], references: [id])
+  issuer              ArcaIssuer    @relation(fields: [issuerId], references: [id])
   originalComprobante Comprobante?  @relation("ComprobanteNC", fields: [originalComprobanteId], references: [id])
   creditNotes         Comprobante[] @relation("ComprobanteNC")
 

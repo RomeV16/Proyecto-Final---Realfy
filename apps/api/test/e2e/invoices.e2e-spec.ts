@@ -262,4 +262,21 @@ describe('Invoices (e2e)', () => {
 
     expect(await prisma.baseClient.comprobante.count()).toBe(0);
   });
+
+  // ─── 6. Emisor obligatorio ────────────────────────────
+
+  it('la base no admite un comprobante sin emisor', async () => {
+    const { accessToken, payment } = await setupTenantWithPayment();
+    const issuerId = await createIssuer(accessToken, '20-30111222-0', 'Emisor Uno');
+    const res = await emit(accessToken, issuerId, payment.id).expect(201);
+
+    // Con el emisor en nulo la fila quedaria fuera de la restriccion de
+    // numeracion, porque en PostgreSQL dos nulos no chocan entre si.
+    await expect(
+      prisma.baseClient.$executeRawUnsafe(
+        'UPDATE comprobantes SET "issuerId" = NULL WHERE id = $1',
+        res.body.id,
+      ),
+    ).rejects.toThrow();
+  });
 });
