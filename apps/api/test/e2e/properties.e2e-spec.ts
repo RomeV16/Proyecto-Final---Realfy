@@ -9,7 +9,17 @@ import {
   loginUser,
 } from '../helpers/test-utils';
 import { PrismaService } from '../../src/common/prisma/prisma.service';
-import { UserRole, PropertyType, PropertyOperationType, PropertyState } from '@realfy/shared';
+import {
+  UserRole,
+  PropertyType,
+  PropertyOperationType,
+  PropertyState,
+  PersonRole,
+  ContractType,
+  ContractStatus,
+  AdjustmentType,
+  AdjustmentPeriod,
+} from '@realfy/shared';
 
 describe('Properties (e2e)', () => {
   let app: INestApplication;
@@ -208,6 +218,82 @@ describe('Properties (e2e)', () => {
         .expect(200);
 
       expect(detail.body.isActive).toBe(false);
+    });
+
+    it('DELETE /properties/:id — refuses while the property has an active contract (409)', async () => {
+      const user = await registerUser(app, {
+        email: 'admin@delete-active.com',
+        password: 'Password123!',
+        firstName: 'Admin',
+        lastName: 'User',
+      });
+      const auth = { Authorization: `Bearer ${user.accessToken}` };
+
+      const property = await request(app.getHttpServer())
+        .post('/api/properties')
+        .set(auth)
+        .send(createPropertyPayload)
+        .expect(201);
+
+      const personIds: string[] = [];
+      for (const [firstName, role] of [
+        ['Carlos', PersonRole.Propietario],
+        ['Ana', PersonRole.Inquilino],
+      ] as const) {
+        const person = await request(app.getHttpServer())
+          .post('/api/persons')
+          .set(auth)
+          .send({ firstName, lastName: 'Test', email: `${firstName.toLowerCase()}@delete-active.com` })
+          .expect(201);
+        await request(app.getHttpServer())
+          .post(`/api/persons/${person.body.id}/roles`)
+          .set(auth)
+          .send({ role })
+          .expect(201);
+        personIds.push(person.body.id);
+      }
+
+      const contract = await request(app.getHttpServer())
+        .post('/api/contracts')
+        .set(auth)
+        .send({
+          propertyId: property.body.id,
+          contractType: ContractType.Alquiler,
+          status: ContractStatus.Activo,
+          startDate: '2025-01-01T00:00:00.000Z',
+          endDate: '2027-01-01T00:00:00.000Z',
+          rentAmount: '150000.00',
+          adjustmentType: AdjustmentType.IPC,
+          adjustmentPeriod: AdjustmentPeriod.Trimestral,
+          persons: [
+            { personId: personIds[0], role: PersonRole.Propietario },
+            { personId: personIds[1], role: PersonRole.Inquilino },
+          ],
+        })
+        .expect(201);
+
+      const res = await request(app.getHttpServer())
+        .delete(`/api/properties/${property.body.id}`)
+        .set(auth)
+        .expect(409);
+      expect(res.body.error).toBe('PROPERTY_HAS_ACTIVE_CONTRACTS');
+
+      const detail = await request(app.getHttpServer())
+        .get(`/api/properties/${property.body.id}`)
+        .set(auth)
+        .expect(200);
+      expect(detail.body.isActive).toBe(true);
+
+      // Rescindido el contrato, la baja vuelve a estar permitida.
+      await request(app.getHttpServer())
+        .post(`/api/contracts/${contract.body.id}/terminate`)
+        .set(auth)
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .delete(`/api/properties/${property.body.id}`)
+        .set(auth)
+        .expect(200);
     });
   });
 

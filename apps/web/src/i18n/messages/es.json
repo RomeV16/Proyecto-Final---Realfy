@@ -446,6 +446,7 @@
    "deleteConfirm": "¿Estás seguro de eliminar esta propiedad?",
    "deleted": "Propiedad eliminada",
    "deleteError": "No se pudo eliminar la propiedad",
+   "deleteHasActiveContracts": "La propiedad tiene contratos activos. Para darla de baja, primero finalizá o rescindí esos contratos.",
    "linkedPersons": "Personas vinculadas",
    "noLinkedPersons": "No hay personas vinculadas a esta propiedad",
    "factSheet": "Ficha técnica",
