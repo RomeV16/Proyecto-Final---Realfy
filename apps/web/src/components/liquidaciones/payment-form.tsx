@@ -54,7 +54,11 @@ export function PaymentForm({ liquidacionId, remainingBalance, onSuccess, onClos
       });
       onSuccess();
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : t('registerError'));
+      if (err instanceof ApiRequestError && err.errorCode === 'PAYMENT_EXCEEDS_BALANCE') {
+        setError(t('exceedsBalance', { balance: remainingBalance.toLocaleString('es-AR') }));
+      } else {
+        setError(err instanceof ApiRequestError ? err.message : t('registerError'));
+      }
     } finally {
       setSubmitting(false);
     }
