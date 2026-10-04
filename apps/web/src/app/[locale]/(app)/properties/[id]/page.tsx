@@ -616,6 +616,7 @@ export default function PropertyDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const canEdit = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
   const canDelete = ['Admin', 'Gerente'].includes(user?.role || '');
@@ -638,11 +639,16 @@ export default function PropertyDetailPage() {
   }, [loadProperty]);
 
   async function handleDelete() {
+    setDeleteError(null);
     try {
       await apiClient(`/properties/${propertyId}`, { method: 'DELETE' });
       router.push(listHref);
-    } catch {
-      // stay on page
+    } catch (err) {
+      setDeleteError(
+        err instanceof ApiRequestError && err.errorCode === 'PROPERTY_HAS_ACTIVE_CONTRACTS'
+          ? t('detail.deleteHasActiveContracts')
+          : t('detail.deleteError'),
+      );
     }
   }
 
@@ -713,9 +719,10 @@ export default function PropertyDetailPage() {
       {deleteConfirm && (
         <div className="flex flex-col items-start gap-3 rounded-[var(--radius-xl)] border border-[color-mix(in_oklab,var(--color-danger)_28%,var(--color-border))] bg-[color-mix(in_oklab,var(--color-danger)_10%,var(--color-surface))] p-4 sm:flex-row sm:items-center">
           <p className="min-w-0 flex-1 text-sm text-[color-mix(in_oklab,var(--color-danger)_78%,var(--color-text))]">
-            {t('detail.deleteConfirm')}
+            {deleteError ?? t('detail.deleteConfirm')}
           </p>
           <div className="flex shrink-0 flex-wrap gap-2">
+            {!deleteError && (
             <button
               onClick={handleDelete}
               className={cn(
@@ -725,8 +732,12 @@ export default function PropertyDetailPage() {
             >
               {tCommon('confirm')}
             </button>
+            )}
             <button
-              onClick={() => setDeleteConfirm(false)}
+              onClick={() => {
+                setDeleteConfirm(false);
+                setDeleteError(null);
+              }}
               className={cn(BUTTON_BASE, BUTTON_GHOST, 'bg-[var(--color-surface)]')}
             >
               {tCommon('cancel')}

@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   BadRequestException,
+  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -16,6 +17,7 @@ import {
   validateTransition,
   getValidTransitions,
   PropertyState,
+  ContractStatus,
 } from '@realfy/shared';
 
 /**
@@ -289,6 +291,18 @@ export class PropertiesService {
       throw new NotFoundException({
         error: 'PROPERTY_NOT_FOUND',
         message: 'Property not found',
+      });
+    }
+
+    const activeContracts = await this.prisma.client.contract.count({
+      where: { propertyId: id, status: ContractStatus.Activo },
+    });
+
+    if (activeContracts > 0) {
+      throw new ConflictException({
+        error: 'PROPERTY_HAS_ACTIVE_CONTRACTS',
+        message: 'Property has active contracts and cannot be deleted',
+        activeContracts,
       });
     }
 
