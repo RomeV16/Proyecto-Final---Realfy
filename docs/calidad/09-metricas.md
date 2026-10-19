@@ -9,16 +9,33 @@ SonarCloud). Las filas "después" se completan al cierre de cada día.
 | Métrica | Qué mide | Antes (`main` 2eb2fa7, 19 oct) | Después | Interpretación |
 |---|---|---|---|---|
 | Líneas de código del repositorio | Tamaño | 82.136 | | Referencia; no es objetivo subirlas ni bajarlas |
-| Bugs (repositorio) | Errores probables detectados estáticamente | 41, rating C | | Ninguno en `index-data`; los del repositorio quedan fuera de alcance salvo los que el gate bloquee como nuevos |
-| Vulnerabilidades (repositorio) | Problemas de seguridad | 42, rating E | | 40 de 42 están en `ci.yml`: acciones sin SHA y `npx` sin versión. Se corrigen el día 2 |
-| Code smells (repositorio) | Deuda de mantenibilidad | 818, rating A | | Rating A pese al número: la deuda estimada es baja respecto del tamaño |
-| Duplicación (repositorio) | Líneas duplicadas | 5,1 % | | Justo sobre el 5 % que el TP pone como tope; dentro del módulo la duplicación `preview`/`applyDueAdjustments` se elimina el día 5 |
+| Bugs (repositorio) | Errores probables detectados estáticamente | 41, rating C | Código del PR: 0 bugs, rating A (PR #76) | Ninguno en `index-data`; los del repositorio quedan fuera de alcance salvo los que el gate bloquee como nuevos |
+| Vulnerabilidades (repositorio) | Problemas de seguridad | 42, rating E | Código del PR: 0, rating A; las 40 de `ci.yml` desaparecen al mezclar | 40 de 42 están en `ci.yml`: acciones sin SHA y `npx` sin versión. Se corrigen el día 2 |
+| Code smells (repositorio) | Deuda de mantenibilidad | 818, rating A | Código del PR: 3 | Rating A pese al número: la deuda estimada es baja respecto del tamaño |
+| Duplicación (repositorio) | Líneas duplicadas | 5,1 % | Código del PR: 2,4 %; sobre código nuevo 0,0 % | Justo sobre el 5 % que el TP pone como tope; dentro del módulo la duplicación `preview`/`applyDueAdjustments` se elimina el día 5 |
 | Cobertura de líneas, API completa | Sentencias ejecutadas por las unitarias | 42,44 % (commit 98e34b7, informe de tesis) | 44,05 % (día 3, local) | Piso en CI: 38 % |
 | Cobertura de líneas, módulo `index-data` | Ídem, acotado | 44,89 % | 94,81 % (día 3), 96,47 % (día 5) | Meta 80 % |
 | Cobertura de ramas, módulo | Decisiones ejecutadas | 25,26 % | 86,31 % (día 3), 92,04 % (día 5) | Meta 70 %. Es la métrica que más dice sobre la lógica de CU-08 |
 | Cobertura de funciones, módulo | | 46,93 % | 95,65 % (día 3) | |
 | Pruebas unitarias del módulo | Cantidad de casos | 18 | 107 (día 5) + 18 del motor en el paquete compartido | |
 | Pruebas de integración del módulo | Cantidad de casos | 17 | 21 (día 5) + 5 de contrato real | |
+
+### SonarCloud sobre el PR #76 (análisis desde el pipeline, con cobertura)
+
+| Métrica | Valor | Condición del gate |
+|---|---|---|
+| Líneas analizadas del PR | 1.371 | — |
+| Cobertura sobre código nuevo | 97,3 % | ≥ 80 % ✔ |
+| Bugs nuevos | 0 (rating A) | rating A ✔ |
+| Vulnerabilidades nuevas | 0 (rating A) | rating A ✔ |
+| Duplicación sobre código nuevo | 0,0 % | ≤ 3 % ✔ |
+| Hotspots revisados | 100 % | 100 % ✔ |
+| **Quality gate** | **en verde** | |
+
+Las cifras del repositorio completo (41 bugs, 42 vulnerabilidades) son las
+de `main` y cambian recién al mezclar el PR; el análisis del PR muestra
+que el trabajo no agrega ninguna y que la corrección de `ci.yml` elimina
+las 40 que estaban ahí.
 
 ## Métrica de proceso
 
@@ -53,6 +70,7 @@ dependencia externa (R-07).
 | 39336742449 | 19 oct | regresión en rojo (27a5d92) | ~3 min | **rojo** | 8 casos nuevos fallan contra el código con DEF-02, 03, 05 y 06: defecto real |
 | 39337428907 | 19 oct | correcciones (b6e9eca) | ~2 min | **rojo** | `contract-closure-trigger.spec.ts` construye `ContractsService` por el inyector y no tenía el proveedor nuevo `IndexDataService`: doble de prueba faltante, no defecto de producto |
 | 39337763326 | 19 oct | doble + k6 (58de3d1) | 7 min | **rojo** en el paso de stress | 7 trabajos en verde; el stress corrió completo sin errores y el p95 (720 ms) superó el umbral de 500 ms en el runner compartido. Ver `10-stress.md` |
+| 39339533616 | 19 oct | mejoras medidas (bcf3f83) | 6 min | **verde** (8 trabajos) | Ejecución completa en verde: smoke, stress (p95 8,8 ms), contrato real y gate incluidos |
 
 ## Mejora medida antes y después
 

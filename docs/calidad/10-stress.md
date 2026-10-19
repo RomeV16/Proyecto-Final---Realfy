@@ -118,6 +118,25 @@ resultado:
    datos): hacía dos consultas por cada uno de los cinco tipos de índice,
    diez por llamada. Es la segunda mejora medida.
 
+### Después de las mejoras, en el pipeline
+
+Ejecución [39339533616](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/39339533616),
+commit `bcf3f83`, mismo runner y mismo escenario:
+
+| Métrica | Antes (39337763326) | Después (39339533616) | Umbral de referencia | Cumple |
+|---|---|---|---|---|
+| Peticiones | 8.199 | 26.304 (216,3 por segundo) | — | — |
+| Errores HTTP | 0 | 0 | < 1 % | Sí |
+| p95 global | 720,2 ms | 8,8 ms | < 500 ms | Sí |
+| p95 `GET /api/index-data` | 637,6 ms | 9,0 ms | < 500 ms | Sí |
+| p95 `GET /api/index-data/latest` | 826,8 ms | 8,6 ms | < 500 ms | Sí |
+| p99 / máximo | 960 ms / 1,29 s | 12,1 ms / 286,8 ms | — | — |
+
+En el runner compartido la mejora es de dos órdenes de magnitud: el
+ambiente lento amplificaba el costo de traer todas las filas y de hacer
+diez consultas por llamada. El umbral de 500 ms se cumple también ahí, de
+modo que `K6_P95=1000` queda como margen documentado, no como necesidad.
+
 ## Mejoras medidas
 
 | Mejora | Antes | Después | Cómo se mide |
