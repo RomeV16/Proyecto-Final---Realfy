@@ -193,3 +193,15 @@ propios —no que el ajeno esté al final de la página—, y que una operación
 un recurso de la otra inmobiliaria sea rechazada. Las dos verificaciones son
 necesarias: la primera detecta un filtro faltante en la lectura, la segunda uno
 faltante en la escritura, y un bug puede afectar solo a una de las dos.
+
+
+## Suites del proceso de calidad del módulo de índices
+
+Ver [`docs/calidad/`](./calidad/) para el detalle. Resumen de comandos:
+
+| Comando | Qué corre | Necesita |
+|---|---|---|
+| `pnpm --filter @realfy/api test:modulo` | Unitarias del módulo `index-data`, el contrato con BCRA e INDEC sobre respuestas grabadas, y cobertura con piso propio (80 % líneas, 70 % ramas) | Nada |
+| `pnpm --filter @realfy/api test:e2e:modulo` | Las pruebas de integración de `index-data` | PostgreSQL |
+| `pnpm --filter @realfy/api test:integracion-real` | Contrato contra el BCRA y el INDEC reales | Internet |
+| `pnpm --filter @realfy/api test:smoke -- --url=<api>` | Smoke sobre un despliegue (salud, registro, módulo de índices) | Una instancia desplegada |

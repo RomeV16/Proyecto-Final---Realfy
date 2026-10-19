@@ -183,6 +183,117 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+  integration-real:
+    name: External contract (BCRA / INDEC)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: unit
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @realfy/shared build
+
+      - name: Generate Prisma client
+        run: pnpm --filter @realfy/api exec prisma generate
+
+      # Pega al BCRA y al INDEC reales: verifica que el contrato que el módulo
+      # asume siga vigente (docs/calidad/07-integracion-externa.md). Reintenta
+      # tres veces por dentro para no confundir una caída transitoria (R-07)
+      # con un cambio de contrato.
+      - name: Contract tests against real BCRA and INDEC
+        run: pnpm --filter @realfy/api test:integracion-real
+
+  smoke-deploy:
+    name: Ephemeral deploy & smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [unit, migrations]
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: realfy
+          POSTGRES_PASSWORD: realfy
+          POSTGRES_DB: realfy_smoke
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U realfy"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Despliegue efímero: la misma imagen que usa Railway (Dockerfile.api),
+      # arrancada con sus migraciones contra una base vacía. Es el despliegue
+      # nuevo que el smoke verifica en cada ejecución.
+      - name: Build API image
+        run: docker build -f Dockerfile.api -t realfy-api:ci .
+
+      - name: Start API container
+        run: |
+          docker run -d --name realfy-api --network host \
+            -e NODE_ENV=production \
+            -e PORT=3001 \
+            -e DATABASE_URL=postgresql://realfy:realfy@localhost:5432/realfy_smoke \
+            -e JWT_SECRET=ci-smoke-jwt-secret-0123456789abcdef \
+            -e JWT_REFRESH_SECRET=ci-smoke-jwt-refresh-secret-0123456789 \
+            -e CORS_ORIGINS=http://localhost:3000 \
+            realfy-api:ci
+
+      - name: Wait for /api/health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3001/api/health | grep -q '"status":"ok"'; then
+              echo "API lista tras ${i} intentos"; exit 0
+            fi
+            sleep 2
+          done
+          echo "La API no respondió a tiempo"; docker logs realfy-api; exit 1
+
+      - name: Smoke test (CP-60)
+        run: node apps/api/test/smoke/smoke.mjs --url=http://localhost:3001 --json=smoke-result.json
+
+      - name: Smoke summary
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "## Smoke sobre despliegue efímero"
+            echo
+            node -e '
+              const r = require(process.argv[1]);
+              console.log(`**${r.passed} pasos ok, ${r.failed} fallidos** — ${r.url} — ${r.at}`);
+              console.log(); console.log("| Paso | Resultado | ms |"); console.log("|---|---|---|");
+              for (const s of r.steps) console.log(`| ${s.name} | ${s.ok ? "ok" : "FALLO: " + s.detail} | ${s.ms} |`);
+            ' "$PWD/smoke-result.json" 2>/dev/null || echo "sin resultado"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: API logs on failure
+        if: ${{ failure() }}
+        run: docker logs realfy-api
+
+      - name: Upload smoke result
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: smoke-result
+          path: smoke-result.json
+          retention-days: 14
+
   migrations:
     name: Migrations from scratch
     runs-on: ubuntu-latest

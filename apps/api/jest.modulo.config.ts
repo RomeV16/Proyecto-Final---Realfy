@@ -15,7 +15,11 @@ import base from './jest.config';
  */
 const config: Config = {
   ...base,
-  testRegex: ['src/modules/index-data/.*\\.spec\\.ts$'],
+  testRegex: [
+    'src/modules/index-data/.*\\.spec\\.ts$',
+    // Contrato con BCRA e INDEC sobre respuestas reales grabadas (CP-50).
+    'test/integration/.*\\.contract\\.spec\\.ts$',
+  ],
   collectCoverageFrom: ['src/modules/index-data/**/*.ts'],
   coverageDirectory: './coverage-modulo',
   coverageThreshold: {

@@ -54,9 +54,10 @@ estaba y sigue cubierto por las suites que ya existían.
 pnpm --filter @realfy/api test:modulo        # unitarias del módulo con cobertura
 pnpm --filter @realfy/api test:e2e:modulo    # integración del módulo (Postgres real)
 pnpm --filter @realfy/api test:integracion-real  # contra BCRA e INDEC reales
-pnpm --filter @realfy/api test:smoke -- --url=https://<api>   # smoke sobre un despliegue
-pnpm --filter @realfy/api test:stress        # k6: carga y esfuerzo sostenido
+pnpm --filter @realfy/api test:smoke -- --url=https://<api>   # smoke sobre un despliegue (CP-60)
+pnpm --filter @realfy/api test:stress        # k6: carga y esfuerzo sostenido (día 6)
 ```
 
-Los scripts se agregan en `apps/api/package.json` a medida que avanza el
-trabajo; cada uno está documentado en el archivo del eje correspondiente.
+Cada script está documentado en el archivo del eje correspondiente. En el
+pipeline corren, respectivamente, en los trabajos `unit`, `e2e-api`,
+`integration-real`, `smoke-deploy` y `stress`.

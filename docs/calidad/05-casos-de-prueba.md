@@ -137,14 +137,14 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 
 | ID | Fuente | Esperado | Prueba | Estado |
 |---|---|---|---|---|
-| CP-50 | BCRA ICL, respuesta grabada | parser produce filas `{period, value, source}` idénticas a la fixture | pendiente día 4 | pendiente |
-| CP-51 | BCRA v4.0 variable 40 y 31, entorno real | HTTP 200, `results[0].detalle[]` con `fecha` ISO y `valor` numérico, al menos una fila en 60 días | pendiente | pendiente |
-| CP-52 | INDEC series, entorno real | HTTP 200, `data[]` de pares `[fecha, valor]` | pendiente | pendiente |
+| CP-50 | BCRA ICL y UVA, INDEC JSON y CSV, respuestas grabadas el 19 oct 2026 | el parser produce las filas esperadas; la fixture del INDEC evidencia DEF-06 | `test/integration/external.contract.spec.ts` (5 casos) | verde |
+| CP-51 | BCRA v4.0 variable 40 y 31, entorno real | HTTP 200, `results[0].detalle[]` con `fecha` ISO y `valor` numérico en rango, ≥ 30 filas, la más reciente de menos de 10 días | `test/integration/external.real.spec.ts` | verde (19 oct) |
+| CP-52 | INDEC series y CSV, entorno real | HTTP 200, `data[]` de pares `[fecha, valor]`; con `sort=desc&representation_mode=percent_change` fracciones recientes; CSV con columna de variación | `test/integration/external.real.spec.ts` (3 casos) | verde (19 oct) |
 
 ## Smoke y carga
 
 | ID | Qué | Esperado | Estado |
 |---|---|---|---|
-| CP-60 | Despliegue nuevo: `/api/health`, registro, `GET /api/index-data` | 200 `ok`/`connected`, 201, 200 con paginación | pendiente |
+| CP-60 | Despliegue nuevo: salud, registro, listado, carga manual, último valor, 401 sin token | 6 pasos en verde (`test/smoke/smoke.mjs`) | verde en local (API compilada en modo producción); en el pipeline sobre la imagen Docker |
 | CP-70 | Stress: 50 VU, 2 min, `GET /api/index-data` | p95 < 500 ms, errores < 1 % | pendiente |
 | CP-71 | Esfuerzo sostenido: 10 VU, 10 min | p95 estable (crecimiento < 20 %), errores < 1 % | pendiente |

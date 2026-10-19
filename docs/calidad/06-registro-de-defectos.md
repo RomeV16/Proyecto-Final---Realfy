@@ -13,6 +13,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-03 | La modalidad CCP cae a "sin ajuste" en la previsualización y la aplicación automática | Media | RF-12 | CP-09 | pendiente | Detectado (L-05 del informe) |
 | DEF-04 | Tres DTOs de `class-validator` sin uso en el módulo | Baja | — | — | — | Corregido (día 3) |
 | DEF-05 | La suma de meses sobre fin de mes desplaza la fecha de ajuste | Media | RF-12 | CP-17 | pendiente | Confirmado |
+| DEF-06 | El IPC se obtiene como nivel y de los 24 meses más viejos, no como variación mensual reciente | Alta | RF-14, RF-12 | CP-52, CP-54 | pendiente | Detectado (prueba contra entorno real) |
 
 ---
 
@@ -69,3 +70,15 @@ el registro oficial; este archivo es la copia versionada.
 - **Confirmación (20 de octubre):** `addMonths(2026-01-31, 1)` devuelve `2026-03-03` y `addMonths(2024-02-29, 12)` devuelve `2025-03-01`. Además, como `setMonth` opera en hora local, una fecha guardada a medianoche UTC se procesa en el día anterior en Argentina (UTC-3): los casos CP-16 y CP-17 usan mediodía UTC para no depender de la zona horaria del equipo.
 - **Esperado:** la fecha se recorta al último día del mes destino (31 ene + 1 → 28 feb; 29 feb 2024 + 12 → 28 feb 2025) y el cálculo se hace en UTC.
 - **Corrección prevista:** `addMonths` en UTC con recorte al último día del mes; prueba de regresión con los cuatro casos de la tabla de fechas. La misma función existe en `ContractsService`, fuera del alcance, y se reporta como hallazgo.
+
+## DEF-06 — El IPC se obtiene como nivel y de los meses más viejos
+
+- **Requisito afectado:** RF-14 (obtención automática) y RF-12 (cálculo IPC).
+- **Caso que lo detecta:** CP-52 (contrato contra entorno real, 19 de octubre de 2026) y CP-54.
+- **Severidad:** alta. Si DEF-01 se corrigiera solo, el cálculo IPC usaría niveles como porcentajes y produciría alquileres absurdos.
+- **Pasos:** llamar a `https://apis.datos.gob.ar/series/api/series/?ids=148.3_INIVELNAL_DICI_M_26&format=json&limit=24` y mirar `data`.
+- **Esperado:** las últimas 24 variaciones mensuales del IPC, en porcentaje, para alimentar `calculateIPC`.
+- **Obtenido:** `[["2016-12-01", 100.0], ["2017-01-01", 101.5859], ... ["2018-11-01", 179.6388]]`: niveles, y los 24 primeros de la serie.
+- **Causa raíz:** `fetchIPC` no pide `sort=desc` ni `representation_mode=percent_change`, y guarda `valor` sin convertir. El respaldo CSV lee la columna de nivel. La fixture de la prueba unitaria original (`7045.47`) reproducía el malentendido.
+- **Corrección prevista:** pedir `sort=desc&representation_mode=percent_change`, multiplicar por 100 al guardar, y en el CSV leer la columna `ipc_ng_nacional_tasa_variacion_mensual`. Documentar en `07-integracion-externa.md`.
+- **Prueba de regresión:** CP-50 con las fixtures reales (el parser debe producir variaciones en porcentaje, ej. `2.113772`), CP-52 contra el entorno real.
