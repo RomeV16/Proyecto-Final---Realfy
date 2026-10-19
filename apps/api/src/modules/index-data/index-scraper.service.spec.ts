@@ -242,13 +242,14 @@ describe('IndexScraperService — fallos y límites', () => {
   });
 
   it('CP-31: si la API del INDEC no trae datos, usa el CSV de respaldo y descarta filas inválidas', async () => {
-    const header = 'indice_tiempo,ipc_ng_nacional,ipc_ng_gba';
+    // Mismas columnas que el CSV real: la 2 es el nivel y la 9 la variación mensual como fracción.
+    const header = 'indice_tiempo,ipc_ng_nacional,c2,c3,c4,c5,c6,c7,ipc_ng_nacional_tasa_variacion_mensual';
     const valid = Array.from({ length: 26 }, (_, i) => {
       const month = String((i % 12) + 1).padStart(2, '0');
       const year = 2024 + Math.floor(i / 12);
-      return `${year}-${month}-01,${(6000 + i * 10).toFixed(2)},1`;
+      return `${year}-${month}-01,${(6000 + i * 10).toFixed(2)},0,0,0,0,0,0,${(0.01 + i * 0.001).toFixed(6)}`;
     });
-    const csv = [header, '2026-01-01,abc,1', ',', 'solo-una-columna', ...valid].join('\n');
+    const csv = [header, '2026-01-01,abc,0,0,0,0,0,0,abc', ',', 'solo-una-columna', ...valid].join('\n');
 
     mockFetch
       .mockResolvedValueOnce(makeJsonResponse({ data: [] })) // primario vacío
@@ -257,7 +258,8 @@ describe('IndexScraperService — fallos y límites', () => {
     const rows = await service.fetchIPC();
 
     expect(rows).toHaveLength(24); // se conservan los últimos 24 meses
-    expect(rows[0]).toEqual({ period: '2024-03', value: 6020, source: 'indec-csv-fallback' });
+    // fila 3 (i = 2): fracción 0.012 → 1.2 %
+    expect(rows[0]).toEqual({ period: '2024-03', value: 1.2, source: 'indec-csv-fallback' });
     expect(rows[23].period).toBe('2026-02');
     // Una respuesta vacía no es un error: se pasa al respaldo sin advertencia.
     expect(Logger.prototype.error).not.toHaveBeenCalled();

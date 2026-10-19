@@ -73,20 +73,26 @@ describe('Contrato BCRA / INDEC con respuestas reales grabadas (CP-50)', () => {
     expect(rows.every((r) => ISO_DAY.test(r.period) && r.value > 1000)).toBe(true);
   });
 
-  it('IPC (API de series, pedido actual): 24 filas mensuales parseadas como vienen', async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse(fixture('indec-series-limit24-2026-10-19.json')));
+  it('IPC (API de series): pide variación mensual descendente y la guarda en porcentaje', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse(fixture('indec-series-pct-desc-2026-10-19.json')));
 
     const rows = await service.fetchIPC();
 
+    const url = new URL(mockFetch.mock.calls[0][0]);
+    expect(url.searchParams.get('sort')).toBe('desc');
+    expect(url.searchParams.get('representation_mode')).toBe('percent_change');
+
     expect(rows).toHaveLength(24);
-    expect(rows.every((r) => ISO_MONTH.test(r.period) && r.source === 'indec-datos-gob-ar')).toBe(true);
-    // Lo que la fixture real muestra y motiva DEF-06: la serie llega como
-    // nivel base dic-2016 = 100 y desde el principio de la serie.
-    expect(rows[0]).toEqual({ period: '2016-12', value: 100, source: 'indec-datos-gob-ar' });
-    expect(rows[23].period).toBe('2018-11');
+    // 0.021137724267861868 (fracción) → 2.113772 % con seis decimales
+    expect(rows[0]).toEqual({ period: '2026-07', value: 2.113772, source: 'indec-datos-gob-ar' });
+    expect(rows[23].period).toBe('2024-08');
+    for (const row of rows) {
+      expect(row.period).toMatch(ISO_MONTH);
+      expect(Math.abs(row.value)).toBeLessThan(30);
+    }
   });
 
-  it('IPC (respaldo CSV): toma las últimas 24 filas válidas', async () => {
+  it('IPC (respaldo CSV): toma la columna de variación mensual, en porcentaje, de las últimas 24 filas', async () => {
     mockFetch
       .mockResolvedValueOnce(jsonResponse('{"data": []}'))
       .mockResolvedValueOnce(textResponse(fixture('indec-ipc-2026-10-19.csv')));
@@ -94,8 +100,15 @@ describe('Contrato BCRA / INDEC con respuestas reales grabadas (CP-50)', () => {
     const rows = await service.fetchIPC();
 
     expect(rows).toHaveLength(24);
-    expect(rows[23].period).toBe('2026-09');
-    expect(rows.every((r) => ISO_MONTH.test(r.period) && r.source === 'indec-csv-fallback')).toBe(true);
+    expect(rows[23]).toEqual({ period: '2026-09', value: 1.933610, source: 'indec-csv-fallback' });
+    expect(rows.every((r) => ISO_MONTH.test(r.period) && Math.abs(r.value) < 30)).toBe(true);
+  });
+
+  it('IPC (fixture del pedido viejo, documenta DEF-06): la serie sin parámetros llega como nivel desde 2016', () => {
+    const data: [string, number][] = JSON.parse(fixture('indec-series-limit24-2026-10-19.json')).data;
+
+    expect(data[0]).toEqual(['2016-12-01', 100]);
+    expect(data[23][0]).toBe('2018-11-01');
   });
 
   it('el CSV real tiene la columna de variación mensual que el motor necesita', () => {

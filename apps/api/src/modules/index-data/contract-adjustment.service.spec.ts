@@ -206,6 +206,25 @@ describe('ContractAdjustmentService', () => {
       expect(result.projectedRent.toFixed(2)).toBe('50000.00');
     });
 
+    it('CP-09 (D6, D7): CCP usa CVS y CER y aplica el menor entre 0,9·CVS y CER por mes', async () => {
+      mockFindFirstContract.mockResolvedValueOnce(
+        makeContract({ adjustmentType: AdjustmentType.CCP, rentAmount: '100000.00', customAdjustmentPct: null }),
+      );
+      mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
+      mockFindManyIndex.mockImplementation(async ({ where }: any) => {
+        if (where.indexType === IndexType.CVS) return rows('2.000000', '1.000000');
+        if (where.indexType === IndexType.CER) return rows('1.500000', '1.500000');
+        return [];
+      });
+
+      const result = await service.preview('contract-1');
+
+      // mes 1: min(1,8; 1,5) = 1,5 %; mes 2: min(0,9; 1,5) = 0,9 % → 100000 × 1,015 × 1,009
+      expect(result.projectedRent.toFixed(2)).toBe('102413.50');
+      expect(result.indexType).toBe(IndexType.CVS);
+      mockFindManyIndex.mockReset();
+    });
+
     it('CP-10 (D9): porcentaje fijo sin porcentaje declarado no ajusta', async () => {
       mockFindFirstContract.mockResolvedValueOnce(makeContract({ customAdjustmentPct: null }));
       mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
@@ -316,6 +335,19 @@ describe('ContractAdjustmentService', () => {
       expect(mockTxContractUpdate.mock.calls[0][0].data.rentAmount).toBe('55000');
     });
 
+    it('CP-14 (D1): vencido IPC 2 % y 3 % informa el delta realmente aplicado (RF-13)', async () => {
+      mockFindManyDueSchedules.mockResolvedValueOnce([
+        makeDue({ adjustmentType: AdjustmentType.IPC, rentAmount: '100000.00', customAdjustmentPct: null }),
+      ]);
+      mockTxIndexFindMany.mockResolvedValueOnce(rows('2.000000', '3.000000'));
+
+      const result = await service.applyDueAdjustments();
+
+      expect(mockTxContractUpdate.mock.calls[0][0].data.rentAmount).toBe('105060');
+      expect(mockTxAuditCreate.mock.calls[0][0].data.changes.delta).toBe('5060');
+      expect(Number(result[0].deltaAmount)).toBe(5060);
+    });
+
     it('CP-15: si una transacción falla, registra el error y sigue con el resto', async () => {
       mockFindManyDueSchedules.mockResolvedValueOnce([
         makeDue({ id: 'contract-A' }, { id: 'schedule-A' }),
@@ -355,6 +387,9 @@ describe('ContractAdjustmentService', () => {
     it.each([
       ['2025-01-15', AdjustmentPeriod.Mensual, '2025-02-15'],
       ['2025-12-01', AdjustmentPeriod.Mensual, '2026-01-01'],
+      ['2026-01-31', AdjustmentPeriod.Mensual, '2026-02-28'],
+      ['2025-11-30', AdjustmentPeriod.Trimestral, '2026-02-28'],
+      ['2024-02-29', AdjustmentPeriod.Anual, '2025-02-28'],
     ])('CP-17: desde %s con %s la próxima fecha es %s', async (from, period, expected) => {
       mockFindManyDueSchedules.mockResolvedValueOnce([
         makeDue({ adjustmentPeriod: period }, { nextAdjustmentDate: new Date(`${from}T12:00:00.000Z`) }),
