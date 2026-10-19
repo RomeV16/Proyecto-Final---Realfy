@@ -11,8 +11,8 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-01 | Los índices obtenidos automáticamente no son visibles para ninguna inmobiliaria | Alta | RF-14 | CP-53, CP-54 | pendiente | Detectado |
 | DEF-02 | La aplicación automática informa delta 0 para contratos IPC e ICL | Media | RF-12, RF-13 | CP-14 | pendiente | Detectado |
 | DEF-03 | La modalidad CCP cae a "sin ajuste" en la previsualización y la aplicación automática | Media | RF-12 | CP-09 | pendiente | Detectado (L-05 del informe) |
-| DEF-04 | Tres DTOs de `class-validator` sin uso en el módulo | Baja | — | — | pendiente | Detectado |
-| DEF-05 | La suma de meses sobre fin de mes desplaza la fecha de ajuste | Por confirmar | RF-12 | CP-17 | pendiente | Sospechado |
+| DEF-04 | Tres DTOs de `class-validator` sin uso en el módulo | Baja | — | — | — | Corregido (día 3) |
+| DEF-05 | La suma de meses sobre fin de mes desplaza la fecha de ajuste | Media | RF-12 | CP-17 | pendiente | Confirmado |
 
 ---
 
@@ -60,10 +60,12 @@ el registro oficial; este archivo es la copia versionada.
 
 - `dto/create-index-data.dto.ts`, `dto/create-index-data-bulk.dto.ts` y `dto/index-data-filter.dto.ts` no se importan desde ningún archivo. El controlador recibe `Record<string, any>` y el servicio valida con los esquemas Zod del paquete compartido.
 - **Severidad:** baja. Código muerto que confunde (dos fuentes de verdad para la validación) y baja la cobertura sin aportar.
-- **Corrección prevista:** eliminarlos. SonarCloud debe reflejar la baja de líneas sin cobertura.
+- **Corrección:** eliminados el 20 de octubre (día 3) en la rama `tp-calidad`. No hay prueba de regresión posible para código muerto; la verificación es que la compilación y las suites siguen en verde sin ellos.
 
 ## DEF-05 — Suma de meses sobre fin de mes (sospechado)
 
 - `addMonths` usa `setMonth(getMonth() + n)`. En JavaScript, 31 de enero + 1 mes produce 3 de marzo (o 2 en bisiesto) porque febrero no tiene día 31.
 - **Impacto:** un contrato con ajuste mensual cuya fecha cae el 31 vería desplazarse la fecha del siguiente ajuste.
-- **Estado:** sospechado; se confirma con CP-17 el día 3. La misma función existe en `ContractsService`, fuera del alcance, y se reporta como hallazgo sin corregir.
+- **Confirmación (20 de octubre):** `addMonths(2026-01-31, 1)` devuelve `2026-03-03` y `addMonths(2024-02-29, 12)` devuelve `2025-03-01`. Además, como `setMonth` opera en hora local, una fecha guardada a medianoche UTC se procesa en el día anterior en Argentina (UTC-3): los casos CP-16 y CP-17 usan mediodía UTC para no depender de la zona horaria del equipo.
+- **Esperado:** la fecha se recorta al último día del mes destino (31 ene + 1 → 28 feb; 29 feb 2024 + 12 → 28 feb 2025) y el cálculo se hace en UTC.
+- **Corrección prevista:** `addMonths` en UTC con recorte al último día del mes; prueba de regresión con los cuatro casos de la tabla de fechas. La misma función existe en `ContractsService`, fuera del alcance, y se reporta como hallazgo.

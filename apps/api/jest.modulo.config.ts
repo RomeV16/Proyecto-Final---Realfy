@@ -7,8 +7,11 @@ import base from './jest.config';
  * y aplica su propio piso, independiente del piso global de jest.config.ts.
  *
  * Piso, no meta: se sube cuando la cobertura real ya subió.
- * Medición al fijarlo (commit 2eb2fa7): 44.89 líneas / 25.26 ramas /
- * 46.93 funciones / 45.93 sentencias, con 18 pruebas.
+ * Línea base (commit 2eb2fa7): 44.89 líneas / 25.26 ramas / 46.93 funciones /
+ * 45.93 sentencias, con 18 pruebas. Piso inicial: 40 / 22 / 40 / 40.
+ * Medición al subirlo (día 3 del plan de calidad): 94.81 líneas / 86.31 ramas /
+ * 95.65 funciones / 94.25 sentencias, con 91 pruebas. Piso actual: 80 / 70 / 80 / 80,
+ * que es la meta de nivel 3 del TP y queda por debajo de lo medido.
  */
 const config: Config = {
   ...base,
@@ -17,10 +20,10 @@ const config: Config = {
   coverageDirectory: './coverage-modulo',
   coverageThreshold: {
     global: {
-      lines: 40,
-      functions: 40,
-      branches: 22,
-      statements: 40,
+      lines: 80,
+      functions: 80,
+      branches: 70,
+      statements: 80,
     },
   },
 };

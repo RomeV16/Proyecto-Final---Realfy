@@ -13,11 +13,11 @@ SonarCloud). Las filas "después" se completan al cierre de cada día.
 | Vulnerabilidades (repositorio) | Problemas de seguridad | 42, rating E | | 40 de 42 están en `ci.yml`: acciones sin SHA y `npx` sin versión. Se corrigen el día 2 |
 | Code smells (repositorio) | Deuda de mantenibilidad | 818, rating A | | Rating A pese al número: la deuda estimada es baja respecto del tamaño |
 | Duplicación (repositorio) | Líneas duplicadas | 5,1 % | | Justo sobre el 5 % que el TP pone como tope; dentro del módulo la duplicación `preview`/`applyDueAdjustments` se elimina el día 5 |
-| Cobertura de líneas, API completa | Sentencias ejecutadas por las unitarias | 42,44 % (commit 98e34b7, informe de tesis) | | Piso en CI: 38 % |
-| Cobertura de líneas, módulo `index-data` | Ídem, acotado | 44,89 % | | Meta 80 % |
-| Cobertura de ramas, módulo | Decisiones ejecutadas | 25,26 % | | Meta 70 %. Es la métrica que más dice sobre la lógica de CU-08 |
-| Cobertura de funciones, módulo | | 46,93 % | | |
-| Pruebas unitarias del módulo | Cantidad de casos | 18 | | |
+| Cobertura de líneas, API completa | Sentencias ejecutadas por las unitarias | 42,44 % (commit 98e34b7, informe de tesis) | 44,05 % (día 3, local) | Piso en CI: 38 % |
+| Cobertura de líneas, módulo `index-data` | Ídem, acotado | 44,89 % | 94,81 % (día 3) | Meta 80 % |
+| Cobertura de ramas, módulo | Decisiones ejecutadas | 25,26 % | 86,31 % (día 3) | Meta 70 %. Es la métrica que más dice sobre la lógica de CU-08 |
+| Cobertura de funciones, módulo | | 46,93 % | 95,65 % (día 3) | |
+| Pruebas unitarias del módulo | Cantidad de casos | 18 | 91 + 18 del motor en el paquete compartido (día 3) | |
 | Pruebas de integración del módulo | Cantidad de casos | 17 | | |
 
 ## Métrica de proceso
@@ -56,10 +56,22 @@ la tabla de decisión de CU-08 está realmente ejercitada.
 | Momento | Líneas | Ramas | Funciones | Pruebas | Instrumento |
 |---|---|---|---|---|---|
 | Antes (2eb2fa7) | 44,89 % | 25,26 % | 46,93 % | 18 | `pnpm --filter @realfy/api test:modulo` |
-| Después | | | | | mismo comando, misma máquina, y la ejecución del pipeline |
+| Después (día 3, 20 oct) | 94,81 % | 86,31 % | 95,65 % | 91 | mismo comando, misma máquina; piso del módulo subido a 80 / 70 |
 
 Segunda mejora medida, de desempeño: el p95 de `GET /api/index-data` antes
 y después de la optimización elegida el día 6 (`10-stress.md`).
+
+## Hallazgo sobre la suite existente
+
+Al correr la suite unitaria completa de la API en una máquina con zona
+horaria America/Argentina/Buenos_Aires fallan 12 casos de tres archivos
+fuera del alcance (`reports.service.spec.ts`, `arca-client.factory.spec.ts`,
+`arca-ta.manager.spec.ts`). En el pipeline (UTC) pasan. El de reportes pasa
+localmente con `TZ=UTC`, lo que confirma que depende de la zona horaria; los
+dos de ARCA fallan por otra causa local no investigada. Se reporta como
+hallazgo: las pruebas unitarias deberían fijar `process.env.TZ` para ser
+reproducibles en cualquier máquina. Las pruebas nuevas del módulo usan
+fechas a mediodía UTC por esa razón (ver DEF-05).
 
 ## Análisis estático
 
