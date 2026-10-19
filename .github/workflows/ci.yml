@@ -320,9 +320,13 @@ jobs:
 
       - uses: grafana/setup-k6-action@43b9fc21641a76002687994433dd586f56e791b1 # v1.2.2
 
+      # K6_P95: el umbral de referencia es 500 ms (docs/calidad/10-stress.md);
+      # en el runner compartido, con API, base y k6 en la misma máquina, se
+      # admite el doble y se publica el valor medido.
       - name: "Stress (CP-70: 50 VU, 2 min)"
         env:
           K6_URL: http://localhost:3001
+          K6_P95: "1000"
         run: k6 run --summary-export=k6-stress.json apps/api/test/load/stress.js
 
       # El esfuerzo sostenido corre al entrar a main: 5 minutos por ejecución
@@ -333,6 +337,7 @@ jobs:
         env:
           K6_URL: http://localhost:3001
           K6_SOAK: 5m
+          K6_P95: "1000"
         run: k6 run --summary-export=k6-soak.json apps/api/test/load/soak.js
 
       - name: Load summary

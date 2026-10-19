@@ -28,7 +28,7 @@ export function setupTenant(label) {
     { headers: JSON_HEADERS },
   );
   if (register.status !== 201) {
-    fail(`registro falló: HTTP ${register.status} ${register.body.slice(0, 200)}`);
+    fail(`registro falló: HTTP ${register.status} ${String(register.body).slice(0, 200)}`);
   }
   const token = register.json('tokens.accessToken');
   const auth = { headers: { ...JSON_HEADERS, Authorization: `Bearer ${token}` } };
@@ -83,10 +83,18 @@ export function browseIndices(token) {
   check(latest, { 'latest 200': (r) => r.status === 200 });
 }
 
+/**
+ * p95 máximo en milisegundos. 500 es el criterio de salida del plan para el
+ * ambiente de referencia; el pipeline corre API, base y k6 en un runner
+ * compartido de dos vCPU y pasa K6_P95=1000 (riesgo R-09), y publica el
+ * valor medido para compararlo igual con el de referencia.
+ */
+const P95_MS = Number(__ENV.K6_P95 || 500);
+
 export const THRESHOLDS = {
   http_req_failed: ['rate<0.01'],
-  http_req_duration: ['p(95)<500'],
-  'http_req_duration{name:GET /api/index-data}': ['p(95)<500'],
-  'http_req_duration{name:GET /api/index-data/latest}': ['p(95)<500'],
+  http_req_duration: [`p(95)<${P95_MS}`],
+  'http_req_duration{name:GET /api/index-data}': [`p(95)<${P95_MS}`],
+  'http_req_duration{name:GET /api/index-data/latest}': [`p(95)<${P95_MS}`],
   checks: ['rate>0.99'],
 };

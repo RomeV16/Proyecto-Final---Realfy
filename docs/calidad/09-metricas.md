@@ -51,6 +51,8 @@ dependencia externa (R-07).
 | 39333479276 | 19 oct | día 3 (344010d) | ~12 min | **verde** (8 trabajos) | — |
 | 39336402384 | 19 oct | día 4 (d1e2ff0) | — | cancelada por el push siguiente; `integration-real` y `sonar` en verde antes de cancelarse | — |
 | 39336742449 | 19 oct | regresión en rojo (27a5d92) | ~3 min | **rojo** | 8 casos nuevos fallan contra el código con DEF-02, 03, 05 y 06: defecto real |
+| 39337428907 | 19 oct | correcciones (b6e9eca) | ~2 min | **rojo** | `contract-closure-trigger.spec.ts` construye `ContractsService` por el inyector y no tenía el proveedor nuevo `IndexDataService`: doble de prueba faltante, no defecto de producto |
+| 39337763326 | 19 oct | doble + k6 (58de3d1) | 7 min | **rojo** en el paso de stress | 7 trabajos en verde; el stress corrió completo sin errores y el p95 (720 ms) superó el umbral de 500 ms en el runner compartido. Ver `10-stress.md` |
 
 ## Mejora medida antes y después
 
@@ -64,8 +66,10 @@ la tabla de decisión de CU-08 está realmente ejercitada.
 | Después (día 3, 20 oct) | 94,81 % | 86,31 % | 95,65 % | 91 | mismo comando, misma máquina; piso del módulo subido a 80 / 70 |
 | Después (día 5, 20 oct) | 96,47 % | 92,04 % | 98,03 % | 107 | ídem, con las correcciones |
 
-Segunda mejora medida, de desempeño: el p95 de `GET /api/index-data` antes
-y después de la optimización elegida el día 6 (`10-stress.md`).
+Segunda mejora medida, de desempeño (`10-stress.md`): bajo 50 usuarios
+virtuales, p95 del listado 104,6 → 17,4 ms y del último valor 92,8 → 13,3 ms,
+tras resolver la unión propia + sistema en SQL y reducir las consultas de
+`latest` de diez a dos.
 
 ## Hallazgo sobre la suite existente
 
