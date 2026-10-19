@@ -74,8 +74,8 @@ Alquiler base 100.000,00 en todos los casos.
 | D11 | IPC | `[2.0, 3.0]` | 10,00 (ignorado) | 105.060,00 | 1,0506 | CP-05 |
 
 La regla D1 es la que el informe de tesis señala como la más fácil de
-equivocar: 2 % y 3 % encadenados dan 5,06 %, no 5 %. D6 y D7 hoy no se
-pueden cumplir en `ContractAdjustmentService` porque CCP cae al valor por
+equivocar: 2 % y 3 % encadenados dan 5,06 %, no 5 %. D6 y D7 no se cumplían
+en `ContractAdjustmentService` hasta el día 5 porque CCP caía al valor por
 defecto (DEF-03).
 
 ## Casos unitarios
@@ -97,7 +97,7 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | CP-06 | RF-12 | decisión D2 | IPC sin datos | factor 1 | ver spec del módulo | verde |
 | CP-07 | RF-12 | decisión D4 | ICL sin datos | factor 1 | ver spec del módulo | verde |
 | CP-08 | RF-12 | límite | ICL un valor | factor 1 | ver spec del módulo | verde |
-| CP-09 | RF-12 | decisión D6, D7 | CCP con CVS y CER | min(0,9·CVS, CER) | pendiente (hoy DEF-03) | pendiente |
+| CP-09 | RF-12 | decisión D6, D7 | CCP con CVS y CER | min(0,9·CVS, CER) | `contract-adjustment.service.spec.ts::CP-09` | verde (DEF-03 corregido) |
 | CP-10 | RF-12 | decisión D9, D10 | fijo sin pct; personalizado 7,5 | factor 1; 1,075 | ver spec del módulo | verde |
 | CP-11 | RF-12 | límite | alquiler 0 | factor 1 sin división por cero | ver spec del módulo | verde |
 | CP-12 | RF-12 | equivalencia | sin cronogramas vencidos | `[]` y ninguna escritura | ver spec del módulo | verde |
@@ -130,8 +130,8 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | ID | Requisito | Entrada | Esperado | Prueba | Estado |
 |---|---|---|---|---|---|
 | CP-40 a CP-49 | RF-14, RF-12 | CRUD, `latest`, `refresh`, RBAC, aislamiento, previsualización | ver suite | `test/e2e/index-data.e2e-spec.ts` (17 casos) | verde |
-| CP-53 | RF-14 | `POST /refresh` con scraper que devuelve filas, luego `GET /latest` | las filas obtenidas aparecen para la inmobiliaria | pendiente (hoy DEF-01) | pendiente |
-| CP-54 | RF-12, RF-14 | contrato IPC sin carga manual, `refresh`, `preview-adjustment` | factor calculado con los índices obtenidos | pendiente (hoy DEF-01) | pendiente |
+| CP-53 | RF-14 | `POST /refresh` con red sustituida, luego `GET /index-data` y `GET /latest`; carga manual del mismo período; otra inmobiliaria | las filas obtenidas aparecen; la manual gana; el aislamiento se mantiene | `test/e2e/index-data-scraper.e2e-spec.ts` (3 casos) | verde (DEF-01 corregido) |
+| CP-54 | RF-12, RF-14 | contrato IPC sin carga manual, `refresh`, `preview-adjustment` | factor 1,050600 y alquiler 105.060,00 con los índices obtenidos | `test/e2e/index-data-scraper.e2e-spec.ts` | verde (DEF-01 y DEF-06 corregidos) |
 
 ## Casos de integración externa
 

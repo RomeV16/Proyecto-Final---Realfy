@@ -12,15 +12,25 @@ export interface IndexDataRow {
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
-/** Sentinel tenant ID for globally shared (non-tenant) index data. */
-const SYSTEM_TENANT_ID = '__system__';
+import { SYSTEM_TENANT_ID } from './index-data.service';
 
 const USER_AGENT = 'Mozilla/5.0 (compatible; IndexScraper/1.0)';
 const FETCH_TIMEOUT_MS = 10_000;
 
 const BCRA_BASE = 'https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias';
+// La serie 148.3_INIVELNAL_DICI_M_26 es el nivel del IPC (base dic-2016 = 100).
+// El motor de ajustes espera la variación mensual en porcentaje (DEF-06), así
+// que se pide representation_mode=percent_change (fracción) en orden
+// descendente para obtener los últimos 24 meses, no los primeros.
 const INDEC_SERIES_URL =
-  'https://apis.datos.gob.ar/series/api/series/?ids=148.3_INIVELNAL_DICI_M_26&format=json&limit=24';
+  'https://apis.datos.gob.ar/series/api/series/?ids=148.3_INIVELNAL_DICI_M_26&format=json&limit=24&sort=desc&representation_mode=percent_change';
+/** Columna del CSV de respaldo con la variación mensual como fracción. */
+const INDEC_CSV_VARIATION_COLUMN = 8;
+
+/** Fracción (0.0211) → porcentaje con seis decimales (2.113772). */
+function fractionToPercent(fraction: number): number {
+  return Math.round(fraction * 100 * 1_000_000) / 1_000_000;
+}
 const INDEC_CSV_FALLBACK_URL =
   'https://infra.datos.gob.ar/catalog/sspm/dataset/145/distribution/145.3/download/indice-precios-al-consumidor-nivel-general-base-diciembre-2016-mensual.csv';
 
@@ -166,11 +176,13 @@ export class IndexScraperService {
       const data: Array<[string, number]> = json?.data ?? [];
 
       if (data.length > 0) {
-        return data.map(([dateStr, val]) => ({
-          period: dateStr.substring(0, 7),   // YYYY-MM
-          value: val,
-          source: 'indec-datos-gob-ar',
-        }));
+        return data
+          .filter(([, val]) => typeof val === 'number' && Number.isFinite(val))
+          .map(([dateStr, val]) => ({
+            period: dateStr.substring(0, 7),   // YYYY-MM
+            value: fractionToPercent(val),
+            source: 'indec-datos-gob-ar',
+          }));
       }
     } catch (err: unknown) {
       this.logger.warn(
@@ -187,17 +199,18 @@ export class IndexScraperService {
 
       const text = await res.text();
       const rows = text.trim().split('\n');
-      // Skip header row; columns: indice_tiempo,ipc_ng_nacional,...
+      // Skip header row; columns: indice_tiempo,ipc_ng_nacional,...,
+      // ipc_ng_nacional_tasa_variacion_mensual (índice 8, fracción).
       const results: IndexDataRow[] = [];
       for (const row of rows.slice(1)) {
         const cols = row.split(',');
-        if (cols.length < 2) continue;
+        if (cols.length <= INDEC_CSV_VARIATION_COLUMN) continue;
         const dateStr = cols[0].trim();
-        const val = parseFloat(cols[1].trim());
+        const val = parseFloat(cols[INDEC_CSV_VARIATION_COLUMN].trim());
         if (!dateStr || isNaN(val)) continue;
         results.push({
           period: dateStr.substring(0, 7),   // YYYY-MM
-          value: val,
+          value: fractionToPercent(val),
           source: 'indec-csv-fallback',
         });
       }

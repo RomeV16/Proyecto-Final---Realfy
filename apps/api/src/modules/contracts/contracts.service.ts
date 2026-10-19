@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { IndexDataService } from '../index-data/index-data.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
   CreateContractSchema,
@@ -74,6 +75,7 @@ export class ContractsService {
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
     private readonly closureSummaries: ContractClosureService,
+    private readonly indexData: IndexDataService,
   ) {}
 
   // ─── List ───────────────────────────────────────────
@@ -817,15 +819,7 @@ export class ContractsService {
     startDate: Date,
     endDate: Date,
   ) {
-    return this.prisma.client.indexData.findMany({
-      where: {
-        indexType: indexType as any,
-        period: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      orderBy: { period: 'asc' },
-    });
+    // Une los valores propios con los obtenidos automáticamente (DEF-01).
+    return this.indexData.getForPeriod(indexType, startDate, endDate, { tenantId });
   }
 }

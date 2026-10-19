@@ -12,18 +12,19 @@ import {
 
 const mockFindFirstContract = jest.fn();
 const mockFindFirstSchedule = jest.fn();
+/** IndexDataService.getForPeriod: une índices propios y de sistema (DEF-01). */
 const mockFindManyIndex = jest.fn();
+const mockIndexData = { getForPeriod: mockFindManyIndex } as any;
 
 // baseClient (barrido de cronogramas vencidos) y cliente de transacción
 const mockFindManyDueSchedules = jest.fn();
-const mockTxIndexFindMany = jest.fn();
 const mockTxContractUpdate = jest.fn();
 const mockTxScheduleUpdate = jest.fn();
 const mockTxAuditCreate = jest.fn();
 const mockTransaction = jest.fn();
 
 const tx = {
-  indexData: { findMany: mockTxIndexFindMany },
+  indexData: { findMany: jest.fn() },
   contract: { update: mockTxContractUpdate },
   adjustmentSchedule: { update: mockTxScheduleUpdate },
   auditLog: { create: mockTxAuditCreate },
@@ -33,7 +34,6 @@ const mockPrisma = {
   client: {
     contract: { findFirst: mockFindFirstContract },
     adjustmentSchedule: { findFirst: mockFindFirstSchedule },
-    indexData: { findMany: mockFindManyIndex },
   },
   baseClient: {
     adjustmentSchedule: { findMany: mockFindManyDueSchedules },
@@ -81,12 +81,13 @@ describe('ContractAdjustmentService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new ContractAdjustmentService(mockPrisma);
+    service = new ContractAdjustmentService(mockPrisma, mockIndexData);
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     // La transacción ejecuta el callback con el cliente simulado.
     mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<void>) => fn(tx));
-    mockTxIndexFindMany.mockResolvedValue([]);
+    mockFindManyIndex.mockReset();
+    mockFindManyIndex.mockResolvedValue([]);
   });
 
   // ── preview ───────────────────────────────────────────────────────────────
@@ -163,13 +164,12 @@ describe('ContractAdjustmentService', () => {
 
       await service.preview('contract-1');
 
-      expect(mockFindManyIndex).toHaveBeenCalledWith({
-        where: {
-          indexType: IndexType.IPC,
-          period: { gte: contract.startDate, lte: new Date('2025-04-01T12:00:00.000Z') },
-        },
-        orderBy: { period: 'asc' },
-      });
+      expect(mockFindManyIndex).toHaveBeenCalledWith(
+        IndexType.IPC,
+        contract.startDate,
+        new Date('2025-04-01T12:00:00.000Z'),
+        { tenantId: 'tenant-1' },
+      );
     });
 
     it('CP-06 (D2): IPC sin valores deja el alquiler igual', async () => {
@@ -211,9 +211,9 @@ describe('ContractAdjustmentService', () => {
         makeContract({ adjustmentType: AdjustmentType.CCP, rentAmount: '100000.00', customAdjustmentPct: null }),
       );
       mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
-      mockFindManyIndex.mockImplementation(async ({ where }: any) => {
-        if (where.indexType === IndexType.CVS) return rows('2.000000', '1.000000');
-        if (where.indexType === IndexType.CER) return rows('1.500000', '1.500000');
+      mockFindManyIndex.mockImplementation(async (type: IndexType) => {
+        if (type === IndexType.CVS) return rows('2.000000', '1.000000');
+        if (type === IndexType.CER) return rows('1.500000', '1.500000');
         return [];
       });
 
@@ -222,7 +222,6 @@ describe('ContractAdjustmentService', () => {
       // mes 1: min(1,8; 1,5) = 1,5 %; mes 2: min(0,9; 1,5) = 0,9 % → 100000 × 1,015 × 1,009
       expect(result.projectedRent.toFixed(2)).toBe('102413.50');
       expect(result.indexType).toBe(IndexType.CVS);
-      mockFindManyIndex.mockReset();
     });
 
     it('CP-10 (D9): porcentaje fijo sin porcentaje declarado no ajusta', async () => {
@@ -325,13 +324,16 @@ describe('ContractAdjustmentService', () => {
       mockFindManyDueSchedules.mockResolvedValueOnce([
         makeDue({ adjustmentType: AdjustmentType.ICL, tenantId: 'tenant-7' }),
       ]);
-      mockTxIndexFindMany.mockResolvedValueOnce(rows('100', '110'));
+      mockFindManyIndex.mockResolvedValueOnce(rows('100', '110'));
 
       await service.applyDueAdjustments();
 
-      const where = mockTxIndexFindMany.mock.calls[0][0].where;
-      expect(where.tenantId).toBe('tenant-7');
-      expect(where.indexType).toBe(IndexType.ICL);
+      expect(mockFindManyIndex).toHaveBeenCalledWith(
+        IndexType.ICL,
+        expect.any(Date),
+        expect.any(Date),
+        { tenantId: 'tenant-7', client: tx },
+      );
       expect(mockTxContractUpdate.mock.calls[0][0].data.rentAmount).toBe('55000');
     });
 
@@ -339,7 +341,7 @@ describe('ContractAdjustmentService', () => {
       mockFindManyDueSchedules.mockResolvedValueOnce([
         makeDue({ adjustmentType: AdjustmentType.IPC, rentAmount: '100000.00', customAdjustmentPct: null }),
       ]);
-      mockTxIndexFindMany.mockResolvedValueOnce(rows('2.000000', '3.000000'));
+      mockFindManyIndex.mockResolvedValueOnce(rows('2.000000', '3.000000'));
 
       const result = await service.applyDueAdjustments();
 

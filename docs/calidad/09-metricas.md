@@ -14,11 +14,11 @@ SonarCloud). Las filas "después" se completan al cierre de cada día.
 | Code smells (repositorio) | Deuda de mantenibilidad | 818, rating A | | Rating A pese al número: la deuda estimada es baja respecto del tamaño |
 | Duplicación (repositorio) | Líneas duplicadas | 5,1 % | | Justo sobre el 5 % que el TP pone como tope; dentro del módulo la duplicación `preview`/`applyDueAdjustments` se elimina el día 5 |
 | Cobertura de líneas, API completa | Sentencias ejecutadas por las unitarias | 42,44 % (commit 98e34b7, informe de tesis) | 44,05 % (día 3, local) | Piso en CI: 38 % |
-| Cobertura de líneas, módulo `index-data` | Ídem, acotado | 44,89 % | 94,81 % (día 3) | Meta 80 % |
-| Cobertura de ramas, módulo | Decisiones ejecutadas | 25,26 % | 86,31 % (día 3) | Meta 70 %. Es la métrica que más dice sobre la lógica de CU-08 |
+| Cobertura de líneas, módulo `index-data` | Ídem, acotado | 44,89 % | 94,81 % (día 3), 96,47 % (día 5) | Meta 80 % |
+| Cobertura de ramas, módulo | Decisiones ejecutadas | 25,26 % | 86,31 % (día 3), 92,04 % (día 5) | Meta 70 %. Es la métrica que más dice sobre la lógica de CU-08 |
 | Cobertura de funciones, módulo | | 46,93 % | 95,65 % (día 3) | |
-| Pruebas unitarias del módulo | Cantidad de casos | 18 | 91 + 18 del motor en el paquete compartido (día 3) | |
-| Pruebas de integración del módulo | Cantidad de casos | 17 | | |
+| Pruebas unitarias del módulo | Cantidad de casos | 18 | 107 (día 5) + 18 del motor en el paquete compartido | |
+| Pruebas de integración del módulo | Cantidad de casos | 17 | 21 (día 5) + 5 de contrato real | |
 
 ## Métrica de proceso
 
@@ -30,11 +30,12 @@ describe cómo trabaja el equipo, no el producto.
 
 | Defecto | Detectado | Prueba en rojo | Corrección en verde | Días |
 |---|---|---|---|---|
-| DEF-01 | 19 oct | | | |
-| DEF-02 | 19 oct | | | |
-| DEF-03 | 19 oct | | | |
-| DEF-04 | 19 oct | | | |
-| DEF-05 | 19 oct (sospechado) | | | |
+| DEF-01 | 19 oct | 20 oct (run 39336742449) | 20 oct | 1 |
+| DEF-02 | 19 oct | 20 oct | 20 oct | 1 |
+| DEF-03 | 19 oct | 20 oct | 20 oct | 1 |
+| DEF-04 | 19 oct | — (código muerto) | 20 oct | 1 |
+| DEF-05 | 19 oct (sospechado), 20 oct (confirmado) | 20 oct | 20 oct | 1 |
+| DEF-06 | 19 oct (prueba contra entorno real) | 20 oct | 20 oct | 1 |
 
 ## Métrica de proyecto
 
@@ -45,7 +46,11 @@ dependencia externa (R-07).
 
 | Ejecución | Fecha | Disparador | Duración | Resultado | Causa si rojo |
 |---|---|---|---|---|---|
-| 39332025846 | 19 oct | PR #76, día 1 | | | |
+| 39332025846 | 19 oct | PR #76, día 1 (2ad0d7b) | — | cancelada por el push siguiente | — |
+| 39332624038 | 19 oct | día 2 (5abf962) | — | cancelada por el push siguiente | — |
+| 39333479276 | 19 oct | día 3 (344010d) | ~12 min | **verde** (8 trabajos) | — |
+| 39336402384 | 19 oct | día 4 (d1e2ff0) | — | cancelada por el push siguiente; `integration-real` y `sonar` en verde antes de cancelarse | — |
+| 39336742449 | 19 oct | regresión en rojo (27a5d92) | ~3 min | **rojo** | 8 casos nuevos fallan contra el código con DEF-02, 03, 05 y 06: defecto real |
 
 ## Mejora medida antes y después
 
@@ -57,6 +62,7 @@ la tabla de decisión de CU-08 está realmente ejercitada.
 |---|---|---|---|---|---|
 | Antes (2eb2fa7) | 44,89 % | 25,26 % | 46,93 % | 18 | `pnpm --filter @realfy/api test:modulo` |
 | Después (día 3, 20 oct) | 94,81 % | 86,31 % | 95,65 % | 91 | mismo comando, misma máquina; piso del módulo subido a 80 / 70 |
+| Después (día 5, 20 oct) | 96,47 % | 92,04 % | 98,03 % | 107 | ídem, con las correcciones |
 
 Segunda mejora medida, de desempeño: el p95 de `GET /api/index-data` antes
 y después de la optimización elegida el día 6 (`10-stress.md`).

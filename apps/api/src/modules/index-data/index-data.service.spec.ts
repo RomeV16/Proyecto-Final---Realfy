@@ -1,26 +1,41 @@
 import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
-import { IndexDataService } from './index-data.service';
+import { IndexDataService, mergeVisibleRows } from './index-data.service';
+import { TenantIsolationError } from '../../common/tenant/tenant-isolation.error';
 import { IndexType } from '@realfy/shared';
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
 const mockFindMany = jest.fn();
-const mockCount = jest.fn();
 const mockUpsert = jest.fn();
 const mockFindFirst = jest.fn();
 const mockDelete = jest.fn();
 
+// Escrituras y borrado por el cliente aislado; lecturas por el cliente base
+// con filtro explícito propio + sistema (DEF-01).
 const mockPrisma = {
   client: {
     indexData: {
-      findMany: mockFindMany,
-      count: mockCount,
       upsert: mockUpsert,
       findFirst: mockFindFirst,
       delete: mockDelete,
     },
   },
+  baseClient: {
+    indexData: {
+      findMany: mockFindMany,
+    },
+  },
 } as any;
+
+const visible = { tenantId: { in: ['tenant-1', '__system__'] } };
+const row = (overrides: Partial<any> = {}) => ({
+  id: 'r',
+  tenantId: 'tenant-1',
+  indexType: IndexType.IPC,
+  period: new Date('2025-01-01T00:00:00.000Z'),
+  value: '1',
+  ...overrides,
+});
 
 const mockTenantContext = { getTenantId: jest.fn().mockReturnValue('tenant-1') } as any;
 
@@ -39,26 +54,48 @@ describe('IndexDataService', () => {
     mockTenantContext.getTenantId.mockReturnValue('tenant-1');
     service = new IndexDataService(mockPrisma, mockTenantContext);
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    mockFindMany.mockReset();
     mockFindMany.mockResolvedValue([]);
-    mockCount.mockResolvedValue(0);
     mockUpsert.mockImplementation(async (args: any) => ({ id: 'row-1', ...args.create }));
   });
 
   // ── findAll ───────────────────────────────────────────────────────────────
 
   describe('findAll', () => {
-    it('CP-18: sin parámetros pagina con page 1 y limit 50', async () => {
-      mockCount.mockResolvedValueOnce(120);
+    it('CP-18: sin parámetros pagina con page 1 y limit 50 sobre las filas visibles', async () => {
+      mockFindMany.mockResolvedValueOnce(
+        Array.from({ length: 120 }, (_, i) => row({ id: `r${i}`, period: new Date(Date.UTC(2015, 0, 1 + i)) })),
+      );
 
       const result = await service.findAll({});
 
       expect(mockFindMany).toHaveBeenCalledWith({
-        where: {},
+        where: visible,
         orderBy: { period: 'desc' },
-        skip: 0,
-        take: 50,
       });
       expect(result).toMatchObject({ page: 1, limit: 50, total: 120, totalPages: 3 });
+      expect(result.items).toHaveLength(50);
+      expect(result.items[0].id).toBe('r0');
+    });
+
+    it('CP-18: sin inmobiliaria en contexto falla cerrado (ADR-0006)', async () => {
+      mockTenantContext.getTenantId.mockReturnValue(undefined);
+
+      await expect(service.findAll({})).rejects.toThrow(TenantIsolationError);
+      expect(mockFindMany).not.toHaveBeenCalled();
+    });
+
+    it('CP-53 (unitario): una fila propia y una de sistema del mismo período cuentan una sola vez, gana la propia', async () => {
+      mockFindMany.mockResolvedValueOnce([
+        row({ id: 'sys', tenantId: '__system__', value: '2.0', source: 'indec' }),
+        row({ id: 'own', value: '2.5', source: 'manual' }),
+        row({ id: 'sys2', tenantId: '__system__', period: new Date('2025-02-01T00:00:00.000Z') }),
+      ]);
+
+      const result = await service.findAll({});
+
+      expect(result.total).toBe(2);
+      expect(result.items.map((r: any) => r.id)).toEqual(['own', 'sys2']);
     });
 
     it('CP-19: traduce los filtros de tipo y rango de período al where', async () => {
@@ -72,15 +109,13 @@ describe('IndexDataService', () => {
 
       const args = mockFindMany.mock.calls[0][0];
       expect(args.where).toEqual({
+        ...visible,
         indexType: IndexType.ICL,
         period: {
           gte: new Date('2025-01-01T00:00:00.000Z'),
           lte: new Date('2025-03-31T00:00:00.000Z'),
         },
       });
-      expect(args.skip).toBe(10);
-      expect(args.take).toBe(10);
-      expect(mockCount).toHaveBeenCalledWith({ where: args.where });
     });
 
     it('CP-19: con solo periodFrom no agrega cota superior', async () => {
@@ -102,14 +137,20 @@ describe('IndexDataService', () => {
     });
 
     it.each([
-      ['page 1', { page: 1 }, { skip: 0, take: 50 }],
-      ['limit 1', { limit: 1 }, { skip: 0, take: 1 }],
-      ['limit 100', { limit: 100 }, { skip: 0, take: 100 }],
-      ['valores como texto', { page: '3', limit: '20' }, { skip: 40, take: 20 }],
+      ['page 1', { page: 1 }, { page: 1, limit: 50, first: 'r0' }],
+      ['limit 1', { limit: 1 }, { page: 1, limit: 1, first: 'r0' }],
+      ['limit 100', { limit: 100 }, { page: 1, limit: 100, first: 'r0' }],
+      ['valores como texto', { page: '3', limit: '20' }, { page: 3, limit: 20, first: 'r40' }],
     ])('CP-20 (límite válido): %s se acepta', async (_label, query, expected) => {
-      await service.findAll(query);
+      mockFindMany.mockResolvedValueOnce(
+        Array.from({ length: 120 }, (_, i) => row({ id: `r${i}`, period: new Date(Date.UTC(2015, 0, 1 + i)) })),
+      );
 
-      expect(mockFindMany.mock.calls[0][0]).toMatchObject(expected);
+      const result = await service.findAll(query);
+
+      expect(result.page).toBe(expected.page);
+      expect(result.limit).toBe(expected.limit);
+      expect(result.items[0].id).toBe(expected.first);
     });
 
     it('CP-21: un período que no es fecha responde VALIDATION_ERROR con detalle', async () => {
@@ -269,25 +310,43 @@ describe('IndexDataService', () => {
   it('CP-27: getForPeriod consulta el rango inclusivo ordenado ascendente', async () => {
     const start = new Date('2025-01-01T00:00:00.000Z');
     const end = new Date('2025-03-01T00:00:00.000Z');
-    mockFindMany.mockResolvedValueOnce([{ value: '1' }]);
+    mockFindMany.mockResolvedValueOnce([row({ value: '1' })]);
 
     const rows = await service.getForPeriod(IndexType.IPC, start, end);
 
     expect(mockFindMany).toHaveBeenCalledWith({
-      where: { indexType: IndexType.IPC, period: { gte: start, lte: end } },
+      where: { ...visible, indexType: IndexType.IPC, period: { gte: start, lte: end } },
       orderBy: { period: 'asc' },
     });
-    expect(rows).toEqual([{ value: '1' }]);
+    expect(rows.map((r) => r.value)).toEqual(['1']);
+  });
+
+  it('CP-27: getForPeriod acepta inmobiliaria y cliente explícitos para barridos y transacciones', async () => {
+    const txFindMany = jest.fn().mockResolvedValue([]);
+    mockTenantContext.getTenantId.mockReturnValue(undefined);
+
+    await service.getForPeriod(IndexType.ICL, new Date(0), new Date(1), {
+      tenantId: 'tenant-9',
+      client: { indexData: { findMany: txFindMany } },
+    });
+
+    expect(txFindMany.mock.calls[0][0].where.tenantId).toEqual({ in: ['tenant-9', '__system__'] });
+    expect(mockFindMany).not.toHaveBeenCalled();
+  });
+
+  it('mergeVisibleRows: la fila propia reemplaza a la de sistema aunque llegue después', () => {
+    const sys = row({ id: 'sys', tenantId: '__system__' });
+    const own = row({ id: 'own' });
+
+    expect(mergeVisibleRows([sys, own], 'tenant-1').map((r) => r.id)).toEqual(['own']);
+    expect(mergeVisibleRows([own, sys], 'tenant-1').map((r) => r.id)).toEqual(['own']);
   });
 
   // ── findLatest ────────────────────────────────────────────────────────────
 
   describe('findLatest', () => {
     it('CP-28: incluye solo los tipos que tienen al menos una fila', async () => {
-      const latestIpc = { id: 'ipc-1', indexType: IndexType.IPC, value: '4.2' };
-      mockFindFirst.mockImplementation(async ({ where }: any) =>
-        where.indexType === IndexType.IPC ? latestIpc : null,
-      );
+      const latestIpc = row({ id: 'ipc-1', value: '4.2' });
       mockFindMany.mockImplementation(async ({ where }: any) =>
         where.indexType === IndexType.IPC ? [latestIpc] : [],
       );
@@ -296,23 +355,38 @@ describe('IndexDataService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({ indexType: IndexType.IPC, latest: latestIpc, history: [latestIpc] });
-      expect(mockFindFirst).toHaveBeenCalledTimes(Object.values(IndexType).length);
+      // dos consultas (último valor e historial) por cada tipo de índice
+      expect(mockFindMany).toHaveBeenCalledTimes(Object.values(IndexType).length * 2);
+    });
+
+    it('CP-28 / CP-53: para el último período gana la carga propia sobre la de sistema', async () => {
+      const sys = row({ id: 'sys', tenantId: '__system__', value: '2.0' });
+      const own = row({ id: 'own', value: '2.5' });
+      mockFindMany.mockImplementation(async ({ where, take }: any) =>
+        where.indexType === IndexType.IPC ? (take === 2 ? [sys, own] : [own, sys]) : [],
+      );
+
+      const result = await service.findLatest();
+
+      expect(result[0].latest.id).toBe('own');
+      expect(result[0].history.map((r: any) => r.id)).toEqual(['own']);
     });
 
     it('CP-28: el historial se acota a los últimos 30 días', async () => {
-      mockFindFirst.mockResolvedValue({ id: 'x' });
+      mockFindMany.mockResolvedValue([row()]);
       const before = new Date();
 
       await service.findLatest();
 
-      const gte: Date = mockFindMany.mock.calls[0][0].where.period.gte;
+      const historyCall = mockFindMany.mock.calls.find((c) => c[0].where.period);
+      const gte: Date = historyCall![0].where.period.gte;
       const days = (before.getTime() - gte.getTime()) / 86_400_000;
       expect(days).toBeGreaterThanOrEqual(29.9);
       expect(days).toBeLessThanOrEqual(30.1);
     });
 
     it('CP-28: sin filas en ningún tipo devuelve lista vacía', async () => {
-      mockFindFirst.mockResolvedValue(null);
+      mockFindMany.mockResolvedValue([]);
 
       await expect(service.findLatest()).resolves.toEqual([]);
     });

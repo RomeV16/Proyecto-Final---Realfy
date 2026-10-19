@@ -102,12 +102,15 @@ describe('IndexScraperService', () => {
 
   describe('fetchIPC', () => {
     it('returns parsed rows from datos.gob.ar primary endpoint (happy path)', async () => {
+      // La API devuelve la variación mensual como fracción (DEF-06); el
+      // módulo la guarda en porcentaje. La fixture original traía niveles
+      // (7045.47) y reproducía el malentendido.
       mockFetch.mockResolvedValueOnce(
         makeJsonResponse({
           data: [
-            ['2026-02-01', 7045.47],
-            ['2026-01-01', 6843.27],
-            ['2025-12-01', 6652.16],
+            ['2026-02-01', 0.0295],
+            ['2026-01-01', 0.0287],
+            ['2025-12-01', 0.0271],
           ],
         }),
       );
@@ -117,9 +120,12 @@ describe('IndexScraperService', () => {
       expect(rows).toHaveLength(3);
       expect(rows[0]).toMatchObject({
         period: '2026-02',
-        value: 7045.47,
+        value: 2.95,
         source: 'indec-datos-gob-ar',
       });
+      const url = new URL(mockFetch.mock.calls[0][0]);
+      expect(url.searchParams.get('representation_mode')).toBe('percent_change');
+      expect(url.searchParams.get('sort')).toBe('desc');
     });
   });
 
