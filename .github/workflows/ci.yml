@@ -22,6 +22,7 @@ env:
 #   actions/download-artifact v8.0.2  9000827ccba6bdab643e8b6fd33ac0654aef8333
 #   SonarSource/sonarqube-scan-action         v8.3.0  d209202bc7d53ff1cc128f7f907dac145c9d6ae9
 #   SonarSource/sonarqube-quality-gate-action v1.2.1  7a5fffe8e523c40e0c740b6bc2712ab503e52efa
+#   grafana/setup-k6-action    v1.2.2  43b9fc21641a76002687994433dd586f56e791b1
 
 jobs:
   lint:
@@ -215,9 +216,9 @@ jobs:
         run: pnpm --filter @realfy/api test:integracion-real
 
   smoke-deploy:
-    name: Ephemeral deploy & smoke
+    name: Ephemeral deploy, smoke & stress
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     needs: [unit, migrations]
 
     services:
@@ -265,7 +266,7 @@ jobs:
           done
           echo "La API no respondió a tiempo"; docker logs realfy-api; exit 1
 
-      - name: Smoke test (CP-60)
+      - name: "Smoke test (CP-60)"
         run: node apps/api/test/smoke/smoke.mjs --url=http://localhost:3001 --json=smoke-result.json
 
       - name: Smoke summary
@@ -292,6 +293,77 @@ jobs:
         with:
           name: smoke-result
           path: smoke-result.json
+          retention-days: 14
+
+      # ── Stress y esfuerzo sostenido (docs/calidad/10-stress.md) ──────────
+      # El límite de 600 peticiones por minuto por IP (RNF-03b) es una decisión
+      # de producto y no se puede apagar en producción: para medir el módulo y
+      # no el limitador, el mismo contenedor se reinicia fuera de ese modo con
+      # el límite apagado, sobre la misma base ya migrada.
+      - name: Restart API without rate limit for load tests
+        run: |
+          docker rm -f realfy-api
+          docker run -d --name realfy-api --network host \
+            -e NODE_ENV=staging \
+            -e RATE_LIMIT_DISABLED=1 \
+            -e PORT=3001 \
+            -e DATABASE_URL=postgresql://realfy:realfy@localhost:5432/realfy_smoke \
+            -e JWT_SECRET=ci-smoke-jwt-secret-0123456789abcdef \
+            -e JWT_REFRESH_SECRET=ci-smoke-jwt-refresh-secret-0123456789 \
+            -e CORS_ORIGINS=http://localhost:3000 \
+            realfy-api:ci
+          for i in $(seq 1 60); do
+            curl -fsS http://localhost:3001/api/health | grep -q '"status":"ok"' && exit 0
+            sleep 2
+          done
+          docker logs realfy-api; exit 1
+
+      - uses: grafana/setup-k6-action@43b9fc21641a76002687994433dd586f56e791b1 # v1.2.2
+
+      - name: "Stress (CP-70: 50 VU, 2 min)"
+        env:
+          K6_URL: http://localhost:3001
+        run: k6 run --summary-export=k6-stress.json apps/api/test/load/stress.js
+
+      # El esfuerzo sostenido corre al entrar a main: 5 minutos por ejecución
+      # son demasiado para cada PR y la medición de referencia (10 minutos)
+      # está en docs/calidad/10-stress.md.
+      - name: "Soak (CP-71: 10 VU, 5 min)"
+        if: ${{ github.event_name == 'push' }}
+        env:
+          K6_URL: http://localhost:3001
+          K6_SOAK: 5m
+        run: k6 run --summary-export=k6-soak.json apps/api/test/load/soak.js
+
+      - name: Load summary
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "## Carga sobre el despliegue efímero"
+            echo
+            echo "| Prueba | p95 total | p95 listado | p95 último valor | Errores | Iteraciones |"
+            echo "|---|---|---|---|---|---|"
+            for pair in "Stress 50 VU:k6-stress.json" "Soak 10 VU:k6-soak.json"; do
+              name="${pair%%:*}"; file="${pair#*:}"
+              [ -f "$file" ] || continue
+              node -e '
+                const m = require(process.argv[1]).metrics;
+                const p = k => m[k] ? m[k]["p(95)"].toFixed(1) + " ms" : "—";
+                const err = m.http_req_failed ? (m.http_req_failed.value * 100).toFixed(2) + " %" : "—";
+                console.log(`| ${process.argv[2]} | ${p("http_req_duration")} | ${p("http_req_duration{name:GET /api/index-data}")} | ${p("http_req_duration{name:GET /api/index-data/latest}")} | ${err} | ${m.iterations ? m.iterations.count : "—"} |`);
+              ' "$PWD/$file" "$name"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload load results
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: load-results
+          path: |
+            k6-stress.json
+            k6-soak.json
+          if-no-files-found: ignore
           retention-days: 14
 
   migrations:
