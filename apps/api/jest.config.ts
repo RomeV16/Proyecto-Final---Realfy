@@ -9,6 +9,8 @@ const config: Config = {
   },
   collectCoverageFrom: ['src/**/*.ts'],
   coverageDirectory: './coverage',
+  // json-summary alimenta el resumen de cobertura que el pipeline publica en cada ejecución.
+  coverageReporters: ['text', 'lcov', 'json-summary'],
   /**
    * Piso de cobertura, no objetivo. Está unos puntos por debajo de lo que las
    * suites cubren hoy, así que la integración continua se pone en rojo cuando la
