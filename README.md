@@ -172,6 +172,7 @@ El detalle de cada suite y de los trabajos de integración continua está en
 - [docs/demo.md](./docs/demo.md) — Guion de la demostración
 - [docs/adr/](./docs/adr/) — Architecture Decision Records
 - [docs/tesis/](./docs/tesis/) — Documentación de tesis: alcance, arquitectura, modelo de datos e hitos
+- [docs/calidad/](./docs/calidad/) — Proceso de calidad sobre el módulo de índices y ajustes: plan de pruebas, matriz ISO 25010, riesgos, defectos, integración externa, stress
 
 ---
 

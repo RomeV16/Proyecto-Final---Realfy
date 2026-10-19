@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { IndexDataService } from './index-data.service';
 import {
   AdjustmentType,
   AdjustmentPeriod,
@@ -25,11 +26,30 @@ function periodToMonths(period: AdjustmentPeriod): number {
   }
 }
 
+/**
+ * Suma meses en UTC recortando al último día del mes destino: 31 de enero
+ * más un mes es 28 (o 29) de febrero, no 3 de marzo (DEF-05). Se opera en
+ * UTC porque las fechas de cronograma se guardan a medianoche UTC y la
+ * aritmética en hora local las corría un día en UTC-3.
+ */
 function addMonths(date: Date, months: number): Date {
-  const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
-  return result;
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth() + months;
+  const lastDayOfTarget = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  return new Date(
+    Date.UTC(
+      year,
+      month,
+      Math.min(date.getUTCDate(), lastDayOfTarget),
+      date.getUTCHours(),
+      date.getUTCMinutes(),
+      date.getUTCSeconds(),
+      date.getUTCMilliseconds(),
+    ),
+  );
 }
+
+const toDecimal = (row: { value: unknown }) => new Decimal(String(row.value));
 
 // ─── Preview Return Type ──────────────────────────────────────────────────────
 
@@ -42,13 +62,92 @@ export interface AdjustmentPreview {
   projectedDelta: Decimal;
 }
 
+interface LoadedParams {
+  params: AdjustmentParams;
+  /** Índice principal usado, para informar en la previsualización. */
+  indexType: IndexType;
+}
+
+type IndexClient = { indexData: { findMany: (args: any) => Promise<any[]> } };
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 @Injectable()
 export class ContractAdjustmentService {
   private readonly logger = new Logger(ContractAdjustmentService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly indexData: IndexDataService,
+  ) {}
+
+  /**
+   * Arma los parámetros del motor según la modalidad del contrato, leyendo
+   * los índices del período [inicio del contrato, fecha de ajuste] a través
+   * de IndexDataService, que une los valores propios con los de sistema.
+   * Es el único lugar donde se traduce modalidad → parámetros: lo comparten
+   * la previsualización y la aplicación automática (DEF-02, DEF-03).
+   */
+  private async loadParams(
+    contract: any,
+    until: Date,
+    options: { tenantId: string; client?: IndexClient },
+  ): Promise<LoadedParams> {
+    const baseRent = new Decimal(contract.rentAmount.toString());
+    const adjustmentType = contract.adjustmentType as AdjustmentType;
+    const load = (type: IndexType) =>
+      this.indexData.getForPeriod(type, contract.startDate, until, options);
+
+    switch (adjustmentType) {
+      case AdjustmentType.IPC: {
+        const rows = await load(IndexType.IPC);
+        return {
+          indexType: IndexType.IPC,
+          params: { type: AdjustmentType.IPC, monthlyValues: rows.map(toDecimal), baseRent },
+        };
+      }
+      case AdjustmentType.ICL: {
+        const rows = await load(IndexType.ICL);
+        return {
+          indexType: IndexType.ICL,
+          params: {
+            type: AdjustmentType.ICL,
+            startValue: rows.length > 0 ? toDecimal(rows[0]) : new Decimal(1),
+            endValue: rows.length > 0 ? toDecimal(rows[rows.length - 1]) : new Decimal(1),
+            baseRent,
+          },
+        };
+      }
+      case AdjustmentType.CCP: {
+        const [cvs, cer] = await Promise.all([load(IndexType.CVS), load(IndexType.CER)]);
+        const length = Math.min(cvs.length, cer.length);
+        return {
+          indexType: IndexType.CVS,
+          params: {
+            type: AdjustmentType.CCP,
+            cvsPcts: cvs.slice(0, length).map(toDecimal),
+            cerPcts: cer.slice(0, length).map(toDecimal),
+            baseRent,
+          },
+        };
+      }
+      case AdjustmentType.FixedPercent:
+      case AdjustmentType.Custom:
+        return {
+          indexType: IndexType.IPC,
+          params: {
+            type: adjustmentType,
+            percentage: new Decimal(contract.customAdjustmentPct?.toString() ?? '0'),
+            baseRent,
+          },
+        };
+      default:
+        return {
+          indexType: IndexType.IPC,
+          params: { type: AdjustmentType.FixedPercent, percentage: new Decimal(0), baseRent },
+        };
+    }
+  }
 
   // ─── Preview ───────────────────────────────────────────────────────────────
 
@@ -76,75 +175,17 @@ export class ContractAdjustmentService {
 
     const adjustmentDate = schedule?.nextAdjustmentDate ?? new Date();
     const currentRent = new Decimal(contract.rentAmount.toString());
-    const adjustmentType = contract.adjustmentType as AdjustmentType;
 
-    // Map AdjustmentType → IndexType for index data lookup
-    const indexTypeMap: Partial<Record<AdjustmentType, IndexType>> = {
-      [AdjustmentType.IPC]: IndexType.IPC,
-      [AdjustmentType.ICL]: IndexType.ICL,
-    };
-    const resolvedIndexType = indexTypeMap[adjustmentType] ?? IndexType.IPC;
-
-    // Load index data spanning from contract start to next adjustment date
-    const indexRows = await this.prisma.client.indexData.findMany({
-      where: {
-        indexType: resolvedIndexType as any,
-        period: {
-          gte: contract.startDate,
-          lte: adjustmentDate,
-        },
-      },
-      orderBy: { period: 'asc' },
+    const { params, indexType } = await this.loadParams(contract, adjustmentDate, {
+      tenantId: contract.tenantId,
     });
-
-    // Build AdjustmentParams and call the shared engine
-    let params: AdjustmentParams;
-    switch (adjustmentType) {
-      case AdjustmentType.IPC:
-        params = {
-          type: AdjustmentType.IPC,
-          monthlyValues: indexRows.map((r: any) => new Decimal(r.value.toString())),
-          baseRent: currentRent,
-        };
-        break;
-
-      case AdjustmentType.ICL:
-        params = {
-          type: AdjustmentType.ICL,
-          startValue: indexRows.length > 0
-            ? new Decimal(indexRows[0].value.toString())
-            : new Decimal(1),
-          endValue: indexRows.length > 0
-            ? new Decimal(indexRows[indexRows.length - 1].value.toString())
-            : new Decimal(1),
-          baseRent: currentRent,
-        };
-        break;
-
-      case AdjustmentType.FixedPercent:
-      case AdjustmentType.Custom:
-        params = {
-          type: adjustmentType,
-          percentage: new Decimal(contract.customAdjustmentPct?.toString() ?? '0'),
-          baseRent: currentRent,
-        };
-        break;
-
-      default:
-        // CCP — fall back to zero-adjustment preview if data unavailable
-        params = {
-          type: AdjustmentType.FixedPercent,
-          percentage: new Decimal(0),
-          baseRent: currentRent,
-        };
-    }
 
     const result = calculateAdjustment(params);
     const factor = result.newRent.div(currentRent.isZero() ? new Decimal(1) : currentRent);
 
     return {
       period: adjustmentDate.toISOString().slice(0, 7), // YYYY-MM
-      indexType: resolvedIndexType,
+      indexType,
       factor,
       currentRent,
       projectedRent: result.newRent,
@@ -192,70 +233,21 @@ export class ContractAdjustmentService {
       const appliedPeriod = schedule.nextAdjustmentDate.toISOString().slice(0, 7);
 
       try {
+        // El delta se calcula una sola vez, dentro de la transacción, y es el
+        // que se informa (DEF-02).
+        let delta = new Decimal(0);
+
         await this.prisma.baseClient.$transaction(async (tx: any) => {
-          // ── 1. Build adjustment params ────────────────────────────────────
           const currentRent = new Decimal(contract.rentAmount.toString());
-          const adjustmentType = contract.adjustmentType as AdjustmentType;
-
-          const indexTypeMap: Partial<Record<AdjustmentType, IndexType>> = {
-            [AdjustmentType.IPC]: IndexType.IPC,
-            [AdjustmentType.ICL]: IndexType.ICL,
-          };
-          const resolvedIndexType = indexTypeMap[adjustmentType] ?? IndexType.IPC;
-
-          const indexRows = await tx.indexData.findMany({
-            where: {
-              tenantId: contract.tenantId,
-              indexType: resolvedIndexType as any,
-              period: {
-                gte: contract.startDate,
-                lte: schedule.nextAdjustmentDate,
-              },
-            },
-            orderBy: { period: 'asc' },
+          const { params } = await this.loadParams(contract, schedule.nextAdjustmentDate, {
+            tenantId: contract.tenantId,
+            client: tx,
           });
 
-          let params: AdjustmentParams;
-          switch (adjustmentType) {
-            case AdjustmentType.IPC:
-              params = {
-                type: AdjustmentType.IPC,
-                monthlyValues: indexRows.map((r: any) => new Decimal(r.value.toString())),
-                baseRent: currentRent,
-              };
-              break;
-            case AdjustmentType.ICL:
-              params = {
-                type: AdjustmentType.ICL,
-                startValue: indexRows.length > 0
-                  ? new Decimal(indexRows[0].value.toString())
-                  : new Decimal(1),
-                endValue: indexRows.length > 0
-                  ? new Decimal(indexRows[indexRows.length - 1].value.toString())
-                  : new Decimal(1),
-                baseRent: currentRent,
-              };
-              break;
-            case AdjustmentType.FixedPercent:
-            case AdjustmentType.Custom:
-              params = {
-                type: adjustmentType,
-                percentage: new Decimal(contract.customAdjustmentPct?.toString() ?? '0'),
-                baseRent: currentRent,
-              };
-              break;
-            default:
-              params = {
-                type: AdjustmentType.FixedPercent,
-                percentage: new Decimal(0),
-                baseRent: currentRent,
-              };
-          }
-
           const adjustmentResult = calculateAdjustment(params);
-          const delta = adjustmentResult.newRent.minus(currentRent);
+          delta = adjustmentResult.newRent.minus(currentRent);
 
-          // ── 2. Update contract rentAmount and mark schedule Applied ───────
+          // ── Update contract rentAmount and mark schedule Applied ──────────
           await tx.contract.update({
             where: { id: contract.id },
             data: { rentAmount: adjustmentResult.newRent.toString() },
@@ -266,7 +258,7 @@ export class ContractAdjustmentService {
             data: { status: ScheduleStatus.Applied },
           });
 
-          // ── 3. Advance next adjustment date (update next Pending schedule) ─
+          // ── Advance next adjustment date ──────────────────────────────────
           const months = periodToMonths(contract.adjustmentPeriod as AdjustmentPeriod);
           const nextDate = addMonths(schedule.nextAdjustmentDate, months);
 
@@ -290,32 +282,9 @@ export class ContractAdjustmentService {
           });
         });
 
-        const currentRent = new Decimal(contract.rentAmount.toString());
-        const params: AdjustmentParams = (() => {
-          switch (contract.adjustmentType as AdjustmentType) {
-            case AdjustmentType.FixedPercent:
-            case AdjustmentType.Custom:
-              return {
-                type: contract.adjustmentType as AdjustmentType.FixedPercent,
-                percentage: new Decimal(contract.customAdjustmentPct?.toString() ?? '0'),
-                baseRent: currentRent,
-              };
-            default:
-              return {
-                type: AdjustmentType.FixedPercent,
-                percentage: new Decimal(0),
-                baseRent: currentRent,
-              };
-          }
-        })();
-
-        // Compute delta for reporting (outside transaction, approximate)
-        const reportResult = calculateAdjustment(params);
-        const reportDelta = reportResult.newRent.minus(currentRent);
-
         results.push({
           contractId: contract.id,
-          deltaAmount: reportDelta.toDecimalPlaces(2).toString(),
+          deltaAmount: delta.toDecimalPlaces(2).toString(),
           appliedPeriod,
         });
 

@@ -4,13 +4,29 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
+import { TenantIsolationError } from '../../common/tenant/tenant-isolation.error';
 import {
   CreateIndexDataSchema,
   IndexDataFilterSchema,
   IndexType,
 } from '@realfy/shared';
+
+/**
+ * Identificador bajo el que el scraper guarda los índices publicados por el
+ * BCRA y el INDEC. Son datos públicos, iguales para todas las inmobiliarias:
+ * cada una los ve junto con sus propias cargas manuales, y la carga manual
+ * tiene prioridad para el mismo tipo y período (DEF-01).
+ */
+export const SYSTEM_TENANT_ID = '__system__';
+
+interface IndexRow {
+  tenantId: string;
+  indexType: string;
+  period: Date;
+}
 
 /**
  * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
@@ -25,6 +41,22 @@ function isZodError(err: unknown): err is { errors: any[] } {
   );
 }
 
+/**
+ * Entre una fila propia y una de sistema para el mismo (tipo, período), gana
+ * la propia. Conserva el orden de entrada para el resto.
+ */
+export function mergeVisibleRows<T extends IndexRow>(rows: T[], tenantId: string): T[] {
+  const byKey = new Map<string, T>();
+  for (const row of rows) {
+    const key = `${row.indexType}|${row.period.toISOString()}`;
+    const current = byKey.get(key);
+    if (!current || (current.tenantId === SYSTEM_TENANT_ID && row.tenantId === tenantId)) {
+      byKey.set(key, row);
+    }
+  }
+  return [...byKey.values()];
+}
+
 @Injectable()
 export class IndexDataService {
   private readonly logger = new Logger(IndexDataService.name);
@@ -33,6 +65,22 @@ export class IndexDataService {
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
   ) {}
+
+  /**
+   * Las lecturas de índices unen la inmobiliaria actual con los valores de
+   * sistema, así que no pueden pasar por la extensión de aislamiento (que
+   * fija un único tenantId). Se usa el cliente base con el filtro explícito y,
+   * fiel al ADR-0006, sin inmobiliaria en contexto se falla cerrado.
+   */
+  private requireTenantId(operation: string): string {
+    const tenantId = this.tenantContext.getTenantId();
+    if (!tenantId) throw new TenantIsolationError('IndexData', operation);
+    return tenantId;
+  }
+
+  private visibleTo(tenantId: string) {
+    return { tenantId: { in: [tenantId, SYSTEM_TENANT_ID] } };
+  }
 
   // ─── List ───────────────────────────────────────────
 
@@ -51,27 +99,49 @@ export class IndexDataService {
       throw err;
     }
 
-    const where: any = {};
+    const tenantId = this.requireTenantId('findMany');
 
-    if (filters.indexType) where.indexType = filters.indexType;
-
-    if (filters.periodFrom || filters.periodTo) {
-      where.period = {};
-      if (filters.periodFrom) where.period.gte = new Date(filters.periodFrom);
-      if (filters.periodTo) where.period.lte = new Date(filters.periodTo);
+    // Unión propia + sistema resuelta en SQL: DISTINCT ON deja una fila por
+    // (tipo, período) prefiriendo la propia, y la paginación se aplica sobre
+    // ese conjunto. Antes se traían todas las filas visibles y se paginaba en
+    // memoria; con dos años de índices diarios eso eran ~750 filas por
+    // petición (docs/calidad/10-stress.md, mejora medida).
+    const conditions: Prisma.Sql[] = [
+      Prisma.sql`"tenantId" IN (${tenantId}, ${SYSTEM_TENANT_ID})`,
+    ];
+    if (filters.indexType) {
+      conditions.push(Prisma.sql`"indexType" = ${filters.indexType}::"IndexType"`);
     }
+    if (filters.periodFrom) {
+      conditions.push(Prisma.sql`"period" >= ${new Date(filters.periodFrom)}`);
+    }
+    if (filters.periodTo) {
+      conditions.push(Prisma.sql`"period" <= ${new Date(filters.periodTo)}`);
+    }
+    const where = Prisma.join(conditions, ' AND ');
+
+    const visible = Prisma.sql`
+      SELECT DISTINCT ON ("indexType", "period")
+        "id", "tenantId", "indexType", "period", "value", "source", "createdAt"
+      FROM "index_data"
+      WHERE ${where}
+      ORDER BY "indexType", "period", ("tenantId" = ${tenantId}) DESC
+    `;
 
     const skip = (filters.page - 1) * filters.limit;
 
-    const [items, total] = await Promise.all([
-      this.prisma.client.indexData.findMany({
-        where,
-        orderBy: { period: 'desc' },
-        skip,
-        take: filters.limit,
-      }),
-      this.prisma.client.indexData.count({ where }),
+    const [items, countRows] = await Promise.all([
+      this.prisma.baseClient.$queryRaw<any[]>(Prisma.sql`
+        SELECT * FROM (${visible}) AS visible
+        ORDER BY "period" DESC, "indexType"
+        LIMIT ${filters.limit} OFFSET ${skip}
+      `),
+      this.prisma.baseClient.$queryRaw<{ count: bigint | number }[]>(Prisma.sql`
+        SELECT COUNT(*)::int AS count FROM (${visible}) AS visible
+      `),
     ]);
+
+    const total = Number(countRows[0]?.count ?? 0);
 
     return {
       items,
@@ -160,6 +230,7 @@ export class IndexDataService {
   // ─── Delete ─────────────────────────────────────────
 
   async delete(id: string) {
+    // Solo las filas propias se pueden borrar: las de sistema no son de nadie.
     const existing = await this.prisma.client.indexData.findFirst({
       where: { id },
     });
@@ -187,9 +258,27 @@ export class IndexDataService {
 
   // ─── Get for period range (used by adjustment calculation) ──
 
-  async getForPeriod(indexType: IndexType, startDate: Date, endDate: Date) {
-    return this.prisma.client.indexData.findMany({
+  /**
+   * Valores de un índice entre dos fechas, inclusive, en orden ascendente:
+   * los propios de la inmobiliaria más los de sistema, con prioridad para los
+   * propios. Es el único punto de lectura para el cálculo de ajustes
+   * (`ContractAdjustmentService`, `ContractsService`).
+   *
+   * `tenantId` se pasa cuando no hay petición en curso (barridos del
+   * sistema); `client` permite leer dentro de una transacción.
+   */
+  async getForPeriod(
+    indexType: IndexType,
+    startDate: Date,
+    endDate: Date,
+    options: { tenantId?: string; client?: { indexData: { findMany: (args: any) => Promise<any[]> } } } = {},
+  ) {
+    const tenantId = options.tenantId ?? this.requireTenantId('findMany');
+    const client = options.client ?? this.prisma.baseClient;
+
+    const rows = await client.indexData.findMany({
       where: {
+        ...this.visibleTo(tenantId),
         indexType: indexType as any,
         period: {
           gte: startDate,
@@ -198,32 +287,44 @@ export class IndexDataService {
       },
       orderBy: { period: 'asc' },
     });
+
+    return mergeVisibleRows(rows, tenantId);
   }
 
   // ─── Latest per IndexType ────────────────────────────────
 
   async findLatest(): Promise<{ indexType: IndexType; latest: any; history: any[] }[]> {
-    const indexTypes = Object.values(IndexType);
+    const tenantId = this.requireTenantId('findMany');
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    return Promise.all(
-      indexTypes.map(async (indexType) => {
-        const row = await this.prisma.client.indexData.findFirst({
-          where: { indexType: indexType as any },
-          orderBy: { period: 'desc' },
-        });
-
-        const history = await this.prisma.client.indexData.findMany({
-          where: {
-            indexType: indexType as any,
-            period: { gte: thirtyDaysAgo },
-          },
-          orderBy: { period: 'asc' },
-        });
-
-        return row ? { indexType, latest: row, history } : null;
+    // Dos consultas en total (antes eran dos por tipo de índice, diez en
+    // total): el último valor por tipo con DISTINCT ON prefiriendo la fila
+    // propia, y el historial de 30 días de todos los tipos de una vez
+    // (docs/calidad/10-stress.md, segunda mejora medida).
+    const [latestRows, historyRows] = await Promise.all([
+      this.prisma.baseClient.$queryRaw<any[]>(Prisma.sql`
+        SELECT DISTINCT ON ("indexType")
+          "id", "tenantId", "indexType", "period", "value", "source", "createdAt"
+        FROM "index_data"
+        WHERE "tenantId" IN (${tenantId}, ${SYSTEM_TENANT_ID})
+        ORDER BY "indexType", "period" DESC, ("tenantId" = ${tenantId}) DESC
+      `),
+      this.prisma.baseClient.indexData.findMany({
+        where: { ...this.visibleTo(tenantId), period: { gte: thirtyDaysAgo } },
+        orderBy: { period: 'asc' },
       }),
-    ).then((results) => results.filter((r) => r !== null));
+    ]);
+
+    const history = mergeVisibleRows(historyRows, tenantId);
+    const latestByType = new Map<string, any>(latestRows.map((row) => [row.indexType, row]));
+
+    return Object.values(IndexType)
+      .filter((indexType) => latestByType.has(indexType))
+      .map((indexType) => ({
+        indexType,
+        latest: latestByType.get(indexType),
+        history: history.filter((row) => row.indexType === indexType),
+      }));
   }
 }

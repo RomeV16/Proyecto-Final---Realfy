@@ -132,3 +132,73 @@ describe('IndexDataController (smoke)', () => {
     expect(() => guard.canActivate(mockContext)).toThrow(ForbiddenException);
   });
 });
+
+// ─── Delegación y coerción de parámetros (docs/calidad/05-casos-de-prueba.md) ──
+
+describe('IndexDataController — delegación', () => {
+  let controller: IndexDataController;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    controller = new IndexDataController(
+      mockIndexDataService as unknown as IndexDataService,
+      mockIndexScraperService as unknown as IndexScraperService,
+    );
+  });
+
+  it('CP-34: convierte page y limit a número antes de delegar y deja el resto intacto', async () => {
+    mockIndexDataService.findAll.mockResolvedValueOnce({ items: [] });
+
+    await controller.findAll({ page: '2', limit: '10', indexType: 'IPC' });
+
+    expect(mockIndexDataService.findAll).toHaveBeenCalledWith({ page: 2, limit: 10, indexType: 'IPC' });
+  });
+
+  it('CP-34: sin page ni limit no inventa valores (los defaults los pone el servicio)', async () => {
+    mockIndexDataService.findAll.mockResolvedValueOnce({ items: [] });
+
+    await controller.findAll({});
+
+    expect(mockIndexDataService.findAll).toHaveBeenCalledWith({});
+  });
+
+  it('CP-34: un page no numérico llega como NaN y lo rechaza el servicio', async () => {
+    mockIndexDataService.findAll.mockResolvedValueOnce({ items: [] });
+
+    await controller.findAll({ page: 'dos' });
+
+    expect(Number.isNaN(mockIndexDataService.findAll.mock.calls[0][0].page)).toBe(true);
+  });
+
+  it('POST /index-data delega el cuerpo al servicio', async () => {
+    const body = { indexType: 'IPC', period: '2025-01-01', value: '4.2' };
+    mockIndexDataService.create.mockResolvedValueOnce({ id: 'row-1' });
+
+    await expect(controller.create(body)).resolves.toEqual({ id: 'row-1' });
+    expect(mockIndexDataService.create).toHaveBeenCalledWith(body);
+  });
+
+  it('POST /index-data/bulk delega la lista al servicio', async () => {
+    mockIndexDataService.createBulk.mockResolvedValueOnce([]);
+
+    await controller.createBulk([{ a: 1 }]);
+
+    expect(mockIndexDataService.createBulk).toHaveBeenCalledWith([{ a: 1 }]);
+  });
+
+  it('DELETE /index-data/:id delega el identificador', async () => {
+    mockIndexDataService.delete.mockResolvedValueOnce({ deleted: true });
+
+    await expect(controller.delete('row-1')).resolves.toEqual({ deleted: true });
+    expect(mockIndexDataService.delete).toHaveBeenCalledWith('row-1');
+  });
+
+  it('POST /index-data/refresh suma los tres contadores', async () => {
+    mockUpsertAll.mockResolvedValueOnce({ icl: 2, uva: 3, ipc: 4 });
+
+    await expect(controller.refresh()).resolves.toEqual({
+      counts: { icl: 2, uva: 3, ipc: 4 },
+      total: 9,
+    });
+  });
+});

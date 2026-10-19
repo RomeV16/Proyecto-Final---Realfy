@@ -72,3 +72,6 @@ e2e/.auth/
 playwright-report/
 test-results/
 blob-report/
+
+# cobertura de la suite del módulo (docs/calidad)
+apps/api/coverage-modulo/
