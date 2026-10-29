@@ -20,6 +20,7 @@ import { PenaltiesScheduler } from './penalties.scheduler';
 import { UpdatePenaltyConfigDto } from '../tenants/dto/update-penalty-config.dto';
 import { WaivePenaltyDto } from './dto/waive-penalty.dto';
 import { PreviewPenaltyDto } from './dto/preview-penalty.dto';
+import { OVERDUE_LIQUIDACION_STATUSES } from './overdue';
 
 @Controller()
 export class PenaltiesController {
@@ -84,7 +85,7 @@ export class PenaltiesController {
     const overdueLiquidaciones = await this.prisma.baseClient.liquidacion.findMany({
       where: {
         tenantId,
-        status: 'Enviada' as any,
+        status: { in: OVERDUE_LIQUIDACION_STATUSES as any },
         dueDate: { lt: today },
       },
       include: {
@@ -189,7 +190,7 @@ export class PenaltiesController {
     const count = await this.prisma.baseClient.liquidacion.count({
       where: {
         tenantId,
-        status: 'Enviada' as any,
+        status: { in: OVERDUE_LIQUIDACION_STATUSES as any },
         dueDate: { lt: today },
       },
     });

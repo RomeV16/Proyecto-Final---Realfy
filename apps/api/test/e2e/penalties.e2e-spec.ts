@@ -239,6 +239,35 @@ describe('Penalties (e2e)', () => {
       expect(Number(entry.totalPenalty)).toBeGreaterThan(0);
     });
 
+    it('una liquidación marcada Vencida sigue en morosos y acumula punitorio', async () => {
+      const { user, liquidacion } = await setupOverdueLiquidacion('vencida-marcada');
+
+      await request(app.getHttpServer())
+        .post(`/api/liquidaciones/${liquidacion.id}/transition`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ status: LiquidacionStatus.Vencida })
+        .expect(200);
+
+      const runRes = await request(app.getHttpServer())
+        .post('/api/penalties/_run-now')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(201);
+      expect(runRes.body.penaltiesInserted).toBeGreaterThanOrEqual(1);
+
+      const list = await request(app.getHttpServer())
+        .get('/api/penalties/delinquent-tenants')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+      expect(list.body).toHaveLength(1);
+      expect(Number(list.body[0].totalPenalty)).toBeGreaterThan(0);
+
+      const count = await request(app.getHttpServer())
+        .get('/api/penalties/delinquent-tenants/count')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+      expect(count.body.count).toBe(1);
+    });
+
     it('Idempotency: second _run-now on same day does NOT insert duplicate Penalty', async () => {
       const { user, liquidacion } = await setupOverdueLiquidacion('run-now-idempotent');
 
