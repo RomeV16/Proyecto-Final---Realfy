@@ -528,6 +528,61 @@ describe('Contracts (e2e)', () => {
       expect(Number(calcRes.body.percentage)).toBeGreaterThan(0);
     });
 
+    it('CP-58 (DEF-07): el segundo ajuste encadena solo los índices posteriores al primero', async () => {
+      const { user, contract } = await setupFullContract('adj-consecutive', {
+        adjustmentType: AdjustmentType.IPC,
+        adjustmentPeriod: AdjustmentPeriod.Trimestral,
+      });
+
+      const months = [
+        { period: '2025-01-01T00:00:00.000Z', value: '2.000000' },
+        { period: '2025-02-01T00:00:00.000Z', value: '3.000000' },
+        { period: '2025-03-01T00:00:00.000Z', value: '1.000000' },
+        { period: '2025-04-01T00:00:00.000Z', value: '4.000000' },
+        { period: '2025-05-01T00:00:00.000Z', value: '2.000000' },
+        { period: '2025-06-01T00:00:00.000Z', value: '1.000000' },
+        { period: '2025-07-01T00:00:00.000Z', value: '0.500000' },
+      ];
+      for (const m of months) {
+        await request(app.getHttpServer())
+          .post('/api/index-data')
+          .set('Authorization', `Bearer ${user.accessToken}`)
+          .send({ indexType: IndexType.IPC, ...m })
+          .expect(201);
+      }
+
+      const calculateAndApply = async () => {
+        const detail = await request(app.getHttpServer())
+          .get(`/api/contracts/${contract.id}`)
+          .set('Authorization', `Bearer ${user.accessToken}`)
+          .expect(200);
+        const pending = detail.body.schedules.find((s: any) => s.status === 'Pending');
+
+        const calc = await request(app.getHttpServer())
+          .post(`/api/contracts/${contract.id}/adjustments/calculate`)
+          .set('Authorization', `Bearer ${user.accessToken}`)
+          .send({ scheduleId: pending.id })
+          .expect(201);
+
+        await request(app.getHttpServer())
+          .post(`/api/contracts/${contract.id}/adjustments/${calc.body.id}/apply`)
+          .set('Authorization', `Bearer ${user.accessToken}`)
+          .expect(201);
+
+        return calc.body;
+      };
+
+      // Abril: enero a abril sobre 150.000 → 165.532,54.
+      const first = await calculateAndApply();
+      expect(Number(first.newAmount)).toBeCloseTo(165532.54, 2);
+
+      // Julio: solo mayo, junio y julio sobre 165.532,54 → 171.384,28.
+      // Con la ventana desde el inicio del contrato daba 189.131,16.
+      const second = await calculateAndApply();
+      expect(Number(second.previousAmount)).toBeCloseTo(165532.54, 2);
+      expect(Number(second.newAmount)).toBeCloseTo(171384.28, 2);
+    });
+
     it('POST /contracts/:id/adjustments/:adjId/apply — applies adjustment and updates rentAmount', async () => {
       const { user, contract } = await setupFullContract('adj-apply', {
         adjustmentType: AdjustmentType.FixedPercent,

@@ -1,6 +1,6 @@
 # Catálogo de casos de prueba
 
-Versión 1.1 — 20 de octubre de 2026 (1.0: 19 de octubre). El resultado esperado de cada caso se
+Versión 1.2 — 28 de octubre de 2026 (1.0: 19 de octubre; 1.1: 20 de octubre). El resultado esperado de cada caso se
 fijó antes de ejecutar la prueba. La columna "prueba" apunta al archivo y
 al nombre del caso en la suite; "estado" se actualiza con cada ejecución.
 Los casos CP-01 a CP-04 y CP-40 a CP-49 ya existían en la tesis y se
@@ -73,6 +73,10 @@ Alquiler base 100.000,00 en todos los casos.
 | D10 | Personalizado | — | 7,50 | 107.500,00 | 1,075 | CP-10 |
 | D11 | IPC | `[2.0, 3.0]` | 10,00 (ignorado) | 105.060,00 | 1,0506 | CP-05 |
 
+La tabla describe el primer ajuste de un contrato. Desde el segundo, los
+índices se toman desde el último ajuste aplicado y no desde el inicio
+(DEF-07): lo verifican CP-55 a CP-58.
+
 La regla D1 es la que el informe de tesis señala como la más fácil de
 equivocar: 2 % y 3 % encadenados dan 5,06 %, no 5 %. D6 y D7 no se cumplían
 en `ContractAdjustmentService` hasta el día 5 porque CCP caía al valor por
@@ -115,7 +119,7 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | CP-24 | RF-14 | equivalencia | `indexType` fuera del enum | 400 | ver spec del módulo | verde |
 | CP-25 | RF-14 | equivalencia y límite | `createBulk` con no-array, `[]`, 3 ítems | 400, `[]`, 3 upserts | ver spec del módulo | verde |
 | CP-26 | RF-14 | equivalencia | `delete` inexistente / existente | 404 / `{deleted: true}` | ver spec del módulo | verde |
-| CP-27 | RF-14 | equivalencia | `getForPeriod` | rango inclusivo ordenado ascendente | ver spec del módulo | verde |
+| CP-27 | RF-14 | equivalencia | `getForPeriod`, con y sin `startExclusive` | rango inclusivo ordenado ascendente; con `startExclusive`, sin la fecha de inicio | ver spec del módulo | verde |
 | CP-28 | RF-14 | equivalencia | `findLatest` con un tipo sin filas | ese tipo no aparece | ver spec del módulo | verde |
 | CP-29 | RF-14 | equivalencia | BCRA responde 500 | `[]` y error registrado | ver spec del módulo | verde |
 | CP-30 | RF-14 | equivalencia | BCRA falla por TLS | reintento y advertencia | ver spec del módulo | verde |
@@ -124,6 +128,9 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | CP-33 | RF-14 | límite | períodos `2026-04-14` y `2026-02` | fechas UTC a medianoche; mensual al día 1 | ver spec del módulo | verde |
 | CP-34 | RF-14 | equivalencia | `findAll` con `page="2"` | número 2 | ver spec del módulo | verde |
 | CP-35 a CP-39 | RF-14 | (ya existentes) | scraper y tarea programada | ver `index-scraper.service.spec.ts`, `index-scraper.scheduler.spec.ts` | verde |
+| CP-55 | RF-12 | decisión | IPC con un ajuste aplicado en abril (2; 3; 1 %) y 4 % en mayo, alquiler 106.110,60 | solo encadena el 4 %: 110.355,02, factor 1,04 | `contract-adjustment.service.spec.ts::CP-55` | verde (DEF-07 corregido) |
+| CP-56 | RF-12 | decisión | ICL 100 / 110 / 121 con un ajuste aplicado en abril, alquiler 55.000 | 121 / 110: 60.500, factor 1,1 | `contract-adjustment.service.spec.ts::CP-56` | verde (DEF-07 corregido) |
+| CP-57 | RF-12, RF-13 | equivalencia | barrido con dos cronogramas vencidos del mismo contrato, fijo 10 % sobre 50.000 | 55.000 y después 60.500 | `contract-adjustment.service.spec.ts::CP-57` | verde (DEF-08 corregido) |
 
 ## Casos de integración de API (PostgreSQL real)
 
@@ -132,6 +139,7 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | CP-40 a CP-49 | RF-14, RF-12 | CRUD, `latest`, `refresh`, RBAC, aislamiento, previsualización | ver suite | `test/e2e/index-data.e2e-spec.ts` (17 casos) | verde |
 | CP-53 | RF-14 | `POST /refresh` con red sustituida, luego `GET /index-data` y `GET /latest`; carga manual del mismo período; otra inmobiliaria | las filas obtenidas aparecen; la manual gana; el aislamiento se mantiene | `test/e2e/index-data-scraper.e2e-spec.ts` (3 casos) | verde (DEF-01 corregido) |
 | CP-54 | RF-12, RF-14 | contrato IPC sin carga manual, `refresh`, `preview-adjustment` | factor 1,050600 y alquiler 105.060,00 con los índices obtenidos | `test/e2e/index-data-scraper.e2e-spec.ts` | verde (DEF-01 y DEF-06 corregidos) |
+| CP-58 | RF-12, RF-13 | contrato IPC trimestral por 150.000 con IPC de enero a julio; calcular y aplicar abril, calcular julio | abril 165.532,54; julio 171.384,28 | `test/e2e/contracts.e2e-spec.ts::CP-58` | verde (DEF-07 corregido) |
 
 ## Casos de integración externa
 

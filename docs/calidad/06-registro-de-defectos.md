@@ -1,6 +1,6 @@
 # Registro de defectos
 
-Versión 1.2 — 20 de octubre de 2026 (1.0: 19 de octubre). Cada defecto se registra con la
+Versión 1.3 — 28 de octubre de 2026 (1.0: 19 de octubre; 1.2: 20 de octubre). Cada defecto se registra con la
 plantilla del plan de pruebas, se vincula a su caso y a su requisito, y se
 cierra únicamente con una prueba de regresión en la suite y una ejecución
 del pipeline en rojo (antes) y en verde (después). El issue de GitHub es
@@ -14,6 +14,8 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-04 | Tres DTOs de `class-validator` sin uso en el módulo | Baja | — | — | [#80](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/80) | Corregido (día 3) |
 | DEF-05 | La suma de meses sobre fin de mes desplaza la fecha de ajuste | Media | RF-12 | CP-17 | [#81](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/81) | Corregido (día 5) |
 | DEF-06 | El IPC se obtiene como nivel y de los 24 meses más viejos, no como variación mensual reciente | Alta | RF-14, RF-12 | CP-52, CP-54 | [#82](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/82) | Corregido (día 5) |
+| DEF-07 | Los ajustes consecutivos vuelven a contar la inflación ya aplicada | Alta | RF-12, RF-13 | CP-55, CP-56, CP-58 | [#83](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/83) | Corregido (28 oct) |
+| DEF-08 | El barrido automático pisa un ajuste con el siguiente del mismo contrato | Media | RF-12, RF-13 | CP-57 | [#84](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/84) | Corregido (28 oct) |
 
 ---
 
@@ -27,6 +29,17 @@ CP-31, CP-50 ×2); los trabajos dependientes quedaron omitidos. Es la
 ejecución fallida que detecta un problema real exigida por el TP. La
 corrección entra en el commit siguiente y su ejecución en verde se enlaza
 en `09-metricas.md`.
+
+Los defectos DEF-07 y DEF-08 aparecieron después del cierre del TP, al
+preparar el ambiente de la demostración con contratos que llevaban más de un
+ajuste: todas las pruebas del catálogo ajustaban una sola vez. Siguieron el
+mismo circuito. Las regresiones se subieron solas en el commit `0cfa450` y el
+pipeline las registró en rojo: ejecución
+[40804485827](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/40804485827),
+trabajo "Unit Tests & Coverage" fallido con 3 casos en rojo (CP-55, CP-56,
+CP-57); la integración quedó omitida por depender de ese trabajo, y CP-58 se
+verificó en rojo en local sobre PostgreSQL (189.131,16 contra 171.384,28
+esperado). La corrección entra en `a1591b4` (PR #85).
 
 ## DEF-01 — Los índices obtenidos automáticamente no son visibles para ninguna inmobiliaria
 
@@ -94,3 +107,30 @@ en `09-metricas.md`.
 - **Causa raíz:** `fetchIPC` no pide `sort=desc` ni `representation_mode=percent_change`, y guarda `valor` sin convertir. El respaldo CSV lee la columna de nivel. La fixture de la prueba unitaria original (`7045.47`) reproducía el malentendido.
 - **Corrección (día 5):** `fetchIPC` pide `sort=desc&representation_mode=percent_change`, convierte la fracción a porcentaje con seis decimales y descarta valores no numéricos; el respaldo CSV lee la columna 9 (`ipc_ng_nacional_tasa_variacion_mensual`). La fixture de la prueba original se reemplazó por fracciones.
 - **Prueba de regresión:** CP-50 con las fixtures reales (`2.113772` para 2026-07; `1.933610` para 2026-09 por CSV), CP-31 unitario, CP-52 contra el entorno real.
+
+## DEF-07 — Los ajustes consecutivos vuelven a contar la inflación ya aplicada
+
+- **Requisito afectado:** RF-12 (cálculo del ajuste) y RF-13 (registro del nuevo alquiler).
+- **Casos que lo detectan:** CP-55, CP-56 (unitarios) y CP-58 (integración).
+- **Severidad:** alta. Desde el segundo ajuste de cada contrato el alquiler queda por encima del que corresponde, y el error se acumula con cada período.
+- **Pasos para reproducir:**
+  1. Contrato IPC trimestral desde el 1 de enero de 2025 por 150.000, con IPC cargado de enero a julio (2; 3; 1; 4; 2; 1; 0,5 %).
+  2. `POST /api/contracts/:id/adjustments/calculate` y `/apply` para el ajuste de abril.
+  3. `POST /api/contracts/:id/adjustments/calculate` para el ajuste de julio.
+- **Resultado esperado:** abril 165.532,54; julio 165.532,54 × 1,02 × 1,01 × 1,005 = 171.384,28.
+- **Resultado obtenido:** julio 189.131,16: vuelve a encadenar enero a abril sobre un alquiler que ya los incluye.
+- **Causa raíz:** la ventana de índices era siempre `[inicio del contrato, fecha de ajuste]` en `ContractAdjustmentService.loadParams` y en `ContractsService.calculateAdjustment`, mientras que la base es el alquiler vigente. Afecta IPC, ICL y CCP en la previsualización, el cálculo manual y la aplicación automática.
+- **Corrección:** `adjustment-window.ts` resuelve la ventana desde el último ajuste aplicado del contrato (o su inicio si no hubo ninguno). Las series de variación mensual (IPC, CVS, CER) excluyen ese límite, que ya entró en el ajuste anterior; las de nivel (ICL, UVA) lo incluyen, porque el cociente se toma contra el valor en esa fecha. `getForPeriod` acepta `startExclusive`. El primer ajuste no cambia, así que la tabla de decisión D1 a D11 sigue vigente.
+- **Prueba de regresión:** CP-55 (IPC: solo el 4 % posterior, 110.355,02), CP-56 (ICL: 121 / 110 y no 121 / 100), CP-58 de punta a punta en `test/e2e/contracts.e2e-spec.ts`; CP-27 cubre `startExclusive`.
+
+## DEF-08 — El barrido automático pisa un ajuste con el siguiente del mismo contrato
+
+- **Requisito afectado:** RF-12, RF-13.
+- **Caso que lo detecta:** CP-57.
+- **Severidad:** media. Latente: hoy ninguna tarea programada invoca `applyDueAdjustments`, pero es el camino previsto para aplicar los ajustes vencidos.
+- **Pasos:** contrato con porcentaje fijo 10 % por 50.000 y dos cronogramas vencidos (abril y julio); ejecutar `applyDueAdjustments()`.
+- **Esperado:** 50.000 → 55.000 → 60.500.
+- **Obtenido:** 50.000 → 55.000 → 55.000.
+- **Causa raíz:** el barrido trae cada cronograma con su contrato incluido y usa ese `rentAmount` dentro de la transacción: el segundo ajuste de un mismo contrato parte del alquiler leído antes de aplicar el primero.
+- **Corrección:** el barrido relee el contrato dentro de la transacción de cada ajuste.
+- **Prueba de regresión:** CP-57 en `contract-adjustment.service.spec.ts`.

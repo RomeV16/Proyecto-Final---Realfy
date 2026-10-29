@@ -266,12 +266,18 @@ export class IndexDataService {
    *
    * `tenantId` se pasa cuando no hay petición en curso (barridos del
    * sistema); `client` permite leer dentro de una transacción.
+   * `startExclusive` deja afuera la fecha de inicio: lo usan los ajustes
+   * posteriores al primero, cuyo mes inicial ya entró en el anterior (DEF-07).
    */
   async getForPeriod(
     indexType: IndexType,
     startDate: Date,
     endDate: Date,
-    options: { tenantId?: string; client?: { indexData: { findMany: (args: any) => Promise<any[]> } } } = {},
+    options: {
+      tenantId?: string;
+      client?: { indexData: { findMany: (args: any) => Promise<any[]> } };
+      startExclusive?: boolean;
+    } = {},
   ) {
     const tenantId = options.tenantId ?? this.requireTenantId('findMany');
     const client = options.client ?? this.prisma.baseClient;
@@ -281,7 +287,7 @@ export class IndexDataService {
         ...this.visibleTo(tenantId),
         indexType: indexType as any,
         period: {
-          gte: startDate,
+          ...(options.startExclusive ? { gt: startDate } : { gte: startDate }),
           lte: endDate,
         },
       },

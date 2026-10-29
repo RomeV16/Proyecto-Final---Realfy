@@ -37,10 +37,11 @@ y esfuerzo sostenido con k6). Más análisis estático con ESLint y
 SonarCloud.
 
 **¿Dónde está cada prueba?**
-- Unitarias: `apps/api/src/modules/index-data/*.spec.ts` (107 casos) y
+- Unitarias: `apps/api/src/modules/index-data/*.spec.ts` (111 casos) y
   `packages/shared/src/adjustment-engine/adjustment-engine.spec.ts` (18).
 - Integración de API: `apps/api/test/e2e/index-data.e2e-spec.ts` (17) e
-  `index-data-scraper.e2e-spec.ts` (4).
+  `index-data-scraper.e2e-spec.ts` (4), más CP-58 en
+  `contracts.e2e-spec.ts` (ajustes consecutivos).
 - Contrato externo: `apps/api/test/integration/external.contract.spec.ts`
   (fixtures reales) y `external.real.spec.ts` (red real).
 - Smoke: `apps/api/test/smoke/smoke.mjs`.
@@ -92,7 +93,7 @@ importante es D1 (2 % y 3 % encadenados dan 5,06 %, no 5 %).
 **¿Qué diferencia hay entre cobertura de sentencia y de decisión, y cuánto lograron?**
 Sentencia: qué porcentaje de instrucciones ejecutaron las pruebas.
 Decisión (ramas): qué porcentaje de los caminos de cada `if` o `switch`.
-El módulo pasó de 45,9 % / 25,3 % a 96,5 % / 92 %. La de ramas es la que
+El módulo pasó de 45,9 % / 25,3 % a 96,6 % / 92,7 %. La de ramas es la que
 importa en un `switch` de cinco modalidades.
 
 **¿Qué significa Arrange–Act–Assert?**
@@ -115,6 +116,17 @@ registra en rojo contra el código viejo (ejecución 39336742449, ocho casos
 fallidos). Después entra la corrección y la misma prueba queda en verde.
 Así se demuestra que la prueba detecta el defecto y que la corrección lo
 cierra.
+
+**¿Encontraron defectos después del TP?**
+Sí, dos, al armar la demostración con contratos que ya llevaban más de un
+ajuste. DEF-07: la ventana de índices arrancaba siempre en el inicio del
+contrato, pero la base es el alquiler vigente, así que desde el segundo
+ajuste se volvía a cobrar la inflación ya trasladada (julio daba 189.131,16
+en vez de 171.384,28). DEF-08: el barrido automático, al ponerse al día con
+dos ajustes del mismo contrato, pisaba el primero con el segundo. Todas las
+pruebas del catálogo ajustaban una sola vez: es el caso que faltaba en la
+tabla de decisión. Siguieron el mismo circuito (issues #83 y #84, rojo en
+la ejecución 40804485827, PR #85).
 
 **¿Cómo trazan un requisito hasta un defecto?**
 Issue de requisito (RF-14 es #75) → casos CP-nn en el catálogo con su
