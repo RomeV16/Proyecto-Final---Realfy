@@ -19,14 +19,16 @@ const mockIndexData = { getForPeriod: mockFindManyIndex } as any;
 // baseClient (barrido de cronogramas vencidos) y cliente de transacción
 const mockFindManyDueSchedules = jest.fn();
 const mockTxContractUpdate = jest.fn();
+const mockTxContractFindUnique = jest.fn();
 const mockTxScheduleUpdate = jest.fn();
+const mockTxScheduleFindFirst = jest.fn();
 const mockTxAuditCreate = jest.fn();
 const mockTransaction = jest.fn();
 
 const tx = {
   indexData: { findMany: jest.fn() },
-  contract: { update: mockTxContractUpdate },
-  adjustmentSchedule: { update: mockTxScheduleUpdate },
+  contract: { update: mockTxContractUpdate, findUnique: mockTxContractFindUnique },
+  adjustmentSchedule: { update: mockTxScheduleUpdate, findFirst: mockTxScheduleFindFirst },
   auditLog: { create: mockTxAuditCreate },
 };
 
@@ -76,6 +78,20 @@ function makeDue(contractOverrides: Partial<any> = {}, scheduleOverrides: Partia
 
 const rows = (...values: string[]) => values.map((value) => ({ value }));
 
+/**
+ * Serie mensual con fechas: el doble responde como IndexDataService.getForPeriod,
+ * filtrando por el rango pedido, para verificar qué meses entran en cada ajuste.
+ */
+function series(points: [string, string][]) {
+  return async (_type: IndexType, from: Date, until: Date, options: any = {}) =>
+    points
+      .map(([period, value]) => ({ period: new Date(`${period}T00:00:00.000Z`), value }))
+      .filter(
+        (r) =>
+          (options.startExclusive ? r.period > from : r.period >= from) && r.period <= until,
+      );
+}
+
 describe('ContractAdjustmentService', () => {
   let service: ContractAdjustmentService;
 
@@ -88,6 +104,12 @@ describe('ContractAdjustmentService', () => {
     mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<void>) => fn(tx));
     mockFindManyIndex.mockReset();
     mockFindManyIndex.mockResolvedValue([]);
+    // clearAllMocks no vacía las respuestas encoladas con *Once.
+    mockFindFirstContract.mockReset();
+    mockFindFirstSchedule.mockReset();
+    mockTxContractUpdate.mockReset();
+    mockTxContractFindUnique.mockReset();
+    mockTxScheduleFindFirst.mockReset();
   });
 
   // ── preview ───────────────────────────────────────────────────────────────
@@ -247,6 +269,61 @@ describe('ContractAdjustmentService', () => {
       expect(result.factor.toFixed(4)).toBe('1.0750');
     });
 
+    it('CP-55 (DEF-07): con un ajuste ya aplicado, IPC encadena solo los meses posteriores a ese ajuste', async () => {
+      // Ajuste de abril aplicado con 2 %, 3 % y 1 % (100.000 → 106.110,60).
+      // El de julio solo debe sumar el 4 % de mayo: 106.110,60 × 1,04.
+      mockFindFirstContract.mockResolvedValueOnce(
+        makeContract({
+          adjustmentType: AdjustmentType.IPC,
+          rentAmount: '106110.60',
+          customAdjustmentPct: null,
+        }),
+      );
+      mockFindFirstSchedule
+        .mockResolvedValueOnce(makeSchedule({ nextAdjustmentDate: new Date('2025-07-01T00:00:00.000Z'), periodNumber: 2 }))
+        .mockResolvedValueOnce(
+          makeSchedule({ nextAdjustmentDate: new Date('2025-04-01T00:00:00.000Z'), status: ScheduleStatus.Applied }),
+        );
+      mockFindManyIndex.mockImplementation(
+        series([
+          ['2025-02-01', '2.000000'],
+          ['2025-03-01', '3.000000'],
+          ['2025-04-01', '1.000000'],
+          ['2025-05-01', '4.000000'],
+        ]),
+      );
+
+      const result = await service.preview('contract-1');
+
+      expect(result.projectedRent.toFixed(2)).toBe('110355.02');
+      expect(result.factor.toFixed(4)).toBe('1.0400');
+    });
+
+    it('CP-56 (DEF-07): con un ajuste ya aplicado, ICL toma como inicio el valor en la fecha de ese ajuste', async () => {
+      // Ajuste de abril aplicado con ICL 100 → 110 (50.000 → 55.000).
+      // El de julio es 121 / 110 = 1,1 sobre 55.000, no 121 / 100.
+      mockFindFirstContract.mockResolvedValueOnce(
+        makeContract({ adjustmentType: AdjustmentType.ICL, rentAmount: '55000.00', customAdjustmentPct: null }),
+      );
+      mockFindFirstSchedule
+        .mockResolvedValueOnce(makeSchedule({ nextAdjustmentDate: new Date('2025-07-01T00:00:00.000Z'), periodNumber: 2 }))
+        .mockResolvedValueOnce(
+          makeSchedule({ nextAdjustmentDate: new Date('2025-04-01T00:00:00.000Z'), status: ScheduleStatus.Applied }),
+        );
+      mockFindManyIndex.mockImplementation(
+        series([
+          ['2025-01-01', '100.000000'],
+          ['2025-04-01', '110.000000'],
+          ['2025-07-01', '121.000000'],
+        ]),
+      );
+
+      const result = await service.preview('contract-1');
+
+      expect(result.projectedRent.toFixed(2)).toBe('60500.00');
+      expect(result.factor.toFixed(4)).toBe('1.1000');
+    });
+
     it('CP-11 (límite): alquiler 0 no divide por cero', async () => {
       mockFindFirstContract.mockResolvedValueOnce(makeContract({ rentAmount: '0.00' }));
       mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
@@ -367,6 +444,27 @@ describe('ContractAdjustmentService', () => {
         expect.stringContaining('contract-A'),
         expect.anything(),
       );
+    });
+
+    it('CP-57 (DEF-08): dos ajustes vencidos del mismo contrato se encadenan; el segundo parte del alquiler que dejó el primero', async () => {
+      let rent = '50000.00';
+      mockTxContractUpdate.mockImplementation(async ({ data }: any) => {
+        rent = data.rentAmount;
+      });
+      mockTxContractFindUnique.mockImplementation(async () => makeContract({ rentAmount: rent }));
+      mockFindManyDueSchedules.mockResolvedValueOnce([
+        makeDue({}, { id: 'schedule-1', nextAdjustmentDate: new Date('2025-04-01T00:00:00.000Z') }),
+        makeDue({}, { id: 'schedule-2', periodNumber: 2, nextAdjustmentDate: new Date('2025-07-01T00:00:00.000Z') }),
+      ]);
+
+      const result = await service.applyDueAdjustments();
+
+      expect(mockTxContractUpdate.mock.calls.map((c) => c[0].data.rentAmount)).toEqual(['55000', '60500']);
+      expect(mockTxAuditCreate.mock.calls[1][0].data.changes).toMatchObject({
+        previousRent: '55000',
+        newRent: '60500',
+      });
+      expect(result.map((r) => Number(r.deltaAmount))).toEqual([5000, 5500]);
     });
 
     it.each([
