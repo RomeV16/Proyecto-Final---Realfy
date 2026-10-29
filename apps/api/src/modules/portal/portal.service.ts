@@ -68,8 +68,9 @@ export class PortalService {
           property: c.property
             ? {
                 id: c.property.id,
-                name: (c.property as any).name ?? null,
-                address: (c.property as any).address ?? null,
+                name: c.property.title ?? null,
+                address:
+                  [c.property.street, c.property.number].filter(Boolean).join(' ') || null,
               }
             : null,
           contractType: c.contractType,
