@@ -8,6 +8,7 @@ import {
   PenaltiesService,
   ComputePenaltyInput,
 } from './penalties.service';
+import { OVERDUE_LIQUIDACION_STATUSES } from './overdue';
 
 @Injectable()
 export class PenaltiesScheduler extends CronBaseService {
@@ -54,13 +55,13 @@ export class PenaltiesScheduler extends CronBaseService {
       try {
         const config = await this.tenantsService.getPenaltyConfig(tenant.id);
 
-        // Fetch overdue liquidaciones (Enviada status with dueDate < today).
+        // Fetch overdue liquidaciones (Enviada or Vencida with dueDate < today).
         // Note: Prisma schema includes 'Pendiente' but it does not exist in the DB enum —
-        // using it at runtime causes a ConnectorError. Filter on 'Enviada' only.
+        // using it at runtime causes a ConnectorError, so it is not part of the filter.
         const overdueLiquidaciones = await this.prisma.baseClient.liquidacion.findMany({
           where: {
             tenantId: tenant.id,
-            status: 'Enviada' as any,
+            status: { in: OVERDUE_LIQUIDACION_STATUSES as any },
             dueDate: { lt: today },
           },
           select: {
