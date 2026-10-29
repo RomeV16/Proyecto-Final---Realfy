@@ -1,6 +1,6 @@
 # Métricas y análisis estático
 
-Versión 1.0 — 20 de octubre de 2026. Todos los números salen de una
+Versión 1.1 — 28 de octubre de 2026 (1.0: 20 de octubre). Todos los números salen de una
 ejecución identificable (commit, ejecución del pipeline o análisis de
 SonarCloud). Las filas "después" se completan al cierre de cada día.
 
@@ -14,11 +14,11 @@ SonarCloud). Las filas "después" se completan al cierre de cada día.
 | Code smells (repositorio) | Deuda de mantenibilidad | 818, rating A | Código del PR: 3 | Rating A pese al número: la deuda estimada es baja respecto del tamaño |
 | Duplicación (repositorio) | Líneas duplicadas | 5,1 % | Código del PR: 2,4 %; sobre código nuevo 0,0 % | Justo sobre el 5 % que el TP pone como tope; dentro del módulo la duplicación `preview`/`applyDueAdjustments` se elimina el día 5 |
 | Cobertura de líneas, API completa | Sentencias ejecutadas por las unitarias | 42,44 % (commit 98e34b7, informe de tesis) | 44,05 % (día 3, local) | Piso en CI: 38 % |
-| Cobertura de líneas, módulo `index-data` | Ídem, acotado | 44,89 % | 94,81 % (día 3), 96,47 % (día 5) | Meta 80 % |
-| Cobertura de ramas, módulo | Decisiones ejecutadas | 25,26 % | 86,31 % (día 3), 92,04 % (día 5) | Meta 70 %. Es la métrica que más dice sobre la lógica de CU-08 |
+| Cobertura de líneas, módulo `index-data` | Ídem, acotado | 44,89 % | 94,81 % (día 3), 96,47 % (día 5), 96,63 % (DEF-07/08) | Meta 80 % |
+| Cobertura de ramas, módulo | Decisiones ejecutadas | 25,26 % | 86,31 % (día 3), 92,04 % (día 5), 92,70 % (DEF-07/08) | Meta 70 %. Es la métrica que más dice sobre la lógica de CU-08 |
 | Cobertura de funciones, módulo | | 46,93 % | 95,65 % (día 3) | |
-| Pruebas unitarias del módulo | Cantidad de casos | 18 | 107 (día 5) + 18 del motor en el paquete compartido | |
-| Pruebas de integración del módulo | Cantidad de casos | 17 | 21 (día 5) + 5 de contrato real | |
+| Pruebas unitarias del módulo | Cantidad de casos | 18 | 107 (día 5), 111 (DEF-07/08) + 18 del motor en el paquete compartido | |
+| Pruebas de integración del módulo | Cantidad de casos | 17 | 21 (día 5) + 5 de contrato real; CP-58 en la suite de contratos | |
 
 ### SonarCloud sobre el PR #76 (análisis desde el pipeline, con cobertura)
 
@@ -53,6 +53,8 @@ describe cómo trabaja el equipo, no el producto.
 | DEF-04 | 19 oct | — (código muerto) | 20 oct | 1 |
 | DEF-05 | 19 oct (sospechado), 20 oct (confirmado) | 20 oct | 20 oct | 1 |
 | DEF-06 | 19 oct (prueba contra entorno real) | 20 oct | 20 oct | 1 |
+| DEF-07 | 28 oct (datos de la demostración) | 28 oct (run 40804485827) | 28 oct | 0 |
+| DEF-08 | 28 oct (revisión del barrido al corregir DEF-07) | 28 oct (run 40804485827) | 28 oct | 0 |
 
 ## Métrica de proyecto
 
@@ -71,6 +73,8 @@ dependencia externa (R-07).
 | 39337428907 | 19 oct | correcciones (b6e9eca) | ~2 min | **rojo** | `contract-closure-trigger.spec.ts` construye `ContractsService` por el inyector y no tenía el proveedor nuevo `IndexDataService`: doble de prueba faltante, no defecto de producto |
 | 39337763326 | 19 oct | doble + k6 (58de3d1) | 7 min | **rojo** en el paso de stress | 7 trabajos en verde; el stress corrió completo sin errores y el p95 (720 ms) superó el umbral de 500 ms en el runner compartido. Ver `10-stress.md` |
 | 39339533616 | 19 oct | mejoras medidas (bcf3f83) | 6 min | **verde** (8 trabajos) | Ejecución completa en verde: smoke, stress (p95 8,8 ms), contrato real y gate incluidos |
+| 40804485827 | 28 oct | PR #85, regresión en rojo (0cfa450) | ~1 min | **rojo** | 3 casos nuevos fallan contra el código con DEF-07 y DEF-08: defecto real |
+| 40804889473 | 28 oct | PR #85, corrección (a1591b4) | 7 min | **rojo** solo en `integration-real` | 7 de 8 trabajos en verde, CP-55 a CP-58 incluidos. CP-52 falla por frescura: la API de series del INDEC no publica desde julio (último dato 2026-07-01, 120,09 días contra un tope de 120). Externo (R-07), no defecto propio |
 
 ## Mejora medida antes y después
 
