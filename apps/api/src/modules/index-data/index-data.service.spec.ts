@@ -338,6 +338,16 @@ describe('IndexDataService', () => {
     expect(rows.map((r) => r.value)).toEqual(['1']);
   });
 
+  it('CP-27: getForPeriod con startExclusive deja afuera la fecha de inicio (DEF-07)', async () => {
+    const start = new Date('2025-04-01T00:00:00.000Z');
+    const end = new Date('2025-07-01T00:00:00.000Z');
+    mockFindMany.mockResolvedValueOnce([]);
+
+    await service.getForPeriod(IndexType.IPC, start, end, { startExclusive: true });
+
+    expect(mockFindMany.mock.calls[0][0].where.period).toEqual({ gt: start, lte: end });
+  });
+
   it('CP-27: getForPeriod acepta inmobiliaria y cliente explícitos para barridos y transacciones', async () => {
     const txFindMany = jest.fn().mockResolvedValue([]);
     mockTenantContext.getTenantId.mockReturnValue(undefined);

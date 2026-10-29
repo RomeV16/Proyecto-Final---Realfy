@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { IndexDataService } from './index-data.service';
+import { AdjustmentWindow, excludesWindowStart, resolveAdjustmentWindow } from './adjustment-window';
 import {
   AdjustmentType,
   AdjustmentPeriod,
@@ -83,20 +84,26 @@ export class ContractAdjustmentService {
 
   /**
    * Arma los parámetros del motor según la modalidad del contrato, leyendo
-   * los índices del período [inicio del contrato, fecha de ajuste] a través
-   * de IndexDataService, que une los valores propios con los de sistema.
+   * los índices de la ventana del ajuste (desde el último ajuste aplicado o el
+   * inicio del contrato, DEF-07) a través de IndexDataService, que une los
+   * valores propios con los de sistema.
    * Es el único lugar donde se traduce modalidad → parámetros: lo comparten
    * la previsualización y la aplicación automática (DEF-02, DEF-03).
    */
   private async loadParams(
     contract: any,
-    until: Date,
+    window: AdjustmentWindow,
     options: { tenantId: string; client?: IndexClient },
   ): Promise<LoadedParams> {
     const baseRent = new Decimal(contract.rentAmount.toString());
     const adjustmentType = contract.adjustmentType as AdjustmentType;
     const load = (type: IndexType) =>
-      this.indexData.getForPeriod(type, contract.startDate, until, options);
+      this.indexData.getForPeriod(
+        type,
+        window.from,
+        window.until,
+        excludesWindowStart(window, type) ? { ...options, startExclusive: true } : options,
+      );
 
     switch (adjustmentType) {
       case AdjustmentType.IPC: {
@@ -176,7 +183,8 @@ export class ContractAdjustmentService {
     const adjustmentDate = schedule?.nextAdjustmentDate ?? new Date();
     const currentRent = new Decimal(contract.rentAmount.toString());
 
-    const { params, indexType } = await this.loadParams(contract, adjustmentDate, {
+    const window = await resolveAdjustmentWindow(this.prisma.client, contract, adjustmentDate);
+    const { params, indexType } = await this.loadParams(contract, window, {
       tenantId: contract.tenantId,
     });
 
@@ -238,8 +246,14 @@ export class ContractAdjustmentService {
         let delta = new Decimal(0);
 
         await this.prisma.baseClient.$transaction(async (tx: any) => {
-          const currentRent = new Decimal(contract.rentAmount.toString());
-          const { params } = await this.loadParams(contract, schedule.nextAdjustmentDate, {
+          // Se relee el contrato: si el barrido se pone al día con dos ajustes
+          // del mismo contrato, el segundo parte del alquiler que dejó el
+          // primero y no del leído antes de empezar (DEF-08).
+          const current =
+            (await tx.contract.findUnique({ where: { id: contract.id } })) ?? contract;
+          const currentRent = new Decimal(current.rentAmount.toString());
+          const window = await resolveAdjustmentWindow(tx, current, schedule.nextAdjustmentDate);
+          const { params } = await this.loadParams(current, window, {
             tenantId: contract.tenantId,
             client: tx,
           });

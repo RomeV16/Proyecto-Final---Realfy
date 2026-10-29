@@ -6,6 +6,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { IndexDataService } from '../index-data/index-data.service';
+import {
+  AdjustmentWindow,
+  excludesWindowStart,
+  resolveAdjustmentWindow,
+} from '../index-data/adjustment-window';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
   CreateContractSchema,
@@ -536,6 +541,12 @@ export class ContractsService {
     const tenantId = this.tenantContext.getTenantId()!;
     const baseRent = new Decimal(contract.rentAmount.toString());
     const adjustmentType = contract.adjustmentType as AdjustmentType;
+    // Índices desde el último ajuste aplicado o el inicio del contrato (DEF-07).
+    const window = await resolveAdjustmentWindow(
+      this.prisma.client,
+      contract,
+      schedule.nextAdjustmentDate,
+    );
 
     let params: AdjustmentParams;
 
@@ -545,15 +556,14 @@ export class ContractsService {
         const indexData = await this.loadIndexData(
           tenantId,
           IndexType.IPC,
-          contract.startDate,
-          schedule.nextAdjustmentDate,
+          window,
         );
         if (indexData.length === 0) {
           throw new BadRequestException({
             error: 'MISSING_INDEX_DATA',
             message: 'No IPC index data found for the adjustment period',
             indexType: IndexType.IPC,
-            periodStart: contract.startDate,
+            periodStart: window.from,
             periodEnd: schedule.nextAdjustmentDate,
           });
         }
@@ -568,15 +578,14 @@ export class ContractsService {
         const indexData = await this.loadIndexData(
           tenantId,
           IndexType.ICL,
-          contract.startDate,
-          schedule.nextAdjustmentDate,
+          window,
         );
         if (indexData.length < 2) {
           throw new BadRequestException({
             error: 'MISSING_INDEX_DATA',
             message: 'ICL requires at least start and end index values',
             indexType: IndexType.ICL,
-            periodStart: contract.startDate,
+            periodStart: window.from,
             periodEnd: schedule.nextAdjustmentDate,
           });
         }
@@ -592,21 +601,19 @@ export class ContractsService {
         const cvsData = await this.loadIndexData(
           tenantId,
           IndexType.CVS,
-          contract.startDate,
-          schedule.nextAdjustmentDate,
+          window,
         );
         const cerData = await this.loadIndexData(
           tenantId,
           IndexType.CER,
-          contract.startDate,
-          schedule.nextAdjustmentDate,
+          window,
         );
         if (cvsData.length === 0 || cerData.length === 0) {
           throw new BadRequestException({
             error: 'MISSING_INDEX_DATA',
             message: 'CCP requires both CVS and CER index data',
             indexType: 'CVS+CER',
-            periodStart: contract.startDate,
+            periodStart: window.from,
             periodEnd: schedule.nextAdjustmentDate,
           });
         }
@@ -816,10 +823,12 @@ export class ContractsService {
   private async loadIndexData(
     tenantId: string,
     indexType: IndexType,
-    startDate: Date,
-    endDate: Date,
+    window: AdjustmentWindow,
   ) {
     // Une los valores propios con los obtenidos automáticamente (DEF-01).
-    return this.indexData.getForPeriod(indexType, startDate, endDate, { tenantId });
+    return this.indexData.getForPeriod(indexType, window.from, window.until, {
+      tenantId,
+      ...(excludesWindowStart(window, indexType) ? { startExclusive: true } : {}),
+    });
   }
 }
