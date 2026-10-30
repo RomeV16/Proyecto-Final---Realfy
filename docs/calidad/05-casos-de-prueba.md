@@ -140,6 +140,7 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | CP-53 | RF-14 | `POST /refresh` con red sustituida, luego `GET /index-data` y `GET /latest`; carga manual del mismo período; otra inmobiliaria | las filas obtenidas aparecen; la manual gana; el aislamiento se mantiene | `test/e2e/index-data-scraper.e2e-spec.ts` (3 casos) | verde (DEF-01 corregido) |
 | CP-54 | RF-12, RF-14 | contrato IPC sin carga manual, `refresh`, `preview-adjustment` | factor 1,050600 y alquiler 105.060,00 con los índices obtenidos | `test/e2e/index-data-scraper.e2e-spec.ts` | verde (DEF-01 y DEF-06 corregidos) |
 | CP-58 | RF-12, RF-13 | contrato IPC trimestral por 150.000 con IPC de enero a julio; calcular y aplicar abril, calcular julio | abril 165.532,54; julio 171.384,28 | `test/e2e/contracts.e2e-spec.ts::CP-58` | verde (DEF-07 corregido) |
+| CP-85 | aislamiento (ADR-0006) | archivo subido por la inmobiliaria A, `validate` y `execute` con ese `fileId` desde la inmobiliaria B; luego `execute` desde A | B recibe 404 `FILE_NOT_FOUND` en ambos, no se crean propiedades en B y A importa sus 2 filas (esperado fijado antes) | `test/e2e/import-export.e2e-spec.ts::CP-85`, `import-export.service.spec.ts::CP-85` | verde (DEF-09 corregido) |
 
 ## Casos de integración externa
 
