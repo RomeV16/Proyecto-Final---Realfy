@@ -365,7 +365,7 @@ describe('Properties (e2e)', () => {
         .send({ toState: PropertyState.Vendido })
         .expect(400);
 
-      expect(transRes.body.error).toBe('INVALID_STATE_TRANSITION');
+      expect(transRes.body.error).toBe('INVALID_TRANSITION');
       expect(transRes.body.validTransitions).toBeDefined();
       expect(transRes.body.validTransitions).toContain(PropertyState.Disponible);
       expect(transRes.body.validTransitions).toContain(PropertyState.Archivado);

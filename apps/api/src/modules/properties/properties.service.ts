@@ -14,11 +14,10 @@ import {
   PropertyFilterSchema,
   CreatePropertyOperationSchema,
   TransitionPropertyStateSchema,
-  validateTransition,
-  getValidTransitions,
   PropertyState,
   ContractStatus,
 } from '@realfy/shared';
+import { applyOperationTransition } from './operation-state';
 
 /**
  * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
@@ -412,28 +411,11 @@ export class PropertiesService {
     const fromState = operation.state as PropertyState;
     const toState = validated.toState as PropertyState;
 
-    // Validate via shared state machine
-    if (!validateTransition(operation.operationType as any, fromState, toState)) {
-      const validTargets = getValidTransitions(
-        operation.operationType as any,
-        fromState,
-      );
-      this.logger.warn(
-        `Invalid state transition attempted: operationId=${operationId} from=${fromState} to=${toState} validTargets=[${validTargets.join(',')}]`,
-      );
-      throw new BadRequestException({
-        error: 'INVALID_STATE_TRANSITION',
-        message: `Cannot transition from ${fromState} to ${toState}`,
-        validTransitions: validTargets,
-        currentState: fromState,
-        attemptedState: toState,
-      });
-    }
-
-    const updated = await this.prisma.client.propertyOperation.update({
-      where: { id: operationId },
-      data: { state: toState as any },
-    });
+    const updated = await applyOperationTransition(
+      this.prisma.client,
+      operation,
+      toState,
+    );
 
     this.logger.log(
       `State transition: operationId=${operationId} ${fromState} → ${toState}`,
