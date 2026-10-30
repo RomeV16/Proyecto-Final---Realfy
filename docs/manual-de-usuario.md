@@ -78,10 +78,10 @@ ocupación y la rentabilidad por propiedad.
 
 Su terreno es la cartera y el embudo. Da de alta y edita propiedades —incluidas
 las fotos, las operaciones de venta o alquiler y sus transiciones de estado—,
-personas con sus roles y documentos, tasaciones, proveedores y servicios. Crea y
-edita contratos, puede calcular un ajuste y generar el documento del contrato a
-partir de una plantilla, pero no aplica el ajuste ni rescinde el contrato: esas
-dos operaciones quedan en Admin y Gerente.
+personas con sus roles y documentos, tasaciones, proveedores y servicios. Crea,
+edita y activa contratos, puede calcular un ajuste y generar el documento del
+contrato a partir de una plantilla, pero no aplica el ajuste ni rescinde el
+contrato: esas dos operaciones quedan en Admin y Gerente.
 
 Es uno de los tres roles que entran al tablero del embudo (`/pipeline`), junto
 con Admin y Gerente. Sobre leads carga, edita, mueve de etapa, asigna, registra
@@ -177,6 +177,41 @@ El ajuste se define por tipo y por periodicidad. Los tipos disponibles son IPC,
 ICL, CCP, porcentaje fijo y personalizado; la periodicidad va de mensual a anual.
 Con eso el sistema arma el cronograma de ajustes del contrato.
 
+El último paso del formulario ofrece dos salidas. *Guardar como borrador* deja el
+contrato cargado pero sin efecto: un borrador no genera liquidaciones, no se le
+calculan ajustes y no cambia el estado de la propiedad. *Guardar y activar* lo
+crea directamente activo. Si al activarlo algo no está en regla, el sistema no
+guarda nada y muestra en el mismo formulario, en una lista, qué hay que corregir;
+se puede corregir y volver a intentar, o guardarlo como borrador y activarlo
+después.
+
+Un contrato en borrador se activa desde su detalle con *Activar contrato*, que
+pide confirmación antes de hacer el cambio. Activar es una operación de Admin,
+Gerente y Ventas —los mismos roles que pueden cargar un contrato—. Para que un
+contrato se pueda activar:
+
+- la propiedad tiene que existir y no estar dada de baja;
+- tiene que tener al menos un propietario y, salvo que sea de venta, al menos un
+  inquilino (un garante no reemplaza a ninguno de los dos);
+- la fecha de fin tiene que ser posterior a la de inicio;
+- si es un alquiler, la propiedad no puede tener otro contrato de alquiler activo
+  cuyas fechas se superpongan con las de este. Que uno termine el mismo día en que
+  empieza el otro no cuenta como superposición. El aviso indica las fechas del
+  contrato que choca y lleva a su ficha;
+- si es un alquiler y la operación de alquiler de la propiedad está archivada, hay
+  que reactivarla antes.
+
+Si falla más de una condición, el aviso las lista todas juntas. Activar un
+contrato de alquiler deja la operación de alquiler de la propiedad en
+*Alquilado*, en el mismo paso: si la propiedad no tenía operación de alquiler, la
+crea; si estaba disponible, reservada o suspendida, la lleva a alquilada
+recorriendo los estados permitidos. No hace falta cambiar el estado de la
+propiedad a mano. Una vez activo, el contrato entra en la generación mensual de
+liquidaciones y en el cálculo de ajustes.
+
+El estado de un contrato no se cambia a *Activo* editándolo: se activa con la
+acción de activar, que es la que hace las verificaciones.
+
 En el detalle (`/contracts/[id]`) se ven las partes, las garantías, la línea de
 tiempo de ajustes y la comisión pactada. Desde ahí se calcula el próximo ajuste
 —cualquiera de los tres roles operativos puede hacerlo— y se lo aplica, que es
@@ -188,7 +223,12 @@ El documento del contrato se genera desde el mismo detalle, eligiendo una de las
 plantillas disponibles. Las plantillas se administran aparte y son de Admin y
 Gerente; para empezar existe una carga de plantillas por defecto.
 
-Rescindir un contrato es de Admin o Gerente, y produce el resumen de cierre.
+Rescindir un contrato es de Admin o Gerente, también pide confirmación en la
+misma pantalla, y produce el resumen de cierre. Si el contrato rescindido era el
+último alquiler activo de la propiedad, la operación de alquiler vuelve a
+*Disponible*; si queda otro contrato activo sobre la propiedad, o si alguien ya
+había movido la operación a otro estado, no se toca. Lo mismo pasa cuando un
+contrato activo se marca como vencido o renovado.
 
 ### Generar la liquidación del mes
 
