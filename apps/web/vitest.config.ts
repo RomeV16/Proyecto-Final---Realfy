@@ -18,8 +18,9 @@ export default defineConfig({
     env: { TZ: 'UTC' },
     coverage: {
       provider: 'v8',
-      include: ['src/lib/**/*.ts'],
-      exclude: ['src/**/*.{test,spec}.{ts,tsx}'],
+      // Todo el código de la web entra al informe: Sonar mide la cobertura del código nuevo en cualquier archivo.
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.{test,spec}.{ts,tsx}', 'src/**/*.d.ts'],
       reporter: ['text', 'lcov', 'json-summary'],
       reportsDirectory: './coverage',
     },
