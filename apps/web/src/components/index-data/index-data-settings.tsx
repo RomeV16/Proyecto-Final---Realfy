@@ -429,7 +429,7 @@ export function IndexDataSettings() {
             onClose={() => setBulkOpen(false)}
             onSaved={afterSave}
           />
-          <Dialog open={toDelete !== null} onClose={deleting ? () => undefined : () => setToDelete(null)}>
+          <Dialog open={toDelete !== null} onClose={() => setToDelete(null)} busy={deleting}>
             <DialogHeader>
               <h2 className="text-base font-semibold text-[var(--color-text)]">{t('delete.title')}</h2>
             </DialogHeader>

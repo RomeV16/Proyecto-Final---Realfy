@@ -88,7 +88,7 @@ export function IndexValueDialog({ draft, onClose, onSaved }: IndexValueDialogPr
   }
 
   return (
-    <Dialog open={draft !== null} onClose={saving ? () => undefined : onClose}>
+    <Dialog open={draft !== null} onClose={onClose} busy={saving}>
       <form onSubmit={handleSubmit} noValidate>
         <DialogHeader>
           <h2 className="text-base font-semibold text-[var(--color-text)]">

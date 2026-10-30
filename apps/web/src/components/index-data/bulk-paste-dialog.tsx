@@ -56,7 +56,7 @@ export function BulkPasteDialog({ open, initialType, onClose, onSaved }: BulkPas
   }
 
   return (
-    <Dialog open={open} onClose={saving ? () => undefined : onClose} className="max-w-xl">
+    <Dialog open={open} onClose={onClose} busy={saving} size="lg">
       <DialogHeader>
         <h2 className="text-base font-semibold text-[var(--color-text)]">{t('bulk.title')}</h2>
       </DialogHeader>
