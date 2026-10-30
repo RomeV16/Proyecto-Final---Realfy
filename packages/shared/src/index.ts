@@ -343,7 +343,13 @@ export {
   PROPERTY_TRANSITIONS,
   validateTransition,
   getValidTransitions,
+  findTransitionPath,
 } from './state-machine/property-state-machine';
+
+export {
+  validateContractTransition,
+  getValidContractTransitions,
+} from './state-machine/contract-state-machine';
 
 export {
   validateLiquidacionTransition,
