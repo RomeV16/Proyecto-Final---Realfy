@@ -5,6 +5,9 @@
  * Verifica que el parser del módulo produzca, a partir de lo que los
  * organismos devuelven de verdad, exactamente las filas que el resto del
  * sistema espera. Ver docs/calidad/07-integracion-externa.md.
+ *
+ * La variable 27 del BCRA (inflación mensual) se grabó el 30 de octubre de
+ * 2026, cuando el IPC pasó a leerse del CSV del INDEC con el BCRA de respaldo.
  */
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -35,6 +38,14 @@ function textResponse(text: string, status = 200): Response {
   } as unknown as Response;
 }
 
+/** Responde según la URL: el IPC pide el CSV y el BCRA en paralelo. */
+function routeIpc(csv: Response | Error, bcra: Response | Error) {
+  mockFetch.mockImplementation((url: string) => {
+    const route = url.includes('/Monetarias/27') ? bcra : csv;
+    return route instanceof Error ? Promise.reject(route) : Promise.resolve(route);
+  });
+}
+
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_MONTH = /^\d{4}-\d{2}$/;
 
@@ -43,6 +54,7 @@ describe('Contrato BCRA / INDEC con respuestas reales grabadas (CP-50)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFetch.mockReset();
     service = new IndexScraperService({ baseClient: { indexData: { upsert: jest.fn() } } } as any);
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
@@ -73,35 +85,57 @@ describe('Contrato BCRA / INDEC con respuestas reales grabadas (CP-50)', () => {
     expect(rows.every((r) => ISO_DAY.test(r.period) && r.value > 1000)).toBe(true);
   });
 
-  it('IPC (API de series): pide variación mensual descendente y la guarda en porcentaje', async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse(fixture('indec-series-pct-desc-2026-10-19.json')));
+  it('IPC (CSV del INDEC + BCRA): 24 meses en porcentaje, hasta septiembre de 2026, sin meses repetidos', async () => {
+    routeIpc(
+      textResponse(fixture('indec-ipc-2026-10-19.csv')),
+      jsonResponse(fixture('bcra-ipc-2026-10-30.json')),
+    );
 
     const rows = await service.fetchIPC();
 
-    const url = new URL(mockFetch.mock.calls[0][0]);
-    expect(url.searchParams.get('sort')).toBe('desc');
-    expect(url.searchParams.get('representation_mode')).toBe('percent_change');
-
     expect(rows).toHaveLength(24);
-    // 0.021137724267861868 (fracción) → 2.113772 % con seis decimales
-    expect(rows[0]).toEqual({ period: '2026-07', value: 2.113772, source: 'indec-datos-gob-ar' });
-    expect(rows[23].period).toBe('2024-08');
+    // 0.01933610203208236 (fracción) → 1.933610 % con seis decimales
+    expect(rows[0]).toEqual({ period: '2026-09', value: 1.93361, source: 'indec-datos-gob-ar-csv' });
+    expect(rows[1]).toEqual({ period: '2026-08', value: 1.659206, source: 'indec-datos-gob-ar-csv' });
+    expect(rows[23].period).toBe('2024-10');
+    expect(new Set(rows.map((r) => r.period)).size).toBe(24);
     for (const row of rows) {
       expect(row.period).toMatch(ISO_MONTH);
       expect(Math.abs(row.value)).toBeLessThan(30);
     }
   });
 
-  it('IPC (respaldo CSV): toma la columna de variación mensual, en porcentaje, de las últimas 24 filas', async () => {
-    mockFetch
-      .mockResolvedValueOnce(jsonResponse('{"data": []}'))
-      .mockResolvedValueOnce(textResponse(fixture('indec-ipc-2026-10-19.csv')));
+  it('IPC (solo BCRA): la variable 27 trae la misma variación redondeada a un decimal', async () => {
+    routeIpc(textResponse('', 503), jsonResponse(fixture('bcra-ipc-2026-10-30.json')));
 
     const rows = await service.fetchIPC();
 
     expect(rows).toHaveLength(24);
-    expect(rows[23]).toEqual({ period: '2026-09', value: 1.933610, source: 'indec-csv-fallback' });
-    expect(rows.every((r) => ISO_MONTH.test(r.period) && Math.abs(r.value) < 30)).toBe(true);
+    expect(rows[0]).toEqual({ period: '2026-09', value: 1.9, source: 'bcra-v4-ipc' });
+    expect(rows[1]).toEqual({ period: '2026-08', value: 1.7, source: 'bcra-v4-ipc' });
+    expect(rows.every((r) => ISO_MONTH.test(r.period))).toBe(true);
+  });
+
+  it('IPC (CSV y BCRA coinciden): cada mes del BCRA es la variación del INDEC redondeada', async () => {
+    routeIpc(textResponse(fixture('indec-ipc-2026-10-19.csv')), new Error('sin BCRA'));
+    const indec = await service.fetchIPC();
+    routeIpc(new Error('sin CSV'), jsonResponse(fixture('bcra-ipc-2026-10-30.json')));
+    const bcra = await service.fetchIPC();
+
+    const byMonth = new Map(indec.map((r) => [r.period, r.value]));
+    for (const row of bcra) {
+      expect(Math.abs(row.value - byMonth.get(row.period)!)).toBeLessThanOrEqual(0.05 + 1e-9);
+    }
+  });
+
+  it('API de series (documenta R-07): con sort=desc y percent_change el último mes que trae es julio', () => {
+    // Grabada el mismo día que el CSV, que ya llegaba a septiembre. Por eso
+    // el módulo dejó de leer el IPC de la API de series.
+    const data: [string, number][] = JSON.parse(fixture('indec-series-pct-desc-2026-10-19.json')).data;
+    const csvLast = fixture('indec-ipc-2026-10-19.csv').trim().split('\n').at(-1)!.split(',')[0];
+
+    expect(data[0][0]).toBe('2026-07-01');
+    expect(csvLast).toBe('2026-09-01');
   });
 
   it('IPC (fixture del pedido viejo, documenta DEF-06): la serie sin parámetros llega como nivel desde 2016', () => {
