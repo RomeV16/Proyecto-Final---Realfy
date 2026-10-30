@@ -13,11 +13,17 @@ Términos del dominio inmobiliario y técnicos utilizados a lo largo de la docum
 - **Marketing**: Usuario acotado a las plantillas de correo y al envío de correos a leads.
 - **Lectura**: Usuario de consulta, sin operaciones de escritura. Es el rol que recibe un usuario creado sin especificar rol.
 - **Propietario**: Persona física o jurídica titular del inmueble, que cede la administración a la inmobiliaria. Recibe la rendición mensual.
+- **Locador**: Persona que tiene la potestad de alquilar el inmueble y firma el contrato en ese carácter. Puede ser el titular, un usufructuario, un sublocador o un acreedor. Un contrato puede tener varios locadores, cada uno con su porcentaje de cobro, que no tiene por qué coincidir con su porcentaje de titularidad.
+- **Titular**: Persona que figura como dueña del inmueble. La titularidad es independiente de quién es locador de un contrato: una persona puede ser titular sin ser locador, y al revés.
+- **Apoderado**: Persona con poder para actuar en nombre de otra, con firma conjunta (deben firmar todos) o indistinta (alcanza con uno). Los cotitulares pueden apoderarse entre sí para cobrar.
 - **Inquilino**: Persona física o jurídica que firma el contrato de locación y abona el alquiler.
 - **Garante**: Persona o garantía propietaria que respalda el contrato. Puede ser garante propietario, garante salarial o seguro de caución.
 - **Contrato de locación**: Acuerdo entre propietario e inquilino, intermediado por la inmobiliaria, con duración, monto inicial, periodicidad de ajuste y garantías asociadas.
 - **Liquidación**: Cálculo mensual del importe que debe pagar el inquilino, compuesto por alquiler, expensas, servicios, impuestos, punitorios y otros conceptos.
 - **Rendición**: Documento mensual que recibe el propietario detallando lo cobrado, las comisiones de la inmobiliaria, los gastos descontados y el saldo a girar.
+- **Estado de cuenta**: Documento mensual por locador que consolida todas sus unidades: ingresos por unidad, gastos, honorarios, transferencias y compensaciones, y el saldo que se arrastra al mes siguiente. Reemplaza al acumulador que se armaba a mano en planillas.
+- **Pago partido**: Modalidad de cobro en la que el inquilino paga una parte a la inmobiliaria (la comisión) y el resto directamente al locador. Las otras modalidades son pagar todo a la inmobiliaria o todo al locador.
+- **Compensación**: Ajuste entre locadores cuando el inquilino de uno paga a otro: la inmobiliaria salda la diferencia, por ejemplo en efectivo, y el movimiento queda asentado en la cuenta de cada locador.
 - **Ajuste IPC**: Actualización del monto del alquiler tomando como referencia el Índice de Precios al Consumidor publicado por el INDEC.
 - **Ajuste ICL**: Actualización tomando como referencia el Índice para Contratos de Locación publicado por el BCRA, que es el índice previsto por la normativa de alquileres.
 - **Ajuste CCP**: Actualización tomando como referencia el Coeficiente Casa Propia.
@@ -29,11 +35,18 @@ Términos del dominio inmobiliario y técnicos utilizados a lo largo de la docum
 - **Morosidad**: Estado del contrato cuando el inquilino registra una o más liquidaciones impagas vencidas.
 - **Punitorio**: Recargo por mora aplicado sobre el saldo impago, calculado según la cláusula del contrato.
 - **Derivación legal**: Marca interna que indica que un contrato moroso fue derivado al estudio jurídico de la inmobiliaria.
+- **Prórroga de palabra**: Continuidad del alquiler acordada sin firmar un convenio escrito, de modo que la fecha de fin real difiere de la contractual.
+- **Fin real**: Fecha efectiva de terminación del contrato cuando difiere de la pactada, por prórroga de palabra o por un acuerdo de salida. Es opcional.
+- **Semáforo de vencimientos**: Indicador de color que muestra qué tan cerca o vencido está el fin de cada contrato y dispara su plan de seguimiento (devolución o renovación). Un contrato vencido sin fin real cargado sigue liquidando mientras esté activo, con el semáforo en rojo.
 - **Pipeline comercial**: Secuencia de etapas por las que pasa un lead, desde la captación hasta la firma del contrato o el descarte.
 - **Lead**: Interesado en alquilar o publicar un inmueble. Puede convertirse luego en inquilino o propietario.
 - **Visita**: Evento de inspección de un inmueble por parte de un lead, agendado por un agente.
 - **Tasación**: Estimación del valor de mercado de una propiedad, registrada con fecha y método de cálculo.
 - **Scoring de inquilino**: Calificación interna del inquilino basada en historial de pagos, antigüedad y otros factores configurables.
+- **Ciclo en sombra**: Ciclo mensual del piloto en el que el equipo replica en el ambiente `piloto` lo que la inmobiliaria hace con su sistema actual, sin que ella opere en Realfy.
+- **Ciclo en paralelo**: Ciclo mensual del piloto en el que la inmobiliaria mira y compara los resultados de Realfy contra los de su sistema actual, que sigue siendo el oficial.
+- **Reconciliación**: Comparación, por contrato y por locador, de los resultados de Realfy (total del recibo, comisión, neto y estado de cuenta) contra los del sistema actual. El criterio de aceptación es diferencia cero o explicada y registrada.
+- **FB (feedback)**: Entrada del registro de hallazgos del piloto, con identificador `FB-nn`, que recorre el camino issue, PR, verificación y métrica. Distingue el origen relevamiento del origen uso real.
 
 ## Términos técnicos
 

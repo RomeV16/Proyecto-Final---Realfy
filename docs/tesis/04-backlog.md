@@ -1,6 +1,6 @@
 # Backlog
 
-El backlog refleja los ítems 05 a 29 del cronograma Gantt del proyecto. Los ítems 01 a 04 corresponden a actividades académicas previas (definición de tema, anteproyecto, marco teórico, plan de trabajo) y no se enumeran aquí. Cada entrada incluye un identificador, una descripción funcional acotada, prioridad estimada para el MVP y dependencias respecto de ítems previos.
+El backlog refleja los ítems 05 a 46 del cronograma Gantt del proyecto: los ítems 05 a 29 son el desarrollo original de la tesis y los ítems 30 a 46 son el piloto en una inmobiliaria real (ver `30-piloto.md`). Los ítems 01 a 04 corresponden a actividades académicas previas (definición de tema, anteproyecto, marco teórico, plan de trabajo) y no se enumeran aquí. Cada entrada incluye un identificador, una descripción funcional acotada, prioridad estimada para el MVP y dependencias respecto de ítems previos.
 
 La prioridad se expresa como alta (bloqueante para el MVP operativo), media (necesaria para Hito 3) y baja (mejora o ítem habilitante de Hito 4).
 
@@ -192,5 +192,179 @@ Redacción del informe de tesis, preparación de presentación y ensayos de defe
 
 - Prioridad: alta.
 - Dependencias: 28.
+
+## Piloto en una inmobiliaria real
+
+Los ítems 30 a 46 incorporan la validación en uso real. Cada uno tiene un issue con criterios de aceptación y las etiquetas `piloto` y `origen:*`. La oleada indica el orden de ejecución.
+
+### 30. Piloto: relevamiento, plan y registro de feedback
+
+Documentar el contexto anonimizado del piloto, sus objetivos y métricas, el alcance, las fases, la gobernanza de datos y los riesgos; abrir el registro de feedback, la matriz de trazabilidad, la política de privacidad y el índice de decisiones de arquitectura.
+
+- Prioridad: alta.
+- Dueño: Manuel.
+- Dependencias: ninguna.
+- Oleada: 0.
+- Issue: #88.
+
+### 31. Base de proceso: protección de rama, plantillas, pruebas web, CI
+
+Plantillas de PR y de issues (requisito, defecto, feedback), etiquetas `piloto` y `origen:*`, protección de la rama principal, prueba de paridad de claves de i18n, cobertura de la web en el análisis estático, política de despliegue al ambiente `piloto` y copia mensual de la base.
+
+- Prioridad: alta.
+- Dueño: Romeo.
+- Dependencias: ninguna.
+- Oleada: 0.
+- Issue: #89.
+
+### 32. Usuarios, invitaciones, contraseñas y permisos por rol
+
+Pantalla de usuarios (invitar, rol, desactivar), aceptación de invitación, cambio y recupero de contraseña, menú filtrado por rol y matriz de lectura por rol.
+
+- Prioridad: alta.
+- Dueño: Romeo.
+- Dependencias: 31.
+- Oleada: 1.
+- Issue: #90.
+
+### 33. Personas, locadores, apoderados y titularidad
+
+Ficha de persona ampliada con varias cuentas bancarias; locadores por contrato con porcentaje de cobro y vigencia; apoderados con firma conjunta o indistinta; titularidad separada y opcional.
+
+- Prioridad: alta.
+- Dueño: Mariano.
+- Dependencias: 31.
+- Oleada: 1.
+- Issue: #91.
+
+### 34. Reglas del contrato, acuerdos y ajustes con rezago
+
+Valores por defecto de la inmobiliaria, reglas versionadas del contrato y acuerdos con fecha; fin real del contrato; ajuste con rezago del índice, base original o vigente, estimado con corrección, aplicación masiva con previsualización; activación validada del contrato.
+
+- Prioridad: alta.
+- Dueño: Mariano.
+- Dependencias: 33.
+- Oleada: 2.
+- Issue: #92.
+
+### 35. Liquidación mensual completa: boletas, cargos, punitorios, recibo
+
+Líneas con destino y marca de comisionable, generación anticipada, boletas de impuestos y servicios con reglas de traslado, centro de carga de cargos puntuales, punitorios en la liquidación con condonación auditada, recibo con monto en letras.
+
+- Prioridad: alta.
+- Dueño: Manuel.
+- Dependencias: 34.
+- Oleada: 2.
+- Issue: #93.
+
+### 36. Cobros, caja, efectivo, custodia y compensaciones
+
+Caja y cuentas, pago en tres flujos (repartido, todo a la inmobiliaria, todo al locador), efectivo en custodia, compensaciones entre locadores, custodia en moneda extranjera y recibos numerados.
+
+- Prioridad: alta.
+- Dueño: Mariano.
+- Dependencias: 35.
+- Oleada: 3.
+- Issue: #94.
+
+### 37. Cuenta corriente y estado de cuenta del locador
+
+Asientos por locador, estado de cuenta mensual consolidado de todas sus unidades con saldo arrastrado y saldo inicial editable y auditado, en PDF y listo para enviar.
+
+- Prioridad: alta.
+- Dueño: Manuel.
+- Dependencias: 36.
+- Oleada: 3.
+- Issue: #95.
+
+### 38. Facturación por cuenta del locador
+
+Emisor delegado por persona, emisión desde el pago o el estado de cuenta, configurable según qué y cuánto se factura.
+
+- Prioridad: alta.
+- Dueño: Manuel.
+- Dependencias: 37.
+- Oleada: 4.
+- Issue: #96.
+
+### 39. Migración desde el sistema anterior y calidad de datos
+
+Importación idempotente de contratos, locadores, reglas, servicios, ajustes y saldos, con lote y registro; panel de calidad de datos con duplicados y relaciones a optimizar.
+
+- Prioridad: alta.
+- Dueño: Mariano.
+- Dependencias: 33 a 37.
+- Oleada: 3.
+- Issue: #97.
+
+### 40. Vencimientos, renovaciones, prórrogas y depósitos
+
+Semáforo de vencimientos y seguimientos con lista de verificación, renovación como período del contrato, prórroga de palabra con fin real, depósito con moneda, custodio y regla de devolución, y liquidación de egreso.
+
+- Prioridad: alta.
+- Dueño: Manuel.
+- Dependencias: 34.
+- Oleada: 4.
+- Issue: #98.
+
+### 41. Honorarios: alta, renovación, venta, tasación, comisiones del personal
+
+Honorarios por operación con valores por defecto configurables, cuotas con ajuste, coorretaje y comisiones del personal.
+
+- Prioridad: alta.
+- Dueño: Manuel.
+- Dependencias: 36.
+- Oleada: 4.
+- Issue: #99.
+
+### 42. Incidencias y reparaciones con imputación
+
+Incidencia con preautorización, presupuesto, ejecución, pago e imputación al inquilino o al locador, con honorario de gestión opcional.
+
+- Prioridad: alta.
+- Dueño: Mariano.
+- Dependencias: 36.
+- Oleada: 4.
+- Issue: #100.
+
+### 43. Mensajería, bandeja de consultas y cobranza escalonada
+
+Envío de mail, mensajería instantánea con consentimiento y baja a través de una cola de salida, bandeja unificada de consultas con autorrespuesta y cobranza escalonada hasta la etapa prejudicial.
+
+- Prioridad: alta.
+- Dueño: Romeo.
+- Dependencias: 32, 35.
+- Oleada: 4 y 5.
+- Issue: #101.
+
+### 44. Ventas, llaves y publicación
+
+Operación de venta (reserva, seña, boleto), registro de llaves y sus movimientos, y publicación asistida con estado por portal.
+
+- Prioridad: alta.
+- Dueño: Romeo.
+- Dependencias: 41.
+- Oleada: 5.
+- Issue: #102.
+
+### 45. Validación en campo: ciclos en paralelo, reconciliación y métricas
+
+Ciclos en sombra, paralelo y propio, suite de reconciliación, línea base y métricas del piloto.
+
+- Prioridad: alta.
+- Dueño: Manuel.
+- Dependencias: 39.
+- Oleada: 3 a 5.
+- Issue: #103.
+
+### 46. Documentación, informe y defensa con el piloto
+
+Actualización de la documentación, el informe final y la preparación de la defensa con el piloto como evidencia.
+
+- Prioridad: alta.
+- Dueño: Todos.
+- Dependencias: todos los ítems anteriores.
+- Oleada: Continuo.
+- Issue: #104.
 
 <!-- Cierre item 04 — backlog priorizado -->
