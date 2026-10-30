@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ContractStatusBadge } from './contract-status-badge';
@@ -460,6 +460,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
   const [confirming, setConfirming] = useState<'' | 'activate' | 'terminate'>('');
   const [activationProblems, setActivationProblems] = useState<ActivationProblem[] | null>(null);
   const [activeTab, setActiveTab] = useState<'resumen' | 'ajustes'>('resumen');
+  const cancelConfirmRef = useRef<HTMLButtonElement>(null);
 
   const isAdmin = ['Admin', 'Gerente'].includes(user?.role || '');
   const canManage = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
@@ -953,7 +954,13 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
       )}
 
       {/* Confirmación de activar / rescindir, dentro de la página */}
-      <Dialog open={confirming !== ''} onClose={() => !actionLoading && setConfirming('')}>
+      <Dialog
+        open={confirming !== ''}
+        onClose={() => setConfirming('')}
+        size="sm"
+        busy={actionLoading === 'activate' || actionLoading === 'terminate'}
+        initialFocusRef={confirming === 'terminate' ? cancelConfirmRef : undefined}
+      >
         <DialogHeader>
           <h2 className="text-base font-semibold text-slate-900">
             {confirming === 'activate' ? t('activateConfirmTitle') : t('terminateConfirmTitle')}
@@ -972,6 +979,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
         </DialogBody>
         <DialogFooter>
           <Button
+            ref={cancelConfirmRef}
             variant="secondary"
             onClick={() => setConfirming('')}
             disabled={actionLoading !== ''}
