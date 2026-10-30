@@ -16,6 +16,7 @@ function createMockPrismaService() {
 function createMockTenantContext() {
   return {
     getTenantId: jest.fn().mockReturnValue('tenant-1'),
+    getUserId: jest.fn().mockReturnValue('user-1'),
   } as unknown as TenantContextService;
 }
 
@@ -135,7 +136,7 @@ describe('ImportExportService', () => {
 
     it('throws when the fileId does not exist', () => {
       expect(() => service.validate('missing-file-id', 'property', [])).toThrow(
-        BadRequestException,
+        NotFoundException,
       );
     });
   });
@@ -184,7 +185,7 @@ describe('ImportExportService', () => {
 
       expect(() =>
         service.validate(fileId, 'property', [{ sourceColumn: 'title', targetField: 'title' }]),
-      ).toThrow(BadRequestException);
+      ).toThrow(NotFoundException);
     });
   });
 });

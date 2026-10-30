@@ -293,7 +293,7 @@ describe('Import/Export (e2e)', () => {
             { sourceColumn: 'a', targetField: 'title' },
           ],
         })
-        .expect(400);
+        .expect(404);
     });
   });
 

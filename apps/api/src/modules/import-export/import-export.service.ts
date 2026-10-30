@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
@@ -15,8 +15,11 @@ import type {
 } from '@realfy/shared';
 import { CsvParserService, ParsedCsv } from './csv-parser.service';
 
-/** In-memory store for uploaded CSV data (keyed by fileId). */
-const uploadStore = new Map<string, { fileName: string; parsed: ParsedCsv; uploadedAt: number }>();
+/** In-memory store for uploaded CSV data (keyed by fileId), bound to the uploading tenant. */
+const uploadStore = new Map<
+  string,
+  { fileName: string; parsed: ParsedCsv; uploadedAt: number; tenantId: string; userId?: string }
+>();
 
 // Evict uploads older than 30 minutes
 const UPLOAD_TTL_MS = 30 * 60 * 1000;
@@ -45,8 +48,22 @@ export class ImportExportService {
       });
     }
 
+    const tenantId = this.tenantContext.getTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException({
+        error: 'TENANT_REQUIRED',
+        message: 'No tenant in context',
+      });
+    }
+
     const fileId = crypto.randomUUID();
-    uploadStore.set(fileId, { fileName, parsed, uploadedAt: Date.now() });
+    uploadStore.set(fileId, {
+      fileName,
+      parsed,
+      uploadedAt: Date.now(),
+      tenantId,
+      userId: this.tenantContext.getUserId(),
+    });
 
     this.logger.log(
       `CSV uploaded: fileId=${fileId} fileName=${fileName} headers=${parsed.headers.length} rows=${parsed.rows.length}`,
@@ -204,8 +221,9 @@ export class ImportExportService {
 
   private getUpload(fileId: string) {
     const upload = uploadStore.get(fileId);
-    if (!upload) {
-      throw new BadRequestException({
+    // A file from another tenant is reported exactly like a missing one.
+    if (!upload || upload.tenantId !== this.tenantContext.getTenantId()) {
+      throw new NotFoundException({
         error: 'FILE_NOT_FOUND',
         message: 'Upload not found or expired. Please upload the file again.',
       });
