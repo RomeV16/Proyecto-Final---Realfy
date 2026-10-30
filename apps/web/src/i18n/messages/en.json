@@ -4295,18 +4295,95 @@
   }
  },
  "indexData": {
-  "title": "Index Data",
-  "subtitle": "Update rent adjustment indices (ICL, CPI, etc.).",
+  "title": "Adjustment indices",
+  "subtitle": "Latest CPI (IPC), ICL, UVA, CVS and CER values. The system fetches IPC, ICL and UVA daily from INDEC and BCRA; here you fill in what is missing or correct a value.",
+  "cardSubtitle": "See the latest values and enter or correct an index by hand",
   "refreshNow": "Refresh now",
   "refreshing": "Refreshing...",
   "refreshSuccess": "Indices updated",
   "refreshError": "Error updating indices",
+  "refreshCount": "{count, plural, =0 {No new values} one {# value updated} other {# values updated}}",
   "loadError": "Error loading data",
   "emptyTitle": "No index data",
   "emptySubtitle": "No data available for this period.",
+  "emptyAdmin": "There are no values for this index yet. You can enter them one by one or paste them from a spreadsheet.",
   "period": "Period",
   "last30d": "Last 30 days",
-  "dataPoints": "Data points"
+  "dataPoints": "Data points",
+  "value": "Value",
+  "valuePercent": "Monthly change",
+  "source": "Source",
+  "latestTitle": "Latest values",
+  "historyTitle": "History",
+  "noData": "No data",
+  "stale": "Out of date",
+  "forbidden": "Only administrators and managers can see the indices.",
+  "readOnlyHint": "Only administrators can enter or correct values.",
+  "addValue": "Enter value",
+  "editValue": "Correct value",
+  "bulkPaste": "Paste several",
+  "unit": {
+   "IPC": "% monthly",
+   "ICL": "daily level",
+   "UVA": "daily level",
+   "CVS": "% monthly",
+   "CER": "% monthly"
+  },
+  "typeHint": {
+   "IPC": "Monthly change of the national CPI, in percent. The system fetches it from INDEC and, while INDEC has not updated its file, from BCRA with one decimal.",
+   "ICL": "BCRA rental contract index, one value per day. Fetched by the system.",
+   "UVA": "BCRA purchasing value unit, one value per day. Fetched by the system.",
+   "CVS": "Monthly change of the wage variation coefficient (CVS), in percent. Entered by hand.",
+   "CER": "Monthly change of CER, in percent, for Casa Propia contracts. Entered by hand."
+  },
+  "origin": {
+   "manual": "Entered by hand",
+   "indec": "INDEC",
+   "bcra": "BCRA",
+   "system": "System"
+  },
+  "form": {
+   "type": "Index",
+   "periodMonth": "Month",
+   "periodDay": "Date",
+   "placeholderMonth": "YYYY-MM",
+   "placeholderDay": "YYYY-MM-DD",
+   "valuePercent": "Monthly change (%)",
+   "valueLevel": "Index value",
+   "valuePercentHint": "E.g. 1.9 for a 1.9 % rise in the month",
+   "valueLevelHint": "The value published that day, e.g. 37.17",
+   "overrideHint": "If there is already a value for that period, yours takes priority for your agency.",
+   "invalidPeriod": "Invalid period for this index",
+   "invalidValue": "Invalid number: up to 6 decimals and no thousands separator",
+   "saved": "Value saved",
+   "saveError": "The value could not be saved"
+  },
+  "bulk": {
+   "title": "Paste values",
+   "lines": "One line per period",
+   "exampleMonth": "2026-08, 1.7\n2026-09, 1.9",
+   "exampleDay": "2026-10-29, 37.15\n2026-10-30, 37.17",
+   "instructionsMonth": "Month (2026-09 or 09/2026), a comma, semicolon or tab, and the change in %. You can copy straight from a spreadsheet.",
+   "instructionsDay": "Date (2026-10-30 or 30/10/2026), a comma, semicolon or tab, and the index value. You can copy straight from a spreadsheet.",
+   "ready": "{count, plural, one {# value ready} other {# values ready}}",
+   "invalid": "{count, plural, one {# line with errors} other {# lines with errors}}",
+   "errorLine": "Line {line}: {reason}",
+   "reasons": {
+    "format": "period and value not recognized",
+    "period": "invalid period for this index",
+    "value": "invalid number (up to 6 decimals, no thousands separator)",
+    "duplicate": "repeated period"
+   },
+   "submit": "{count, plural, =0 {Save} one {Save # value} other {Save # values}}",
+   "saved": "{count, plural, one {# value saved} other {# values saved}}",
+   "saveError": "The values could not be saved"
+  },
+  "delete": {
+   "title": "Delete manual entry",
+   "confirm": "Your {type} value for {period} will be deleted. If the system has a value for that period, it will be used again.",
+   "success": "Value deleted",
+   "error": "The value could not be deleted"
+  }
  },
  "emptyStates": {
   "tickets": {
@@ -4416,7 +4493,8 @@
   "readOnly": "Only administrators can edit settings",
   "managePipeline": "Configurar etapas",
   "manageFiscal": "Configure invoicing",
-  "manageScoring": "Configurar puntuación"
+  "manageScoring": "Configurar puntuación",
+  "manageIndices": "View and enter indices"
  },
  "portalPublico": {
   "footer": {
