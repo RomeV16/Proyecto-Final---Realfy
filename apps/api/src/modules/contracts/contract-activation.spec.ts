@@ -316,6 +316,7 @@ describe('ContractsService — activación del contrato', () => {
     it('pasa una operación disponible a alquilada', async () => {
       mocks.client.propertyOperation.findFirst.mockResolvedValue({
         id: OPERATION_ID,
+        operationType: 'Alquiler',
         state: 'Disponible',
       });
 
@@ -327,9 +328,25 @@ describe('ContractsService — activación del contrato', () => {
       });
     });
 
+    it('recorre cada paso por la máquina de estados de la propiedad', async () => {
+      mocks.client.propertyOperation.findFirst.mockResolvedValue({
+        id: OPERATION_ID,
+        operationType: 'Alquiler',
+        state: 'Borrador',
+      });
+
+      await service.activate(CONTRACT_ID);
+
+      const states = mocks.client.propertyOperation.update.mock.calls.map(
+        ([arg]: any[]) => arg.data.state,
+      );
+      expect(states).toEqual(['Disponible', 'Reservado', 'Alquilado']);
+    });
+
     it('no toca una operación que ya estaba alquilada', async () => {
       mocks.client.propertyOperation.findFirst.mockResolvedValue({
         id: OPERATION_ID,
+        operationType: 'Alquiler',
         state: 'Alquilado',
       });
 
@@ -342,6 +359,7 @@ describe('ContractsService — activación del contrato', () => {
     it('no activa si la operación de alquiler está archivada', async () => {
       mocks.client.propertyOperation.findFirst.mockResolvedValue({
         id: OPERATION_ID,
+        operationType: 'Alquiler',
         state: 'Archivado',
       });
 
@@ -442,6 +460,7 @@ describe('ContractsService — activación del contrato', () => {
       mocks.client.contract.findFirst.mockResolvedValue(ACTIVE);
       mocks.client.propertyOperation.findFirst.mockResolvedValue({
         id: OPERATION_ID,
+        operationType: 'Alquiler',
         state: 'Alquilado',
       });
     });
@@ -474,6 +493,7 @@ describe('ContractsService — activación del contrato', () => {
     it('respeta una operación que alguien ya movió de estado', async () => {
       mocks.client.propertyOperation.findFirst.mockResolvedValue({
         id: OPERATION_ID,
+        operationType: 'Alquiler',
         state: 'Suspendido',
       });
 

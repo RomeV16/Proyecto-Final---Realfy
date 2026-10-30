@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { ContractClosureMetrics } from '@realfy/shared';
+import { isClosedStatus, type ContractClosureMetrics } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { daysBetween } from './daily-context';
-import { isClosedStatus } from './contract-closure';
 
 /** Liquidaciones anuladas: no llegaron a existir como obligación de pago. */
 const VOID_LIQUIDACION_STATUS = 'Anulada';

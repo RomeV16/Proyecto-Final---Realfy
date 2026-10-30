@@ -27,13 +27,14 @@ import {
   IndexType,
   calculateAdjustment,
   findTransitionPath,
-  getValidContractTransitions,
-  validateContractTransition,
+  contractMachine,
+  isClosedStatus,
 } from '@realfy/shared';
 import type { AdjustmentParams } from '@realfy/shared';
 import Decimal from 'decimal.js';
+import { assertTransition } from '../../common/errors/assert-transition';
+import { applyOperationTransition } from '../properties/operation-state';
 import { ContractClosureService } from '../ai/contract-closure.service';
-import { isClosedStatus } from '../ai/contract-closure';
 
 /**
  * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
@@ -644,14 +645,7 @@ export class ContractsService {
   }
 
   private assertTransition(from: string, to: string): void {
-    if (!validateContractTransition(from as ContractStatus, to as ContractStatus)) {
-      throw new BadRequestException({
-        error: 'INVALID_TRANSITION',
-        message: `Cannot transition from ${from} to ${to}`,
-        currentStatus: from,
-        validTransitions: getValidContractTransitions(from as ContractStatus),
-      });
-    }
+    assertTransition(contractMachine, from as ContractStatus, to as ContractStatus);
   }
 
   /**
@@ -817,10 +811,11 @@ export class ContractsService {
     // null ya se rechazó al validar; [] es que ya estaba alquilada.
     if (!path || path.length === 0) return;
 
-    await tx.propertyOperation.update({
-      where: { id: operation.id },
-      data: { state: PropertyState.Alquilado },
-    });
+    let current: PropertyState = from;
+    for (const step of path) {
+      await applyOperationTransition(tx, { ...operation, state: current }, step);
+      current = step;
+    }
     this.logger.log(
       `State transition: operationId=${operation.id} ${[from, ...path].join(' → ')} (contractId=${candidate.id})`,
     );
@@ -855,10 +850,7 @@ export class ContractsService {
     });
     if (!operation || operation.state !== PropertyState.Alquilado) return;
 
-    await tx.propertyOperation.update({
-      where: { id: operation.id },
-      data: { state: PropertyState.Disponible },
-    });
+    await applyOperationTransition(tx, operation, PropertyState.Disponible);
     this.logger.log(
       `State transition: operationId=${operation.id} Alquilado → Disponible (contractId=${contract.id})`,
     );
