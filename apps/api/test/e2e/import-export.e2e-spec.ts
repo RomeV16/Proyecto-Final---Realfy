@@ -297,6 +297,50 @@ describe('Import/Export (e2e)', () => {
     });
   });
 
+  describe('CP-85: archivo subido por otra inmobiliaria', () => {
+    const mappings = [
+      { sourceColumn: 'nombre', targetField: 'firstName' },
+      { sourceColumn: 'apellido', targetField: 'lastName' },
+      { sourceColumn: 'email', targetField: 'email' },
+    ];
+
+    it('validate y execute responden 404 FILE_NOT_FOUND y no importan nada', async () => {
+      const tokenA = await getAuthToken();
+      const tokenB = await getAuthToken();
+      const csv = 'nombre,apellido,email\nAna,Uno,ana.uno@ejemplo.test\nLuis,Dos,luis.dos@ejemplo.test\n';
+
+      const upload = await request(app.getHttpServer())
+        .post('/api/import/upload')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .attach('file', buildCsvBuffer(csv), 'props.csv')
+        .expect(201);
+      const fileId = upload.body.fileId;
+
+      for (const path of ['validate', 'execute']) {
+        const res = await request(app.getHttpServer())
+          .post(`/api/import/${path}`)
+          .set('Authorization', `Bearer ${tokenB}`)
+          .send({ fileId, entityType: 'person', columnMappings: mappings })
+          .expect(404);
+        expect(res.body.errorCode ?? res.body.error).toBe('FILE_NOT_FOUND');
+      }
+
+      // B no obtuvo personas y el archivo sigue usable por A
+      const listB = await request(app.getHttpServer())
+        .get('/api/persons')
+        .set('Authorization', `Bearer ${tokenB}`)
+        .expect(200);
+      expect(listB.body.total).toBe(0);
+
+      const ok = await request(app.getHttpServer())
+        .post('/api/import/execute')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ fileId, entityType: 'person', columnMappings: mappings })
+        .expect(201);
+      expect(ok.body.importedRows).toBe(2);
+    });
+  });
+
   // ─── Export: Properties ─────────────────────────────
 
   describe('Properties Export', () => {
