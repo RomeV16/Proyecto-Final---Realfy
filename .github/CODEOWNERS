@@ -1,0 +1,43 @@
+# Responsables por área. Lo que no figura abajo lo revisan los dos primeros.
+* @ManuelFerreras @RomeV16
+
+# Manuel
+/apps/api/src/modules/contracts/ @ManuelFerreras
+/apps/api/src/modules/contract-templates/ @ManuelFerreras
+/apps/api/src/modules/liquidaciones/ @ManuelFerreras
+/apps/api/src/modules/renditions/ @ManuelFerreras
+/apps/api/src/modules/penalties/ @ManuelFerreras
+/apps/api/src/modules/invoices/ @ManuelFerreras
+/packages/shared/src/liquidacion-engine/ @ManuelFerreras
+/packages/shared/src/rendicion-engine/ @ManuelFerreras
+/packages/shared/src/comprobante-engine/ @ManuelFerreras
+/apps/web/src/components/contracts/ @ManuelFerreras
+/apps/web/src/components/liquidaciones/ @ManuelFerreras
+/apps/web/src/components/renditions/ @ManuelFerreras
+/apps/web/src/components/invoices/ @ManuelFerreras
+/docs/tesis/ @ManuelFerreras
+
+# Romeo
+/apps/api/src/modules/auth/ @RomeV16
+/apps/api/src/modules/users/ @RomeV16
+/apps/api/src/modules/notifications/ @RomeV16
+/apps/api/src/modules/portal/ @RomeV16
+/apps/api/src/modules/portal-auth/ @RomeV16
+/apps/api/src/modules/scoring/ @RomeV16
+/apps/web/src/components/ui/ @RomeV16
+/apps/web/src/components/layout/ @RomeV16
+/apps/web/src/components/portal/ @RomeV16
+/apps/web/src/components/portal-publico/ @RomeV16
+/.github/ @RomeV16
+
+# Mariano
+/apps/api/src/modules/properties/ @marianonallar
+/apps/api/src/modules/persons/ @marianonallar
+/apps/api/src/modules/index-data/ @marianonallar
+/apps/api/src/modules/payments/ @marianonallar
+/apps/api/src/modules/tickets/ @marianonallar
+/apps/api/src/modules/import-export/ @marianonallar
+/apps/web/src/components/properties/ @marianonallar
+/apps/web/src/components/persons/ @marianonallar
+/apps/web/src/components/tickets/ @marianonallar
+/apps/web/src/components/import/ @marianonallar

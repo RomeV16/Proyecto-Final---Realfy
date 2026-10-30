@@ -54,6 +54,11 @@ jobs:
       - name: Lint
         run: pnpm -r lint
 
+      # tsc sobre los tres paquetes incluyendo los archivos de prueba, que la
+      # compilación normal excluye (docs/pruebas.md, "Control de tipos").
+      - name: Type check (including tests)
+        run: pnpm -r typecheck
+
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -88,6 +93,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # Jest también fija la zona en su globalSetup; acá queda explícita para
+    # cualquier comando que corra en este trabajo.
+    env:
+      TZ: UTC
+
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -115,8 +125,12 @@ jobs:
       - name: Module tests with coverage (index-data)
         run: pnpm --filter @realfy/api test:modulo
 
-      - name: Shared package tests
-        run: pnpm --filter @realfy/shared test
+      - name: Shared package tests with coverage
+        run: pnpm --filter @realfy/shared test:coverage
+
+      # vitest: funciones puras de lib/ y paridad de claves i18n (CP-72).
+      - name: Web tests with coverage
+        run: pnpm --filter @realfy/web test:coverage
 
       # Reporte automático: resumen de cobertura en la página de la ejecución.
       - name: Coverage summary
@@ -127,7 +141,7 @@ jobs:
             echo
             echo "| Suite | Líneas | Ramas | Funciones | Sentencias |"
             echo "|---|---|---|---|---|"
-            for pair in "API completa:apps/api/coverage/coverage-summary.json" "Módulo index-data:apps/api/coverage-modulo/coverage-summary.json"; do
+            for pair in "API completa:apps/api/coverage/coverage-summary.json" "Módulo index-data:apps/api/coverage-modulo/coverage-summary.json" "Paquete compartido:packages/shared/coverage/coverage-summary.json" "Web:apps/web/coverage/coverage-summary.json"; do
               name="${pair%%:*}"; file="${pair#*:}"
               if [ -f "$file" ]; then
                 node -e '
@@ -149,6 +163,10 @@ jobs:
             apps/api/coverage/lcov-report/
             apps/api/coverage-modulo/lcov.info
             apps/api/coverage-modulo/lcov-report/
+            apps/web/coverage/lcov.info
+            apps/web/coverage/lcov-report/
+            packages/shared/coverage/lcov.info
+            packages/shared/coverage/lcov-report/
           retention-days: 14
 
   sonar:
@@ -169,7 +187,9 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: coverage-reports
-          path: apps/api/
+          # El artefacto conserva la ruta desde la raíz del repositorio
+          # (apps/api/coverage, apps/web/coverage, packages/shared/coverage).
+          path: .
 
       - name: SonarCloud scan
         uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0

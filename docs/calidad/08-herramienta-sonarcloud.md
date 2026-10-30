@@ -9,7 +9,7 @@ despliegue incremental.
 | Función | Herramienta | Estado antes del TP | Estado después |
 |---|---|---|---|
 | Pruebas unitarias e integración | Jest + ts-jest + supertest | En uso | En uso, con suite por módulo |
-| Cobertura | Istanbul (vía Jest) | Umbral global 38 % | Umbral por módulo + reporte en SonarCloud |
+| Cobertura | Istanbul (vía Jest) y v8 (vía vitest, web) | Umbral global 38 % | Umbral por módulo + reporte en SonarCloud, con la cobertura de la web y del paquete compartido |
 | Análisis estático local | ESLint 9 con `typescript-eslint` | En uso | En uso |
 | Análisis estático centralizado + quality gate | **SonarCloud** | No existía | Nueva |
 | Integración continua | GitHub Actions | 5 trabajos | 6 trabajos (+ despliegue efímero, integración externa y stress en los días 4 y 6) |
@@ -108,6 +108,11 @@ Cálculo: Σ(peso × puntaje). SonarCloud: 25+20+15+15+20+15+10 = 120.
 
 ## Cómo se usa
 
+- El trabajo `unit` sube un solo artefacto con los LCOV de la API (completa y
+  del módulo), de la web (`apps/web/coverage`, generado por vitest, CP-72
+  incluido) y del paquete compartido (`packages/shared/coverage`). Las pruebas
+  de la web (`*.test.ts`, `*.spec.ts`) están declaradas como pruebas en
+  `sonar-project.properties`, así que no cuentan como código a cubrir.
 - El trabajo `sonar` del pipeline descarga los LCOV del trabajo `unit`,
   corre `sonarqube-scan-action` con `sonar-project.properties` y después
   `sonarqube-quality-gate-action`, que falla el trabajo si el gate está en

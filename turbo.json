@@ -16,6 +16,9 @@
     "lint": {
       "dependsOn": ["^build"]
     },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
     "test:e2e": {
       "cache": false
     }

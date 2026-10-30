@@ -1,6 +1,6 @@
 # Catálogo de casos de prueba
 
-Versión 1.2 — 28 de octubre de 2026 (1.0: 19 de octubre; 1.1: 20 de octubre). El resultado esperado de cada caso se
+Versión 1.3 — 30 de octubre de 2026 (1.0: 19 de octubre; 1.1: 20 de octubre; 1.2: 28 de octubre). El resultado esperado de cada caso se
 fijó antes de ejecutar la prueba. La columna "prueba" apunta al archivo y
 al nombre del caso en la suite; "estado" se actualiza con cada ejecución.
 Los casos CP-01 a CP-04 y CP-40 a CP-49 ya existían en la tesis y se
@@ -156,3 +156,13 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | CP-60 | Despliegue nuevo: salud, registro, listado, carga manual, último valor, 401 sin token | 6 pasos en verde (`test/smoke/smoke.mjs`) | verde en local (API compilada en modo producción); en el pipeline sobre la imagen Docker |
 | CP-70 | Stress: 50 VU, 2 min, `GET /api/index-data` | p95 < 500 ms, errores < 1 % | pendiente |
 | CP-71 | Esfuerzo sostenido: 10 VU, 10 min | p95 estable (crecimiento < 20 %), errores < 1 % | pendiente |
+
+## Casos de base de proceso
+
+Reservados CP-72 a CP-79. Verifican la propia infraestructura de pruebas, no un
+requisito funcional.
+
+| ID | Qué | Esperado (fijado antes) | Prueba | Estado |
+|---|---|---|---|---|
+| CP-72 | Paridad de claves i18n: `es.json` y `en.json` | mismo conjunto de claves aplanadas en ambos; ningún texto vacío; si falla, el mensaje lista las claves faltantes de cada idioma | `apps/web/test/i18n-parity.spec.ts` (3 casos) | verde (30 oct) |
+| CP-73 | Independencia de la zona horaria: las pruebas unitarias dan el mismo resultado en UTC y en `America/Argentina/Buenos_Aires` | con `TZ=America/Argentina/Buenos_Aires` en la shell, la suite unitaria de la API y la del paquete compartido terminan en verde, porque Jest fija `TZ=UTC` | `apps/api/test/setup/utc.js`, `packages/shared/test-utc.js`; verificada con `reports.service.spec.ts` | verde (30 oct); antes fallaba `getCashFlow › arma un renglon por mes del rango` |

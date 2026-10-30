@@ -26,6 +26,8 @@ const config: Config = {
     },
   },
   testEnvironment: 'node',
+  // Zona horaria fija (UTC) sin importar la de la máquina.
+  globalSetup: '<rootDir>/test/setup/utc.js',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     'pdfmake/src/printer': '<rootDir>/test/mocks/pdfmake-printer.js',
