@@ -76,6 +76,13 @@ dependencia externa (R-07).
 | 40804485827 | 28 oct | PR #85, regresión en rojo (0cfa450) | ~1 min | **rojo** | 3 casos nuevos fallan contra el código con DEF-07 y DEF-08: defecto real |
 | 40804889473 | 28 oct | PR #85, corrección (a1591b4) | 7 min | **rojo** solo en `integration-real` | 7 de 8 trabajos en verde, CP-55 a CP-58 incluidos. CP-52 falla por frescura: la API de series del INDEC no publica desde julio (último dato 2026-07-01, 120,09 días contra un tope de 120). Externo (R-07), no defecto propio |
 
+La clasificación de la ejecución 40804889473 se revisó el 30 de octubre: el
+INDEC sí había publicado agosto y septiembre, y lo que faltaba venía de la API
+de series de datos.gob.ar, que con `sort=desc` omite el último mes y va un mes
+atrás del CSV. La causa es externa, pero el módulo la dejaba pasar porque solo
+iba al CSV si la API fallaba. Se corrigió cambiando la fuente del IPC, sin
+tocar el tope de CP-52 (`07-integracion-externa.md`, última sección).
+
 ## Mejora medida antes y después
 
 Se eligió una mejora que se pueda medir con el mismo instrumento antes y

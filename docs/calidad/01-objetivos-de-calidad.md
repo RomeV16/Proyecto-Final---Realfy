@@ -49,8 +49,8 @@ distinto y los tres se verifican con datos del propio proyecto.
 ## Plan de contingencia ante la caída de una dependencia crítica
 
 La dependencia crítica del módulo es la obtención de índices desde el BCRA
-(ICL y UVA, `api.bcra.gob.ar`) y el INDEC (IPC, `apis.datos.gob.ar` con
-respaldo CSV en `infra.datos.gob.ar`). Sin índices no hay cálculo de ajuste
+(ICL y UVA, `api.bcra.gob.ar`) y el INDEC (IPC, CSV en `infra.datos.gob.ar`
+con la inflación mensual del BCRA de respaldo). Sin índices no hay cálculo de ajuste
 para las modalidades IPC, ICL y CCP. El riesgo está declarado en la tesis
 (tabla 38 del informe: "las fuentes de índices cambian de formato o de
 ritmo") y en `04-riesgos.md` como R-01 y R-02.

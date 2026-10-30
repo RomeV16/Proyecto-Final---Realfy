@@ -1,8 +1,9 @@
 # Integración externa: BCRA e INDEC
 
-Versión 1.0 — 20 de octubre de 2026. Documenta el contrato con las dos
+Versión 1.1 — 30 de octubre de 2026. Documenta el contrato con las dos
 plataformas externas que consume el módulo, cómo se prueba ese contrato con
-dobles y contra el entorno real, y qué encontró la primera ejecución real.
+dobles y contra el entorno real, qué encontró la primera ejecución real y
+por qué el IPC cambió de fuente (sección final).
 
 ## Fuentes
 
@@ -10,8 +11,12 @@ dobles y contra el entorno real, y qué encontró la primera ejecución real.
 |---|---|---|---|---|---|
 | ICL | BCRA | `GET https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias/40?desde=YYYY-MM-DD&hasta=YYYY-MM-DD` | JSON | Nivel (ej. 36,94) | Diaria |
 | UVA | BCRA | `GET .../Monetarias/31?desde=&hasta=` | JSON | Nivel en pesos (ej. 2159,10) | Diaria |
-| IPC | INDEC vía datos.gob.ar | `GET https://apis.datos.gob.ar/series/api/series/?ids=148.3_INIVELNAL_DICI_M_26&format=json&limit=24` | JSON | **Nivel** base dic-2016 = 100 (ej. 12514,15) | Mensual |
-| IPC (respaldo) | INDEC vía infra.datos.gob.ar | `GET .../indice-precios-al-consumidor-nivel-general-base-diciembre-2016-mensual.csv` | CSV | Columna 2: nivel; columna 9: variación mensual como fracción | Mensual |
+| IPC | INDEC vía infra.datos.gob.ar (dataset 145, distribución 145.3) | `GET https://infra.datos.gob.ar/catalog/sspm/dataset/145/distribution/145.3/download/indice-precios-al-consumidor-nivel-general-base-diciembre-2016-mensual.csv` | CSV | Columna 2: nivel base dic-2016 = 100; columna 9 (`ipc_ng_nacional_tasa_variacion_mensual`): variación mensual como fracción | Mensual |
+| IPC (respaldo) | BCRA | `GET .../Monetarias/27?desde=&hasta=` ("Inflación mensual") | JSON | Variación mensual en porcentaje con un decimal (ej. 1,9), fechada el último día del mes | Mensual |
+
+Hasta el 30 de octubre de 2026 el IPC se leía de la API de series de
+datos.gob.ar (`148.3_INIVELNAL_DICI_M_26`) con el CSV como respaldo. La API
+de series se dejó de usar; el motivo está en la última sección.
 
 Sin autenticación en ninguna. Agente de usuario `Mozilla/5.0 (compatible; IndexScraper/1.0)`. Tiempo máximo de espera 10 s por petición.
 
@@ -38,15 +43,48 @@ Sin autenticación en ninguna. Agente de usuario `Mozilla/5.0 (compatible; Index
 
 ### INDEC (IPC)
 
-```json
-{ "data": [ ["2016-12-01", 100.0], ["2017-01-01", 101.5859], ... ], "count": 119, "meta": [...], "params": {...} }
+```text
+indice_tiempo,ipc_ng_nacional,ipc_ng_gba,...,ipc_ng_nacional_tasa_variacion_mensual,...
+2026-09-01,12514.1508,12523.1733,...,0.01933610203208236,...
 ```
 
-- `data[]` de pares `[fecha ISO, valor]`.
-- La API admite `sort=desc` y `representation_mode=percent_change`. Con
-  esos parámetros devuelve la **variación mensual como fracción** (0,0211 =
-  2,11 %) de los últimos 24 meses, que es lo que el motor de ajustes espera
-  (en porcentaje).
+- Una fila por mes, con `indice_tiempo` en `YYYY-MM-01`.
+- La columna 9 (índice 8) es la **variación mensual como fracción** (0,0193 =
+  1,93 %), con todos los decimales. El módulo la pasa a porcentaje, que es lo
+  que el motor de ajustes espera, y se queda con los últimos 24 meses.
+- Antes de leer, el módulo verifica que la columna 9 se llame
+  `ipc_ng_nacional_tasa_variacion_mensual`: si el INDEC reordena el archivo,
+  no trae nada antes que traer otra serie.
+
+### BCRA (IPC de respaldo)
+
+```json
+{ "status": 200, "results": [ { "idVariable": 27, "detalle": [ { "fecha": "2026-09-30", "valor": 1.9 }, ... ] } ] }
+```
+
+- Mismo esquema que ICL y UVA. `fecha` es el último día del mes y `valor`
+  ya está en porcentaje, redondeado a un decimal como lo comunica el INDEC.
+- El mes se toma del texto de la fecha (`2026-09-30` → `2026-09`), sin pasar
+  por `Date`, para que la zona horaria no lo corra al mes siguiente.
+
+### Cómo se unen las dos fuentes del IPC
+
+Las dos se piden en paralelo y se unen por mes:
+
+1. Si un mes está en el CSV, vale el del CSV (variación completa).
+2. Si solo lo trae el BCRA, se usa el del BCRA. Pasa en las semanas entre
+   que el INDEC publica y que actualiza el archivo.
+3. Como la clave es el mes, ningún mes queda dos veces aunque lo traigan las
+   dos fuentes.
+4. Al guardar, una fila del BCRA solo se crea si el mes no existe: nunca pisa
+   un valor guardado. Una fila del CSV sí actualiza el valor, así que el mes
+   que entró con un decimal se reemplaza por la variación completa en cuanto
+   el CSV la publica.
+
+No hubo cambio de base: el CSV sigue en base diciembre de 2016 = 100 y es
+continuo, así que no hay empalme entre series distintas. Las variaciones del
+CSV, encadenadas, reproducen exactamente el cociente entre niveles; las del
+BCRA, por el redondeo, pueden diferir en hasta 0,05 puntos por mes.
 
 ## Lo que encontró la primera prueba contra el entorno real (19 oct 2026)
 
@@ -67,8 +105,8 @@ valores como 7045,47 y la prueba solo verificaba que se parsearan.
 
 | Nivel | Qué | Archivo | Comando | Cuándo corre |
 |---|---|---|---|---|
-| Contrato con dobles (CP-50) | El parser produce exactamente las filas esperadas a partir de respuestas reales grabadas el 19 de octubre de 2026 | `apps/api/test/integration/external.contract.spec.ts` con fixtures en `apps/api/test/fixtures/external/` | `pnpm --filter @realfy/api test:modulo` | Cada PR (trabajo `unit`) |
-| Contrato contra entorno real (CP-51, CP-52) | El BCRA y el INDEC responden 200 con el esquema esperado y datos recientes; la variante `percent_change` devuelve fracciones chicas | `apps/api/test/integration/external.real.spec.ts` | `pnpm --filter @realfy/api test:integracion-real` | Cada PR y cada push a `main` (trabajo `integration-real`) |
+| Contrato con dobles (CP-50) | El parser produce exactamente las filas esperadas a partir de respuestas reales grabadas el 19 de octubre de 2026 (la variable 27 del BCRA, el 30 de octubre) | `apps/api/test/integration/external.contract.spec.ts` con fixtures en `apps/api/test/fixtures/external/` | `pnpm --filter @realfy/api test:modulo` | Cada PR (trabajo `unit`) |
+| Contrato contra entorno real (CP-51, CP-52) | El BCRA (ICL, UVA e inflación mensual) y el CSV del INDEC responden 200 con el esquema esperado y datos recientes: el último mes del IPC, en las dos fuentes, tiene menos de 120 días | `apps/api/test/integration/external.real.spec.ts` | `pnpm --filter @realfy/api test:integracion-real` | Cada PR y cada push a `main` (trabajo `integration-real`) |
 | Flujo completo (CP-53, CP-54) | Refresco → listado → previsualización usando los índices obtenidos | `apps/api/test/e2e/index-data-scraper.e2e-spec.ts` | `pnpm --filter @realfy/api test:e2e:modulo` | Trabajo `e2e-api` |
 
 Las pruebas contra el entorno real reintentan tres veces con espera para
@@ -82,3 +120,28 @@ Las fixtures son respuestas reales, sin editar, salvo el CSV, que se
 recorta a la cabecera y las últimas 30 filas para no versionar 42 KB. Cada
 archivo lleva la fecha de captura en el nombre. Regrabarlas es parte del
 procedimiento cuando una prueba real detecta un cambio de contrato.
+
+## Cambio de fuente del IPC (30 oct 2026)
+
+El 28 de octubre el trabajo `integration-real` quedó en rojo porque CP-52
+encontró el IPC con julio como último mes (120,09 días contra un tope de
+120). Se clasificó como externo (R-07) pensando que el INDEC había dejado de
+publicar. No era así: el INDEC ya había publicado agosto (1,7 %) y, el 13 de
+octubre, septiembre (1,9 %). Lo que pasaba era del lado de la API de series de
+datos.gob.ar:
+
+| # | Hallazgo | Evidencia (30 oct 2026) |
+|---|---|---|
+| 1 | Con `representation_mode=percent_change` y `sort=desc`, la API **omite el último mes** que tiene | `…/series/?ids=148.3_INIVELNAL_DICI_M_26&representation_mode=percent_change&sort=desc&limit=3` empieza en 2026-07; el mismo pedido con orden ascendente y `start_date=2026-05-01` termina en 2026-08 |
+| 2 | La API va un mes atrás del CSV del mismo dataset | El nivel por la API termina en 2026-08 (12276,77); el CSV 145.3 ya traía 2026-09 (12514,15) el 19 de octubre, como muestra la fixture `indec-ipc-2026-10-19.csv` |
+| 3 | El módulo solo iba al CSV si la API fallaba o venía vacía | Una respuesta 200 con datos viejos ocultaba un respaldo más nuevo |
+
+Por eso el IPC pasó a leerse del CSV del INDEC, con la variable 27 del BCRA
+como respaldo, y la API de series se dejó de usar. CP-52 sigue con el mismo
+tope de 120 días, ahora medido sobre lo que el módulo efectivamente lee. La
+fixture `indec-series-pct-desc-2026-10-19.json` queda como registro del
+hallazgo 1 (CP-50).
+
+Si las dos fuentes fallaran a la vez, la pantalla **Configuración → Índices**
+permite cargar el IPC a mano, de a un mes o pegando varios desde una planilla.
+La carga manual tiene prioridad sobre el valor de sistema del mismo mes.

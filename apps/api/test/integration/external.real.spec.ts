@@ -8,13 +8,14 @@
  */
 const USER_AGENT = 'Mozilla/5.0 (compatible; IndexScraper/1.0)';
 const BCRA_BASE = 'https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias';
-const INDEC_SERIES = 'https://apis.datos.gob.ar/series/api/series/?ids=148.3_INIVELNAL_DICI_M_26&format=json';
 const INDEC_CSV =
   'https://infra.datos.gob.ar/catalog/sspm/dataset/145/distribution/145.3/download/indice-precios-al-consumidor-nivel-general-base-diciembre-2016-mensual.csv';
 
 const DAY_MS = 86_400_000;
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 const daysAgo = (iso: string) => (Date.now() - new Date(iso).getTime()) / DAY_MS;
+/** El dato más reciente del IPC se publica con hasta dos meses de rezago. */
+const IPC_MAX_AGE_DAYS = 120;
 
 async function fetchWithRetry(url: string, attempts = 3): Promise<{ status: number; body: string }> {
   let lastError: unknown;
@@ -68,44 +69,57 @@ describe('BCRA — API de estadísticas v4.0 (CP-51)', () => {
   });
 });
 
-describe('INDEC — API de series de datos.gob.ar (CP-52)', () => {
-  it('el pedido actual del módulo responde 200 con pares [fecha, valor]', async () => {
-    const { status, body } = await fetchWithRetry(`${INDEC_SERIES}&limit=24`);
+describe('BCRA — inflación mensual, respaldo del IPC (CP-51)', () => {
+  it('la variable 27 responde 200 con un dato por mes, en porcentaje y reciente', async () => {
+    const desde = isoDay(new Date(Date.now() - 800 * DAY_MS));
+    const { status, body } = await fetchWithRetry(`${BCRA_BASE}/27?desde=${desde}&hasta=${isoDay(new Date())}`);
 
     expect(status).toBe(200);
-    const json = JSON.parse(body);
-    expect(Array.isArray(json.data)).toBe(true);
-    expect(json.data).toHaveLength(24);
-    for (const [date, value] of json.data) {
-      expect(date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      expect(typeof value).toBe('number');
+    const detalle: { fecha: string; valor: number }[] = JSON.parse(body).results[0].detalle;
+    expect(detalle.length).toBeGreaterThanOrEqual(24);
+    const months = detalle.map((r) => r.fecha.slice(0, 7));
+    expect(new Set(months).size).toBe(months.length);
+    for (const row of detalle) {
+      expect(row.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(typeof row.valor).toBe('number');
+      // En porcentaje (1.9), no como fracción (0.019) ni como nivel.
+      expect(row.valor).toBeGreaterThan(-5);
+      expect(row.valor).toBeLessThan(30);
     }
+    const newest = months.sort().at(-1)!;
+    expect(daysAgo(`${newest}-01`)).toBeLessThan(IPC_MAX_AGE_DAYS);
   });
+});
 
-  it('con sort=desc y percent_change devuelve variaciones mensuales recientes como fracción', async () => {
-    const { status, body } = await fetchWithRetry(
-      `${INDEC_SERIES}&limit=24&sort=desc&representation_mode=percent_change`,
-    );
-
-    expect(status).toBe(200);
-    const data: [string, number][] = JSON.parse(body).data;
-    expect(data).toHaveLength(24);
-    // El dato más reciente del IPC se publica con hasta dos meses de rezago.
-    expect(daysAgo(data[0][0])).toBeLessThan(120);
-    for (const [, value] of data) {
-      expect(value).toBeGreaterThan(-0.05);
-      expect(value).toBeLessThan(0.3);
-    }
-  });
-
-  it('el CSV de respaldo responde 200 con la columna de variación mensual', async () => {
+describe('INDEC — CSV del IPC en datos.gob.ar (CP-52)', () => {
+  it('responde 200 con la columna de variación mensual donde el módulo la lee', async () => {
     const { status, body } = await fetchWithRetry(INDEC_CSV);
 
     expect(status).toBe(200);
-    const header = body.split('\n')[0].split(',');
+    const header = body.split('\n')[0].split(',').map((c) => c.trim());
     expect(header[0]).toBe('indice_tiempo');
     expect(header).toContain('ipc_ng_nacional');
-    expect(header).toContain('ipc_ng_nacional_tasa_variacion_mensual');
+    expect(header.indexOf('ipc_ng_nacional_tasa_variacion_mensual')).toBe(8);
     expect(body.trim().split('\n').length).toBeGreaterThan(100);
+  });
+
+  it('trae variaciones mensuales recientes como fracción', async () => {
+    const { body } = await fetchWithRetry(INDEC_CSV);
+
+    const rows = body
+      .trim()
+      .split('\n')
+      .slice(1)
+      .map((line) => line.split(','))
+      .filter((cols) => cols[8] !== undefined && cols[8].trim() !== '');
+    const last24 = rows.slice(-24);
+    expect(last24).toHaveLength(24);
+    expect(daysAgo(last24.at(-1)![0])).toBeLessThan(IPC_MAX_AGE_DAYS);
+    for (const cols of last24) {
+      expect(cols[0]).toMatch(/^\d{4}-\d{2}-01$/);
+      const value = Number(cols[8]);
+      expect(value).toBeGreaterThan(-0.05);
+      expect(value).toBeLessThan(0.3);
+    }
   });
 });

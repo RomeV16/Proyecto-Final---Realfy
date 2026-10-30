@@ -343,10 +343,42 @@ puerta de entrada del circuito de CRM.
 
 `/configuracion` reúne los datos de la inmobiliaria: nombre, CUIT, provincia,
 colores de marca y logo —los mismos que usa el micrositio público—. Editar es de
-Admin y Gerente; los demás la ven en modo lectura. Desde ahí se llega a las tres
-pantallas de configuración específicas: la fiscal (`/configuracion/fiscal`), las
-etapas del embudo (`/configuracion/pipeline`) y los pesos del puntaje de
-inquilinos (`/configuracion/scoring`).
+Admin y Gerente; los demás la ven en modo lectura. Desde ahí se llega a las
+cuatro pantallas de configuración específicas: la fiscal (`/configuracion/fiscal`),
+las etapas del embudo (`/configuracion/pipeline`), los pesos del puntaje de
+inquilinos (`/configuracion/scoring`) y los índices de ajuste
+(`/configuracion/indices`).
+
+### Índices de ajuste
+
+`/configuracion/indices` muestra el último valor de cada índice —IPC, ICL, UVA,
+CVS y CER— con su período y de dónde salió: INDEC, BCRA o carga manual. Si el
+último dato es más viejo de lo normal (un índice mensual sin el mes de hace dos
+meses, o uno diario con más de una semana), la tarjeta lo marca como
+desactualizado. Debajo está el historial de cada índice, de a 24 valores por
+página. La pantalla la ven Admin y Gerente; cargar, corregir y borrar es solo
+del Admin.
+
+El sistema trae solo, todos los días a las 6, el IPC, el ICL y la UVA. El IPC
+sale del archivo que publica el INDEC en datos.gob.ar; en los días entre que el
+INDEC anuncia el dato y actualiza ese archivo, se completa con la inflación
+mensual que publica el BCRA, redondeada a un decimal, y se reemplaza por el
+valor completo del INDEC en cuanto aparece. *Actualizar ahora* fuerza esa
+descarga sin esperar a la mañana siguiente. El CVS y el CER no se descargan: se
+cargan a mano.
+
+Para cargar o corregir un valor, *Cargar valor* (o el lápiz en una fila del
+historial). El IPC, el CVS y el CER se cargan como **variación mensual en
+porcentaje** —1,9 para una suba de 1,9 % en el mes—, por mes; el ICL y la UVA,
+como el **valor del índice** publicado ese día. Para cargar varios meses de una
+vez, *Pegar varios*: una línea por período, con el período, una coma, punto y
+coma o tabulación, y el valor (`2026-09, 1,9`). Se puede copiar directo de una
+planilla. La pantalla marca las líneas que no entiende y no guarda nada hasta
+que todas estén bien.
+
+Un valor cargado a mano tiene prioridad sobre el del sistema para el mismo
+índice y período, y vale solo para la inmobiliaria que lo cargó. Si después se
+lo borra, el ajuste vuelve a usar el valor del sistema.
 
 `/perfil` es la pantalla propia de cada usuario, donde edita su nombre y apellido
 y consulta su rol.
