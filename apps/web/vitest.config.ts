@@ -7,7 +7,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  esbuild: { jsx: 'automatic' },
   test: {
+    setupFiles: ['./test/setup.ts'],
     environment: 'node',
     include: ['src/**/*.{test,spec}.{ts,tsx}', 'test/**/*.{test,spec}.{ts,tsx}'],
     // La máquina de trabajo es chica: una sola corrida a la vez.
