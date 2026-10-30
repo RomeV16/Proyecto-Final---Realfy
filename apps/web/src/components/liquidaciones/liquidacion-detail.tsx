@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
@@ -104,6 +105,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const tMonths = useTranslations('liquidaciones.months');
   const tErrors = useTranslations('liquidaciones.errors');
   const tCommon = useTranslations('common');
+  const confirm = useConfirm();
   const { user } = useAuth();
   const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
@@ -152,7 +154,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
 
   async function handleTransition(targetStatus: LiquidacionStatus) {
     if (targetStatus === LiquidacionStatus.Anulada) {
-      if (!confirm(tTransitions('confirmAnulada'))) return;
+      if (!(await confirm({ body: tTransitions('confirmAnulada'), tone: 'danger' }))) return;
     }
     setActionLoading(targetStatus);
     setFeedback(null);
@@ -214,7 +216,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   }
 
   async function handleRemoveLineItem(lineItemId: string) {
-    if (!confirm(tLineItems('removeConfirm'))) return;
+    if (!(await confirm({ body: tLineItems('removeConfirm'), tone: 'danger' }))) return;
     setActionLoading('removeLineItem');
     setFeedback(null);
     try {

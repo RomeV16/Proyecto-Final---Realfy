@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
@@ -97,6 +98,7 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
   const tLineItems = useTranslations('renditions.lineItems');
   const tLineItemTypes = useTranslations('renditions.lineItemTypes');
   const tCommon = useTranslations('common');
+  const confirm = useConfirm();
   const { user } = useAuth();
   const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
@@ -165,7 +167,7 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
   }
 
   async function handleSendEmail() {
-    if (!rendition || !confirm(t('email.confirmSend'))) return;
+    if (!rendition || !(await confirm({ body: t('email.confirmSend') }))) return;
     setActionLoading('email');
     setFeedback(null);
     try {
@@ -226,7 +228,7 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
   }
 
   async function handleRemoveLineItem(itemId: string) {
-    if (!rendition || !confirm(t('lineItems.removeConfirm'))) return;
+    if (!rendition || !(await confirm({ body: t('lineItems.removeConfirm'), tone: 'danger' }))) return;
     setActionLoading('removeItem');
     setFeedback(null);
     try {
