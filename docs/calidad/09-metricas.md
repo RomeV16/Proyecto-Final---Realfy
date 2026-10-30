@@ -105,6 +105,12 @@ hallazgo: las pruebas unitarias deberían fijar `process.env.TZ` para ser
 reproducibles en cualquier máquina. Las pruebas nuevas del módulo usan
 fechas a mediodía UTC por esa razón (ver DEF-05).
 
+Seguimiento al 30 de octubre: Jest fija `TZ=UTC` en un `globalSetup` (CP-73). Con
+la zona de Buenos Aires en la shell, la suite completa de la API (807 casos)
+dejaba entonces un único caso en rojo, `ReportsService › getCashFlow › arma un
+renglon por mes del rango`; los de ARCA ya pasaban. Con el `globalSetup` los 807
+pasan en cualquier zona.
+
 ## Análisis estático
 
 - **ESLint** corre en el trabajo `lint` sobre los tres paquetes. Estado al

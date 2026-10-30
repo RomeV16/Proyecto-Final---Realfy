@@ -1,9 +1,10 @@
 # Manual de pruebas
 
-El proyecto tiene dos suites, con propósitos y requisitos distintos. Las
+El proyecto tiene tres suites, con propósitos y requisitos distintos. Las
 unitarias corren en memoria y no necesitan nada instalado; las de integración
-levantan la aplicación NestJS completa y pegan contra una base PostgreSQL real.
-Las dos corren en cada cambio contra `main`.
+levantan la aplicación NestJS completa y pegan contra una base PostgreSQL real;
+las de la aplicación web prueban funciones puras y los catálogos de mensajes.
+Todas corren en cada cambio contra `main`, junto con el control de tipos.
 
 ## Pruebas unitarias
 
@@ -45,6 +46,22 @@ no lógica de dominio:
 Las plantillas de PDF se sustituyen por dobles (`test/mocks/`) para que las
 pruebas no dependan de la carga de fuentes.
 
+### Zona horaria fija
+
+Jest fija `TZ=UTC` en un `globalSetup` (`apps/api/test/setup/utc.js` y
+`packages/shared/test-utc.js`), sin importar la zona de la máquina. Los cálculos
+de períodos y vencimientos dependen de ella: antes de fijarla, la prueba de flujo
+de caja de `reports.service.spec.ts` fallaba en una máquina con
+`America/Argentina/Buenos_Aires` y pasaba en el pipeline (UTC). Es el hallazgo
+registrado en `docs/calidad/09-metricas.md`, y ahora lo cubre CP-73. El mismo
+`globalSetup` aplica a las pruebas del módulo, a las de contrato y a las de
+integración.
+
+Fijar la zona hace reproducibles las pruebas, pero no vuelve correcto el código en
+otra zona: el servicio de reportes sigue sin tener un caso verde con la zona
+local de Buenos Aires, y por eso no hay un script que corra las unitarias con esa
+zona.
+
 ### Cobertura
 
 ```bash
@@ -58,6 +75,36 @@ unos puntos por debajo de lo que las suites cubren hoy —la medición al fijarl
 sentencias, y la última medición da 42,44 %, 43,52 %, 32,28 % y 42,40 %—, de modo que la integración continua se pone en rojo cuando la
 cobertura baja, no cuando alguien no llega a un número aspiracional. Si el piso
 se sube, tiene que ser porque la cobertura real subió primero.
+
+## Pruebas de la aplicación web
+
+La web usa [vitest](https://vitest.dev) (entorno `node`, el alias `@/` apunta a
+`src/`). Por ahora prueba solo funciones puras de `src/lib` y los catálogos de
+mensajes; no hay pruebas de componentes ni de navegador.
+
+```bash
+pnpm --filter @realfy/web test            # una corrida
+pnpm --filter @realfy/web test:coverage   # con cobertura (lcov y resumen JSON en apps/web/coverage)
+```
+
+- Las pruebas de `lib` viven al lado del código, con la terminación `.test.ts`.
+- `apps/web/test/i18n-parity.spec.ts` es **CP-72**: aplana `es.json` y `en.json`,
+  exige que tengan exactamente las mismas claves y que ninguna tenga el texto
+  vacío. Si falla, el mensaje lista las claves que faltan en cada idioma.
+
+## Control de tipos
+
+La compilación de Nest y la de `tsc` excluyen los archivos de prueba, de modo que
+un error de tipos en un spec solo aparecía al ejecutarlo. Cada paquete tiene un
+`tsconfig.typecheck.json` que los incluye y un script:
+
+```bash
+pnpm typecheck      # los tres paquetes, vía turbo
+pnpm --filter @realfy/api typecheck
+```
+
+En la API se necesita el paquete compartido compilado y el cliente de Prisma
+generado.
 
 ## Pruebas de integración
 
@@ -143,21 +190,37 @@ son de nivel HTTP contra la API real, no recorridos de interfaz.
 
 El flujo de trabajo es `.github/workflows/ci.yml`, y corre en cada empuje a
 `main` y en cada pedido de incorporación de cambios hacia `main`. Usa Node 22 y
-pnpm con caché, cancela las corridas anteriores de la misma rama, y son cinco
-trabajos.
+pnpm con caché, cancela las corridas anteriores de la misma rama, y son ocho
+trabajos: Lint, Build, Unit Tests & Coverage, SonarCloud & Quality Gate,
+External contract, Ephemeral deploy, Migrations from scratch y API E2E Tests.
 
-**Lint.** Instala, compila el paquete compartido, genera el cliente de Prisma y
-corre el linter sobre todos los paquetes. Los dos pasos previos no son
-decorativos: el linter resuelve tipos que provienen de ahí, y sin ellos falla por
-tipos inexistentes.
+**Lint.** Instala, compila el paquete compartido, genera el cliente de Prisma,
+corre el linter sobre todos los paquetes y después el control de tipos
+(`pnpm -r typecheck`), que incluye los archivos de prueba. Los dos pasos previos
+no son decorativos: el linter y `tsc` resuelven tipos que provienen de ahí, y sin
+ellos fallan por tipos inexistentes.
 
 **Build.** Compila el paquete compartido, genera el cliente de Prisma y compila
 la API y la web. Es el trabajo que atrapa los errores de tipos.
 
-**Unit Tests & Coverage.** Corre las unitarias de la API con cobertura, y después las del paquete compartido, con lo cual el piso
-declarado en la configuración de Jest se convierte en una condición de la
-integración continua. El reporte HTML se sube como artefacto y se conserva
+**Unit Tests & Coverage.** Corre las unitarias de la API con cobertura, las del
+módulo de índices, las del paquete compartido y las de la web, todo con `TZ=UTC`,
+con lo cual el piso declarado en la configuración de Jest se convierte en una
+condición de la integración continua. Los reportes (LCOV y HTML de la API, el
+módulo, la web y el paquete compartido) se suben como artefacto y se conservan
 catorce días.
+
+**SonarCloud & Quality Gate.** Depende de las unitarias: descarga los LCOV,
+corre el análisis y bloquea el cambio si el quality gate falla
+(`docs/calidad/08-herramienta-sonarcloud.md`).
+
+**External contract (BCRA / INDEC).** Depende de las unitarias y pega a los
+servicios reales para verificar que el contrato asumido siga vigente. Está en
+rojo desde el 28 de octubre por una causa externa documentada en
+`docs/calidad/`.
+
+**Ephemeral deploy, smoke & stress.** Construye la imagen de `Dockerfile.api`,
+la arranca contra una base vacía y corre el smoke y las pruebas de carga con k6.
 
 **Migrations from scratch.** Levanta un PostgreSQL 16 como servicio, valida el
 esquema y aplica **todas** las migraciones sobre una base vacía. Después corre
@@ -175,8 +238,8 @@ pasaron. Levanta PostgreSQL 16, aplica las migraciones y corre la suite de
 integración con `NODE_ENV=test`, `RATE_LIMIT_DISABLED=1` y secretos de sesión
 propios del entorno de integración.
 
-Los cinco trabajos tienen tiempo máximo declarado —quince minutos, veinticinco el
-de integración— para que una prueba colgada no ocupe la cola indefinidamente.
+Los ocho trabajos tienen tiempo máximo declarado —quince minutos, veinticinco el
+de integración y treinta el del despliegue efímero— para que una prueba colgada no ocupe la cola indefinidamente.
 
 ## Escribir una prueba nueva
 

@@ -31,6 +31,8 @@ el módulo: la lectura de índices.
 | Unitario | Cada servicio con sus dependencias sustituidas; el motor de cálculo con valores conocidos | Ninguna | `apps/api/src/modules/index-data/*.spec.ts`, `packages/shared/src/adjustment-engine/*.spec.ts` | `pnpm --filter @realfy/api test:modulo` |
 | Integración (API) | Los endpoints por HTTP con guards, filtro de inmobiliaria y Postgres real | PostgreSQL 16 | `apps/api/test/e2e/index-data.e2e-spec.ts`, `index-data-scraper.e2e-spec.ts` | `pnpm --filter @realfy/api test:e2e:modulo` |
 | Integración externa | El contrato con BCRA e INDEC: respuesta grabada (doble) y respuesta real | Red | `apps/api/test/integration/*.spec.ts` | `pnpm --filter @realfy/api test:integracion-real` |
+| Unitario (web) | Funciones puras de `apps/web/src/lib` y paridad de claves i18n (CP-72) | Ninguna | `apps/web/src/lib/*.test.ts`, `apps/web/test/*.spec.ts` | `pnpm --filter @realfy/web test` |
+| Control de tipos | Que los archivos de prueba también compilen (la compilación normal los excluye) | Paquete compartido compilado, cliente de Prisma generado | `tsconfig.typecheck.json` de cada paquete | `pnpm typecheck` |
 | Smoke | Que un despliegue nuevo arranca, conecta a la base y sirve el módulo | Instancia desplegada | `apps/api/test/smoke/` | `pnpm --filter @realfy/api test:smoke` |
 | Stress y esfuerzo sostenido | Que la consulta de índices aguanta carga y no degrada en el tiempo | Instancia desplegada | `apps/api/test/load/*.js` | `pnpm --filter @realfy/api test:stress` |
 
@@ -44,7 +46,7 @@ stress no cuentan en la pirámide: miden capacidad, no corrección.
 
 | Suite | Criterio |
 |---|---|
-| Unitaria | El paquete compartido compila y el cliente de Prisma está generado |
+| Unitaria | El paquete compartido compila y el cliente de Prisma está generado; las pruebas corren con `TZ=UTC` fijada por Jest (CP-73) |
 | Integración | Migraciones aplicadas sobre una base vacía sin error (`prisma migrate deploy`) y `prisma migrate diff` sin diferencias |
 | Externa | Las unitarias e integración están en verde; hay salida a Internet |
 | Smoke | El despliegue respondió `200` en `/api/health` con `db: connected` |
