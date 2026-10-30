@@ -178,9 +178,10 @@ de plantillas y el de comisiones.
 |---|---|---|---|
 | GET | `/contracts` | Listado filtrable. | Autenticado |
 | GET | `/contracts/:id` | Detalle con partes, garantías, ajustes y comisión. | Autenticado |
-| POST | `/contracts` | Alta. | Admin, Gerente, Ventas |
-| PATCH | `/contracts/:id` | Edición. | Admin, Gerente, Ventas |
-| POST | `/contracts/:id/terminate` | Rescinde el contrato y produce el resumen de cierre. | Admin, Gerente |
+| POST | `/contracts` | Alta, en `Borrador` por defecto. Con `status: Activo` se crea ya activado y pasa por las mismas validaciones que `/activate`. | Admin, Gerente, Ventas |
+| PATCH | `/contracts/:id` | Edición. Los cambios de estado respetan la máquina de estados del contrato; pasar a `Activo` se hace con `/activate` (`ACTIVATION_REQUIRED`). | Admin, Gerente, Ventas |
+| POST | `/contracts/:id/activate` | `Borrador` → `Activo`. Valida propiedad, propietario e inquilino, fechas y que no haya otro alquiler activo de la propiedad con fechas superpuestas; si falla responde `CONTRACT_NOT_ACTIVATABLE` con la lista `problems`. Deja la operación de alquiler de la propiedad en `Alquilado`. | Admin, Gerente, Ventas |
+| POST | `/contracts/:id/terminate` | Rescinde el contrato y produce el resumen de cierre. Si era el último alquiler activo, la operación de alquiler de la propiedad vuelve a `Disponible`. | Admin, Gerente |
 | GET | `/contracts/:id/adjustments` | Cronograma de ajustes. | Autenticado |
 | POST | `/contracts/:id/adjustments/calculate` | Calcula el ajuste pendiente. | Admin, Gerente, Ventas |
 | POST | `/contracts/:id/adjustments/:adjId/apply` | Aplica un ajuste calculado. | Admin, Gerente |

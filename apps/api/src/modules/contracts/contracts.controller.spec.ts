@@ -1,5 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ExecutionContext,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { UserRole } from '@realfy/shared';
+import { RbacGuard } from '../../common/auth/rbac.guard';
 import { ContractsController } from './contracts.controller';
 import { ContractsService } from './contracts.service';
 import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
@@ -32,6 +40,7 @@ function buildMocks() {
     create: jest.fn().mockResolvedValue(MOCK_CONTRACT),
     update: jest.fn().mockResolvedValue({ ...MOCK_CONTRACT, status: 'Renovado' }),
     terminate: jest.fn().mockResolvedValue({ ...MOCK_CONTRACT, status: 'Rescindido', isActive: false }),
+    activate: jest.fn().mockResolvedValue({ ...MOCK_CONTRACT, status: 'Activo', isActive: true }),
     calculateAdjustment: jest.fn().mockResolvedValue({ factor: 1.1, projectedRent: '55000.00' }),
     applyAdjustment: jest.fn().mockResolvedValue({ id: 'adj-001', applied: true }),
     findAdjustments: jest.fn().mockResolvedValue([]),
@@ -136,6 +145,26 @@ describe('ContractsController', () => {
     });
   });
 
+  // ─── POST /contracts/:id/activate ────────────────────────────────────────
+
+  describe('POST /contracts/:id/activate', () => {
+    it('activa el contrato y devuelve el detalle', async () => {
+      const result = await controller.activate(CONTRACT_ID);
+      expect(result).toMatchObject({ status: 'Activo' });
+      expect(mocks.contractsService.activate).toHaveBeenCalledWith(CONTRACT_ID);
+    });
+
+    it('propaga los motivos por los que no se puede activar', async () => {
+      mocks.contractsService.activate.mockRejectedValueOnce(
+        new BadRequestException({
+          error: 'CONTRACT_NOT_ACTIVATABLE',
+          problems: [{ code: 'MISSING_INQUILINO' }],
+        }),
+      );
+      await expect(controller.activate(CONTRACT_ID)).rejects.toThrow(BadRequestException);
+    });
+  });
+
   // ─── POST /contracts/:id/terminate ───────────────────────────────────────
 
   describe('POST /contracts/:id/terminate', () => {
@@ -192,6 +221,67 @@ describe('ContractsController', () => {
       expect(result).toHaveProperty('factor');
       expect(result).toHaveProperty('projectedRent');
       expect(mocks.contractAdjustmentService.preview).toHaveBeenCalledWith(CONTRACT_ID);
+    });
+  });
+
+  // ─── Roles ────────────────────────────────────────────────────────────────
+
+  describe('roles (RbacGuard real sobre la metadata de @Roles)', () => {
+    const guard = new RbacGuard(new Reflector());
+
+    function contextFor(handler: (...args: any[]) => unknown, role: UserRole) {
+      return {
+        getHandler: () => handler,
+        getClass: () => ContractsController,
+        switchToHttp: () => ({ getRequest: () => ({ user: { role } }) }),
+      } as unknown as ExecutionContext;
+    }
+
+    const activate = ContractsController.prototype.activate;
+    const create = ContractsController.prototype.create;
+    const terminate = ContractsController.prototype.terminate;
+
+    it.each([UserRole.Admin, UserRole.Gerente, UserRole.Ventas])(
+      '%s puede activar un contrato',
+      (role) => {
+        expect(guard.canActivate(contextFor(activate, role))).toBe(true);
+      },
+    );
+
+    it.each([
+      UserRole.Liquidaciones,
+      UserRole.Marketing,
+      UserRole.Soporte,
+      UserRole.Lectura,
+    ])('%s no puede activar un contrato', (role) => {
+      expect(() => guard.canActivate(contextFor(activate, role))).toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('activar exige los mismos roles que crear', () => {
+      for (const role of Object.values(UserRole)) {
+        let canCreate = true;
+        let canActivate = true;
+        try {
+          guard.canActivate(contextFor(create, role));
+        } catch {
+          canCreate = false;
+        }
+        try {
+          guard.canActivate(contextFor(activate, role));
+        } catch {
+          canActivate = false;
+        }
+        expect(canActivate).toBe(canCreate);
+      }
+    });
+
+    it('Ventas activa pero no rescinde', () => {
+      expect(guard.canActivate(contextFor(activate, UserRole.Ventas))).toBe(true);
+      expect(() => guard.canActivate(contextFor(terminate, UserRole.Ventas))).toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

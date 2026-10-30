@@ -19,9 +19,16 @@ import {
   AdjustmentType,
   AdjustmentPeriod,
   ContractStatus,
+  ContractType,
+  PersonRole,
+  PropertyOperationType,
+  PropertyState,
   ScheduleStatus,
   IndexType,
   calculateAdjustment,
+  findTransitionPath,
+  getValidContractTransitions,
+  validateContractTransition,
 } from '@realfy/shared';
 import type { AdjustmentParams } from '@realfy/shared';
 import Decimal from 'decimal.js';
@@ -39,6 +46,44 @@ function isZodError(err: unknown): err is { errors: any[] } {
     (err as any).name === 'ZodError' &&
     'errors' in err
   );
+}
+
+/**
+ * Motivo por el que un contrato no se puede activar. `code` es estable y es lo
+ * que la web traduce; el resto es contexto para armar el mensaje.
+ */
+export interface ActivationProblem {
+  code:
+    | 'PROPERTY_NOT_FOUND'
+    | 'PROPERTY_INACTIVE'
+    | 'MISSING_INQUILINO'
+    | 'MISSING_PROPIETARIO'
+    | 'INVALID_DATES'
+    | 'OVERLAPPING_CONTRACT'
+    | 'RENTAL_OPERATION_ARCHIVED';
+  contractId?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+/** Datos del contrato que intervienen en la activación. */
+export interface ActivationCandidate {
+  id?: string;
+  propertyId: string;
+  contractType: string;
+  startDate: Date;
+  endDate: Date;
+  roles: string[];
+}
+
+/** Los contratos que no son de venta necesitan inquilino además de propietario. */
+function requiresInquilino(contractType: string): boolean {
+  return contractType !== ContractType.Venta;
+}
+
+/** Sólo el alquiler tradicional ocupa la operación de alquiler de la propiedad. */
+function occupiesRentalOperation(contractType: string): boolean {
+  return contractType === ContractType.Alquiler;
 }
 
 /**
@@ -312,6 +357,21 @@ export class ContractsService {
         });
       }
 
+      // Crear un contrato ya activo es crearlo y activarlo: pasa por las mismas
+      // reglas y ocupa la propiedad. Si algo falla, no queda nada creado.
+      if (validated.status === ContractStatus.Activo) {
+        const candidate: ActivationCandidate = {
+          id: created.id,
+          propertyId: validated.propertyId,
+          contractType: validated.contractType,
+          startDate: new Date(validated.startDate),
+          endDate: new Date(validated.endDate),
+          roles: validated.persons.map((p: { role: string }) => p.role),
+        };
+        await this.assertActivatable(tx, candidate);
+        await this.occupyProperty(tx, tenantId, candidate);
+      }
+
       return created;
     });
 
@@ -365,6 +425,19 @@ export class ContractsService {
       });
     }
 
+    const statusChanges =
+      validated.status !== undefined && validated.status !== existing.status;
+    if (statusChanges) {
+      // La activación tiene sus propias validaciones y efectos: no se hace por PATCH.
+      if (validated.status === ContractStatus.Activo) {
+        throw new BadRequestException({
+          error: 'ACTIVATION_REQUIRED',
+          message: 'Use POST /contracts/:id/activate to activate a contract',
+        });
+      }
+      this.assertTransition(existing.status, validated.status);
+    }
+
     const tenantId = this.tenantContext.getTenantId()!;
 
     // If dates or adjustment config changed, recalculate schedule
@@ -379,9 +452,34 @@ export class ContractsService {
       isClosedStatus(validated.status) &&
       !isClosedStatus(existing.status);
 
-    await this.prisma.client.contract.update({
-      where: { id },
-      data: justClosed ? { ...validated, closedAt: new Date() } : validated,
+    // Un contrato activo que deja de estarlo libera la propiedad.
+    const leavesActive =
+      statusChanges && existing.status === ContractStatus.Activo;
+    // Extender un contrato activo no puede pisar a otro alquiler activo.
+    const extendsActive =
+      !statusChanges &&
+      existing.status === ContractStatus.Activo &&
+      validated.endDate !== undefined &&
+      occupiesRentalOperation(existing.contractType);
+
+    await this.prisma.client.$transaction(async (tx: any) => {
+      if (extendsActive) {
+        await this.assertNoOverlap(tx, {
+          id,
+          propertyId: existing.propertyId,
+          startDate: existing.startDate,
+          endDate: new Date(validated.endDate),
+        });
+      }
+
+      await tx.contract.update({
+        where: { id },
+        data: justClosed ? { ...validated, closedAt: new Date() } : validated,
+      });
+
+      if (leavesActive) {
+        await this.releaseProperty(tx, existing);
+      }
     });
 
     if (datesChanged) {
@@ -458,13 +556,21 @@ export class ContractsService {
       });
     }
 
-    await this.prisma.client.contract.update({
-      where: { id },
-      data: {
-        status: ContractStatus.Rescindido,
-        isActive: false,
-        closedAt: new Date(),
-      },
+    this.assertTransition(existing.status, ContractStatus.Rescindido);
+
+    await this.prisma.client.$transaction(async (tx: any) => {
+      await tx.contract.update({
+        where: { id },
+        data: {
+          status: ContractStatus.Rescindido,
+          isActive: false,
+          closedAt: new Date(),
+        },
+      });
+
+      if (existing.status === ContractStatus.Activo) {
+        await this.releaseProperty(tx, existing);
+      }
     });
 
     // Mark all pending schedules as Skipped
@@ -485,6 +591,277 @@ export class ContractsService {
     this.summarizeClosure(tenantId, id);
 
     return this.findOne(id);
+  }
+
+  // ─── Activate ───────────────────────────────────────
+
+  /**
+   * Borrador → Activo. Valida que el contrato esté completo y no choque con
+   * otro alquiler activo de la misma propiedad, y en la misma transacción
+   * deja la operación de alquiler de la propiedad en Alquilado.
+   */
+  async activate(id: string) {
+    const existing = await this.prisma.client.contract.findFirst({
+      where: { id },
+      include: { persons: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException({
+        error: 'CONTRACT_NOT_FOUND',
+        message: 'Contract not found',
+      });
+    }
+
+    this.assertTransition(existing.status, ContractStatus.Activo);
+
+    const tenantId = this.tenantContext.getTenantId()!;
+    const candidate: ActivationCandidate = {
+      id,
+      propertyId: existing.propertyId,
+      contractType: existing.contractType,
+      startDate: existing.startDate,
+      endDate: existing.endDate,
+      roles: (existing.persons ?? []).map((p: { role: string }) => p.role),
+    };
+
+    await this.prisma.client.$transaction(async (tx: any) => {
+      await this.assertActivatable(tx, candidate);
+      await tx.contract.update({
+        where: { id },
+        data: { status: ContractStatus.Activo, isActive: true },
+      });
+      await this.occupyProperty(tx, tenantId, candidate);
+    });
+
+    this.logger.log('Activated contract', {
+      contractId: id,
+      tenantId,
+      propertyId: existing.propertyId,
+    });
+
+    return this.findOne(id);
+  }
+
+  private assertTransition(from: string, to: string): void {
+    if (!validateContractTransition(from as ContractStatus, to as ContractStatus)) {
+      throw new BadRequestException({
+        error: 'INVALID_TRANSITION',
+        message: `Cannot transition from ${from} to ${to}`,
+        currentStatus: from,
+        validTransitions: getValidContractTransitions(from as ContractStatus),
+      });
+    }
+  }
+
+  /**
+   * Junta todos los motivos por los que el contrato no puede quedar activo,
+   * para que quien lo carga los corrija de una vez en lugar de ir
+   * descubriéndolos de a uno.
+   */
+  private async activationProblems(
+    tx: any,
+    candidate: ActivationCandidate,
+  ): Promise<ActivationProblem[]> {
+    const problems: ActivationProblem[] = [];
+
+    const property = await tx.property.findFirst({
+      where: { id: candidate.propertyId },
+    });
+    if (!property) {
+      problems.push({ code: 'PROPERTY_NOT_FOUND' });
+    } else if (property.isActive === false) {
+      problems.push({ code: 'PROPERTY_INACTIVE' });
+    }
+
+    if (!candidate.roles.includes(PersonRole.Propietario)) {
+      problems.push({ code: 'MISSING_PROPIETARIO' });
+    }
+    if (
+      requiresInquilino(candidate.contractType) &&
+      !candidate.roles.includes(PersonRole.Inquilino)
+    ) {
+      problems.push({ code: 'MISSING_INQUILINO' });
+    }
+
+    const datesValid =
+      candidate.endDate.getTime() > candidate.startDate.getTime();
+    if (!datesValid) {
+      problems.push({ code: 'INVALID_DATES' });
+    }
+
+    if (property && occupiesRentalOperation(candidate.contractType)) {
+      if (datesValid) {
+        problems.push(...(await this.overlapProblems(tx, candidate)));
+      }
+
+      const operation = await tx.propertyOperation.findFirst({
+        where: {
+          propertyId: candidate.propertyId,
+          operationType: PropertyOperationType.Alquiler,
+        },
+      });
+      if (
+        operation &&
+        findTransitionPath(
+          PropertyOperationType.Alquiler,
+          operation.state as PropertyState,
+          PropertyState.Alquilado,
+        ) === null
+      ) {
+        problems.push({ code: 'RENTAL_OPERATION_ARCHIVED' });
+      }
+    }
+
+    return problems;
+  }
+
+  /**
+   * Alquileres activos de la misma propiedad cuyas fechas se pisan con las del
+   * contrato. Se pisan si uno empieza antes de que el otro termine; que uno
+   * termine el mismo día en que empieza el siguiente no es pisarse.
+   */
+  private async overlapProblems(
+    tx: any,
+    candidate: Pick<ActivationCandidate, 'id' | 'propertyId' | 'startDate' | 'endDate'>,
+  ): Promise<ActivationProblem[]> {
+    const overlapping = await tx.contract.findMany({
+      where: {
+        propertyId: candidate.propertyId,
+        contractType: ContractType.Alquiler,
+        status: ContractStatus.Activo,
+        ...(candidate.id ? { id: { not: candidate.id } } : {}),
+        startDate: { lt: candidate.endDate },
+        endDate: { gt: candidate.startDate },
+      },
+      select: { id: true, startDate: true, endDate: true },
+      orderBy: { startDate: 'asc' },
+    });
+
+    return overlapping.map(
+      (other: { id: string; startDate: Date; endDate: Date }) => ({
+        code: 'OVERLAPPING_CONTRACT' as const,
+        contractId: other.id,
+        startDate: other.startDate,
+        endDate: other.endDate,
+      }),
+    );
+  }
+
+  private throwNotActivatable(problems: ActivationProblem[]): never {
+    throw new BadRequestException({
+      error: 'CONTRACT_NOT_ACTIVATABLE',
+      message: `Contract cannot be activated: ${problems.map((p) => p.code).join(', ')}`,
+      problems,
+    });
+  }
+
+  private async assertActivatable(
+    tx: any,
+    candidate: ActivationCandidate,
+  ): Promise<void> {
+    const problems = await this.activationProblems(tx, candidate);
+    if (problems.length > 0) this.throwNotActivatable(problems);
+  }
+
+  private async assertNoOverlap(
+    tx: any,
+    candidate: Pick<ActivationCandidate, 'id' | 'propertyId' | 'startDate' | 'endDate'>,
+  ): Promise<void> {
+    const problems = await this.overlapProblems(tx, candidate);
+    if (problems.length > 0) this.throwNotActivatable(problems);
+  }
+
+  /**
+   * Deja la operación de alquiler de la propiedad en Alquilado, recorriendo
+   * transiciones válidas de la máquina de estados de la propiedad. Si la
+   * propiedad no tenía operación de alquiler, la crea ya alquilada: es el
+   * mismo lugar al que llega un alta en Borrador que pasa por Disponible y
+   * Reservado.
+   */
+  private async occupyProperty(
+    tx: any,
+    tenantId: string,
+    candidate: ActivationCandidate,
+  ): Promise<void> {
+    if (!occupiesRentalOperation(candidate.contractType)) return;
+
+    const operation = await tx.propertyOperation.findFirst({
+      where: {
+        propertyId: candidate.propertyId,
+        operationType: PropertyOperationType.Alquiler,
+      },
+    });
+
+    if (!operation) {
+      await tx.propertyOperation.create({
+        data: {
+          tenantId,
+          propertyId: candidate.propertyId,
+          operationType: PropertyOperationType.Alquiler,
+          state: PropertyState.Alquilado,
+        },
+      });
+      this.logger.log(
+        `Rental operation created as Alquilado: propertyId=${candidate.propertyId} contractId=${candidate.id}`,
+      );
+      return;
+    }
+
+    const from = operation.state as PropertyState;
+    const path = findTransitionPath(
+      PropertyOperationType.Alquiler,
+      from,
+      PropertyState.Alquilado,
+    );
+    // null ya se rechazó al validar; [] es que ya estaba alquilada.
+    if (!path || path.length === 0) return;
+
+    await tx.propertyOperation.update({
+      where: { id: operation.id },
+      data: { state: PropertyState.Alquilado },
+    });
+    this.logger.log(
+      `State transition: operationId=${operation.id} ${[from, ...path].join(' → ')} (contractId=${candidate.id})`,
+    );
+  }
+
+  /**
+   * Devuelve la operación de alquiler a Disponible cuando el contrato que deja
+   * de estar activo era el último alquiler activo de la propiedad. Si alguien
+   * ya movió la operación a otro estado, se respeta.
+   */
+  private async releaseProperty(
+    tx: any,
+    contract: { id: string; propertyId: string; contractType: string },
+  ): Promise<void> {
+    if (!occupiesRentalOperation(contract.contractType)) return;
+
+    const stillActive = await tx.contract.count({
+      where: {
+        propertyId: contract.propertyId,
+        contractType: ContractType.Alquiler,
+        status: ContractStatus.Activo,
+        id: { not: contract.id },
+      },
+    });
+    if (stillActive > 0) return;
+
+    const operation = await tx.propertyOperation.findFirst({
+      where: {
+        propertyId: contract.propertyId,
+        operationType: PropertyOperationType.Alquiler,
+      },
+    });
+    if (!operation || operation.state !== PropertyState.Alquilado) return;
+
+    await tx.propertyOperation.update({
+      where: { id: operation.id },
+      data: { state: PropertyState.Disponible },
+    });
+    this.logger.log(
+      `State transition: operationId=${operation.id} Alquilado → Disponible (contractId=${contract.id})`,
+    );
   }
 
   /**
