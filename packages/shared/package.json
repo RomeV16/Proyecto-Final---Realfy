@@ -22,7 +22,8 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "lint": "eslint \"src/**/*.ts\"",
-    "test": "jest"
+    "test": "jest",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
     "decimal.js": "^10.6.0",

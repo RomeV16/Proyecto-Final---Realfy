@@ -17,6 +17,7 @@
     "test:stress": "k6 run test/load/stress.js",
     "test:soak": "k6 run test/load/soak.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
   },
   "dependencies": {
