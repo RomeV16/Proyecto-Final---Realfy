@@ -9,7 +9,7 @@ import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
-import { INDEX_TYPES, granularityOf, parseBulk } from './index-values';
+import { INDEX_TYPES, granularityOf, parseBulk } from '@/lib/index-values';
 
 interface BulkPasteDialogProps {
   open: boolean;

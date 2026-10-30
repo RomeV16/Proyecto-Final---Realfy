@@ -27,7 +27,7 @@ import {
   type IndexDataRow,
   type LatestEntry,
   type RowOrigin,
-} from './index-values';
+} from '@/lib/index-values';
 import { IndexValueDialog, type IndexValueDraft } from './index-value-dialog';
 import { BulkPasteDialog } from './bulk-paste-dialog';
 

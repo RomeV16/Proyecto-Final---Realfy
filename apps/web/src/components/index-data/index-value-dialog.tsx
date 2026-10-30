@@ -16,7 +16,7 @@ import {
   isPercent,
   toDecimalString,
   toPeriodIso,
-} from './index-values';
+} from '@/lib/index-values';
 
 export interface IndexValueDraft {
   indexType: IndexType;
