@@ -23,6 +23,7 @@
     "dev": "tsc --watch",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest",
+    "test:coverage": "jest --coverage",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
