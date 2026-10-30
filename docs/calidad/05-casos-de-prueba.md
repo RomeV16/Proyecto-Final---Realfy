@@ -147,7 +147,7 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 |---|---|---|---|---|
 | CP-50 | BCRA ICL y UVA, INDEC JSON y CSV, respuestas grabadas el 19 oct 2026 | el parser produce las filas esperadas; la fixture del INDEC evidencia DEF-06 | `test/integration/external.contract.spec.ts` (5 casos) | verde |
 | CP-51 | BCRA v4.0 variable 40 y 31, entorno real | HTTP 200, `results[0].detalle[]` con `fecha` ISO y `valor` numérico en rango, ≥ 30 filas, la más reciente de menos de 10 días | `test/integration/external.real.spec.ts` | verde (19 oct) |
-| CP-52 | INDEC series y CSV, entorno real | HTTP 200, `data[]` de pares `[fecha, valor]`; con `sort=desc&representation_mode=percent_change` fracciones recientes; CSV con columna de variación | `test/integration/external.real.spec.ts` (3 casos) | verde (19 oct) |
+| CP-52 | IPC en entorno real: CSV del INDEC y variable 27 del BCRA | HTTP 200; CSV con la columna de variación mensual en la posición 9 y su último mes con menos de 120 días; BCRA con un dato por mes, en porcentaje, y su último mes con menos de 120 días | `test/integration/external.real.spec.ts` (3 casos) | rojo (28 oct, API de series); verde (30 oct, con las fuentes nuevas) |
 
 ## Smoke y carga
 
