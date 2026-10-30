@@ -14,6 +14,8 @@ export class ApiRequestError extends Error {
     public statusCode: number,
     public errorCode: string,
     message: string,
+    /** Cuerpo completo de la respuesta: trae el contexto que agrega la API (p. ej. `problems`). */
+    public body?: Record<string, unknown>,
   ) {
     super(message);
     this.name = 'ApiRequestError';
@@ -112,7 +114,7 @@ export async function apiClient<T = unknown>(
   }
 
   if (!response.ok) {
-    let body: ApiError;
+    let body: ApiError & Record<string, unknown>;
     try {
       body = await response.json();
     } catch {
@@ -126,6 +128,7 @@ export async function apiClient<T = unknown>(
       response.status,
       body.error || 'UNKNOWN_ERROR',
       body.message || response.statusText,
+      body,
     );
   }
 

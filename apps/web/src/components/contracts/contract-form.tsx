@@ -18,6 +18,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ContractStatusBadge } from './contract-status-badge';
 import { GuaranteeBadge } from './guarantee-badge';
+import {
+  ActivationProblems,
+  activationProblemsOf,
+  type ActivationProblem,
+} from './activation-problems';
 
 /* ──────────── Types ──────────── */
 
@@ -120,8 +125,9 @@ export function ContractForm() {
 
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState<'' | 'draft' | 'activate'>('');
   const [error, setError] = useState('');
+  const [activationProblems, setActivationProblems] = useState<ActivationProblem[] | null>(null);
   const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
 
   // Person search state
@@ -255,16 +261,27 @@ export function ContractForm() {
   }
 
   /* ── Submit ── */
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    void save('draft');
+  }
+
+  /**
+   * Guarda el contrato como borrador o ya activo. Activo se crea en una sola
+   * operación: si la API lo rechaza (falta una parte, se pisa con otro
+   * alquiler…), no queda nada creado y se muestran los motivos acá mismo.
+   */
+  async function save(mode: 'draft' | 'activate') {
     if (!validateStep(step)) return;
-    setSubmitting(true);
+    setSubmitting(mode);
     setError('');
+    setActivationProblems(null);
 
     try {
       const payload: Record<string, unknown> = {
         propertyId: form.propertyId,
         contractType: form.contractType,
+        status: mode === 'activate' ? 'Activo' : 'Borrador',
         startDate: form.startDate,
         endDate: form.endDate || undefined,
         notes: form.notes || undefined,
@@ -288,20 +305,27 @@ export function ContractForm() {
           })),
       };
 
-      await apiClient('/contracts', {
+      const created = await apiClient<{ id: string }>('/contracts', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
 
-      router.push(`${localePrefix}/contracts`);
+      router.push(
+        created?.id
+          ? `${localePrefix}/contracts/${created.id}`
+          : `${localePrefix}/contracts`,
+      );
     } catch (err) {
-      if (err instanceof ApiRequestError) {
+      const problems = activationProblemsOf(err);
+      if (problems) {
+        setActivationProblems(problems);
+      } else if (err instanceof ApiRequestError) {
         setError(err.message);
       } else {
         setError(t('error'));
       }
     } finally {
-      setSubmitting(false);
+      setSubmitting('');
     }
   }
 
@@ -771,6 +795,12 @@ export function ContractForm() {
         )}
 
         {/* Navigation buttons */}
+        {step === STEPS.length - 1 && (
+          <p className="text-sm text-slate-500">{t('finishHint')}</p>
+        )}
+        {activationProblems && (
+          <ActivationProblems problems={activationProblems} localePrefix={localePrefix} />
+        )}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
             <p className="text-sm text-red-700">{error}</p>
@@ -796,16 +826,25 @@ export function ContractForm() {
               {t('next')}
             </button>
           ) : (
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-6 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {submitting && (
-                <Spinner className="w-4 h-4 text-white" />
-              )}
-              {submitting ? t('creating') : t('submit')}
-            </button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="submit"
+                disabled={submitting !== ''}
+                className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {submitting === 'draft' && <Spinner className="w-4 h-4" />}
+                {submitting === 'draft' ? t('creating') : t('saveDraft')}
+              </button>
+              <button
+                type="button"
+                onClick={() => void save('activate')}
+                disabled={submitting !== ''}
+                className="px-6 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {submitting === 'activate' && <Spinner className="w-4 h-4 text-white" />}
+                {submitting === 'activate' ? t('activating') : t('saveAndActivate')}
+              </button>
+            </div>
           )}
         </div>
       </form>

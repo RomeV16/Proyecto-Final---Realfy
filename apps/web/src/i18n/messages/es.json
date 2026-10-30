@@ -942,7 +942,11 @@
    "creating": "Creando contrato…",
    "success": "Contrato creado exitosamente",
    "error": "Error al crear el contrato",
-   "step": "Paso {current} de {total}"
+   "step": "Paso {current} de {total}",
+   "saveDraft": "Guardar como borrador",
+   "saveAndActivate": "Guardar y activar",
+   "activating": "Activando contrato…",
+   "finishHint": "Un borrador se puede revisar y activar después. Si lo activás ahora, empieza a generar liquidaciones y la propiedad queda como alquilada."
   },
   "detail": {
    "title": "Detalle del Contrato",
@@ -987,7 +991,16 @@
    "applySuccess": "Ajuste aplicado exitosamente",
    "applyError": "Error al aplicar el ajuste",
    "createdAt": "Creado el",
-   "updatedAt": "Última modificación"
+   "updatedAt": "Última modificación",
+   "activate": "Activar contrato",
+   "activateConfirmTitle": "Activar contrato",
+   "activateConfirmBody": "El contrato pasa de borrador a activo. Desde ese momento se generan sus liquidaciones y se calculan sus ajustes.",
+   "activateConfirmBodyRental": "El contrato pasa de borrador a activo y la propiedad queda como alquilada. Desde ese momento se generan sus liquidaciones y se calculan sus ajustes.",
+   "activateConfirm": "Sí, activar",
+   "activateSuccess": "Contrato activado",
+   "activateError": "No se pudo activar el contrato",
+   "draftHint": "Este contrato es un borrador: no genera liquidaciones ni ajustes hasta que lo actives.",
+   "terminateConfirmTitle": "Rescindir contrato"
   },
   "timeline": {
    "title": "Línea de Ajustes",
@@ -1118,6 +1131,20 @@
     "rentChange": "Variación del alquiler",
     "rendiciones": "Rendiciones",
     "rendicionesValue": "{count} · {amount}"
+   }
+  },
+  "activation": {
+   "problemsTitle": "No se puede activar el contrato:",
+   "viewContract": "Ver contrato",
+   "problems": {
+    "PROPERTY_NOT_FOUND": "La propiedad del contrato no existe.",
+    "PROPERTY_INACTIVE": "La propiedad del contrato está dada de baja.",
+    "MISSING_INQUILINO": "Falta cargar al menos un inquilino.",
+    "MISSING_PROPIETARIO": "Falta cargar al menos un propietario.",
+    "INVALID_DATES": "La fecha de fin tiene que ser posterior a la de inicio.",
+    "OVERLAPPING_CONTRACT": "La propiedad ya tiene un contrato de alquiler activo del {start} al {end}, que se superpone con estas fechas.",
+    "RENTAL_OPERATION_ARCHIVED": "La operación de alquiler de la propiedad está archivada; reactivala antes de activar el contrato.",
+    "UNKNOWN": "El contrato no cumple las condiciones para activarse."
    }
   }
  },
