@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -28,6 +29,7 @@ interface CommissionConfigProps {
 
 export function CommissionConfig({ contractId }: CommissionConfigProps) {
   const t = useTranslations('commissions');
+  const confirm = useConfirm();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -101,7 +103,7 @@ export function CommissionConfig({ contractId }: CommissionConfigProps) {
   }
 
   async function handleDelete() {
-    if (!confirm(t('deleteConfirm'))) return;
+    if (!(await confirm({ body: t('deleteConfirm'), tone: 'danger' }))) return;
     setDeleting(true);
     setFeedback(null);
     try {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { apiClient } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,7 @@ export function ReportSchedulingSection({ reportTypes }: ReportSchedulingSection
   const t = useTranslations('reports.scheduling');
   const tTypes = useTranslations('reports.types');
   const tCommon = useTranslations('common');
+  const confirm = useConfirm();
 
   const [isOpen, setIsOpen] = useState(false);
   const [schedules, setSchedules] = useState<ReportSchedule[]>([]);
@@ -152,7 +154,7 @@ export function ReportSchedulingSection({ reportTypes }: ReportSchedulingSection
   }
 
   async function handleDelete(id: string) {
-    if (!confirm(t('confirmDelete'))) return;
+    if (!(await confirm({ body: t('confirmDelete'), tone: 'danger' }))) return;
     try {
       await apiClient(`/report-schedules/${id}`, { method: 'DELETE' });
       setSchedules((prev) => prev.filter((s) => s.id !== id));
