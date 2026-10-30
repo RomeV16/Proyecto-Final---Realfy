@@ -1,4 +1,5 @@
 import { ContractStatus } from '../enums';
+import { defineStateMachine } from './define';
 
 /**
  * Máquina de estados del contrato.
@@ -19,7 +20,7 @@ import { ContractStatus } from '../enums';
 const { Borrador, Activo, Vencido, Rescindido, Renovado, Archivado } =
   ContractStatus;
 
-const CONTRACT_TRANSITIONS: Map<ContractStatus, ContractStatus[]> = new Map([
+export const contractMachine = defineStateMachine<ContractStatus>([
   [Borrador, [Activo, Rescindido, Archivado]],
   [Activo, [Vencido, Rescindido, Renovado]],
   [Vencido, [Renovado, Rescindido, Archivado]],
@@ -35,9 +36,7 @@ export function validateContractTransition(
   from: ContractStatus,
   to: ContractStatus,
 ): boolean {
-  const validTargets = CONTRACT_TRANSITIONS.get(from);
-  if (!validTargets) return false;
-  return validTargets.includes(to);
+  return contractMachine.canTransition(from, to);
 }
 
 /**
@@ -47,5 +46,24 @@ export function validateContractTransition(
 export function getValidContractTransitions(
   from: ContractStatus,
 ): ContractStatus[] {
-  return CONTRACT_TRANSITIONS.get(from) ?? [];
+  return contractMachine.allowedFrom(from);
+}
+
+/**
+ * Estados en los que un contrato ya terminó su vida útil. `Renovado` cuenta
+ * como cierre: la vigencia sigue en un contrato nuevo, pero la gestión del que
+ * se renovó está completa.
+ */
+export const CLOSED_CONTRACT_STATUSES = [
+  Vencido,
+  Rescindido,
+  Renovado,
+  Archivado,
+] as const;
+
+export type ClosedContractStatus = (typeof CLOSED_CONTRACT_STATUSES)[number];
+
+/** El contrato está en un estado de cierre. */
+export function isClosedStatus(status: string): boolean {
+  return (CLOSED_CONTRACT_STATUSES as readonly string[]).includes(status);
 }

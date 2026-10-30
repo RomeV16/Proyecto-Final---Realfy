@@ -344,19 +344,32 @@ export {
   validateTransition,
   getValidTransitions,
   findTransitionPath,
+  getPropertyMachine,
 } from './state-machine/property-state-machine';
 
 export {
+  defineStateMachine,
+  InvalidTransitionError,
+  type StateMachine,
+} from './state-machine/define';
+
+export {
+  contractMachine,
   validateContractTransition,
   getValidContractTransitions,
+  isClosedStatus,
+  CLOSED_CONTRACT_STATUSES,
+  type ClosedContractStatus,
 } from './state-machine/contract-state-machine';
 
 export {
+  liquidacionMachine,
   validateLiquidacionTransition,
   getValidLiquidacionTransitions,
 } from './state-machine/liquidacion-state-machine';
 
 export {
+  rendicionMachine,
   validateRendicionTransition,
   getValidRendicionTransitions,
 } from './state-machine/rendicion-state-machine';
@@ -514,6 +527,7 @@ export type AssignProviderInput = z.infer<typeof _AssignProviderSchema>;
 
 // ── State machine ───────────────────────────────────────
 export {
+  ticketMachine,
   validateTicketTransition,
   getValidTicketTransitions,
 } from './state-machine/ticket-state-machine';

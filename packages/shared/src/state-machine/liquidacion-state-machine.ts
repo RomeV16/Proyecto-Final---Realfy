@@ -1,4 +1,5 @@
 import { LiquidacionStatus } from '../enums';
+import { defineStateMachine } from './define';
 
 /**
  * Liquidación 7-state workflow machine.
@@ -23,7 +24,7 @@ const {
   Anulada,
 } = LiquidacionStatus;
 
-const LIQUIDACION_TRANSITIONS: Map<LiquidacionStatus, LiquidacionStatus[]> = new Map([
+export const liquidacionMachine = defineStateMachine<LiquidacionStatus>([
   [Borrador, [Revision, Anulada]],
   [Revision, [Aprobada, Borrador, Anulada]],
   [Aprobada, [Enviada, Anulada]],
@@ -40,9 +41,7 @@ export function validateLiquidacionTransition(
   from: LiquidacionStatus,
   to: LiquidacionStatus,
 ): boolean {
-  const validTargets = LIQUIDACION_TRANSITIONS.get(from);
-  if (!validTargets) return false;
-  return validTargets.includes(to);
+  return liquidacionMachine.canTransition(from, to);
 }
 
 /**
@@ -52,5 +51,5 @@ export function validateLiquidacionTransition(
 export function getValidLiquidacionTransitions(
   from: LiquidacionStatus,
 ): LiquidacionStatus[] {
-  return LIQUIDACION_TRANSITIONS.get(from) ?? [];
+  return liquidacionMachine.allowedFrom(from);
 }

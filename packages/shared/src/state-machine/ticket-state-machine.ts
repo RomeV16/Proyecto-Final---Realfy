@@ -1,4 +1,5 @@
 import { TicketStatus } from '../enums';
+import { defineStateMachine } from './define';
 
 /**
  * Ticket 10-state workflow machine.
@@ -35,7 +36,7 @@ const {
   Reabierto,
 } = TicketStatus;
 
-const TICKET_TRANSITIONS: Map<TicketStatus, TicketStatus[]> = new Map([
+export const ticketMachine = defineStateMachine<TicketStatus>([
   [Abierto, [Asignado, Cancelado, ProveedorAsignado]],
   [Asignado, [EnProgreso, Abierto, Cancelado, ProveedorAsignado]],
   [EnProgreso, [Resuelto, Cancelado, ProveedorAsignado]],
@@ -56,9 +57,7 @@ export function validateTicketTransition(
   from: TicketStatus,
   to: TicketStatus,
 ): boolean {
-  const validTargets = TICKET_TRANSITIONS.get(from);
-  if (!validTargets) return false;
-  return validTargets.includes(to);
+  return ticketMachine.canTransition(from, to);
 }
 
 /**
@@ -68,5 +67,5 @@ export function validateTicketTransition(
 export function getValidTicketTransitions(
   from: TicketStatus,
 ): TicketStatus[] {
-  return TICKET_TRANSITIONS.get(from) ?? [];
+  return ticketMachine.allowedFrom(from);
 }

@@ -1,6 +1,7 @@
 import { ContractStatus } from '../enums';
 import {
   getValidContractTransitions,
+  isClosedStatus,
   validateContractTransition,
 } from './contract-state-machine';
 
@@ -64,5 +65,18 @@ describe('contract-state-machine', () => {
   it('un estado desconocido no tiene transiciones', () => {
     expect(validateContractTransition('Otro' as ContractStatus, Activo)).toBe(false);
     expect(getValidContractTransitions('Otro' as ContractStatus)).toEqual([]);
+  });
+});
+
+describe('isClosedStatus', () => {
+  it('Vencido, Rescindido, Renovado y Archivado son cierres', () => {
+    for (const s of ['Vencido', 'Rescindido', 'Renovado', 'Archivado']) {
+      expect(isClosedStatus(s)).toBe(true);
+    }
+  });
+
+  it('Borrador y Activo no lo son', () => {
+    expect(isClosedStatus('Borrador')).toBe(false);
+    expect(isClosedStatus('Activo')).toBe(false);
   });
 });
