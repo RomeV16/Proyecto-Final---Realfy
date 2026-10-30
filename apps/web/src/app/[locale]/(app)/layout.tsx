@@ -6,6 +6,7 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from '@/lib/auth-context';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { AppLayout } from '@/components/layout/app-layout';
+import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { GlobalLoadingBar } from '@/components/layout/global-loading-bar';
 
 function makeQueryClient() {
@@ -31,8 +32,10 @@ export default function ProtectedLayout({
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
-          <GlobalLoadingBar />
-          <AppLayout>{children}</AppLayout>
+          <ConfirmProvider>
+            <GlobalLoadingBar />
+            <AppLayout>{children}</AppLayout>
+          </ConfirmProvider>
         </ErrorBoundary>
       </QueryClientProvider>
       <Toaster richColors position="top-right" />
