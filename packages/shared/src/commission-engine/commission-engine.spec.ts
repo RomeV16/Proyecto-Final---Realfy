@@ -68,23 +68,74 @@ describe('commission-engine — porcentaje fijo', () => {
       const r = calculateCommission('0.09', { type: CommissionType.FixedPercent, percentage: 5 });
       expect(r.commissionAmount.toFixed(2)).toBe('0.00');
     });
-
-    it('un monto negativo redondea alejándose del cero: -100,10 × 5 % = -5,005 da -5,01', () => {
-      const r = calculateCommission('-100.10', { type: CommissionType.FixedPercent, percentage: 5 });
-      expect(r.commissionAmount.toFixed(2)).toBe('-5.01');
-    });
   });
 
-  it('100 % se queda con todo y un porcentaje mayor a 100 no se valida', () => {
-    // 100 × 1 = 100 ; 100 × 1,5 = 150
+  it('100 % se queda con todo y 0 % no cobra comisión', () => {
+    // 100 × 1 = 100 ; 100 × 0 = 0
     expect(
       calculateCommission('100', { type: CommissionType.FixedPercent, percentage: 100 })
         .commissionAmount.toFixed(2),
     ).toBe('100.00');
     expect(
-      calculateCommission('100', { type: CommissionType.FixedPercent, percentage: 150 })
+      calculateCommission('100', { type: CommissionType.FixedPercent, percentage: 0 })
         .commissionAmount.toFixed(2),
-    ).toBe('150.00');
+    ).toBe('0.00');
+  });
+});
+
+describe('commission-engine — validación de entradas (DEF-14)', () => {
+  const codeOf = (fn: () => unknown): string => {
+    try {
+      fn();
+    } catch (e) {
+      return (e as { code?: string }).code ?? 'sin código';
+    }
+    return 'no lanzó';
+  };
+
+  it.each([['150'], ['100.01'], ['-1'], ['-0.01']])(
+    'un porcentaje de %s se rechaza con INVALID_COMMISSION',
+    (percentage) => {
+      expect(
+        codeOf(() => calculateCommission('100', { type: CommissionType.FixedPercent, percentage })),
+      ).toBe('INVALID_COMMISSION');
+    },
+  );
+
+  it('un monto cobrado negativo se rechaza', () => {
+    expect(
+      codeOf(() =>
+        calculateCommission('-100.10', { type: CommissionType.FixedPercent, percentage: 5 }),
+      ),
+    ).toBe('INVALID_COMMISSION');
+  });
+
+  it('un monto fijo o unos gastos negativos se rechazan', () => {
+    expect(
+      codeOf(() => calculateCommission('100', { type: CommissionType.FixedAmount, fixedAmount: '-1' })),
+    ).toBe('INVALID_COMMISSION');
+    expect(
+      codeOf(() =>
+        calculateCommission('100', {
+          type: CommissionType.FixedPercent,
+          percentage: 5,
+          adminFee: '-0.01',
+        }),
+      ),
+    ).toBe('INVALID_COMMISSION');
+  });
+
+  it('los extremos 0 y 100 y los montos en cero son válidos', () => {
+    expect(
+      codeOf(() =>
+        calculateCommission('0', {
+          type: CommissionType.Mixed,
+          percentage: 100,
+          fixedAmount: 0,
+          adminFee: 0,
+        }),
+      ),
+    ).toBe('no lanzó');
   });
 });
 
