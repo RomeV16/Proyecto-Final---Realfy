@@ -3,7 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { ContractClosureService } from '../ai/contract-closure.service';
-import { IndexDataService } from '../index-data/index-data.service';
+import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
 import { ContractsService } from './contracts.service';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -91,7 +91,7 @@ async function buildService(mocks: ReturnType<typeof buildMocks>) {
         useValue: { getTenantId: jest.fn().mockReturnValue(TENANT_ID) },
       },
       { provide: ContractClosureService, useValue: mocks.closureSummaries },
-      { provide: IndexDataService, useValue: { getForPeriod: jest.fn().mockResolvedValue([]) } },
+      { provide: ContractAdjustmentService, useValue: { loadParams: jest.fn() } },
     ],
   }).compile();
 

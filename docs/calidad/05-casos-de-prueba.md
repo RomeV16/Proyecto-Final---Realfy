@@ -62,20 +62,22 @@ Alquiler base 100.000,00 en todos los casos.
 | Regla | Modalidad | Valores de índice | `customAdjustmentPct` | Nuevo alquiler esperado | Factor | Caso |
 |---|---|---|---|---|---|---|
 | D1 | IPC | `[2.0, 3.0]` (variaciones %) | — | 105.060,00 | 1,0506 | CP-05 |
-| D2 | IPC | `[]` | — | 100.000,00 | 1 | CP-06 |
+| D2 | IPC | `[]` | — | error `MISSING_INDEX_DATA` (antes de DEF-26: 100.000,00) | — | CP-06 |
 | D3 | ICL | `[100, 120]` (niveles) | — | 120.000,00 | 1,2 | CP-04 |
-| D4 | ICL | `[]` | — | 100.000,00 | 1 | CP-07 |
-| D5 | ICL | `[100]` | — | 100.000,00 | 1 | CP-08 |
+| D4 | ICL | `[]` | — | error `MISSING_INDEX_DATA` (antes de DEF-26: 100.000,00) | — | CP-07 |
+| D5 | ICL | `[100]` | — | error `MISSING_INDEX_DATA` (antes de DEF-25: 100.000,00) | — | CP-08 |
 | D6 | CCP | CVS `[2.0]`, CER `[1.5]` | — | 101.500,00 (min(0,9·2,0; 1,5) = 1,5 %) | 1,015 | CP-09 |
 | D7 | CCP | CVS `[1.0]`, CER `[1.5]` | — | 100.900,00 (min(0,9; 1,5) = 0,9 %) | 1,009 | CP-09 |
 | D8 | Porcentaje fijo | — | 10,00 | 110.000,00 | 1,1 | CP-01 |
-| D9 | Porcentaje fijo | — | null | 100.000,00 | 1 | CP-10 |
+| D9 | Porcentaje fijo | — | null | error `MISSING_ADJUSTMENT_PCT` (antes de DEF-25: 100.000,00) | — | CP-10 |
 | D10 | Personalizado | — | 7,50 | 107.500,00 | 1,075 | CP-10 |
 | D11 | IPC | `[2.0, 3.0]` | 10,00 (ignorado) | 105.060,00 | 1,0506 | CP-05 |
 
 La tabla describe el primer ajuste de un contrato. Desde el segundo, los
 índices se toman desde el último ajuste aplicado y no desde el inicio
-(DEF-07): lo verifican CP-55 a CP-58.
+(DEF-07): lo verifican CP-55 a CP-58. Los tres caminos que calculan un
+ajuste (manual, previsualización y barrido) aplican la misma tabla desde DEF-25 y
+DEF-26: CP-270 a CP-272.
 
 La regla D1 es la que el informe de tesis señala como la más fácil de
 equivocar: 2 % y 3 % encadenados dan 5,06 %, no 5 %. D6 y D7 no se cumplían
@@ -259,6 +261,19 @@ Banda CP-110 a CP-119, con desborde a CP-244 en adelante (la banda se llenó). O
 | CP-254 | Titulares de la propiedad en la web | se listan con porcentaje, título y período; se agregan con porcentaje opcional (coma aceptada) y se quitan con confirmación; cuando los porcentajes cargados no suman 100 aparece un aviso informativo que no bloquea nada; sin porcentajes o con 100 no hay aviso; sin permiso de edición no hay botones | `components/parties/property-ownerships.test.tsx` (12 casos); `properties/[id]/page.screen.test.tsx` (2 casos) | verde (31 oct) |
 | CP-255 | Alta de contrato con varios locadores | cada persona buscada puede sumarse como locadora aunque no tenga el rol de propietario; al agregar o quitar se reparte en partes iguales mientras nadie edite un porcentaje, y después deja de repartir solo; el aviso dice si suman 100 o cuánto suman; con suma distinta de 100 se puede guardar como borrador (con el aviso) pero no activar; sin locadores no se pasa de paso. El alta envía `lessors: [{ personId, payoutPct }]` en `POST /contracts` y solo inquilino y garante en `persons`. Regla: la API valida la suma al activar | `components/contracts/contract-form.test.tsx` (6 casos nuevos) | verde (31 oct) |
 | CP-256 | Contrato y persona muestran las partes | el contrato lista locadores (persona, carácter, % de cobro, cobrador, cuenta, vigencia, "A revisar") y los apoderados que aplican con alcances y modo de firma, con enlaces a las fichas; sin locadores muestra los propietarios viejos como "A migrar"; solo Admin, Gerente y Ventas editan; al guardar se vuelve a leer el contrato; la ficha de persona separa Datos, Cuentas bancarias, Poderes y Contratos como locador y guarda tipo, documento, domicilio, estado civil, nacionalidad y forma de cobro (vaciar un dato lo limpia) | `components/parties/contract-parties.test.tsx` (14 casos); `components/parties/person-lessorships.test.tsx` (3 casos); `persons/[id]/page.screen.test.tsx`; `components/persons/person-form.test.tsx` (2 casos) | verde (31 oct) |
+
+## Casos de un solo camino de ajuste (ítem 34, L3)
+
+El resultado esperado se fijó antes de unificar el cálculo. Hasta entonces el
+cálculo manual (`ContractsService.calculateAdjustment`) y la previsualización y
+el barrido (`ContractAdjustmentService`) traducían la modalidad cada uno por su
+cuenta.
+
+| ID | Qué | Esperado (fijado antes) | Prueba | Estado |
+|---|---|---|---|---|
+| CP-270 | Previsualización sin datos de índice (DEF-26) | `POST /contracts/:id/preview-adjustment` de un contrato IPC sin valores responde 400 `MISSING_INDEX_DATA` con `indexType`, `periodStart` y `periodEnd`, no una proyección sin cambios | `index-data.e2e-spec.ts::CP-270`, `contracts/contract-adjustment-paths.spec.ts` | verde |
+| CP-271 | Caracterización del cálculo por modalidad | 15 casos sintéticos (IPC, ICL, CCP, fijo, personalizado, modalidad desconocida; D1 a D11): los tres caminos dan el mismo alquiler cuando hay datos (105.060, 120.000, 101.500, 100.900, 110.000, 107.500) y la misma ventana de índices tras un ajuste aplicado (DEF-07); aplicar el cálculo manual deja el alquiler en `newAmount` y el cronograma en Aplicado | `contracts/contract-adjustment-paths.spec.ts` | verde |
+| CP-272 | Un solo criterio ante datos faltantes (DEF-25) | IPC o ICL sin valores, ICL con uno solo, CCP sin CVS o sin CER: 400 `MISSING_INDEX_DATA` en el cálculo manual y en la previsualización, y el barrido deja el cronograma pendiente sin tocar el alquiler; porcentaje fijo o personalizado sin porcentaje: `MISSING_ADJUSTMENT_PCT`; modalidad desconocida: `UNKNOWN_ADJUSTMENT_TYPE`; en ningún camino se aplica 0 % en silencio | `contracts/contract-adjustment-paths.spec.ts`, `index-data/contract-adjustment.service.spec.ts` (CP-06, CP-07, CP-08, CP-10) | verde |
 
 ## Casos de base de proceso
 

@@ -351,7 +351,7 @@ describe('IndexData (e2e)', () => {
       return personRes.body;
     }
 
-    async function createContractWithIPC(emailPrefix: string) {
+    async function createContractWithIPC(emailPrefix: string, seedIndexData = true) {
       const user = await registerUser(app, {
         email: `${emailPrefix}@test.com`,
         password: 'Password123!',
@@ -371,11 +371,11 @@ describe('IndexData (e2e)', () => {
         PersonRole.Inquilino,
       );
 
-      for (const [period, value] of [
+      for (const [period, value] of (seedIndexData ? [
         ['2025-01-01T00:00:00.000Z', '5.20'],
         ['2025-02-01T00:00:00.000Z', '4.80'],
         ['2025-03-01T00:00:00.000Z', '5.10'],
-      ] as [string, string][]) {
+      ] : []) as [string, string][]) {
         await request(app.getHttpServer())
           .post('/api/index-data')
           .set('Authorization', `Bearer ${user.accessToken}`)
@@ -425,6 +425,20 @@ describe('IndexData (e2e)', () => {
       expect(res.body.projectedRent).toBeDefined();
       expect(res.body.projectedDelta).toBeDefined();
       expect(Number(res.body.currentRent)).toBe(150000);
+    });
+
+    it('CP-270 (DEF-26): without index data responds 400 MISSING_INDEX_DATA instead of a 0 % projection', async () => {
+      const { user, contract } = await createContractWithIPC('preview-no-data', false);
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/contracts/${contract.id}/preview-adjustment`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(400);
+
+      expect(res.body.error).toBe('MISSING_INDEX_DATA');
+      expect(res.body.indexType).toBe(IndexType.IPC);
+      expect(res.body.periodStart).toBeDefined();
+      expect(res.body.periodEnd).toBeDefined();
     });
 
     it('returns 201 as Gerente for own-tenant contract', async () => {

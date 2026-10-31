@@ -32,6 +32,8 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-22 | El aviso de vencimiento de contrato se repite cada día durante 30 días | Media | — | CP-242 | [#131](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/131) | Corregido (31 oct) |
 | DEF-23 | La rendición acepta pagos y deducciones negativos | Media | — | CP-243 | [#132](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/132) | Corregido (31 oct) |
 | DEF-24 | Una rendición queda marcada como enviada aunque no se envió el mail | Alta | — | CP-266, CP-267 | [#144](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/144) | Corregido (31 oct) |
+| DEF-25 | El barrido y la previsualización aplican 0 % donde el cálculo manual se niega | Media | RF-12, RF-13 | CP-272 | [#146](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/146) | Corregido (31 oct) |
+| DEF-26 | La previsualización de un ajuste sin datos de índice muestra 0 % | Media | RF-12 | CP-270 | [#147](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/147) | Corregido (31 oct) |
 
 ---
 
@@ -376,3 +378,30 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Prueba de regresión:** CP-266 y CP-267 en `renditions-send-email.spec.ts` y en `renditions.e2e-spec.ts`.
 - **Evidencia rojo/verde:** commit de regresión `88bcb6f` en rojo (2 de 3 casos); corrección en `74ea392`. PR [#145](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/145).
 
+## DEF-25 — El barrido y la previsualización aplican 0 % donde el cálculo manual se niega
+
+- **Requisito afectado:** RF-12, RF-13.
+- **Origen:** deduplicación del backend (fila 2, L3): dos caminos traducían la modalidad a parámetros del motor.
+- **Caso que lo detecta:** CP-272.
+- **Severidad:** media. El alquiler no se actualiza y el cronograma queda como aplicado.
+- **Pasos para reproducir:** un contrato ICL con un solo valor en la ventana, un contrato de porcentaje fijo o personalizado sin `customAdjustmentPct`, o una modalidad desconocida; calcular a mano, previsualizar y correr el barrido.
+- **Resultado esperado:** los tres caminos se niegan igual: 400 `MISSING_INDEX_DATA`, `MISSING_ADJUSTMENT_PCT` o `UNKNOWN_ADJUSTMENT_TYPE`, y el barrido deja el cronograma pendiente.
+- **Resultado obtenido:** el cálculo manual respondía el error; la previsualización proyectaba el alquiler sin cambios y el barrido lo aplicaba con delta 0, marcaba Aplicado y auditaba.
+- **Causa raíz:** `ContractsService` armaba su propio `switch` con otras reglas (ICL con al menos dos valores, porcentaje obligatorio, modalidad desconocida rechazada) y `loadParams` reemplazaba lo que faltaba por valores neutros.
+- **Corrección:** `ContractsService.calculateAdjustment` delega en `ContractAdjustmentService.loadParams`, que aplica las reglas más estrictas; se eliminan el `switch` y `loadIndexData` duplicados.
+- **Prueba de regresión:** CP-272 en `contracts/contract-adjustment-paths.spec.ts` (tabla de casos por modalidad).
+- **Evidencia rojo/verde:** caracterización en verde `94f7793`; regresión `b3374a8` en rojo (12 casos con DEF-26); corrección en `e88da9b`. PR [#148](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/148).
+
+## DEF-26 — La previsualización de un ajuste sin datos de índice muestra 0 %
+
+- **Requisito afectado:** RF-12.
+- **Origen:** deduplicación del backend (fila 2, L3), revisión de los caminos de ajuste.
+- **Caso que lo detecta:** CP-270.
+- **Severidad:** media. La pantalla del contrato muestra una proyección sin cambios que parece un resultado válido.
+- **Pasos para reproducir:** `POST /contracts/:id/preview-adjustment` de un contrato IPC, ICL o CCP sin valores de índice en la ventana.
+- **Resultado esperado:** 400 `MISSING_INDEX_DATA` con el índice y el período que faltan, como el cálculo manual y el barrido (DEF-20).
+- **Resultado obtenido:** 201 con factor 1 y delta 0.
+- **Causa raíz:** `preview` ignoraba la lista de índices faltantes que `loadParams` ya informaba desde DEF-20.
+- **Corrección:** `loadParams` lanza `MISSING_INDEX_DATA` (con `indexType` y `periodStart`/`periodEnd`) y la previsualización lo propaga; la web ya muestra el error de la API.
+- **Prueba de regresión:** CP-270 en `test/e2e/index-data.e2e-spec.ts` y casos de previsualización de `contracts/contract-adjustment-paths.spec.ts`.
+- **Evidencia rojo/verde:** regresión `b3374a8` en rojo; corrección en `e88da9b`. PR [#148](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/148).

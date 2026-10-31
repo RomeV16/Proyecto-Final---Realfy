@@ -182,7 +182,7 @@ describe('ContractAdjustmentService', () => {
       const contract = makeContract({ adjustmentType: AdjustmentType.IPC });
       mockFindFirstContract.mockResolvedValueOnce(contract);
       mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
-      mockFindManyIndex.mockResolvedValueOnce([]);
+      mockFindManyIndex.mockResolvedValueOnce(rows('2.000000'));
 
       await service.preview('contract-1');
 
@@ -194,38 +194,34 @@ describe('ContractAdjustmentService', () => {
       );
     });
 
-    it('CP-06 (D2): IPC sin valores deja el alquiler igual', async () => {
+    it('CP-06 (D2): IPC sin valores responde MISSING_INDEX_DATA en lugar de proyectar 0 %', async () => {
       mockFindFirstContract.mockResolvedValueOnce(makeContract({ adjustmentType: AdjustmentType.IPC }));
       mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
       mockFindManyIndex.mockResolvedValueOnce([]);
 
-      const result = await service.preview('contract-1');
-
-      expect(result.projectedRent.toFixed(2)).toBe('50000.00');
-      expect(result.factor.toFixed(4)).toBe('1.0000');
-      expect(result.projectedDelta.toFixed(2)).toBe('0.00');
+      await expect(service.preview('contract-1')).rejects.toMatchObject({
+        response: { error: 'MISSING_INDEX_DATA', indexType: IndexType.IPC },
+      });
     });
 
-    it('CP-07 (D4): ICL sin valores deja el alquiler igual', async () => {
+    it('CP-07 (D4): ICL sin valores responde MISSING_INDEX_DATA', async () => {
       mockFindFirstContract.mockResolvedValueOnce(makeContract({ adjustmentType: AdjustmentType.ICL }));
       mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
       mockFindManyIndex.mockResolvedValueOnce([]);
 
-      const result = await service.preview('contract-1');
-
-      expect(result.projectedRent.toFixed(2)).toBe('50000.00');
-      expect(result.factor.toFixed(4)).toBe('1.0000');
+      await expect(service.preview('contract-1')).rejects.toMatchObject({
+        response: { error: 'MISSING_INDEX_DATA', indexType: IndexType.ICL },
+      });
     });
 
-    it('CP-08 (D5, límite): ICL con un solo valor da factor 1', async () => {
+    it('CP-08 (D5, límite): ICL con un solo valor responde MISSING_INDEX_DATA, no factor 1', async () => {
       mockFindFirstContract.mockResolvedValueOnce(makeContract({ adjustmentType: AdjustmentType.ICL }));
       mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
       mockFindManyIndex.mockResolvedValueOnce(rows('31.490000'));
 
-      const result = await service.preview('contract-1');
-
-      expect(result.factor.toFixed(4)).toBe('1.0000');
-      expect(result.projectedRent.toFixed(2)).toBe('50000.00');
+      await expect(service.preview('contract-1')).rejects.toMatchObject({
+        response: { error: 'MISSING_INDEX_DATA', indexType: IndexType.ICL },
+      });
     });
 
     it('CP-09 (D6, D7): CCP usa CVS y CER y aplica el menor entre 0,9·CVS y CER por mes', async () => {
@@ -246,14 +242,14 @@ describe('ContractAdjustmentService', () => {
       expect(result.indexType).toBe(IndexType.CVS);
     });
 
-    it('CP-10 (D9): porcentaje fijo sin porcentaje declarado no ajusta', async () => {
+    it('CP-10 (D9): porcentaje fijo sin porcentaje declarado responde MISSING_ADJUSTMENT_PCT', async () => {
       mockFindFirstContract.mockResolvedValueOnce(makeContract({ customAdjustmentPct: null }));
       mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
       mockFindManyIndex.mockResolvedValueOnce([]);
 
-      const result = await service.preview('contract-1');
-
-      expect(result.projectedRent.toFixed(2)).toBe('50000.00');
+      await expect(service.preview('contract-1')).rejects.toMatchObject({
+        response: { error: 'MISSING_ADJUSTMENT_PCT' },
+      });
     });
 
     it('CP-10 (D10): personalizado 7,5 % proyecta 53.750', async () => {
