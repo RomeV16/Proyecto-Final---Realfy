@@ -32,6 +32,20 @@ interface LoadedParams {
   params: AdjustmentParams;
   /** Índice principal usado, para informar en la previsualización. */
   indexType: IndexType;
+  /** Índices que la modalidad necesita y no tienen ningún valor en la ventana. */
+  missing: IndexType[];
+}
+
+/** Código con el que se informa un ajuste que no se pudo calcular por falta de índices. */
+export const MISSING_INDEX_DATA = 'MISSING_INDEX_DATA';
+
+/** El ajuste no se puede calcular: faltan los valores de uno o más índices. */
+class MissingIndexDataError extends Error {
+  readonly code = MISSING_INDEX_DATA;
+
+  constructor(readonly indexTypes: IndexType[]) {
+    super(`${MISSING_INDEX_DATA}: faltan datos de ${indexTypes.join(', ')}`);
+  }
 }
 
 type IndexClient = { indexData: { findMany: (args: any) => Promise<any[]> } };
@@ -76,6 +90,7 @@ export class ContractAdjustmentService {
         return {
           indexType: IndexType.IPC,
           params: { type: AdjustmentType.IPC, monthlyValues: rows.map(toDecimal), baseRent },
+          missing: rows.length === 0 ? [IndexType.IPC] : [],
         };
       }
       case AdjustmentType.ICL: {
@@ -88,6 +103,7 @@ export class ContractAdjustmentService {
             endValue: rows.length > 0 ? toDecimal(rows[rows.length - 1]) : new Decimal(1),
             baseRent,
           },
+          missing: rows.length === 0 ? [IndexType.ICL] : [],
         };
       }
       case AdjustmentType.CCP: {
@@ -101,6 +117,10 @@ export class ContractAdjustmentService {
             cerPcts: cer.slice(0, length).map(toDecimal),
             baseRent,
           },
+          missing: [
+            ...(cvs.length === 0 ? [IndexType.CVS] : []),
+            ...(cer.length === 0 ? [IndexType.CER] : []),
+          ],
         };
       }
       case AdjustmentType.FixedPercent:
@@ -112,11 +132,13 @@ export class ContractAdjustmentService {
             percentage: new Decimal(contract.customAdjustmentPct?.toString() ?? '0'),
             baseRent,
           },
+          missing: [],
         };
       default:
         return {
           indexType: IndexType.IPC,
           params: { type: AdjustmentType.FixedPercent, percentage: new Decimal(0), baseRent },
+          missing: [],
         };
     }
   }
@@ -172,7 +194,9 @@ export class ContractAdjustmentService {
    * Scans contracts where the next pending AdjustmentSchedule.nextAdjustmentDate
    * <= today AND contract.status = Active.  For each, computes the adjustment
    * factor, updates the contract rent, advances the schedule status to Applied,
-   * and logs the result.
+   * and logs the result. Si falta algún índice que la modalidad necesita, el
+   * cronograma se salta (sigue pendiente), no se toca el alquiler y se informa
+   * con MISSING_INDEX_DATA.
    *
    * Returns a summary array — one entry per contract processed.
    */
@@ -218,10 +242,15 @@ export class ContractAdjustmentService {
             (await tx.contract.findUnique({ where: { id: contract.id } })) ?? contract;
           const currentRent = new Decimal(current.rentAmount.toString());
           const window = await resolveAdjustmentWindow(tx, current, schedule.nextAdjustmentDate);
-          const { params } = await this.loadParams(current, window, {
+          const { params, missing } = await this.loadParams(current, window, {
             tenantId: contract.tenantId,
             client: tx,
           });
+
+          // Sin datos del índice no hay ajuste: aplicar 0 % en silencio dejaría
+          // el cronograma como Applied y el alquiler sin actualizar. Se corta
+          // antes de escribir; el cronograma sigue pendiente para el próximo barrido.
+          if (missing.length > 0) throw new MissingIndexDataError(missing);
 
           const adjustmentResult = calculateAdjustment(params);
 
@@ -275,6 +304,17 @@ export class ContractAdjustmentService {
           scheduleId: schedule.id,
         });
       } catch (err: unknown) {
+        if (err instanceof MissingIndexDataError) {
+          this.logger.warn(`${MISSING_INDEX_DATA}: ajuste pendiente por falta de índices`, {
+            code: MISSING_INDEX_DATA,
+            contractId: contract.id,
+            tenantId: contract.tenantId,
+            scheduleId: schedule.id,
+            appliedPeriod,
+            indexTypes: err.indexTypes,
+          });
+          continue;
+        }
         this.logger.error(
           `Failed to apply adjustment for contract ${contract.id}`,
           (err as Error).stack,
