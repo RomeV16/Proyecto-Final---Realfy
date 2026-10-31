@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -23,19 +22,7 @@ import {
   TicketPriority,
 } from '@realfy/shared';
 import { assertTransition } from '../../common/errors/assert-transition';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class TicketsService {
@@ -93,19 +80,7 @@ export class TicketsService {
   // ─── Create ───────────────────────────────────────────
 
   async create(body: unknown) {
-    let validated: any;
-    try {
-      validated = CreateTicketSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid ticket data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateTicketSchema, body, 'Invalid ticket data');
 
     const tenantId = this.tenantContext.getTenantId()!;
     const userId = this.tenantContext.getUserId()!;
@@ -194,19 +169,7 @@ export class TicketsService {
   // ─── List ─────────────────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = TicketFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(TicketFilterSchema, query, 'Invalid filter parameters');
 
     const { page, limit, ...where } = filters;
     const skip = (page - 1) * limit;
@@ -304,19 +267,7 @@ export class TicketsService {
   // ─── Update ───────────────────────────────────────────
 
   async update(id: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateTicketSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid ticket data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateTicketSchema, body, 'Invalid ticket data');
 
     // Check ticket exists
     const existing = await this.prisma.client.ticket.findUnique({
@@ -369,19 +320,7 @@ export class TicketsService {
   // ─── State Transition ─────────────────────────────────
 
   async transition(id: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = TransitionTicketStatusSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid transition data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(TransitionTicketStatusSchema, body, 'Invalid transition data');
 
     const ticket = await this.prisma.client.ticket.findUnique({
       where: { id },
@@ -454,19 +393,7 @@ export class TicketsService {
     body: unknown,
     file?: Express.Multer.File,
   ) {
-    let validated: any;
-    try {
-      validated = CreateTicketCommentSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid comment data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateTicketCommentSchema, body, 'Invalid comment data');
 
     const tenantId = this.tenantContext.getTenantId()!;
     const userId = this.tenantContext.getUserId()!;
@@ -577,19 +504,7 @@ export class TicketsService {
    * transitions status to ProveedorAsignado.
    */
   async assignProvider(ticketId: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = AssignProviderSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid assign provider data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(AssignProviderSchema, body, 'Invalid assign provider data');
 
     // Verify ticket exists
     const ticket = await this.prisma.client.ticket.findUnique({
@@ -662,19 +577,7 @@ export class TicketsService {
    * Update cost tracking fields on a ticket (amount, currency, payer).
    */
   async updateCost(ticketId: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateTicketCostSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid cost data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateTicketCostSchema, body, 'Invalid cost data');
 
     // Verify ticket exists
     const ticket = await this.prisma.client.ticket.findUnique({

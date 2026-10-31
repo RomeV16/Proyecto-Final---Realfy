@@ -35,19 +35,7 @@ import Decimal from 'decimal.js';
 import { assertTransition } from '../../common/errors/assert-transition';
 import { applyOperationTransition } from '../properties/operation-state';
 import { ContractClosureService } from '../ai/contract-closure.service';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 /**
  * Motivo por el que un contrato no se puede activar. `code` es estable y es lo
@@ -132,19 +120,7 @@ export class ContractsService {
   // ─── List ───────────────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = ContractFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(ContractFilterSchema, query, 'Invalid filter parameters');
 
     const where: any = {};
 
@@ -234,19 +210,7 @@ export class ContractsService {
   // ─── Create ─────────────────────────────────────────
 
   async create(data: unknown) {
-    let validated: any;
-    try {
-      validated = CreateContractSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid contract data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateContractSchema, data, 'Invalid contract data');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -394,19 +358,7 @@ export class ContractsService {
   // ─── Update ─────────────────────────────────────────
 
   async update(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateContractSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid contract data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateContractSchema, data, 'Invalid contract data');
 
     const existing = await this.prisma.client.contract.findFirst({
       where: { id },

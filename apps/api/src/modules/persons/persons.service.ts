@@ -14,19 +14,7 @@ import {
   PersonFilterSchema,
   AssignPersonRoleSchema,
 } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class PersonsService {
@@ -42,19 +30,7 @@ export class PersonsService {
   // ─── List ───────────────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = PersonFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(PersonFilterSchema, query, 'Invalid filter parameters');
 
     const where: any = {};
 
@@ -123,19 +99,7 @@ export class PersonsService {
   // ─── Create ─────────────────────────────────────────
 
   async create(data: unknown) {
-    let validated: any;
-    try {
-      validated = CreatePersonSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid person data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreatePersonSchema, data, 'Invalid person data');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -160,19 +124,7 @@ export class PersonsService {
   // ─── Update ─────────────────────────────────────────
 
   async update(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = UpdatePersonSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid person data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdatePersonSchema, data, 'Invalid person data');
 
     const existing = await this.prisma.client.person.findFirst({
       where: { id },
@@ -226,19 +178,7 @@ export class PersonsService {
   // ─── Role Management ───────────────────────────────
 
   async assignRole(personId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = AssignPersonRoleSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid role data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(AssignPersonRoleSchema, data, 'Invalid role data');
 
     // Check person exists
     const person = await this.prisma.client.person.findFirst({

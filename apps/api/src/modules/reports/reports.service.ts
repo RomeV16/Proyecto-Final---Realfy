@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -18,6 +17,7 @@ import {
   PersonRole,
 } from '@realfy/shared';
 import Decimal from 'decimal.js';
+import { parseOrThrow } from '../../common/validation/zod';
 
 // ─── Row types for each report ──────────────────────────
 
@@ -86,19 +86,6 @@ export interface ReportResult<T> {
   filters: Record<string, any>;
 }
 
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
-
 @Injectable()
 export class ReportsService {
   private readonly logger = new Logger(ReportsService.name);
@@ -111,19 +98,7 @@ export class ReportsService {
   // ─── Owner Statement ──────────────────────────────────
 
   async getOwnerStatement(query: unknown): Promise<ReportResult<OwnerStatementRow>> {
-    let filters: any;
-    try {
-      filters = OwnerStatementFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid owner statement filters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(OwnerStatementFilterSchema, query, 'Invalid owner statement filters');
 
     const tenantId = this.tenantContext.getTenantId()!;
     const where: any = { tenantId, ownerId: filters.ownerId };
@@ -200,19 +175,7 @@ export class ReportsService {
   // ─── Property Profitability ───────────────────────────
 
   async getPropertyProfitability(query: unknown): Promise<ReportResult<PropertyProfitabilityRow>> {
-    let filters: any;
-    try {
-      filters = PropertyProfitabilityFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid property profitability filters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(PropertyProfitabilityFilterSchema, query, 'Invalid property profitability filters');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -332,19 +295,7 @@ export class ReportsService {
   // ─── Monthly Cash Flow ────────────────────────────────
 
   async getCashFlow(query: unknown): Promise<ReportResult<CashFlowRow>> {
-    let filters: any;
-    try {
-      filters = CashFlowFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid cash flow filters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(CashFlowFilterSchema, query, 'Invalid cash flow filters');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -462,19 +413,7 @@ export class ReportsService {
   // ─── Commission Summary ───────────────────────────────
 
   async getCommissionSummary(query: unknown): Promise<ReportResult<CommissionSummaryRow>> {
-    let filters: any;
-    try {
-      filters = CommissionSummaryFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid commission summary filters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(CommissionSummaryFilterSchema, query, 'Invalid commission summary filters');
 
     const tenantId = this.tenantContext.getTenantId()!;
     const where: any = { tenantId };
@@ -557,19 +496,7 @@ export class ReportsService {
   // ─── Pipeline Analytics ───────────────────────────────
 
   async getPipelineAnalytics(query: unknown): Promise<ReportResult<PipelineAnalyticsRow>> {
-    let filters: any;
-    try {
-      filters = PipelineAnalyticsFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid pipeline analytics filters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(PipelineAnalyticsFilterSchema, query, 'Invalid pipeline analytics filters');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -689,19 +616,7 @@ export class ReportsService {
   // ─── Morosidad ────────────────────────────────────────
 
   async getMorosidad(query: unknown): Promise<ReportResult<MorosidadRow>> {
-    let filters: any;
-    try {
-      filters = MorosidadFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid morosidad filters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(MorosidadFilterSchema, query, 'Invalid morosidad filters');
 
     const tenantId = this.tenantContext.getTenantId()!;
     const now = new Date();

@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -13,19 +12,7 @@ import {
   UpdateVisitSchema,
   VisitStatus,
 } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class InteractionsService {
@@ -39,19 +26,7 @@ export class InteractionsService {
   // ─── Create Interaction ───────────────────────────────
 
   async createInteraction(leadId: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = CreateInteractionSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid interaction data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateInteractionSchema, body, 'Invalid interaction data');
 
     // Verify lead exists in tenant
     const lead = await this.prisma.client.lead.findFirst({
@@ -106,19 +81,7 @@ export class InteractionsService {
   // ─── List Interactions ────────────────────────────────
 
   async findInteractions(leadId: string, query: unknown) {
-    let filters: any;
-    try {
-      filters = InteractionFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(InteractionFilterSchema, query, 'Invalid filter parameters');
 
     // Verify lead exists in tenant
     const lead = await this.prisma.client.lead.findFirst({
@@ -161,19 +124,7 @@ export class InteractionsService {
   // ─── Create Visit ────────────────────────────────────
 
   async createVisit(leadId: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = CreateVisitSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid visit data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateVisitSchema, body, 'Invalid visit data');
 
     // Verify lead exists in tenant
     const lead = await this.prisma.client.lead.findFirst({
@@ -232,19 +183,7 @@ export class InteractionsService {
   // ─── List Visits ──────────────────────────────────────
 
   async findVisits(leadId: string, query: unknown) {
-    let filters: any;
-    try {
-      filters = InteractionFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(InteractionFilterSchema, query, 'Invalid filter parameters');
 
     // Verify lead exists in tenant
     const lead = await this.prisma.client.lead.findFirst({
@@ -290,19 +229,7 @@ export class InteractionsService {
   // ─── Update Visit ────────────────────────────────────
 
   async updateVisit(leadId: string, visitId: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateVisitSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid visit update data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateVisitSchema, body, 'Invalid visit update data');
 
     // Verify lead exists in tenant
     const lead = await this.prisma.client.lead.findFirst({

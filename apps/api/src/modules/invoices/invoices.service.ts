@@ -18,18 +18,9 @@ import type {
   EmitInvoiceDto,
   EmitNotaCreditoDto,
 } from '@realfy/shared';
+import { parseOrThrow } from '../../common/validation/zod';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
 
 function mapCbteTipoToEnum(cbteTipo: number): ComprobanteType {
   const map: Record<number, ComprobanteType> = {
@@ -117,19 +108,7 @@ export class InvoicesService {
   // ─── List ─────────────────────────────────────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = ComprobanteFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(ComprobanteFilterSchema, query, 'Invalid filter parameters');
 
     const where: any = {};
     if (filters.paymentId) where.paymentId = filters.paymentId;

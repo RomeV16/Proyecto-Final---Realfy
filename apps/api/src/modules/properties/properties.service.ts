@@ -18,19 +18,7 @@ import {
   ContractStatus,
 } from '@realfy/shared';
 import { applyOperationTransition } from './operation-state';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class PropertiesService {
@@ -45,19 +33,7 @@ export class PropertiesService {
   // ─── List ───────────────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = PropertyFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(PropertyFilterSchema, query, 'Invalid filter parameters');
 
     const where: any = {};
 
@@ -171,19 +147,7 @@ export class PropertiesService {
   // ─── Create ─────────────────────────────────────────
 
   async create(data: unknown) {
-    let validated: any;
-    try {
-      validated = CreatePropertySchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid property data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreatePropertySchema, data, 'Invalid property data');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -217,19 +181,7 @@ export class PropertiesService {
   // ─── Update ─────────────────────────────────────────
 
   async update(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = UpdatePropertySchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid property data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdatePropertySchema, data, 'Invalid property data');
 
     // Fetch existing to check existence and compare price
     const existing = await this.prisma.client.property.findFirst({
@@ -314,22 +266,10 @@ export class PropertiesService {
   // ─── Operations ─────────────────────────────────────
 
   async addOperation(propertyId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = CreatePropertyOperationSchema.parse({
+    const validated: any = parseOrThrow(CreatePropertyOperationSchema, {
         ...((data as any) || {}),
         propertyId,
-      });
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid operation data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+      }, 'Invalid operation data');
 
     // Check property exists
     const property = await this.prisma.client.property.findFirst({
@@ -379,22 +319,10 @@ export class PropertiesService {
     operationId: string,
     data: unknown,
   ) {
-    let validated: any;
-    try {
-      validated = TransitionPropertyStateSchema.parse({
+    const validated: any = parseOrThrow(TransitionPropertyStateSchema, {
         ...((data as any) || {}),
         operationId,
-      });
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid state transition data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+      }, 'Invalid state transition data');
 
     // Fetch the operation
     const operation = await this.prisma.client.propertyOperation.findFirst({

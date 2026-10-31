@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
@@ -17,19 +16,7 @@ import {
   PersonRole,
   UserRole,
 } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 /** Property columns exposed on the public portal — no address number, no geo, no relations beyond media/operations. */
 const PROPERTY_LIST_SELECT = {
@@ -57,19 +44,7 @@ export class PublicService {
   // ─── Properties: List ─────────────────────────────────
 
   async findProperties(tenantId: string, query: unknown) {
-    let filters: any;
-    try {
-      filters = PublicPropertyFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(PublicPropertyFilterSchema, query, 'Invalid filter parameters');
 
     const availability: any = { state: PropertyState.Disponible };
     if (filters.operation) availability.operationType = filters.operation;
@@ -166,19 +141,7 @@ export class PublicService {
   // ─── Inquiries ─────────────────────────────────────────
 
   async createInquiry(tenantId: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = CreatePublicInquirySchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid inquiry data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreatePublicInquirySchema, body, 'Invalid inquiry data');
 
     // Resolve the linked property, if any — silently drop it if it isn't
     // this tenant's or isn't currently available, rather than failing.

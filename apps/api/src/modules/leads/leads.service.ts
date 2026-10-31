@@ -19,19 +19,7 @@ import {
   PersonRole,
   UserRole,
 } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 /** Standard includes for lead queries — person, pipeline, currentStage, assignedToUser. */
 const LEAD_INCLUDES = {
@@ -55,19 +43,7 @@ export class LeadsService {
   // ─── List Leads (with filters + pagination) ───────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = LeadFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(LeadFilterSchema, query, 'Invalid filter parameters');
 
     const where: any = {};
 
@@ -130,19 +106,7 @@ export class LeadsService {
   // ─── Create Lead (with person auto-creation + round-robin) ─
 
   async create(data: unknown) {
-    let validated: any;
-    try {
-      validated = CreateLeadSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid lead data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateLeadSchema, data, 'Invalid lead data');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -237,19 +201,7 @@ export class LeadsService {
   // ─── Update Lead ──────────────────────────────────────
 
   async update(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateLeadSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid lead data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateLeadSchema, data, 'Invalid lead data');
 
     const existing = await this.prisma.client.lead.findFirst({
       where: { id },
@@ -280,19 +232,7 @@ export class LeadsService {
   // ─── Move Stage ───────────────────────────────────────
 
   async moveStage(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = MoveLeadStageSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid stage data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(MoveLeadStageSchema, data, 'Invalid stage data');
 
     const lead = await this.prisma.client.lead.findFirst({
       where: { id },
@@ -338,19 +278,7 @@ export class LeadsService {
   // ─── Assign Lead ──────────────────────────────────────
 
   async assign(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = AssignLeadSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid assignment data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(AssignLeadSchema, data, 'Invalid assignment data');
 
     const lead = await this.prisma.client.lead.findFirst({
       where: { id },
@@ -382,19 +310,7 @@ export class LeadsService {
   // ─── Convert Lead ─────────────────────────────────────
 
   async convert(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = ConvertLeadSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid conversion data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(ConvertLeadSchema, data, 'Invalid conversion data');
 
     const lead = await this.prisma.client.lead.findFirst({
       where: { id },
@@ -462,19 +378,7 @@ export class LeadsService {
   // ─── Lose Lead ────────────────────────────────────────
 
   async lose(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = LoseLeadSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid lost data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(LoseLeadSchema, data, 'Invalid lost data');
 
     const lead = await this.prisma.client.lead.findFirst({
       where: { id },
