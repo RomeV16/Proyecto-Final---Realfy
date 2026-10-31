@@ -33,6 +33,59 @@
   },
   "password": {
    "tooShort": "Password must be at least 8 characters"
+  },
+  "forgot": {
+   "link": "Forgot your password?",
+   "title": "Recover your password",
+   "subtitle": "Enter your email and, if the account exists and email delivery is on, we will send you the instructions.",
+   "email": "Email",
+   "submit": "Send instructions",
+   "sending": "Sending…",
+   "sent": "If the account exists, we sent the instructions. If nothing arrives, ask an administrator of your agency to generate a link for you.",
+   "error": "The request could not be sent. Please try again.",
+   "backToLogin": "Back to sign in",
+   "emailRequired": "Enter your email",
+   "emailInvalid": "Enter a valid email"
+  },
+  "passwordRules": "At least 8 characters.",
+  "passwordFields": {
+   "required": "Enter a password",
+   "tooShort": "The password must be at least 8 characters",
+   "tooLong": "The password cannot exceed 128 characters",
+   "mismatch": "The passwords do not match"
+  },
+  "acceptInvitation": {
+   "title": "Join the team",
+   "subtitle": "Fill in your details and choose a password to enter Realfy.",
+   "firstName": "First name",
+   "lastName": "Last name",
+   "password": "Password",
+   "confirmPassword": "Repeat the password",
+   "submit": "Create my account",
+   "submitting": "Creating account…",
+   "firstNameRequired": "First name is required",
+   "lastNameRequired": "Last name is required",
+   "missingToken": "The invitation link is missing. Ask your administrator to share it again.",
+   "NOT_FOUND": "This invitation link is not valid. Ask for a new one.",
+   "EXPIRED": "The invitation expired. Ask your administrator to resend it.",
+   "USED": "This invitation was already used. If you already created your account, sign in.",
+   "error": "The account could not be created. Please try again.",
+   "loginFailed": "Your account was created, but we could not sign you in. Sign in with your email and password.",
+   "loginLink": "Already have an account? Sign in"
+  },
+  "passwordReset": {
+   "title": "Choose a new password",
+   "subtitle": "The link works only once.",
+   "password": "New password",
+   "confirmPassword": "Repeat the password",
+   "submit": "Save password",
+   "submitting": "Saving…",
+   "success": "Done, your password was updated. You can now sign in with the new one.",
+   "loginLink": "Sign in",
+   "INVALID": "This link is not valid. Ask your administrator for a new one.",
+   "USED": "This link was already used. If you need another, ask your administrator.",
+   "EXPIRED": "The link expired. Ask your administrator for a new one.",
+   "error": "The password could not be changed. Please try again."
   }
  },
  "nav": {
@@ -47,7 +100,7 @@
   "services": "Servicios",
   "settings": "Configuración",
   "audit": "Auditoría",
-  "users": "Usuarios",
+  "users": "Users",
   "logout": "Cerrar sesión",
   "indexData": "Datos de Índices",
   "pipeline": "Pipeline",
@@ -242,45 +295,102 @@
   }
  },
  "users": {
-  "title": "Usuarios",
-  "subtitle": "Gestioná el equipo de tu inmobiliaria",
-  "invite": "Invitar usuario",
-  "noUsers": "No hay usuarios registrados",
+  "title": "Users",
+  "subtitle": "Manage your agency's team",
+  "invite": "Invite user",
+  "noUsers": "No users yet",
   "modal": {
-   "title": "Invitar nuevo usuario",
-   "email": "Correo electrónico",
-   "emailPlaceholder": "usuario@ejemplo.com",
-   "role": "Rol",
-   "rolePlaceholder": "Seleccioná un rol",
-   "submit": "Enviar invitación",
-   "submitting": "Enviando…",
-   "success": "Invitación enviada exitosamente",
-   "error": "No se pudo enviar la invitación"
+   "title": "Invite a new user",
+   "email": "Email",
+   "emailPlaceholder": "user@example.com",
+   "role": "Role",
+   "rolePlaceholder": "Choose a role",
+   "submit": "Create invitation",
+   "submitting": "Creating…",
+   "success": "Invitation created",
+   "error": "The invitation could not be created",
+   "emailRequired": "Enter an email",
+   "emailInvalid": "Enter a valid email",
+   "roleRequired": "Choose a role",
+   "USER_ALREADY_EXISTS": "There is already a user with this email in your agency",
+   "INVITATION_ALREADY_PENDING": "There is already a pending invitation for this email. Resend it from the list."
   },
   "table": {
-   "name": "Nombre",
+   "name": "Name",
    "email": "Email",
-   "role": "Rol",
-   "status": "Estado",
-   "lastLogin": "Último acceso",
-   "actions": "Acciones",
-   "active": "Activo",
-   "inactive": "Inactivo"
+   "role": "Role",
+   "status": "Status",
+   "lastLogin": "Last sign-in",
+   "actions": "Actions",
+   "active": "Active",
+   "inactive": "Inactive"
   },
   "roles": {
-   "Admin": "Administrador",
-   "Gerente": "Gerente",
-   "Ventas": "Ventas",
-   "Liquidaciones": "Liquidaciones",
+   "Admin": "Administrator",
+   "Gerente": "Manager",
+   "Ventas": "Sales",
+   "Liquidaciones": "Settlements",
    "Marketing": "Marketing",
-   "Soporte": "Soporte",
-   "Lectura": "Solo lectura"
+   "Soporte": "Support",
+   "Lectura": "Read-only"
   },
   "actions": {
-   "changeRole": "Cambiar rol",
-   "deactivate": "Desactivar",
-   "activate": "Activar"
-  }
+   "changeRole": "Change role",
+   "deactivate": "Deactivate",
+   "activate": "Activate",
+   "resendInvitation": "Resend invitation",
+   "resetLink": "Password change link"
+  },
+  "readOnly": "Only an administrator can invite or modify users.",
+  "loadError": "The team could not be loaded",
+  "status": {
+   "invited": "Invited",
+   "active": "Active",
+   "inactive": "Deactivated"
+  },
+  "invitationExpires": "Expires on {date}",
+  "invitationExpired": "Invitation expired",
+  "neverLoggedIn": "Has not signed in yet",
+  "pendingName": "Pending acceptance",
+  "roleDialog": {
+   "title": "Change role",
+   "body": "Role of {name}",
+   "submit": "Save role",
+   "success": "Role updated",
+   "error": "The role could not be changed"
+  },
+  "confirm": {
+   "deactivateTitle": "Deactivate user",
+   "deactivateBody": "{name} will not be able to sign in and their open sessions are closed. You can reactivate them at any time.",
+   "deactivateConfirm": "Deactivate",
+   "deactivated": "User deactivated",
+   "reactivateTitle": "Reactivate user",
+   "reactivateBody": "{name} will be able to sign in again with their password.",
+   "reactivateConfirm": "Reactivate",
+   "reactivated": "User reactivated"
+  },
+  "errors": {
+   "LAST_ADMIN": "The agency needs at least one active administrator.",
+   "CANNOT_DEACTIVATE_SELF": "You cannot deactivate your own account.",
+   "USER_NOT_FOUND": "The user no longer exists in your agency.",
+   "INVITATION_NOT_FOUND": "The invitation is no longer pending.",
+   "USER_INACTIVE": "The user is deactivated: reactivate them before generating a link.",
+   "generic": "The action could not be completed. Please try again."
+  },
+  "share": {
+   "invitationTitle": "Invitation link",
+   "resetTitle": "Password change link",
+   "intro": "Share this link with {email}.",
+   "emailSent": "We also sent it by email.",
+   "noEmail": "The platform does not send emails yet: copy the link and send it by WhatsApp or any channel you prefer.",
+   "singleUse": "It works only once and expires on {date}. If it gets lost, generate a new one from this screen.",
+   "linkLabel": "Link",
+   "copy": "Copy link",
+   "copied": "Link copied",
+   "copyFailed": "Could not copy: select the link and copy it by hand.",
+   "close": "Done"
+  },
+  "cardSubtitle": "Invite the team, change roles and recover access"
  },
  "audit": {
   "title": "Registro de auditoría",
@@ -3615,7 +3725,20 @@
   "saving": "Saving...",
   "saved": "Changes saved",
   "saveError": "Could not save changes",
-  "nameRequired": "First and last name are required"
+  "nameRequired": "First and last name are required",
+  "password": {
+   "title": "Password",
+   "subtitle": "Changing it signs you out on your other devices.",
+   "current": "Current password",
+   "new": "New password",
+   "confirm": "Repeat the new password",
+   "currentRequired": "Enter your current password",
+   "submit": "Change password",
+   "saving": "Saving…",
+   "saved": "Password updated",
+   "wrongCurrent": "The current password is not correct",
+   "error": "The password could not be changed"
+  }
  },
  "configuracion": {
   "title": "Settings",
@@ -3636,7 +3759,8 @@
   "managePipeline": "Configurar etapas",
   "manageFiscal": "Configure invoicing",
   "manageScoring": "Configurar puntuación",
-  "manageIndices": "View and enter indices"
+  "manageIndices": "View and enter indices",
+  "manageUsers": "Manage users"
  },
  "portalPublico": {
   "footer": {

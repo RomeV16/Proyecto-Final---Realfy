@@ -11,8 +11,7 @@ export interface NavItem {
   icon: IconName;
   /**
    * Acción de `lib/permissions` que habilita el ítem. Sin acción, lo ven todos
-   * los roles del personal (hoy ningún ítem restringe: cada pantalla ya decide
-   * qué ofrece según el rol).
+   * los roles del personal (cada pantalla ya decide qué ofrece según el rol).
    */
   action?: Action;
 }
@@ -39,6 +38,7 @@ export const navItems: NavItem[] = [
   { key: 'providers', href: '/providers', icon: 'providers' },
   { key: 'notifications', href: '/notifications', icon: 'bell' },
   { key: 'import', href: '/import', icon: 'import' },
+  { key: 'users', href: '/configuracion/usuarios', icon: 'team', action: 'users.view' },
 ];
 
 /** Los ítems que el rol puede ver. */

@@ -39,6 +39,8 @@ const EXPECTED: Record<Action, string[]> = {
   'dashboard.analytics': ['Admin', 'Gerente'],
   'tickets.manage': ['Admin', 'Gerente', 'Soporte'],
   'settings.manage': ['Admin', 'Gerente'],
+  'users.view': ['Admin', 'Gerente'],
+  'users.manage': ['Admin'],
   'indexData.view': ['Admin', 'Gerente'],
   'indexData.manage': ['Admin'],
 };
@@ -96,9 +98,12 @@ describe('useCan', () => {
 });
 
 describe('menú por rol', () => {
-  it('hoy todos los ítems son visibles para todos los roles del personal', () => {
+  it('todos los roles ven los ítems sin acción; Usuarios solo Admin y Gerente', () => {
+    const open = navItems.filter((i) => !i.action).map((i) => i.key);
     for (const role of ALL_ROLES) {
-      expect(visibleNavItems(role).map((i) => i.key)).toEqual(navItems.map((i) => i.key));
+      const keys = visibleNavItems(role).map((i) => i.key);
+      expect(keys).toEqual(expect.arrayContaining(open));
+      expect(keys.includes('users')).toBe(role === 'Admin' || role === 'Gerente');
     }
   });
 
@@ -118,6 +123,6 @@ describe('menú por rol', () => {
       return <p>{useVisibleNavItems().length}</p>;
     }
     render(<List />);
-    expect(screen.getByText(String(navItems.length))).toBeInTheDocument();
+    expect(screen.getByText(String(navItems.filter((i) => !i.action).length))).toBeInTheDocument();
   });
 });
