@@ -13,17 +13,21 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { ArcaService } from '../arca/arca.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { S3Service } from '../../../common/media/s3.service';
+import { TenantCron } from '../../../common/scheduler/tenant-cron';
+import { makeTenantCron } from '../../../../test/helpers/tenant-cron';
 import ExcelJS from 'exceljs';
 
 // ─── Mock factories ───────────────────────────────────────────────────────────
 
 const makePrismaMock = () => ({
   baseClient: {
+    user: { findMany: jest.fn().mockResolvedValue([]) },
+    tenant: { findMany: jest.fn().mockResolvedValue([{ id: 'tenant-1', name: 'Test Tenant' }]) },
+  },
+  client: {
     arcaCertificate: { findMany: jest.fn().mockResolvedValue([]), update: jest.fn().mockResolvedValue({}) },
     arcaIssuer: { findMany: jest.fn().mockResolvedValue([]), findUnique: jest.fn().mockResolvedValue(null) },
     arcaRequestLog: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn().mockResolvedValue({}) },
-    user: { findMany: jest.fn().mockResolvedValue([]) },
-    tenant: { findMany: jest.fn().mockResolvedValue([]) },
     comprobante: { findMany: jest.fn().mockResolvedValue([]) },
     libroIvaExport: { create: jest.fn().mockResolvedValue({}) },
   },
@@ -90,6 +94,7 @@ describe('FiscalScheduler — edge cases', () => {
         { provide: ArcaService, useValue: arca },
         { provide: NotificationsService, useValue: notifications },
         { provide: S3Service, useValue: s3 },
+        { provide: TenantCron, useFactory: () => makeTenantCron([], prisma as any).tenantCron },
       ],
     }).compile();
 
@@ -103,9 +108,9 @@ describe('FiscalScheduler — edge cases', () => {
   describe('generateLibroIvaVentas — RG 1415/2003 column count', () => {
     it('Excel workbook has exactly 16 columns per RG 1415/2003', async () => {
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 'tenant-1', name: 'T1' }]);
-      prisma.baseClient.comprobante.findMany.mockResolvedValue([makeComprobante()]);
+      prisma.client.comprobante.findMany.mockResolvedValue([makeComprobante()]);
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
-      (prisma.baseClient as any).libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
+      prisma.client.libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
 
       await scheduler.generateLibroIvaVentas();
 
@@ -126,9 +131,9 @@ describe('FiscalScheduler — edge cases', () => {
 
     it('Excel has correct column headers matching RG 1415/2003 mandated fields', async () => {
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 'tenant-1', name: 'T1' }]);
-      prisma.baseClient.comprobante.findMany.mockResolvedValue([makeComprobante()]);
+      prisma.client.comprobante.findMany.mockResolvedValue([makeComprobante()]);
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
-      (prisma.baseClient as any).libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
+      prisma.client.libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
 
       await scheduler.generateLibroIvaVentas();
 
@@ -161,9 +166,9 @@ describe('FiscalScheduler — edge cases', () => {
         cae: '12345678901234',
       });
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 'tenant-1', name: 'T1' }]);
-      prisma.baseClient.comprobante.findMany.mockResolvedValue([comp]);
+      prisma.client.comprobante.findMany.mockResolvedValue([comp]);
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
-      (prisma.baseClient as any).libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
+      prisma.client.libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
 
       await scheduler.generateLibroIvaVentas();
 
@@ -191,7 +196,7 @@ describe('FiscalScheduler — edge cases', () => {
   describe('generateLibroIvaVentas — zero emissions is a no-op', () => {
     it('does not upload to S3 when tenant has 0 comprobantes', async () => {
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 'tenant-1', name: 'T1' }]);
-      prisma.baseClient.comprobante.findMany.mockResolvedValue([]); // 0
+      prisma.client.comprobante.findMany.mockResolvedValue([]); // 0
 
       const result = await scheduler.generateLibroIvaVentas();
 
@@ -202,7 +207,7 @@ describe('FiscalScheduler — edge cases', () => {
 
     it('does not notify admins when tenant has 0 comprobantes', async () => {
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 'tenant-1', name: 'T1' }]);
-      prisma.baseClient.comprobante.findMany.mockResolvedValue([]);
+      prisma.client.comprobante.findMany.mockResolvedValue([]);
 
       await scheduler.generateLibroIvaVentas();
 
@@ -215,11 +220,11 @@ describe('FiscalScheduler — edge cases', () => {
         { id: 'tenant-2', name: 'T2' },
       ]);
       // tenant-1 has emissions, tenant-2 has none
-      prisma.baseClient.comprobante.findMany
+      prisma.client.comprobante.findMany
         .mockResolvedValueOnce([makeComprobante()])
         .mockResolvedValueOnce([]);
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
-      (prisma.baseClient as any).libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
+      prisma.client.libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
 
       const result = await scheduler.generateLibroIvaVentas();
 
@@ -243,11 +248,11 @@ describe('FiscalScheduler — edge cases', () => {
         { id: 'tenant-A', name: 'TA' },
         { id: 'tenant-B', name: 'TB' },
       ]);
-      prisma.baseClient.comprobante.findMany
+      prisma.client.comprobante.findMany
         .mockResolvedValueOnce([makeComprobante({ id: 'comp-A' })])
         .mockResolvedValueOnce([makeComprobante({ id: 'comp-B' })]);
       prisma.baseClient.user.findMany.mockResolvedValue([]);
-      (prisma.baseClient as any).libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
+      prisma.client.libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
 
       await scheduler.generateLibroIvaVentas();
 
@@ -261,13 +266,13 @@ describe('FiscalScheduler — edge cases', () => {
     it('each LibroIvaExport record is created with correct tenantId', async () => {
       const createCalls: any[] = [];
       const libroExportMock = { create: jest.fn().mockImplementation(({ data }) => { createCalls.push(data); return {}; }) };
-      (prisma.baseClient as any).libroIvaExport = libroExportMock;
+      prisma.client.libroIvaExport = libroExportMock;
 
       prisma.baseClient.tenant.findMany.mockResolvedValue([
         { id: 'tenant-A', name: 'TA' },
         { id: 'tenant-B', name: 'TB' },
       ]);
-      prisma.baseClient.comprobante.findMany
+      prisma.client.comprobante.findMany
         .mockResolvedValueOnce([makeComprobante()])
         .mockResolvedValueOnce([makeComprobante()]);
       prisma.baseClient.user.findMany.mockResolvedValue([]);
@@ -289,9 +294,9 @@ describe('FiscalScheduler — edge cases', () => {
         impIva: '210.06',
       });
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 'tenant-1', name: 'T1' }]);
-      prisma.baseClient.comprobante.findMany.mockResolvedValue([comp]);
+      prisma.client.comprobante.findMany.mockResolvedValue([comp]);
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
-      (prisma.baseClient as any).libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
+      prisma.client.libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
 
       // Should not throw — Decimal handles .33/.27/.06 without noise
       await expect(scheduler.generateLibroIvaVentas()).resolves.not.toThrow();
@@ -300,9 +305,9 @@ describe('FiscalScheduler — edge cases', () => {
     it('impTotal zero is handled without division errors', async () => {
       const comp = makeComprobante({ impTotal: '0.00', impNeto: '0.00', impIva: '0.00' });
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 'tenant-1', name: 'T1' }]);
-      prisma.baseClient.comprobante.findMany.mockResolvedValue([comp]);
+      prisma.client.comprobante.findMany.mockResolvedValue([comp]);
       prisma.baseClient.user.findMany.mockResolvedValue([]);
-      (prisma.baseClient as any).libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
+      prisma.client.libroIvaExport = { create: jest.fn().mockResolvedValue({}) };
 
       await expect(scheduler.generateLibroIvaVentas()).resolves.not.toThrow();
     });

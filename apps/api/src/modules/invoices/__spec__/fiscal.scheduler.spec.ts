@@ -4,11 +4,21 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { ArcaService } from '../arca/arca.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { S3Service } from '../../../common/media/s3.service';
+import { TenantCron } from '../../../common/scheduler/tenant-cron';
+import { makeTenantCron } from '../../../../test/helpers/tenant-cron';
 
 // ─── Minimal mock factories ───────────────────────────────────────────────────
 
 const makePrismaMock = () => ({
   baseClient: {
+    user: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    tenant: {
+      findMany: jest.fn().mockResolvedValue([{ id: 'tenant-1', name: 'Test Tenant' }]),
+    },
+  },
+  client: {
     arcaCertificate: {
       findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn().mockResolvedValue({}),
@@ -21,12 +31,6 @@ const makePrismaMock = () => ({
     arcaRequestLog: {
       findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
-    },
-    user: {
-      findMany: jest.fn().mockResolvedValue([]),
-    },
-    tenant: {
-      findMany: jest.fn().mockResolvedValue([]),
     },
     comprobante: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -92,6 +96,7 @@ describe('FiscalScheduler', () => {
         { provide: ArcaService, useValue: arca },
         { provide: NotificationsService, useValue: notifications },
         { provide: S3Service, useValue: s3 },
+        { provide: TenantCron, useFactory: () => makeTenantCron([], prisma as any).tenantCron },
       ],
     }).compile();
 
@@ -105,8 +110,8 @@ describe('FiscalScheduler', () => {
   describe('checkCertificateExpiry', () => {
     it('should send a low-priority notification when cert expires in 10 days', async () => {
       const cert = makeCert(10);
-      prisma.baseClient.arcaCertificate.findMany.mockResolvedValue([cert]);
-      prisma.baseClient.arcaRequestLog.findFirst.mockResolvedValue(null); // not warned yet
+      prisma.client.arcaCertificate.findMany.mockResolvedValue([cert]);
+      prisma.client.arcaRequestLog.findFirst.mockResolvedValue(null); // not warned yet
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
 
       const result = await scheduler.checkCertificateExpiry();
@@ -127,8 +132,8 @@ describe('FiscalScheduler', () => {
 
     it('should send a high-priority notification when cert expires in 5 days', async () => {
       const cert = makeCert(5);
-      prisma.baseClient.arcaCertificate.findMany.mockResolvedValue([cert]);
-      prisma.baseClient.arcaRequestLog.findFirst.mockResolvedValue(null);
+      prisma.client.arcaCertificate.findMany.mockResolvedValue([cert]);
+      prisma.client.arcaRequestLog.findFirst.mockResolvedValue(null);
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
 
       await scheduler.checkCertificateExpiry();
@@ -139,13 +144,13 @@ describe('FiscalScheduler', () => {
 
     it('should deactivate cert and send critical notification when already expired', async () => {
       const cert = makeCert(-2); // 2 days past expiry
-      prisma.baseClient.arcaCertificate.findMany.mockResolvedValue([cert]);
-      prisma.baseClient.arcaRequestLog.findFirst.mockResolvedValue(null);
+      prisma.client.arcaCertificate.findMany.mockResolvedValue([cert]);
+      prisma.client.arcaRequestLog.findFirst.mockResolvedValue(null);
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
 
       await scheduler.checkCertificateExpiry();
 
-      expect(prisma.baseClient.arcaCertificate.update).toHaveBeenCalledWith(
+      expect(prisma.client.arcaCertificate.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: cert.id },
           data: { isActive: false },
@@ -157,9 +162,9 @@ describe('FiscalScheduler', () => {
 
     it('idempotency: does NOT send a second notification when already warned today at the same level', async () => {
       const cert = makeCert(10);
-      prisma.baseClient.arcaCertificate.findMany.mockResolvedValue([cert]);
+      prisma.client.arcaCertificate.findMany.mockResolvedValue([cert]);
       // Simulate already-warned log
-      prisma.baseClient.arcaRequestLog.findFirst.mockResolvedValue({ id: 'existing-log' });
+      prisma.client.arcaRequestLog.findFirst.mockResolvedValue({ id: 'existing-log' });
 
       await scheduler.checkCertificateExpiry();
 
@@ -168,15 +173,15 @@ describe('FiscalScheduler', () => {
 
     it('idempotency: running twice same-day does NOT send two notifications', async () => {
       const cert = makeCert(10);
-      prisma.baseClient.arcaCertificate.findMany.mockResolvedValue([cert]);
+      prisma.client.arcaCertificate.findMany.mockResolvedValue([cert]);
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
 
       // First run — no prior log
-      prisma.baseClient.arcaRequestLog.findFirst.mockResolvedValueOnce(null);
+      prisma.client.arcaRequestLog.findFirst.mockResolvedValueOnce(null);
       await scheduler.checkCertificateExpiry();
 
       // Second run — findFirst returns the log created by first run
-      prisma.baseClient.arcaRequestLog.findFirst.mockResolvedValueOnce({ id: 'log-1' });
+      prisma.client.arcaRequestLog.findFirst.mockResolvedValueOnce({ id: 'log-1' });
       await scheduler.checkCertificateExpiry();
 
       // Notification sent exactly once
@@ -184,7 +189,7 @@ describe('FiscalScheduler', () => {
     });
 
     it('returns 0 checked and 0 notified when no expiring certs exist', async () => {
-      prisma.baseClient.arcaCertificate.findMany.mockResolvedValue([]);
+      prisma.client.arcaCertificate.findMany.mockResolvedValue([]);
 
       const result = await scheduler.checkCertificateExpiry();
 
@@ -199,10 +204,10 @@ describe('FiscalScheduler', () => {
   describe('healthcheckDelegations', () => {
     it('flips status to Revoked and notifies when delegation auth fails', async () => {
       const issuer = makeIssuer('Active');
-      prisma.baseClient.arcaIssuer.findMany.mockResolvedValue([issuer]);
+      prisma.client.arcaIssuer.findMany.mockResolvedValue([issuer]);
       arca.verifyDelegation.mockResolvedValue({ ok: false, error: 'auth error' });
       // Simulate issuer updated to Revoked by verifyDelegation internals
-      prisma.baseClient.arcaIssuer.findUnique.mockResolvedValue({ delegationStatus: 'Revoked' });
+      prisma.client.arcaIssuer.findUnique.mockResolvedValue({ delegationStatus: 'Revoked' });
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
 
       const result = await scheduler.healthcheckDelegations();
@@ -220,7 +225,7 @@ describe('FiscalScheduler', () => {
 
     it('increments refreshed when delegation is healthy', async () => {
       const issuer = makeIssuer('Active');
-      prisma.baseClient.arcaIssuer.findMany.mockResolvedValue([issuer]);
+      prisma.client.arcaIssuer.findMany.mockResolvedValue([issuer]);
       arca.verifyDelegation.mockResolvedValue({ ok: true });
 
       const result = await scheduler.healthcheckDelegations();
@@ -234,7 +239,7 @@ describe('FiscalScheduler', () => {
       // The scheduler queries { delegationStatus: { not: 'Revoked' } }
       // This test verifies that if the mock returns empty (simulating no
       // qualifying issuers), nothing is processed.
-      prisma.baseClient.arcaIssuer.findMany.mockResolvedValue([]);
+      prisma.client.arcaIssuer.findMany.mockResolvedValue([]);
 
       const result = await scheduler.healthcheckDelegations();
 
@@ -244,10 +249,10 @@ describe('FiscalScheduler', () => {
 
     it('does not notify when transient failure leaves status unchanged', async () => {
       const issuer = makeIssuer('Active');
-      prisma.baseClient.arcaIssuer.findMany.mockResolvedValue([issuer]);
+      prisma.client.arcaIssuer.findMany.mockResolvedValue([issuer]);
       arca.verifyDelegation.mockResolvedValue({ ok: false, error: 'network timeout' });
       // Status NOT updated to Revoked (transient error path in verifyDelegation)
-      prisma.baseClient.arcaIssuer.findUnique.mockResolvedValue({ delegationStatus: 'Active' });
+      prisma.client.arcaIssuer.findUnique.mockResolvedValue({ delegationStatus: 'Active' });
 
       const result = await scheduler.healthcheckDelegations();
 
@@ -261,7 +266,7 @@ describe('FiscalScheduler', () => {
   describe('generateLibroIvaVentas', () => {
     it('skips tenants with 0 emissions in previous month', async () => {
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 'tenant-1', name: 'T1' }]);
-      prisma.baseClient.comprobante.findMany.mockResolvedValue([]); // 0 emissions
+      prisma.client.comprobante.findMany.mockResolvedValue([]); // 0 emissions
 
       const result = await scheduler.generateLibroIvaVentas();
 
@@ -273,7 +278,7 @@ describe('FiscalScheduler', () => {
 
     it('generates Excel, uploads to S3, and notifies admins for tenants with emissions', async () => {
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 'tenant-1', name: 'T1' }]);
-      prisma.baseClient.comprobante.findMany.mockResolvedValue([
+      prisma.client.comprobante.findMany.mockResolvedValue([
         {
           id: 'comp-1',
           cbteTipo: 1,
@@ -298,7 +303,7 @@ describe('FiscalScheduler', () => {
         },
       ]);
       prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
-      prisma.baseClient.libroIvaExport = {
+      prisma.client.libroIvaExport = {
         create: jest.fn().mockResolvedValue({}),
       } as any;
 
@@ -321,7 +326,7 @@ describe('FiscalScheduler', () => {
         { id: 'tenant-2', name: 'T2' },
       ]);
       // tenant-1 fails, tenant-2 has 0 emissions
-      prisma.baseClient.comprobante.findMany
+      prisma.client.comprobante.findMany
         .mockRejectedValueOnce(new Error('DB error'))
         .mockResolvedValueOnce([]);
 
