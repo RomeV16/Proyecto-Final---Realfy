@@ -1,16 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-
-// pdfmake Node.js usage: dynamic require for CommonJS module
-const PdfPrinter = require('pdfmake/src/printer');
-
-const FONTS = {
-  Roboto: {
-    normal: 'Helvetica',
-    bold: 'Helvetica-Bold',
-    italics: 'Helvetica-Oblique',
-    bolditalics: 'Helvetica-BoldOblique',
-  },
-};
+import { PdfRendererService, pageFooter } from '../../common/pdf/pdf-renderer.service';
 
 interface DocumentMetadata {
   title: string;
@@ -21,6 +10,8 @@ interface DocumentMetadata {
 @Injectable()
 export class ContractPdfService {
   private readonly logger = new Logger(ContractPdfService.name);
+
+  constructor(private readonly renderer: PdfRendererService) {}
 
   /**
    * Generate a PDF buffer from already-interpolated text.
@@ -64,21 +55,7 @@ export class ContractPdfService {
 
     const docDefinition: any = {
       content,
-      footer: (currentPage: number, pageCount: number) => ({
-        columns: [
-          {
-            text: metadata.title,
-            fontSize: 8,
-            margin: [40, 0, 0, 0],
-          },
-          {
-            text: `Pág. ${currentPage}/${pageCount}`,
-            fontSize: 8,
-            alignment: 'right',
-            margin: [0, 0, 40, 0],
-          },
-        ],
-      }),
+      footer: pageFooter(metadata.title),
       styles: {
         header: { fontSize: 16, bold: true },
         title: { fontSize: 13, bold: true },
@@ -91,16 +68,7 @@ export class ContractPdfService {
     };
 
     try {
-      const printer = new PdfPrinter(FONTS);
-      const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-      const chunks: Buffer[] = [];
-      return new Promise<Buffer>((resolve, reject) => {
-        pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
-        pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-        pdfDoc.on('error', (err: Error) => reject(err));
-        pdfDoc.end();
-      });
+      return await this.renderer.render(docDefinition);
     } catch (error) {
       this.logger.error('Contract PDF generation failed', {
         title: metadata.title,

@@ -1,18 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { propertyLabel, type PropertyLabelInput } from '@realfy/shared';
-
-// pdfmake Node.js usage: dynamic require for CommonJS module
- 
-const PdfPrinter = require('pdfmake/src/printer');
-
-const FONTS = {
-  Roboto: {
-    normal: 'Helvetica',
-    bold: 'Helvetica-Bold',
-    italics: 'Helvetica-Oblique',
-    bolditalics: 'Helvetica-BoldOblique',
-  },
-};
+import { formatDateAR, formatPeriodAR, propertyLabel, type PropertyLabelInput } from '@realfy/shared';
+import {
+  PdfRendererService,
+  dateCell,
+  headerCell,
+  moneyCell,
+  pageFooter,
+} from '../../common/pdf/pdf-renderer.service';
 
 interface PdfLineItem {
   type: string;
@@ -51,6 +45,8 @@ interface PdfLiquidacion {
 export class PdfService {
   private readonly logger = new Logger(PdfService.name);
 
+  constructor(private readonly renderer: PdfRendererService) {}
+
   /**
    * Generate a PDF receipt buffer for a liquidación.
    */
@@ -61,11 +57,7 @@ export class PdfService {
     lineItems: PdfLineItem[],
     payments: PdfPayment[],
   ): Promise<Buffer> {
-    const period = new Date(liquidacion.period);
-    const monthYear = period.toLocaleDateString('es-AR', {
-      month: 'long',
-      year: 'numeric',
-    });
+    const monthYear = formatPeriodAR(liquidacion.period);
     const propertyAddress = propertyLabel(contract?.property) || '—';
 
     const docDefinition: any = {
@@ -90,7 +82,7 @@ export class PdfService {
           columns: [
             { text: `Período: ${monthYear}`, width: '*' },
             {
-              text: `Vencimiento: ${new Date(liquidacion.dueDate).toLocaleDateString('es-AR')}`,
+              text: `Vencimiento: ${formatDateAR(liquidacion.dueDate)}`,
               width: 'auto',
             },
           ],
@@ -106,9 +98,9 @@ export class PdfService {
             widths: ['auto', '*', 'auto'],
             body: [
               [
-                { text: 'Tipo', bold: true },
-                { text: 'Descripción', bold: true },
-                { text: 'Monto', bold: true, alignment: 'right' },
+                headerCell('Tipo'),
+                headerCell('Descripción'),
+                headerCell('Monto', { alignment: 'right' }),
               ],
               ...lineItems.map((li) => {
                 const isMulta = li.type === 'Multa';
@@ -132,10 +124,7 @@ export class PdfService {
                 const descCell: any = {
                   text: descriptionText,
                 };
-                const amountCell: any = {
-                  text: this.formatAmount(li.amount),
-                  alignment: 'right',
-                };
+                const amountCell: any = moneyCell(li.amount, { symbol: false });
 
                 if (fillColor) {
                   typeCell.fillColor = fillColor;
@@ -159,19 +148,12 @@ export class PdfService {
               table: {
                 body: [
                   [
-                    { text: 'Subtotal:', bold: true },
-                    {
-                      text: `$ ${this.formatAmount(liquidacion.subtotal)}`,
-                      alignment: 'right',
-                    },
+                    headerCell('Subtotal:'),
+                    moneyCell(liquidacion.subtotal),
                   ],
                   [
-                    { text: 'Total:', bold: true },
-                    {
-                      text: `$ ${this.formatAmount(liquidacion.total)}`,
-                      alignment: 'right',
-                      bold: true,
-                    },
+                    headerCell('Total:'),
+                    moneyCell(liquidacion.total, { bold: true }),
                   ],
                 ],
               },
@@ -191,19 +173,16 @@ export class PdfService {
                   widths: ['auto', '*', 'auto', 'auto'],
                   body: [
                     [
-                      { text: 'Método', bold: true },
-                      { text: 'Referencia', bold: true },
-                      { text: 'Fecha', bold: true },
-                      { text: 'Monto', bold: true, alignment: 'right' },
+                      headerCell('Método'),
+                      headerCell('Referencia'),
+                      headerCell('Fecha'),
+                      headerCell('Monto', { alignment: 'right' }),
                     ],
                     ...payments.map((p) => [
                       p.method,
                       p.reference ?? '—',
-                      new Date(p.paidAt).toLocaleDateString('es-AR'),
-                      {
-                        text: `$ ${this.formatAmount(p.amount)}`,
-                        alignment: 'right',
-                      },
+                      dateCell(p.paidAt),
+                      moneyCell(p.amount),
                     ]),
                   ],
                 },
@@ -214,41 +193,11 @@ export class PdfService {
       ],
 
       // Footer
-      footer: (currentPage: number, pageCount: number) => ({
-        columns: [
-          tenant.cuit
-            ? { text: `CUIT: ${tenant.cuit}`, fontSize: 8, margin: [40, 0, 0, 0] }
-            : { text: '' },
-          {
-            text: `Pág. ${currentPage}/${pageCount}`,
-            fontSize: 8,
-            alignment: 'right',
-            margin: [0, 0, 40, 0],
-          },
-        ],
-      }),
-
-      styles: {
-        header: { fontSize: 18, bold: true },
-        title: { fontSize: 14, bold: true },
-        subheader: { fontSize: 12, bold: true },
-      },
-      defaultStyle: {
-        fontSize: 10,
-      },
+      footer: pageFooter(tenant.cuit ? `CUIT: ${tenant.cuit}` : null),
     };
 
     try {
-      const printer = new PdfPrinter(FONTS);
-      const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-      const chunks: Buffer[] = [];
-      return new Promise<Buffer>((resolve, reject) => {
-        pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
-        pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-        pdfDoc.on('error', (err: Error) => reject(err));
-        pdfDoc.end();
-      });
+      return await this.renderer.render(docDefinition);
     } catch (error) {
       this.logger.error('PDF generation failed', {
         liquidacionId: liquidacion.id,
@@ -256,12 +205,5 @@ export class PdfService {
       });
       throw error;
     }
-  }
-
-  private formatAmount(amount: string | number): string {
-    return Number(amount).toLocaleString('es-AR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
   }
 }

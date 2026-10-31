@@ -1,3 +1,4 @@
+import { PdfRendererService } from '../../../src/common/pdf/pdf-renderer.service';
 import { PdfService } from '../../../src/modules/liquidaciones/pdf.service';
 import { RenditionPdfService } from '../../../src/modules/renditions/rendition-pdf.service';
 import { ReportPdfService } from '../../../src/modules/reports/report-pdf.service';
@@ -14,7 +15,7 @@ describe('Caracterización de PDF', () => {
   afterAll(() => jest.useRealTimers());
 
   it('liquidación', async () => {
-    const service = new PdfService();
+    const service = new PdfService(new PdfRendererService());
     const doc = await captureDocDefinition(() =>
       service.generateReceipt(
         {
@@ -39,7 +40,7 @@ describe('Caracterización de PDF', () => {
   });
 
   it('liquidación sin CUIT ni pagos', async () => {
-    const service = new PdfService();
+    const service = new PdfService(new PdfRendererService());
     const doc = await captureDocDefinition(() =>
       service.generateReceipt(
         {
@@ -60,7 +61,7 @@ describe('Caracterización de PDF', () => {
   });
 
   it('rendición', async () => {
-    const service = new RenditionPdfService();
+    const service = new RenditionPdfService(new PdfRendererService());
     const doc = await captureDocDefinition(() =>
       service.generateRenditionPdf(
         {
@@ -89,7 +90,7 @@ describe('Caracterización de PDF', () => {
   });
 
   it('rendición sin propietario, contrato ni notas', async () => {
-    const service = new RenditionPdfService();
+    const service = new RenditionPdfService(new PdfRendererService());
     const doc = await captureDocDefinition(() =>
       service.generateRenditionPdf(
         {
@@ -151,7 +152,7 @@ describe('Caracterización de PDF', () => {
   ];
 
   it.each(reports)('reporte $type', async (report) => {
-    const service = new ReportPdfService();
+    const service = new ReportPdfService(new PdfRendererService());
     const doc = await captureDocDefinition(() =>
       service.generatePdf({ ...report, generatedAt: '2025-06-15T12:00:00.000Z', filters: {} } as never),
     );
@@ -160,7 +161,7 @@ describe('Caracterización de PDF', () => {
 
   it('comprobante fiscal', async () => {
     const service = Object.create(FiscalPdfService.prototype) as FiscalPdfService;
-    (service as unknown as { logger: unknown }).logger = { error: jest.fn(), warn: jest.fn() };
+    Object.assign(service, { logger: { error: jest.fn(), warn: jest.fn() }, renderer: new PdfRendererService() });
     const doc = await captureDocDefinition(() =>
       service.generateInvoicePdf(
         {
@@ -188,7 +189,7 @@ describe('Caracterización de PDF', () => {
   });
 
   it('contrato', async () => {
-    const service = new ContractPdfService();
+    const service = new ContractPdfService(new PdfRendererService());
     const doc = await captureDocDefinition(() =>
       service.generatePdf('Primera línea\n\n  Segunda línea  \nTercera', {
         title: 'Contrato de locación',
@@ -200,7 +201,7 @@ describe('Caracterización de PDF', () => {
   });
 
   it('contrato sin nombre de inmobiliaria', async () => {
-    const service = new ContractPdfService();
+    const service = new ContractPdfService(new PdfRendererService());
     const doc = await captureDocDefinition(() =>
       service.generatePdf('Texto', { title: 'Sin nombre', contractType: 'Locacion' }),
     );

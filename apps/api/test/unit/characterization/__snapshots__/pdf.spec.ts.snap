@@ -69,7 +69,7 @@ exports[`Caracterización de PDF comprobante fiscal 1`] = `
             {
               "alignment": "right",
               "fontSize": 9,
-              "text": "Fecha: 10/6/2025",
+              "text": "Fecha: 10/06/2025",
             },
           ],
           "width": "*",
@@ -245,7 +245,7 @@ exports[`Caracterización de PDF comprobante fiscal 1`] = `
             },
             {
               "fontSize": 9,
-              "text": "Fecha de Vencimiento CAE: 10/7/2025",
+              "text": "Fecha de Vencimiento CAE: 10/07/2025",
             },
           ],
           "width": "*",
@@ -300,6 +300,14 @@ exports[`Caracterización de PDF comprobante fiscal 1`] = `
     "header": {
       "bold": true,
       "fontSize": 16,
+    },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
     },
   },
 }
@@ -408,6 +416,10 @@ exports[`Caracterización de PDF contrato 1`] = `
       "bold": true,
       "fontSize": 16,
     },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
     "title": {
       "bold": true,
       "fontSize": 13,
@@ -480,6 +492,10 @@ exports[`Caracterización de PDF contrato sin nombre de inmobiliaria 1`] = `
       "bold": true,
       "fontSize": 16,
     },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
     "title": {
       "bold": true,
       "fontSize": 13,
@@ -524,7 +540,7 @@ exports[`Caracterización de PDF liquidación 1`] = `
           "width": "*",
         },
         {
-          "text": "Vencimiento: 20/3/2025",
+          "text": "Vencimiento: 20/03/2025",
           "width": "auto",
         },
       ],
@@ -724,7 +740,9 @@ exports[`Caracterización de PDF liquidación 1`] = `
           [
             "Transferencia",
             "—",
-            "18/3/2025",
+            {
+              "text": "18/03/2025",
+            },
             {
               "alignment": "right",
               "text": "$ 152.500,00",
@@ -821,7 +839,7 @@ exports[`Caracterización de PDF liquidación sin CUIT ni pagos 1`] = `
           "width": "*",
         },
         {
-          "text": "Vencimiento: 20/4/2025",
+          "text": "Vencimiento: 20/04/2025",
           "width": "auto",
         },
       ],
@@ -1043,7 +1061,7 @@ exports[`Caracterización de PDF rendición 1`] = `
         0,
         3,
       ],
-      "text": "Propiedad: —",
+      "text": "Propiedad: Depto Centro",
     },
     {
       "margin": [
@@ -1084,7 +1102,7 @@ exports[`Caracterización de PDF rendición 1`] = `
             {
               "alignment": "right",
               "color": "#000000",
-              "text": " $ 150.000,00",
+              "text": "$ 150.000,00",
             },
           ],
           [
@@ -1225,7 +1243,7 @@ exports[`Caracterización de PDF rendición 1`] = `
           0,
           0,
         ],
-        "text": "Generado: 15/6/2025",
+        "text": "Generado: 15/06/2025",
       },
       {
         "alignment": "right",
@@ -1467,7 +1485,7 @@ exports[`Caracterización de PDF rendición sin propietario, contrato ni notas 1
           0,
           0,
         ],
-        "text": "Generado: 15/6/2025",
+        "text": "Generado: 15/06/2025",
       },
       {
         "alignment": "right",
@@ -1523,7 +1541,7 @@ exports[`Caracterización de PDF reporte cashFlow 1`] = `
         0,
         15,
       ],
-      "text": "Generado: 15/6/2025",
+      "text": "Generado: 15/06/2025",
     },
     {
       "layout": {
@@ -1663,6 +1681,14 @@ exports[`Caracterización de PDF reporte cashFlow 1`] = `
       "bold": true,
       "fontSize": 16,
     },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
+    },
   },
 }
 `;
@@ -1691,7 +1717,7 @@ exports[`Caracterización de PDF reporte commissionSummary 1`] = `
         0,
         15,
       ],
-      "text": "Generado: 15/6/2025",
+      "text": "Generado: 15/06/2025",
     },
     {
       "layout": {
@@ -1859,6 +1885,14 @@ exports[`Caracterización de PDF reporte commissionSummary 1`] = `
       "bold": true,
       "fontSize": 16,
     },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
+    },
   },
 }
 `;
@@ -1887,7 +1921,7 @@ exports[`Caracterización de PDF reporte morosidad 1`] = `
         0,
         15,
       ],
-      "text": "Generado: 15/6/2025",
+      "text": "Generado: 15/06/2025",
     },
     {
       "layout": {
@@ -2055,6 +2089,14 @@ exports[`Caracterización de PDF reporte morosidad 1`] = `
       "bold": true,
       "fontSize": 16,
     },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
+    },
   },
 }
 `;
@@ -2083,7 +2125,7 @@ exports[`Caracterización de PDF reporte ownerStatement 1`] = `
         0,
         15,
       ],
-      "text": "Generado: 15/6/2025",
+      "text": "Generado: 15/06/2025",
     },
     {
       "layout": {
@@ -2301,6 +2343,14 @@ exports[`Caracterización de PDF reporte ownerStatement 1`] = `
       "bold": true,
       "fontSize": 16,
     },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
+    },
   },
 }
 `;
@@ -2329,7 +2379,7 @@ exports[`Caracterización de PDF reporte pipelineAnalytics 1`] = `
         0,
         15,
       ],
-      "text": "Generado: 15/6/2025",
+      "text": "Generado: 15/06/2025",
     },
     {
       "layout": {
@@ -2483,6 +2533,14 @@ exports[`Caracterización de PDF reporte pipelineAnalytics 1`] = `
       "bold": true,
       "fontSize": 16,
     },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
+    },
   },
 }
 `;
@@ -2511,7 +2569,7 @@ exports[`Caracterización de PDF reporte propertyProfitability 1`] = `
         0,
         15,
       ],
-      "text": "Generado: 15/6/2025",
+      "text": "Generado: 15/06/2025",
     },
     {
       "layout": {
@@ -2650,6 +2708,14 @@ exports[`Caracterización de PDF reporte propertyProfitability 1`] = `
     "header": {
       "bold": true,
       "fontSize": 16,
+    },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
     },
   },
 }

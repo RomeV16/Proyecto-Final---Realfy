@@ -2,20 +2,18 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
-import { FiscalCondition, formatDateAR, monthStartUTC } from '@realfy/shared';
+import {
+  FiscalCondition,
+  formatDateAR,
+  formatMoneyAR,
+  formatPeriodAR,
+  monthStartUTC,
+  propertyLabel,
+} from '@realfy/shared';
+import { PdfRendererService, pageFooter } from '../../common/pdf/pdf-renderer.service';
 
-// pdfmake Node.js usage: dynamic require for CommonJS module
-const PdfPrinter = require('pdfmake/src/printer');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const QRCode = require('qrcode');
-
-const FONTS = {
-  Roboto: {
-    normal: 'Helvetica',
-    bold: 'Helvetica-Bold',
-    italics: 'Helvetica-Oblique',
-    bolditalics: 'Helvetica-BoldOblique',
-  },
-};
 
 // ─── Fiscal QR per RG 4892/2020 ─────────────────────────
 
@@ -117,18 +115,6 @@ function formatPuntoDeVentaNumero(
   return `${pv}-${num}`;
 }
 
-function formatAmount(amount: string | number | { toString(): string }): string {
-  return Number(String(amount)).toLocaleString('es-AR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-function formatDate(date: Date | string): string {
-  const d = new Date(date);
-  return d.toLocaleDateString('es-AR');
-}
-
 function getIsoDate(date: Date | string): string {
   const d = new Date(date);
   return d.toISOString().split('T')[0];
@@ -183,6 +169,7 @@ export class FiscalPdfService {
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
     private readonly configService: ConfigService,
+    private readonly renderer: PdfRendererService,
   ) {}
 
   /**
@@ -298,11 +285,7 @@ export class FiscalPdfService {
     liquidacion?: any,
     property?: any,
   ): Promise<Buffer> {
-    const formatDate = (d: Date | string | null) => {
-      if (!d) return '';
-      const dt = typeof d === 'string' ? new Date(d) : d;
-      return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
-    };
+    const dateOrEmpty = (d: Date | string | null) => (d ? formatDateAR(d) : '');
 
     // Map cbteTipo to AfipSDK template name
     const templateMap: Record<number, string> = {
@@ -327,8 +310,8 @@ export class FiscalPdfService {
         params: {
           voucher_number: comprobante.numero,
           sales_point: comprobante.puntoDeVenta,
-          issue_date: formatDate(comprobante.emittedAt),
-          cae_due_date: formatDate(comprobante.caeFchVto),
+          issue_date: dateOrEmpty(comprobante.emittedAt),
+          cae_due_date: dateOrEmpty(comprobante.caeFchVto),
           issuer_cuit: parseInt(String(issuer?.cuit ?? tenant.cuit).replace(/-/g, ''), 10),
           cae: parseInt(comprobante.cae, 10),
           issuer_business_name: issuer?.businessName || tenant.name,
@@ -348,7 +331,7 @@ export class FiscalPdfService {
           items: [
             {
               description: property
-                ? `Alquiler ${property.title || ''} - ${liquidacion?.period ? new Date(liquidacion.period).toLocaleDateString('es-AR', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : 'Período'}`
+                ? `Alquiler ${propertyLabel(property)} - ${liquidacion?.period ? formatPeriodAR(liquidacion.period) : 'Período'}`
                 : 'Alquiler - Servicio',
               quantity: 1,
               unit_price: Number(comprobante.impTotal),
@@ -360,11 +343,11 @@ export class FiscalPdfService {
           total_amount: Number(comprobante.impTotal),
           billing_from: liquidacion?.period
             ? formatDateAR(monthStartUTC(new Date(liquidacion.period).getUTCFullYear(), new Date(liquidacion.period).getUTCMonth() + 1))
-            : formatDate(comprobante.emittedAt),
+            : dateOrEmpty(comprobante.emittedAt),
           billing_to: liquidacion?.period
             ? formatDateAR(new Date(Date.UTC(new Date(liquidacion.period).getUTCFullYear(), new Date(liquidacion.period).getUTCMonth() + 1, 0)))
-            : formatDate(comprobante.emittedAt),
-          payment_due_date: formatDate(comprobante.caeFchVto),
+            : dateOrEmpty(comprobante.emittedAt),
+          payment_due_date: dateOrEmpty(comprobante.caeFchVto),
           net_amount_taxed: Number(comprobante.impNeto || comprobante.impTotal),
           net_amount_untaxed: 0,
           exempt_amount: Number(comprobante.impExento || 0),
@@ -496,7 +479,7 @@ export class FiscalPdfService {
               alignment: 'right',
             },
             {
-              text: `Fecha: ${formatDate(comprobante.emittedAt)}`,
+              text: `Fecha: ${formatDateAR(comprobante.emittedAt)}`,
               fontSize: 9,
               alignment: 'right',
             },
@@ -564,7 +547,7 @@ export class FiscalPdfService {
             [
               comprobante.description ?? 'Servicios de alquiler',
               {
-                text: `$ ${formatAmount(comprobante.impNeto)}`,
+                text: `$ ${formatMoneyAR(comprobante.impNeto)}`,
                 alignment: 'right',
               },
             ],
@@ -583,21 +566,21 @@ export class FiscalPdfService {
                 [
                   { text: 'Subtotal (Neto):', bold: true },
                   {
-                    text: `$ ${formatAmount(comprobante.impNeto)}`,
+                    text: `$ ${formatMoneyAR(comprobante.impNeto)}`,
                     alignment: 'right',
                   },
                 ],
                 [
                   { text: 'IVA 21%:' },
                   {
-                    text: `$ ${formatAmount(comprobante.impIva)}`,
+                    text: `$ ${formatMoneyAR(comprobante.impIva)}`,
                     alignment: 'right',
                   },
                 ],
                 [
                   { text: 'Total:', bold: true, fontSize: 12 },
                   {
-                    text: `$ ${formatAmount(comprobante.impTotal)}`,
+                    text: `$ ${formatMoneyAR(comprobante.impTotal)}`,
                     alignment: 'right',
                     bold: true,
                     fontSize: 12,
@@ -624,7 +607,7 @@ export class FiscalPdfService {
             [
               comprobante.description ?? 'Servicios de alquiler',
               {
-                text: `$ ${formatAmount(comprobante.impTotal)}`,
+                text: `$ ${formatMoneyAR(comprobante.impTotal)}`,
                 alignment: 'right',
               },
             ],
@@ -643,7 +626,7 @@ export class FiscalPdfService {
                 [
                   { text: 'Total (IVA incluido):', bold: true, fontSize: 12 },
                   {
-                    text: `$ ${formatAmount(comprobante.impTotal)}`,
+                    text: `$ ${formatMoneyAR(comprobante.impTotal)}`,
                     alignment: 'right',
                     bold: true,
                     fontSize: 12,
@@ -670,7 +653,7 @@ export class FiscalPdfService {
             [
               comprobante.description ?? 'Servicios de alquiler',
               {
-                text: `$ ${formatAmount(comprobante.impTotal)}`,
+                text: `$ ${formatMoneyAR(comprobante.impTotal)}`,
                 alignment: 'right',
               },
             ],
@@ -689,7 +672,7 @@ export class FiscalPdfService {
                 [
                   { text: 'Total:', bold: true, fontSize: 12 },
                   {
-                    text: `$ ${formatAmount(comprobante.impTotal)}`,
+                    text: `$ ${formatMoneyAR(comprobante.impTotal)}`,
                     alignment: 'right',
                     bold: true,
                     fontSize: 12,
@@ -724,7 +707,7 @@ export class FiscalPdfService {
               bold: true,
             },
             {
-              text: `Fecha de Vencimiento CAE: ${formatDate(comprobante.caeFchVto)}`,
+              text: `Fecha de Vencimiento CAE: ${formatDateAR(comprobante.caeFchVto)}`,
               fontSize: 9,
             },
           ],
@@ -741,40 +724,14 @@ export class FiscalPdfService {
 
     const docDefinition: any = {
       content,
-      footer: (currentPage: number, pageCount: number) => ({
-        columns: [
-          {
-            text: `CUIT: ${tenant.cuit}`,
-            fontSize: 8,
-            margin: [40, 0, 0, 0],
-          },
-          {
-            text: `Pág. ${currentPage}/${pageCount}`,
-            fontSize: 8,
-            alignment: 'right',
-            margin: [0, 0, 40, 0],
-          },
-        ],
-      }),
+      footer: pageFooter(`CUIT: ${tenant.cuit}`),
       styles: {
         header: { fontSize: 16, bold: true },
-      },
-      defaultStyle: {
-        fontSize: 10,
       },
     };
 
     try {
-      const printer = new PdfPrinter(FONTS);
-      const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-      const chunks: Buffer[] = [];
-      return new Promise<Buffer>((resolve, reject) => {
-        pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
-        pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-        pdfDoc.on('error', (err: Error) => reject(err));
-        pdfDoc.end();
-      });
+      return await this.renderer.render(docDefinition);
     } catch (error) {
       this.logger.error('Fiscal PDF generation failed', {
         comprobanteId: comprobante.id,

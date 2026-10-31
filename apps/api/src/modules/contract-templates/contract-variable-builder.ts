@@ -1,3 +1,5 @@
+import { formatMoneyAR, personName } from '@realfy/shared';
+
 /**
  * Flattens nested contract data (with persons, property, guarantees)
  * into a dot-path Record<string, string> for template variable interpolation.
@@ -113,13 +115,6 @@ function formatDateLong(d: Date | string): string {
   });
 }
 
-function formatAmount(amount: any): string {
-  return Number(amount).toLocaleString('es-AR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
 function addPersonVars(
   vars: Record<string, string>,
   prefix: string,
@@ -127,16 +122,12 @@ function addPersonVars(
 ): void {
   vars[`${prefix}.nombre`] = person.firstName;
   vars[`${prefix}.apellido`] = person.lastName;
-  vars[`${prefix}.nombreCompleto`] = `${person.firstName} ${person.lastName}`;
+  vars[`${prefix}.nombreCompleto`] = personName(person);
   if (person.email) vars[`${prefix}.email`] = person.email;
   if (person.phone) vars[`${prefix}.telefono`] = person.phone;
   if (person.cuit) vars[`${prefix}.cuit`] = person.cuit;
   if (person.dni) vars[`${prefix}.documento`] = person.dni;
   if (person.address) vars[`${prefix}.domicilio`] = person.address;
-}
-
-function fullName(person: PersonData): string {
-  return `${person.firstName} ${person.lastName}`;
 }
 
 function formatPct(pct: any): string {
@@ -161,9 +152,9 @@ function addLessorVars(vars: Record<string, string>, contract: ContractData): vo
     }
     vars['locador.capacidad'] = lessors[0].capacity;
     vars['locador.porcentaje'] = formatPct(lessors[0].payoutPct);
-    vars['locadores.nombres'] = lessors.map((l) => fullName(l.person)).join(' / ');
+    vars['locadores.nombres'] = lessors.map((l) => personName(l.person)).join(' / ');
     vars['locadores.lista'] = lessors
-      .map((l) => (l.person.cuit ? `${fullName(l.person)}, CUIT/CUIL ${l.person.cuit}` : fullName(l.person)))
+      .map((l) => (l.person.cuit ? `${personName(l.person)}, CUIT/CUIL ${l.person.cuit}` : personName(l.person)))
       .join(' y ');
   }
 
@@ -172,13 +163,13 @@ function addLessorVars(vars: Record<string, string>, contract: ContractData): vo
   powers.forEach((w, i) => {
     const prefix = `apoderados.${i + 1}`;
     addPersonVars(vars, prefix, w.agent);
-    vars[`${prefix}.poderdante`] = fullName(w.principal);
+    vars[`${prefix}.poderdante`] = personName(w.principal);
     vars[`${prefix}.alcances`] = w.scopes.join(', ');
     vars[`${prefix}.firma`] = w.signatureMode;
   });
   if (powers.length > 0) {
     vars['apoderados.lista'] = powers
-      .map((w) => `${fullName(w.agent)}, apoderado/a de ${fullName(w.principal)}`)
+      .map((w) => `${personName(w.agent)}, apoderado/a de ${personName(w.principal)}`)
       .join('; ');
   }
 }
@@ -199,10 +190,10 @@ export function buildContractVariables(
   vars['contrato.fechaFin'] = formatDate(contract.endDate);
   vars['contrato.fechaInicioLarga'] = formatDateLong(contract.startDate);
   vars['contrato.fechaFinLarga'] = formatDateLong(contract.endDate);
-  vars['contrato.monto'] = formatAmount(contract.rentAmount);
+  vars['contrato.monto'] = formatMoneyAR(contract.rentAmount);
   vars['contrato.moneda'] = contract.rentCurrency;
   if (contract.depositAmount) {
-    vars['contrato.deposito'] = formatAmount(contract.depositAmount);
+    vars['contrato.deposito'] = formatMoneyAR(contract.depositAmount);
   }
   vars['contrato.tipoAjuste'] = contract.adjustmentType;
   vars['contrato.periodoAjuste'] = contract.adjustmentPeriod;
@@ -259,7 +250,7 @@ export function buildContractVariables(
       const prefix = i === 0 ? 'garantia' : `garantia${i + 1}`;
       vars[`${prefix}.tipo`] = g.type;
       if (g.description) vars[`${prefix}.descripcion`] = g.description;
-      if (g.amount) vars[`${prefix}.monto`] = formatAmount(g.amount);
+      if (g.amount) vars[`${prefix}.monto`] = formatMoneyAR(g.amount);
       if (g.issuer) vars[`${prefix}.emisor`] = g.issuer;
       if (g.policyNumber) vars[`${prefix}.poliza`] = g.policyNumber;
     });

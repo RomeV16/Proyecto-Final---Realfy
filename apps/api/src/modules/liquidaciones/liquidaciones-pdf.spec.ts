@@ -2,6 +2,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { LiquidacionesService } from './liquidaciones.service';
 import { PdfService } from './pdf.service';
+import { PdfRendererService } from '../../common/pdf/pdf-renderer.service';
 
 const PdfPrinter = require('pdfmake/src/printer');
 
@@ -33,7 +34,7 @@ describe('LiquidacionesService.generatePdf: propiedad del contrato', () => {
     return new LiquidacionesService(
       { client } as unknown as PrismaService,
       tenantContext as unknown as TenantContextService,
-      new PdfService(),
+      new PdfService(new PdfRendererService()),
       {} as any,
     );
   };
