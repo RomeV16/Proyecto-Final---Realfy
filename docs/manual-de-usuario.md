@@ -548,6 +548,46 @@ sesiones.
 actual y la nueva dos veces. Las sesiones abiertas en otros dispositivos se
 cierran; la actual sigue.
 
+### Ajustes del mes
+
+`/ajustes` junta los ajustes de alquiler que vencen en un mes, para aplicarlos
+todos de una vez en lugar de cargarlos contrato por contrato. La ven Admin,
+Gerente y Liquidaciones.
+
+Se elige el mes y la pantalla calcula, para cada contrato activo con un ajuste
+pendiente hasta fin de ese mes, el alquiler actual, el nuevo, la variación y los
+meses de índice que usó. Un ajuste que venía atrasado de un mes anterior aparece
+marcado como *Atrasado*. Los índices que entran no son los del mes del ajuste sino
+los de dos meses antes (el rezago de la inmobiliaria, que cada contrato puede
+cambiar): el ajuste de abril usa el IPC publicado hasta febrero.
+
+Cada fila tiene un estado:
+
+- **Listo**: se calculó con valores oficiales.
+- **A cuenta**: el INDEC todavía no publicó algún mes y se usó el valor estimado
+  (por ejemplo el del REM). Se aplica igual, y cuando se publique el oficial el
+  sistema lo corrige solo. La fila lo avisa.
+- **Sin cambio (meses fijos)**: el contrato está dentro de sus meses iniciales sin
+  ajuste.
+- **Faltan datos**: falta el índice de uno o más meses y no hay estimado (o el
+  pago a cuenta está apagado). La fila dice qué índice y qué meses faltan, no se
+  puede elegir y enlaza a la carga de índices. Cargados los valores, *Actualizar*.
+- **No se puede calcular**: falta el porcentaje o los escalones del contrato.
+
+Se marcan las filas que se quieren aplicar (*Elegir todos* toma las aplicables),
+*Aplicar* pide confirmación y muestra cuántas van a cuenta, y al terminar cada fila
+muestra su resultado. Lo que no se pudo aplicar queda pendiente. Cada ajuste queda
+en el registro de auditoría con la persona que lo aplicó.
+
+**Pago a cuenta y corrección.** Cuando un ajuste se aplicó con un valor estimado y
+el INDEC publica el oficial, el sistema recalcula el ajuste, deja el alquiler en el
+valor oficial y guarda la diferencia de los meses ya facturados para incluirla en
+una liquidación. Si el estimado se pasó, la diferencia es a favor del inquilino. Un
+Admin o Gerente puede apagar el pago a cuenta en *Valores por defecto*: entonces un
+ajuste sin índice oficial queda pendiente hasta que se publique. El proceso que
+aplica los ajustes vencidos corre solo todos los días a las 7, después de la lectura
+de índices de las 6; esta pantalla es para hacerlo a mano y a la vista.
+
 ### Índices de ajuste
 
 `/configuracion/indices` muestra el último valor de cada índice —IPC, ICL, UVA,

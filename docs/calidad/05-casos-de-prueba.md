@@ -292,6 +292,47 @@ cuenta.
 | CP-271 | Caracterización del cálculo por modalidad | 15 casos sintéticos (IPC, ICL, CCP, fijo, personalizado, modalidad desconocida; D1 a D11): los tres caminos dan el mismo alquiler cuando hay datos (105.060, 120.000, 101.500, 100.900, 110.000, 107.500) y la misma ventana de índices tras un ajuste aplicado (DEF-07); aplicar el cálculo manual deja el alquiler en `newAmount` y el cronograma en Aplicado | `contracts/contract-adjustment-paths.spec.ts` | verde |
 | CP-272 | Un solo criterio ante datos faltantes (DEF-25) | IPC o ICL sin valores, ICL con uno solo, CCP sin CVS o sin CER: 400 `MISSING_INDEX_DATA` en el cálculo manual y en la previsualización, y el barrido deja el cronograma pendiente sin tocar el alquiler; porcentaje fijo o personalizado sin porcentaje: `MISSING_ADJUSTMENT_PCT`; modalidad desconocida: `UNKNOWN_ADJUSTMENT_TYPE`; en ningún camino se aplica 0 % en silencio | `contracts/contract-adjustment-paths.spec.ts`, `index-data/contract-adjustment.service.spec.ts` (CP-06, CP-07, CP-08, CP-10) | verde |
 
+## Casos del motor de ajuste (ítem 34, 2.2)
+
+Rezago del índice, base del ajuste, meses fijos, escalonado, UVA, ajuste
+provisorio con estimados, su corrección, el proceso diario y la aplicación
+masiva (ADR-0011). Los alquileres esperados se calcularon a mano antes de
+escribir cada caso. DEF-27 se registró con su regresión en rojo antes de
+corregirla.
+
+| ID | Qué | Esperado (fijado antes) | Prueba | Estado |
+|---|---|---|---|---|
+| CP-273 | Ventana incompleta (DEF-27) | con abril sin publicar, la previsualización de un contrato IPC con enero, febrero y marzo responde 400 `MISSING_INDEX_DATA` con `missingPeriods: ['2025-04']`, no un ajuste con tres meses de cuatro | `index-data/contract-adjustment.service.spec.ts::CP-273` | verde |
+| CP-274 | Rezago 0 y rezago 2 | rezago 0: la ventana llega hasta el mes del ajuste (enero a abril, cuatro meses); rezago 2, primer ajuste de abril: enero y febrero, 100.000 × 1,02 × 1,03 = 105.060,00; ajuste de julio tras el de abril: marzo, abril y mayo, 105.060 × 1,060904 = 111.458,57 | `index-data/contract-adjustment-rules.spec.ts::CP-274`, `adjustment-engine/adjustment-rules.spec.ts` | verde |
+| CP-275 | Con rezago, un mes posterior sin publicar no frena | con rezago 2, falta el IPC de junio pero el ajuste de julio termina en mayo: se calcula | `index-data/contract-adjustment-rules.spec.ts::CP-275` | verde |
+| CP-276 | Base Vigente y Original | alquiler de 120.000 con inicial de 100.000 y IPC 2 % mensual: Vigente, tres meses, 120.000 × 1,02³ = 127.344,96; Original, siete meses desde el inicio, 100.000 × 1,02⁷ = 114.868,57 | `index-data/contract-adjustment-rules.spec.ts::CP-276` | verde |
+| CP-277 | Meses fijos iniciales | con 12 meses fijos, el ajuste de abril no cambia el alquiler, no crea ajuste y el cronograma queda `Skipped`; al cumplirse el mes 12 el ajuste usa los 13 meses de la ventana | `index-data/contract-adjustment-rules.spec.ts::CP-277` | verde |
+| CP-278 | Escalonado | escalones 3 % desde el mes 1 y 5 % desde el 13: mes 6, 103.000; mes 15, 105.000; antes del primer escalón no cambia; sin escalones, error y no 0 % | `index-data/contract-adjustment-rules.spec.ts::CP-278`, `adjustment-engine/adjustment-rules.spec.ts` | verde |
+| CP-279 | UVA | UVA 1.000 a 1.250: 125.000,00 (25 %); con un solo valor, `MISSING_INDEX_DATA` | `index-data/contract-adjustment-rules.spec.ts::CP-279` | verde |
+| CP-280 | Provisorio con estimado | con marzo oficial (2 %) y abril estimado (2,5 %): ajuste provisorio de 104.550,00 (100.000 × 1,02 × 1,025), con abril listado como estimado | `index-data/contract-adjustment-rules.spec.ts::CP-280` | verde |
+| CP-281 | Pago a cuenta apagado | con `allowProvisional` en falso el estimado no alcanza: `MISSING_INDEX_DATA` con `missingPeriods: ['2025-04']` y `estimatesOnly: true`; la opción explícita manda sobre el valor de la inmobiliaria | `index-data/contract-adjustment-rules.spec.ts::CP-281` | verde |
+| CP-282 | Meses faltantes nombrados | sin oficial ni estimado el mes queda en `missingPeriods`; CCP informa el índice (CER) y el mes | `index-data/contract-adjustment-rules.spec.ts::CP-282` | verde |
+| CP-283 | Aplicar provisorio y definitivo | el provisorio se guarda con `isProvisional`, sube el alquiler, deja `indexValues.estimated` y audita con `provisional: true`; con oficial queda definitivo | `index-data/contract-adjustment-rules.spec.ts::CP-283` | verde |
+| CP-284 | Previsualización del mes | con IPC de enero (2 %) y febrero (3 %) y rezago 2: 105.060,00, factor 1,0506 y meses `2026-01`, `2026-02`; porcentaje fijo 10 %: 110.000,00; CCP sin CVS ni CER: `missing_data` sin seleccionar; no se escribe nada | `ajuste-masivo.e2e-spec.ts::CP-284` | verde |
+| CP-285 | Mes sin publicar en la previsualización | con solo enero, el contrato queda `missing_data` con `missingPeriods: ['2026-02']` | `ajuste-masivo.e2e-spec.ts::CP-285` | verde |
+| CP-286 | Roles y validación | Admin, Gerente y Liquidaciones previsualizan y aplican (201); los otros cuatro roles reciben 403; un período fuera de `YYYY-MM` o una lista de contratos vacía responden 400 `VALIDATION_ERROR` | `ajuste-masivo.e2e-spec.ts::CP-286` | verde |
+| CP-287 | Aislamiento | otra inmobiliaria no ve filas del mes y su `apply-batch` con un contrato ajeno responde `CONTRACT_NOT_FOUND`; el alquiler no cambia | `ajuste-masivo.e2e-spec.ts::CP-287` | verde |
+| CP-288 | Aplicación masiva | aplica los elegidos (105.060), saltea el que falta (`MISSING_INDEX_DATA`, índices CVS y CER), deja un `ContractAdjustment` definitivo, el cronograma `Applied`, una fila de auditoría con el usuario y `source: batch`; repetir el mes responde `NO_DUE_ADJUSTMENT`; un id repetido se aplica una vez | `ajuste-masivo.e2e-spec.ts::CP-288` | verde |
+| CP-289 | Provisorio y corrección | con febrero estimado (2,5 %) la previsualización marca `provisional` (104.550); al aplicar queda `isProvisional`; mientras no haya oficial el proceso lo deja esperando; al publicarse febrero oficial (2,8 %) crea el definitivo enlazado por `trueUpOfId` (104.856), deja el alquiler en 104.856, audita `adjustment_trued_up` y expone la diferencia de 306,00 por mes (918,00 hasta junio); una segunda pasada no corrige dos veces | `ajuste-masivo.e2e-spec.ts::CP-289` | verde |
+| CP-290 | Pago a cuenta apagado | con `allowProvisional` en falso el contrato con febrero estimado queda sin seleccionar (`estimatesOnly`) y `apply-batch` lo saltea sin escribir | `ajuste-masivo.e2e-spec.ts::CP-290` | verde |
+| CP-291 | Proceso diario | `_run-now` solo para Admin: aplica abril, julio y octubre de un contrato al 10 % (100.000 a 133.100) con una auditoría por ajuste e informa el contrato sin CVS ni CER como pendiente | `ajuste-masivo.e2e-spec.ts::CP-291` | verde |
+| CP-292 | Armado de la previsualización | filtra pendientes hasta el fin del mes, toma el más antiguo de cada contrato, marca atrasado, provisorio y meses fijos | `index-data/adjustments-run.spec.ts::CP-292` | verde |
+| CP-293 | Filas sin calcular | datos faltantes, estimado con pago a cuenta apagado y otros errores de la modalidad dejan la fila sin seleccionar; un error inesperado se propaga | `index-data/adjustments-run.spec.ts::CP-293` | verde |
+| CP-294 | Aplicación por contrato | informa aplicado, salteado con meses faltantes, sin ajuste vencido y contrato inexistente; no repite ids | `index-data/adjustments-run.spec.ts::CP-294` | verde |
+| CP-295 | Corrección | crea el definitivo enlazado, deja el alquiler en el oficial, audita; con ajustes posteriores o alquiler distinto no lo pisa | `index-data/adjustments-run.spec.ts::CP-295` | verde |
+| CP-296 | Corrección pendiente | los ya corregidos se saltean; con oficial pendiente el provisorio queda esperando; un error inesperado no corta a los demás | `index-data/adjustments-run.spec.ts::CP-296` | verde |
+| CP-297 | Programador | recorre cada inmobiliaria, junta lo aplicado, lo salteado y las correcciones; no corre con `NODE_ENV=test` | `index-data/adjustments-run.spec.ts::CP-297` | verde |
+| CP-298 | Controlador | `_run-now` solo en modo de prueba (403 fuera); previsualizar y aplicar delegan en el lote | `index-data/adjustments-run.spec.ts::CP-298` | verde |
+| CP-299 | Diferencia retroactiva pendiente | 306,00 por mes de abril a junio, 918,00 en total, con el alquiler provisorio y el oficial | `index-data/adjustments-run.spec.ts::CP-299` | verde |
+| CP-300 | Marcar facturada | marca solo correcciones sin facturar, una sola vez | `index-data/adjustments-run.spec.ts::CP-300` | verde |
+| CP-301 | Motor: rezago, base, meses fijos, escalonado, UVA, cobertura y corrección | tabla de valores calculados a mano (ventanas con rezago 0 y 2, Original 108.243,22 contra Vigente 124.848,00, cobertura con estimados, corrección 315,18 por mes y 945,54 en tres meses) | `packages/shared/src/adjustment-engine/adjustment-rules.spec.ts` | verde |
+| CP-302 | Web: Ajustes del mes | lista con estado y chapa de ajuste a cuenta, filas sin datos sin seleccionar con enlace a cargar el índice, elegir todos, confirmar y aplicar con resultado por fila, error al aplicar y al cargar, cambio de mes, rol sin permiso; el pago a cuenta es una opción de los valores por defecto | `monthly-adjustments.screen.test.tsx`, `operational-defaults-form.test.tsx` | verde |
+
 ## Casos de base de proceso
 
 Reservados CP-72 a CP-79. Verifican la propia infraestructura de pruebas, no un

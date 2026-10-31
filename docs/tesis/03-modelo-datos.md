@@ -11,7 +11,7 @@ Una convención vale aclararla antes del detalle: **todas las tablas del dominio
 Inmobiliaria. Es el ancla de aislamiento del sistema.
 
 - `id`, `name`, `slug`, `cuit`, `province`, `timezone`, `currency`, `tier`, `brandPrimary`, `brandSecondary`, `logoUrl`, `penaltyConfig`, `readPolicy`, `operationalDefaults`, `isActive`, `createdAt`.
-- `slug` es lo que resuelve el micrositio público; `brandPrimary`, `brandSecondary` y `logoUrl` son los que lo pintan. `penaltyConfig` guarda como JSON los parámetros de punitorios de la inmobiliaria. `readPolicy` guarda, también como JSON, qué roles leen cada recurso sensible (un arreglo de roles por recurso); `null` significa la política por defecto, en la que todos los roles de personal leen todo. Se valida con un esquema compartido y exige al Admin en cada recurso. `operationalDefaults` guarda como JSON los valores por defecto de la operación (vencimiento, anticipación de la liquidación, rezago del IPC, comisión, honorarios, tasación, umbral de anticipo, cadencia de cobranza y semáforo de vencimientos); se valida con `OperationalDefaultsSchema`, que da a cada campo su valor de arranque, y `null` significa los valores del código. Ver ADR-0010.
+- `slug` es lo que resuelve el micrositio público; `brandPrimary`, `brandSecondary` y `logoUrl` son los que lo pintan. `penaltyConfig` guarda como JSON los parámetros de punitorios de la inmobiliaria. `readPolicy` guarda, también como JSON, qué roles leen cada recurso sensible (un arreglo de roles por recurso); `null` significa la política por defecto, en la que todos los roles de personal leen todo. Se valida con un esquema compartido y exige al Admin en cada recurso. `operationalDefaults` guarda como JSON los valores por defecto de la operación (vencimiento, anticipación de la liquidación, rezago del IPC, pago a cuenta con índice estimado, comisión, honorarios, tasación, umbral de anticipo, cadencia de cobranza y semáforo de vencimientos); se valida con `OperationalDefaultsSchema`, que da a cada campo su valor de arranque, y `null` significa los valores del código. Ver ADR-0010.
 
 ### User
 
@@ -275,7 +275,7 @@ Convenio fechado que cambia las reglas del contrato.
 Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se modifica: un cambio crea otra.
 
 - `id`, `tenantId`, `contractId`, `validFrom`, `agreementId`, `adjustmentType`, `adjustmentPeriod`, `adjustmentBase` (`Original` o `Vigente`), `indexLagMonths` (por defecto 2), `fixedInitialMonths` (0), `customPct`, `customSteps` (JSON, lista de `{ fromMonth, pct }` para el escalonado), `rentOverride`, `discountPct`, `discountAmount`, `dueDay`, `paymentFlow` (`Partido`, `TodoInmobiliaria`, `TodoLocador`), `penaltyConfig` (JSON).
-- `@@unique([contractId, validFrom])`. La versión vigente a una fecha es la última con `validFrom` anterior o igual. La migración creó una por contrato con sus columnas de hoy: base `Vigente` (lo que hace el motor actual), rezago 2, vencimiento el día 10 y flujo `Partido`.
+- `@@unique([contractId, validFrom])`. La versión vigente a una fecha es la última con `validFrom` anterior o igual. La migración creó una por contrato con sus columnas de hoy: base `Vigente` (lo que hace el motor actual), rezago 0 (el motor anterior no lo aplicaba; los contratos nuevos toman el de los valores por defecto, 2), vencimiento el día 10 y flujo `Partido`.
 - Las tres tablas llevan `tenantId` y están registradas en `TENANT_SCOPED_MODELS`.
 
 ### ContractGuarantee
@@ -296,9 +296,9 @@ Cronograma de ajustes pendientes del contrato. Es lo que el barrido diario consu
 
 Ajuste ya calculado o aplicado sobre el contrato. Es el registro histórico, uno por período ajustado.
 
-- `id`, `tenantId`, `contractId`, `periodNumber`, `adjustmentDate`, `previousAmount`, `newAmount`, `percentage`, `currency`, `indexType`, `indexValues`, `notes`, `calculatedAt`, `appliedAt`, `isProvisional`, `trueUpOfId`.
-- `@@unique([contractId, periodNumber, isProvisional])`: puede haber un ajuste provisional (calculado con un índice estimado) y el definitivo del mismo período. `trueUpOfId` apunta al provisional que corrige.
-- `indexValues` guarda como JSON los valores de índice que se usaron en el cálculo, de modo que un ajuste aplicado se pueda reconstruir aunque después se corrija la serie publicada. Mientras `appliedAt` esté vacío, el ajuste está calculado pero no impactado en el contrato.
+- `id`, `tenantId`, `contractId`, `periodNumber`, `adjustmentDate`, `previousAmount`, `newAmount`, `percentage`, `currency`, `indexType`, `indexValues`, `notes`, `calculatedAt`, `appliedAt`, `isProvisional`, `trueUpOfId`, `trueUpBilledAt`.
+- `@@unique([contractId, periodNumber, isProvisional])`: puede haber un ajuste provisional (calculado con un índice estimado) y el definitivo del mismo período. `trueUpOfId` apunta al provisional que corrige. `trueUpBilledAt` queda vacío hasta que una liquidación incluye la diferencia retroactiva de la corrección (ADR-0011).
+- `indexValues` guarda como JSON los valores de índice que se usaron en el cálculo (`observations`, con los estimados marcados en `estimated`), el rezago y la base, de modo que un ajuste aplicado se pueda reconstruir aunque después se corrija la serie publicada. Mientras `appliedAt` esté vacío, el ajuste está calculado pero no impactado en el contrato.
 
 ### IndexData
 
@@ -306,7 +306,7 @@ Valores publicados de los índices.
 
 - `id`, `tenantId`, `indexType`, `period`, `value`, `source`, `isEstimate`, `estimateSource`.
 - `indexType` toma IPC, ICL, CVS, CER, UVA o tasa activa del Banco Nación (`TasaActivaBNA`). Los valores se consumen como variación del período, no como nivel absoluto.
-- `isEstimate` marca un valor esperado (`estimateSource`, por ejemplo `REM`). El valor oficial lo reemplaza bajo la misma clave `[tenantId, indexType, period]`; un estimado nunca pisa a un oficial (409 `OFFICIAL_VALUE_EXISTS`), y el cálculo de ajustes solo lee los oficiales.
+- `isEstimate` marca un valor esperado (`estimateSource`, por ejemplo `REM`). El valor oficial lo reemplaza bajo la misma clave `[tenantId, indexType, period]`; un estimado nunca pisa a un oficial (409 `OFFICIAL_VALUE_EXISTS`), y el cálculo de ajustes usa el oficial de cada mes y, sin él, el estimado solo si la inmobiliaria permite el pago a cuenta (`allowProvisional`).
 
 ### ContractTemplate
 
