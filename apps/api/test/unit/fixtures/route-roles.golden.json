@@ -433,6 +433,9 @@
     "Gerente",
     "Liquidaciones"
   ],
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.runNow": [
+    "Admin"
+  ],
   "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.bulkApprove": [
     "Admin",
     "Gerente"
