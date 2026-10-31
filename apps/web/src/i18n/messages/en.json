@@ -89,6 +89,9 @@
    "empty": "There are no rows to edit"
   }
  },
+ "print": {
+  "action": "Print"
+ },
  "errors": {
   "generic": "An unexpected error occurred.",
   "code": "Code",

@@ -89,6 +89,9 @@
    "empty": "No hay filas para editar"
   }
  },
+ "print": {
+  "action": "Imprimir"
+ },
  "errors": {
   "generic": "Ocurrió un error inesperado.",
   "code": "Código",

@@ -511,3 +511,68 @@ body::before {
   .card-lift:hover .media-zoom { transform: none; }
   .card-lift:hover .cover-sheen::after { opacity: 0; }
 }
+
+/* ─────────────────────────────────────────────────────────
+   Impresión — recibos, liquidaciones y resúmenes de dueño
+   Negro sobre blanco con márgenes de página, sin navegación ni acciones.
+   La navegación y el encabezado de la app se ocultan con `print:hidden` en
+   `app-layout.tsx`; los botones y filtros de cada pantalla, con la misma
+   clase o con `.print-hide`. `PrintSheet` es el contenedor del documento.
+   ───────────────────────────────────────────────────────── */
+@media print {
+  @page { margin: 15mm; }
+
+  /* Siempre claro, aunque la pantalla esté en modo oscuro. */
+  :root,
+  .dark {
+    color-scheme: light;
+    --color-white: #fff;
+    --color-slate-50: #fff;
+    --color-slate-100: #f3f3f3;
+    --color-slate-200: #d4d4d4;
+    --color-slate-300: #bdbdbd;
+    --color-slate-400: #8a8a8a;
+    --color-slate-500: #555;
+    --color-slate-600: #444;
+    --color-slate-700: #333;
+    --color-slate-800: #1a1a1a;
+    --color-slate-900: #000;
+    --color-bg: #fff;
+    --color-surface: #fff;
+    --color-surface-sunken: #f3f3f3;
+    --color-border: #bdbdbd;
+    --color-text: #000;
+    --color-muted: #444;
+    --color-ink: #000;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body::before { display: none !important; }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Avisos y barras que no son parte del documento. */
+  .print-hide,
+  [data-sonner-toaster] { display: none !important; }
+
+  main { overflow: visible !important; padding: 0 !important; }
+
+  a { color: inherit; text-decoration: none; }
+
+  thead { display: table-header-group; }
+  tr,
+  figure,
+  .print-avoid-break { break-inside: avoid; }
+  .print-page-break { break-before: page; }
+}
