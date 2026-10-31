@@ -16,10 +16,13 @@ import {
   UpdateRendicionNotesSchema,
   RendicionStatus,
   LiquidacionStatus,
-  PersonRole,
   CommissionType,
   rendicionMachine,
   buildRendicionFromPayments,
+  splitRendicionAmongLessors,
+  FULL_SHARE_UNITS,
+  pctToUnits,
+  unitsToPct,
   monthStartUTC,
   periodFilter,
   todayInAR,
@@ -32,6 +35,8 @@ import { RenditionEmailService } from './rendition-email.service';
 import Decimal from 'decimal.js';
 import { assertTransition } from '../../common/errors/assert-transition';
 import { parseOrThrow } from '../../common/validation/zod';
+import { getLessorsAt } from '../contracts/contract-parties';
+import { throwLessorSharesInvalid } from '../contracts/lessor-rules';
 
 @Injectable()
 export class RenditionsService {
@@ -155,10 +160,12 @@ export class RenditionsService {
     }
 
     // 2. Check idempotency — return existing if duplicate
-    const existing = await this.prisma.client.ownerRendicion.findFirst({
+    const existingAll = await this.prisma.client.ownerRendicion.findMany({
       where: { contractId, period },
       include: { lineItems: { orderBy: { sortOrder: 'asc' } } },
+      orderBy: { createdAt: 'asc' },
     });
+    const existing = existingAll[0];
 
     if (existing) {
       this.logger.log('Rendition already exists — returning existing', {
@@ -167,7 +174,7 @@ export class RenditionsService {
         period: `${month}/${year}`,
         rendicionId: existing.id,
       });
-      return existing;
+      return { ...existing, lessorRenditions: existingAll };
     }
 
     // 3. Load commission config — required
@@ -185,22 +192,11 @@ export class RenditionsService {
       });
     }
 
-    // 4. Find owner (Propietario) from contract persons
-    const ownerRelation = await this.prisma.client.contractPerson.findFirst({
-      where: {
-        contractId,
-        role: PersonRole.Propietario,
-      },
-      include: { person: true },
-    });
-
-    if (!ownerRelation) {
-      throw new BadRequestException({
-        error: 'MISSING_PROPIETARIO',
-        message:
-          'No Propietario found for this contract. Add a Propietario before generating a rendition.',
-        contractId,
-      });
+    // 4. Locadores vigentes al inicio del período: entre ellos se reparte el neto.
+    const lessors = await getLessorsAt(this.prisma.client, contractId, period);
+    const lessorUnits = lessors.reduce((acc: number, l: any) => acc + pctToUnits(l.payoutPct.toString()), 0);
+    if (lessorUnits !== FULL_SHARE_UNITS) {
+      throwLessorSharesInvalid([{ date: period, sum: unitsToPct(lessorUnits) }]);
     }
 
     // 5. Query all paid payments for liquidaciones of this contract in the period
@@ -253,52 +249,65 @@ export class RenditionsService {
       throw err;
     }
 
-    // 7. Create rendition + line items in transaction
-    const rendicion = await this.prisma.client.$transaction(async (tx: any) => {
-      const created = await tx.ownerRendicion.create({
-        data: {
-          tenantId,
-          contractId,
-          ownerId: ownerRelation.personId,
-          period,
-          status: RendicionStatus.Borrador,
-          rentCollected: result.rentCollected.toFixed(2),
-          commissionAmount: result.commissionAmount.toFixed(2),
-          adminFeeAmount: result.adminFeeAmount.toFixed(2),
-          deductionTotal: result.deductionTotal.toFixed(2),
-          netDeposit: result.netDeposit.toFixed(2),
-          currency: commissionRecord.currency,
-        },
-      });
-
-      // Create line items
-      for (let i = 0; i < result.lineItems.length; i++) {
-        const li = result.lineItems[i];
-        await tx.rendicionLineItem.create({
+    // 7. Una rendición por locador, con su parte, en una transacción
+    const shares = splitRendicionAmongLessors(
+      result,
+      lessors.map((l: any) => l.payoutPct.toString()),
+    );
+    const renditions = await this.prisma.client.$transaction(async (tx: any) => {
+      const out: any[] = [];
+      for (let k = 0; k < lessors.length; k++) {
+        const share = shares[k];
+        const created = await tx.ownerRendicion.create({
           data: {
             tenantId,
-            rendicionId: created.id,
-            type: li.type,
-            description: li.description,
-            amount: li.amount.toFixed(2),
-            isDebit: li.type !== 'Alquiler',
+            contractId,
+            ownerId: lessors[k].personId,
+            period,
+            status: RendicionStatus.Borrador,
+            rentCollected: share.rentCollected.toFixed(2),
+            commissionAmount: share.commissionAmount.toFixed(2),
+            adminFeeAmount: share.adminFeeAmount.toFixed(2),
+            deductionTotal: share.deductionTotal.toFixed(2),
+            netDeposit: share.netDeposit.toFixed(2),
             currency: commissionRecord.currency,
-            sortOrder: i,
           },
         });
-      }
 
-      return tx.ownerRendicion.findFirst({
-        where: { id: created.id },
-        include: { lineItems: { orderBy: { sortOrder: 'asc' } } },
-      });
+        // Create line items
+        for (let i = 0; i < share.lineItems.length; i++) {
+          const li = share.lineItems[i];
+          await tx.rendicionLineItem.create({
+            data: {
+              tenantId,
+              rendicionId: created.id,
+              type: li.type,
+              description: li.description,
+              amount: li.amount.toFixed(2),
+              isDebit: li.type !== 'Alquiler',
+              currency: commissionRecord.currency,
+              sortOrder: i,
+            },
+          });
+        }
+
+        out.push(
+          await tx.ownerRendicion.findFirst({
+            where: { id: created.id },
+            include: { lineItems: { orderBy: { sortOrder: 'asc' } } },
+          }),
+        );
+      }
+      return out;
     });
+    const rendicion = { ...renditions[0], lessorRenditions: renditions };
 
     this.logger.log('Rendition generated', {
       tenantId,
       contractId,
       period: `${month}/${year}`,
-      rendicionId: rendicion!.id,
+      rendicionId: rendicion.id,
+      lessors: lessors.length,
       rentCollected: result.rentCollected.toFixed(2),
       netDeposit: result.netDeposit.toFixed(2),
     });

@@ -1,6 +1,6 @@
 import Decimal from 'decimal.js';
 import { CommissionType, RendicionLineItemType as T } from '../enums';
-import { buildRendicionFromPayments } from './index';
+import { buildRendicionFromPayments, splitRendicionAmongLessors } from './index';
 
 /**
  * Valores esperados calculados a mano antes de correr la prueba (ver el
@@ -341,5 +341,62 @@ describe('rendicion-engine — montos negativos (CP-243, DEF-23)', () => {
     );
 
     expect(r.netDeposit.toFixed(2)).toBe('0.00');
+  });
+});
+
+describe('rendicion-engine — reparto entre locadores', () => {
+  // Alquiler 100000.00 con comisión del 5 % = 5000.00 y neto 95000.00.
+  const base = () =>
+    buildRendicionFromPayments(
+      [{ amount: '100000', description: 'Alquiler octubre' }],
+      porcentaje(5),
+    );
+
+  it('con un solo locador devuelve la rendición sin cambios', () => {
+    const r = base();
+    expect(splitRendicionAmongLessors(r, ['100.0000'])).toEqual([r]);
+  });
+
+  it('golden: tres locadores 33.3334 / 33.3333 / 33.3333', () => {
+    // Alquiler: 10000000 centavos × 0.333334 = 3333340; × 0.333333 = 3333330 (exacto).
+    // Comisión: 500000 × cada peso = 166667,0 / 166666,5 / 166666,5: sobra un
+    // centavo y va al mayor resto (el segundo).
+    // Neto de cada uno = alquiler - comisión.
+    const parts = splitRendicionAmongLessors(base(), ['33.3334', '33.3333', '33.3333']);
+    expect(parts.map(resumen)).toEqual([
+      { rent: '33333.40', commission: '1666.67', adminFee: '0.00', deductions: '0.00', net: '31666.73' },
+      { rent: '33333.30', commission: '1666.67', adminFee: '0.00', deductions: '0.00', net: '31666.63' },
+      { rent: '33333.30', commission: '1666.66', adminFee: '0.00', deductions: '0.00', net: '31666.64' },
+    ]);
+    const total = (f: (r: (typeof parts)[number]) => Decimal) =>
+      parts.reduce((acc, r) => acc.plus(f(r)), new Decimal(0)).toFixed(2);
+    expect(total((r) => r.netDeposit)).toBe('95000.00');
+    expect(total((r) => r.rentCollected)).toBe('100000.00');
+    expect(total((r) => r.commissionAmount)).toBe('5000.00');
+  });
+
+  it('cada rendición suma lo que muestra y reparte también gastos y deducciones', () => {
+    const r = buildRendicionFromPayments(
+      [{ amount: '100.01', description: 'Alquiler' }],
+      { ...porcentaje(5), adminFee: '1.00' },
+      [{ amount: '10.00', description: 'Reparación' }],
+    );
+    const parts = splitRendicionAmongLessors(r, ['60', '40']);
+    for (const p of parts) {
+      const rentLines = p.lineItems
+        .filter((l) => l.type === T.Alquiler)
+        .reduce((acc, l) => acc.plus(l.amount), new Decimal(0));
+      expect(p.rentCollected.toFixed(2)).toBe(rentLines.toFixed(2));
+      expect(p.netDeposit.toFixed(2)).toBe(
+        p.rentCollected
+          .minus(p.commissionAmount)
+          .minus(p.adminFeeAmount)
+          .minus(p.deductionTotal)
+          .toFixed(2),
+      );
+    }
+    expect(parts.reduce((a, p) => a.plus(p.netDeposit), new Decimal(0)).toFixed(2)).toBe(
+      r.netDeposit.toFixed(2),
+    );
   });
 });

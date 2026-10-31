@@ -1,5 +1,5 @@
 import type Decimal from 'decimal.js';
-import { Money } from '../money';
+import { Money, allocateLargestRemainder, sumMoney } from '../money';
 import { RendicionLineItemType } from '../enums';
 import { calculateCommission, CommissionConfig } from '../commission-engine';
 
@@ -147,4 +147,40 @@ export function buildRendicionFromPayments(
     netDeposit,
     lineItems,
   };
+}
+
+// ─── Reparto entre locadores ────────────────────────────
+
+/**
+ * Reparte una rendición entre los locadores vigentes según su porcentaje de
+ * cobro. Cada renglón se reparte por el método del mayor resto (la suma de las
+ * partes es exactamente el renglón) y los totales de cada locador salen de sus
+ * renglones, así que cada rendición suma lo que muestra y la suma de los netos
+ * es el neto total. Con un solo locador devuelve la rendición sin cambios.
+ * No cambia ninguna regla de comisión: solo reparte el resultado.
+ */
+export function splitRendicionAmongLessors(
+  result: RendicionResult,
+  weights: Array<string | number>,
+): RendicionResult[] {
+  if (weights.length === 1) return [result];
+
+  const shares = result.lineItems.map((li) => allocateLargestRemainder(li.amount, weights));
+  return weights.map((_, k) => {
+    const lineItems = result.lineItems.map((li, i) => ({ ...li, amount: shares[i][k] }));
+    const totalOf = (type: RendicionLineItemType) =>
+      sumMoney(lineItems.filter((li) => li.type === type).map((li) => li.amount));
+    const rentCollected = totalOf(RendicionLineItemType.Alquiler);
+    const commissionAmount = totalOf(RendicionLineItemType.Comision);
+    const adminFeeAmount = totalOf(RendicionLineItemType.AdminFee);
+    const deductionTotal = totalOf(RendicionLineItemType.Deduccion);
+    return {
+      rentCollected,
+      commissionAmount,
+      adminFeeAmount,
+      deductionTotal,
+      netDeposit: rentCollected.minus(commissionAmount).minus(adminFeeAmount).minus(deductionTotal),
+      lineItems,
+    };
+  });
 }
