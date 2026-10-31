@@ -117,9 +117,11 @@ el registro del servidor, junto con el método, la ruta, el estado, el
 
 ## Propiedades
 
+`POST` y `PATCH /properties` aceptan `cadastralId`, `parentPropertyId` (el edificio que contiene la unidad) y `externalRef`. El padre debe ser de la misma inmobiliaria (404 `PARENT_PROPERTY_NOT_FOUND`), no puede ser la propia propiedad (400 `PROPERTY_SELF_PARENT`) ni quedar dentro de una de sus unidades (400 `PROPERTY_PARENT_CYCLE`). Una `externalRef` ya usada en la inmobiliaria responde 409 `EXTERNAL_REF_TAKEN`.
+
 | Método | Ruta | Para qué | Acceso |
 |---|---|---|---|
-| GET | `/properties` | Listado paginado y filtrable. | Autenticado |
+| GET | `/properties` | Listado paginado y filtrable (también por `externalRef` y `parentPropertyId`). | Autenticado |
 | GET | `/properties/:id` | Detalle con operaciones, media y personas vinculadas. | Autenticado |
 | POST | `/properties` | Alta. | Admin, Gerente, Ventas |
 | PATCH | `/properties/:id` | Edición. | Admin, Gerente, Ventas |
@@ -145,10 +147,12 @@ Cuelgan de la propiedad.
 
 ## Personas
 
+`POST` y `PATCH /persons` aceptan además `personType` (`Fisica` o `Juridica`), `dni`, `address`, `maritalStatus`, `nationality`, `payoutMethod` (`Transferencia`, `Efectivo` o `Custodia`) y `externalRef`, todos opcionales. Los campos planos `bankName`, `cbu` y `bankAlias` siguen aceptándose como atajo y se guardan como la cuenta predeterminada en pesos; las respuestas ya no los devuelven, traen `bankAccounts`. `GET /persons` filtra por `externalRef` y `personType`.
+
 | Método | Ruta | Para qué | Acceso |
 |---|---|---|---|
 | GET | `/persons` | Listado paginado y filtrable. | Autenticado |
-| GET | `/persons/:id` | Detalle con roles, documentos e historial. | Autenticado |
+| GET | `/persons/:id` | Detalle con roles, documentos, cuentas bancarias e historial. | Autenticado |
 | POST | `/persons` | Alta. | Admin, Gerente, Ventas |
 | PATCH | `/persons/:id` | Edición. | Admin, Gerente, Ventas |
 | DELETE | `/persons/:id` | Baja. | Admin, Gerente |
@@ -156,6 +160,10 @@ Cuelgan de la propiedad.
 | DELETE | `/persons/:id/roles/:roleId` | Quita una asignación de rol. | Admin, Gerente, Ventas |
 | POST | `/persons/:id/documents` | Sube un documento. Multipart, campo `file`. | Admin, Gerente, Ventas |
 | DELETE | `/persons/:id/documents/:docId` | Borra un documento. | Admin, Gerente, Ventas |
+| GET | `/persons/:id/bank-accounts` | Cuentas bancarias de la persona, ordenadas por moneda y con la predeterminada primero. 404 `PERSON_NOT_FOUND` si la persona es de otra inmobiliaria. | Autenticado |
+| POST | `/persons/:id/bank-accounts` | Alta de una cuenta (`currency` obligatoria; `bankName`, `cbu` de 22 dígitos, `alias`, `holder`, `isDefault`). La primera de cada moneda queda predeterminada; con `isDefault: true` reemplaza a la actual. | Admin, Gerente, Ventas |
+| PATCH | `/persons/:id/bank-accounts/:accountId` | Edición (la moneda no cambia). `isDefault: true` intercambia la predeterminada; `isDefault: false` sobre la predeterminada responde 409 `BANK_ACCOUNT_DEFAULT_REQUIRED`. 404 `BANK_ACCOUNT_NOT_FOUND`. | Admin, Gerente, Ventas |
+| DELETE | `/persons/:id/bank-accounts/:accountId` | Baja. Responde 409 `BANK_ACCOUNT_DEFAULT_REQUIRED` si es la predeterminada y quedan otras de la misma moneda. | Admin, Gerente, Ventas |
 | POST | `/persons/:id/portal-invite` | Genera la invitación al portal del inquilino. | Admin, Gerente |
 
 ## Proveedores
@@ -173,6 +181,8 @@ Cuelgan de la propiedad.
 
 Tres controladores distintos aportan rutas bajo `/contracts`: el de contratos, el
 de plantillas y el de comisiones.
+
+`POST` y `PATCH /contracts` aceptan `externalRef` (único por inmobiliaria, 409 `EXTERNAL_REF_TAKEN`) y `GET /contracts` filtra por `externalRef`.
 
 | Método | Ruta | Para qué | Acceso |
 |---|---|---|---|

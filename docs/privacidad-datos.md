@@ -17,7 +17,7 @@ Distingue dos cosas que no deben confundirse: lo que el sistema **hace hoy**, ve
 
 | Entidad | Datos | Fuente en el esquema |
 |---|---|---|
-| Persona (inquilino, locador, garante, proveedor, interesado) | Nombre y apellido, correo, dos teléfonos, CUIT o CUIL, condición fiscal, banco, CBU y alias, notas, roles asignados y archivos adjuntos (por ejemplo documentación de una persona) | Modelo `Person`, `PersonRoleAssignment`, `PersonDocument` |
+| Persona (inquilino, locador, garante, proveedor, interesado) | Nombre y apellido, correo, dos teléfonos, CUIT o CUIL, condición fiscal, tipo de persona, documento, domicilio, estado civil, nacionalidad, forma de cobro, cuentas bancarias (banco, CBU, alias y titular), referencia del sistema anterior, notas, roles asignados y archivos adjuntos (por ejemplo documentación de una persona) | Modelo `Person`, `PersonBankAccount`, `PersonRoleAssignment`, `PersonDocument` |
 | Usuario interno | Correo, nombre y apellido, rol, fecha del último ingreso y contraseña, que se guarda solo como valor derivado (hash) | Modelo `User` |
 | Credencial del portal del inquilino | Contraseña como hash, sesiones y tokens de renovación | `InquilinoCredential`, `PortalRefreshToken` |
 | Interesado (lead) | La persona asociada, la propiedad de interés, presupuesto, origen, notas e interacciones. Una consulta enviada desde el portal público de la inmobiliaria crea el interesado sin intervención | `Lead`, `LeadInteraction`, `LeadVisit` |
