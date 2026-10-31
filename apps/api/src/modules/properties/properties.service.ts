@@ -40,6 +40,7 @@ export class PropertiesService {
 
     if (filters.type) where.type = filters.type;
     if (filters.externalRef) where.externalRef = filters.externalRef;
+    if (filters.parentPropertyId) where.parentPropertyId = filters.parentPropertyId;
     if (filters.city) where.city = { contains: filters.city, mode: 'insensitive' };
     if (filters.province) where.province = filters.province;
     if (filters.isActive !== undefined) where.isActive = filters.isActive;
@@ -153,6 +154,8 @@ export class PropertiesService {
 
     const tenantId = this.tenantContext.getTenantId()!;
 
+    await this.assertValidParent(null, validated.parentPropertyId);
+
     let property;
     try {
       property = await this.prisma.client.property.create({
@@ -185,6 +188,40 @@ export class PropertiesService {
     return property;
   }
 
+  /**
+   * El edificio padre debe existir en la misma inmobiliaria (el cliente con
+   * filtro de tenant devuelve null para el de otra), no puede ser la propia
+   * propiedad y no puede formar un ciclo (un edificio dentro de su unidad).
+   */
+  private async assertValidParent(propertyId: string | null, parentId?: string | null) {
+    if (!parentId) return;
+    if (propertyId && parentId === propertyId) {
+      throw new BadRequestException({
+        error: 'PROPERTY_SELF_PARENT',
+        message: 'A property cannot be its own parent',
+      });
+    }
+    const parent = await this.prisma.client.property.findFirst({ where: { id: parentId } });
+    if (!parent) {
+      throw new NotFoundException({
+        error: 'PARENT_PROPERTY_NOT_FOUND',
+        message: 'Parent property not found',
+      });
+    }
+    // Recorre la cadena de ancestros del padre buscando esta propiedad.
+    let cursor: string | null = parent.parentPropertyId;
+    for (let depth = 0; propertyId && cursor && depth < 50; depth++) {
+      if (cursor === propertyId) {
+        throw new BadRequestException({
+          error: 'PROPERTY_PARENT_CYCLE',
+          message: 'The parent property is already inside this property',
+        });
+      }
+      const next = await this.prisma.client.property.findFirst({ where: { id: cursor } });
+      cursor = next?.parentPropertyId ?? null;
+    }
+  }
+
   // ─── Update ─────────────────────────────────────────
 
   async update(id: string, data: unknown) {
@@ -200,6 +237,10 @@ export class PropertiesService {
         error: 'PROPERTY_NOT_FOUND',
         message: 'Property not found',
       });
+    }
+
+    if (validated.parentPropertyId !== undefined) {
+      await this.assertValidParent(id, validated.parentPropertyId);
     }
 
     let updated;
