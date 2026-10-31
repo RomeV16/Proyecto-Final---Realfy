@@ -463,8 +463,8 @@ export { Money, round2, toAmountString, sumMoney, allocateLargestRemainder } fro
 export type { MoneyInput } from './money';
 
 // Formato de datos para mostrar
-export { propertyLabel, personName } from './format';
-export type { PropertyLabelInput, PersonNameInput } from './format';
+export { propertyLabel, personName, formatMoneyAR, formatPeriodAR, formatPeriodShortAR } from './format';
+export type { PropertyLabelInput, PersonNameInput, MoneyLike } from './format';
 
 // Adjustment engine
 export {

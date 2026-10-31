@@ -40,6 +40,16 @@ El backend NestJS se organiza por módulos de dominio (uno por cada carpeta list
 
 Los servicios reciben el `tenantId` desde el contexto autenticado, jamás desde el body de la request. Esto es central para garantizar el aislamiento.
 
+### Infraestructura común de la API
+
+Lo que varios módulos necesitan vive en un solo lugar. La regla es **reutilizar antes de escribir**: si hace falta generar un PDF, una planilla, un mail o dar formato a un dato, se usa una de estas piezas y, si no alcanza, se extiende la pieza en lugar de armar una copia en el módulo.
+
+- **Renderizador de PDF** (`apps/api/src/common/pdf/pdf-renderer.service.ts`): define las fuentes una vez, los estilos base y el paso de la definición de documento de pdfmake a un `Buffer` (`render`). Ofrece helpers de celda (`moneyCell`, `dateCell`, `headerCell`) y de pie de página (`pageFooter`). Los PDF de liquidaciones, rendiciones, reportes, comprobantes fiscales y contratos lo usan; cada uno solo arma el contenido.
+- **Exportación tabular** (`apps/api/src/common/export/tabular.ts`): `buildCsv` (con BOM para Excel) y `buildXlsx` (encabezado, filtro, fila congelada, formato numérico y fila de totales). La usan la exportación de propiedades y personas, los reportes y el Libro IVA.
+- **Registro de reportes** (`apps/api/src/modules/reports/report-registry.ts`): una entrada por reporte con clave, título, método de `ReportsService`, prefijo de archivo, claves del PDF y columnas del Excel. El controlador, el programador de envíos y los generadores de PDF y Excel leen de ahí; un reporte nuevo es una entrada más.
+- **Transporte de mail** (`apps/api/src/common/email/common-email.service.ts`): único cliente de Resend. `send` no lanza y devuelve `sent`, `skipped` (sin `RESEND_API_KEY`) o `failed`; cada llamador decide qué hacer. Los mails de liquidación, rendición y notificación solo arman asunto, cuerpo y adjuntos.
+- **Formatos compartidos** (`packages/shared/src/format.ts` y `date-utils`): `personName`, `propertyLabel`, `formatMoneyAR`, `formatPeriodAR`, `formatPeriodShortAR` y `formatDateAR`. Las fechas sin hora se leen en UTC para que el día no retroceda.
+
 ## Frontend
 
 `apps/web` está construido sobre Next.js 15 con App Router. Cada ruta vive bajo `/[locale]/...` para habilitar i18n con `next-intl`. El idioma por defecto es español (`es`) y existe un stub inicial de inglés (`en`) para sostener la trazabilidad de claves de traducción.

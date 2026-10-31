@@ -6,6 +6,7 @@ jest.mock('resend', () => ({
 }));
 
 import { EmailService } from './email.service';
+import { CommonEmailService } from '../../common/email/common-email.service';
 
 /**
  * CP-131 (DEF-11): el mes del asunto sale del período en UTC; en hora de
@@ -25,7 +26,7 @@ describe('EmailService: mes del período independiente de la zona horaria', () =
 
   it('el asunto y el adjunto usan marzo para el período 2025-03-01', async () => {
     const config = { get: (key: string) => (key === 'RESEND_API_KEY' ? 're_test' : undefined) };
-    const service = new EmailService(config as unknown as ConfigService);
+    const service = new EmailService(new CommonEmailService(config as unknown as ConfigService));
 
     await service.sendLiquidacionEmail(
       'inquilino@example.com',

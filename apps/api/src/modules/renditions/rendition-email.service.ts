@@ -1,102 +1,50 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import { Injectable } from '@nestjs/common';
+import {
+  formatMoneyAR,
+  formatPeriodAR,
+  formatPeriodShortAR,
+  personName,
+  type MoneyLike,
+} from '@realfy/shared';
+import { CommonEmailService, type EmailResult } from '../../common/email/common-email.service';
 
+/** Arma el mail de una rendición; el envío lo hace CommonEmailService. */
 @Injectable()
 export class RenditionEmailService {
-  private readonly logger = new Logger(RenditionEmailService.name);
-  private readonly resend: Resend | null;
-  private readonly fromAddress: string;
-
-  constructor(private readonly config: ConfigService) {
-    const apiKey = this.config.get<string>('RESEND_API_KEY');
-    if (apiKey) {
-      this.resend = new Resend(apiKey);
-    } else {
-      this.resend = null;
-      this.logger.warn(
-        'RESEND_API_KEY not configured — rendition email delivery disabled.',
-      );
-    }
-    this.fromAddress =
-      this.config.get<string>('RESEND_FROM_ADDRESS') ??
-      'rendiciones@realfy.com.ar';
-  }
+  constructor(private readonly email: CommonEmailService) {}
 
   /**
    * Send a rendition PDF to the owner via email.
-   * Gracefully skips if RESEND_API_KEY is not configured.
+   * Never throws: the caller checks the returned result.
    */
-  async sendRendicionEmail(
+  sendRendicionEmail(
     to: string,
     rendicion: {
       id: string;
       period: Date | string;
-      netDeposit: any;
-      owner?: { firstName?: string; lastName?: string } | null;
+      netDeposit: MoneyLike;
+      owner?: { firstName?: string | null; lastName?: string | null } | null;
     },
     pdfBuffer: Buffer,
     tenantName: string,
-  ): Promise<{ id: string } | null> {
-    if (!this.resend) {
-      this.logger.warn('Email skipped — Resend not configured', {
-        rendicionId: rendicion.id,
-        to,
-      });
-      return null;
-    }
+  ): Promise<EmailResult> {
+    const monthYear = formatPeriodAR(rendicion.period);
+    const shortPeriod = formatPeriodShortAR(rendicion.period);
+    const ownerName = personName(rendicion.owner) || 'Propietario/a';
 
-    const period = new Date(rendicion.period);
-    const monthYear = period.toLocaleDateString('es-AR', {
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    });
-    const monthNum = String(period.getUTCMonth() + 1).padStart(2, '0');
-    const yearNum = period.getUTCFullYear();
-    const ownerName = rendicion.owner
-      ? `${rendicion.owner.firstName} ${rendicion.owner.lastName}`
-      : 'Propietario/a';
-    const netAmount = Number(rendicion.netDeposit).toLocaleString('es-AR', {
-      minimumFractionDigits: 2,
-    });
-
-    try {
-      const result = await this.resend.emails.send({
-        from: this.fromAddress,
-        to: [to],
-        subject: `Rendición ${monthNum}/${yearNum} - ${tenantName}`,
-        html: `
+    return this.email.send({
+      to,
+      subject: `Rendición ${shortPeriod} - ${tenantName}`,
+      html: `
           <h2>Rendición de Alquileres — ${monthYear}</h2>
           <p>Estimado/a ${ownerName},</p>
           <p>Adjuntamos la rendición de alquileres correspondiente al período <strong>${monthYear}</strong>.</p>
-          <p><strong>Depósito neto: $ ${netAmount}</strong></p>
+          <p><strong>Depósito neto: $ ${formatMoneyAR(rendicion.netDeposit)}</strong></p>
           <p>Por favor revise el documento adjunto para ver el detalle completo de comisiones, honorarios y deducciones.</p>
           <br/>
           <p>Saludos cordiales,<br/>${tenantName}</p>
         `,
-        attachments: [
-          {
-            filename: `rendicion-${monthNum}-${yearNum}.pdf`,
-            content: pdfBuffer,
-          },
-        ],
-      });
-
-      this.logger.log('Rendition email sent successfully', {
-        rendicionId: rendicion.id,
-        to,
-        resendId: result.data?.id,
-      });
-
-      return { id: result.data?.id ?? 'unknown' };
-    } catch (error) {
-      this.logger.error('Rendition email delivery failed', {
-        rendicionId: rendicion.id,
-        to,
-        error: (error as Error).message,
-      });
-      throw error;
-    }
+      attachments: [{ filename: `rendicion-${shortPeriod.replace('/', '-')}.pdf`, content: pdfBuffer }],
+    });
   }
 }

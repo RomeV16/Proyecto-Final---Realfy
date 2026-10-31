@@ -21,8 +21,11 @@ import {
   monthStartUTC,
   periodKey,
   todayInAR,
+  personName,
+  propertyLabel,
 } from '@realfy/shared';
 import Decimal from 'decimal.js';
+import { REPORT_REGISTRY } from './report-registry';
 import { outstandingBalance } from '../liquidaciones/receivables';
 import { parseOrThrow } from '../../common/validation/zod';
 
@@ -138,10 +141,7 @@ export class ReportsService {
           year: 'numeric',
           timeZone: 'UTC',
         }),
-        propiedad:
-          r.contract?.property?.title ??
-          r.contract?.property?.street ??
-          '—',
+        propiedad: propertyLabel(r.contract?.property) || '—',
         cobrado: rentCollected.toFixed(2),
         comision: commissionAmount.toFixed(2),
         honorarios: adminFeeAmount.toFixed(2),
@@ -171,7 +171,7 @@ export class ReportsService {
 
     return {
       type: 'ownerStatement',
-      title: 'Estado de Cuenta del Propietario',
+      title: REPORT_REGISTRY.ownerStatement.title,
       columns: ['Período', 'Propiedad', 'Cobrado', 'Comisión', 'Honorarios', 'Deducciones', 'Depósito Neto'],
       rows,
       summary,
@@ -235,7 +235,7 @@ export class ReportsService {
       if (!property) continue;
 
       const existing = propertyMap.get(property.id) ?? {
-        title: property.title ?? property.street ?? '—',
+        title: propertyLabel(property) || '—',
         cobrado: new Decimal(0),
         facturado: new Decimal(0),
         comisiones: new Decimal(0),
@@ -291,7 +291,7 @@ export class ReportsService {
 
     return {
       type: 'propertyProfitability',
-      title: 'Rentabilidad por Propiedad',
+      title: REPORT_REGISTRY.propertyProfitability.title,
       columns: ['Propiedad', 'Cobrado', 'Facturado', 'Comisiones', 'Ingreso Neto'],
       rows,
       summary,
@@ -409,7 +409,7 @@ export class ReportsService {
 
     return {
       type: 'cashFlow',
-      title: 'Flujo de Caja Mensual',
+      title: REPORT_REGISTRY.cashFlow.title,
       columns: ['Mes', 'Ingresos', 'Egresos', 'Facturado', 'Saldo Neto'],
       rows,
       summary,
@@ -456,13 +456,8 @@ export class ReportsService {
       const total = commissionAmount.plus(adminFeeAmount);
 
       return {
-        propiedad:
-          r.contract?.property?.title ??
-          r.contract?.property?.street ??
-          '—',
-        propietario: r.owner
-          ? `${r.owner.firstName} ${r.owner.lastName}`
-          : '—',
+        propiedad: propertyLabel(r.contract?.property) || '—',
+        propietario: personName(r.owner) || '—',
         periodo: new Date(r.period).toLocaleDateString('es-AR', {
           month: '2-digit',
           year: 'numeric',
@@ -493,7 +488,7 @@ export class ReportsService {
 
     return {
       type: 'commissionSummary',
-      title: 'Resumen de Comisiones',
+      title: REPORT_REGISTRY.commissionSummary.title,
       columns: ['Propiedad', 'Propietario', 'Período', 'Tipo Comisión', 'Comisión', 'Honorarios', 'Total'],
       rows,
       summary,
@@ -606,7 +601,7 @@ export class ReportsService {
 
     return {
       type: 'pipelineAnalytics',
-      title: 'Analítica de Pipeline',
+      title: REPORT_REGISTRY.pipelineAnalytics.title,
       columns: [
         'Etapa',
         'Leads Actuales',
@@ -681,9 +676,7 @@ export class ReportsService {
       totalVencido = totalVencido.plus(monto);
 
       const inquilinoPerson = liq.contract ? getParty<any>(liq.contract, 'Inquilino')?.person : undefined;
-      const inquilino = inquilinoPerson
-        ? `${inquilinoPerson.firstName} ${inquilinoPerson.lastName}`
-        : '—';
+      const inquilino = personName(inquilinoPerson) || '—';
 
       return {
         propiedad:
@@ -716,7 +709,7 @@ export class ReportsService {
 
     return {
       type: 'morosidad',
-      title: 'Reporte de Morosidad',
+      title: REPORT_REGISTRY.morosidad.title,
       columns: [
         'Propiedad',
         'Inquilino',

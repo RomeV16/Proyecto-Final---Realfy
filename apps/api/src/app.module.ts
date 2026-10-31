@@ -41,6 +41,7 @@ import { ImportExportModule } from './modules/import-export/import-export.module
 import { ReportsModule } from './modules/reports/reports.module';
 import { AiModule } from './modules/ai/ai.module';
 import { CommonEmailModule } from './common/email/common-email.module';
+import { PdfModule } from './common/pdf/pdf.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
 import { AuditInterceptor } from './common/audit/audit.interceptor';
@@ -75,6 +76,7 @@ import { ReadPolicyModule } from './common/read-policy/read-policy.module';
     MediaModule,
     CryptoModule,
     CommonEmailModule,
+    PdfModule,
     AuthModule,
     TenantsModule,
     UsersModule,

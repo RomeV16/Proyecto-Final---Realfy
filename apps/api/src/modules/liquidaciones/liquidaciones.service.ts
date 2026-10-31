@@ -733,7 +733,7 @@ export class LiquidacionesService {
       const email = inquilino?.person?.email;
 
       if (email) {
-        await this.emailService.sendLiquidacionEmail(
+        const result = await this.emailService.sendLiquidacionEmail(
           email,
           {
             id: liquidacion.id,
@@ -743,6 +743,13 @@ export class LiquidacionesService {
           pdfBuffer,
           tenant?.name ?? 'Inmobiliaria',
         );
+        // Don't fail the transition if the email fails
+        if (result.status === 'failed') {
+          this.logger.error('Failed to send PDF email', {
+            liquidacionId: liquidacion.id,
+            error: result.error,
+          });
+        }
       } else {
         this.logger.warn('No inquilino email found — skipping email', {
           liquidacionId: liquidacion.id,

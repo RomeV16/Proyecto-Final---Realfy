@@ -14,17 +14,12 @@ import { Roles } from '../../common/auth/roles.decorator';
 import { BILLING_ROLES } from '../../common/auth/role-groups';
 import { ReadResource } from '../../common/read-policy/read-resource.decorator';
 
-const VALID_TYPES = ['ownerStatement', 'propertyProfitability', 'cashFlow', 'commissionSummary', 'pipelineAnalytics', 'morosidad'] as const;
-type ValidReportType = (typeof VALID_TYPES)[number];
+import { REPORT_KEYS, findReport } from './report-registry';
 
-const REPORT_FILE_NAMES: Record<ValidReportType, string> = {
-  ownerStatement: 'estado-propietario',
-  propertyProfitability: 'rentabilidad-propiedad',
-  cashFlow: 'flujo-caja',
-  commissionSummary: 'resumen-comisiones',
-  pipelineAnalytics: 'analitica-pipeline',
-  morosidad: 'morosidad',
-};
+/** Nombre del archivo descargado: prefijo del reporte y fecha del día. */
+function reportFileName(type: string, ext: string): string {
+  return `${findReport(type)?.fileName ?? 'reporte'}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+}
 
 @Controller('reports')
 export class ReportsController {
@@ -47,7 +42,7 @@ export class ReportsController {
   ) {
     const report = await this.getReportData(type, query);
     const buffer = await this.excelService.generateExcel(report);
-    const filename = `${REPORT_FILE_NAMES[type as ValidReportType] ?? 'reporte'}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    const filename = reportFileName(type, 'xlsx');
 
     res.set({
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -70,7 +65,7 @@ export class ReportsController {
   ) {
     const report = await this.getReportData(type, query);
     const buffer = await this.pdfService.generatePdf(report);
-    const filename = `${REPORT_FILE_NAMES[type as ValidReportType] ?? 'reporte'}-${new Date().toISOString().slice(0, 10)}.pdf`;
+    const filename = reportFileName(type, 'pdf');
 
     res.set({
       'Content-Type': 'application/pdf',
@@ -97,26 +92,14 @@ export class ReportsController {
   // ─── Private ──────────────────────────────────────────
 
   private async getReportData(type: string, query: Record<string, any>) {
-    if (!VALID_TYPES.includes(type as ValidReportType)) {
+    const definition = findReport(type);
+    if (!definition) {
       throw new BadRequestException({
         error: 'INVALID_REPORT_TYPE',
-        message: `Invalid report type: ${type}. Valid types: ${VALID_TYPES.join(', ')}`,
+        message: `Invalid report type: ${type}. Valid types: ${REPORT_KEYS.join(', ')}`,
       });
     }
 
-    switch (type as ValidReportType) {
-      case 'ownerStatement':
-        return this.reportsService.getOwnerStatement(query);
-      case 'propertyProfitability':
-        return this.reportsService.getPropertyProfitability(query);
-      case 'cashFlow':
-        return this.reportsService.getCashFlow(query);
-      case 'commissionSummary':
-        return this.reportsService.getCommissionSummary(query);
-      case 'pipelineAnalytics':
-        return this.reportsService.getPipelineAnalytics(query);
-      case 'morosidad':
-        return this.reportsService.getMorosidad(query);
-    }
+    return this.reportsService[definition.method](query);
   }
 }

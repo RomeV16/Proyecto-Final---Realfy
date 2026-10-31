@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import Decimal from 'decimal.js';
-import { Money, monthStartUTC, periodKey, sumMoney, todayInAR } from '@realfy/shared';
+import { Money, monthStartUTC, periodKey, personName, propertyLabel, sumMoney, todayInAR } from '@realfy/shared';
 import {
   isOverdue,
   isReceivable,
@@ -185,7 +185,7 @@ export class DashboardService {
 
     const tenantName = (c: (typeof activeContracts)[number]) => {
       const inq = getParty(c, 'Inquilino')?.person;
-      return inq ? `${inq.firstName} ${inq.lastName}` : '—';
+      return personName(inq) || '—';
     };
     const expiringAgenda = activeContracts
       .filter((c) => c.endDate >= now && c.endDate <= in90)
@@ -193,7 +193,7 @@ export class DashboardService {
       .slice(0, 5)
       .map((c) => ({
         id: c.id,
-        property: c.property?.title ?? '—',
+        property: propertyLabel(c.property) || '—',
         tenant: tenantName(c),
         endDate: c.endDate.toISOString(),
         daysLeft: Math.max(0, Math.round((c.endDate.getTime() - now.getTime()) / 86400000)),
@@ -229,7 +229,7 @@ export class DashboardService {
       .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
     const pendingList = pendingRows.slice(0, 5).map((l) => ({
       id: l.id,
-      property: l.contract?.property?.title ?? '—',
+      property: propertyLabel(l.contract?.property) || '—',
       period: l.period.toISOString(),
       amount: Math.round(outstandingBalance(l).toNumber()),
       status: l.status,
@@ -267,7 +267,7 @@ export class DashboardService {
         title: t.title,
         priority: t.priority,
         status: t.status,
-        property: t.property?.title ?? '—',
+        property: propertyLabel(t.property) || '—',
       }));
 
     return {

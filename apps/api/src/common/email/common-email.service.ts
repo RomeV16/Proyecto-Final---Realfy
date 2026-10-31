@@ -2,6 +2,23 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 
+export interface EmailParams {
+  to: string;
+  subject: string;
+  html: string;
+  attachments?: { filename: string; content: Buffer }[];
+}
+
+/**
+ * Resultado de un envío. El transporte no lanza: quien llama decide qué hacer
+ * con un envío salteado (sin RESEND_API_KEY) o fallido.
+ */
+export type EmailResult =
+  | { status: 'sent'; id: string }
+  | { status: 'skipped' }
+  | { status: 'failed'; error: string };
+
+/** Único transporte de mail de la API (Resend). */
 @Injectable()
 export class CommonEmailService {
   private readonly logger = new Logger(CommonEmailService.name);
@@ -29,25 +46,19 @@ export class CommonEmailService {
   }
 
   /**
-   * Send a generic email via Resend.
-   * Returns { id } on success, null on failure or when not configured.
-   * Non-throwing — logs errors instead of propagating.
+   * Send an email via Resend and report what happened. Never throws: a missing
+   * configuration is `skipped` and a delivery error is `failed`, both logged.
    *
    * Optional `attachments` are passed through to Resend v6 as
    * `{ filename: string; content: Buffer }[]`.
    */
-  async sendEmail(params: {
-    to: string;
-    subject: string;
-    html: string;
-    attachments?: { filename: string; content: Buffer }[];
-  }): Promise<{ id: string } | null> {
+  async send(params: EmailParams): Promise<EmailResult> {
     if (!this.resend) {
       this.logger.warn('Email skipped — Resend not configured', {
         to: params.to,
         subject: params.subject,
       });
-      return null;
+      return { status: 'skipped' };
     }
 
     try {
@@ -65,14 +76,24 @@ export class CommonEmailService {
         resendId: result.data?.id,
       });
 
-      return { id: result.data?.id ?? 'unknown' };
+      return { status: 'sent', id: result.data?.id ?? 'unknown' };
     } catch (error) {
+      const message = (error as Error).message;
       this.logger.error('Email delivery failed', {
         to: params.to,
         subject: params.subject,
-        error: (error as Error).message,
+        error: message,
       });
-      return null;
+      return { status: 'failed', error: message };
     }
+  }
+
+  /**
+   * Same as `send` for callers that only need to know whether it went out:
+   * returns `{ id }` on success, null when skipped or failed.
+   */
+  async sendEmail(params: EmailParams): Promise<{ id: string } | null> {
+    const result = await this.send(params);
+    return result.status === 'sent' ? { id: result.id } : null;
   }
 }

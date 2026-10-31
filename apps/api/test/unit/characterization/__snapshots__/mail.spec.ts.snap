@@ -1,0 +1,109 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Caracterización de mails liquidación 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "data": [
+          112,
+          100,
+          102,
+        ],
+        "type": "Buffer",
+      },
+      "filename": "liquidacion-03-2025.pdf",
+    },
+  ],
+  "html": "
+          <h2>Liquidación de marzo de 2025</h2>
+          <p>Estimado/a,</p>
+          <p>Adjuntamos la liquidación correspondiente al período <strong>marzo de 2025</strong>.</p>
+          <p><strong>Total: $ 152.500,50</strong></p>
+          <p>Por favor revise el documento adjunto para ver el detalle completo.</p>
+          <br/>
+          <p>Saludos cordiales,<br/>Inmobiliaria Demo</p>
+        ",
+  "subject": "Liquidación 03/2025 - Inmobiliaria Demo",
+  "to": [
+    "inquilino@example.com",
+  ],
+}
+`;
+
+exports[`Caracterización de mails notificación 1`] = `
+{
+  "html": "
+          <h2>Título</h2>
+          <p>Mensaje</p>
+          <br/>
+          <p>Saludos cordiales,<br/>Inmobiliaria Demo</p>
+        ",
+  "subject": "Aviso",
+  "to": [
+    "usuario@example.com",
+  ],
+}
+`;
+
+exports[`Caracterización de mails rendición 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "data": [
+          112,
+          100,
+          102,
+        ],
+        "type": "Buffer",
+      },
+      "filename": "rendicion-03-2025.pdf",
+    },
+  ],
+  "html": "
+          <h2>Rendición de Alquileres — marzo de 2025</h2>
+          <p>Estimado/a Ana Pérez,</p>
+          <p>Adjuntamos la rendición de alquileres correspondiente al período <strong>marzo de 2025</strong>.</p>
+          <p><strong>Depósito neto: $ 140.999,75</strong></p>
+          <p>Por favor revise el documento adjunto para ver el detalle completo de comisiones, honorarios y deducciones.</p>
+          <br/>
+          <p>Saludos cordiales,<br/>Inmobiliaria Demo</p>
+        ",
+  "subject": "Rendición 03/2025 - Inmobiliaria Demo",
+  "to": [
+    "dueno@example.com",
+  ],
+}
+`;
+
+exports[`Caracterización de mails rendición sin propietario 1`] = `
+{
+  "attachments": [
+    {
+      "content": {
+        "data": [
+          112,
+          100,
+          102,
+        ],
+        "type": "Buffer",
+      },
+      "filename": "rendicion-04-2025.pdf",
+    },
+  ],
+  "html": "
+          <h2>Rendición de Alquileres — abril de 2025</h2>
+          <p>Estimado/a Propietario/a,</p>
+          <p>Adjuntamos la rendición de alquileres correspondiente al período <strong>abril de 2025</strong>.</p>
+          <p><strong>Depósito neto: $ 0,00</strong></p>
+          <p>Por favor revise el documento adjunto para ver el detalle completo de comisiones, honorarios y deducciones.</p>
+          <br/>
+          <p>Saludos cordiales,<br/>Inmobiliaria Demo</p>
+        ",
+  "subject": "Rendición 04/2025 - Inmobiliaria Demo",
+  "to": [
+    "dueno@example.com",
+  ],
+}
+`;

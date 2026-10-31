@@ -1,0 +1,4382 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Caracterización de Excel de reportes con resumen y columnas numéricas 1`] = `
+[
+  {
+    "autoFilter": "A1:G1",
+    "columnWidths": [
+      14,
+      30,
+      16,
+      16,
+      16,
+      16,
+      18,
+    ],
+    "name": "Estado de Cuenta del Propietari",
+    "rows": [
+      {
+        "cells": [
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Período",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Propiedad",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Cobrado",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Comisión",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Honorarios",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Deducciones",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Depósito Neto",
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "03/2025",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Depto Centro",
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 150000.5,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 7500,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 0,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 0,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 141500.5,
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "TOTAL",
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 150000.5,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 7500,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": null,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": null,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 141500.5,
+          },
+        ],
+      },
+    ],
+    "views": [
+      {
+        "rightToLeft": false,
+        "showGridLines": true,
+        "showRowColHeaders": true,
+        "showRuler": true,
+        "state": "frozen",
+        "topLeftCell": "A2",
+        "workbookViewId": 0,
+        "xSplit": 0,
+        "ySplit": 1,
+        "zoomScale": 100,
+        "zoomScaleNormal": 100,
+      },
+    ],
+  },
+]
+`;
+
+exports[`Caracterización de Excel de reportes encabezados de cashFlow 1`] = `
+[
+  {
+    "autoFilter": "A1:E1",
+    "columnWidths": [
+      22,
+      16,
+      16,
+      16,
+      18,
+    ],
+    "name": "Reporte cashFlow",
+    "rows": [
+      {
+        "cells": [
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Mes",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Ingresos",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Egresos",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Facturado",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Saldo Neto",
+          },
+        ],
+      },
+    ],
+    "views": [
+      {
+        "rightToLeft": false,
+        "showGridLines": true,
+        "showRowColHeaders": true,
+        "showRuler": true,
+        "state": "frozen",
+        "topLeftCell": "A2",
+        "workbookViewId": 0,
+        "xSplit": 0,
+        "ySplit": 1,
+        "zoomScale": 100,
+        "zoomScaleNormal": 100,
+      },
+    ],
+  },
+]
+`;
+
+exports[`Caracterización de Excel de reportes encabezados de commissionSummary 1`] = `
+[
+  {
+    "autoFilter": "A1:G1",
+    "columnWidths": [
+      30,
+      25,
+      14,
+      16,
+      16,
+      16,
+      16,
+    ],
+    "name": "Reporte commissionSummary",
+    "rows": [
+      {
+        "cells": [
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Propiedad",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Propietario",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Período",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Tipo Comisión",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Comisión",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Honorarios",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Total",
+          },
+        ],
+      },
+    ],
+    "views": [
+      {
+        "rightToLeft": false,
+        "showGridLines": true,
+        "showRowColHeaders": true,
+        "showRuler": true,
+        "state": "frozen",
+        "topLeftCell": "A2",
+        "workbookViewId": 0,
+        "xSplit": 0,
+        "ySplit": 1,
+        "zoomScale": 100,
+        "zoomScaleNormal": 100,
+      },
+    ],
+  },
+]
+`;
+
+exports[`Caracterización de Excel de reportes encabezados de morosidad 1`] = `
+[
+  {
+    "autoFilter": "A1:G1",
+    "columnWidths": [
+      30,
+      25,
+      14,
+      14,
+      16,
+      16,
+      10,
+    ],
+    "name": "Reporte morosidad",
+    "rows": [
+      {
+        "cells": [
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Propiedad",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Inquilino",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Período",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Vencimiento",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Días Vencidos",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Monto",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Moneda",
+          },
+        ],
+      },
+    ],
+    "views": [
+      {
+        "rightToLeft": false,
+        "showGridLines": true,
+        "showRowColHeaders": true,
+        "showRuler": true,
+        "state": "frozen",
+        "topLeftCell": "A2",
+        "workbookViewId": 0,
+        "xSplit": 0,
+        "ySplit": 1,
+        "zoomScale": 100,
+        "zoomScaleNormal": 100,
+      },
+    ],
+  },
+]
+`;
+
+exports[`Caracterización de Excel de reportes encabezados de propertyProfitability 1`] = `
+[
+  {
+    "autoFilter": "A1:E1",
+    "columnWidths": [
+      30,
+      16,
+      16,
+      16,
+      18,
+    ],
+    "name": "Reporte propertyProfitability",
+    "rows": [
+      {
+        "cells": [
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Propiedad",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Cobrado",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Facturado",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Comisiones",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Ingreso Neto",
+          },
+        ],
+      },
+    ],
+    "views": [
+      {
+        "rightToLeft": false,
+        "showGridLines": true,
+        "showRowColHeaders": true,
+        "showRuler": true,
+        "state": "frozen",
+        "topLeftCell": "A2",
+        "workbookViewId": 0,
+        "xSplit": 0,
+        "ySplit": 1,
+        "zoomScale": 100,
+        "zoomScaleNormal": 100,
+      },
+    ],
+  },
+]
+`;
+
+exports[`Caracterización de Excel de reportes sin resumen 1`] = `
+[
+  {
+    "autoFilter": "A1:F1",
+    "columnWidths": [
+      25,
+      16,
+      16,
+      16,
+      18,
+      22,
+    ],
+    "name": "Analítica de Pipeline",
+    "rows": [
+      {
+        "cells": [
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Etapa",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Leads Actuales",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Convertidos",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Perdidos",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Tasa Conversión",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Promedio Conversión (días)",
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Nuevo",
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 3,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 1,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 0,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "25%",
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 4.5,
+          },
+        ],
+      },
+    ],
+    "views": [
+      {
+        "rightToLeft": false,
+        "showGridLines": true,
+        "showRowColHeaders": true,
+        "showRuler": true,
+        "state": "frozen",
+        "topLeftCell": "A2",
+        "workbookViewId": 0,
+        "xSplit": 0,
+        "ySplit": 1,
+        "zoomScale": 100,
+        "zoomScaleNormal": 100,
+      },
+    ],
+  },
+]
+`;
+
+exports[`Caracterización de exportaciones personas CSV 1`] = `""﻿Nombre,Apellido,Email,Teléfono,Teléfono 2,CUIT/CUIL,Condición Fiscal,Banco,CBU,Alias Bancario,Notas\\r\\nAna,Pérez,ana@example.com,1111,,27-11111111-1,Monotributista,Banco A,2,a.alias,\\"línea 1\\nlínea 2\\"\\r\\nLuis,Gómez,,,,,,,,,""`;
+
+exports[`Caracterización de exportaciones personas Excel 1`] = `
+[
+  {
+    "autoFilter": "A1:K1",
+    "columnWidths": [
+      20,
+      20,
+      30,
+      20,
+      20,
+      18,
+      20,
+      20,
+      25,
+      20,
+      30,
+    ],
+    "name": "Personas",
+    "rows": [
+      {
+        "cells": [
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Nombre",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Apellido",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Email",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Teléfono",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Teléfono 2",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "CUIT/CUIL",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Condición Fiscal",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Banco",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "CBU",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Alias Bancario",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Notas",
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Ana",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Pérez",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "ana@example.com",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "1111",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "27-11111111-1",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Monotributista",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Banco A",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "2",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "a.alias",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "línea 1
+línea 2",
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Luis",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Gómez",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+        ],
+      },
+    ],
+    "views": [
+      {
+        "rightToLeft": false,
+        "showGridLines": true,
+        "showRowColHeaders": true,
+        "showRuler": true,
+        "state": "frozen",
+        "topLeftCell": "A2",
+        "workbookViewId": 0,
+        "xSplit": 0,
+        "ySplit": 1,
+        "zoomScale": 100,
+        "zoomScaleNormal": 100,
+      },
+    ],
+  },
+]
+`;
+
+exports[`Caracterización de exportaciones propiedades CSV 1`] = `""﻿Título,Tipo,Dirección,Número,Piso,Depto,Ciudad,Provincia,CP,País,Superficie (m²),Ambientes,Dormitorios,Baños,Cocheras,Antigüedad,Precio,Moneda\\r\\nDepto Centro,Departamento,Calle Falsa,123,2,B,CABA,Buenos Aires,1000,AR,55.5,3,2,1,0,10,120000,ARS\\r\\n\\"Casa, \\"\\"Norte\\"\\"\\",Casa,,,,,,,,,,,,,,,,""`;
+
+exports[`Caracterización de exportaciones propiedades Excel 1`] = `
+[
+  {
+    "autoFilter": "A1:R1",
+    "columnWidths": [
+      30,
+      15,
+      25,
+      10,
+      8,
+      8,
+      20,
+      20,
+      10,
+      15,
+      15,
+      12,
+      12,
+      10,
+      10,
+      12,
+      15,
+      10,
+    ],
+    "name": "Propiedades",
+    "rows": [
+      {
+        "cells": [
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Título",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Tipo",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Dirección",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Número",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Piso",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Depto",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Ciudad",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Provincia",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "CP",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "País",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Superficie (m²)",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Ambientes",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Dormitorios",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Baños",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Cocheras",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Antigüedad",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Precio",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Moneda",
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Depto Centro",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Departamento",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Calle Falsa",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "123",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "2",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "B",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "CABA",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Buenos Aires",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "1000",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "AR",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": 55.5,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": 3,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": 2,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": 1,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": 0,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": 10,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": 120000,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "ARS",
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Casa, "Norte"",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Casa",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+        ],
+      },
+    ],
+    "views": [
+      {
+        "rightToLeft": false,
+        "showGridLines": true,
+        "showRowColHeaders": true,
+        "showRuler": true,
+        "state": "frozen",
+        "topLeftCell": "A2",
+        "workbookViewId": 0,
+        "xSplit": 0,
+        "ySplit": 1,
+        "zoomScale": 100,
+        "zoomScaleNormal": 100,
+      },
+    ],
+  },
+]
+`;
+
+exports[`Caracterización del Libro IVA con comprobantes 1`] = `
+[
+  {
+    "autoFilter": "A1:P1",
+    "columnWidths": [
+      12,
+      12,
+      10,
+      12,
+      10,
+      16,
+      35,
+      14,
+      16,
+      14,
+      12,
+      12,
+      12,
+      16,
+      8,
+      12,
+    ],
+    "name": "Libro IVA Ventas 2025-06",
+    "rows": [
+      {
+        "cells": [
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Fecha",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Tipo Cbte",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Pto. Vta.",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Número",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Doc. Tipo",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Doc. Nro.",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Razón Social",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Imp. Total",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Imp. No Gravado",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Imp. Neto",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Alíc. IVA",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "IVA",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Imp. Trib.",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "CAE",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Moneda",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Tipo Cambio",
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "10/06/2025",
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 11,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 3,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 45,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 80,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "20222222222",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "Locador SA",
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 121000,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 0,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 100000,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 21,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 21000,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 0,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "75123456789012",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "PES",
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 1,
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 6,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 3,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 46,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 99,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 500.56,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 10,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 500.56,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 0,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 0,
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 0,
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "",
+          },
+          {
+            "alignment": undefined,
+            "fill": undefined,
+            "font": undefined,
+            "numFmt": undefined,
+            "value": "PES",
+          },
+          {
+            "alignment": {
+              "horizontal": "right",
+            },
+            "fill": {
+              "pattern": "none",
+              "type": "pattern",
+            },
+            "font": {
+              "color": {
+                "theme": 1,
+              },
+              "family": 2,
+              "name": "Calibri",
+              "scheme": "minor",
+              "size": 11,
+            },
+            "numFmt": "#,##0.00",
+            "value": 1,
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "TOTAL",
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": 121500.56,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": 100500.56,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": 21000,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+        ],
+      },
+    ],
+    "views": [
+      {
+        "rightToLeft": false,
+        "showGridLines": true,
+        "showRowColHeaders": true,
+        "showRuler": true,
+        "state": "frozen",
+        "topLeftCell": "A2",
+        "workbookViewId": 0,
+        "xSplit": 0,
+        "ySplit": 1,
+        "zoomScale": 100,
+        "zoomScaleNormal": 100,
+      },
+    ],
+  },
+]
+`;
+
+exports[`Caracterización del Libro IVA sin comprobantes 1`] = `
+[
+  {
+    "autoFilter": "A1:P1",
+    "columnWidths": [
+      12,
+      12,
+      10,
+      12,
+      10,
+      16,
+      35,
+      14,
+      16,
+      14,
+      12,
+      12,
+      12,
+      16,
+      8,
+      12,
+    ],
+    "name": "Libro IVA Ventas 2025-07",
+    "rows": [
+      {
+        "cells": [
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Fecha",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Tipo Cbte",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Pto. Vta.",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Número",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Doc. Tipo",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Doc. Nro.",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Razón Social",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Imp. Total",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Imp. No Gravado",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Imp. Neto",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Alíc. IVA",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "IVA",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Imp. Trib.",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "CAE",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Moneda",
+          },
+          {
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "middle",
+            },
+            "fill": {
+              "fgColor": {
+                "argb": "FF4472C4",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "color": {
+                "argb": "FFFFFFFF",
+              },
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "Tipo Cambio",
+          },
+        ],
+      },
+      {
+        "cells": [
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": "TOTAL",
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": 0,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": 0,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": 0,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+          {
+            "alignment": undefined,
+            "fill": {
+              "fgColor": {
+                "argb": "FFE2EFDA",
+              },
+              "pattern": "solid",
+              "type": "pattern",
+            },
+            "font": {
+              "bold": true,
+              "size": 11,
+            },
+            "numFmt": undefined,
+            "value": null,
+          },
+        ],
+      },
+    ],
+    "views": [
+      {
+        "rightToLeft": false,
+        "showGridLines": true,
+        "showRowColHeaders": true,
+        "showRuler": true,
+        "state": "frozen",
+        "topLeftCell": "A2",
+        "workbookViewId": 0,
+        "xSplit": 0,
+        "ySplit": 1,
+        "zoomScale": 100,
+        "zoomScaleNormal": 100,
+      },
+    ],
+  },
+]
+`;

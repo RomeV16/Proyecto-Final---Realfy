@@ -1,4 +1,21 @@
-import { personName, propertyLabel } from './format';
+import { formatMoneyAR, formatPeriodAR, formatPeriodShortAR, personName, propertyLabel } from './format';
+
+describe('formatMoneyAR', () => {
+  it('separa miles y deja dos decimales', () => {
+    expect(formatMoneyAR(1234.5)).toBe('1.234,50');
+    expect(formatMoneyAR('152500')).toBe('152.500,00');
+    expect(formatMoneyAR({ toString: () => '0.1' })).toBe('0,10');
+  });
+});
+
+describe('formatPeriodAR y formatPeriodShortAR', () => {
+  it('leen el período en UTC', () => {
+    const period = new Date('2025-03-01T00:00:00.000Z');
+    expect(formatPeriodAR(period)).toBe('marzo de 2025');
+    expect(formatPeriodShortAR(period)).toBe('03/2025');
+    expect(formatPeriodShortAR('2025-12-01T00:00:00.000Z')).toBe('12/2025');
+  });
+});
 
 describe('propertyLabel', () => {
   it('usa el título si existe', () => {

@@ -6,6 +6,7 @@ import {
   PERSON_IMPORT_FIELDS,
   PropertyImportRowSchema,
   PersonImportRowSchema,
+  personName,
 } from '@realfy/shared';
 import type {
   ColumnMappingInput,
@@ -196,7 +197,7 @@ export class ImportExportService {
               bankAccounts: defaultAccountForCreate(
                 tenantId,
                 bank,
-                `${rest.firstName} ${rest.lastName}`.trim(),
+                personName(rest),
               ),
             } as any,
           });

@@ -1,29 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { ReportResult } from './reports.service';
-
-// pdfmake Node.js usage: dynamic require for CommonJS module
-
-const PdfPrinter = require('pdfmake/src/printer');
-
-const FONTS = {
-  Roboto: {
-    normal: 'Helvetica',
-    bold: 'Helvetica-Bold',
-    italics: 'Helvetica-Oblique',
-    bolditalics: 'Helvetica-BoldOblique',
-  },
-};
+import { formatDateAR, formatMoneyAR, todayInAR } from '@realfy/shared';
+import { findReport } from './report-registry';
+import { PdfRendererService, moneyCell, pageFooter } from '../../common/pdf/pdf-renderer.service';
 
 @Injectable()
 export class ReportPdfService {
   private readonly logger = new Logger(ReportPdfService.name);
+
+  constructor(private readonly renderer: PdfRendererService) {}
 
   /**
    * Generate a PDF buffer for the given report data.
    */
   async generatePdf(report: ReportResult<any>): Promise<Buffer> {
     const columns = report.columns;
-    const dataKeys = this.getDataKeys(report.type);
+    const dataKeys = findReport(report.type)?.pdf.keys ?? [];
 
     // Build table widths — first column auto, rest equal
     const widths = columns.map((_, i) => (i === 0 ? 'auto' : '*'));
@@ -44,7 +36,7 @@ export class ReportPdfService {
         const value = row[key] ?? '';
         const isNumeric = !isNaN(parseFloat(value)) && i > 0;
         return {
-          text: isNumeric ? this.formatAmount(value) : value,
+          text: isNumeric ? formatMoneyAR(value) : value,
           fontSize: 8,
           alignment: (isNumeric ? 'right' : 'left') as 'right' | 'left',
         };
@@ -59,13 +51,8 @@ export class ReportPdfService {
           return { text: 'TOTAL', bold: true, fontSize: 9, fillColor: '#E2EFDA' };
         }
         const value = report.summary![key];
-        return {
-          text: value ? this.formatAmount(value) : '',
-          bold: true,
-          fontSize: 9,
-          alignment: 'right' as const,
-          fillColor: '#E2EFDA',
-        };
+        const style = { symbol: false, bold: true, fontSize: 9, fillColor: '#E2EFDA' };
+        return value ? moneyCell(value, style) : { ...moneyCell(0, style), text: '' };
       });
       summaryRows.push(summaryRow);
     }
@@ -83,7 +70,7 @@ export class ReportPdfService {
         },
         // Date info
         {
-          text: `Generado: ${new Date().toLocaleDateString('es-AR')}`,
+          text: `Generado: ${formatDateAR(todayInAR())}`,
           alignment: 'center',
           fontSize: 9,
           color: '#666666',
@@ -111,23 +98,7 @@ export class ReportPdfService {
           margin: [0, 10, 0, 0],
         },
       ],
-      footer: (currentPage: number, pageCount: number) => ({
-        columns: [
-          {
-            text: report.title,
-            fontSize: 7,
-            margin: [40, 0, 0, 0],
-            color: '#999999',
-          },
-          {
-            text: `Pág. ${currentPage}/${pageCount}`,
-            fontSize: 7,
-            alignment: 'right',
-            margin: [0, 0, 40, 0],
-            color: '#999999',
-          },
-        ],
-      }),
+      footer: pageFooter(report.title, { fontSize: 7, color: '#999999' }),
       styles: {
         header: { fontSize: 16, bold: true },
       },
@@ -137,16 +108,7 @@ export class ReportPdfService {
     };
 
     try {
-      const printer = new PdfPrinter(FONTS);
-      const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-      const chunks: Buffer[] = [];
-      return new Promise<Buffer>((resolve, reject) => {
-        pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
-        pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-        pdfDoc.on('error', (err: Error) => reject(err));
-        pdfDoc.end();
-      });
+      return await this.renderer.render(docDefinition);
     } catch (error) {
       this.logger.error('Report PDF generation failed', {
         reportType: report.type,
@@ -154,32 +116,5 @@ export class ReportPdfService {
       });
       throw error;
     }
-  }
-
-  /** Get ordered data keys for each report type */
-  private getDataKeys(type: string): string[] {
-    switch (type) {
-      case 'ownerStatement':
-        return ['periodo', 'propiedad', 'cobrado', 'comision', 'honorarios', 'deducciones', 'depositoNeto'];
-      case 'propertyProfitability':
-        return ['propiedad', 'cobrado', 'facturado', 'comisiones', 'ingresoNeto'];
-      case 'cashFlow':
-        return ['mes', 'ingresos', 'egresos', 'facturado', 'saldoNeto'];
-      case 'commissionSummary':
-        return ['propiedad', 'propietario', 'periodo', 'tipoComision', 'comision', 'honorarios', 'total'];
-      case 'pipelineAnalytics':
-        return ['etapa', 'leadsActuales', 'convertidos', 'perdidos', 'tasaConversion', 'promedioConversionDias'];
-      case 'morosidad':
-        return ['propiedad', 'inquilino', 'periodo', 'vencimiento', 'diasVencidos', 'monto', 'moneda'];
-      default:
-        return [];
-    }
-  }
-
-  private formatAmount(amount: string | number): string {
-    return Number(amount).toLocaleString('es-AR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
   }
 }

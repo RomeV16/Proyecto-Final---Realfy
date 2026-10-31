@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { formatDateAR, todayInAR } from '@realfy/shared';
+import { formatDateAR, personName, todayInAR } from '@realfy/shared';
 import { CronBaseService } from '../../common/scheduler/cron.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
@@ -345,9 +345,9 @@ export class NotificationSchedulerService extends CronBaseService {
               continue;
             }
 
-            const personName = `${lead.person.firstName} ${lead.person.lastName}`;
-            const title = `Lead inactivo: ${personName}`;
-            const message = `El lead ${personName} lleva ${daysSinceContact} días sin contacto en la etapa "${lead.currentStage.name}" (límite: ${lead.currentStage.staleDays} días).`;
+            const leadName = personName(lead.person);
+            const title = `Lead inactivo: ${leadName}`;
+            const message = `El lead ${leadName} lleva ${daysSinceContact} días sin contacto en la etapa "${lead.currentStage.name}" (límite: ${lead.currentStage.staleDays} días).`;
 
             if (lead.assignedToUserId && lead.assignedToUser) {
               // Notify the assigned user

@@ -564,6 +564,9 @@ export class RenditionsService {
         tenant?.name ?? 'Inmobiliaria',
       );
 
+      // A delivery failure fails the request, as before.
+      if (result.status === 'failed') throw new Error(result.error);
+
       // Update sentAt
       await this.prisma.client.ownerRendicion.update({
         where: { id: rendicion.id },
@@ -573,10 +576,14 @@ export class RenditionsService {
       this.logger.log('Rendition email sent', {
         rendicionId: id,
         to: ownerEmail,
-        resendId: result?.id ?? null,
+        resendId: result.status === 'sent' ? result.id : null,
       });
 
-      return { sent: true, to: ownerEmail, resendId: result?.id };
+      return {
+        sent: true,
+        to: ownerEmail,
+        resendId: result.status === 'sent' ? result.id : undefined,
+      };
     } catch (error) {
       this.logger.error('Rendition email delivery failed', {
         rendicionId: id,

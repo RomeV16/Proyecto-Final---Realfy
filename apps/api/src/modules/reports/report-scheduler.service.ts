@@ -8,31 +8,12 @@ import { ReportPdfService } from './report-pdf.service';
 import { CommonEmailService } from '../../common/email/common-email.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { computeNextRunAt } from './compute-next-run-at';
+import { findReport } from './report-registry';
 
 /** File extensions and MIME types for report formats */
 const FORMAT_META: Record<string, { ext: string; mime: string }> = {
   excel: { ext: 'xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
   pdf: { ext: 'pdf', mime: 'application/pdf' },
-};
-
-/** Report type → service method name mapping */
-const REPORT_METHODS: Record<string, string> = {
-  ownerStatement: 'getOwnerStatement',
-  propertyProfitability: 'getPropertyProfitability',
-  cashFlow: 'getCashFlow',
-  commissionSummary: 'getCommissionSummary',
-  pipelineAnalytics: 'getPipelineAnalytics',
-  morosidad: 'getMorosidad',
-};
-
-/** Report type → human-readable filename prefix */
-const FILE_NAMES: Record<string, string> = {
-  ownerStatement: 'estado-propietario',
-  propertyProfitability: 'rentabilidad-propiedad',
-  cashFlow: 'flujo-caja',
-  commissionSummary: 'resumen-comisiones',
-  pipelineAnalytics: 'analitica-pipeline',
-  morosidad: 'morosidad',
 };
 
 @Injectable()
@@ -84,15 +65,15 @@ export class ReportSchedulerService {
             this.tenantContext.setTenantId(schedule.tenantId);
 
             // Generate report data
-            const methodName = REPORT_METHODS[schedule.reportType];
-            if (!methodName) {
+            const definition = findReport(schedule.reportType);
+            if (!definition) {
               this.logger.warn(`Unknown report type: ${schedule.reportType}`, {
                 scheduleId: schedule.id,
               });
               return;
             }
 
-            const reportData = await (this.reportsService as any)[methodName](
+            const reportData = await this.reportsService[definition.method](
               schedule.filters ?? {},
             );
 
@@ -105,7 +86,7 @@ export class ReportSchedulerService {
 
             const meta = FORMAT_META[format] ?? FORMAT_META.excel;
             const dateStr = new Date().toISOString().slice(0, 10);
-            const filename = `${FILE_NAMES[schedule.reportType] ?? 'reporte'}-${dateStr}.${meta.ext}`;
+            const filename = `${definition.fileName}-${dateStr}.${meta.ext}`;
 
             // Email to each recipient
             const htmlBody = `

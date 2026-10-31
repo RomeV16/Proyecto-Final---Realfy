@@ -1,17 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
-
-// pdfmake Node.js usage: dynamic require for CommonJS module
-
-const PdfPrinter = require('pdfmake/src/printer');
-
-const FONTS = {
-  Roboto: {
-    normal: 'Helvetica',
-    bold: 'Helvetica-Bold',
-    italics: 'Helvetica-Oblique',
-    bolditalics: 'Helvetica-BoldOblique',
-  },
-};
+import {
+  formatDateAR,
+  formatPeriodShortAR,
+  personName,
+  propertyLabel,
+  todayInAR,
+} from '@realfy/shared';
+import {
+  PdfRendererService,
+  headerCell,
+  moneyCell,
+  pageFooter,
+} from '../../common/pdf/pdf-renderer.service';
 
 interface PdfTenant {
   name: string;
@@ -22,6 +22,8 @@ interface PdfTenant {
 export class RenditionPdfService {
   private readonly logger = new Logger(RenditionPdfService.name);
 
+  constructor(private readonly renderer: PdfRendererService) {}
+
   /**
    * Generate a rendition PDF buffer with line-item breakdown and summary.
    */
@@ -29,22 +31,8 @@ export class RenditionPdfService {
     rendicion: any,
     tenant: PdfTenant,
   ): Promise<Buffer> {
-    const period = new Date(rendicion.period);
-    const monthYear = period.toLocaleDateString('es-AR', {
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    });
-    const monthNum = String(period.getUTCMonth() + 1).padStart(2, '0');
-    const yearNum = period.getUTCFullYear();
-
-    const ownerName = rendicion.owner
-      ? `${rendicion.owner.firstName} ${rendicion.owner.lastName}`
-      : '—';
-    const propertyAddress =
-      rendicion.contract?.property?.address ??
-      rendicion.contract?.property?.name ??
-      '—';
+    const ownerName = personName(rendicion.owner) || '—';
+    const propertyAddress = propertyLabel(rendicion.contract?.property) || '—';
     const contractRef = rendicion.contract
       ? `Contrato #${rendicion.contract.id.slice(0, 8)}`
       : '—';
@@ -55,11 +43,10 @@ export class RenditionPdfService {
       return [
         li.type,
         li.description,
-        {
-          text: `${isPositive ? '' : '-'} $ ${this.formatAmount(Math.abs(amt))}`,
-          alignment: 'right',
+        moneyCell(Math.abs(amt), {
+          prefix: isPositive ? '' : '- ',
           color: isPositive ? '#000000' : '#CC0000',
-        },
+        }),
       ];
     });
 
@@ -87,7 +74,7 @@ export class RenditionPdfService {
           margin: [0, 10, 0, 5],
         },
         {
-          text: `${monthNum}/${yearNum}`,
+          text: formatPeriodShortAR(rendicion.period),
           alignment: 'center',
           fontSize: 12,
           margin: [0, 0, 0, 15],
@@ -110,9 +97,9 @@ export class RenditionPdfService {
             widths: ['auto', '*', 'auto'],
             body: [
               [
-                { text: 'Tipo', bold: true },
-                { text: 'Descripción', bold: true },
-                { text: 'Monto', bold: true, alignment: 'right' },
+                headerCell('Tipo'),
+                headerCell('Descripción'),
+                headerCell('Monto', { alignment: 'right' }),
               ],
               ...lineItemRows,
             ],
@@ -135,43 +122,23 @@ export class RenditionPdfService {
                 body: [
                   [
                     { text: 'Total cobrado:', bold: false },
-                    {
-                      text: `$ ${this.formatAmount(rendicion.rentCollected)}`,
-                      alignment: 'right',
-                    },
+                    moneyCell(rendicion.rentCollected),
                   ],
                   [
                     { text: 'Comisión:', bold: false },
-                    {
-                      text: `- $ ${this.formatAmount(rendicion.commissionAmount)}`,
-                      alignment: 'right',
-                      color: '#CC0000',
-                    },
+                    moneyCell(rendicion.commissionAmount, { prefix: '- ', color: '#CC0000' }),
                   ],
                   [
                     { text: 'Honorarios admin:', bold: false },
-                    {
-                      text: `- $ ${this.formatAmount(rendicion.adminFeeAmount)}`,
-                      alignment: 'right',
-                      color: '#CC0000',
-                    },
+                    moneyCell(rendicion.adminFeeAmount, { prefix: '- ', color: '#CC0000' }),
                   ],
                   [
                     { text: 'Deducciones:', bold: false },
-                    {
-                      text: `- $ ${this.formatAmount(rendicion.deductionTotal)}`,
-                      alignment: 'right',
-                      color: '#CC0000',
-                    },
+                    moneyCell(rendicion.deductionTotal, { prefix: '- ', color: '#CC0000' }),
                   ],
                   [
                     { text: 'Depósito neto:', bold: true },
-                    {
-                      text: `$ ${this.formatAmount(rendicion.netDeposit)}`,
-                      alignment: 'right',
-                      bold: true,
-                      fontSize: 12,
-                    },
+                    moneyCell(rendicion.netDeposit, { bold: true, fontSize: 12 }),
                   ],
                 ],
               },
@@ -198,43 +165,11 @@ export class RenditionPdfService {
       ],
 
       // Footer
-      footer: (currentPage: number, pageCount: number) => ({
-        columns: [
-          {
-            text: `Generado: ${new Date().toLocaleDateString('es-AR')}`,
-            fontSize: 8,
-            margin: [40, 0, 0, 0],
-          },
-          {
-            text: `Pág. ${currentPage}/${pageCount}`,
-            fontSize: 8,
-            alignment: 'right',
-            margin: [0, 0, 40, 0],
-          },
-        ],
-      }),
-
-      styles: {
-        header: { fontSize: 18, bold: true },
-        title: { fontSize: 14, bold: true },
-        subheader: { fontSize: 12, bold: true },
-      },
-      defaultStyle: {
-        fontSize: 10,
-      },
+      footer: pageFooter(`Generado: ${formatDateAR(todayInAR())}`),
     };
 
     try {
-      const printer = new PdfPrinter(FONTS);
-      const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-      const chunks: Buffer[] = [];
-      return new Promise<Buffer>((resolve, reject) => {
-        pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
-        pdfDoc.on('end', () => resolve(Buffer.concat(chunks)));
-        pdfDoc.on('error', (err: Error) => reject(err));
-        pdfDoc.end();
-      });
+      return await this.renderer.render(docDefinition);
     } catch (error) {
       this.logger.error('Rendition PDF generation failed', {
         rendicionId: rendicion.id,
@@ -242,12 +177,5 @@ export class RenditionPdfService {
       });
       throw error;
     }
-  }
-
-  private formatAmount(amount: string | number | any): string {
-    return Number(amount).toLocaleString('es-AR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
   }
 }
