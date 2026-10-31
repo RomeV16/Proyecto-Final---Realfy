@@ -1,6 +1,6 @@
 import { createApiClient, ApiRequestError, type BlobResult } from './create-api-client';
 
-export { ApiRequestError, createApiClient };
+export { ApiRequestError };
 export type { ApiClientConfig, BlobResult } from './create-api-client';
 
 export const API_BASE_URL =
