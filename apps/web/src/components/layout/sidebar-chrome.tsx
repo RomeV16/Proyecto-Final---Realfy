@@ -18,7 +18,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 export const SIDEBAR_ASIDE_CLASS =
   'hidden lg:flex flex-col bg-sidebar-bg text-sidebar-text sticky top-0 h-screen shrink-0';
 
-export const SIDEBAR_BRAND_CLASS =
+const SIDEBAR_BRAND_CLASS =
   'flex items-center gap-2.5 px-5 h-16 border-b border-white/[0.08] shrink-0';
 
 export const SIDEBAR_NAV_CLASS =

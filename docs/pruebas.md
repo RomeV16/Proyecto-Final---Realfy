@@ -205,9 +205,18 @@ son de nivel HTTP contra la API real, no recorridos de interfaz.
 
 El flujo de trabajo es `.github/workflows/ci.yml`, y corre en cada empuje a
 `main` y en cada pedido de incorporación de cambios hacia `main`. Usa Node 22 y
-pnpm con caché, cancela las corridas anteriores de la misma rama, y son ocho
+pnpm con caché, cancela las corridas anteriores de la misma rama, y son nueve
 trabajos: Lint, Build, Unit Tests & Coverage, SonarCloud & Quality Gate,
-External contract, Ephemeral deploy, Migrations from scratch y API E2E Tests.
+External contract, Ephemeral deploy, Migrations from scratch, API E2E Tests y
+Gates de código muerto y duplicación.
+
+**Gates de código muerto y duplicación.** Corre `pnpm knip` (archivos, exports y
+dependencias sin uso frente a `knip-baseline.json`; informativo hasta el 14 de
+noviembre de 2026) y `pnpm jscpd` (duplicación por paquete contra su umbral;
+bloqueante). Detalle, umbrales y política de la línea base en
+`docs/calidad/08-herramienta-sonarcloud.md`. La paridad de claves i18n (CP-72) y
+la de enums (`test/unit/enum-parity.spec.ts`) ya corren en el trabajo de
+pruebas unitarias.
 
 **Lint.** Instala, compila el paquete compartido, genera el cliente de Prisma,
 corre el linter sobre todos los paquetes y después el control de tipos

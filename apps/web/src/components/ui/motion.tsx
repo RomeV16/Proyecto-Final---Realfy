@@ -175,4 +175,4 @@ export function ValueFlip({ value, className }: { value: string | number; classN
   );
 }
 
-export { motion, AnimatePresence, useReducedMotion };
+export { motion, useReducedMotion };

@@ -37,6 +37,24 @@ de `main` y cambian recién al mezclar el PR; el análisis del PR muestra
 que el trabajo no agrega ninguna y que la corrección de `ci.yml` elimina
 las 40 que estaban ahí.
 
+## Código muerto y duplicación por paquete (gates knip y jscpd)
+
+Medición del 31 de octubre de 2026 sobre `main` con la limpieza de código muerto
+aplicada (jscpd 4.3.0 con 70 tokens y 5 líneas mínimas, sin pruebas ni mocks;
+knip 5.88.1). Detalle y política en `08-herramienta-sonarcloud.md`.
+
+| Paquete | Líneas duplicadas | Clones | Umbral del gate |
+|---|---|---|---|
+| api | 2,32 % | 42 | 2,6 % |
+| web | 1,93 % | 60 | 2,3 % |
+| shared | 1,11 % | 6 | 1,8 % |
+
+| Hallazgos de knip | Antes (análisis de octubre) | Ahora |
+|---|---|---|
+| Archivos sin uso | 7 | 0 |
+| Exports de valor sin uso | 25 | 1 (en la línea base) |
+| Dependencias sin uso | 9 | 0 |
+
 ## Métrica de proceso
 
 **Tiempo entre la detección de un defecto y su prueba de regresión en

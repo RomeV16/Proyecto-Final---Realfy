@@ -69,7 +69,7 @@ function focusableIn(root: HTMLElement): HTMLElement[] {
 const DialogContext = createContext<{ titleId: string; busy: boolean; onClose: () => void } | null>(null);
 
 /** Estado del diálogo actual, para botones de cierre propios. */
-export function useDialogContext() {
+function useDialogContext() {
   return useContext(DialogContext);
 }
 

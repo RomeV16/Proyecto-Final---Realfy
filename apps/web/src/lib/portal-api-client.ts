@@ -12,7 +12,7 @@ export function getPortalAccessToken(): string | null {
   return portalAccessTokenMem;
 }
 
-export function getPortalRefreshToken(): string | null {
+function getPortalRefreshToken(): string | null {
   if (typeof window !== 'undefined') {
     return localStorage.getItem('portalRefreshToken');
   }

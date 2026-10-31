@@ -1,0 +1,5 @@
+{
+  "findings": [
+    "exports|apps/api/src/modules/index-data/contract-adjustment.service.ts|MISSING_INDEX_DATA"
+  ]
+}
