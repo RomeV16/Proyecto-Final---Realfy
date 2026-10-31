@@ -10,8 +10,8 @@ Una convención vale aclararla antes del detalle: **todas las tablas del dominio
 
 Inmobiliaria. Es el ancla de aislamiento del sistema.
 
-- `id`, `name`, `slug`, `cuit`, `province`, `timezone`, `currency`, `tier`, `brandPrimary`, `brandSecondary`, `logoUrl`, `penaltyConfig`, `readPolicy`, `isActive`, `createdAt`.
-- `slug` es lo que resuelve el micrositio público; `brandPrimary`, `brandSecondary` y `logoUrl` son los que lo pintan. `penaltyConfig` guarda como JSON los parámetros de punitorios de la inmobiliaria. `readPolicy` guarda, también como JSON, qué roles leen cada recurso sensible (un arreglo de roles por recurso); `null` significa la política por defecto, en la que todos los roles de personal leen todo. Se valida con un esquema compartido y exige al Admin en cada recurso.
+- `id`, `name`, `slug`, `cuit`, `province`, `timezone`, `currency`, `tier`, `brandPrimary`, `brandSecondary`, `logoUrl`, `penaltyConfig`, `readPolicy`, `operationalDefaults`, `isActive`, `createdAt`.
+- `slug` es lo que resuelve el micrositio público; `brandPrimary`, `brandSecondary` y `logoUrl` son los que lo pintan. `penaltyConfig` guarda como JSON los parámetros de punitorios de la inmobiliaria. `readPolicy` guarda, también como JSON, qué roles leen cada recurso sensible (un arreglo de roles por recurso); `null` significa la política por defecto, en la que todos los roles de personal leen todo. Se valida con un esquema compartido y exige al Admin en cada recurso. `operationalDefaults` guarda como JSON los valores por defecto de la operación (vencimiento, anticipación de la liquidación, rezago del IPC, comisión, honorarios, tasación, umbral de anticipo, cadencia de cobranza y semáforo de vencimientos); se valida con `OperationalDefaultsSchema`, que da a cada campo su valor de arranque, y `null` significa los valores del código. Ver ADR-0010.
 
 ### User
 
@@ -140,10 +140,11 @@ Tasación de la propiedad.
 
 Contrato entre locadores e inquilino, o de venta.
 
-- `id`, `tenantId`, `propertyId`, `contractType`, `status`, `startDate`, `endDate`, `rentAmount`, `rentCurrency`, `depositAmount`, `depositCurrency`, `adjustmentType`, `adjustmentPeriod`, `customAdjustmentPct`, `notes`, `isActive`, `closedAt`, `externalRef`.
+- `id`, `tenantId`, `propertyId`, `contractType`, `status`, `startDate`, `endDate`, `rentAmount`, `rentCurrency`, `depositAmount`, `depositCurrency`, `adjustmentType`, `adjustmentPeriod`, `customAdjustmentPct`, `notes`, `isActive`, `closedAt`, `actualEndDate`, `previousContractId`, `externalRef`.
+- `actualEndDate` es el fin real o la prórroga de palabra; el fin efectivo es `coalesce(actualEndDate, endDate)`. Un contrato pasado de su fin pactado sin fin real sigue liquidándose mientras esté `Activo`. `previousContractId` encadena las renovaciones.
 - `externalRef` identifica el contrato en el sistema anterior y es único por inmobiliaria (`@@unique([tenantId, externalRef])`, 409 `EXTERNAL_REF_TAKEN`).
-- **La configuración del ajuste vive en el contrato**, no en una tabla aparte: `adjustmentType` toma IPC, ICL, CCP, porcentaje fijo o personalizado, `adjustmentPeriod` va de mensual a anual, y `customAdjustmentPct` guarda el porcentaje cuando la modalidad es de porcentaje fijo.
-- Relación 1-N con `ContractPerson`, `ContractLessor`, `PowerOfAttorney`, `ContractGuarantee`, `ContractAdjustment`, `AdjustmentSchedule`, `Liquidacion`, `OwnerRendicion`; 1-1 con `ContractCommission` y `ContractClosureSummary`.
+- **Las columnas de ajuste son la vista vigente.** `adjustmentType` toma IPC, ICL, CCP, porcentaje fijo, personalizado, UVA o escalonado (las dos últimas todavía no tienen cálculo), `adjustmentPeriod` va de mensual a anual, y `customAdjustmentPct` guarda el porcentaje cuando la modalidad es de porcentaje fijo. La fuente de las reglas de cada fecha es `ContractTermsVersion`; estas columnas se mantienen en sincronía con la versión vigente hoy (ADR-0010).
+- Relación 1-N con `ContractPerson`, `ContractLessor`, `PowerOfAttorney`, `ContractGuarantee`, `ContractAdjustment`, `AdjustmentSchedule`, `Liquidacion`, `OwnerRendicion`, `ContractPeriod`, `ContractAgreement`, `ContractTermsVersion`; 1-1 con `ContractCommission` y `ContractClosureSummary`.
 
 ### ContractPerson
 
@@ -218,6 +219,65 @@ erDiagram
 
 La titularidad (`PropertyOwnership`) no se conecta con el cobro: quien recibe dinero lo define `ContractLessor`, y la rendición se reparte entre los locadores vigentes.
 
+### Reglas versionadas, acuerdos y períodos
+
+Las reglas de un contrato se resuelven por capas (defecto de la inmobiliaria, contrato, acuerdo) y se versionan en lugar de pisarse (ADR-0010).
+
+```mermaid
+erDiagram
+    Tenant ||--o{ Contract : "valores por defecto en operationalDefaults"
+    Contract ||--|{ ContractPeriod : "original, renovaciones, prorrogas"
+    Contract ||--|{ ContractTermsVersion : "reglas desde validFrom"
+    Contract ||--o{ ContractAgreement : "convenios fechados"
+    ContractAgreement |o--o| ContractTermsVersion : "crea una version"
+    Contract |o--o{ Contract : "previousContractId (renovacion)"
+    ContractPeriod {
+        int seq
+        string kind
+        datetime startDate
+        datetime endDate
+        decimal initialRent
+    }
+    ContractAgreement {
+        string kind
+        datetime effectiveFrom
+        datetime effectiveTo
+        string documentUrl
+    }
+    ContractTermsVersion {
+        datetime validFrom
+        string adjustmentType
+        string adjustmentPeriod
+        string adjustmentBase
+        int indexLagMonths
+        int dueDay
+        string paymentFlow
+        json customSteps
+    }
+```
+
+#### ContractPeriod
+
+Un tramo de vigencia del contrato.
+
+- `id`, `tenantId`, `contractId`, `seq`, `kind` (`Original`, `Renovacion`, `Prorroga`), `startDate`, `endDate`, `initialRent`, `signedAt`.
+- `@@unique([contractId, seq])`. Todo contrato tiene el período 1 (`Original`): se crea con el contrato y la migración lo creó para los existentes (`initialRent` es el alquiler anterior al primer ajuste aplicado, o el actual si no hubo). Editar el fin pactado del contrato mueve el fin del último período.
+
+#### ContractAgreement
+
+Convenio fechado que cambia las reglas del contrato.
+
+- `id`, `tenantId`, `contractId`, `kind` (`Renegociacion`, `Rebaja`, `Bonificacion`, `CambioRegla`, `CambioReparto`, `CambioCargo`), `effectiveFrom`, `effectiveTo`, `documentUrl`, `notes`, `createdById`.
+- Los cuatro primeros tipos traen un `termsPatch` que crea una `ContractTermsVersion` en la misma transacción; `CambioReparto` y `CambioCargo` solo se registran.
+
+#### ContractTermsVersion
+
+Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se modifica: un cambio crea otra.
+
+- `id`, `tenantId`, `contractId`, `validFrom`, `agreementId`, `adjustmentType`, `adjustmentPeriod`, `adjustmentBase` (`Original` o `Vigente`), `indexLagMonths` (por defecto 2), `fixedInitialMonths` (0), `customPct`, `customSteps` (JSON, lista de `{ fromMonth, pct }` para el escalonado), `rentOverride`, `discountPct`, `discountAmount`, `dueDay`, `paymentFlow` (`Partido`, `TodoInmobiliaria`, `TodoLocador`), `penaltyConfig` (JSON).
+- `@@unique([contractId, validFrom])`. La versión vigente a una fecha es la última con `validFrom` anterior o igual. La migración creó una por contrato con sus columnas de hoy: base `Vigente` (lo que hace el motor actual), rezago 2, vencimiento el día 10 y flujo `Partido`.
+- Las tres tablas llevan `tenantId` y están registradas en `TENANT_SCOPED_MODELS`.
+
 ### ContractGuarantee
 
 Garantías asociadas al contrato.
@@ -236,15 +296,17 @@ Cronograma de ajustes pendientes del contrato. Es lo que el barrido diario consu
 
 Ajuste ya calculado o aplicado sobre el contrato. Es el registro histórico, uno por período ajustado.
 
-- `id`, `tenantId`, `contractId`, `periodNumber`, `adjustmentDate`, `previousAmount`, `newAmount`, `percentage`, `currency`, `indexType`, `indexValues`, `notes`, `calculatedAt`, `appliedAt`.
+- `id`, `tenantId`, `contractId`, `periodNumber`, `adjustmentDate`, `previousAmount`, `newAmount`, `percentage`, `currency`, `indexType`, `indexValues`, `notes`, `calculatedAt`, `appliedAt`, `isProvisional`, `trueUpOfId`.
+- `@@unique([contractId, periodNumber, isProvisional])`: puede haber un ajuste provisional (calculado con un índice estimado) y el definitivo del mismo período. `trueUpOfId` apunta al provisional que corrige.
 - `indexValues` guarda como JSON los valores de índice que se usaron en el cálculo, de modo que un ajuste aplicado se pueda reconstruir aunque después se corrija la serie publicada. Mientras `appliedAt` esté vacío, el ajuste está calculado pero no impactado en el contrato.
 
 ### IndexData
 
 Valores publicados de los índices.
 
-- `id`, `tenantId`, `indexType`, `period`, `value`, `source`.
-- `indexType` toma IPC, ICL, CVS, CER o UVA. Los valores se consumen como variación del período, no como nivel absoluto.
+- `id`, `tenantId`, `indexType`, `period`, `value`, `source`, `isEstimate`, `estimateSource`.
+- `indexType` toma IPC, ICL, CVS, CER, UVA o tasa activa del Banco Nación (`TasaActivaBNA`). Los valores se consumen como variación del período, no como nivel absoluto.
+- `isEstimate` marca un valor esperado (`estimateSource`, por ejemplo `REM`). El valor oficial lo reemplaza bajo la misma clave `[tenantId, indexType, period]`; un estimado nunca pisa a un oficial (409 `OFFICIAL_VALUE_EXISTS`), y el cálculo de ajustes solo lee los oficiales.
 
 ### ContractTemplate
 
