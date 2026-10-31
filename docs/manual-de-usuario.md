@@ -470,7 +470,11 @@ cuatro pantallas de configuración específicas: la fiscal (`/configuracion/fisc
 las etapas del embudo (`/configuracion/pipeline`), los pesos del puntaje de
 inquilinos (`/configuracion/scoring`) y los índices de ajuste
 (`/configuracion/indices`); y, además, la del equipo
-(`/configuracion/usuarios`).
+(`/configuracion/usuarios`) y la de permisos de lectura (`/configuracion/permisos`).
+
+### Permisos de lectura
+
+`/configuracion/permisos` (solo Admin) decide qué roles pueden leer los datos sensibles: cuentas bancarias, documento (DNI y CUIT), comisión de los contratos, rendiciones, reportes financieros, facturas y auditoría. La tabla tiene un recurso por fila y un rol por columna; la casilla del Admin está fija porque siempre lee todo. Marcá o desmarcá, tocá *Guardar cambios* y confirmá: rige desde el próximo pedido de cada persona del equipo. *Abrir todo* vuelve a dar lectura a todos los roles (y hay que guardar para aplicarlo). Mientras no se cambie nada, todos los roles leen todo. Un rol sin acceso ve un aviso de *Sin acceso* en esas pantallas, los documentos y cuentas ocultos en las fichas, y no ve esas opciones en el menú.
 
 ### Usuarios: alta del equipo y contraseñas
 

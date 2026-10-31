@@ -16,7 +16,7 @@ La matriz une cada hallazgo del registro (`31-registro-de-feedback.md`) con el c
 |---|---|---|---|---|---|
 | FB-01 | CU-03, CU-05 (modificados); CU-25, CU-26 (nuevos) | 33 (#91) | ADR-0007 | `/contracts/:id/lessors`, `/persons/:id/powers`, `/properties/:id/ownerships`, `/persons/:id/bank-accounts` | CP-110 a CP-119, CP-244 a CP-248 |
 | FB-02 | CU-03, CU-05 (modificados); CU-25, CU-26 (nuevos) | 33 (#91) | ADR-0007 | `/contracts/:id/lessors`, `/persons/:id/powers`, `/properties/:id/ownerships` | CP-118, CP-244 a CP-248 |
-| FB-03 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 32 (#90) | — | Se completa en el PR | CP-100 a CP-109 |
+| FB-03 | CU-29 (nuevo) | 32 (#90) | — | `/tenants/me/read-policy`, `/tenants/me/read-access` | CP-250 a CP-258 |
 | FB-04 | CU-05 (modificado); CU nuevo (se numera desde CU-25 en el PR del ítem) | 39 (#97) | ADR-0015 | Se completa en el PR | CP-170 a CP-179 |
 | FB-05 | CU-06 (modificado); CU nuevo (se numera desde CU-25 en el PR del ítem) | 40 (#98) | — | Se completa en el PR | CP-180 a CP-189 |
 | FB-06 | CU-10 (modificado); CU nuevo (se numera desde CU-25 en el PR del ítem) | 36 (#94) | ADR-0012 | Se completa en el PR | CP-140 a CP-149 |

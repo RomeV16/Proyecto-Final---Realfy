@@ -10,8 +10,8 @@ Una convención vale aclararla antes del detalle: **todas las tablas del dominio
 
 Inmobiliaria. Es el ancla de aislamiento del sistema.
 
-- `id`, `name`, `slug`, `cuit`, `province`, `timezone`, `currency`, `tier`, `brandPrimary`, `brandSecondary`, `logoUrl`, `penaltyConfig`, `isActive`, `createdAt`.
-- `slug` es lo que resuelve el micrositio público; `brandPrimary`, `brandSecondary` y `logoUrl` son los que lo pintan. `penaltyConfig` guarda como JSON los parámetros de punitorios de la inmobiliaria.
+- `id`, `name`, `slug`, `cuit`, `province`, `timezone`, `currency`, `tier`, `brandPrimary`, `brandSecondary`, `logoUrl`, `penaltyConfig`, `readPolicy`, `isActive`, `createdAt`.
+- `slug` es lo que resuelve el micrositio público; `brandPrimary`, `brandSecondary` y `logoUrl` son los que lo pintan. `penaltyConfig` guarda como JSON los parámetros de punitorios de la inmobiliaria. `readPolicy` guarda, también como JSON, qué roles leen cada recurso sensible (un arreglo de roles por recurso); `null` significa la política por defecto, en la que todos los roles de personal leen todo. Se valida con un esquema compartido y exige al Admin en cada recurso.
 
 ### User
 
