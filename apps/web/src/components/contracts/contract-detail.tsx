@@ -83,6 +83,8 @@ interface ContractDetail {
   updatedAt: string;
   property?: { id: string; title: string; street?: string; city?: string; type?: string };
   persons: ContractPerson[];
+  /** Locadores vigentes o futuros; reemplazan a las partes con rol Propietario. */
+  lessors?: Array<{ id: string; person: ContractPerson['person'] }>;
   guarantees: ContractGuarantee[];
   adjustments: ContractAdjustment[];
   schedules: AdjustmentSchedule[];
@@ -536,9 +538,14 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
 
   const contractCurrency = contract.rentCurrency || contract.currency;
 
-  const propietarios = (contract.persons || []).filter(
-    (p) => p.role === 'Propietario',
-  );
+  const propietarios: ContractPerson[] = [
+    ...(contract.persons || []).filter((p) => p.role === 'Propietario'),
+    ...(contract.lessors || []).map((l) => ({
+      id: l.id,
+      role: 'Propietario',
+      person: l.person,
+    })),
+  ];
   const inquilinos = (contract.persons || []).filter(
     (p) => p.role === 'Inquilino',
   );

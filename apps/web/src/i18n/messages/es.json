@@ -1134,7 +1134,7 @@
     "PROPERTY_NOT_FOUND": "La propiedad del contrato no existe.",
     "PROPERTY_INACTIVE": "La propiedad del contrato está dada de baja.",
     "MISSING_INQUILINO": "Falta cargar al menos un inquilino.",
-    "MISSING_PROPIETARIO": "Falta cargar al menos un propietario.",
+    "LESSOR_SHARES_INVALID": "Los locadores tienen que sumar exactamente 100 % del cobro en cada fecha del contrato.",
     "INVALID_DATES": "La fecha de fin tiene que ser posterior a la de inicio.",
     "OVERLAPPING_CONTRACT": "La propiedad ya tiene un contrato de alquiler activo del {start} al {end}, que se superpone con estas fechas.",
     "RENTAL_OPERATION_ARCHIVED": "La operación de alquiler de la propiedad está archivada; reactivala antes de activar el contrato.",

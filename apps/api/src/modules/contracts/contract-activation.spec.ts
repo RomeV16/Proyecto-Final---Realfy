@@ -30,6 +30,13 @@ const DRAFT = {
 
 const PROPERTY = { id: PROPERTY_ID, isActive: true };
 
+// Un locador que cobra el 100 % desde el inicio del contrato.
+const FULL_LESSOR = {
+  payoutPct: '100.0000',
+  validFrom: new Date('2026-01-01T00:00:00.000Z'),
+  validTo: null,
+};
+
 function buildMocks() {
   const client: any = {
     contract: {
@@ -49,11 +56,17 @@ function buildMocks() {
       findFirst: jest.fn().mockImplementation(({ where }: any) =>
         Promise.resolve({
           id: where.id,
+          tenantId: TENANT_ID,
           roles: [{ role: where.id === 'p-prop' ? 'Propietario' : 'Inquilino' }],
         }),
       ),
     },
     contractPerson: { create: jest.fn().mockResolvedValue({}) },
+    contractLessor: {
+      findMany: jest.fn().mockResolvedValue([FULL_LESSOR]),
+      create: jest.fn().mockResolvedValue({}),
+    },
+    personRoleAssignment: { upsert: jest.fn().mockResolvedValue({}) },
     contractGuarantee: { create: jest.fn().mockResolvedValue({}) },
     adjustmentSchedule: {
       create: jest.fn().mockResolvedValue({}),
@@ -167,18 +180,59 @@ describe('ContractsService — activación del contrato', () => {
       expect(mocks.client.contract.update).not.toHaveBeenCalled();
     });
 
-    it('exige un propietario', async () => {
-      mocks.client.contract.findFirst.mockResolvedValue({
-        ...DRAFT,
-        persons: [{ personId: 'p-inq', role: 'Inquilino' }],
-      });
+    it('exige locadores', async () => {
+      mocks.client.contractLessor.findMany.mockResolvedValue([]);
 
       const body = await rejection(service.activate(CONTRACT_ID));
 
-      expect(codes(body)).toEqual(['MISSING_PROPIETARIO']);
+      expect(codes(body)).toEqual(['LESSOR_SHARES_INVALID']);
+      expect(body.problems[0].invalidDates).toEqual([
+        { date: DRAFT.startDate, sum: '0.0000' },
+      ]);
     });
 
-    it('un garante no cuenta como inquilino ni como propietario', async () => {
+    it('un propietario cargado solo como parte del contrato no es locador', async () => {
+      mocks.client.contractLessor.findMany.mockResolvedValue([]);
+
+      const body = await rejection(service.activate(CONTRACT_ID));
+
+      expect(codes(body)).toContain('LESSOR_SHARES_INVALID');
+    });
+
+    it('rechaza locadores que no suman 100 al inicio', async () => {
+      mocks.client.contractLessor.findMany.mockResolvedValue([
+        { ...FULL_LESSOR, payoutPct: '60.0000' },
+        { ...FULL_LESSOR, payoutPct: '30.0000' },
+      ]);
+
+      const body = await rejection(service.activate(CONTRACT_ID));
+
+      expect(codes(body)).toEqual(['LESSOR_SHARES_INVALID']);
+      expect(body.problems[0].invalidDates[0].sum).toBe('90.0000');
+    });
+
+    it('acepta varios locadores que suman exactamente 100', async () => {
+      mocks.client.contractLessor.findMany.mockResolvedValue([
+        { ...FULL_LESSOR, payoutPct: '33.3334' },
+        { ...FULL_LESSOR, payoutPct: '33.3333' },
+        { ...FULL_LESSOR, payoutPct: '33.3333' },
+      ]);
+
+      await expect(service.activate(CONTRACT_ID)).resolves.toBeDefined();
+    });
+
+    it('rechaza una cesión que deja un hueco en la mitad del contrato', async () => {
+      const cession = new Date('2027-06-01T12:00:00.000Z');
+      mocks.client.contractLessor.findMany.mockResolvedValue([
+        { ...FULL_LESSOR, validTo: cession },
+      ]);
+
+      const body = await rejection(service.activate(CONTRACT_ID));
+
+      expect(body.problems[0].invalidDates).toEqual([{ date: cession, sum: '0.0000' }]);
+    });
+
+    it('un garante no cuenta como inquilino', async () => {
       mocks.client.contract.findFirst.mockResolvedValue({
         ...DRAFT,
         persons: [{ personId: 'p-gar', role: 'Garante' }],
@@ -186,7 +240,7 @@ describe('ContractsService — activación del contrato', () => {
 
       const body = await rejection(service.activate(CONTRACT_ID));
 
-      expect(codes(body)).toEqual(['MISSING_PROPIETARIO', 'MISSING_INQUILINO']);
+      expect(codes(body)).toEqual(['MISSING_INQUILINO']);
     });
 
     it('una venta no necesita inquilino', async () => {
@@ -228,6 +282,7 @@ describe('ContractsService — activación del contrato', () => {
 
     it('junta todos los motivos en una sola respuesta', async () => {
       mocks.client.property.findFirst.mockResolvedValue(null);
+      mocks.client.contractLessor.findMany.mockResolvedValue([]);
       mocks.client.contract.findFirst.mockResolvedValue({
         ...DRAFT,
         endDate: DRAFT.startDate,
@@ -238,7 +293,7 @@ describe('ContractsService — activación del contrato', () => {
 
       expect(codes(body)).toEqual([
         'PROPERTY_NOT_FOUND',
-        'MISSING_PROPIETARIO',
+        'LESSOR_SHARES_INVALID',
         'MISSING_INQUILINO',
         'INVALID_DATES',
       ]);
@@ -412,6 +467,7 @@ describe('ContractsService — activación del contrato', () => {
       mocks.client.person.findFirst.mockImplementation(({ where }: any) =>
         Promise.resolve({
           id: where.id,
+          tenantId: TENANT_ID,
           roles: [
             {
               role: where.id.startsWith('2222') ? 'Propietario' : 'Inquilino',
@@ -439,6 +495,60 @@ describe('ContractsService — activación del contrato', () => {
           data: expect.objectContaining({ state: 'Alquilado' }),
         }),
       );
+    });
+
+    it('los propietarios de persons se guardan como locadores, no como partes', async () => {
+      await service.create(BODY);
+
+      expect(mocks.client.contractLessor.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          personId: '22222222-2222-4222-8222-222222222222',
+          capacity: 'Propietario',
+          payoutPct: '100.0000',
+          needsReview: false,
+        }),
+      });
+      expect(mocks.client.contractPerson.create).toHaveBeenCalledTimes(1);
+      expect(mocks.client.contractPerson.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ role: 'Inquilino' }),
+      });
+    });
+
+    it('un locador sin el rol de propietario puede firmar: se le pone el rol', async () => {
+      mocks.client.person.findFirst.mockImplementation(({ where }: any) =>
+        Promise.resolve({ id: where.id, tenantId: TENANT_ID, roles: [{ role: 'Inquilino' }] }),
+      );
+
+      await service.create({
+        ...BODY,
+        persons: [{ personId: '33333333-3333-4333-8333-333333333333', role: 'Inquilino' }],
+        lessors: [{ personId: '22222222-2222-4222-8222-222222222222', payoutPct: '100' }],
+      });
+
+      expect(mocks.client.personRoleAssignment.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            personId: '22222222-2222-4222-8222-222222222222',
+            role: 'Propietario',
+          }),
+        }),
+      );
+    });
+
+    it('varios propietarios se reparten el 100 % y quedan marcados para revisar', async () => {
+      await service.create({
+        ...BODY,
+        status: undefined,
+        persons: [
+          { personId: '22222222-2222-4222-8222-222222222222', role: 'Propietario' },
+          { personId: '44444444-4444-4444-8444-444444444444', role: 'Propietario' },
+          { personId: '55555555-5555-4555-8555-555555555555', role: 'Propietario' },
+        ],
+      });
+
+      const created = mocks.client.contractLessor.create.mock.calls.map((c: any) => c[0].data);
+      expect(created.map((d: any) => d.payoutPct)).toEqual(['33.3333', '33.3333', '33.3334']);
+      expect(created.every((d: any) => d.needsReview === true)).toBe(true);
     });
 
     it('un borrador no ocupa la propiedad', async () => {

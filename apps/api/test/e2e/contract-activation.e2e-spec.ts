@@ -227,7 +227,7 @@ describe('Contract activation (e2e)', () => {
       expect(await rentalState(user.accessToken, propertyId)).toBe(PropertyState.Disponible);
     });
 
-    it('informa a la vez que faltan propietario e inquilino', async () => {
+    it('informa a la vez que faltan locadores e inquilino', async () => {
       const user = await admin('both');
       const propertyId = await createProperty(user.accessToken);
       const garante = await createPerson(user.accessToken, PersonRole.Garante, 'both-g@activation.test');
@@ -241,7 +241,7 @@ describe('Contract activation (e2e)', () => {
         .expect(400);
 
       const codes = res.body.problems.map((p: any) => p.code);
-      expect(codes).toEqual(expect.arrayContaining(['MISSING_PROPIETARIO', 'MISSING_INQUILINO']));
+      expect(codes).toEqual(expect.arrayContaining(['LESSOR_SHARES_INVALID', 'MISSING_INQUILINO']));
     });
 
     it('rechaza un alquiler que se pisa con otro contrato activo de la propiedad', async () => {

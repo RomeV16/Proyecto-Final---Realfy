@@ -222,7 +222,9 @@ describe('Contracts (e2e)', () => {
       expect(contract.id).toBeDefined();
       expect(contract.contractType).toBe(ContractType.Alquiler);
       expect(contract.status).toBe(ContractStatus.Activo);
-      expect(contract.persons).toHaveLength(3);
+      // El propietario es locador, no parte del contrato: quedan inquilino y garante.
+      expect(contract.persons).toHaveLength(2);
+      expect(contract.lessors).toHaveLength(1);
       expect(contract.guarantees).toHaveLength(1);
       expect(contract.property).toBeDefined();
       expect(contract.schedules.length).toBeGreaterThan(0);
@@ -251,7 +253,8 @@ describe('Contracts (e2e)', () => {
         .expect(200);
 
       expect(res.body.id).toBe(contract.id);
-      expect(res.body.persons).toHaveLength(3);
+      expect(res.body.persons).toHaveLength(2);
+      expect(res.body.lessors).toHaveLength(1);
       expect(res.body.guarantees).toHaveLength(1);
       expect(res.body.property).toBeDefined();
       expect(res.body.adjustments).toBeDefined();
