@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { Roles } from '../../common/auth/roles.decorator';
-import { PenaltyConfigSchema, PreviewPenaltySchema, UserRole } from '@realfy/shared';
+import { PenaltyConfigSchema, PreviewPenaltySchema, UserRole, todayInAR } from '@realfy/shared';
 import type { PenaltyConfig, PreviewPenaltyInput } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -78,8 +78,7 @@ export class PenaltiesController {
   @Get('penalties/delinquent-tenants')
   async getDelinquentTenants() {
     const tenantId = this.tenantContext.getTenantId();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = todayInAR();
 
     // Fetch overdue liquidaciones with their penalties
     const overdueLiquidaciones = await this.prisma.baseClient.liquidacion.findMany({
@@ -184,8 +183,7 @@ export class PenaltiesController {
   @Get('penalties/delinquent-tenants/count')
   async getDelinquentTenantsCount() {
     const tenantId = this.tenantContext.getTenantId();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = todayInAR();
 
     const count = await this.prisma.baseClient.liquidacion.count({
       where: {
@@ -266,12 +264,10 @@ export class PenaltiesController {
   @Roles(UserRole.Admin, UserRole.Gerente)
   @Post('penalties/preview')
   async previewPenalty(@Body(new ZodValidationPipe(PreviewPenaltySchema, 'Invalid penalty preview')) dto: PreviewPenaltyInput) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = todayInAR();
 
     // Build synthetic dueDate so that daysOverdue matches
-    const dueDate = new Date(today);
-    dueDate.setDate(dueDate.getDate() - dto.daysOverdue);
+    const dueDate = new Date(today.getTime() - dto.daysOverdue * 86_400_000);
 
     const result = this.penaltiesService.computePenalty({
       liquidacion: {
