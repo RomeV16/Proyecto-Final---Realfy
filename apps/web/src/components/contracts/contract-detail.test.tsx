@@ -22,6 +22,7 @@ vi.mock('next/navigation', async (importOriginal) => ({
   usePathname: () => '/es/contracts/c-1',
 }));
 vi.mock('./closure-summary', () => ({ ClosureSummary: () => null }));
+vi.mock('./contract-rules', () => ({ ContractRules: () => null }));
 vi.mock('./commission-config', () => ({ CommissionConfig: () => null }));
 vi.mock('./generate-document-modal', () => ({ GenerateDocumentModal: () => null }));
 vi.mock('./adjustment-timeline', () => ({ AdjustmentTimeline: () => null }));

@@ -28,6 +28,7 @@ vi.mock('./commission-config', () => ({ CommissionConfig: () => <div>comision-mo
 vi.mock('./generate-document-modal', () => ({
   GenerateDocumentModal: ({ open }: { open: boolean }) => (open ? <div>modal-documento</div> : null),
 }));
+vi.mock('./contract-rules', () => ({ ContractRules: () => null }));
 vi.mock('./adjustment-timeline', () => ({ AdjustmentTimeline: () => null }));
 
 import { ApiRequestError } from '@/lib/api-client';

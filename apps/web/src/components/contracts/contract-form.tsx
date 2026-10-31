@@ -100,6 +100,9 @@ const INITIAL_FORM: FormData = {
   guarantees: [],
 };
 
+/** Modalidades que existen en el modelo pero que el cálculo de ajustes todavía no resuelve: no se ofrecen al crear. */
+const PENDING_ADJUSTMENT_TYPES: readonly string[] = [AdjustmentType.UVA, AdjustmentType.Escalonado];
+
 const STEPS = ['step1', 'step2', 'step3', 'step4'] as const;
 
 /* ──────────── Step Indicator ──────────── */
@@ -693,7 +696,7 @@ export function ContractForm() {
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                 >
                   <option value="">{t('step3.adjustmentTypePlaceholder')}</option>
-                  {Object.values(AdjustmentType).map((at) => (
+                  {Object.values(AdjustmentType).filter((at) => !PENDING_ADJUSTMENT_TYPES.includes(at)).map((at) => (
                     <option key={at} value={at}>{tContracts(`adjustmentTypes.${at}`)}</option>
                   ))}
                 </select>

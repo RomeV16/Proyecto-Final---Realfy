@@ -14,6 +14,7 @@ import { EntityCard, EntityRow } from '@/components/ui/entity-card';
 import { Avatar } from '@/components/ui/avatar';
 import { GuaranteeBadge } from './guarantee-badge';
 import { AdjustmentTimeline } from './adjustment-timeline';
+import { ContractRules } from './contract-rules';
 import { GenerateDocumentModal } from './generate-document-modal';
 import { CommissionConfig } from './commission-config';
 import { ClosureSummary } from './closure-summary';
@@ -839,6 +840,9 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
               )}
             </div>
           </div>
+
+          {/* Reglas vigentes y acuerdos */}
+          <ContractRules contractId={contract.id} currency={contractCurrency} />
 
           {/* Guarantees section */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
