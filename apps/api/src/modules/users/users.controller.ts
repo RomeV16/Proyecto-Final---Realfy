@@ -6,18 +6,25 @@ import {
   Param,
   Body,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UsersService } from './users.service';
+import { PasswordResetService } from '../auth/password-reset.service';
 import { Public } from '../../common/auth/public.decorator';
 import { Roles } from '../../common/auth/roles.decorator';
+import { CREDENTIALS_THROTTLE } from '../../common/auth/credentials-throttle';
+import { AuditOperation } from '../../common/audit/audit-operation.decorator';
 import { UserRole } from '@realfy/shared';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly passwordReset: PasswordResetService,
+  ) {}
 
   /**
-   * GET /users — List users in current tenant.
-   * Admin and Gerente only.
+   * GET /users — equipo de la inmobiliaria con su estado
+   * (invited / active / inactive). Admin y Gerente (solo lectura).
    */
   @Roles(UserRole.Admin, UserRole.Gerente)
   @Get()
@@ -26,12 +33,12 @@ export class UsersController {
   }
 
   /**
-   * POST /users/invite — Invite a user to the current tenant.
-   * Admin and Gerente only.
+   * POST /users/invite — invita a alguien con un rol. Admin only; la respuesta
+   * trae el enlace de aceptación para compartirlo a mano.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(UserRole.Admin)
   @Post('invite')
-  async invite(@Body() body: Record<string, any>) {
+  async invite(@Body() body: Record<string, unknown>) {
     return this.usersService.invite(body);
   }
 
@@ -40,13 +47,9 @@ export class UsersController {
    * @Public — no JWT required.
    */
   @Public()
+  @Throttle(CREDENTIALS_THROTTLE)
   @Post('accept-invitation')
-  async acceptInvitation(@Body() body: {
-    token: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-  }) {
+  async acceptInvitation(@Body() body: Record<string, unknown>) {
     return this.usersService.acceptInvitation(body);
   }
 
@@ -61,26 +64,43 @@ export class UsersController {
     return this.usersService.updateMe(body);
   }
 
-  /**
-   * PATCH /users/:id/role — Update a user's role.
-   * Admin only.
-   */
+  /** PATCH /users/:id — cambia el rol. Admin only. */
   @Roles(UserRole.Admin)
-  @Patch(':id/role')
-  async updateRole(
-    @Param('id') id: string,
-    @Body('role') role: string,
-  ) {
-    return this.usersService.updateRole(id, role);
+  @AuditOperation('role-change')
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.usersService.updateRole(id, body);
   }
 
-  /**
-   * PATCH /users/:id/deactivate — Deactivate a user.
-   * Admin only.
-   */
+  /** POST /users/:id/deactivate — baja del usuario y cierre de sesiones. Admin only. */
   @Roles(UserRole.Admin)
-  @Patch(':id/deactivate')
+  @AuditOperation('deactivate')
+  @Post(':id/deactivate')
   async deactivate(@Param('id') id: string) {
     return this.usersService.deactivate(id);
+  }
+
+  /** POST /users/:id/reactivate — vuelve a habilitar al usuario. Admin only. */
+  @Roles(UserRole.Admin)
+  @AuditOperation('reactivate')
+  @Post(':id/reactivate')
+  async reactivate(@Param('id') id: string) {
+    return this.usersService.reactivate(id);
+  }
+
+  /** POST /users/:id/invitation/resend — `:id` es el de la invitación pendiente. Admin only. */
+  @Roles(UserRole.Admin)
+  @AuditOperation('invitation-resend')
+  @Post(':id/invitation/resend')
+  async resendInvitation(@Param('id') id: string) {
+    return this.usersService.resendInvitation(id);
+  }
+
+  /** POST /users/:id/password-reset-link — enlace de un solo uso para compartir. Admin only. */
+  @Roles(UserRole.Admin)
+  @AuditOperation('password-reset-link')
+  @Post(':id/password-reset-link')
+  async passwordResetLink(@Param('id') id: string) {
+    return this.passwordReset.createLinkForUser(id);
   }
 }
