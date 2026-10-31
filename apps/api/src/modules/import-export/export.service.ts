@@ -1,15 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
-import ExcelJS from 'exceljs';
+import { buildCsv, buildXlsx, type TabularColumn } from '../../common/export/tabular';
 
-interface ExportColumn {
-  header: string;
-  key: string;
-  width: number;
-}
-
-const PROPERTY_COLUMNS: ExportColumn[] = [
+const PROPERTY_COLUMNS: TabularColumn[] = [
   { header: 'Título', key: 'title', width: 30 },
   { header: 'Tipo', key: 'type', width: 15 },
   { header: 'Dirección', key: 'street', width: 25 },
@@ -30,7 +24,7 @@ const PROPERTY_COLUMNS: ExportColumn[] = [
   { header: 'Moneda', key: 'currency', width: 10 },
 ];
 
-const PERSON_COLUMNS: ExportColumn[] = [
+const PERSON_COLUMNS: TabularColumn[] = [
   { header: 'Nombre', key: 'firstName', width: 20 },
   { header: 'Apellido', key: 'lastName', width: 20 },
   { header: 'Email', key: 'email', width: 30 },
@@ -57,7 +51,7 @@ export class ExportService {
 
   async exportPropertiesCsv(): Promise<{ buffer: Buffer; fileName: string }> {
     const data = await this.fetchProperties();
-    const csv = this.buildCsv(data, PROPERTY_COLUMNS);
+    const csv = buildCsv(data, PROPERTY_COLUMNS);
     const fileName = `propiedades-${new Date().toISOString().slice(0, 10)}.csv`;
 
     this.logger.log(`Properties CSV export: ${data.length} rows`);
@@ -67,7 +61,7 @@ export class ExportService {
 
   async exportPropertiesExcel(): Promise<{ buffer: Buffer; fileName: string }> {
     const data = await this.fetchProperties();
-    const buffer = await this.buildExcel(data, PROPERTY_COLUMNS, 'Propiedades');
+    const buffer = await buildXlsx([{ name: 'Propiedades', columns: PROPERTY_COLUMNS, rows: data }]);
     const fileName = `propiedades-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
     this.logger.log(`Properties Excel export: ${data.length} rows`);
@@ -79,7 +73,7 @@ export class ExportService {
 
   async exportPersonsCsv(): Promise<{ buffer: Buffer; fileName: string }> {
     const data = await this.fetchPersons();
-    const csv = this.buildCsv(data, PERSON_COLUMNS);
+    const csv = buildCsv(data, PERSON_COLUMNS);
     const fileName = `personas-${new Date().toISOString().slice(0, 10)}.csv`;
 
     this.logger.log(`Persons CSV export: ${data.length} rows`);
@@ -89,7 +83,7 @@ export class ExportService {
 
   async exportPersonsExcel(): Promise<{ buffer: Buffer; fileName: string }> {
     const data = await this.fetchPersons();
-    const buffer = await this.buildExcel(data, PERSON_COLUMNS, 'Personas');
+    const buffer = await buildXlsx([{ name: 'Personas', columns: PERSON_COLUMNS, rows: data }]);
     const fileName = `personas-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
     this.logger.log(`Persons Excel export: ${data.length} rows`);
@@ -152,67 +146,5 @@ export class ExportService {
         notes: p.notes ?? '',
       };
     });
-  }
-
-  // ─── CSV Builder ────────────────────────────────────
-
-  private buildCsv(data: Record<string, any>[], columns: ExportColumn[]): string {
-    const BOM = '﻿'; // UTF-8 BOM for Excel compatibility
-    const header = columns.map((c) => this.escapeCsvField(c.header)).join(',');
-    const rows = data.map((row) =>
-      columns.map((c) => this.escapeCsvField(String(row[c.key] ?? ''))).join(','),
-    );
-    return BOM + [header, ...rows].join('\r\n');
-  }
-
-  private escapeCsvField(value: string): string {
-    if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-    return value;
-  }
-
-  // ─── Excel Builder ──────────────────────────────────
-
-  private async buildExcel(
-    data: Record<string, any>[],
-    columns: ExportColumn[],
-    sheetName: string,
-  ): Promise<Buffer> {
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Realfy';
-    workbook.created = new Date();
-
-    const sheet = workbook.addWorksheet(sheetName);
-
-    sheet.columns = columns.map((col) => ({
-      header: col.header,
-      key: col.key,
-      width: col.width,
-    }));
-
-    // Style header row
-    const headerRow = sheet.getRow(1);
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
-    headerRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' },
-    };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-    for (const row of data) {
-      sheet.addRow(row);
-    }
-
-    // Auto-filter + freeze header
-    sheet.autoFilter = {
-      from: { row: 1, column: 1 },
-      to: { row: 1, column: columns.length },
-    };
-    sheet.views = [{ state: 'frozen', ySplit: 1 }];
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    return Buffer.from(buffer);
   }
 }

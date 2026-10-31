@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import ExcelJS from 'exceljs';
+import { buildXlsx } from '../../common/export/tabular';
 import Decimal from 'decimal.js';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CronBaseService } from '../../common/scheduler/cron.service';
 import { ArcaService } from './arca/arca.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { S3Service } from '../../common/media/s3.service';
-import { monthStartUTC, periodKey, todayInAR } from '@realfy/shared';
+import { formatDateAR, monthStartUTC, periodKey, todayInAR } from '@realfy/shared';
 import { findStaff } from '../../common/auth/find-staff';
 import { ADMIN_ONLY, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
@@ -404,40 +404,26 @@ export class FiscalScheduler extends CronBaseService {
     period: string,
     tenantName: string,
   ): Promise<Buffer> {
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Realfy';
-    workbook.created = new Date();
-
-    const sheet = workbook.addWorksheet(`Libro IVA Ventas ${period}`);
-
     const columns = [
       { header: 'Fecha', key: 'fecha', width: 12 },
-      { header: 'Tipo Cbte', key: 'tipo', width: 12, isNumeric: true },
-      { header: 'Pto. Vta.', key: 'ptoVta', width: 10, isNumeric: true },
-      { header: 'Número', key: 'numero', width: 12, isNumeric: true },
-      { header: 'Doc. Tipo', key: 'docTipo', width: 10, isNumeric: true },
+      { header: 'Tipo Cbte', key: 'tipo', width: 12, numeric: true },
+      { header: 'Pto. Vta.', key: 'ptoVta', width: 10, numeric: true },
+      { header: 'Número', key: 'numero', width: 12, numeric: true },
+      { header: 'Doc. Tipo', key: 'docTipo', width: 10, numeric: true },
       { header: 'Doc. Nro.', key: 'docNro', width: 16 },
       { header: 'Razón Social', key: 'razonSocial', width: 35 },
-      { header: 'Imp. Total', key: 'impTotal', width: 14, isNumeric: true },
-      { header: 'Imp. No Gravado', key: 'impNoGravado', width: 16, isNumeric: true },
-      { header: 'Imp. Neto', key: 'impNeto', width: 14, isNumeric: true },
-      { header: 'Alíc. IVA', key: 'alicuotaIva', width: 12, isNumeric: true },
-      { header: 'IVA', key: 'iva', width: 12, isNumeric: true },
-      { header: 'Imp. Trib.', key: 'impTrib', width: 12, isNumeric: true },
+      { header: 'Imp. Total', key: 'impTotal', width: 14, numeric: true },
+      { header: 'Imp. No Gravado', key: 'impNoGravado', width: 16, numeric: true },
+      { header: 'Imp. Neto', key: 'impNeto', width: 14, numeric: true },
+      { header: 'Alíc. IVA', key: 'alicuotaIva', width: 12, numeric: true },
+      { header: 'IVA', key: 'iva', width: 12, numeric: true },
+      { header: 'Imp. Trib.', key: 'impTrib', width: 12, numeric: true },
       { header: 'CAE', key: 'cae', width: 16 },
       { header: 'Moneda', key: 'moneda', width: 8 },
-      { header: 'Tipo Cambio', key: 'tipoCambio', width: 12, isNumeric: true },
+      { header: 'Tipo Cambio', key: 'tipoCambio', width: 12, numeric: true },
     ];
 
-    sheet.columns = columns.map((c) => ({ header: c.header, key: c.key, width: c.width }));
-
-    // Style header
-    const headerRow = sheet.getRow(1);
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
-    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4472C4' } };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-
-    for (const comp of comprobantes) {
+    const rows = comprobantes.map((comp) => {
       const impTotal = new Decimal(comp.impTotal?.toString() ?? '0');
       const impNeto = new Decimal(comp.impNeto?.toString() ?? '0');
       const impIva = new Decimal(comp.impIva?.toString() ?? '0');
@@ -455,8 +441,8 @@ export class FiscalScheduler extends CronBaseService {
         }
       }
 
-      const row = sheet.addRow({
-        fecha: comp.createdAt ? new Date(comp.createdAt).toLocaleDateString('es-AR') : '',
+      return {
+        fecha: comp.createdAt ? formatDateAR(comp.createdAt) : '',
         tipo: comp.cbteTipo,
         ptoVta: comp.puntoDeVenta,
         numero: comp.numero,
@@ -472,39 +458,24 @@ export class FiscalScheduler extends CronBaseService {
         cae: comp.cae ?? '',
         moneda: comp.monId ?? 'PES',
         tipoCambio: monCotiz.toDecimalPlaces(4).toNumber(),
-      });
-
-      // Format numeric cells
-      for (const col of columns) {
-        if (col.isNumeric) {
-          const idx = columns.indexOf(col) + 1;
-          const cell = row.getCell(idx);
-          cell.numFmt = '#,##0.00';
-          cell.alignment = { horizontal: 'right' };
-        }
-      }
-    }
-
-    // Totals row
-    const totalRow = sheet.addRow({
-      fecha: 'TOTAL',
-      impTotal: comprobantes.reduce(
-        (acc, c) => acc.plus(new Decimal(c.impTotal?.toString() ?? '0')), new Decimal(0),
-      ).toDecimalPlaces(2).toNumber(),
-      impNeto: comprobantes.reduce(
-        (acc, c) => acc.plus(new Decimal(c.impNeto?.toString() ?? '0')), new Decimal(0),
-      ).toDecimalPlaces(2).toNumber(),
-      iva: comprobantes.reduce(
-        (acc, c) => acc.plus(new Decimal(c.impIva?.toString() ?? '0')), new Decimal(0),
-      ).toDecimalPlaces(2).toNumber(),
+      };
     });
-    totalRow.font = { bold: true, size: 11 };
-    totalRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
 
-    sheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: columns.length } };
-    sheet.views = [{ state: 'frozen', ySplit: 1 }];
+    const total = {
+      values: {
+        fecha: 'TOTAL',
+        impTotal: comprobantes.reduce(
+          (acc, c) => acc.plus(new Decimal(c.impTotal?.toString() ?? '0')), new Decimal(0),
+        ).toDecimalPlaces(2).toNumber(),
+        impNeto: comprobantes.reduce(
+          (acc, c) => acc.plus(new Decimal(c.impNeto?.toString() ?? '0')), new Decimal(0),
+        ).toDecimalPlaces(2).toNumber(),
+        iva: comprobantes.reduce(
+          (acc, c) => acc.plus(new Decimal(c.impIva?.toString() ?? '0')), new Decimal(0),
+        ).toDecimalPlaces(2).toNumber(),
+      },
+    };
 
-    const buf = await workbook.xlsx.writeBuffer();
-    return Buffer.from(buf);
+    return buildXlsx([{ name: `Libro IVA Ventas ${period}`, columns, rows, total }]);
   }
 }

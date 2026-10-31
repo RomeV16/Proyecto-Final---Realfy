@@ -2930,7 +2930,7 @@ exports[`Caracterización del Libro IVA con comprobantes 1`] = `
             "fill": undefined,
             "font": undefined,
             "numFmt": undefined,
-            "value": "10/6/2025",
+            "value": "10/06/2025",
           },
           {
             "alignment": {
