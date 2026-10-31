@@ -164,7 +164,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el almacén en memoria guardaba el archivo indexado solo por `fileId` y `getUpload` no comparaba la inmobiliaria de la petición con la de quien lo subió.
 - **Corrección:** cada archivo guarda `tenantId` y `userId` al subirse; `getUpload` solo lo resuelve si la inmobiliaria coincide y en caso contrario responde como si no existiera. El archivo inexistente pasa de 400 a 404 para que ambos casos sean indistinguibles. Vencimiento y borrado tras importar sin cambios.
 - **Prueba de regresión:** CP-85 en `test/e2e/import-export.e2e-spec.ts` y en `import-export.service.spec.ts`.
-- **Evidencia rojo/verde:** commit de regresión `9857f75` en rojo (e2e: 1 caso en rojo de 16; unitario: 1 de 11); corrección en `4a3bfe0`. Ejecuciones del pipeline: se completa al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `92e2b99` en rojo (e2e: 1 caso en rojo de 16; unitario: 1 de 11); corrección en `5804d78`. PR [#110](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/110); pipeline verde del PR: [ejecución 41147134425](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41147134425).
 
 ## DEF-10 — El cronograma de ajustes encadena cada fecha a la anterior
 
@@ -178,7 +178,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** `ContractsService` tenía su propio `addMonths` con `setMonth` en hora local y generaba cada fecha a partir de la anterior, de modo que el desborde del mes corto se acumulaba. Además su copia de `periodToMonths` devolvía 3 ante un valor desconocido.
 - **Corrección:** `addMonthsClamped` y `periodToMonths` en `packages/shared/src/date-utils`. Cada fecha se calcula desde el ancla (inicio del contrato o último ajuste aplicado) más k períodos, con recorte a fin de mes. Un período desconocido lanza. Se eliminan las copias locales de `ContractsService` y de `ContractAdjustmentService`, y el barrido calcula la fecha siguiente antes de escribir.
 - **Prueba de regresión:** CP-130 en `contract-schedule.spec.ts`; el caso de CP-16 que fijaba la periodicidad `Inventada` como trimestral pasa a verificar que el barrido no aplica el ajuste.
-- **Evidencia rojo/verde:** commit de regresión `088d4b8` en rojo (3 casos de 3); corrección en `a02b0ea`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `d39bd85` en rojo (3 casos de 3); corrección en `848f612`. PR [#117](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/117); pipeline verde del PR: [ejecución 41153810147](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41153810147).
 
 ## DEF-11 — Períodos, "hoy" y meses de documentos en hora local del proceso
 
@@ -192,7 +192,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** `new Date(y, m, d)`, `getMonth()`, `getFullYear()` y `toLocaleDateString` sin `timeZone` en liquidaciones, rendiciones, reportes, panel, cron fiscal, PDF fiscal y los mails y PDF de liquidación y rendición. `computeNextRunAt` estaba copiada en dos archivos.
 - **Corrección:** `monthStartUTC`, `periodFilter`, `periodKey`, `todayInAR` y `formatDateAR` en `date-utils`; los meses se formatean con `timeZone: 'UTC'`; `computeNextRunAt` queda en `reports/compute-next-run-at.ts`. Los punitorios quedan para el PR siguiente.
 - **Prueba de regresión:** CP-131 en `reports.service.spec.ts`, `liquidaciones-periodos.spec.ts`, `renditions-periodos.spec.ts` y `liquidaciones/email.service.spec.ts`; cada una fuerza la zona de Buenos Aires con `process.env.TZ` (entorno `test/setup/tz-environment.js`) y la restaura. `pnpm --filter @realfy/api test:tz-ar` corre toda la suite unitaria en esa zona.
-- **Evidencia rojo/verde:** commit de regresión `dcd1701` en rojo (7 casos); corrección en `d5e2afc`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `f934e2f` en rojo (7 casos); corrección en `708bee4`. PR [#117](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/117); pipeline verde del PR: [ejecución 41153810147](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41153810147).
 
 ## DEF-12 — La rendición muestra totales que no suman sus líneas
 
@@ -206,7 +206,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el motor redondeaba cada línea pero acumulaba `rentCollected` y `deductionTotal` sobre los montos sin redondear.
 - **Corrección:** ambos totales son la suma de las líneas ya redondeadas; la comisión y el neto se calculan sobre ellos.
 - **Prueba de regresión:** CP-132 en `rendicion-engine.spec.ts` (se actualizan los dos casos de caracterización y se agrega uno de suma de líneas).
-- **Evidencia rojo/verde:** commit de regresión `fcd8e4c` en rojo (3 casos); corrección en `059200d`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `670f1eb` en rojo (3 casos); corrección en `560d081`. PR [#117](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/117); pipeline verde del PR: [ejecución 41153810147](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41153810147).
 
 ## DEF-13 — El motor de liquidación acepta descuentos negativos y su total no coincide con lo mostrado
 
@@ -220,7 +220,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el motor no validaba el signo y redondeaba el total desde el subtotal y los descuentos sin redondear.
 - **Corrección:** `InvalidLineAmountError` (código `INVALID_LINE_AMOUNT`) ante cualquier renglón negativo, que la API devuelve como 400; total = subtotal redondeado menos descuentos redondeados, con piso en cero.
 - **Prueba de regresión:** CP-133 en `liquidacion-engine.spec.ts`.
-- **Evidencia rojo/verde:** commit de regresión `79c672c` en rojo (7 casos); corrección en `5b342cc`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `9c71dc8` en rojo (7 casos); corrección en `facc2af`. PR [#117](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/117); pipeline verde del PR: [ejecución 41153810147](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41153810147).
 
 ## DEF-14 — La comisión acepta porcentajes mayores a 100 y montos negativos
 
@@ -234,7 +234,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** ni el esquema ni el motor acotaban el porcentaje a 0-100 ni validaban el signo de los montos.
 - **Corrección:** `InvalidCommissionError` (código `INVALID_COMMISSION`) en el motor ante un porcentaje fuera de 0-100 o un monto negativo, que la generación de rendiciones devuelve como 400; el esquema de la configuración rechaza porcentajes mayores a 100.
 - **Prueba de regresión:** CP-134 en `commission-engine.spec.ts` (se reemplazan dos casos de caracterización) y en `test/e2e/renditions.e2e-spec.ts`.
-- **Evidencia rojo/verde:** commit de regresión `cb4493c` en rojo (6 casos unitarios y el e2e); corrección en `72b6f08`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `b450fe3` en rojo (6 casos unitarios y el e2e); corrección en `e28ed88`. PR [#117](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/117); pipeline verde del PR: [ejecución 41153810147](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41153810147).
 
 ## DEF-15 — `LiquidacionStatus.Pendiente` no existe en el paquete compartido
 
@@ -248,7 +248,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** la migración `20260714120000_liquidaciones_services` creó el valor y nadie lo agregó a `enums.ts`; además un comentario de `penalties.scheduler.ts` afirmaba que no existía.
 - **Corrección:** el valor entra al enum y a la máquina de estados como estado heredado sin transiciones (no se inventa un flujo), con traducción en es y en, variante de etiqueta en la web y el comentario corregido.
 - **Prueba de regresión:** CP-135 en `test/unit/enum-parity.spec.ts` y `liquidacion-state-machine.spec.ts`.
-- **Evidencia rojo/verde:** commit de regresión `8cf7ef1` en rojo (1 caso); corrección en `b5dc17d`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `314ea95` en rojo (1 caso); corrección en `ea9a5f5`. PR [#117](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/117); pipeline verde del PR: [ejecución 41153810147](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41153810147).
 ## DEF-16 — Un comprobante sin pago se pierde después de que el organismo autoriza el CAE
 
 - **Requisito afectado:** facturación electrónica (ítem 38 de la hoja de ruta).
@@ -275,7 +275,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el servicio y el PDF leían `property.address` y `property.name`, campos que `Property` no tiene (tiene `title`, `street`, `number`, `floor` y `apartment`).
 - **Corrección:** `propertyLabel` y `personName` en `packages/shared/src/format.ts` (con pruebas) y el PDF usa la etiqueta de la propiedad completa que ya traía la consulta.
 - **Prueba de regresión:** CP-137 en `liquidaciones/liquidaciones-pdf.spec.ts` (verifica el contenido del `docDefinition` con el mock de pdfmake) y `packages/shared/src/format.spec.ts`.
-- **Evidencia rojo/verde:** commit de regresión `d75feaa` en rojo (2 casos de 3); corrección en `66cc1a6`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `e08adb7` en rojo (2 casos de 3); corrección en `ec3537d`. PR [#133](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/133); pipeline verde del PR: [ejecución 41156766671](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41156766671).
 
 ## DEF-18 — El punitorio se calcula sobre el total y con el día local
 
@@ -289,7 +289,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el scheduler leía `total` y lo pasaba como deuda; el "hoy" salía de `setHours` local y los días de mora se contaban con getters locales sobre fechas guardadas en UTC.
 - **Corrección:** la base es el saldo pendiente (`calculateRemainingBalance`, vía `receivables.ts`), sin devengo si el saldo es 0; `todayInAR()` en el scheduler y en los endpoints del controlador; `daysBetween` cuenta días UTC.
 - **Prueba de regresión:** CP-138 en `penalties/penalties.scheduler.spec.ts` (3 casos).
-- **Evidencia rojo/verde:** commit de regresión `81be0d3` en rojo (3 casos); corrección en `39322e5`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `c540958` en rojo (3 casos); corrección en `0320df9`. PR [#133](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/133); pipeline verde del PR: [ejecución 41156766671](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41156766671).
 
 ## DEF-19 — Cinco criterios distintos de deuda, sobre el total y con sumas en coma flotante
 
@@ -303,7 +303,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** cada lector definía por su cuenta qué estados cuentan y sumaba `total`; varias sumas de dinero usaban `Number`.
 - **Corrección:** `RECEIVABLE_STATUSES` y `OVERDUE_STATUSES` en la máquina de estados compartida, `receivables.ts` (saldo por liquidación con el motor y suma con `sumMoney`) y los cinco lectores lo usan; las sumas con `Number` del panel, los pagos y las métricas de cierre pasan a `Money`.
 - **Prueba de regresión:** CP-139 en `liquidaciones/deuda-lectores.spec.ts` (caracterización de los valores anteriores primero, luego los valores esperados nuevos) y `liquidaciones/receivables.spec.ts`.
-- **Evidencia rojo/verde:** caracterización en verde `733a55c`; regresión `a34d64a` en rojo (5 de 5 casos); corrección en `f419a31`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** caracterización en verde `b549966`; regresión `103b7d5` en rojo (5 de 5 casos); corrección en `890eea6`. PR [#133](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/133); pipeline verde del PR: [ejecución 41156766671](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41156766671).
 
 ## DEF-20 — El ajuste automático sin datos de índice se aplica al 0 %
 
@@ -317,7 +317,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** `loadParams` reemplazaba la ausencia de datos por valores neutros.
 - **Corrección:** `loadParams` informa los índices faltantes y el barrido corta antes de escribir (la transacción no deja nada), registra `MISSING_INDEX_DATA` y sigue con los demás contratos.
 - **Prueba de regresión:** CP-240 en `index-data/contract-adjustment.service.spec.ts` (5 casos).
-- **Evidencia rojo/verde:** commit de regresión `dd4b78f` en rojo (4 casos); corrección en `e3850f7`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `5d4967a` en rojo (4 casos); corrección en `092e9c6`. PR [#133](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/133); pipeline verde del PR: [ejecución 41156766671](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41156766671).
 
 ## DEF-21 — Dos pagos simultáneos pueden superar el saldo
 
@@ -331,7 +331,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el saldo se validaba, el pago se creaba y el estado se actualizaba en operaciones separadas, sin bloqueo.
 - **Corrección:** una transacción interactiva que bloquea la fila de la liquidación (`SELECT ... FOR UPDATE`, filtrando por `tenantId` a mano porque el SQL crudo no pasa por la extensión de inmobiliaria) y dentro valida el saldo, crea el pago y pasa a Pagada.
 - **Prueba de regresión:** CP-241 en `test/e2e/liquidaciones.e2e-spec.ts` (dos y cinco pagos simultáneos).
-- **Evidencia rojo/verde:** commit de regresión `b41a6e2` en rojo (1 caso e2e); corrección en `651ad75`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `346d028` en rojo (1 caso e2e); corrección en `2ec2616`. PR [#133](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/133); pipeline verde del PR: [ejecución 41156766671](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41156766671).
 
 ## DEF-22 — El aviso de vencimiento de contrato se repite cada día
 
@@ -345,7 +345,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el barrido no consultaba avisos previos; la única protección de `createNotification` era una ventana de 24 horas. Además los crons no fijaban zona horaria.
 - **Corrección:** umbrales en `CONTRACT_EXPIRY_THRESHOLDS_DAYS`, deduplicación por (usuario, contrato, tipo, umbral) con el umbral en el título (la tabla no tiene columna de umbral), mail solo si se creó el aviso, y los cuatro crons de avisos a las 08:00 de `America/Argentina/Buenos_Aires`.
 - **Prueba de regresión:** CP-242 en `notifications/notification-scheduler.service.spec.ts` (7 casos).
-- **Evidencia rojo/verde:** commit de regresión `5be48e9` en rojo (7 casos); corrección en `add222d`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `38c23d7` en rojo (7 casos); corrección en `9f4155c`. PR [#133](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/133); pipeline verde del PR: [ejecución 41156766671](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41156766671).
 
 ## DEF-23 — La rendición acepta pagos y deducciones negativos
 
@@ -359,4 +359,4 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el motor validaba la comisión pero no el signo de cada renglón.
 - **Corrección:** `InvalidRendicionLineError` (código `INVALID_LINE_AMOUNT`) ante un pago o deducción negativos, como el motor de liquidación; la generación de rendiciones lo devuelve como 400.
 - **Prueba de regresión:** CP-243 en `rendicion-engine.spec.ts` (4 casos).
-- **Evidencia rojo/verde:** commit de regresión `96a069b` en rojo (3 casos); corrección en `9d2b907`. Ejecuciones del pipeline: se completan al abrir el PR.
+- **Evidencia rojo/verde:** commit de regresión `a5bc7e5` en rojo (3 casos); corrección en `a165c68`. PR [#133](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/133); pipeline verde del PR: [ejecución 41156766671](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41156766671).
