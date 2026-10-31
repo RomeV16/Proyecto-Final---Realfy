@@ -339,4 +339,33 @@ describe('PropertyDetailPage', () => {
     renderEs(<PropertyDetailPage />);
     expect(await screen.findByText('Propiedad no encontrada')).toBeInTheDocument();
   });
+
+  it('la sección Titulares lista los titulares y avisa, sin bloquear, si los porcentajes no suman 100', async () => {
+    apiClient.mockImplementation((path: string) => {
+      if (path === '/properties/p-1') return Promise.resolve(property());
+      if (path === '/properties/p-1/ownerships') {
+        return Promise.resolve([
+          { id: 'o-1', personId: 'pe-1', sharePct: '70.0000', title: 'Escritura', since: null, until: null, person: { id: 'pe-1', firstName: 'Ana', lastName: 'Titular' } },
+        ]);
+      }
+      return Promise.resolve({});
+    });
+    await renderPage();
+    expect(screen.getByRole('heading', { name: 'Titulares' })).toBeInTheDocument();
+    expect((await screen.findAllByText('Ana Titular')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('status')).toHaveTextContent('suman 70 %, no 100 %');
+    expect(screen.getByRole('button', { name: 'Agregar titular' })).toBeEnabled();
+  });
+
+  it('sin permiso de edición la sección Titulares no ofrece agregar', async () => {
+    auth.role = 'Lectura';
+    apiClient.mockImplementation((path: string) => {
+      if (path === '/properties/p-1') return Promise.resolve(property());
+      if (path === '/properties/p-1/ownerships') return Promise.resolve([]);
+      return Promise.resolve({});
+    });
+    await renderPage();
+    expect(await screen.findByText('No hay titulares cargados')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Agregar titular' })).not.toBeInTheDocument();
+  });
 });
