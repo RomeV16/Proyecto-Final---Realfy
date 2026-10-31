@@ -31,6 +31,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-21 | Dos pagos simultáneos pueden superar el saldo de la liquidación | Alta | — | CP-241 | [#130](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/130) | Corregido (31 oct) |
 | DEF-22 | El aviso de vencimiento de contrato se repite cada día durante 30 días | Media | — | CP-242 | [#131](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/131) | Corregido (31 oct) |
 | DEF-23 | La rendición acepta pagos y deducciones negativos | Media | — | CP-243 | [#132](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/132) | Corregido (31 oct) |
+| DEF-24 | Una rendición queda marcada como enviada aunque no se envió el mail | Alta | — | CP-266, CP-267 | [#144](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/144) | Corregido (31 oct) |
 
 ---
 
@@ -360,3 +361,18 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** `InvalidRendicionLineError` (código `INVALID_LINE_AMOUNT`) ante un pago o deducción negativos, como el motor de liquidación; la generación de rendiciones lo devuelve como 400.
 - **Prueba de regresión:** CP-243 en `rendicion-engine.spec.ts` (4 casos).
 - **Evidencia rojo/verde:** commit de regresión `a5bc7e5` en rojo (3 casos); corrección en `a165c68`. PR [#133](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/133); pipeline verde del PR: [ejecución 41156766671](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41156766671).
+
+## DEF-24 — Una rendición queda marcada como enviada aunque no se envió el mail
+
+- **Requisito afectado:** envío de la rendición al locador (ítem 37).
+- **Origen:** revisión de código al unificar el transporte de mail (L5, #143).
+- **Caso que lo detecta:** CP-266 y CP-267.
+- **Severidad:** alta en el piloto: el ambiente no tiene mail configurado, así que toda rendición "enviada" quedaba marcada como tal sin que el locador la recibiera.
+- **Pasos para reproducir:** sin `RESEND_API_KEY`, `POST /renditions/:id/send` sobre una rendición cuyo locador tiene email; o sobre una cuyo locador no tiene email.
+- **Resultado esperado:** 422 `EMAIL_NOT_CONFIGURED` (u `OWNER_EMAIL_MISSING`) con un mensaje que sugiere descargar el PDF, y `sentAt` sin cambiar.
+- **Resultado obtenido:** 200; con el mail sin configurar se guardaba `sentAt` y se respondía `sent: true`; sin email del locador se respondía `sent: false` con 200, y la pantalla mostraba "enviada" en ambos casos.
+- **Causa raíz:** el servicio trataba "no se envió porque no hay transporte" como un envío exitoso.
+- **Corrección:** el resultado `skipped` del transporte y la falta de email responden 422 con su código y no guardan `sentAt`; la pantalla muestra el mensaje del servidor.
+- **Prueba de regresión:** CP-266 y CP-267 en `renditions-send-email.spec.ts` y en `renditions.e2e-spec.ts`.
+- **Evidencia rojo/verde:** commit de regresión `88bcb6f` en rojo (2 de 3 casos); corrección en `74ea392`. PR [#145](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/145).
+
