@@ -12,6 +12,7 @@
 | [0004](0004-sistema-de-tarjetas.md) | Sistema de tarjetas para pantallas con registros repetidos | Aceptado | 2026-08-13 |
 | [0005](0005-manejo-uniforme-de-errores.md) | Manejo uniforme de errores | Aceptado | 2026-08-18 |
 | [0006](0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md) | El aislamiento entre inmobiliarias falla cerrado | Aceptado | 2026-08-18 |
+| [0014](0014-ambiente-piloto-con-datos-reales.md) | Ambiente piloto con datos reales | Aceptado | 2026-10-31 |
 | [0016](0016-diagramas-como-codigo.md) | Diagramas como código (mermaid) | Aceptado | 2026-10-30 |
 
 ## Decisiones planificadas para el piloto
@@ -27,7 +28,6 @@ Las decisiones que el piloto vuelve necesarias (ver `../tesis/30-piloto.md`) se 
 | 0011 | Ajuste con rezago, estimación y corrección; fuente del índice de precios | Planificada | Ítem 34, PR del motor de ajuste |
 | 0012 | Flujos de cobro, caja y custodia | Planificada | Ítem 36, PR de caja y cuentas |
 | 0013 | Mensajería saliente con outbox y cobranza escalonada | Planificada | Ítem 43, PR de mensajería |
-| 0014 | Ambiente piloto con datos reales y privacidad | Planificada | Ítem 31, PR de infraestructura del piloto |
 | 0015 | Importación idempotente desde el sistema anterior | Planificada | Ítem 39, PR de importación |
 
 ## Ajustes previstos a decisiones existentes
