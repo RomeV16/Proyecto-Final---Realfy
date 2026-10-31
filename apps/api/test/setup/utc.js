@@ -4,5 +4,5 @@
  * mismo en una laptop en Buenos Aires que en el pipeline (UTC).
  */
 module.exports = async function setup() {
-  process.env.TZ = 'UTC';
+  process.env.TZ = process.env.JEST_TZ || 'UTC';
 };

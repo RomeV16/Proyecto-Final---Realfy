@@ -9,6 +9,7 @@
     "start:prod": "node dist/main",
     "test": "jest --config jest.config.ts",
     "test:coverage": "jest --config jest.config.ts --coverage",
+    "test:tz-ar": "JEST_TZ=America/Argentina/Buenos_Aires jest --config jest.config.ts src/modules test/unit",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "test:e2e:coverage": "jest --config ./test/jest-e2e.json --coverage",
     "test:modulo": "jest --config jest.modulo.config.ts --coverage",
