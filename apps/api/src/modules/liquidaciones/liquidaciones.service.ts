@@ -526,7 +526,7 @@ export class LiquidacionesService {
         cuit: (tenant as any)?.cuit ?? null,
         logoUrl: (tenant as any)?.logoUrl ?? null,
       },
-      { property: liquidacion.contract?.property ? { address: (liquidacion.contract.property as any).address, name: (liquidacion.contract.property as any).name } : null },
+      { property: liquidacion.contract?.property ?? null },
       liquidacion.lineItems.map((li: any) => ({
         type: li.type,
         description: li.description,
@@ -695,7 +695,7 @@ export class LiquidacionesService {
           cuit: (tenant as any)?.cuit ?? null,
           logoUrl: (tenant as any)?.logoUrl ?? null,
         },
-        { property: liquidacion.contract?.property ? { address: (liquidacion.contract.property as any).address, name: (liquidacion.contract.property as any).name } : null },
+        { property: liquidacion.contract?.property ?? null },
         (liquidacion.lineItems ?? []).map((li: any) => ({
           type: li.type,
           description: li.description,

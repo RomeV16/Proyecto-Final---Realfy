@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { propertyLabel, type PropertyLabelInput } from '@realfy/shared';
 
 // pdfmake Node.js usage: dynamic require for CommonJS module
  
@@ -34,7 +35,7 @@ interface PdfTenant {
 }
 
 interface PdfContract {
-  property?: { address?: string; name?: string } | null;
+  property?: PropertyLabelInput | null;
 }
 
 interface PdfLiquidacion {
@@ -65,8 +66,7 @@ export class PdfService {
       month: 'long',
       year: 'numeric',
     });
-    const propertyAddress =
-      contract?.property?.address ?? contract?.property?.name ?? '—';
+    const propertyAddress = propertyLabel(contract?.property) || '—';
 
     const docDefinition: any = {
       content: [
