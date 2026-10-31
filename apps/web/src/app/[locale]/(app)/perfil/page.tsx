@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { ChangePasswordForm } from '@/components/auth/change-password-form';
 
 interface UpdatedUser {
   id: string;
@@ -148,6 +149,8 @@ export default function PerfilPage() {
           </div>
         </form>
       </div>
+
+      <ChangePasswordForm />
     </div>
   );
 }

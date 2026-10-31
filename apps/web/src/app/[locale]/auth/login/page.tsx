@@ -110,6 +110,14 @@ export default function LoginPage() {
           placeholder="••••••••"
           autoComplete="current-password"
         />
+        <div className="text-right -mt-2">
+          <a
+            href={'/auth/password-reset'}
+            className="link-underline text-sm text-[var(--color-muted)]"
+          >
+            {t('auth.forgot.link')}
+          </a>
+        </div>
         <Button type="submit" size="lg" disabled={loading} className="w-full mt-2">
           {loading && <Spinner className="w-4 h-4 text-white" />}
           {loading ? t('common.loading') : t('auth.login.submit')}
