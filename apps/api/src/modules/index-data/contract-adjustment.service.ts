@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { IndexDataService } from './index-data.service';
 import { AdjustmentWindow, excludesWindowStart, resolveAdjustmentWindow } from './adjustment-window';
@@ -28,23 +28,30 @@ export interface AdjustmentPreview {
   projectedDelta: Decimal;
 }
 
-interface LoadedParams {
+export interface LoadedParams {
   params: AdjustmentParams;
   /** Índice principal usado, para informar en la previsualización. */
   indexType: IndexType;
-  /** Índices que la modalidad necesita y no tienen ningún valor en la ventana. */
-  missing: IndexType[];
 }
 
 /** Código con el que se informa un ajuste que no se pudo calcular por falta de índices. */
 export const MISSING_INDEX_DATA = 'MISSING_INDEX_DATA';
 
 /** El ajuste no se puede calcular: faltan los valores de uno o más índices. */
-class MissingIndexDataError extends Error {
+class MissingIndexDataError extends BadRequestException {
   readonly code = MISSING_INDEX_DATA;
 
-  constructor(readonly indexTypes: IndexType[]) {
-    super(`${MISSING_INDEX_DATA}: faltan datos de ${indexTypes.join(', ')}`);
+  constructor(
+    readonly indexTypes: IndexType[],
+    window: AdjustmentWindow,
+  ) {
+    super({
+      error: MISSING_INDEX_DATA,
+      message: `No index data found for ${indexTypes.join(', ')} in the adjustment period`,
+      indexType: indexTypes.join('+'),
+      periodStart: window.from,
+      periodEnd: window.until,
+    });
   }
 }
 
@@ -67,9 +74,14 @@ export class ContractAdjustmentService {
    * inicio del contrato, DEF-07) a través de IndexDataService, que une los
    * valores propios con los de sistema.
    * Es el único lugar donde se traduce modalidad → parámetros: lo comparten
-   * la previsualización y la aplicación automática (DEF-02, DEF-03).
+   * la previsualización, el cálculo manual de ContractsService y la aplicación
+   * automática (DEF-02, DEF-03, DEF-25).
+   *
+   * Si la modalidad no se puede calcular no devuelve un 0 % silencioso: lanza
+   * 400 `MISSING_INDEX_DATA` (con los índices y el período que faltan),
+   * `MISSING_ADJUSTMENT_PCT` o `UNKNOWN_ADJUSTMENT_TYPE`.
    */
-  private async loadParams(
+  async loadParams(
     contract: any,
     window: AdjustmentWindow,
     options: { tenantId: string; client?: IndexClient },
@@ -87,27 +99,33 @@ export class ContractAdjustmentService {
     switch (adjustmentType) {
       case AdjustmentType.IPC: {
         const rows = await load(IndexType.IPC);
+        if (rows.length === 0) throw new MissingIndexDataError([IndexType.IPC], window);
         return {
           indexType: IndexType.IPC,
           params: { type: AdjustmentType.IPC, monthlyValues: rows.map(toDecimal), baseRent },
-          missing: rows.length === 0 ? [IndexType.IPC] : [],
         };
       }
       case AdjustmentType.ICL: {
         const rows = await load(IndexType.ICL);
+        // El cociente necesita el valor inicial y el final: con uno solo daría 1/1.
+        if (rows.length < 2) throw new MissingIndexDataError([IndexType.ICL], window);
         return {
           indexType: IndexType.ICL,
           params: {
             type: AdjustmentType.ICL,
-            startValue: rows.length > 0 ? toDecimal(rows[0]) : new Decimal(1),
-            endValue: rows.length > 0 ? toDecimal(rows[rows.length - 1]) : new Decimal(1),
+            startValue: toDecimal(rows[0]),
+            endValue: toDecimal(rows[rows.length - 1]),
             baseRent,
           },
-          missing: rows.length === 0 ? [IndexType.ICL] : [],
         };
       }
       case AdjustmentType.CCP: {
         const [cvs, cer] = await Promise.all([load(IndexType.CVS), load(IndexType.CER)]);
+        const missing = [
+          ...(cvs.length === 0 ? [IndexType.CVS] : []),
+          ...(cer.length === 0 ? [IndexType.CER] : []),
+        ];
+        if (missing.length > 0) throw new MissingIndexDataError(missing, window);
         const length = Math.min(cvs.length, cer.length);
         return {
           indexType: IndexType.CVS,
@@ -117,29 +135,29 @@ export class ContractAdjustmentService {
             cerPcts: cer.slice(0, length).map(toDecimal),
             baseRent,
           },
-          missing: [
-            ...(cvs.length === 0 ? [IndexType.CVS] : []),
-            ...(cer.length === 0 ? [IndexType.CER] : []),
-          ],
         };
       }
       case AdjustmentType.FixedPercent:
       case AdjustmentType.Custom:
+        if (!contract.customAdjustmentPct) {
+          throw new BadRequestException({
+            error: 'MISSING_ADJUSTMENT_PCT',
+            message: `Contract has no customAdjustmentPct set for ${adjustmentType} type`,
+          });
+        }
         return {
           indexType: IndexType.IPC,
           params: {
             type: adjustmentType,
-            percentage: new Decimal(contract.customAdjustmentPct?.toString() ?? '0'),
+            percentage: new Decimal(contract.customAdjustmentPct.toString()),
             baseRent,
           },
-          missing: [],
         };
       default:
-        return {
-          indexType: IndexType.IPC,
-          params: { type: AdjustmentType.FixedPercent, percentage: new Decimal(0), baseRent },
-          missing: [],
-        };
+        throw new BadRequestException({
+          error: 'UNKNOWN_ADJUSTMENT_TYPE',
+          message: `Unknown adjustment type: ${adjustmentType}`,
+        });
     }
   }
 
@@ -242,15 +260,14 @@ export class ContractAdjustmentService {
             (await tx.contract.findUnique({ where: { id: contract.id } })) ?? contract;
           const currentRent = new Decimal(current.rentAmount.toString());
           const window = await resolveAdjustmentWindow(tx, current, schedule.nextAdjustmentDate);
-          const { params, missing } = await this.loadParams(current, window, {
+          // Sin datos del índice no hay ajuste: aplicar 0 % en silencio dejaría
+          // el cronograma como Applied y el alquiler sin actualizar. loadParams
+          // corta antes de escribir; el cronograma sigue pendiente para el
+          // próximo barrido.
+          const { params } = await this.loadParams(current, window, {
             tenantId: contract.tenantId,
             client: tx,
           });
-
-          // Sin datos del índice no hay ajuste: aplicar 0 % en silencio dejaría
-          // el cronograma como Applied y el alquiler sin actualizar. Se corta
-          // antes de escribir; el cronograma sigue pendiente para el próximo barrido.
-          if (missing.length > 0) throw new MissingIndexDataError(missing);
 
           const adjustmentResult = calculateAdjustment(params);
 

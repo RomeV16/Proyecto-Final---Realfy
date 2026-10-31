@@ -5,12 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { IndexDataService } from '../index-data/index-data.service';
-import {
-  AdjustmentWindow,
-  excludesWindowStart,
-  resolveAdjustmentWindow,
-} from '../index-data/adjustment-window';
+import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
+import { resolveAdjustmentWindow } from '../index-data/adjustment-window';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
   CreateContractSchema,
@@ -24,7 +20,6 @@ import {
   PropertyOperationType,
   PropertyState,
   ScheduleStatus,
-  IndexType,
   calculateAdjustment,
   addMonthsClamped,
   periodToMonths,
@@ -34,8 +29,7 @@ import {
   splitEqualPct,
   findInvalidShareDates,
 } from '@realfy/shared';
-import type { AdjustmentParams, InvalidShareDate } from '@realfy/shared';
-import Decimal from 'decimal.js';
+import type { InvalidShareDate } from '@realfy/shared';
 import { assertTransition } from '../../common/errors/assert-transition';
 import { applyOperationTransition } from '../properties/operation-state';
 import { ContractClosureService } from '../ai/contract-closure.service';
@@ -94,7 +88,7 @@ export class ContractsService {
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
     private readonly closureSummaries: ContractClosureService,
-    private readonly indexData: IndexDataService,
+    private readonly adjustments: ContractAdjustmentService,
   ) {}
 
   // ─── List ───────────────────────────────────────────
@@ -919,127 +913,15 @@ export class ContractsService {
     }
 
     const tenantId = this.tenantContext.getTenantId()!;
-    const baseRent = new Decimal(contract.rentAmount.toString());
     const adjustmentType = contract.adjustmentType as AdjustmentType;
     // Índices desde el último ajuste aplicado o el inicio del contrato (DEF-07).
+    // La modalidad se traduce a parámetros en un solo lugar: el servicio de ajustes.
     const window = await resolveAdjustmentWindow(
       this.prisma.client,
       contract,
       schedule.nextAdjustmentDate,
     );
-
-    let params: AdjustmentParams;
-
-    // Build params based on adjustment type, loading index data from DB
-    switch (adjustmentType) {
-      case AdjustmentType.IPC: {
-        const indexData = await this.loadIndexData(
-          tenantId,
-          IndexType.IPC,
-          window,
-        );
-        if (indexData.length === 0) {
-          throw new BadRequestException({
-            error: 'MISSING_INDEX_DATA',
-            message: 'No IPC index data found for the adjustment period',
-            indexType: IndexType.IPC,
-            periodStart: window.from,
-            periodEnd: schedule.nextAdjustmentDate,
-          });
-        }
-        params = {
-          type: AdjustmentType.IPC,
-          monthlyValues: indexData.map((d: any) => new Decimal(d.value.toString())),
-          baseRent,
-        };
-        break;
-      }
-      case AdjustmentType.ICL: {
-        const indexData = await this.loadIndexData(
-          tenantId,
-          IndexType.ICL,
-          window,
-        );
-        if (indexData.length < 2) {
-          throw new BadRequestException({
-            error: 'MISSING_INDEX_DATA',
-            message: 'ICL requires at least start and end index values',
-            indexType: IndexType.ICL,
-            periodStart: window.from,
-            periodEnd: schedule.nextAdjustmentDate,
-          });
-        }
-        params = {
-          type: AdjustmentType.ICL,
-          startValue: new Decimal(indexData[0].value.toString()),
-          endValue: new Decimal(indexData[indexData.length - 1].value.toString()),
-          baseRent,
-        };
-        break;
-      }
-      case AdjustmentType.CCP: {
-        const cvsData = await this.loadIndexData(
-          tenantId,
-          IndexType.CVS,
-          window,
-        );
-        const cerData = await this.loadIndexData(
-          tenantId,
-          IndexType.CER,
-          window,
-        );
-        if (cvsData.length === 0 || cerData.length === 0) {
-          throw new BadRequestException({
-            error: 'MISSING_INDEX_DATA',
-            message: 'CCP requires both CVS and CER index data',
-            indexType: 'CVS+CER',
-            periodStart: window.from,
-            periodEnd: schedule.nextAdjustmentDate,
-          });
-        }
-        const minLen = Math.min(cvsData.length, cerData.length);
-        params = {
-          type: AdjustmentType.CCP,
-          cvsPcts: cvsData.slice(0, minLen).map((d: any) => new Decimal(d.value.toString())),
-          cerPcts: cerData.slice(0, minLen).map((d: any) => new Decimal(d.value.toString())),
-          baseRent,
-        };
-        break;
-      }
-      case AdjustmentType.FixedPercent: {
-        if (!contract.customAdjustmentPct) {
-          throw new BadRequestException({
-            error: 'MISSING_ADJUSTMENT_PCT',
-            message: 'Contract has no customAdjustmentPct set for FixedPercent type',
-          });
-        }
-        params = {
-          type: AdjustmentType.FixedPercent,
-          percentage: new Decimal(contract.customAdjustmentPct.toString()),
-          baseRent,
-        };
-        break;
-      }
-      case AdjustmentType.Custom: {
-        if (!contract.customAdjustmentPct) {
-          throw new BadRequestException({
-            error: 'MISSING_ADJUSTMENT_PCT',
-            message: 'Contract has no customAdjustmentPct set for Custom type',
-          });
-        }
-        params = {
-          type: AdjustmentType.Custom,
-          percentage: new Decimal(contract.customAdjustmentPct.toString()),
-          baseRent,
-        };
-        break;
-      }
-      default:
-        throw new BadRequestException({
-          error: 'UNKNOWN_ADJUSTMENT_TYPE',
-          message: `Unknown adjustment type: ${adjustmentType}`,
-        });
-    }
+    const { params } = await this.adjustments.loadParams(contract, window, { tenantId });
 
     const result = calculateAdjustment(params);
 
@@ -1201,17 +1083,5 @@ export class ContractsService {
     }
 
     return entries;
-  }
-
-  private async loadIndexData(
-    tenantId: string,
-    indexType: IndexType,
-    window: AdjustmentWindow,
-  ) {
-    // Une los valores propios con los obtenidos automáticamente (DEF-01).
-    return this.indexData.getForPeriod(indexType, window.from, window.until, {
-      tenantId,
-      ...(excludesWindowStart(window, indexType) ? { startExclusive: true } : {}),
-    });
   }
 }

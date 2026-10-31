@@ -84,13 +84,13 @@ function build(contract: any, series: Series, previous: any = null) {
     },
   };
   const indexData: any = { getForPeriod };
+  const adjustments = new ContractAdjustmentService(prisma, indexData);
   const contracts = new ContractsService(
     prisma,
     { getTenantId: () => 'tenant-1' } as any,
     {} as any,
-    indexData,
+    adjustments,
   );
-  const adjustments = new ContractAdjustmentService(prisma, indexData);
   return { contracts, adjustments, getForPeriod, tx };
 }
 
