@@ -96,11 +96,11 @@ Permisos principales:
 
 - Alta, edición, borrado y previsualización de plantillas de email.
 - Envío de un correo a un lead a partir de una plantilla.
-- Acceso de lectura general.
+- Acceso de lectura general, sujeto a la política de lectura de datos sensibles.
 
 ### Lectura
 
-Rol de consulta. Ve los listados y los detalles sin ninguna acción disponible. Sobre pagos y comprobantes tiene lectura explícita.
+Rol de consulta. Ve los listados y los detalles sin ninguna acción disponible, salvo los datos sensibles que la política de lectura de la inmobiliaria le cierre. Sobre pagos y comprobantes tiene lectura explícita.
 
 ### Inquilino
 

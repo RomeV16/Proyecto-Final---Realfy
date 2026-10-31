@@ -81,7 +81,7 @@ describe('Política de lectura por rol (e2e)', () => {
   const policy = (overrides: Record<string, UserRole[]>) => ({ ...DEFAULT_READ_POLICY, ...overrides });
 
   describe('política por defecto', () => {
-    it('CP-251 — sin configurar, cada rol lee como antes y nada se enmascara', async () => {
+    it('CP-258 — sin configurar, cada rol lee como antes y nada se enmascara', async () => {
       const { tokens } = await agency('default');
       const personId = await personWithData(tokens[UserRole.Admin]);
 
@@ -117,7 +117,7 @@ describe('Política de lectura por rol (e2e)', () => {
   });
 
   describe('política personalizada', () => {
-    it('CP-252 — sin acceso a cuentas bancarias, Ventas recibe 403 READ_FORBIDDEN', async () => {
+    it('CP-259 — sin acceso a cuentas bancarias, Ventas recibe 403 READ_FORBIDDEN', async () => {
       const { tokens } = await agency('cuentas');
       const personId = await personWithData(tokens[UserRole.Admin]);
       await put(tokens[UserRole.Admin], policy({
@@ -137,7 +137,7 @@ describe('Política de lectura por rol (e2e)', () => {
       expect(access.body.resources['persons.document']).toBe(true);
     });
 
-    it('CP-253 — documentos y datos bancarios se enmascaran sin rechazar la persona', async () => {
+    it('CP-260 — documentos y datos bancarios se enmascaran sin rechazar la persona', async () => {
       const { tokens } = await agency('mascara');
       const personId = await personWithData(tokens[UserRole.Admin]);
       await put(tokens[UserRole.Admin], policy({
@@ -173,7 +173,7 @@ describe('Política de lectura por rol (e2e)', () => {
       expect(stored?.dni).toBe('00000001');
     });
 
-    it('CP-254 — facturas, rendiciones, reportes, auditoría y comisión respetan la política', async () => {
+    it('CP-261 — facturas, rendiciones, reportes, auditoría y comisión respetan la política', async () => {
       const { tokens } = await agency('recursos');
       await put(tokens[UserRole.Admin], policy({
         renditions: [UserRole.Admin],
@@ -199,7 +199,7 @@ describe('Política de lectura por rol (e2e)', () => {
   });
 
   describe('aislamiento y permisos', () => {
-    it('CP-255 — la política de una inmobiliaria no afecta a otra', async () => {
+    it('CP-262 — la política de una inmobiliaria no afecta a otra', async () => {
       const a = await agency('aislada-a');
       const b = await agency('aislada-b');
       const personA = await personWithData(a.tokens[UserRole.Admin]);
@@ -224,7 +224,7 @@ describe('Política de lectura por rol (e2e)', () => {
       expect(bRow?.readPolicy).toBeNull();
     });
 
-    it('CP-256 — solo el Admin lee y cambia la política; se valida lo que se guarda', async () => {
+    it('CP-263 — solo el Admin lee y cambia la política; se valida lo que se guarda', async () => {
       const { tokens } = await agency('permisos');
 
       for (const role of ALL_ROLES.filter((r) => r !== UserRole.Admin)) {
@@ -252,7 +252,7 @@ describe('Política de lectura por rol (e2e)', () => {
       expect((await get(tokens[UserRole.Soporte], '/audit-logs')).body.error).not.toBe('READ_FORBIDDEN');
     });
 
-    it('CP-257 — con una política guardada inválida, la lectura sensible se deniega', async () => {
+    it('CP-264 — con una política guardada inválida, la lectura sensible se deniega', async () => {
       const { tokens, tenantId } = await agency('cerrado');
       const personId = await personWithData(tokens[UserRole.Admin]);
       await prisma.baseClient.tenant.update({
