@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { MediaService } from '../../common/media/media.service';
@@ -15,6 +16,13 @@ import {
   AssignPersonRoleSchema,
 } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
+import { rethrowExternalRefConflict } from '../../common/validation/external-ref';
+import { splitBankShortcut, defaultAccountForCreate } from './person-bank-fields';
+import { PersonBankAccountsService } from './person-bank-accounts.service';
+
+const BANK_ACCOUNTS_INCLUDE: { orderBy: Prisma.PersonBankAccountOrderByWithRelationInput[] } = {
+  orderBy: [{ currency: 'asc' }, { isDefault: 'desc' }, { createdAt: 'asc' }],
+};
 
 @Injectable()
 export class PersonsService {
@@ -25,6 +33,7 @@ export class PersonsService {
     private readonly tenantContext: TenantContextService,
     private readonly media: MediaService,
     private readonly s3: S3Service,
+    private readonly bankAccounts: PersonBankAccountsService,
   ) {}
 
   // ─── List ───────────────────────────────────────────
@@ -36,6 +45,8 @@ export class PersonsService {
 
     if (filters.isActive !== undefined) where.isActive = filters.isActive;
     if (filters.fiscalCondition) where.fiscalCondition = filters.fiscalCondition;
+    if (filters.personType) where.personType = filters.personType;
+    if (filters.externalRef) where.externalRef = filters.externalRef;
 
     // Filter by role via nested roles junction
     if (filters.role) {
@@ -58,6 +69,7 @@ export class PersonsService {
         where,
         include: {
           roles: true,
+          bankAccounts: BANK_ACCOUNTS_INCLUDE,
         },
         orderBy: { [filters.sortBy]: filters.sortOrder },
         skip,
@@ -83,6 +95,7 @@ export class PersonsService {
       include: {
         roles: true,
         documents: { orderBy: { uploadedAt: 'desc' } },
+        bankAccounts: BANK_ACCOUNTS_INCLUDE,
       },
     });
 
@@ -103,16 +116,29 @@ export class PersonsService {
 
     const tenantId = this.tenantContext.getTenantId()!;
 
-    const person = await this.prisma.client.person.create({
-      data: {
-        ...validated,
-        tenantId,
-      },
-      include: {
-        roles: true,
-        documents: true,
-      },
-    });
+    const { rest, bank } = splitBankShortcut(validated as Record<string, any>);
+
+    let person;
+    try {
+      person = await this.prisma.client.person.create({
+        data: {
+          ...rest,
+          tenantId,
+          bankAccounts: defaultAccountForCreate(
+            tenantId,
+            bank,
+            `${rest.firstName} ${rest.lastName}`.trim(),
+          ),
+        } as any,
+        include: {
+          roles: true,
+          documents: true,
+          bankAccounts: BANK_ACCOUNTS_INCLUDE,
+        },
+      });
+    } catch (err) {
+      rethrowExternalRefConflict(err, 'person');
+    }
 
     this.logger.log(
       `Person created: personId=${person.id} name=${person.firstName} ${person.lastName} tenantId=${tenantId}`,
@@ -137,12 +163,35 @@ export class PersonsService {
       });
     }
 
-    const updated = await this.prisma.client.person.update({
+    const { rest, bank } = splitBankShortcut(validated as Record<string, any>);
+
+    let updated;
+    try {
+      updated = await this.prisma.client.person.update({
+        where: { id },
+        data: rest,
+        include: {
+          roles: true,
+          documents: true,
+        },
+      });
+    } catch (err) {
+      rethrowExternalRefConflict(err, 'person');
+    }
+
+    if (bank) {
+      await this.bankAccounts.applyShortcut(
+        id,
+        bank,
+        `${updated.firstName} ${updated.lastName}`.trim(),
+      );
+    }
+    updated = await this.prisma.client.person.findFirstOrThrow({
       where: { id },
-      data: validated,
       include: {
         roles: true,
         documents: true,
+        bankAccounts: BANK_ACCOUNTS_INCLUDE,
       },
     });
 

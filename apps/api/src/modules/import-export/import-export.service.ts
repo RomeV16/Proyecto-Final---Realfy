@@ -14,6 +14,7 @@ import type {
   ImportExecuteResult,
 } from '@realfy/shared';
 import { CsvParserService, ParsedCsv } from './csv-parser.service';
+import { splitBankShortcut, defaultAccountForCreate } from '../persons/person-bank-fields';
 
 /** In-memory store for uploaded CSV data (keyed by fileId), bound to the uploading tenant. */
 const uploadStore = new Map<
@@ -187,8 +188,17 @@ export class ImportExportService {
             }
             continue;
           }
+          const { rest, bank } = splitBankShortcut(result.data as Record<string, any>);
           await this.prisma.client.person.create({
-            data: { ...result.data, tenantId } as any,
+            data: {
+              ...rest,
+              tenantId,
+              bankAccounts: defaultAccountForCreate(
+                tenantId,
+                bank,
+                `${rest.firstName} ${rest.lastName}`.trim(),
+              ),
+            } as any,
           });
         }
         importedCount++;

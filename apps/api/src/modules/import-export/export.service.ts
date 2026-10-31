@@ -130,22 +130,28 @@ export class ExportService {
   private async fetchPersons(): Promise<Record<string, any>[]> {
     const persons = await this.prisma.client.person.findMany({
       where: { isActive: true },
+      include: { bankAccounts: { where: { isDefault: true } } },
       orderBy: { createdAt: 'desc' },
     });
 
-    return persons.map((p: any) => ({
-      firstName: p.firstName,
-      lastName: p.lastName,
-      email: p.email ?? '',
-      phone: p.phone ?? '',
-      phone2: p.phone2 ?? '',
-      cuit: p.cuit ?? '',
-      fiscalCondition: p.fiscalCondition ?? '',
-      bankName: p.bankName ?? '',
-      cbu: p.cbu ?? '',
-      bankAlias: p.bankAlias ?? '',
-      notes: p.notes ?? '',
-    }));
+    return persons.map((p: any) => {
+      // Cuenta predeterminada (en pesos si la tiene, si no la primera disponible).
+      const account =
+        p.bankAccounts?.find((a: any) => a.currency === 'ARS') ?? p.bankAccounts?.[0];
+      return {
+        firstName: p.firstName,
+        lastName: p.lastName,
+        email: p.email ?? '',
+        phone: p.phone ?? '',
+        phone2: p.phone2 ?? '',
+        cuit: p.cuit ?? '',
+        fiscalCondition: p.fiscalCondition ?? '',
+        bankName: account?.bankName ?? '',
+        cbu: account?.cbu ?? '',
+        bankAlias: account?.alias ?? '',
+        notes: p.notes ?? '',
+      };
+    });
   }
 
   // ─── CSV Builder ────────────────────────────────────

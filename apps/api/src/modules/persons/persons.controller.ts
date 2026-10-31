@@ -13,12 +13,16 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PersonsService } from './persons.service';
+import { PersonBankAccountsService } from './person-bank-accounts.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { UserRole } from '@realfy/shared';
 
 @Controller('persons')
 export class PersonsController {
-  constructor(private readonly personsService: PersonsService) {}
+  constructor(
+    private readonly personsService: PersonsService,
+    private readonly bankAccounts: PersonBankAccountsService,
+  ) {}
 
   /**
    * GET /persons — List with filters + pagination.
@@ -107,6 +111,39 @@ export class PersonsController {
     @Param('roleId') roleId: string,
   ) {
     return this.personsService.removeRole(id, roleId);
+  }
+
+  // ─── Bank accounts ─────────────────────────────────
+
+  /** GET /persons/:id/bank-accounts — Any authenticated user can read. */
+  @Get(':id/bank-accounts')
+  async listBankAccounts(@Param('id') id: string) {
+    return this.bankAccounts.list(id);
+  }
+
+  /** POST /persons/:id/bank-accounts — Admin, Gerente, Ventas roles. */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Post(':id/bank-accounts')
+  async createBankAccount(@Param('id') id: string, @Body() body: Record<string, any>) {
+    return this.bankAccounts.create(id, body);
+  }
+
+  /** PATCH /persons/:id/bank-accounts/:accountId — Admin, Gerente, Ventas roles. */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Patch(':id/bank-accounts/:accountId')
+  async updateBankAccount(
+    @Param('id') id: string,
+    @Param('accountId') accountId: string,
+    @Body() body: Record<string, any>,
+  ) {
+    return this.bankAccounts.update(id, accountId, body);
+  }
+
+  /** DELETE /persons/:id/bank-accounts/:accountId — Admin, Gerente, Ventas roles. */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Delete(':id/bank-accounts/:accountId')
+  async removeBankAccount(@Param('id') id: string, @Param('accountId') accountId: string) {
+    return this.bankAccounts.remove(id, accountId);
   }
 
   // ─── Documents ──────────────────────────────────────

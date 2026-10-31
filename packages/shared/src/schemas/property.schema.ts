@@ -5,6 +5,7 @@ import {
   PropertyState,
   Currency,
 } from '../enums';
+import { externalRefSchema } from './person.schema';
 
 // ─── Property CRUD ──────────────────────────────────────
 
@@ -40,6 +41,11 @@ export const CreatePropertySchema = z.object({
   // Pricing
   price: z.number().nonnegative().optional(),
   currency: z.nativeEnum(Currency).default(Currency.ARS),
+
+  // Catastro, edificio y referencia externa
+  cadastralId: z.string().max(100).optional().nullable(),
+  parentPropertyId: z.string().uuid().optional().nullable(),
+  externalRef: externalRefSchema.optional().nullable(),
 });
 
 export const UpdatePropertySchema = CreatePropertySchema.partial();
@@ -61,6 +67,8 @@ export const PropertyFilterSchema = z.object({
   bedrooms: z.number().int().min(0).optional(),
   isActive: z.union([z.boolean(), z.string().transform((v) => v === 'true')]).optional(),
   search: z.string().max(300).optional(),
+  externalRef: externalRefSchema.optional(),
+  parentPropertyId: z.string().uuid().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   sortBy: z

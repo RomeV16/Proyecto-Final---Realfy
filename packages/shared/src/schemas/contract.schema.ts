@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { externalRefSchema } from './person.schema';
 import {
   ContractStatus,
   ContractType,
@@ -63,6 +64,7 @@ export const CreateContractSchema = z
     adjustmentPeriod: z.nativeEnum(AdjustmentPeriod),
     customAdjustmentPct: decimalStringOptional,
     notes: z.string().max(2000).optional(),
+    externalRef: externalRefSchema.optional().nullable(),
     persons: z.array(ContractPersonSchema).min(1, 'At least one person is required'),
     guarantees: z.array(CreateGuaranteeSchema).optional().default([]),
   })
@@ -108,6 +110,7 @@ export const UpdateContractSchema = z.object({
   adjustmentPeriod: z.nativeEnum(AdjustmentPeriod).optional(),
   customAdjustmentPct: decimalStringOptional,
   notes: z.string().max(2000).optional(),
+  externalRef: externalRefSchema.optional().nullable(),
 });
 
 // ─── Contract Filters ───────────────────────────────────
@@ -116,6 +119,7 @@ export const ContractFilterSchema = z.object({
   status: z.nativeEnum(ContractStatus).optional(),
   propertyId: z.string().uuid().optional(),
   personId: z.string().uuid().optional(),
+  externalRef: externalRefSchema.optional(),
   adjustmentType: z.nativeEnum(AdjustmentType).optional(),
   startDateFrom: dateString.optional(),
   startDateTo: dateString.optional(),

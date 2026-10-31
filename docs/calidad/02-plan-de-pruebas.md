@@ -30,11 +30,21 @@ el módulo: la lectura de índices.
 |---|---|---|---|---|
 | Unitario | Cada servicio con sus dependencias sustituidas; el motor de cálculo con valores conocidos | Ninguna | `apps/api/src/modules/index-data/*.spec.ts`, `packages/shared/src/adjustment-engine/*.spec.ts` | `pnpm --filter @realfy/api test:modulo` |
 | Integración (API) | Los endpoints por HTTP con guards, filtro de inmobiliaria y Postgres real | PostgreSQL 16 | `apps/api/test/e2e/index-data.e2e-spec.ts`, `index-data-scraper.e2e-spec.ts` | `pnpm --filter @realfy/api test:e2e:modulo` |
+| Migración sobre datos | Que cada migración nueva transforma sin perder ni inventar datos: se carga un conjunto sintético con la forma de los datos reales en el esquema anterior, se aplican las migraciones nuevas y consultas de verificación (que solo devuelven filas si algo falló) comparan antes y después (CP-117) | PostgreSQL 16, historia del repositorio de la rama base | `apps/api/test/migration-data/` (`seed.sql`, `checks/*.sql`), `scripts/migration-rehearsal.sh` | `DATABASE_URL=... scripts/migration-rehearsal.sh origin/main` |
 | Integración externa | El contrato con BCRA e INDEC: respuesta grabada (doble) y respuesta real | Red | `apps/api/test/integration/*.spec.ts` | `pnpm --filter @realfy/api test:integracion-real` |
 | Unitario (web) | Funciones puras de `apps/web/src/lib` y paridad de claves i18n (CP-72) | Ninguna | `apps/web/src/lib/*.test.ts`, `apps/web/test/*.spec.ts` | `pnpm --filter @realfy/web test` |
 | Control de tipos | Que los archivos de prueba también compilen (la compilación normal los excluye) | Paquete compartido compilado, cliente de Prisma generado | `tsconfig.typecheck.json` de cada paquete | `pnpm typecheck` |
 | Smoke | Que un despliegue nuevo arranca, conecta a la base y sirve el módulo | Instancia desplegada | `apps/api/test/smoke/` | `pnpm --filter @realfy/api test:smoke` |
 | Stress y esfuerzo sostenido | Que la consulta de índices aguanta carga y no degrada en el tiempo | Instancia desplegada | `apps/api/test/load/*.js` | `pnpm --filter @realfy/api test:stress` |
+
+El nivel de migración sobre datos existe porque aplicar las migraciones sobre
+una base vacía (nivel de integración) prueba que el SQL es válido, pero no que un
+backfill deje los datos bien: sobre cero filas cualquier transformación «pasa».
+El conjunto sintético (`seed.sql`) tiene datos inventados con la forma real,
+incluidos los casos borde que hacen fallar un backfill: campos a medias, cadenas
+vacías, personas sin datos y dos inmobiliarias para detectar mezclas entre
+ellas. Se escribe contra el esquema anterior a las migraciones nuevas; el script
+toma esas migraciones tal como estaban en la rama base.
 
 La pirámide se respeta por volumen: muchas unitarias (rápidas, sin red),
 menos de integración (con base), pocas externas y una de smoke. Las de
@@ -48,6 +58,7 @@ stress no cuentan en la pirámide: miden capacidad, no corrección.
 |---|---|
 | Unitaria | El paquete compartido compila y el cliente de Prisma está generado; las pruebas corren con `TZ=UTC` fijada por Jest (CP-73) |
 | Integración | Migraciones aplicadas sobre una base vacía sin error (`prisma migrate deploy`) y `prisma migrate diff` sin diferencias |
+| Migración sobre datos | Una base vacía y la rama base disponible en el repositorio; antes de la primera migración con backfill el ensayo tiene que estar en verde |
 | Externa | Las unitarias e integración están en verde; hay salida a Internet |
 | Smoke | El despliegue respondió `200` en `/api/health` con `db: connected` |
 | Stress | El smoke pasó sobre la misma instancia |
@@ -58,6 +69,7 @@ stress no cuentan en la pirámide: miden capacidad, no corrección.
 |---|---|
 | Unitaria | 100 % de los casos en verde; cobertura del módulo ≥ 80 % líneas y ≥ 70 % ramas |
 | Integración | 100 % en verde |
+| Migración sobre datos | Todas las verificaciones sin filas; el ensayo falla si una devuelve alguna, si el conjunto sintético no carga o si una migración no aplica sobre esos datos |
 | Externa | 100 % en verde o, si una fuente externa está caída, fallo clasificado como R-01/R-02 con el doble en verde |
 | Smoke | Los tres pasos en verde (salud, autenticación, lectura del módulo) |
 | Stress | p95 < 500 ms y tasa de error < 1 % bajo 50 usuarios virtuales durante 2 minutos; esfuerzo sostenido 10 minutos sin crecimiento del p95 mayor al 20 % |

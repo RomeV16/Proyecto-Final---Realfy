@@ -101,6 +101,17 @@ export enum PersonRole {
   Proveedor = 'Proveedor',
 }
 
+export enum PersonType {
+  Fisica = 'Fisica',
+  Juridica = 'Juridica',
+}
+
+export enum PayoutMethod {
+  Transferencia = 'Transferencia',
+  Efectivo = 'Efectivo',
+  Custodia = 'Custodia',
+}
+
 export enum FiscalCondition {
   ResponsableInscripto = 'ResponsableInscripto',
   Monotributista = 'Monotributista',

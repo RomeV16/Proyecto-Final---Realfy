@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PersonRole, FiscalCondition } from '../enums';
+import { PersonRole, FiscalCondition, PersonType, PayoutMethod, Currency } from '../enums';
 
 // ─── CUIT/CUIL Validation ───────────────────────────────
 
@@ -37,6 +37,11 @@ export function validateCuit(cuit: string): boolean {
 
 // ─── Person CRUD ────────────────────────────────────────
 
+const cbuSchema = z.string().regex(/^\d{22}$/, 'CBU must be exactly 22 digits');
+
+/** Identificador de otro sistema (legado, planilla); único por inmobiliaria. */
+export const externalRefSchema = z.string().trim().min(1).max(100);
+
 export const CreatePersonSchema = z.object({
   firstName: z.string().min(1).max(200),
   lastName: z.string().min(1).max(200),
@@ -53,12 +58,17 @@ export const CreatePersonSchema = z.object({
       { message: 'Invalid CUIT/CUIL check digit' },
     ),
   fiscalCondition: z.nativeEnum(FiscalCondition).optional().nullable(),
+  personType: z.nativeEnum(PersonType).optional(),
+  dni: z.string().max(20).optional().nullable(),
+  address: z.string().max(500).optional().nullable(),
+  maritalStatus: z.string().max(50).optional().nullable(),
+  nationality: z.string().max(100).optional().nullable(),
+  payoutMethod: z.nativeEnum(PayoutMethod).optional().nullable(),
+  externalRef: externalRefSchema.optional().nullable(),
+  // Atajo de compatibilidad: estos tres campos se guardan como la cuenta
+  // predeterminada en pesos (PersonBankAccount); no hay columnas propias.
   bankName: z.string().max(200).optional().nullable(),
-  cbu: z
-    .string()
-    .regex(/^\d{22}$/, 'CBU must be exactly 22 digits')
-    .optional()
-    .nullable(),
+  cbu: cbuSchema.optional().nullable(),
   bankAlias: z.string().max(200).optional().nullable(),
   notes: z.string().max(5000).optional().nullable(),
 });
@@ -71,6 +81,8 @@ export const PersonFilterSchema = z.object({
   search: z.string().max(300).optional(),
   role: z.nativeEnum(PersonRole).optional(),
   fiscalCondition: z.nativeEnum(FiscalCondition).optional(),
+  personType: z.nativeEnum(PersonType).optional(),
+  externalRef: externalRefSchema.optional(),
   isActive: z.union([z.boolean(), z.string().transform((v) => v === 'true')]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -87,3 +99,20 @@ export const AssignPersonRoleSchema = z.object({
   propertyId: z.string().uuid().optional().nullable(),
   guarantorForPersonId: z.string().uuid().optional().nullable(),
 });
+
+// ─── Bank Accounts ──────────────────────────────────────
+
+export const CreatePersonBankAccountSchema = z.object({
+  currency: z.nativeEnum(Currency),
+  bankName: z.string().max(200).optional().nullable(),
+  cbu: cbuSchema.optional().nullable(),
+  alias: z.string().max(200).optional().nullable(),
+  holder: z.string().max(200).optional().nullable(),
+  /** Si se omite, la primera cuenta de cada moneda queda como predeterminada. */
+  isDefault: z.boolean().optional(),
+});
+
+/** La moneda no se cambia: se crea otra cuenta. */
+export const UpdatePersonBankAccountSchema = CreatePersonBankAccountSchema.omit({
+  currency: true,
+}).partial();

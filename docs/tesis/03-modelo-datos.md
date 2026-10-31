@@ -46,8 +46,19 @@ Registro de acciones sensibles.
 
 Persona física o jurídica genérica. Una misma persona puede tener varios roles.
 
-- `id`, `tenantId`, `firstName`, `lastName`, `email`, `phone`, `phone2`, `cuit`, `fiscalCondition`, `bankName`, `cbu`, `bankAlias`, `notes`, `isActive`.
-- La identificación fiscal es `cuit`; no hay una columna de número de documento separada. Los datos bancarios son los que alimentan la rendición al propietario.
+- `id`, `tenantId`, `firstName`, `lastName`, `email`, `phone`, `phone2`, `cuit`, `fiscalCondition`, `personType`, `dni`, `address`, `maritalStatus`, `nationality`, `payoutMethod`, `externalRef`, `notes`, `isActive`.
+- `personType` es `Fisica` (por defecto) o `Juridica`; `payoutMethod` es la forma de cobro del propietario (`Transferencia`, `Efectivo` o `Custodia`) y puede quedar vacía. `dni`, `address` (texto libre por ahora), `maritalStatus` y `nationality` son opcionales y alimentan los datos del contrato.
+- `externalRef` es el identificador que la persona tenía en otro sistema (planilla, programa anterior). Es único por inmobiliaria (`@@unique([tenantId, externalRef])`); Postgres admite varias personas sin referencia. Una referencia repetida responde 409 `EXTERNAL_REF_TAKEN`.
+- **Columnas deprecadas:** `bankName`, `cbu` y `bankAlias` ya no se leen ni se escriben. La fuente única de los datos bancarios es `PersonBankAccount`; el cliente de Prisma las omite en toda lectura. Quedan en la tabla una versión más, solo para poder volver atrás, y se eliminan en la migración siguiente. Reversa de la migración: ver la cabecera de `20261031030500_personas_datos_y_referencias`.
+
+### PersonBankAccount
+
+Cuenta bancaria de una persona, en una moneda. Es lo que alimenta la rendición al propietario.
+
+- `id`, `tenantId`, `personId`, `currency`, `bankName`, `cbu`, `alias`, `holder`, `isDefault`, `createdAt`, `updatedAt`.
+- Una persona puede tener varias cuentas, también varias en la misma moneda. Por cada moneda con cuentas hay exactamente una predeterminada: la primera que se carga lo es, promover otra intercambia la predeterminada y el servicio rechaza soltar o borrar la predeterminada mientras queden otras de esa moneda (409 `BANK_ACCOUNT_DEFAULT_REQUIRED`). La moneda no se edita: se crea otra cuenta.
+- Lleva `tenantId` y está registrada en `TENANT_SCOPED_MODELS`; se borra en cascada con la persona.
+- **Backfill de la migración:** cada persona con alguno de los tres datos bancarios viejos recibió una cuenta en pesos marcada como predeterminada, con el titular igual al nombre de la persona.
 
 ### PersonRoleAssignment
 
@@ -75,7 +86,8 @@ Perfil específico cuando la persona es proveedor de servicios.
 
 Inmueble administrado por la inmobiliaria.
 
-- `id`, `tenantId`, `title`, `description`, `type`, `street`, `number`, `floor`, `apartment`, `city`, `province`, `zipCode`, `country`, `latitude`, `longitude`, `area`, `rooms`, `bedrooms`, `bathrooms`, `garages`, `age`, `orientation`, `amenities`, `price`, `currency`, `isActive`.
+- `id`, `tenantId`, `title`, `description`, `type`, `street`, `number`, `floor`, `apartment`, `city`, `province`, `zipCode`, `country`, `latitude`, `longitude`, `area`, `rooms`, `bedrooms`, `bathrooms`, `garages`, `age`, `orientation`, `amenities`, `price`, `currency`, `cadastralId`, `parentPropertyId`, `externalRef`, `isActive`.
+- `cadastralId` es la nomenclatura catastral (texto libre). `parentPropertyId` apunta al edificio que contiene la unidad (relación `edificio`, `onDelete: SetNull`): sirve para repartir gastos por consumo; no puede ser la propia propiedad, debe ser de la misma inmobiliaria y no puede formar un ciclo (`PROPERTY_SELF_PARENT`, `PARENT_PROPERTY_NOT_FOUND`, `PROPERTY_PARENT_CYCLE`). `externalRef` sigue la misma regla que en `Person`, con `@@unique([tenantId, externalRef])`.
 - La dirección está desagregada en columnas, no en un campo único. La propiedad **no** tiene un estado de disponibilidad ni un propietario directo: el estado vive en cada `PropertyOperation` y la titularidad se expresa como una `PersonRoleAssignment` de rol propietario apuntando a la propiedad.
 - Relación 1-N con `PropertyOperation`, `PropertyMedia`, `PriceHistory`, `PropertyValuation`, `Service`, `Ticket`, `LeadVisit`.
 
@@ -111,7 +123,8 @@ Tasación de la propiedad.
 
 Contrato entre propietario e inquilino, o de venta.
 
-- `id`, `tenantId`, `propertyId`, `contractType`, `status`, `startDate`, `endDate`, `rentAmount`, `rentCurrency`, `depositAmount`, `depositCurrency`, `adjustmentType`, `adjustmentPeriod`, `customAdjustmentPct`, `notes`, `isActive`, `closedAt`.
+- `id`, `tenantId`, `propertyId`, `contractType`, `status`, `startDate`, `endDate`, `rentAmount`, `rentCurrency`, `depositAmount`, `depositCurrency`, `adjustmentType`, `adjustmentPeriod`, `customAdjustmentPct`, `notes`, `isActive`, `closedAt`, `externalRef`.
+- `externalRef` identifica el contrato en el sistema anterior y es único por inmobiliaria (`@@unique([tenantId, externalRef])`, 409 `EXTERNAL_REF_TAKEN`).
 - **La configuración del ajuste vive en el contrato**, no en una tabla aparte: `adjustmentType` toma IPC, ICL, CCP, porcentaje fijo o personalizado, `adjustmentPeriod` va de mensual a anual, y `customAdjustmentPct` guarda el porcentaje cuando la modalidad es de porcentaje fijo.
 - Relación 1-N con `ContractPerson`, `ContractGuarantee`, `ContractAdjustment`, `AdjustmentSchedule`, `Liquidacion`, `OwnerRendicion`; 1-1 con `ContractCommission` y `ContractClosureSummary`.
 

@@ -38,6 +38,7 @@ import { assertTransition } from '../../common/errors/assert-transition';
 import { applyOperationTransition } from '../properties/operation-state';
 import { ContractClosureService } from '../ai/contract-closure.service';
 import { parseOrThrow } from '../../common/validation/zod';
+import { rethrowExternalRefConflict } from '../../common/validation/external-ref';
 
 /**
  * Motivo por el que un contrato no se puede activar. `code` es estable y es lo
@@ -97,6 +98,7 @@ export class ContractsService {
 
     if (filters.status) where.status = filters.status;
     if (filters.propertyId) where.propertyId = filters.propertyId;
+    if (filters.externalRef) where.externalRef = filters.externalRef;
     if (filters.adjustmentType) where.adjustmentType = filters.adjustmentType;
 
     // Person filter: find contracts linked to this person
@@ -246,6 +248,7 @@ export class ContractsService {
           adjustmentPeriod: validated.adjustmentPeriod,
           customAdjustmentPct: validated.customAdjustmentPct ?? null,
           notes: validated.notes ?? null,
+          externalRef: validated.externalRef ?? null,
         },
       });
 
@@ -309,7 +312,7 @@ export class ContractsService {
       }
 
       return created;
-    });
+    }).catch((err: unknown) => rethrowExternalRefConflict(err, 'contract'));
 
     // Fetch full contract with relations
     const full = await this.findOne(contract.id);
@@ -404,7 +407,7 @@ export class ContractsService {
       if (leavesActive) {
         await this.releaseProperty(tx, existing);
       }
-    });
+    }).catch((err: unknown) => rethrowExternalRefConflict(err, 'contract'));
 
     if (datesChanged) {
       // Delete pending schedules and regenerate
