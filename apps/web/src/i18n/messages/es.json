@@ -66,6 +66,29 @@
   "pagos": "Pagos",
   "notifications": "Notificaciones"
  },
+ "dataTable": {
+  "pagination": {
+   "label": "Paginación",
+   "showing": "Mostrando {from}-{to} de {total}",
+   "prev": "Anterior",
+   "next": "Siguiente",
+   "page": "Página {page} de {totalPages}"
+  },
+  "sortBy": "Ordenar por {column}",
+  "grid": {
+   "addRow": "Agregar fila",
+   "removeRow": "Quitar la fila {row}",
+   "rowNumber": "Fila",
+   "newRow": "Nueva",
+   "changes": "{count, plural, one {# cambio sin guardar} other {# cambios sin guardar}}",
+   "noChanges": "Sin cambios",
+   "invalid": "{count, plural, one {# celda con error} other {# celdas con error}}",
+   "pasteHint": "Podés pegar filas copiadas desde una planilla (Excel, Sheets).",
+   "pasted": "{count, plural, one {Se pegó # fila} other {Se pegaron # filas}}",
+   "invalidOption": "Elegí una opción de la lista",
+   "empty": "No hay filas para editar"
+  }
+ },
  "errors": {
   "generic": "Ocurrió un error inesperado.",
   "code": "Código",
