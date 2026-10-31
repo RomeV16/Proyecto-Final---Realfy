@@ -24,6 +24,7 @@ import {
   monthStartUTC,
   periodFilter,
   todayInAR,
+  InvalidLineAmountError,
 } from '@realfy/shared';
 import type { LineItemInput, PaymentInput } from '@realfy/shared';
 import { PdfService } from './pdf.service';
@@ -651,7 +652,18 @@ export class LiquidacionesService {
       amount: li.amount.toString(),
     }));
 
-    const result = calculateLineItemsTotal(inputs);
+    let result: ReturnType<typeof calculateLineItemsTotal>;
+    try {
+      result = calculateLineItemsTotal(inputs);
+    } catch (err) {
+      if (err instanceof InvalidLineAmountError) {
+        throw new BadRequestException({
+          error: err.code,
+          message: err.message,
+        });
+      }
+      throw err;
+    }
 
     await this.prisma.client.liquidacion.update({
       where: { id: liquidacionId },

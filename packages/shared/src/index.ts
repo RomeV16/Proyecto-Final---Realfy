@@ -417,6 +417,7 @@ export {
   calculateLineItemsTotal,
   calculateRemainingBalance,
   isFullyPaid,
+  InvalidLineAmountError,
 } from './liquidacion-engine';
 export type { LineItemInput, LineItemsTotalResult, PaymentInput } from './liquidacion-engine';
 

@@ -19,13 +19,30 @@ export interface PaymentInput {
   amount: Decimal | string | number;
 }
 
+// ─── Errors ─────────────────────────────────────────────
+
+/** Un renglón con un monto que el tipo no admite (por ejemplo, negativo). */
+export class InvalidLineAmountError extends Error {
+  readonly code = 'INVALID_LINE_AMOUNT';
+
+  constructor(
+    readonly lineType: LineItemType,
+    readonly amount: string,
+  ) {
+    super(`Monto inválido para un renglón ${lineType}: ${amount} (no puede ser negativo)`);
+    this.name = 'InvalidLineAmountError';
+  }
+}
+
 // ─── Line Item Calculation ──────────────────────────────
 
 /**
  * Calculate totals from a list of line items.
- * - Alquiler, Ajuste, Extra are positive (summed into subtotal)
- * - Descuento is negative (subtracted from subtotal)
- * - Total = subtotal - discounts (never negative, floored at 0)
+ * - Alquiler, Ajuste, Extra, Multa suman al subtotal
+ * - Descuento se resta del subtotal (su monto se carga en positivo)
+ * - Ningún monto puede ser negativo: lanza InvalidLineAmountError
+ * - Total = subtotal redondeado - descuentos redondeados (nunca negativo, piso en 0),
+ *   que es exactamente lo que muestra el documento
  */
 export function calculateLineItemsTotal(items: LineItemInput[]): LineItemsTotalResult {
   let subtotal = new Money(0);
@@ -33,6 +50,9 @@ export function calculateLineItemsTotal(items: LineItemInput[]): LineItemsTotalR
 
   for (const item of items) {
     const amount = new Money(item.amount);
+    if (amount.isNegative()) {
+      throw new InvalidLineAmountError(item.type, amount.toString());
+    }
 
     if (item.type === LineItemType.Descuento) {
       discounts = discounts.plus(amount);
@@ -41,13 +61,15 @@ export function calculateLineItemsTotal(items: LineItemInput[]): LineItemsTotalR
     }
   }
 
+  const roundedSubtotal = subtotal.toDecimalPlaces(2);
+  const roundedDiscounts = discounts.toDecimalPlaces(2);
   // Total cannot go below 0
-  const total = Money.max(subtotal.minus(discounts), new Money(0));
+  const total = Money.max(roundedSubtotal.minus(roundedDiscounts), new Money(0));
 
   return {
-    subtotal: subtotal.toDecimalPlaces(2),
-    discounts: discounts.toDecimalPlaces(2),
-    total: total.toDecimalPlaces(2),
+    subtotal: roundedSubtotal,
+    discounts: roundedDiscounts,
+    total,
   };
 }
 
