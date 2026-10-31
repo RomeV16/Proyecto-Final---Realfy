@@ -1,5 +1,7 @@
 import {
   Injectable,
+  Logger,
+  InternalServerErrorException,
   BadRequestException,
   NotFoundException,
   UnprocessableEntityException,
@@ -37,6 +39,26 @@ function mapCbteTipoToEnum(cbteTipo: number): ComprobanteType {
   return map[cbteTipo] ?? ComprobanteType.FacturaB;
 }
 
+/**
+ * ARCA identifies the currency with its own code; the table only stores the
+ * currencies the platform handles (ARS and USD).
+ */
+const MON_ID_TO_CURRENCY: Record<string, 'ARS' | 'USD'> = { PES: 'ARS', DOL: 'USD' };
+
+function currencyFromMonId(monId: string | undefined): 'ARS' | 'USD' {
+  const currency = MON_ID_TO_CURRENCY[monId ?? 'PES'];
+  if (!currency) {
+    throw new BadRequestException({
+      error: 'UNSUPPORTED_CURRENCY',
+      message: `monId ${monId} is not supported (use PES or DOL)`,
+    });
+  }
+  return currency;
+}
+
+const PERSIST_ATTEMPTS = 3;
+const PERSIST_RETRY_DELAY_MS = 150;
+
 // ─── Preview result ───────────────────────────────────────────────────────────
 
 export interface PreviewEmitResult {
@@ -49,6 +71,8 @@ export interface PreviewEmitResult {
 
 @Injectable()
 export class InvoicesService {
+  private readonly logger = new Logger(InvoicesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
@@ -223,6 +247,7 @@ export class InvoicesService {
 
     const issuer = await this.resolveIssuerContext(tenantId, dto.issuerId);
     const puntoDeVenta = await this.resolvePuntoDeVenta(issuer.id, dto.ptoVta);
+    const currency = currencyFromMonId(dto.monId);
 
     const ivaArray = (dto.iva ?? []).map((i) => ({
       Id: i.id,
@@ -291,14 +316,14 @@ export class InvoicesService {
       impTrib: dto.impTrib ?? '0',
       monId: dto.monId ?? 'PES',
       monCotiz: parseFloat(dto.monCotiz ?? '1'),
-      currency: 'ARS',
+      currency,
       cae: result.cae,
       caeFchVto: new Date(result.caeFchVto),
       emittedAt: new Date(),
       ivaArray: emitPayload.ivaArray ?? null,
       cbtesAsoc: dto.cbtesAsoc ?? null,
     };
-    const comprobante = await this.prisma.client.comprobante.create({ data: comprobanteData });
+    const comprobante = await this.persistAuthorized(comprobanteData, result);
 
     return { comprobante, isIdempotentReplay: false };
   }
@@ -318,6 +343,7 @@ export class InvoicesService {
 
     const issuer = await this.resolveIssuerContext(tenantId, dto.issuerId);
     const puntoDeVenta = await this.resolvePuntoDeVenta(issuer.id, dto.ptoVta);
+    const currency = currencyFromMonId(dto.monId);
 
     const ivaArray = (dto.iva ?? []).map((i) => ({
       Id: i.id,
@@ -386,14 +412,14 @@ export class InvoicesService {
       impTrib: dto.impTrib ?? '0',
       monId: dto.monId ?? 'PES',
       monCotiz: parseFloat(dto.monCotiz ?? '1'),
-      currency: 'ARS',
+      currency,
       cae: result.cae,
       caeFchVto: new Date(result.caeFchVto),
       emittedAt: new Date(),
       ivaArray: emitPayload.ivaArray ?? null,
       cbtesAsoc: dto.cbtesAsoc,
     };
-    const comprobante = await this.prisma.client.comprobante.create({ data: ncData });
+    const comprobante = await this.persistAuthorized(ncData, result);
 
     return { comprobante, isIdempotentReplay: false };
   }
@@ -489,6 +515,63 @@ export class InvoicesService {
   }
 
   // ─── Helper ───────────────────────────────────────────────────────────────
+
+  /**
+   * Store a voucher ARCA already authorised. The CAE and the number cannot be
+   * requested again, so a failing INSERT is retried and, if it keeps failing,
+   * the authorisation is written to the ARCA request log and reported to the
+   * caller so the voucher can be recovered by hand instead of being lost.
+   */
+  private async persistAuthorized(data: any, result: { cae: string; numero: number; caeFchVto: string }) {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= PERSIST_ATTEMPTS; attempt++) {
+      try {
+        return await this.prisma.client.comprobante.create({ data });
+      } catch (err) {
+        lastError = err;
+        this.logger.warn(`Comprobante insert failed (attempt ${attempt}/${PERSIST_ATTEMPTS}): ${(err as Error)?.message}`);
+        if (attempt < PERSIST_ATTEMPTS) {
+          await new Promise((resolve) => setTimeout(resolve, PERSIST_RETRY_DELAY_MS * attempt));
+        }
+      }
+    }
+
+    const authorised = {
+      cae: result.cae,
+      caeFchVto: result.caeFchVto,
+      numero: result.numero,
+      issuerId: data.issuerId,
+      puntoDeVenta: data.puntoDeVenta,
+      cbteTipo: data.cbteTipo,
+      clientRequestId: data.clientRequestId,
+    };
+    this.logger.error(
+      `ARCA authorised voucher ${data.puntoDeVenta}-${data.numero} (CAE ${result.cae}) but it could not be stored`,
+    );
+    try {
+      await this.prisma.client.arcaRequestLog.create({
+        data: {
+          tenantId: data.tenantId,
+          issuerId: data.issuerId,
+          operation: 'persistComprobante',
+          requestPayload: JSON.parse(JSON.stringify(data)),
+          responsePayload: authorised,
+          latencyMs: 0,
+          success: false,
+          errorCode: 'COMPROBANTE_PERSIST_FAILED',
+          errorMessage: (lastError as Error)?.message ?? 'unknown error',
+        },
+      });
+    } catch (logErr) {
+      this.logger.error(`Could not record the authorised voucher either: ${(logErr as Error)?.message}`);
+    }
+
+    throw new InternalServerErrorException({
+      errorCode: 'COMPROBANTE_PERSIST_FAILED',
+      message: 'ARCA authorised the voucher but it could not be stored; recover it with the data below',
+      ...authorised,
+    });
+  }
 
   private resolveletra(cbteTipo: number): any {
     const A_TIPOS = [1, 2, 3];

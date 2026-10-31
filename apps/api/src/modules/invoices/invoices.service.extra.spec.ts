@@ -310,6 +310,65 @@ describe('InvoicesService — edge cases', () => {
 
   // ── 5. resolveIssuerContext fallback ────────────────────────────────────────
 
+  describe('persistencia del comprobante despues del CAE (DEF-16)', () => {
+    it('si la fila no se puede guardar, el CAE y el numero quedan registrados y se informan', async () => {
+      const createLog = jest.fn().mockResolvedValue({ id: 'log-1' });
+      const create = jest.fn().mockRejectedValue(new Error('connection lost'));
+      const prisma = buildPrismaMock({ arcaRequestLog: { create: createLog } });
+      prisma.client.comprobante.create = create;
+      const arca = buildArcaMock();
+      const service = await buildService(prisma, arca);
+
+      let thrown: any;
+      try {
+        await service.emitFromDto(VALID_EMIT_DTO as any);
+      } catch (err) {
+        thrown = err;
+      }
+
+      expect(arca.emit).toHaveBeenCalledTimes(1);
+      expect(thrown).toBeDefined();
+      expect(thrown.getResponse()).toEqual(
+        expect.objectContaining({ errorCode: 'COMPROBANTE_PERSIST_FAILED', cae: '12345678901234', numero: 1 }),
+      );
+      expect(createLog).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            tenantId: TENANT_ID,
+            operation: 'persistComprobante',
+            success: false,
+            errorCode: 'COMPROBANTE_PERSIST_FAILED',
+            responsePayload: expect.objectContaining({ cae: '12345678901234', numero: 1 }),
+          }),
+        }),
+      );
+    });
+
+    it('rechaza un monId desconocido antes de pedir el CAE', async () => {
+      const arca = buildArcaMock();
+      const service = await buildService(buildPrismaMock(), arca);
+
+      await expect(service.emitFromDto({ ...VALID_EMIT_DTO, monId: 'EUR' } as any)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(arca.emit).not.toHaveBeenCalled();
+    });
+
+    it('reintenta el guardado y devuelve el comprobante si un reintento funciona', async () => {
+      const prisma = buildPrismaMock();
+      prisma.client.comprobante.create = jest
+        .fn()
+        .mockRejectedValueOnce(new Error('deadlock'))
+        .mockResolvedValue(MOCK_COMPROBANTE);
+      const service = await buildService(prisma, buildArcaMock());
+
+      const res = await service.emitFromDto(VALID_EMIT_DTO as any);
+
+      expect(res.comprobante).toEqual(MOCK_COMPROBANTE);
+      expect(prisma.client.comprobante.create).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('resolveIssuerContext', () => {
     it('throws BadRequest when no issuerId provided and no self-issuer exists', async () => {
       const prisma = buildPrismaMock();

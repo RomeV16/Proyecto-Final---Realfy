@@ -154,7 +154,13 @@ describe('Invoices (e2e)', () => {
     return issuerRes.body.id as string;
   }
 
-  function emit(token: string, issuerId: string, paymentId: string, clientRequestId?: string) {
+  function emit(
+    token: string,
+    issuerId: string,
+    paymentId: string | undefined,
+    clientRequestId?: string,
+    extra: Record<string, unknown> = {},
+  ) {
     return request(app.getHttpServer())
       .post('/api/invoices/emit')
       .set('Authorization', `Bearer ${token}`)
@@ -176,9 +182,10 @@ describe('Invoices (e2e)', () => {
         fchServDesde: '2026-09-01',
         fchServHasta: '2026-09-30',
         fchVtoPago: '2026-10-10',
-        paymentId,
+        ...(paymentId ? { paymentId } : {}),
         description: 'Alquiler 09/2026',
         ...(clientRequestId ? { clientRequestId } : {}),
+        ...extra,
       });
   }
 
@@ -278,5 +285,48 @@ describe('Invoices (e2e)', () => {
         res.body.id,
       ),
     ).rejects.toThrow();
+  });
+
+  // ─── 7. Comprobante independiente del pago (DEF-16) ───
+
+  it('emite una factura sin paymentId y guarda la fila con el pago en nulo', async () => {
+    const { accessToken, tenantId } = await setupTenantWithPayment();
+    const issuerId = await createIssuer(accessToken, '20-30111222-0', 'Emisor Uno');
+
+    const res = await emit(accessToken, issuerId, undefined).expect(201);
+
+    expect(res.body.paymentId).toBeNull();
+    const row = await prisma.baseClient.comprobante.findFirst({ where: { tenantId } });
+    expect(row?.id).toBe(res.body.id);
+    expect(row?.paymentId).toBeNull();
+    expect(row?.cae).toMatch(/^\d{14}$/);
+  });
+
+  it('borrar un pago no borra el comprobante: queda con paymentId nulo', async () => {
+    const { accessToken, tenantId, payment } = await setupTenantWithPayment();
+    const issuerId = await createIssuer(accessToken, '20-30111222-0', 'Emisor Uno');
+    const res = await emit(accessToken, issuerId, payment.id).expect(201);
+
+    await prisma.baseClient.payment.delete({ where: { id: payment.id } });
+
+    const row = await prisma.baseClient.comprobante.findFirst({ where: { tenantId } });
+    expect(row?.id).toBe(res.body.id);
+    expect(row?.paymentId).toBeNull();
+  });
+
+  it('guarda la moneda del DTO y no la fija en pesos', async () => {
+    const { accessToken, tenantId } = await setupTenantWithPayment();
+    const issuerId = await createIssuer(accessToken, '20-30111222-0', 'Emisor Uno');
+
+    const res = await emit(accessToken, issuerId, undefined, undefined, {
+      monId: 'DOL',
+      monCotiz: '1050.500000',
+    }).expect(201);
+
+    const row = await prisma.baseClient.comprobante.findFirst({ where: { tenantId } });
+    expect(row?.id).toBe(res.body.id);
+    expect(row?.currency).toBe('USD');
+    expect(row?.monId).toBe('DOL');
+    expect(Number(row?.monCotiz)).toBe(1050.5);
   });
 });

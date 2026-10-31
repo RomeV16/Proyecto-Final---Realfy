@@ -16,13 +16,14 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-06 | El IPC se obtiene como nivel y de los 24 meses más viejos, no como variación mensual reciente | Alta | RF-14, RF-12 | CP-52, CP-54 | [#82](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/82) | Corregido (día 5) |
 | DEF-07 | Los ajustes consecutivos vuelven a contar la inflación ya aplicada | Alta | RF-12, RF-13 | CP-55, CP-56, CP-58 | [#83](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/83) | Corregido (28 oct) |
 | DEF-08 | El barrido automático pisa un ajuste con el siguiente del mismo contrato | Media | RF-12, RF-13 | CP-57 | [#84](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/84) | Corregido (28 oct) |
-| DEF-09 | Un archivo de importación subido por una inmobiliaria se puede usar desde otra | Media | — | CP-85 | [#97](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/97) | Corregido (30 oct) |
-| DEF-10 | El cronograma de ajustes encadena cada fecha a la anterior, en hora local, y un período desconocido se toma como trimestral | Media | RF-12 | CP-130 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-11 | Períodos, "hoy" y meses de documentos se arman en hora local del proceso | Media | — | CP-131 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-12 | La rendición muestra totales que no suman sus líneas | Media | — | CP-132 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-13 | El motor de liquidación acepta descuentos negativos y su total puede diferir en un centavo de lo mostrado | Baja | — | CP-133 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-14 | La comisión acepta porcentajes mayores a 100 y montos negativos | Media | — | CP-134 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-15 | `LiquidacionStatus.Pendiente` existe en la base y no en el paquete compartido | Baja | — | CP-135 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
+| DEF-09 | Un archivo de importación subido por una inmobiliaria se puede usar desde otra | Media | — | CP-85 | [#111](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/111) | Corregido (30 oct) |
+| DEF-10 | El cronograma de ajustes encadena cada fecha a la anterior, en hora local, y un período desconocido se toma como trimestral | Media | RF-12 | CP-130 | [#118](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/118) | Corregido (31 oct) |
+| DEF-11 | Períodos, "hoy" y meses de documentos se arman en hora local del proceso | Media | — | CP-131 | [#119](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/119) | Corregido (31 oct) |
+| DEF-12 | La rendición muestra totales que no suman sus líneas | Media | — | CP-132 | [#120](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/120) | Corregido (31 oct) |
+| DEF-13 | El motor de liquidación acepta descuentos negativos y su total puede diferir en un centavo de lo mostrado | Baja | — | CP-133 | [#121](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/121) | Corregido (31 oct) |
+| DEF-14 | La comisión acepta porcentajes mayores a 100 y montos negativos | Media | — | CP-134 | [#122](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/122) | Corregido (31 oct) |
+| DEF-15 | `LiquidacionStatus.Pendiente` existe en la base y no en el paquete compartido | Baja | — | CP-135 | [#123](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/123) | Corregido (31 oct) |
+| DEF-16 | Un comprobante sin pago no se puede guardar después de que el organismo ya autorizó el CAE | Alta | facturación (ítem 38) | CP-160 a CP-163 | [#124](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/124) | Corregido (31 oct) |
 
 ---
 
@@ -241,3 +242,16 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** el valor entra al enum y a la máquina de estados como estado heredado sin transiciones (no se inventa un flujo), con traducción en es y en, variante de etiqueta en la web y el comentario corregido.
 - **Prueba de regresión:** CP-135 en `test/unit/enum-parity.spec.ts` y `liquidacion-state-machine.spec.ts`.
 - **Evidencia rojo/verde:** commit de regresión `8cf7ef1` en rojo (1 caso); corrección en `b5dc17d`. Ejecuciones del pipeline: se completan al abrir el PR.
+## DEF-16 — Un comprobante sin pago se pierde después de que el organismo autoriza el CAE
+
+- **Requisito afectado:** facturación electrónica (ítem 38 de la hoja de ruta).
+- **Origen:** revisión de código del módulo de facturación.
+- **Casos que lo detectan:** CP-160, CP-161, CP-162, CP-163.
+- **Severidad:** alta. Consume un número fiscal del organismo sin dejar la fila que lo respalda.
+- **Pasos para reproducir:** `POST /api/invoices/emit` sin `paymentId` (el esquema compartido lo declara opcional).
+- **Resultado esperado:** 201 y un comprobante guardado sin pago asociado.
+- **Resultado obtenido:** error del servidor. `Comprobante.paymentId` era NOT NULL en la base y el servicio insertaba `null`; el INSERT corre después de que el organismo ya devolvió el CAE, de modo que el comprobante quedaba autorizado y sin fila.
+- **Defectos asociados en el mismo código:** la clave foránea desde `Payment` tenía `ON DELETE CASCADE`, así que borrar un pago borraba comprobantes fiscales; la moneda se guardaba siempre como `ARS` aunque el DTO trajera `monId` y cotización.
+- **Causa raíz:** el modelo y el esquema compartido no coincidían, y el guardado no tenía ninguna protección después de la autorización.
+- **Corrección:** migración `comprobante_pago_opcional` (`paymentId` nulo, clave foránea `ON DELETE SET NULL`); la moneda sale de `monId` (`PES` a ARS, `DOL` a USD, otro valor responde 400 antes de pedir el CAE); el guardado se reintenta tres veces y, si falla, deja el CAE, el número y los datos del comprobante en el registro de pedidos al organismo y devuelve 500 `COMPROBANTE_PERSIST_FAILED` con esos datos para recuperarlo. Limitación: el número lo asigna el organismo dentro de la emisión, por lo que no se puede reservar una fila pendiente antes de pedirlo sin volver nulos `numero` y `cae`; se eligió la variante mínima.
+- **Prueba de regresión:** CP-160 a CP-162 en `test/e2e/invoices.e2e-spec.ts` y CP-163 en `invoices.service.extra.spec.ts`.
