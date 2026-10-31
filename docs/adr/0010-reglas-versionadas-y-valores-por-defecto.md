@@ -122,3 +122,18 @@ Negativas:
 - Los tableros y las notificaciones de vencimiento siguen leyendo `endDate`;
   pasar al fin efectivo es un cambio posterior.
 - Base, rezago, escalonado y UVA se guardan pero todavía no cambian el cálculo.
+
+## Addendum: liquidaciones y numeración de recibos
+
+La generación de liquidaciones lee las reglas con `pickTermsAt` a la fecha del
+período (día de vencimiento, descuentos) y el alquiler con las mismas versiones y
+los ajustes aplicados, no con `contracts.rentAmount`. El proceso diario usa
+`leadDays` de los valores por defecto de cada inmobiliaria.
+
+El número de recibo es una serie única por inmobiliaria (`RECIBO_LIQUIDACION` en
+`document_sequences`), asignada al aprobar la liquidación (o al enviarla si se
+saltó ese paso) con un solo `INSERT ... ON CONFLICT`. No se reasigna ni se
+reutiliza: una liquidación anulada conserva su número, y los borradores que nunca
+llegan a aprobarse no gastan número. La numeración fiscal con punto de venta, si
+hace falta, es otra serie.
+

@@ -328,17 +328,42 @@ Admin, Gerente y Ventas; quitar pide confirmación.
 
 ### Generar la liquidación del mes
 
-**Liquidaciones** (`/liquidaciones`) → *Generar Mes*. La acción no trabaja
-contrato por contrato: elegido el período, crea las liquidaciones de todos los
-contratos activos de ese mes, informa cuántas generó y cuántas omitió porque ya
-existían. Es la operación que abre el mes. Está disponible para Admin, Gerente y
-Liquidaciones.
+La inmobiliaria no tiene que acordarse de abrir el mes: todos los días a las 6 de
+la mañana el sistema revisa cada inmobiliaria y, cuando faltan diez días o menos
+para el mes siguiente (los días de anticipación de *Valores por defecto*; de
+fábrica, el día 20), genera las liquidaciones de ese mes. Si ya existían no las
+repite.
+
+El botón hace lo mismo a pedido: **Liquidaciones** (`/liquidaciones`) → *Generar
+Mes*. Elegido el período, crea las liquidaciones de los contratos que rigen ese
+mes, informa cuántas generó, cuántas omitió porque ya existían y cuántos
+contratos quedaron fuera por no regir (todavía no empezaron o ya terminaron).
+Está disponible para Admin, Gerente y Liquidaciones.
+
+Cada liquidación se arma con las reglas de ese mes y no con las de hoy: el
+alquiler es el que regía entonces, vence el día de vencimiento del contrato, y si
+el contrato empieza después del día 1 o termina antes del último día del mes (con
+fin real cargado), el alquiler de ese mes se prorratea por días y se aclara en la
+descripción. Un contrato activo sigue liquidando aunque haya pasado su fin pactado
+hasta que se cargue el fin real. Las bonificaciones del contrato aparecen como un
+descuento.
 
 Cada liquidación nace en Borrador y recorre En Revisión, Aprobada, Enviada y
 Pagada; puede quedar Vencida o Anulada. En el detalle (`/liquidaciones/[id]`) se
 ven las líneas —alquiler, ajuste, extras, descuentos, multas— y se agregan,
 editan o quitan las que hagan falta antes de aprobar. Aprobar y enviar en lote
 desde el listado es una acción reservada a Admin y Gerente.
+
+Cada renglón muestra a quién le corresponde (locador, inmobiliaria o ente o
+proveedor) y si es comisionable: la comisión solo corre sobre el alquiler, sus
+ajustes y los punitorios, nunca sobre reparaciones, impuestos ni servicios. Cuando
+el alquiler usa un ajuste provisional, la liquidación se marca *Provisional* y sale
+como *Pago a cuenta*.
+
+Al aprobar la liquidación se le asigna un número de recibo, correlativo dentro de
+la inmobiliaria; no cambia al enviarla. *Imprimir recibo* descarga el PDF con el
+número, el monto en letras, la leyenda «Cobrado por cuenta y orden de» los
+locadores del contrato y los renglones agrupados según a quién corresponden.
 
 La liquidación tiene su comprobante en PDF, descargable desde el listado y desde
 el detalle. Es el documento que el inquilino ve en su portal. El archivo se baja

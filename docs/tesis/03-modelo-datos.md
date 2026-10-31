@@ -333,15 +333,25 @@ Resumen de gestión producido al cerrar el contrato.
 
 Liquidación mensual al inquilino.
 
-- `id`, `tenantId`, `contractId`, `period`, `status`, `dueDate`, `subtotal`, `total`, `currency`, `notes`, `pdfUrl`, `sentAt`, `paidAt`.
+- `id`, `tenantId`, `contractId`, `period`, `status`, `dueDate`, `subtotal`, `total`, `currency`, `notes`, `pdfUrl`, `sentAt`, `paidAt`, `kind`, `isProvisional`, `receiptSeq`.
+- `kind` es mensual, pago a cuenta o egreso. `isProvisional` marca que el alquiler usó un ajuste provisional (índice estimado), y la liquidación sale como pago a cuenta hasta que se corrija. `receiptSeq` es el número de recibo, único por inmobiliaria (`@@unique([tenantId, receiptSeq])`; nulo hasta que se aprueba).
 - Relación 1-N con `LiquidacionLineItem`, `Payment` y `Penalty`.
 
 ### LiquidacionLineItem
 
 Línea de la liquidación.
 
-- `id`, `tenantId`, `liquidacionId`, `type`, `description`, `amount`, `currency`, `sortOrder`.
-- `type` toma alquiler, ajuste, extra, descuento o multa.
+- `id`, `tenantId`, `liquidacionId`, `type`, `description`, `amount`, `currency`, `sortOrder`, `commissionable`, `beneficiary`, `sourceType`, `sourceId`.
+- `type` toma alquiler, ajuste, extra, descuento, multa, impuesto, servicio, cargo, honorario o ajuste retroactivo.
+- `beneficiary` dice a quién le corresponde el importe: locador, inmobiliaria o ente (proveedor o servicio). `commissionable` indica si el renglón entra en la base de la comisión: alquiler, ajustes, punitorios y descuentos sí; reparaciones, impuestos y servicios nunca. Los renglones existentes se migraron con esa regla y todos al locador.
+- `sourceType` y `sourceId` apuntan al registro de origen (boleta, cargo, punitorio, ajuste) y tienen un índice por inmobiliaria.
+
+### DocumentSequence
+
+Contador por inmobiliaria y serie, hoy solo para los recibos de liquidación (`RECIBO_LIQUIDACION`).
+
+- `id`, `tenantId`, `series`, `next`, con `@@unique([tenantId, series])`.
+- Un solo `INSERT ... ON CONFLICT DO UPDATE` incrementa `next`, de modo que dos aprobaciones simultáneas no repiten número.
 
 ### Payment
 

@@ -30,6 +30,7 @@ vi.mock('@/lib/download', () => ({ downloadFile: vi.fn() }));
 
 import { ApiRequestError } from '@/lib/api-client';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
+import { downloadFile } from '@/lib/download';
 import { LiquidacionDetail } from './liquidacion-detail';
 
 const nb = (s: string | null) => (s ?? '').replaceAll(' ', ' ');
@@ -291,5 +292,56 @@ describe('LiquidacionDetail', () => {
     await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]!);
     await user.click(await screen.findByRole('button', { name: 'Confirmar' }));
     expect(await screen.findByText('Error al eliminar concepto')).toBeInTheDocument();
+  });
+
+  describe('renglones con destino y recibo', () => {
+    it('muestra el destino y si el renglón es comisionable', async () => {
+      mockApi(() =>
+        liquidacion({
+          lineItems: [
+            { id: 'li-1', type: 'Alquiler', description: 'Alquiler 11/2026', amount: '100000', beneficiary: 'Locador', commissionable: true },
+            { id: 'li-2', type: 'Servicio', description: 'Gas 10/2026', amount: '4200', beneficiary: 'Ente', commissionable: false },
+            { id: 'li-3', type: 'Honorario', description: 'Gestión', amount: '800', beneficiary: 'Inmobiliaria', commissionable: false },
+          ],
+        }),
+      );
+      await mount();
+      expect(screen.getAllByText('Comisionable')).toHaveLength(1);
+      expect(screen.getByText('Locador')).toBeInTheDocument();
+      expect(screen.getByText('Ente o proveedor')).toBeInTheDocument();
+      expect(screen.getByText('Inmobiliaria')).toBeInTheDocument();
+      expect(screen.getByText('Servicio')).toBeInTheDocument();
+    });
+
+    it('muestra el número de recibo, el pago a cuenta y la marca de provisional', async () => {
+      mockApi(() =>
+        liquidacion({ status: 'Aprobada', kind: 'PagoACuenta', isProvisional: true, receiptNumber: '00000042' }),
+      );
+      await mount();
+      expect(screen.getByText('Recibo Nº 00000042')).toBeInTheDocument();
+      expect(screen.getByText('Pago a cuenta')).toBeInTheDocument();
+      expect(screen.getByText('Provisional')).toBeInTheDocument();
+    });
+
+    it('sin número avisa que se numera al aprobar', async () => {
+      mockApi(() => liquidacion());
+      await mount();
+      expect(screen.getByText('Se numera al aprobar')).toBeInTheDocument();
+      expect(screen.queryByText('Provisional')).not.toBeInTheDocument();
+    });
+
+    it('Imprimir recibo descarga el PDF de la liquidación', async () => {
+      mockApi(() => liquidacion({ status: 'Aprobada', receiptNumber: '00000042' }));
+      vi.mocked(downloadFile).mockResolvedValue(undefined as never);
+      const user = await mount();
+      await user.click(screen.getByRole('button', { name: 'Imprimir recibo' }));
+      expect(downloadFile).toHaveBeenCalledWith('/liquidaciones/l-1/pdf', 'recibo-00000042.pdf');
+    });
+
+    it('una liquidación anulada no ofrece imprimir', async () => {
+      mockApi(() => liquidacion({ status: 'Anulada' }));
+      await mount();
+      expect(screen.queryByRole('button', { name: 'Imprimir recibo' })).not.toBeInTheDocument();
+    });
   });
 });

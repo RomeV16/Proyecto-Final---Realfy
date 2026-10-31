@@ -262,6 +262,24 @@ export enum LineItemType {
   Extra = 'Extra',
   Descuento = 'Descuento',
   Multa = 'Multa',
+  Impuesto = 'Impuesto',
+  Servicio = 'Servicio',
+  Cargo = 'Cargo',
+  Honorario = 'Honorario',
+  AjusteRetroactivo = 'AjusteRetroactivo',
+}
+
+/** A quién le corresponde el importe de un renglón de la liquidación. */
+export enum LineBeneficiary {
+  Locador = 'Locador',
+  Inmobiliaria = 'Inmobiliaria',
+  Ente = 'Ente',
+}
+
+export enum LiquidacionKind {
+  Mensual = 'Mensual',
+  PagoACuenta = 'PagoACuenta',
+  Egreso = 'Egreso',
 }
 
 // ─── Service Enums ──────────────────────────────────────
