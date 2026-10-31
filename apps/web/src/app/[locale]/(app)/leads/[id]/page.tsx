@@ -20,6 +20,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { RowList } from '@/components/ui/card-grid';
 import { EntityRow } from '@/components/ui/entity-card';
 import { ListTransition, AnimatedList, StaggerItem, type ListState } from '@/components/ui/motion';
+import { formatNumber, formatLocalDate, formatDateTime } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -148,22 +149,9 @@ function formatRelativeTime(dateStr: string): string {
   if (diffMin < 60) return `hace ${diffMin} min`;
   if (diffHrs < 24) return `hace ${diffHrs}h`;
   if (diffDays < 7) return `hace ${diffDays}d`;
-  return date.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  return formatLocalDate(date, 'numeric');
 }
 
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function visitAddress(visit: Visit): string | undefined {
   if (!visit.property) return undefined;
@@ -490,7 +478,7 @@ export default function LeadDetailPage() {
           {lead.budget != null && (
             <DetailRow
               label={t('leadDetail.budget')}
-              value={`${lead.budgetCurrency} ${lead.budget.toLocaleString('es-AR')}`}
+              value={`${lead.budgetCurrency} ${formatNumber(lead.budget)}`}
             />
           )}
           <DetailRow label={t('leadDetail.pipeline')} value={lead.pipeline.name} />
@@ -589,7 +577,7 @@ export default function LeadDetailPage() {
                         <Badge variant={VISIT_STATUS_VARIANT[visit.status] || 'neutral'}>
                           {t(`visits.statuses.${visit.status}`)}
                         </Badge>
-                        <span className="text-xs text-[var(--color-muted)]">{formatDateTime(visit.scheduledAt)}</span>
+                        <span className="text-xs text-[var(--color-muted)]">{formatDateTime(visit.scheduledAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       {addr && (
                         <p className="text-xs text-[var(--color-muted)] mt-1 flex items-center gap-1">
@@ -647,7 +635,7 @@ export default function LeadDetailPage() {
                 }
                 title={
                   <span className="inline-flex flex-wrap items-center gap-2">
-                    <span>{formatDateTime(v.scheduledAt)}</span>
+                    <span>{formatDateTime(v.scheduledAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                     <Badge variant={VISIT_STATUS_VARIANT[v.status] || 'neutral'}>{t(`visits.statuses.${v.status}`)}</Badge>
                     {v.outcome && <Badge variant="brand">{t(`visits.outcomes.${v.outcome}`)}</Badge>}
                   </span>

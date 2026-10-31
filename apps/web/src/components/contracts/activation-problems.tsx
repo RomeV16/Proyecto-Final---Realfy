@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ApiRequestError } from '@/lib/api-client';
+import { formatDate } from '@/lib/format';
 
 /** Motivo de rechazo que devuelve POST /contracts/:id/activate (o el alta ya activa). */
 export interface ActivationProblem {
@@ -33,18 +34,6 @@ const KNOWN_CODES = new Set([
   'RENTAL_OPERATION_ARCHIVED',
 ]);
 
-function formatDate(iso?: string): string {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
-}
 
 /** Lista, en lenguaje llano, de lo que impide activar el contrato. */
 export function ActivationProblems({
@@ -70,8 +59,8 @@ export function ActivationProblems({
           <li key={`${p.code}-${p.contractId ?? i}`} className="text-sm text-red-700">
             {KNOWN_CODES.has(p.code)
               ? t(`problems.${p.code}`, {
-                  start: formatDate(p.startDate),
-                  end: formatDate(p.endDate),
+                  start: formatDate(p.startDate, 'medium'),
+                  end: formatDate(p.endDate, 'medium'),
                 })
               : t('problems.UNKNOWN')}
             {p.code === 'OVERLAPPING_CONTRACT' && p.contractId && (

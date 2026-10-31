@@ -5,7 +5,8 @@ import { Meter } from '@/components/ui/micro-viz';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ListTransition } from '@/components/ui/motion';
 import { Plate } from './portal-primitives';
-import { formatDate, formatMoney, type PortalOverview } from './portal-data';
+import { type PortalOverview } from './portal-data';
+import { formatDate, formatMoney } from '@/lib/format';
 
 /**
  * The contract, reduced to the two things a tenant is ever asked about it:

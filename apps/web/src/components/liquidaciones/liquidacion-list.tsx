@@ -15,6 +15,7 @@ import { CardGrid } from '@/components/ui/card-grid';
 import { Badge } from '@/components/ui/badge';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
+import { formatMoneyFixed, formatDate } from '@/lib/format';
 
 
 /* ──────────── Types ──────────── */
@@ -85,18 +86,7 @@ const STATUS_ACCENT: Record<string, 'brand' | 'success' | 'warning' | 'danger' |
 
 /* ──────────── Helpers ──────────── */
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
 
-function formatCurrency(amount: string | number | undefined): string {
-  if (amount == null) return '—';
-  return '$ ' + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 /* ──────────── Card ──────────── */
 
@@ -135,7 +125,7 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
 
   const metaItems: Array<{ icon?: IconName; label: string }> = [{ icon: 'mapPin', label: propertyText }];
   if (item.dueDate) {
-    metaItems.push({ icon: 'calendarClock', label: t('card.dueDate', { date: formatDate(item.dueDate) }) });
+    metaItems.push({ icon: 'calendarClock', label: t('card.dueDate', { date: formatDate(item.dueDate, 'medium') }) });
   }
 
   /* One blocker at a time, so the grid doubles as a worklist. */
@@ -143,7 +133,7 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
     ? {
         tone: 'danger' as const,
         icon: 'alert' as const,
-        text: item.dueDate ? tCard('overdueAlert', { date: formatDate(item.dueDate) }) : t('statuses.Vencida'),
+        text: item.dueDate ? tCard('overdueAlert', { date: formatDate(item.dueDate, 'medium') }) : t('statuses.Vencida'),
       }
     : isPending
       ? { tone: 'warning' as const, icon: 'clock' as const, text: tCard('pendingApproval') }
@@ -196,7 +186,7 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
 
       <EntityCard.Body>
         <EntityCard.Amount
-          value={formatCurrency(total)}
+          value={formatMoneyFixed(total)}
           hint={tCard('totalAmount')}
           tone={isVoided ? 'muted' : isPaid ? 'success' : 'default'}
         />

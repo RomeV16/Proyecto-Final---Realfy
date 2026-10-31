@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { formatLocalDate } from '@/lib/format';
 
 interface TicketItem {
   id: string;
@@ -91,7 +92,7 @@ function TicketCard({
           sla && (
             <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-md">
               <Icon name="clock" className="h-3 w-3" strokeWidth={2} />
-              {sla.toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+              {formatLocalDate(sla, { day: '2-digit', month: 'short' })}
             </span>
           )
         }

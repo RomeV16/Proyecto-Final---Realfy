@@ -7,13 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ListTransition } from '@/components/ui/motion';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Plate, TONE_COLOR, type PortalTone } from './portal-primitives';
-import {
-  formatDate,
-  formatMoney,
-  formatPeriod,
-  type PortalOverview,
-  usePortalPaths,
-} from './portal-data';
+import { type PortalOverview, usePortalPaths } from './portal-data';
+import { formatDate, formatMoney, formatPeriod } from '@/lib/format';
 
 /**
  * The one answer the tenant opens the portal for: am I up to date, and if not,

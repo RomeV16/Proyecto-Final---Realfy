@@ -9,6 +9,7 @@ import { ComprobanteType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { formatMoneyFixed, formatDate, formatLocalDate, formatCompNumber } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -40,22 +41,8 @@ interface InvoiceDetailProps {
 
 /* ──────────── Helpers ──────────── */
 
-function formatCompNumber(pdv: number, num: number): string {
-  return `${String(pdv).padStart(4, '0')}-${String(num).padStart(8, '0')}`;
-}
 
-function formatCurrency(amount: string | number | undefined | null): string {
-  if (amount == null) return '—';
-  return '$ ' + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
 
 const TYPE_COLORS: Record<string, string> = {
   FacturaA: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -171,12 +158,12 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             <p className="text-xl font-bold text-slate-900 font-mono tabular-nums">
               {formatCompNumber(data.puntoDeVenta, data.comprobanteNumber)}
             </p>
-            <p className="text-xs text-slate-400">{t('createdAt')}: {formatDate(data.createdAt)}</p>
+            <p className="text-xs text-slate-400">{t('createdAt')}: {formatLocalDate(data.createdAt, 'long')}</p>
           </div>
 
           <div className="flex flex-col gap-2 sm:items-end">
             <p className="text-2xl font-bold text-slate-900 tabular-nums">
-              {isNC ? '- ' : ''}{formatCurrency(data.amount)}
+              {isNC ? '- ' : ''}{formatMoneyFixed(data.amount)}
             </p>
             {/* PDF download */}
             <button
@@ -229,18 +216,18 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           {data.impNeto != null && Number(data.impNeto) > 0 && (
             <div>
               <p className="text-xs text-slate-500">{t('netAmount')}</p>
-              <p className="text-sm font-semibold tabular-nums text-slate-900">{formatCurrency(data.impNeto)}</p>
+              <p className="text-sm font-semibold tabular-nums text-slate-900">{formatMoneyFixed(data.impNeto)}</p>
             </div>
           )}
           {data.impIva != null && Number(data.impIva) > 0 && (
             <div>
               <p className="text-xs text-slate-500">{t('ivaAmount')} {data.ivaRate ? `(${data.ivaRate}%)` : ''}</p>
-              <p className="text-sm font-semibold tabular-nums text-slate-900">{formatCurrency(data.impIva)}</p>
+              <p className="text-sm font-semibold tabular-nums text-slate-900">{formatMoneyFixed(data.impIva)}</p>
             </div>
           )}
           <div>
             <p className="text-xs text-slate-500">{t('amount')}</p>
-            <p className="text-lg font-bold tabular-nums text-slate-900">{formatCurrency(data.amount)}</p>
+            <p className="text-lg font-bold tabular-nums text-slate-900">{formatMoneyFixed(data.amount)}</p>
           </div>
           {data.currency && (
             <div>
@@ -261,7 +248,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           {data.caeExpiration && (
             <div>
               <p className="text-xs text-slate-500">{t('caeExpiration')}</p>
-              <p className="text-sm text-slate-700">{formatDate(data.caeExpiration)}</p>
+              <p className="text-sm text-slate-700">{formatDate(data.caeExpiration, 'long')}</p>
             </div>
           )}
         </div>

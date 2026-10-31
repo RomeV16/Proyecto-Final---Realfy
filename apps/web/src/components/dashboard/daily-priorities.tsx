@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { formatMoneyRounded } from '@/lib/format';
 
 /* ──────────────── Types ──────────────── */
 
@@ -72,12 +73,6 @@ const URGENCY_TONE: Record<Urgency, 'danger' | 'warning' | 'brand'> = {
 
 /* ──────────────── Formatting ──────────────── */
 
-const fmtAmount = (amount: number, currency: string | null) =>
-  new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: currency || 'ARS',
-    maximumFractionDigits: 0,
-  }).format(amount);
 
 /* ──────────────── Small pieces ──────────────── */
 
@@ -195,7 +190,7 @@ export function DailyPriorities() {
     if (priority.kind === 'cobranza' && priority.amount !== null) {
       return (
         <EntityRow.Amount
-          value={fmtAmount(priority.amount, priority.currency)}
+          value={formatMoneyRounded(priority.amount, priority.currency)}
           hint={
             priority.daysOverdue && priority.daysOverdue > 0
               ? t('overdueDays', { days: priority.daysOverdue })

@@ -34,6 +34,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
+import { formatMoney, formatLocalDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -112,18 +113,7 @@ interface PropertyPersonRole {
 
 /* ──────────── Helpers ──────────── */
 
-function formatPrice(price: string | number, currency?: string): string {
-  const symbol = currency === 'USD' ? 'US$' : '$';
-  return `${symbol} ${Number(price).toLocaleString('es-AR')}`;
-}
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
 
 function toFormData(detail: PropertyDetail): PropertyData {
   return {
@@ -282,8 +272,8 @@ function DetailView({
       value: `${property.latitude.toFixed(5)}, ${property.longitude.toFixed(5)}`,
     });
   }
-  facts.push({ label: t('detail.createdAt'), value: formatDate(property.createdAt) });
-  facts.push({ label: t('detail.updatedAt'), value: formatDate(property.updatedAt) });
+  facts.push({ label: t('detail.createdAt'), value: formatLocalDate(property.createdAt, 'mediumPadded') });
+  facts.push({ label: t('detail.updatedAt'), value: formatLocalDate(property.updatedAt, 'mediumPadded') });
 
   return (
     <div className="space-y-5">
@@ -319,7 +309,7 @@ function DetailView({
           <DetailSection>
             <p className="micro">{t('form.price')}</p>
             <p className="font-display mt-1 text-2xl font-medium tabular-nums tracking-[var(--tracking-tight)] text-[var(--color-text)] [overflow-wrap:anywhere] sm:text-3xl">
-              {headlinePrice ? formatPrice(headlinePrice, headlineCurrency) : t('card.noPrice')}
+              {headlinePrice ? formatMoney(headlinePrice, headlineCurrency) : t('card.noPrice')}
             </p>
             {headlinePrice != null && (
               <p className="mt-1 text-xs text-[var(--color-muted)]">
@@ -379,9 +369,9 @@ function DetailView({
                       </div>
                       <p className="font-display mt-1 text-base font-medium tabular-nums text-[var(--color-text)] [overflow-wrap:anywhere]">
                         {op.price
-                          ? formatPrice(op.price, op.currency)
+                          ? formatMoney(op.price, op.currency)
                           : property.price
-                            ? formatPrice(property.price, property.currency)
+                            ? formatMoney(property.price, property.currency)
                             : t('card.noPrice')}
                       </p>
 

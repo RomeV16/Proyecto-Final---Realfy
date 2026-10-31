@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
 import { Sparkline, TrendDelta } from '@/components/ui/micro-viz';
+import { formatMoneyFixed, formatDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -28,19 +29,7 @@ interface AdjustmentTimelineProps {
 
 /* ──────────── Helpers ──────────── */
 
-function formatCurrency(amount: string | number | null | undefined, currency?: string): string {
-  if (amount == null) return '—';
-  const prefix = currency === 'USD' ? 'US$ ' : '$ ';
-  return prefix + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'short' });
-  } catch {
-    return iso;
-  }
-}
 
 /** Badge variant + spine dot colour share the same status→tone map. */
 const STATUS_TONE: Record<string, 'success' | 'info' | 'neutral' | 'warning'> = {
@@ -110,7 +99,7 @@ export function AdjustmentTimeline({ adjustments, schedules, currency }: Adjustm
         <div className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] bg-[var(--color-bg)] px-4 py-3">
           <div className="min-w-0">
             <p className="truncate text-lg font-bold tabular-nums text-[var(--color-text)]">
-              {formatCurrency(lastApplied.newAmount, currency)}
+              {formatMoneyFixed(lastApplied.newAmount, currency)}
             </p>
             {lastPct != null && (
               <div className="mt-0.5 flex items-center gap-1.5">
@@ -167,16 +156,16 @@ export function AdjustmentTimeline({ adjustments, schedules, currency }: Adjustm
                     </div>
                   </div>
 
-                  <p className="mb-2 text-xs text-[var(--color-muted)]">{formatDate(item.scheduledDate)}</p>
+                  <p className="mb-2 text-xs text-[var(--color-muted)]">{formatDate(item.scheduledDate, 'monthYear')}</p>
 
                   {!item.isPending && item.previousAmount != null && item.newAmount != null && (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="tabular-nums text-[var(--color-muted)]">
-                        {formatCurrency(item.previousAmount, currency)}
+                        {formatMoneyFixed(item.previousAmount, currency)}
                       </span>
                       <Icon name="arrowRight" className="h-3.5 w-3.5 text-[var(--color-muted)]" strokeWidth={2} />
                       <span className="font-semibold tabular-nums text-[var(--color-text)]">
-                        {formatCurrency(item.newAmount, currency)}
+                        {formatMoneyFixed(item.newAmount, currency)}
                       </span>
                       {pct != null && <TrendDelta value={pct} invert />}
                     </div>

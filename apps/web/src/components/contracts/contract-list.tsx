@@ -16,6 +16,7 @@ import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
 import { Badge } from '@/components/ui/badge';
 import { ProgressRing } from '@/components/ui/micro-viz';
+import { formatMoneyFixed, formatDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -71,19 +72,7 @@ const LIMIT = 12;
 
 /* ──────────── Formatting ──────────── */
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
 
-function formatCurrency(amount: string | number | undefined, currency?: string): string {
-  if (amount == null) return '—';
-  const prefix = currency === 'USD' ? 'US$ ' : '$ ';
-  return prefix + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 /** Whole calendar months between two dates (can be negative). */
 function monthsBetween(a: Date, b: Date): number {
@@ -194,20 +183,20 @@ function ContractCard({ contract, localePrefix }: { contract: ContractItem; loca
               {tenantName} → {propertyTitle}
             </EntityCard.Title>
             <EntityCard.Subtitle>
-              {term ? t('card.termProgress', { elapsed: term.elapsed, total: term.total }) : formatDate(contract.startDate)}
+              {term ? t('card.termProgress', { elapsed: term.elapsed, total: term.total }) : formatDate(contract.startDate, 'medium')}
             </EntityCard.Subtitle>
           </div>
         </div>
 
         {contract.endDate && (
           <EntityCard.Meta
-            items={[{ icon: 'calendar', label: t('card.dateRange', { start: formatDate(contract.startDate), end: formatDate(contract.endDate) }) }]}
+            items={[{ icon: 'calendar', label: t('card.dateRange', { start: formatDate(contract.startDate, 'medium'), end: formatDate(contract.endDate, 'medium') }) }]}
           />
         )}
 
         {contract.rentAmount != null ? (
           <EntityCard.Amount
-            value={formatCurrency(contract.rentAmount, contractCurrency)}
+            value={formatMoneyFixed(contract.rentAmount, contractCurrency)}
             hint={contract.adjustmentType ? t(`adjustmentTypes.${contract.adjustmentType}`) : t('card.rent')}
           />
         ) : (

@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
 import type { PublicPropertyListItem } from '@/lib/public-portal';
+import { formatMoney } from '@/lib/format';
 
 /**
  * Grilla de propiedades del portal público.
@@ -17,10 +18,6 @@ import type { PublicPropertyListItem } from '@/lib/public-portal';
  * solo se arma la tarjeta y se anima la lista.
  */
 
-function formatPrice(price: number | string, currency?: string | null): string {
-  const symbol = currency === 'USD' ? 'US$' : '$';
-  return `${symbol} ${Number(price).toLocaleString('es-AR')}`;
-}
 
 function PublicPropertyCard({
   property,
@@ -71,7 +68,7 @@ function PublicPropertyCard({
       <EntityCard.Body>
         {property.price ? (
           <EntityCard.Amount
-            value={formatPrice(property.price, property.currency)}
+            value={formatMoney(property.price, property.currency)}
             hint={operationLabel}
           />
         ) : (

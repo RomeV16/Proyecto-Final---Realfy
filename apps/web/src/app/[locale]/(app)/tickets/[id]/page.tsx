@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Reveal } from '@/components/ui/reveal';
 import { Spinner } from '@/components/ui/spinner';
+import { formatDateTime } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -104,16 +105,6 @@ function priorityVariant(priority: string): 'danger' | 'warning' | 'info' | 'neu
   }
 }
 
-function formatDate(iso?: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function partyName(p?: Party | null): string {
   if (!p) return '—';
@@ -367,9 +358,9 @@ export default function TicketDetailPage() {
             />
             <DetailRow
               label="Fecha límite"
-              value={ticket.slaDeadline ? formatDate(ticket.slaDeadline) : '—'}
+              value={ticket.slaDeadline ? formatDateTime(ticket.slaDeadline, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
             />
-            <DetailRow label={t('detail.createdAt')} value={formatDate(ticket.createdAt)} />
+            <DetailRow label={t('detail.createdAt')} value={formatDateTime(ticket.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} />
           </div>
         </div>
       </Reveal>
@@ -540,7 +531,7 @@ export default function TicketDetailPage() {
                       <span className="text-sm font-medium text-[var(--color-text)]">
                         {partyName(c.user || c.person)}
                       </span>
-                      <span className="micro text-[var(--color-muted)]">{formatDate(c.createdAt)}</span>
+                      <span className="micro text-[var(--color-muted)]">{formatDateTime(c.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <p className="text-sm text-[var(--color-text)] mt-0.5 whitespace-pre-wrap">{c.content}</p>
                     {c.attachments && c.attachments.length > 0 && (

@@ -19,6 +19,7 @@ import { CardGrid } from '@/components/ui/card-grid';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
 import { ExportButtons } from '../import/export-buttons';
+import { formatMoney } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -145,7 +146,7 @@ function PropertyCard({ property, localePrefix }: { property: PropertyItem; loca
         <div className="flex items-start justify-between gap-2">
           {price ? (
             <EntityCard.Amount
-              value={`${currency === 'USD' ? 'US$' : '$'} ${Number(price).toLocaleString('es-AR')}`}
+              value={formatMoney(price, currency)}
               hint={primaryOp && t(`operationTypes.${primaryOp.operationType}`)}
             />
           ) : (

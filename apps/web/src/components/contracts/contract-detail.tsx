@@ -24,6 +24,7 @@ import {
   activationProblemsOf,
   type ActivationProblem,
 } from './activation-problems';
+import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -156,29 +157,7 @@ function AjustesTab({
     };
   }, [contractId, tCommon]);
 
-  function fmtCurrency(amount: number | string | null | undefined): string {
-    if (amount == null) return '—';
-    const prefix = currency === 'USD' ? 'US$ ' : '$ ';
-    return (
-      prefix +
-      Number(amount).toLocaleString('es-AR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })
-    );
-  }
 
-  function fmtDate(iso: string): string {
-    try {
-      return new Date(iso).toLocaleDateString('es-AR', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    } catch {
-      return iso;
-    }
-  }
 
   const appliedAdjustments = (adjustments || []).filter(
     (a) => a.status === 'Applied',
@@ -239,7 +218,7 @@ function AjustesTab({
             <div>
               <p className="text-xs text-slate-500 mb-0.5">{t('currentRent')}</p>
               <p className="text-sm font-semibold text-slate-900 tabular-nums">
-                {fmtCurrency(preview.currentRent)}
+                {formatMoneyFixed(preview.currentRent)}
               </p>
             </div>
             <div>
@@ -247,7 +226,7 @@ function AjustesTab({
                 {t('projectedRent')}
               </p>
               <p className="text-sm font-bold text-slate-900 tabular-nums">
-                {fmtCurrency(preview.projectedRent)}
+                {formatMoneyFixed(preview.projectedRent)}
               </p>
             </div>
             <div>
@@ -260,7 +239,7 @@ function AjustesTab({
                 }`}
               >
                 {preview.projectedDelta >= 0 ? '+' : ''}
-                {fmtCurrency(preview.projectedDelta)}
+                {formatMoneyFixed(preview.projectedDelta)}
               </p>
             </div>
           </div>
@@ -314,7 +293,7 @@ function AjustesTab({
                         className="hover:bg-slate-50/50 transition-colors"
                       >
                         <td className="py-2.5 pr-4 text-slate-700">
-                          {fmtDate(adj.scheduledDate)}
+                          {formatDate(adj.scheduledDate, 'medium')}
                         </td>
                         <td className="py-2.5 pr-4">
                           <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
@@ -322,10 +301,10 @@ function AjustesTab({
                           </span>
                         </td>
                         <td className="py-2.5 pr-4 text-right tabular-nums text-slate-600">
-                          {fmtCurrency(adj.previousAmount)}
+                          {formatMoneyFixed(adj.previousAmount)}
                         </td>
                         <td className="py-2.5 pr-4 text-right tabular-nums font-semibold text-slate-900">
-                          {fmtCurrency(adj.newAmount)}
+                          {formatMoneyFixed(adj.newAmount)}
                         </td>
                         <td className="py-2.5 text-right tabular-nums">
                           {pct != null ? (
@@ -362,7 +341,7 @@ function AjustesTab({
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-slate-500">
-                        {fmtDate(adj.scheduledDate)}
+                        {formatDate(adj.scheduledDate, 'medium')}
                       </span>
                       <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
                         {tTypes(adj.adjustmentType)}
@@ -370,7 +349,7 @@ function AjustesTab({
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <span className="text-slate-500 tabular-nums">
-                        {fmtCurrency(adj.previousAmount)}
+                        {formatMoneyFixed(adj.previousAmount)}
                       </span>
                       <svg
                         className="w-3.5 h-3.5 text-slate-400"
@@ -386,7 +365,7 @@ function AjustesTab({
                         />
                       </svg>
                       <span className="font-semibold text-slate-900 tabular-nums">
-                        {fmtCurrency(adj.newAmount)}
+                        {formatMoneyFixed(adj.newAmount)}
                       </span>
                       {pct != null && (
                         <span
@@ -412,32 +391,7 @@ function AjustesTab({
 
 /* ──────────── Helpers ──────────── */
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
-}
 
-function formatCurrency(
-  amount: string | number | undefined | null,
-  currency?: string,
-): string {
-  if (amount == null) return '—';
-  const prefix = currency === 'USD' ? 'US$ ' : '$ ';
-  return (
-    prefix +
-    Number(amount).toLocaleString('es-AR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })
-  );
-}
 
 /* ──────────── Main Component ──────────── */
 
@@ -636,15 +590,15 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
               {contract.property?.title || t('title')}
             </h1>
             <p className="text-sm text-slate-500">
-              {formatDate(contract.startDate)}
-              {contract.endDate && ` — ${formatDate(contract.endDate)}`}
+              {formatDate(contract.startDate, 'long')}
+              {contract.endDate && ` — ${formatDate(contract.endDate, 'long')}`}
             </p>
           </div>
 
           <div className="text-right">
             <p className="text-xs text-slate-500 mb-1">{t('rentAmount')}</p>
             <p className="text-2xl font-bold text-slate-900 tabular-nums">
-              {formatCurrency(contract.rentAmount, contractCurrency)}
+              {formatMoneyFixed(contract.rentAmount, contractCurrency)}
             </p>
           </div>
         </div>
@@ -828,7 +782,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
               <div>
                 <p className="text-xs text-slate-500 mb-0.5">{t('rent')}</p>
                 <p className="text-sm font-semibold text-slate-900 tabular-nums">
-                  {formatCurrency(contract.rentAmount, contractCurrency)}
+                  {formatMoneyFixed(contract.rentAmount, contractCurrency)}
                 </p>
               </div>
               <div>
@@ -840,7 +794,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
               <div>
                 <p className="text-xs text-slate-500 mb-0.5">{t('deposit')}</p>
                 <p className="text-sm font-semibold text-slate-900 tabular-nums">
-                  {formatCurrency(contract.depositAmount, contractCurrency)}
+                  {formatMoneyFixed(contract.depositAmount, contractCurrency)}
                 </p>
               </div>
               <div>
@@ -906,7 +860,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
                     </EntityCard.Body>
                     {g.amount != null && (
                       <EntityCard.Footer>
-                        <EntityCard.Amount value={formatCurrency(g.amount, contractCurrency)} />
+                        <EntityCard.Amount value={formatMoneyFixed(g.amount, contractCurrency)} />
                       </EntityCard.Footer>
                     )}
                   </EntityCard>
@@ -935,10 +889,10 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
           {/* Metadata */}
           <div className="text-xs text-slate-400 flex gap-4">
             <span>
-              {t('createdAt')}: {formatDate(contract.createdAt)}
+              {t('createdAt')}: {formatLocalDate(contract.createdAt, 'long')}
             </span>
             <span>
-              {t('updatedAt')}: {formatDate(contract.updatedAt)}
+              {t('updatedAt')}: {formatLocalDate(contract.updatedAt, 'long')}
             </span>
           </div>
         </>

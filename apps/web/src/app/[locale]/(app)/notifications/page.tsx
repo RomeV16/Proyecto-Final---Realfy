@@ -8,6 +8,7 @@ import { RowList } from '@/components/ui/card-grid';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { apiClient } from '@/lib/api-client';
+import { formatDateTime } from '@/lib/format';
 
 interface Notification {
   id: string;
@@ -28,15 +29,6 @@ interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 /**
  * Notification kind → icon, tone and accent. The type strings come from the
@@ -153,7 +145,7 @@ export default function NotificationsPage() {
                 </span>
               }
               subtitle={n.message}
-              meta={<EntityRow.Meta items={[{ icon: 'clock', label: formatDate(n.createdAt) }]} />}
+              meta={<EntityRow.Meta items={[{ icon: 'clock', label: formatDateTime(n.createdAt, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }]} />}
               actions={
                 <>
                   {!n.isRead && (

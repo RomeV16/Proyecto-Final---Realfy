@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
+import { formatMoneyFixed, formatLocalDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -71,18 +72,7 @@ function RenditionStatusBadge({ status, size = 'sm' }: { status: string; size?: 
 
 /* ──────────── Helpers ──────────── */
 
-function formatCurrency(amount: string | number | undefined | null): string {
-  if (amount == null) return '—';
-  return '$ ' + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
 
 const LINE_ITEM_ICONS: Record<string, string> = {
   [RendicionLineItemType.Alquiler]: '🏠',
@@ -371,7 +361,7 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
             )}
             {rendition.status === RendicionStatus.Depositada && rendition.depositedAt && (
               <p className="text-sm text-slate-500">
-                {t('depositedAt')}: {formatDate(rendition.depositedAt)}
+                {t('depositedAt')}: {formatLocalDate(rendition.depositedAt, 'long')}
               </p>
             )}
           </div>
@@ -380,7 +370,7 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
         {/* Timestamps */}
         {rendition.sentAt && (
           <p className="text-xs text-slate-400 mt-2">
-            {t('sentAt')}: {formatDate(rendition.sentAt)}
+            {t('sentAt')}: {formatLocalDate(rendition.sentAt, 'long')}
           </p>
         )}
 
@@ -402,27 +392,27 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <span className="text-sm text-slate-600">{t('summary.rentCollected')}</span>
-            <span className="text-sm font-medium text-slate-900 tabular-nums">{formatCurrency(rendition.rentCollected)}</span>
+            <span className="text-sm font-medium text-slate-900 tabular-nums">{formatMoneyFixed(rendition.rentCollected)}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-slate-600">{t('summary.commission')}</span>
-            <span className="text-sm text-red-600 tabular-nums">- {formatCurrency(rendition.commissionAmount)}</span>
+            <span className="text-sm text-red-600 tabular-nums">- {formatMoneyFixed(rendition.commissionAmount)}</span>
           </div>
           {Number(rendition.adminFeeAmount) > 0 && (
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600">{t('summary.adminFee')}</span>
-              <span className="text-sm text-red-600 tabular-nums">- {formatCurrency(rendition.adminFeeAmount)}</span>
+              <span className="text-sm text-red-600 tabular-nums">- {formatMoneyFixed(rendition.adminFeeAmount)}</span>
             </div>
           )}
           {Number(rendition.deductionTotal) > 0 && (
             <div className="flex justify-between items-center">
               <span className="text-sm text-slate-600">{t('summary.deductions')}</span>
-              <span className="text-sm text-red-600 tabular-nums">- {formatCurrency(rendition.deductionTotal)}</span>
+              <span className="text-sm text-red-600 tabular-nums">- {formatMoneyFixed(rendition.deductionTotal)}</span>
             </div>
           )}
           <div className="flex justify-between items-center pt-2 border-t border-slate-200">
             <span className="text-base font-bold text-slate-900">{t('summary.netDeposit')}</span>
-            <span className="text-lg font-bold text-emerald-600 tabular-nums">{formatCurrency(rendition.netDeposit)}</span>
+            <span className="text-lg font-bold text-emerald-600 tabular-nums">{formatMoneyFixed(rendition.netDeposit)}</span>
           </div>
         </div>
       </div>
@@ -472,7 +462,7 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
                 }
                 trailing={
                   <EntityRow.Amount
-                    value={`${li.isDebit ? '- ' : ''}${formatCurrency(li.amount)}`}
+                    value={`${li.isDebit ? '- ' : ''}${formatMoneyFixed(li.amount)}`}
                     tone={li.isDebit ? 'danger' : 'default'}
                   />
                 }
@@ -612,8 +602,8 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
 
       {/* Metadata */}
       <div className="text-xs text-slate-400 flex gap-4">
-        <span>{t('detail.createdAt')}: {formatDate(rendition.createdAt)}</span>
-        <span>{t('detail.updatedAt')}: {formatDate(rendition.updatedAt)}</span>
+        <span>{t('detail.createdAt')}: {formatLocalDate(rendition.createdAt, 'long')}</span>
+        <span>{t('detail.updatedAt')}: {formatLocalDate(rendition.updatedAt, 'long')}</span>
       </div>
     </div>
   );

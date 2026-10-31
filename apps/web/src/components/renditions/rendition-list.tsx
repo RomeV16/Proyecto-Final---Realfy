@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Avatar } from '@/components/ui/avatar';
 import { Meter } from '@/components/ui/micro-viz';
+import { formatMoneyFixed } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -85,10 +86,6 @@ function RenditionStatusBadge({ status, onCover }: { status: string; onCover?: b
 
 /* ──────────── Helpers ──────────── */
 
-function formatCurrency(amount: string | number | undefined): string {
-  if (amount == null) return '—';
-  return '$ ' + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 /* ──────────── Card ──────────── */
 
@@ -146,9 +143,9 @@ function RenditionCard({ item, localePrefix, onDownloadPdf }: CardProps) {
           </span>
         </div>
 
-        <EntityCard.Amount value={formatCurrency(netDeposit)} hint={t('summary.netDeposit')} />
+        <EntityCard.Amount value={formatMoneyFixed(netDeposit)} hint={t('summary.netDeposit')} />
 
-        <Meter value={retainedPct} tone="brand" label={t('table.rentCollected')} hint={formatCurrency(rentCollected)} />
+        <Meter value={retainedPct} tone="brand" label={t('table.rentCollected')} hint={formatMoneyFixed(rentCollected)} />
 
         <EntityCard.Meta items={metaItems} />
 

@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import type { ArcaCertificateDTO } from '@/lib/schemas/invoices';
+import { formatLocalDate } from '@/lib/format';
 
 /* ── Helpers ── */
 
@@ -35,13 +36,6 @@ function CertExpiryBadge({ notAfter }: { notAfter: string }) {
   );
 }
 
-function formatDate(iso: string) {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', {
-      year: 'numeric', month: 'long', day: 'numeric',
-    });
-  } catch { return iso; }
-}
 
 /* ── Validate PEM ── */
 
@@ -272,12 +266,12 @@ export function CertificateSection({ cert, onRefresh }: CertificateSectionProps)
             </div>
             <div>
               <p className="text-xs text-slate-500">{t('notBefore')}</p>
-              <p className="text-sm text-slate-700">{formatDate(cert.notBefore)}</p>
+              <p className="text-sm text-slate-700">{formatLocalDate(cert.notBefore, 'long')}</p>
             </div>
             <div>
               <p className="text-xs text-slate-500">{t('notAfter')}</p>
               <div className="flex items-center gap-2">
-                <p className="text-sm text-slate-700">{formatDate(cert.notAfter)}</p>
+                <p className="text-sm text-slate-700">{formatLocalDate(cert.notAfter, 'long')}</p>
                 <CertExpiryBadge notAfter={cert.notAfter} />
               </div>
             </div>

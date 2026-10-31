@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { Reveal } from '@/components/ui/reveal';
+import { formatLocalDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -32,14 +33,6 @@ interface ProviderDetail {
 
 /* ──────────── Helpers ──────────── */
 
-function formatDate(iso?: string): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
-}
 
 /* ──────────── Page ──────────── */
 
@@ -219,13 +212,13 @@ export default function ProviderDetailPage() {
           <div>
             <p className="micro">{tDetail('createdAt')}</p>
             <p className="text-sm font-medium text-[var(--color-text)] mt-1 first-letter:uppercase">
-              {formatDate(provider.createdAt)}
+              {formatLocalDate(provider.createdAt, { day: '2-digit', month: 'long', year: 'numeric' })}
             </p>
           </div>
           <div>
             <p className="micro">{tDetail('updatedAt')}</p>
             <p className="text-sm font-medium text-[var(--color-text)] mt-1 first-letter:uppercase">
-              {formatDate(provider.updatedAt)}
+              {formatLocalDate(provider.updatedAt, { day: '2-digit', month: 'long', year: 'numeric' })}
             </p>
           </div>
         </div>

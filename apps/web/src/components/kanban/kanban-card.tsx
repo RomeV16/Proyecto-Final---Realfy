@@ -6,6 +6,7 @@ import type { UniqueIdentifier } from '@dnd-kit/abstract';
 import { cn } from '@/lib/cn';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
+import { formatMoney } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -45,8 +46,7 @@ function formatBudget(value: string | number | null | undefined, currency?: stri
   if (value == null || value === '') return null;
   const n = Number(value);
   if (!Number.isFinite(n) || n === 0) return null;
-  const symbol = currency === 'USD' ? 'US$' : '$';
-  return `${symbol} ${n.toLocaleString('es-AR')}`;
+  return formatMoney(n, currency);
 }
 
 /* ──────────── Component ──────────── */

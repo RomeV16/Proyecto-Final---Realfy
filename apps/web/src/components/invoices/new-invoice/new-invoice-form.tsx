@@ -9,6 +9,7 @@ import { StepIssuer, type StepIssuerData } from './step-issuer';
 import { StepReceptor, type StepReceptorData } from './step-receptor';
 import { StepItems, type StepItemsData } from './step-items';
 import { StepAdvanced, type StepAdvancedData } from './step-advanced';
+import { formatMoneyFixed } from '@/lib/format';
 
 /* ── UUID fallback without uuid pkg ── */
 
@@ -78,9 +79,6 @@ function PreviewDialog({ preview, onClose, onEmit, emitting }: PreviewDialogProp
   const t = useTranslations('invoices.newInvoice.preview');
   if (!preview) return null;
 
-  function fmt(n: number) {
-    return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -102,7 +100,7 @@ function PreviewDialog({ preview, onClose, onEmit, emitting }: PreviewDialogProp
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-500">{t('total')}</span>
-            <span className="font-semibold text-slate-900">{fmt(preview.impTotal)}</span>
+            <span className="font-semibold text-slate-900">{formatMoneyFixed(preview.impTotal)}</span>
           </div>
           <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
             {t('noCaeYet')}

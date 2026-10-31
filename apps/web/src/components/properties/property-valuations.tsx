@@ -8,6 +8,7 @@ import { EntityRow } from '@/components/ui/entity-card';
 import { RowListSkeleton } from '@/components/ui/card-grid';
 import { Icon } from '@/components/ui/icon';
 import { Sparkline, TrendDelta } from '@/components/ui/micro-viz';
+import { formatMoney, formatDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -50,15 +51,7 @@ interface PropertyValuationsProps {
 
 /* ──────────── Helpers ──────────── */
 
-function formatPrice(value: number | string, currency: string): string {
-  const symbol = currency === 'USD' ? 'US$' : '$';
-  return `${symbol} ${Number(value).toLocaleString('es-AR')}`;
-}
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
-}
 
 function pctChange(curr: number, prev: number): number {
   if (!prev) return 0;
@@ -214,7 +207,7 @@ export function PropertyValuations({ propertyId, canEdit }: PropertyValuationsPr
         <div className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] bg-[var(--color-bg)] px-4 py-3">
           <div className="min-w-0">
             <p className="truncate text-lg font-bold tabular-nums text-[var(--color-text)]">
-              {formatPrice(latest.value, latest.currency)}
+              {formatMoney(latest.value, latest.currency)}
             </p>
             {overallPct != null && overallPct !== 0 && (
               <div className="mt-0.5 flex items-center gap-1.5">
@@ -368,8 +361,8 @@ export function PropertyValuations({ propertyId, canEdit }: PropertyValuationsPr
                     <Icon name="wallet" className="h-4.5 w-4.5" strokeWidth={1.75} />
                   </span>
                 }
-                title={formatPrice(v.value, v.currency)}
-                subtitle={`${formatDate(v.valuationDate)} · ${t(`methods.${v.method}`)}${v.appraiser ? ` · ${v.appraiser}` : ''}`}
+                title={formatMoney(v.value, v.currency)}
+                subtitle={`${formatDate(v.valuationDate, 'mediumPadded')} · ${t(`methods.${v.method}`)}${v.appraiser ? ` · ${v.appraiser}` : ''}`}
                 meta={v.notes ? <p className="truncate text-xs text-[var(--color-muted)]">{v.notes}</p> : undefined}
                 trailing={pct != null && pct !== 0 ? <TrendDelta value={pct} /> : undefined}
                 actions={
@@ -416,10 +409,10 @@ export function PropertyValuations({ propertyId, canEdit }: PropertyValuationsPr
                     {cp.latestValuation ? (
                       <div>
                         <span className="text-sm font-semibold tabular-nums text-[var(--color-text)]">
-                          {formatPrice(cp.latestValuation.value, cp.latestValuation.currency)}
+                          {formatMoney(cp.latestValuation.value, cp.latestValuation.currency)}
                         </span>
                         <p className="text-[11px] text-[var(--color-muted)]">
-                          {formatDate(cp.latestValuation.valuationDate)}
+                          {formatDate(cp.latestValuation.valuationDate, 'mediumPadded')}
                         </p>
                       </div>
                     ) : (

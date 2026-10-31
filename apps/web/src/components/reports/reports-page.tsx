@@ -15,6 +15,7 @@ import { StatTile } from '@/components/ui/stat-tile';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
 import { ReportSchedulingSection } from './report-scheduling';
+import { formatNumber, formatDateTime } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -86,21 +87,16 @@ interface ReportResult {
 
 /* ──────────── Helpers ──────────── */
 
-function formatNumber(value: string): string {
-  const num = Number(value);
-  if (isNaN(num)) return value;
-  return num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** Muestra el valor tal cual si no es numérico (columnas de texto en un reporte). */
+function formatReportNumber(value: string, decimals: number): string {
+  return Number.isNaN(Number(value)) ? value : formatNumber(value, { decimals });
 }
 
-function formatCount(value: string): string {
-  const num = Number(value);
-  if (isNaN(num)) return value;
-  return num.toLocaleString('es-AR', { maximumFractionDigits: 0 });
-}
+
 
 function formatCell(key: string, value: string | undefined): string {
-  if (CURRENCY_COLUMNS.has(key)) return `$${formatNumber(value ?? '0')}`;
-  if (COUNT_COLUMNS.has(key)) return formatCount(value ?? '0');
+  if (CURRENCY_COLUMNS.has(key)) return `$${formatReportNumber(value ?? '0', 2)}`;
+  if (COUNT_COLUMNS.has(key)) return formatReportNumber(value ?? '0', 0);
   return value ?? '—';
 }
 
@@ -402,7 +398,7 @@ export function ReportsPage() {
             <p className="eyebrow">{t('summary')}</p>
             <Badge variant="neutral">{t('rowCount', { count: rows.length })}</Badge>
             <span className="text-xs text-[var(--color-muted)]">
-              {t('generatedAt')}: {new Date(data.generatedAt).toLocaleString('es-AR')}
+              {t('generatedAt')}: {formatDateTime(data.generatedAt, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })}
             </span>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

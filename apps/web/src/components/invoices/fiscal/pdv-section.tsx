@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import type { ArcaIssuerDTO, ArcaPdvDTO } from '@/lib/schemas/invoices';
+import { formatDateTime } from '@/lib/format';
 
 /* ── Add PdV modal ── */
 
@@ -115,12 +116,6 @@ interface PdvSectionProps {
   onRefresh: () => void;
 }
 
-function formatDate(iso: string | undefined) {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch { return iso; }
-}
 
 export function PdvSection({ issuer, onRefresh }: PdvSectionProps) {
   const t = useTranslations('invoices.fiscal.pdv');
@@ -218,7 +213,7 @@ export function PdvSection({ issuer, onRefresh }: PdvSectionProps) {
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 text-xs font-medium">{t('active')}</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 text-slate-500 text-xs">{formatDate(pdv.lastSyncAt)}</td>
+                  <td className="px-3 py-3 text-slate-500 text-xs">{formatDateTime(pdv.lastSyncAt)}</td>
                 </tr>
               ))}
             </tbody>

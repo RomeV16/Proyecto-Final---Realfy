@@ -9,13 +9,8 @@ import { Icon } from '@/components/ui/icon';
 import { RowList } from '@/components/ui/card-grid';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InvoiceRow } from '@/components/portal/invoice-row';
-import {
-  INVOICE_PAGE_SIZE,
-  buildOverview,
-  formatMoney,
-  usePortalInvoices,
-  type PortalInvoice,
-} from '@/components/portal/portal-data';
+import { INVOICE_PAGE_SIZE, buildOverview, usePortalInvoices, type PortalInvoice } from '@/components/portal/portal-data';
+import { formatMoney } from '@/lib/format';
 
 /**
  * Invoices.

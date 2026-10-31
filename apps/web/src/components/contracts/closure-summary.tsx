@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { formatMoneyRounded, formatPercent, formatLocalDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -72,32 +73,8 @@ interface ClosureSummaryResponse {
 
 /* ──────────── Formatting ──────────── */
 
-function fmtAmount(value: number, currency: string): string {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: currency || 'ARS',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
-function fmtPercent(value: number): string {
-  const rendered = Number.isInteger(value)
-    ? String(value)
-    : value.toFixed(1).replace('.', ',');
-  return `${rendered} %`;
-}
 
-function fmtDateTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
-}
 
 /* ──────────── Small pieces ──────────── */
 
@@ -195,7 +172,7 @@ export function ClosureSummary({ contractId }: { contractId: string }) {
     });
     tiles.push({
       label: tMetrics('onTimeRate'),
-      value: fmtPercent(metrics.onTimeRate),
+      value: formatPercent(metrics.onTimeRate),
     });
     tiles.push({
       label: tMetrics('payments'),
@@ -214,21 +191,21 @@ export function ClosureSummary({ contractId }: { contractId: string }) {
     });
     tiles.push({
       label: tMetrics('billed'),
-      value: fmtAmount(metrics.billedAmount, metrics.currency),
+      value: formatMoneyRounded(metrics.billedAmount, metrics.currency),
     });
     tiles.push({
       label: tMetrics('collected'),
-      value: fmtAmount(metrics.collectedAmount, metrics.currency),
+      value: formatMoneyRounded(metrics.collectedAmount, metrics.currency),
     });
     tiles.push({
       label: tMetrics('outstanding'),
-      value: fmtAmount(metrics.outstandingAmount, metrics.currency),
+      value: formatMoneyRounded(metrics.outstandingAmount, metrics.currency),
     });
     tiles.push({
       label: tMetrics('penalties'),
       value: tMetrics('penaltiesValue', {
         count: metrics.penaltyCount,
-        amount: fmtAmount(metrics.penaltyAmount, metrics.currency),
+        amount: formatMoneyRounded(metrics.penaltyAmount, metrics.currency),
       }),
     });
     tiles.push({
@@ -250,22 +227,22 @@ export function ClosureSummary({ contractId }: { contractId: string }) {
     });
     tiles.push({
       label: tMetrics('rentChange'),
-      value: `${metrics.rentIncreasePct >= 0 ? '+' : ''}${fmtPercent(metrics.rentIncreasePct)}`,
+      value: `${metrics.rentIncreasePct >= 0 ? '+' : ''}${formatPercent(metrics.rentIncreasePct)}`,
     });
     tiles.push({
       label: tMetrics('rendiciones'),
       value: tMetrics('rendicionesValue', {
         count: metrics.rendicionCount,
-        amount: fmtAmount(metrics.rendicionNetAmount, metrics.currency),
+        amount: formatMoneyRounded(metrics.rendicionNetAmount, metrics.currency),
       }),
     });
   }
 
   const attribution =
     record?.source === 'model' && record.model
-      ? t('sourceModel', { model: record.model, date: fmtDateTime(record.generatedAt) })
+      ? t('sourceModel', { model: record.model, date: formatLocalDate(record.generatedAt, 'medium') })
       : record
-        ? t('sourceRules', { date: fmtDateTime(record.generatedAt) })
+        ? t('sourceRules', { date: formatLocalDate(record.generatedAt, 'medium') })
         : '';
 
   return (

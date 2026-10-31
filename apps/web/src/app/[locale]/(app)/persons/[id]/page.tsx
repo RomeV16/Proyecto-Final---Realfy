@@ -11,6 +11,7 @@ import { PersonForm, type PersonFormData } from '@/components/persons/person-for
 import { PersonRoleBadge } from '@/components/persons/person-role-badge';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Icon } from '@/components/ui/icon';
+import { formatLocalDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -442,10 +443,7 @@ function DocumentsSection({
                   {doc.fileName}
                 </a>
               }
-              subtitle={`${formatFileSize(doc.fileSize)} · ${new Date(doc.createdAt).toLocaleDateString(
-                'es-AR',
-                { day: '2-digit', month: '2-digit', year: 'numeric' },
-              )}`}
+              subtitle={`${formatFileSize(doc.fileSize)} · ${formatLocalDate(doc.createdAt, 'numeric')}`}
               actions={
                 <>
                   <EntityRow.Action
@@ -767,11 +765,7 @@ function ScoringSection({ personId }: { personId: string }) {
             <p className="text-xs text-slate-400">
               {t('scoredBy')} {score.scoredBy.firstName} {score.scoredBy.lastName}
               {' · '}
-              {new Date(score.scoredAt).toLocaleDateString('es-AR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-              })}
+              {formatLocalDate(score.scoredAt, 'numeric')}
             </p>
           </div>
         </div>

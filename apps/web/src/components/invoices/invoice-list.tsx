@@ -12,6 +12,7 @@ import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
+import { formatMoneyFixed, formatLocalDate, formatCompNumber } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -40,22 +41,8 @@ interface PaginatedResponse {
 
 /* ──────────── Helpers ──────────── */
 
-function formatCompNumber(pdv: number, num: number): string {
-  return `${String(pdv).padStart(4, '0')}-${String(num).padStart(8, '0')}`;
-}
 
-function formatCurrency(amount: string | number | undefined): string {
-  if (amount == null) return '—';
-  return '$ ' + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
 
 /** Comprobante type → badge tone. Credit/debit notes read as adjustments, so
  * they get the danger/warning tones; regular invoices stay brand-neutral. */
@@ -131,7 +118,7 @@ export function InvoiceList() {
     {
       key: 'fecha',
       header: tTable('fecha'),
-      render: (item) => <span className="text-slate-600">{formatDate(item.createdAt)}</span>,
+      render: (item) => <span className="text-slate-600">{formatLocalDate(item.createdAt, 'medium')}</span>,
     },
     {
       key: 'tipo',
@@ -158,7 +145,7 @@ export function InvoiceList() {
       alignRight: true,
       render: (item) => (
         <span className="font-semibold tabular-nums text-slate-900">
-          {ncTypes.includes(item.type as ComprobanteType) ? '- ' : ''}{formatCurrency(item.impTotal ?? item.amount)}
+          {ncTypes.includes(item.type as ComprobanteType) ? '- ' : ''}{formatMoneyFixed(item.impTotal ?? item.amount)}
         </span>
       ),
     },
@@ -264,7 +251,7 @@ export function InvoiceList() {
         }}
         cardRenderer={(item) => {
           const isCredit = ncTypes.includes(item.type as ComprobanteType);
-          const amountLabel = `${isCredit ? '- ' : ''}${formatCurrency(item.impTotal ?? item.amount)}`;
+          const amountLabel = `${isCredit ? '- ' : ''}${formatMoneyFixed(item.impTotal ?? item.amount)}`;
           const displayTitle = item.receptorName || tTypes(item.type);
           const href = `${localePrefix}/invoices/${item.id}`;
 
@@ -278,7 +265,7 @@ export function InvoiceList() {
               subtitle={formatCompNumber(item.puntoDeVenta, item.numero ?? item.comprobanteNumber ?? 0)}
               meta={
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                  <EntityRow.Meta items={[{ icon: 'calendar', label: formatDate(item.createdAt) }]} />
+                  <EntityRow.Meta items={[{ icon: 'calendar', label: formatLocalDate(item.createdAt, 'medium') }]} />
                   <span
                     className={`text-sm font-bold tabular-nums sm:hidden ${
                       isCredit ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'

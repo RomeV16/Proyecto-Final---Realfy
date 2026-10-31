@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { StatTile, StatTileSkeleton } from '@/components/ui/stat-tile';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
+import { formatNumber } from '@/lib/format';
 
 interface DelinquentTenant {
   personId: string;
@@ -23,12 +24,6 @@ interface DelinquentTenant {
   daysOverdueMax: number;
 }
 
-function formatCurrency(value: string | number) {
-  return Number(value).toLocaleString('es-AR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
 
 /** Severity buckets — the same thresholds drive the badge and the accent bar. */
 function severityOf(days: number): { tone: 'danger' | 'warning' | 'info'; key: string } {
@@ -98,7 +93,7 @@ export default function DelinquencyPage() {
       alignRight: true,
       render: (item) => (
         <span className="tabular-nums text-[var(--color-text)]">
-          ${formatCurrency(item.totalDebt)}
+          ${formatNumber(item.totalDebt, { decimals: 2 })}
         </span>
       ),
     },
@@ -108,7 +103,7 @@ export default function DelinquencyPage() {
       alignRight: true,
       render: (item) => (
         <span className="tabular-nums text-[var(--color-danger)]">
-          ${formatCurrency(item.totalPenalty)}
+          ${formatNumber(item.totalPenalty, { decimals: 2 })}
         </span>
       ),
     },
@@ -150,14 +145,14 @@ export default function DelinquencyPage() {
           <>
             <StatTile
               label={t('totalDebt')}
-              value={`$${formatCurrency(totalDebt)}`}
+              value={`$${formatNumber(totalDebt, { decimals: 2 })}`}
               icon="wallet"
               tone="danger"
               hint={t('tenantCount', { count: items.length })}
             />
             <StatTile
               label={t('accruedPenalty')}
-              value={`$${formatCurrency(totalPenalty)}`}
+              value={`$${formatNumber(totalPenalty, { decimals: 2 })}`}
               icon="percent"
               tone="warning"
             />
@@ -197,13 +192,13 @@ export default function DelinquencyPage() {
                     {t('daysOverdue', { days: item.daysOverdueMax })}
                   </Badge>
                   <Badge variant="neutral">
-                    {t('colPenalty')} ${formatCurrency(item.totalPenalty)}
+                    {t('colPenalty')} ${formatNumber(item.totalPenalty, { decimals: 2 })}
                   </Badge>
                 </div>
               }
               trailing={
                 <EntityRow.Amount
-                  value={`$${formatCurrency(item.totalDebt)}`}
+                  value={`$${formatNumber(item.totalDebt, { decimals: 2 })}`}
                   hint={t('colDebt')}
                   tone="danger"
                 />
