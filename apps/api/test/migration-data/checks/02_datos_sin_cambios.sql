@@ -12,7 +12,7 @@ FROM (
   UNION ALL SELECT 'contracts', 5, (SELECT count(*) FROM "contracts")
   UNION ALL SELECT 'contract_persons', 13, (SELECT count(*) FROM "contract_persons")
   UNION ALL SELECT 'liquidaciones', 3, (SELECT count(*) FROM "liquidaciones")
-  UNION ALL SELECT 'liquidacion_line_items', 3, (SELECT count(*) FROM "liquidacion_line_items")
+  UNION ALL SELECT 'liquidacion_line_items', 7, (SELECT count(*) FROM "liquidacion_line_items")
   UNION ALL SELECT 'payments', 2, (SELECT count(*) FROM "payments")
   UNION ALL SELECT 'comprobantes', 1, (SELECT count(*) FROM "comprobantes")
 ) c
