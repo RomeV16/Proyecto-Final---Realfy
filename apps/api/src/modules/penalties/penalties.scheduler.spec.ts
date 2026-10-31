@@ -8,6 +8,14 @@ import Decimal from 'decimal.js';
  * Uses in-memory mocks — no real DB or NestJS context required.
  */
 
+type LiquidacionRow = {
+  id: string;
+  tenantId: string;
+  total: { toString(): string };
+  dueDate: Date;
+  payments?: { amount: { toString(): string } }[];
+};
+
 function buildScheduler({
   tenants = [] as { id: string; name: string }[],
   penaltyConfig = {
@@ -16,13 +24,13 @@ function buildScheduler({
     graceDays: 0,
     maxMultiplier: '2.0',
   },
-  liquidaciones = [] as { id: string; tenantId: string; total: { toString(): string }; dueDate: Date }[],
+  liquidaciones = [] as LiquidacionRow[],
   existingPenalty = null as null | object,
   priorSum = '0',
 }: {
   tenants?: { id: string; name: string }[];
   penaltyConfig?: { mode: 'daily_fixed' | 'daily_percent' | 'compound_percent'; value: string; graceDays: number; maxMultiplier: string };
-  liquidaciones?: { id: string; tenantId: string; total: { toString(): string }; dueDate: Date }[];
+  liquidaciones?: LiquidacionRow[];
   existingPenalty?: null | object;
   priorSum?: string;
 } = {}) {
@@ -34,7 +42,7 @@ function buildScheduler({
         findMany: jest.fn().mockResolvedValue(tenants),
       },
       liquidacion: {
-        findMany: jest.fn().mockResolvedValue(liquidaciones),
+        findMany: jest.fn().mockResolvedValue(liquidaciones.map((l) => ({ payments: [], ...l }))),
       },
       penalty: {
         findFirst: jest.fn().mockResolvedValue(existingPenalty),
@@ -176,5 +184,92 @@ describe('PenaltiesScheduler.applyPenalties()', () => {
     const result = await scheduler.applyPenalties();
     expect(result.tenantsProcessed).toBe(0);
     expect(result.penaltiesInserted).toBe(0);
+  });
+});
+
+/**
+ * CP-138 (DEF-18): el punitorio corre sobre el saldo pendiente y el "hoy" es
+ * el día de Buenos Aires. Antes se calculaba sobre el total de la liquidación
+ * y con la fecha local del servidor.
+ */
+describe('PenaltiesScheduler.applyPenalties(): base de cálculo y día', () => {
+  const percentConfig = {
+    mode: 'daily_percent' as const,
+    value: '0.01',
+    graceDays: 0,
+    maxMultiplier: '3.0',
+  };
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('una liquidación pagada en parte devenga solo sobre lo impago', async () => {
+    jest.useFakeTimers({ now: new Date('2025-03-15T15:00:00.000Z') });
+    const { scheduler, createdPenalties } = buildScheduler({
+      tenants: [{ id: 'tenant-1', name: 'Test' }],
+      penaltyConfig: percentConfig,
+      liquidaciones: [
+        {
+          id: 'liq-parcial',
+          tenantId: 'tenant-1',
+          total: new Decimal('1000'),
+          dueDate: new Date('2025-03-05T00:00:00.000Z'),
+          payments: [{ amount: new Decimal('600') }],
+        },
+      ],
+    });
+
+    await scheduler.applyPenalties();
+
+    expect(createdPenalties).toHaveLength(1);
+    // 10 días de mora sobre un saldo de 400: 400 * 1% * 10 = 40 (no 100)
+    expect((createdPenalties[0] as any).amount).toBe(40);
+    expect((createdPenalties[0] as any).compoundBase).toBe(400);
+  });
+
+  it('una liquidación pagada por completo no devenga nada', async () => {
+    jest.useFakeTimers({ now: new Date('2025-03-15T15:00:00.000Z') });
+    const { scheduler, createdPenalties } = buildScheduler({
+      tenants: [{ id: 'tenant-1', name: 'Test' }],
+      penaltyConfig: percentConfig,
+      liquidaciones: [
+        {
+          id: 'liq-pagada',
+          tenantId: 'tenant-1',
+          total: new Decimal('1000'),
+          dueDate: new Date('2025-03-05T00:00:00.000Z'),
+          payments: [{ amount: new Decimal('600') }, { amount: new Decimal('400') }],
+        },
+      ],
+    });
+
+    const result = await scheduler.applyPenalties();
+
+    expect(result.penaltiesInserted).toBe(0);
+    expect(createdPenalties).toHaveLength(0);
+  });
+
+  it('a las 22:30 de Buenos Aires todavía es el día anterior en UTC', async () => {
+    // 2025-03-11T01:30Z son las 22:30 del 10 de marzo en Buenos Aires
+    jest.useFakeTimers({ now: new Date('2025-03-11T01:30:00.000Z') });
+    const { scheduler, createdPenalties } = buildScheduler({
+      tenants: [{ id: 'tenant-1', name: 'Test' }],
+      penaltyConfig: percentConfig,
+      liquidaciones: [
+        {
+          id: 'liq-noche',
+          tenantId: 'tenant-1',
+          total: new Decimal('1000'),
+          dueDate: new Date('2025-03-05T00:00:00.000Z'),
+        },
+      ],
+    });
+
+    await scheduler.applyPenalties();
+
+    expect(createdPenalties).toHaveLength(1);
+    expect((createdPenalties[0] as any).appliedOn.toISOString()).toBe('2025-03-10T00:00:00.000Z');
+    expect((createdPenalties[0] as any).daysOverdue).toBe(5);
   });
 });
