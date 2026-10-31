@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   BadRequestException,
+  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -14,8 +15,11 @@ import {
   ContractFilterSchema,
   AdjustmentType,
   AdjustmentPeriod,
+  AdjustmentBase,
+  ContractPeriodKind,
   ContractStatus,
   ContractType,
+  PaymentFlow,
   PersonRole,
   PropertyOperationType,
   PropertyState,
@@ -38,6 +42,8 @@ import { rethrowExternalRefConflict } from '../../common/validation/external-ref
 import { ensureRole } from '../persons/person-roles.service';
 import { getApoderadosAt } from './contract-parties';
 import { assertLessorRefs } from './lessor-rules';
+import { getEffectiveEndDate } from './contract-terms';
+import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 
 /**
  * Motivo por el que un contrato no se puede activar. `code` es estable y es lo
@@ -89,6 +95,7 @@ export class ContractsService {
     private readonly tenantContext: TenantContextService,
     private readonly closureSummaries: ContractClosureService,
     private readonly adjustments: ContractAdjustmentService,
+    private readonly operationalDefaults: OperationalDefaultsService,
   ) {}
 
   // ─── List ───────────────────────────────────────────
@@ -284,6 +291,9 @@ export class ContractsService {
       }
     }
 
+    // Valores por defecto de la inmobiliaria: de ahí parten las reglas del contrato.
+    const defaults = await this.operationalDefaults.get(tenantId);
+
     // Generate adjustment schedule entries
     const scheduleEntries = this.generateScheduleEntries(
       new Date(validated.startDate),
@@ -310,6 +320,34 @@ export class ContractsService {
           customAdjustmentPct: validated.customAdjustmentPct ?? null,
           notes: validated.notes ?? null,
           externalRef: validated.externalRef ?? null,
+        },
+      });
+
+      // Período original y primera versión de las reglas: el contrato nunca
+      // queda sin ellas (defecto -> contrato).
+      await tx.contractPeriod.create({
+        data: {
+          tenantId,
+          contractId: created.id,
+          seq: 1,
+          kind: ContractPeriodKind.Original,
+          startDate: new Date(validated.startDate),
+          endDate: new Date(validated.endDate),
+          initialRent: validated.rentAmount,
+        },
+      });
+      await tx.contractTermsVersion.create({
+        data: {
+          tenantId,
+          contractId: created.id,
+          validFrom: new Date(validated.startDate),
+          adjustmentType: validated.adjustmentType,
+          adjustmentPeriod: validated.adjustmentPeriod,
+          adjustmentBase: AdjustmentBase.Vigente,
+          indexLagMonths: defaults.ipcLagMonths,
+          customPct: validated.customAdjustmentPct ?? null,
+          dueDay: defaults.dueDay,
+          paymentFlow: PaymentFlow.Partido,
         },
       });
 
@@ -420,6 +458,32 @@ export class ContractsService {
       });
     }
 
+    // Fin real o prórroga de palabra: no puede ser anterior al inicio.
+    if (
+      validated.actualEndDate &&
+      new Date(validated.actualEndDate).getTime() < existing.startDate.getTime()
+    ) {
+      throw new BadRequestException({
+        error: 'VALIDATION_ERROR',
+        message: 'actualEndDate must not be before startDate',
+      });
+    }
+
+    // Las reglas de ajuste de un contrato con convenios cambian por convenio:
+    // pisar las columnas dejaría la historia de versiones desactualizada.
+    const touchesRules = this.touchesAdjustmentRules(validated, existing);
+    if (touchesRules) {
+      const versions = await this.prisma.client.contractTermsVersion.count({
+        where: { contractId: id },
+      });
+      if (versions > 1) {
+        throw new ConflictException({
+          error: 'RULES_CHANGE_REQUIRES_AGREEMENT',
+          message: 'This contract has rule versions: change the rules with an agreement',
+        });
+      }
+    }
+
     const statusChanges =
       validated.status !== undefined && validated.status !== existing.status;
     if (statusChanges) {
@@ -436,9 +500,27 @@ export class ContractsService {
     const tenantId = this.tenantContext.getTenantId()!;
 
     // If dates or adjustment config changed, recalculate schedule
+    const actualEndChanged =
+      validated.actualEndDate !== undefined &&
+      (validated.actualEndDate === null
+        ? existing.actualEndDate !== null
+        : existing.actualEndDate === null ||
+          new Date(validated.actualEndDate).getTime() !== existing.actualEndDate.getTime());
     const datesChanged =
       (validated.endDate && new Date(validated.endDate).getTime() !== existing.endDate.getTime()) ||
+      actualEndChanged ||
       (validated.adjustmentPeriod && validated.adjustmentPeriod !== existing.adjustmentPeriod);
+
+    // Fin efectivo con los cambios pedidos: lo que cuenta para pisarse con otro alquiler.
+    const newEffectiveEnd = getEffectiveEndDate({
+      endDate: validated.endDate ? new Date(validated.endDate) : existing.endDate,
+      actualEndDate:
+        validated.actualEndDate === undefined
+          ? existing.actualEndDate
+          : validated.actualEndDate
+            ? new Date(validated.actualEndDate)
+            : null,
+    });
 
     // El contrato pasa a un estado de cierre: se registra la fecha en la misma
     // transición, para no tener que deducirla después.
@@ -454,7 +536,7 @@ export class ContractsService {
     const extendsActive =
       !statusChanges &&
       existing.status === ContractStatus.Activo &&
-      validated.endDate !== undefined &&
+      (validated.endDate !== undefined || actualEndChanged) &&
       occupiesRentalOperation(existing.contractType);
 
     await this.prisma.client.$transaction(async (tx: any) => {
@@ -463,7 +545,7 @@ export class ContractsService {
           id,
           propertyId: existing.propertyId,
           startDate: existing.startDate,
-          endDate: new Date(validated.endDate),
+          endDate: newEffectiveEnd,
         });
       }
 
@@ -475,52 +557,12 @@ export class ContractsService {
       if (leavesActive) {
         await this.releaseProperty(tx, existing);
       }
+
+      await this.syncRulesAfterUpdate(tx, existing, validated, touchesRules);
     }).catch((err: unknown) => rethrowExternalRefConflict(err, 'contract'));
 
     if (datesChanged) {
-      // Delete pending schedules and regenerate
-      await this.prisma.client.adjustmentSchedule.deleteMany({
-        where: {
-          contractId: id,
-          status: ScheduleStatus.Pending,
-        },
-      });
-
-      const endDate = validated.endDate ? new Date(validated.endDate) : existing.endDate;
-      const period = (validated.adjustmentPeriod ?? existing.adjustmentPeriod) as AdjustmentPeriod;
-
-      // Get the highest applied/calculated period number
-      const lastApplied = await this.prisma.client.adjustmentSchedule.findFirst({
-        where: {
-          contractId: id,
-          status: { not: ScheduleStatus.Pending },
-        },
-        orderBy: { periodNumber: 'desc' },
-      });
-
-      const startPeriod = lastApplied ? lastApplied.periodNumber + 1 : 1;
-      const startFrom = lastApplied
-        ? lastApplied.nextAdjustmentDate
-        : existing.startDate;
-
-      const newEntries = this.generateScheduleEntriesFrom(
-        startFrom,
-        endDate,
-        period,
-        startPeriod,
-      );
-
-      for (const entry of newEntries) {
-        await this.prisma.client.adjustmentSchedule.create({
-          data: {
-            tenantId,
-            contractId: id,
-            nextAdjustmentDate: entry.date,
-            periodNumber: entry.periodNumber,
-            status: ScheduleStatus.Pending,
-          },
-        });
-      }
+      await this.rebuildPendingSchedule(id);
     }
 
     this.logger.log('Updated contract', {
@@ -535,6 +577,96 @@ export class ContractsService {
     }
 
     return this.findOne(id);
+  }
+
+  /** El cambio pide modificar la modalidad de ajuste respecto de lo guardado. */
+  private touchesAdjustmentRules(validated: any, existing: any): boolean {
+    return (
+      (validated.adjustmentType !== undefined && validated.adjustmentType !== existing.adjustmentType) ||
+      (validated.adjustmentPeriod !== undefined &&
+        validated.adjustmentPeriod !== existing.adjustmentPeriod) ||
+      (validated.customAdjustmentPct !== undefined &&
+        String(validated.customAdjustmentPct ?? '') !== String(existing.customAdjustmentPct ?? ''))
+    );
+  }
+
+  /**
+   * Mantiene período y reglas de acuerdo con la edición directa del contrato:
+   * la corrección de un dato (contrato sin convenios) actualiza la versión
+   * inicial; el fin pactado, el último período.
+   */
+  private async syncRulesAfterUpdate(
+    tx: any,
+    existing: any,
+    validated: any,
+    touchesRules: boolean,
+  ): Promise<void> {
+    if (touchesRules) {
+      await tx.contractTermsVersion.updateMany({
+        where: { contractId: existing.id },
+        data: {
+          ...(validated.adjustmentType !== undefined && { adjustmentType: validated.adjustmentType }),
+          ...(validated.adjustmentPeriod !== undefined && {
+            adjustmentPeriod: validated.adjustmentPeriod,
+          }),
+          ...(validated.customAdjustmentPct !== undefined && {
+            customPct: validated.customAdjustmentPct ?? null,
+          }),
+        },
+      });
+    }
+    if (validated.endDate) {
+      const last = await tx.contractPeriod.findFirst({
+        where: { contractId: existing.id },
+        orderBy: { seq: 'desc' },
+        select: { id: true },
+      });
+      if (last) {
+        await tx.contractPeriod.update({
+          where: { id: last.id },
+          data: { endDate: new Date(validated.endDate) },
+        });
+      }
+    }
+  }
+
+  /**
+   * Rehace los ajustes pendientes del cronograma con la periodicidad y el fin
+   * efectivo vigentes del contrato; los ya calculados o aplicados no se tocan.
+   */
+  async rebuildPendingSchedule(id: string): Promise<void> {
+    const tenantId = this.tenantContext.getTenantId()!;
+    const contract = await this.prisma.client.contract.findFirst({ where: { id } });
+    if (!contract) return;
+
+    await this.prisma.client.adjustmentSchedule.deleteMany({
+      where: { contractId: id, status: ScheduleStatus.Pending },
+    });
+
+    // Get the highest applied/calculated period number
+    const lastApplied = await this.prisma.client.adjustmentSchedule.findFirst({
+      where: { contractId: id, status: { not: ScheduleStatus.Pending } },
+      orderBy: { periodNumber: 'desc' },
+    });
+
+    const newEntries = this.generateScheduleEntriesFrom(
+      lastApplied ? lastApplied.nextAdjustmentDate : contract.startDate,
+      getEffectiveEndDate(contract),
+      contract.adjustmentPeriod as AdjustmentPeriod,
+      lastApplied ? lastApplied.periodNumber + 1 : 1,
+    );
+
+    for (const entry of newEntries) {
+      await this.prisma.client.adjustmentSchedule.create({
+        data: {
+          tenantId,
+          contractId: id,
+          nextAdjustmentDate: entry.date,
+          periodNumber: entry.periodNumber,
+          status: ScheduleStatus.Pending,
+        },
+      });
+    }
   }
 
   // ─── Terminate ──────────────────────────────────────
@@ -616,7 +748,7 @@ export class ContractsService {
       propertyId: existing.propertyId,
       contractType: existing.contractType,
       startDate: existing.startDate,
-      endDate: existing.endDate,
+      endDate: getEffectiveEndDate(existing),
       roles: (existing.persons ?? []).map((p: { role: string }) => p.role),
     };
 
@@ -731,18 +863,22 @@ export class ContractsService {
         status: ContractStatus.Activo,
         ...(candidate.id ? { id: { not: candidate.id } } : {}),
         startDate: { lt: candidate.endDate },
-        endDate: { gt: candidate.startDate },
+        // Fin efectivo: el fin real o prórroga de palabra si lo hay, y si no el pactado.
+        OR: [
+          { actualEndDate: null, endDate: { gt: candidate.startDate } },
+          { actualEndDate: { gt: candidate.startDate } },
+        ],
       },
-      select: { id: true, startDate: true, endDate: true },
+      select: { id: true, startDate: true, endDate: true, actualEndDate: true },
       orderBy: { startDate: 'asc' },
     });
 
     return overlapping.map(
-      (other: { id: string; startDate: Date; endDate: Date }) => ({
+      (other: { id: string; startDate: Date; endDate: Date; actualEndDate: Date | null }) => ({
         code: 'OVERLAPPING_CONTRACT' as const,
         contractId: other.id,
         startDate: other.startDate,
-        endDate: other.endDate,
+        endDate: getEffectiveEndDate(other),
       }),
     );
   }

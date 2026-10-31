@@ -76,10 +76,12 @@ function build(contract: any, series: Series, previous: any = null) {
       update: jest.fn(),
     },
     auditLog: { create: jest.fn() },
+    contractTermsVersion: { findFirst: jest.fn(async () => null) },
   };
   const prisma: any = {
     client,
     baseClient: {
+      contractTermsVersion: { findFirst: jest.fn(async () => null) },
       adjustmentSchedule: {
         findMany: jest.fn(async () => [{ ...schedule, contract }]),
       },
@@ -93,6 +95,7 @@ function build(contract: any, series: Series, previous: any = null) {
     { getTenantId: () => 'tenant-1' } as any,
     {} as any,
     adjustments,
+    {} as any,
   );
   return { contracts, adjustments, getForPeriod, tx };
 }
@@ -336,6 +339,7 @@ describe('Caminos de cálculo del ajuste (caracterización)', () => {
       const service = new ContractsService(
         prisma,
         { getTenantId: () => 'tenant-1' } as any,
+        {} as any,
         {} as any,
         {} as any,
       );

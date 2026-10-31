@@ -117,6 +117,21 @@
     "Gerente",
     "Ventas"
   ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.listTerms": null,
+  "src/modules/contracts/contracts.controller.ts#ContractsController.listPeriods": null,
+  "src/modules/contracts/contracts.controller.ts#ContractsController.listAgreements": null,
+  "src/modules/contracts/contracts.controller.ts#ContractsController.createAgreement": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.updateAgreement": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.removeAgreement": [
+    "Admin",
+    "Gerente"
+  ],
   "src/modules/dashboard/dashboard.controller.ts#DashboardController.getStats": null,
   "src/modules/dashboard/dashboard.controller.ts#DashboardController.getOccupancyTrend": [
     "Admin",

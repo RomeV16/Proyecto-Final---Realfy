@@ -199,6 +199,36 @@ export enum IndexType {
   TasaActivaBNA = 'TasaActivaBNA',
 }
 
+/** Tramo de vigencia de un contrato. */
+export enum ContractPeriodKind {
+  Original = 'Original',
+  Renovacion = 'Renovacion',
+  Prorroga = 'Prorroga',
+}
+
+/** Tipo de convenio que modifica las reglas de un contrato. */
+export enum ContractAgreementKind {
+  Renegociacion = 'Renegociacion',
+  Rebaja = 'Rebaja',
+  Bonificacion = 'Bonificacion',
+  CambioRegla = 'CambioRegla',
+  CambioReparto = 'CambioReparto',
+  CambioCargo = 'CambioCargo',
+}
+
+/** Sobre qué alquiler se aplica un ajuste: el original del período o el vigente. */
+export enum AdjustmentBase {
+  Original = 'Original',
+  Vigente = 'Vigente',
+}
+
+/** Quién cobra el alquiler: se reparte, todo la inmobiliaria o todo el locador. */
+export enum PaymentFlow {
+  Partido = 'Partido',
+  TodoInmobiliaria = 'TodoInmobiliaria',
+  TodoLocador = 'TodoLocador',
+}
+
 export enum ScheduleStatus {
   Pending = 'Pending',
   Calculated = 'Calculated',

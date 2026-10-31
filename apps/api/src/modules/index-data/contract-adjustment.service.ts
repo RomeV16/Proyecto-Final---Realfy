@@ -14,6 +14,7 @@ import {
 } from '@realfy/shared';
 import type { AdjustmentParams } from '@realfy/shared';
 import Decimal from 'decimal.js';
+import { getTermsAt } from '../contracts/contract-terms';
 
 const toDecimal = (row: { value: unknown }) => new Decimal(String(row.value));
 
@@ -32,6 +33,11 @@ export interface LoadedParams {
   params: AdjustmentParams;
   /** Índice principal usado, para informar en la previsualización. */
   indexType: IndexType;
+  /**
+   * Reglas con que se calculó: base del ajuste y rezago de la versión vigente
+   * a la fecha del ajuste. Todavía no cambian el cálculo.
+   */
+  rules: { adjustmentBase: string; indexLagMonths: number };
 }
 
 /** Código con el que se informa un ajuste que no se pudo calcular por falta de índices. */
@@ -55,7 +61,10 @@ class MissingIndexDataError extends BadRequestException {
   }
 }
 
-type IndexClient = { indexData: { findMany: (args: any) => Promise<any[]> } };
+type IndexClient = {
+  indexData: { findMany: (args: any) => Promise<any[]> };
+  contractTermsVersion: { findFirst: (args: any) => Promise<any> };
+};
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +86,10 @@ export class ContractAdjustmentService {
    * la previsualización, el cálculo manual de ContractsService y la aplicación
    * automática (DEF-02, DEF-03, DEF-25).
    *
+   * La modalidad (tipo, porcentaje, base, rezago) sale de la versión de reglas
+   * vigente a la fecha del ajuste (`ContractTermsVersion`); si el contrato no
+   * tiene versiones, de sus columnas de ajuste.
+   *
    * Si la modalidad no se puede calcular no devuelve un 0 % silencioso: lanza
    * 400 `MISSING_INDEX_DATA` (con los índices y el período que faltan),
    * `MISSING_ADJUSTMENT_PCT` o `UNKNOWN_ADJUSTMENT_TYPE`.
@@ -87,7 +100,13 @@ export class ContractAdjustmentService {
     options: { tenantId: string; client?: IndexClient },
   ): Promise<LoadedParams> {
     const baseRent = new Decimal(contract.rentAmount.toString());
-    const adjustmentType = contract.adjustmentType as AdjustmentType;
+    const terms = await getTermsAt(options.client ?? this.prisma.baseClient, contract, window.until);
+    const adjustmentType = (terms?.adjustmentType ?? contract.adjustmentType) as AdjustmentType;
+    const customPct = terms ? terms.customPct : contract.customAdjustmentPct;
+    const rules = {
+      adjustmentBase: (terms?.adjustmentBase ?? 'Vigente') as string,
+      indexLagMonths: (terms?.indexLagMonths ?? 2) as number,
+    };
     const load = (type: IndexType) =>
       this.indexData.getForPeriod(
         type,
@@ -102,6 +121,7 @@ export class ContractAdjustmentService {
         if (rows.length === 0) throw new MissingIndexDataError([IndexType.IPC], window);
         return {
           indexType: IndexType.IPC,
+          rules,
           params: { type: AdjustmentType.IPC, monthlyValues: rows.map(toDecimal), baseRent },
         };
       }
@@ -111,6 +131,7 @@ export class ContractAdjustmentService {
         if (rows.length < 2) throw new MissingIndexDataError([IndexType.ICL], window);
         return {
           indexType: IndexType.ICL,
+          rules,
           params: {
             type: AdjustmentType.ICL,
             startValue: toDecimal(rows[0]),
@@ -129,6 +150,7 @@ export class ContractAdjustmentService {
         const length = Math.min(cvs.length, cer.length);
         return {
           indexType: IndexType.CVS,
+          rules,
           params: {
             type: AdjustmentType.CCP,
             cvsPcts: cvs.slice(0, length).map(toDecimal),
@@ -139,7 +161,7 @@ export class ContractAdjustmentService {
       }
       case AdjustmentType.FixedPercent:
       case AdjustmentType.Custom:
-        if (!contract.customAdjustmentPct) {
+        if (!customPct) {
           throw new BadRequestException({
             error: 'MISSING_ADJUSTMENT_PCT',
             message: `Contract has no customAdjustmentPct set for ${adjustmentType} type`,
@@ -147,9 +169,10 @@ export class ContractAdjustmentService {
         }
         return {
           indexType: IndexType.IPC,
+          rules,
           params: {
             type: adjustmentType,
-            percentage: new Decimal(contract.customAdjustmentPct.toString()),
+            percentage: new Decimal(customPct.toString()),
             baseRent,
           },
         };

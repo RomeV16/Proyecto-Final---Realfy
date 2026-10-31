@@ -114,4 +114,8 @@ INSERT INTO "arca_issuers" ("id", "tenantId", "cuit", "businessName", "fiscalCon
 INSERT INTO "comprobantes" ("id", "tenantId", "issuerId", "paymentId", "type", "cbteTipo", "puntoDeVenta", "numero", "docTipo", "docNro", "receptorName", "receptorFiscalCondition", "impTotal", "impNeto", "impIva", "impExento", "currency", "cae", "caeFchVto", "emittedAt") VALUES
   ('cmp-1', 'tenant-a', 'iss-a', 'pay-1', 'FacturaC', 11, 1, 1, 96, '00000007', 'Persona Siete', 'ConsumidorFinal', 100000.00, 100000.00, 0, 0, 'ARS', '00000000000000', '2026-04-01', '2026-03-05');
 
+-- Un ajuste ya aplicado de con-2: su alquiler inicial era 120000.
+INSERT INTO "contract_adjustments" ("id", "tenantId", "contractId", "periodNumber", "adjustmentDate", "previousAmount", "newAmount", "percentage", "calculatedAt", "appliedAt") VALUES
+  ('adj-1', 'tenant-a', 'con-2', 1, '2026-09-01', 120000.00, 150000.00, 25.0000, '2026-09-01', '2026-09-01');
+
 COMMIT;

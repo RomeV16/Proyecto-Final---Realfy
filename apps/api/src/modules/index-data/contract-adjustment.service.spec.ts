@@ -24,12 +24,15 @@ const mockTxScheduleUpdate = jest.fn();
 const mockTxScheduleFindFirst = jest.fn();
 const mockTxAuditCreate = jest.fn();
 const mockTransaction = jest.fn();
+/** ContractTermsVersion vigente a la fecha del ajuste; null: el contrato no tiene versiones. */
+const mockFindTerms = jest.fn();
 
 const tx = {
   indexData: { findMany: jest.fn() },
   contract: { update: mockTxContractUpdate, findUnique: mockTxContractFindUnique },
   adjustmentSchedule: { update: mockTxScheduleUpdate, findFirst: mockTxScheduleFindFirst },
   auditLog: { create: mockTxAuditCreate },
+  contractTermsVersion: { findFirst: mockFindTerms },
 };
 
 const mockPrisma = {
@@ -38,6 +41,7 @@ const mockPrisma = {
     adjustmentSchedule: { findFirst: mockFindFirstSchedule },
   },
   baseClient: {
+    contractTermsVersion: { findFirst: mockFindTerms },
     adjustmentSchedule: { findMany: mockFindManyDueSchedules },
     $transaction: mockTransaction,
   },
@@ -102,6 +106,8 @@ describe('ContractAdjustmentService', () => {
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     // La transacción ejecuta el callback con el cliente simulado.
     mockTransaction.mockImplementation(async (fn: (t: typeof tx) => Promise<void>) => fn(tx));
+    mockFindTerms.mockReset();
+    mockFindTerms.mockResolvedValue(null);
     mockFindManyIndex.mockReset();
     mockFindManyIndex.mockResolvedValue([]);
     // clearAllMocks no vacía las respuestas encoladas con *Once.
@@ -601,5 +607,79 @@ describe('ContractAdjustmentService', () => {
       expect(result).toHaveLength(1);
       expect(warn).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('ContractAdjustmentService.loadParams — reglas versionadas', () => {
+  const window = {
+    from: new Date('2025-01-01T00:00:00.000Z'),
+    until: new Date('2025-04-01T12:00:00.000Z'),
+    afterPrevious: false,
+  };
+  let service: ContractAdjustmentService;
+
+  beforeEach(() => {
+    mockFindTerms.mockReset();
+    mockFindManyIndex.mockReset();
+    mockFindManyIndex.mockResolvedValue([]);
+    service = new ContractAdjustmentService(mockPrisma, mockIndexData);
+  });
+
+  it('lee la versión vigente a la fecha del ajuste', async () => {
+    mockFindTerms.mockResolvedValue({
+      adjustmentType: AdjustmentType.FixedPercent,
+      customPct: '8.00',
+      adjustmentBase: 'Original',
+      indexLagMonths: 3,
+    });
+    // El contrato dice IPC, pero rige una versión posterior: manda la versión.
+    const contract = makeContract({ adjustmentType: AdjustmentType.IPC, customAdjustmentPct: null });
+
+    const { params, rules } = await service.loadParams(contract, window, { tenantId: 'tenant-1' });
+
+    expect(params).toMatchObject({ type: AdjustmentType.FixedPercent });
+    expect((params as any).percentage.toString()).toBe('8');
+    expect(rules).toEqual({ adjustmentBase: 'Original', indexLagMonths: 3 });
+    expect(mockFindTerms).toHaveBeenCalledWith({
+      where: { tenantId: 'tenant-1', contractId: 'contract-1', validFrom: { lte: window.until } },
+      orderBy: { validFrom: 'desc' },
+    });
+  });
+
+  it('sin versión usa las columnas del contrato y las reglas por defecto', async () => {
+    mockFindTerms.mockResolvedValue(null);
+
+    const { params, rules } = await service.loadParams(makeContract(), window, { tenantId: 'tenant-1' });
+
+    expect((params as any).percentage.toString()).toBe('10');
+    expect(rules).toEqual({ adjustmentBase: 'Vigente', indexLagMonths: 2 });
+  });
+
+  it('lee las versiones con el cliente de la transacción cuando se pasa', async () => {
+    const txFindTerms = jest.fn().mockResolvedValue(null);
+
+    await service.loadParams(makeContract(), window, {
+      tenantId: 'tenant-1',
+      client: {
+        indexData: { findMany: jest.fn() },
+        contractTermsVersion: { findFirst: txFindTerms },
+      },
+    });
+
+    expect(txFindTerms).toHaveBeenCalled();
+    expect(mockFindTerms).not.toHaveBeenCalled();
+  });
+
+  it('una modalidad sin cálculo todavía (UVA, Escalonado) se informa como desconocida', async () => {
+    mockFindTerms.mockResolvedValue({
+      adjustmentType: AdjustmentType.Escalonado,
+      customPct: null,
+      adjustmentBase: 'Vigente',
+      indexLagMonths: 2,
+    });
+
+    await expect(
+      service.loadParams(makeContract(), window, { tenantId: 'tenant-1' }),
+    ).rejects.toMatchObject({ response: { error: 'UNKNOWN_ADJUSTMENT_TYPE' } });
   });
 });
