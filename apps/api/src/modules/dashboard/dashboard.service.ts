@@ -8,6 +8,7 @@ import {
   sumOutstanding,
 } from '../liquidaciones/receivables';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { getParty } from '../contracts/contract-parties';
 import {
   buildMonthRange,
   buildBuckets,
@@ -183,7 +184,7 @@ export class DashboardService {
     };
 
     const tenantName = (c: (typeof activeContracts)[number]) => {
-      const inq = c.persons.find((p) => p.role === 'Inquilino')?.person;
+      const inq = getParty(c, 'Inquilino')?.person;
       return inq ? `${inq.firstName} ${inq.lastName}` : '—';
     };
     const expiringAgenda = activeContracts

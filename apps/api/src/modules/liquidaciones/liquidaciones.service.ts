@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { getParty } from '../contracts/contract-parties';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
   GenerateLiquidacionesSchema,
@@ -726,9 +727,9 @@ export class LiquidacionesService {
       );
 
       // Find tenant (inquilino) email from contract persons
-      const inquilino = liquidacion.contract?.persons?.find(
-        (p: any) => p.role === 'Inquilino',
-      );
+      const inquilino = liquidacion.contract
+        ? getParty<any>(liquidacion.contract, 'Inquilino')
+        : undefined;
       const email = inquilino?.person?.email;
 
       if (email) {

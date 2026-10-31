@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { ensureRole } from '../persons/person-roles.service';
 import {
   PublicPropertyFilterSchema,
   CreatePublicInquirySchema,
@@ -287,9 +288,7 @@ export class PublicService {
       select: { id: true },
     });
 
-    await this.prisma.baseClient.personRoleAssignment.create({
-      data: { personId: person.id, role: PersonRole.Lead, tenantId },
-    });
+    await ensureRole(this.prisma.baseClient, person.id, PersonRole.Lead);
 
     return person.id;
   }

@@ -14,11 +14,13 @@ import {
   UpdatePersonSchema,
   PersonFilterSchema,
   AssignPersonRoleSchema,
+  PersonRole,
 } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
 import { rethrowExternalRefConflict } from '../../common/validation/external-ref';
 import { splitBankShortcut, defaultAccountForCreate } from './person-bank-fields';
 import { PersonBankAccountsService } from './person-bank-accounts.service';
+import { ensureRole } from './person-roles.service';
 
 const BANK_ACCOUNTS_INCLUDE: { orderBy: Prisma.PersonBankAccountOrderByWithRelationInput[] } = {
   orderBy: [{ currency: 'asc' }, { isDefault: 'desc' }, { createdAt: 'asc' }],
@@ -255,14 +257,25 @@ export class PersonsService {
 
     const tenantId = this.tenantContext.getTenantId()!;
 
-    const assignment = await this.prisma.client.personRoleAssignment.create({
-      data: {
-        personId,
-        role: validated.role,
-        tenantId,
-        propertyId: validated.propertyId ?? null,
+    // La asignación de rol es solo la etiqueta; la propiedad de un propietario
+    // vive en PropertyOwnership y `propertyId` de la asignación ya no se escribe.
+    const assignment = await this.prisma.client.$transaction(async (tx: any) => {
+      const created = await ensureRole(tx, personId, validated.role, {
         guarantorForPersonId: validated.guarantorForPersonId ?? null,
-      },
+      });
+      if (validated.role === PersonRole.Propietario && validated.propertyId) {
+        const property = await tx.property.findFirst({ where: { id: validated.propertyId } });
+        if (!property) {
+          throw new BadRequestException({
+            error: 'PROPERTY_NOT_FOUND',
+            message: `Property ${validated.propertyId} not found`,
+          });
+        }
+        await tx.propertyOwnership.create({
+          data: { tenantId, propertyId: validated.propertyId, personId },
+        });
+      }
+      return created;
     });
 
     this.logger.log(
