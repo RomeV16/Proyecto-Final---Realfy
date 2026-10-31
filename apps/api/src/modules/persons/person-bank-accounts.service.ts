@@ -5,6 +5,7 @@ import {
   CreatePersonBankAccountSchema,
   UpdatePersonBankAccountSchema,
   Currency,
+  personName,
 } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
 import { hasBankData } from './person-bank-fields';
@@ -71,7 +72,7 @@ export class PersonBankAccountsService {
         bankName: validated.bankName ?? null,
         cbu: validated.cbu ?? null,
         alias: validated.alias ?? null,
-        holder: validated.holder ?? `${person.firstName} ${person.lastName}`.trim(),
+        holder: validated.holder ?? personName(person),
         isDefault,
       },
     });

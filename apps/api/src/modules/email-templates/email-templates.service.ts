@@ -14,6 +14,8 @@ import {
   PreviewEmailTemplateSchema,
   SendEmailSchema,
   InteractionType,
+  personName,
+  propertyLabel,
 } from '@realfy/shared';
 import { renderTemplate, extractVariableNames } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
@@ -297,14 +299,14 @@ export class EmailTemplatesService {
     if (lead.person.firstName) variableMap.nombre = lead.person.firstName;
     if (lead.person.lastName) variableMap.apellido = lead.person.lastName;
     if (lead.person.firstName && lead.person.lastName) {
-      variableMap.nombreCompleto = `${lead.person.firstName} ${lead.person.lastName}`;
+      variableMap.nombreCompleto = personName(lead.person);
     }
     if (lead.person.email) variableMap.email = lead.person.email;
     if (lead.person.phone) variableMap.telefono = lead.person.phone;
 
     // Property fields
     if (lead.property) {
-      variableMap.propiedad = lead.property.title || `${lead.property.street ?? ''} ${lead.property.number ?? ''}`.trim();
+      variableMap.propiedad = propertyLabel(lead.property);
       if (lead.property.street && lead.property.number) {
         variableMap.direccion = `${lead.property.street} ${lead.property.number}`;
       }
@@ -327,7 +329,7 @@ export class EmailTemplatesService {
 
     // Agent fields
     if (lead.assignedToUser) {
-      variableMap.agente = `${lead.assignedToUser.firstName} ${lead.assignedToUser.lastName}`;
+      variableMap.agente = personName(lead.assignedToUser);
     }
 
     // Merge auto-resolved variables with user-provided overrides

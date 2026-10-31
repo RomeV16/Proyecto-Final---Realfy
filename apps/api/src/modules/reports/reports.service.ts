@@ -21,6 +21,8 @@ import {
   monthStartUTC,
   periodKey,
   todayInAR,
+  personName,
+  propertyLabel,
 } from '@realfy/shared';
 import Decimal from 'decimal.js';
 import { outstandingBalance } from '../liquidaciones/receivables';
@@ -138,10 +140,7 @@ export class ReportsService {
           year: 'numeric',
           timeZone: 'UTC',
         }),
-        propiedad:
-          r.contract?.property?.title ??
-          r.contract?.property?.street ??
-          '—',
+        propiedad: propertyLabel(r.contract?.property) || '—',
         cobrado: rentCollected.toFixed(2),
         comision: commissionAmount.toFixed(2),
         honorarios: adminFeeAmount.toFixed(2),
@@ -235,7 +234,7 @@ export class ReportsService {
       if (!property) continue;
 
       const existing = propertyMap.get(property.id) ?? {
-        title: property.title ?? property.street ?? '—',
+        title: propertyLabel(property) || '—',
         cobrado: new Decimal(0),
         facturado: new Decimal(0),
         comisiones: new Decimal(0),
@@ -456,13 +455,8 @@ export class ReportsService {
       const total = commissionAmount.plus(adminFeeAmount);
 
       return {
-        propiedad:
-          r.contract?.property?.title ??
-          r.contract?.property?.street ??
-          '—',
-        propietario: r.owner
-          ? `${r.owner.firstName} ${r.owner.lastName}`
-          : '—',
+        propiedad: propertyLabel(r.contract?.property) || '—',
+        propietario: personName(r.owner) || '—',
         periodo: new Date(r.period).toLocaleDateString('es-AR', {
           month: '2-digit',
           year: 'numeric',
@@ -681,9 +675,7 @@ export class ReportsService {
       totalVencido = totalVencido.plus(monto);
 
       const inquilinoPerson = liq.contract ? getParty<any>(liq.contract, 'Inquilino')?.person : undefined;
-      const inquilino = inquilinoPerson
-        ? `${inquilinoPerson.firstName} ${inquilinoPerson.lastName}`
-        : '—';
+      const inquilino = personName(inquilinoPerson) || '—';
 
       return {
         propiedad:

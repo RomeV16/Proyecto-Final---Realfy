@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { getParty } from '../contracts/contract-parties';
-import { RECEIVABLE_STATUSES, TICKET_SLA_HOURS, TicketPriority, todayInAR } from '@realfy/shared';
+import { RECEIVABLE_STATUSES, TICKET_SLA_HOURS, TicketPriority, personName, todayInAR } from '@realfy/shared';
 import { isOverdue, isReceivable, outstandingBalance, sumOutstanding } from '../liquidaciones/receivables';
 import {
   DailyContext,
@@ -36,16 +36,12 @@ function periodLabel(period: Date): string {
     .replace('.', '');
 }
 
-function personName(person?: { firstName: string; lastName: string } | null): string | null {
-  return person ? `${person.firstName} ${person.lastName}` : null;
-}
-
 /** Contraparte de un contrato: el inquilino, o el primer firmante que haya. */
 function counterparty(
   persons: Array<{ role: string; person: { firstName: string; lastName: string } | null }>,
 ): string | null {
   const inquilino = getParty({ persons }, 'Inquilino');
-  return personName(inquilino?.person ?? persons[0]?.person);
+  return personName(inquilino?.person ?? persons[0]?.person) || null;
 }
 
 /**
@@ -230,7 +226,7 @@ export class DailyContextService {
       .map(({ item, daysSinceContact }, i) =>
         this.emptyItem('lead', i + 1, item.id, {
           title: item.property?.title ?? 'Consulta sin propiedad',
-          subtitle: personName(item.person),
+          subtitle: personName(item.person) || null,
           amount: item.budget !== null ? Math.round(Number(item.budget)) : null,
           currency: item.budget !== null ? (item.budgetCurrency as string) : null,
           daysSinceContact,

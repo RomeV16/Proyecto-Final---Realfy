@@ -15,6 +15,7 @@ import {
   PersonFilterSchema,
   AssignPersonRoleSchema,
   PersonRole,
+  personName,
 } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
 import { rethrowExternalRefConflict } from '../../common/validation/external-ref';
@@ -129,7 +130,7 @@ export class PersonsService {
           bankAccounts: defaultAccountForCreate(
             tenantId,
             bank,
-            `${rest.firstName} ${rest.lastName}`.trim(),
+            personName(rest),
           ),
         } as any,
         include: {
@@ -185,7 +186,7 @@ export class PersonsService {
       await this.bankAccounts.applyShortcut(
         id,
         bank,
-        `${updated.firstName} ${updated.lastName}`.trim(),
+        personName(updated),
       );
     }
     updated = await this.prisma.client.person.findFirstOrThrow({

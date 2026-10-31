@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { Roles } from '../../common/auth/roles.decorator';
-import { PenaltyConfigSchema, PreviewPenaltySchema, OVERDUE_STATUSES, todayInAR } from '@realfy/shared';
+import { PenaltyConfigSchema, PreviewPenaltySchema, OVERDUE_STATUSES, personName, todayInAR } from '@realfy/shared';
 import type { PenaltyConfig, PreviewPenaltyInput } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -137,9 +137,7 @@ export class PenaltiesController {
 
       const inquilino = liq.contract.persons?.[0];
       const personId = inquilino?.person?.id ?? `unknown-${liq.id}`;
-      const fullName = inquilino
-        ? `${inquilino.person.firstName} ${inquilino.person.lastName}`
-        : 'Desconocido';
+      const fullName = personName(inquilino?.person) || 'Desconocido';
 
       const propertyId = liq.contract.property?.id;
       const propertyLabel = liq.contract.property?.title;
