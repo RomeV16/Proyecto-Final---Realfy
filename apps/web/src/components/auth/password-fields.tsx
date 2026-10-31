@@ -1,74 +1,60 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from '@realfy/shared';
+import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
-
-export type PasswordErrorKey = 'required' | 'tooShort' | 'tooLong' | 'mismatch';
-
-export interface PasswordErrors {
-  password?: PasswordErrorKey;
-  confirm?: PasswordErrorKey;
-}
-
-/** Las mismas reglas que impone la API: largo entre el mínimo y el máximo, y confirmación igual. */
-export function validateNewPassword(password: string, confirm: string): PasswordErrors {
-  const errors: PasswordErrors = {};
-  if (!password) errors.password = 'required';
-  else if (password.length < PASSWORD_MIN_LENGTH) errors.password = 'tooShort';
-  else if (password.length > PASSWORD_MAX_LENGTH) errors.password = 'tooLong';
-  if (!errors.password && confirm !== password) errors.confirm = 'mismatch';
-  return errors;
-}
 
 interface PasswordFieldsProps {
   password: string;
   confirm: string;
   onPassword: (value: string) => void;
   onConfirm: (value: string) => void;
-  errors: PasswordErrors;
+  passwordError?: string;
+  confirmError?: string;
   passwordLabel: string;
   confirmLabel: string;
-  idPrefix: string;
   disabled?: boolean;
 }
 
-/** Par de campos "contraseña nueva" + "repetila", con el mismo texto de ayuda y errores en todas las pantallas. */
+/** Par de campos "contraseña nueva" + "repetila", con la misma ayuda en todas las pantallas. */
 export function PasswordFields({
   password,
   confirm,
   onPassword,
   onConfirm,
-  errors,
+  passwordError,
+  confirmError,
   passwordLabel,
   confirmLabel,
-  idPrefix,
   disabled,
 }: PasswordFieldsProps) {
   const t = useTranslations('auth');
   return (
     <>
-      <Input
-        id={`${idPrefix}-password`}
-        type="password"
-        label={passwordLabel}
-        value={password}
-        onChange={(e) => onPassword(e.target.value)}
-        error={errors.password ? t(`passwordFields.${errors.password}`) : undefined}
-        hint={t('passwordRules')}
-        autoComplete="new-password"
-        disabled={disabled}
-      />
-      <Input
-        id={`${idPrefix}-confirm`}
-        type="password"
-        label={confirmLabel}
-        value={confirm}
-        onChange={(e) => onConfirm(e.target.value)}
-        error={errors.confirm ? t(`passwordFields.${errors.confirm}`) : undefined}
-        autoComplete="new-password"
-        disabled={disabled}
-      />
+      <FormField label={passwordLabel} error={passwordError} hint={t('passwordRules')} required>
+        {(c) => (
+          <Input
+            {...c}
+            type="password"
+            value={password}
+            onChange={(e) => onPassword(e.target.value)}
+            autoComplete="new-password"
+            disabled={disabled}
+          />
+        )}
+      </FormField>
+      <FormField label={confirmLabel} error={confirmError} required>
+        {(c) => (
+          <Input
+            {...c}
+            type="password"
+            value={confirm}
+            onChange={(e) => onConfirm(e.target.value)}
+            autoComplete="new-password"
+            disabled={disabled}
+          />
+        )}
+      </FormField>
     </>
   );
 }

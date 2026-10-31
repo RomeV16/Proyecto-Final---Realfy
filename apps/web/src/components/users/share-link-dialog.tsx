@@ -5,6 +5,8 @@ import type { ShareableLink } from '@realfy/shared';
 import { formatDateTime } from '@/lib/format';
 import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 
 export interface SharedLink {
@@ -42,18 +44,11 @@ export function ShareLinkDialog({ shared, onClose }: { shared: SharedLink | null
         {shared && (
           <>
             <p className="text-sm text-[var(--color-text)]">{t('intro', { email: shared.data.email })}</p>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="share-link" className="text-[0.8rem] font-medium text-[var(--color-text)]">
-                {t('linkLabel')}
-              </label>
-              <input
-                id="share-link"
-                readOnly
-                value={shared.data.link}
-                onFocus={(e) => e.currentTarget.select()}
-                className="h-11 w-full rounded-lg border border-[var(--color-border)] px-3 text-sm bg-[var(--color-surface-sunken)] text-[var(--color-text)]"
-              />
-            </div>
+            <FormField label={t('linkLabel')}>
+              {(c) => (
+                <Input {...c} readOnly value={shared.data.link} onFocus={(e) => e.currentTarget.select()} />
+              )}
+            </FormField>
             <div id="share-link-note" className="space-y-1 text-sm text-[var(--color-muted)]">
               <p>{shared.data.emailSent ? t('emailSent') : t('noEmail')}</p>
               <p>{t('singleUse', { date: formatDateTime(shared.data.expiresAt, undefined, locale) })}</p>

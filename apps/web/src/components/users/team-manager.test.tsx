@@ -119,14 +119,14 @@ describe('TeamManager', () => {
     const dialog = screen.getByRole('dialog');
 
     await user.click(within(dialog).getByRole('button', { name: 'Crear invitación' }));
-    expect(within(dialog).getByText('Ingresá un correo electrónico')).toBeInTheDocument();
-    await user.type(within(dialog).getByLabelText('Correo electrónico'), 'no-es-correo');
+    expect(within(dialog).getByText('Este campo es obligatorio')).toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText(/^Correo electrónico/), 'no-es-correo');
     await user.click(within(dialog).getByRole('button', { name: 'Crear invitación' }));
     expect(within(dialog).getByText('Ingresá un correo electrónico válido')).toBeInTheDocument();
 
-    await user.clear(within(dialog).getByLabelText('Correo electrónico'));
-    await user.type(within(dialog).getByLabelText('Correo electrónico'), 'nuevo@example.test');
-    await user.selectOptions(within(dialog).getByLabelText('Rol'), 'Gerente');
+    await user.clear(within(dialog).getByLabelText(/^Correo electrónico/));
+    await user.type(within(dialog).getByLabelText(/^Correo electrónico/), 'nuevo@example.test');
+    await user.selectOptions(within(dialog).getByLabelText(/^Rol/), 'Gerente');
     await user.click(within(dialog).getByRole('button', { name: 'Crear invitación' }));
 
     const share = await screen.findByRole('dialog', {}, { timeout: 3000 });
@@ -163,11 +163,11 @@ describe('TeamManager', () => {
     const { user } = await setup();
     await user.click(screen.getByRole('button', { name: 'Invitar usuario' }));
     const dialog = screen.getByRole('dialog');
-    await user.type(within(dialog).getByLabelText('Correo electrónico'), 'beto@example.test');
+    await user.type(within(dialog).getByLabelText(/^Correo electrónico/), 'beto@example.test');
 
     apiClient.mockRejectedValueOnce(new ApiRequestError(400, 'USER_ALREADY_EXISTS', 'x'));
     await user.click(within(dialog).getByRole('button', { name: 'Crear invitación' }));
-    expect(await within(dialog).findByText('Ya hay un usuario con este correo en tu inmobiliaria')).toBeInTheDocument();
+    expect(await within(dialog).findByText(/Ya hay un usuario con este correo/)).toBeInTheDocument();
 
     apiClient.mockRejectedValueOnce(new ApiRequestError(409, 'INVITATION_ALREADY_PENDING', 'x'));
     await user.click(within(dialog).getByRole('button', { name: 'Crear invitación' }));
@@ -202,7 +202,7 @@ describe('TeamManager', () => {
     const dialog = screen.getByRole('dialog');
     const save = within(dialog).getByRole('button', { name: 'Guardar rol' });
     expect(save).toBeDisabled();
-    await user.selectOptions(within(dialog).getByLabelText('Rol de Beto Ventas'), 'Gerente');
+    await user.selectOptions(within(dialog).getByLabelText(/^Rol de Beto Ventas/), 'Gerente');
     await user.click(save);
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Rol actualizado'));
     const call = apiClient.mock.calls.find(([p]) => p === '/users/u2')!;
@@ -215,7 +215,7 @@ describe('TeamManager', () => {
     const row = table().getByText('Yo Mismo').closest('tr')!;
     await user.click(within(row).getByRole('button', { name: 'Cambiar rol' }));
     const dialog = screen.getByRole('dialog');
-    await user.selectOptions(within(dialog).getByLabelText('Rol de Yo Mismo'), 'Gerente');
+    await user.selectOptions(within(dialog).getByLabelText(/^Rol de Yo Mismo/), 'Gerente');
     apiClient.mockRejectedValueOnce(new ApiRequestError(409, 'LAST_ADMIN', 'x'));
     await user.click(within(dialog).getByRole('button', { name: 'Guardar rol' }));
     expect(await within(dialog).findByText(/al menos un administrador activo/)).toBeInTheDocument();
@@ -249,11 +249,12 @@ describe('TeamManager', () => {
     await user.click(within(row).getByRole('button', { name: 'Desactivar' }));
     apiClient.mockRejectedValueOnce(new ApiRequestError(409, 'LAST_ADMIN', 'x'));
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Desactivar' }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('al menos un administrador activo')));
+    expect(await screen.findByText(/al menos un administrador activo/)).toBeInTheDocument();
 
     apiClient.mockRejectedValueOnce(new Error('boom'));
     await user.click(within(row).getByRole('button', { name: 'Enlace para cambiar contraseña' }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('No se pudo completar la acción. Intentá nuevamente.'));
+    expect(await screen.findByText('boom')).toBeInTheDocument();
+    expect(screen.queryByText(/al menos un administrador activo/)).not.toBeInTheDocument();
   });
 
   it('el Gerente ve el equipo en solo lectura', async () => {
@@ -277,14 +278,14 @@ describe('TeamManager', () => {
     expect(apiClient).not.toHaveBeenCalled();
   });
 
-  it('avisa si no se pudo cargar y muestra el vacío', async () => {
-    apiClient.mockRejectedValue(new Error('down'));
+  it('si no se pudo cargar, muestra el error en lugar de la tabla', async () => {
+    apiClient.mockRejectedValue(new ApiRequestError(500, 'INTERNAL_ERROR', 'x'));
     renderEs(
       <ConfirmProvider>
         <TeamManager />
       </ConfirmProvider>,
     );
-    expect(await screen.findByText('No se pudo cargar el equipo')).toBeInTheDocument();
-    expect(await screen.findByText('No hay usuarios registrados')).toBeInTheDocument();
+    expect(await screen.findByText(/El servidor tuvo un problema/)).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 });

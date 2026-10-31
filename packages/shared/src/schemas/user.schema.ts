@@ -18,10 +18,27 @@ export const InviteUserSchema = z.object({
 export const PASSWORD_MIN_LENGTH = 8;
 export const PASSWORD_MAX_LENGTH = 128;
 
+// Los mensajes son claves i18n: la web las traduce con `useSchemaMessages`.
 const newPassword = z
   .string()
-  .min(PASSWORD_MIN_LENGTH, { message: 'validation.minLength' })
-  .max(PASSWORD_MAX_LENGTH, { message: 'validation.maxLength' });
+  .min(1, { message: 'auth.passwordFields.required' })
+  .min(PASSWORD_MIN_LENGTH, { message: 'auth.passwordFields.tooShort' })
+  .max(PASSWORD_MAX_LENGTH, { message: 'auth.passwordFields.tooLong' });
+
+const required = z.string().trim().min(1, { message: 'validation.required' });
+const email = z
+  .string()
+  .trim()
+  .min(1, { message: 'validation.required' })
+  .email({ message: 'validation.email.invalid' });
+
+/** Agrega la confirmación de la contraseña nueva a un esquema de formulario. */
+function withConfirmation<S extends z.ZodTypeAny>(schema: S, field: string) {
+  return schema.refine(
+    (data: Record<string, unknown>) => data.confirmPassword === data[field],
+    { message: 'validation.passwordMismatch', path: ['confirmPassword'] },
+  );
+}
 
 export const UpdateUserSchema = z.object({
   role: z.nativeEnum(UserRole),
@@ -30,8 +47,8 @@ export const UpdateUserSchema = z.object({
 export const AcceptInvitationSchema = z.object({
   token: z.string().min(1),
   password: newPassword,
-  firstName: z.string().trim().min(1, { message: 'validation.required' }).max(100),
-  lastName: z.string().trim().min(1, { message: 'validation.required' }).max(100),
+  firstName: required.max(100),
+  lastName: required.max(100),
 });
 
 export const ChangePasswordSchema = z.object({
@@ -39,20 +56,47 @@ export const ChangePasswordSchema = z.object({
   newPassword,
 });
 
-export const PasswordResetRequestSchema = z.object({
-  email: z
-    .string()
-    .min(1, { message: 'validation.required' })
-    .email({ message: 'validation.email.invalid' }),
-});
+export const PasswordResetRequestSchema = z.object({ email });
 
 export const PasswordResetConfirmSchema = z.object({
   token: z.string().min(1),
   newPassword,
 });
 
+/** Formularios de la web: los mismos campos que la API más la confirmación de la contraseña. */
+export const InviteUserFormSchema = z.object({
+  email,
+  role: z.nativeEnum(UserRole, { errorMap: () => ({ message: 'users.modal.roleRequired' }) }),
+});
+
+export const AcceptInvitationFormSchema = withConfirmation(
+  z.object({
+    firstName: required.max(100),
+    lastName: required.max(100),
+    password: newPassword,
+    confirmPassword: z.string(),
+  }),
+  'password',
+);
+
+export const ChangePasswordFormSchema = withConfirmation(
+  ChangePasswordSchema.extend({ confirmPassword: z.string() }),
+  'newPassword',
+);
+
+export const PasswordResetFormSchema = withConfirmation(
+  z.object({ newPassword, confirmPassword: z.string() }),
+  'newPassword',
+);
+
+export const USER_STATUSES = {
+  Invited: 'invited',
+  Active: 'active',
+  Inactive: 'inactive',
+} as const;
+
 /** Estado visible de una persona del equipo en el listado. */
-export type UserStatus = 'invited' | 'active' | 'inactive';
+export type UserStatus = (typeof USER_STATUSES)[keyof typeof USER_STATUSES];
 
 export interface TeamMember {
   /** Id del usuario; para una invitación pendiente, el de la invitación. */

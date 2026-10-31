@@ -2,42 +2,37 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import type { ShareableLink, TeamMember, UserStatus } from '@realfy/shared';
+import type { ShareableLink, TeamMember } from '@realfy/shared';
 import { apiClient } from '@/lib/api-client';
 import { useOptionalAuth } from '@/lib/auth-context';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 import { toast } from '@/lib/toast';
 import { Badge } from '@/components/ui/badge';
+import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
+import { ErrorNotice } from '@/components/ui/error-notice';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Button } from '@/components/ui/button';
 import { useConfirm } from '@/components/ui/confirm-dialog';
-import { ResponsiveTable, type Column } from '@/components/ui/responsive-table';
 import { InviteDialog } from './invite-dialog';
 import { memberName } from './member-name';
 import { RoleDialog } from './role-dialog';
 import { useRoleLabel } from './role-select';
 import { ShareLinkDialog, type SharedLink } from './share-link-dialog';
-import { useActionError } from './use-action-error';
-
-const STATUS_VARIANT: Record<UserStatus, 'info' | 'success' | 'neutral'> = {
-  invited: 'info',
-  active: 'success',
-  inactive: 'neutral',
-};
 
 /** Equipo de la inmobiliaria: lista con estado y, para el Admin, las acciones de alta, rol, baja y enlaces. */
 export function TeamManager() {
   const t = useTranslations('users');
   const locale = useLocale();
   const roleLabel = useRoleLabel();
-  const actionError = useActionError();
   const confirm = useConfirm();
   const canManage = useCan('users.manage');
   const canView = useCan('users.view');
   const currentUserId = useOptionalAuth()?.user?.id;
 
   const [members, setMembers] = useState<TeamMember[] | null>(null);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState<unknown>(null);
+  const [actionError, setActionError] = useState<unknown>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [roleTarget, setRoleTarget] = useState<TeamMember | null>(null);
   const [shared, setShared] = useState<SharedLink | null>(null);
@@ -45,9 +40,9 @@ export function TeamManager() {
   const load = useCallback(async () => {
     try {
       setMembers(await apiClient<TeamMember[]>('/users'));
-      setLoadError(false);
-    } catch {
-      setLoadError(true);
+      setLoadError(null);
+    } catch (err) {
+      setLoadError(err);
       setMembers((prev) => prev ?? []);
     }
   }, []);
@@ -58,13 +53,14 @@ export function TeamManager() {
 
   /** Corre una acción del Admin: avisa el resultado, recarga la lista y devuelve lo que respondió la API. */
   async function run<T>(path: string, init: RequestInit, success?: string): Promise<T | null> {
+    setActionError(null);
     try {
       const result = await apiClient<T>(path, init);
       if (success) toast.success(success);
       await load();
       return result;
     } catch (err) {
-      toast.error(actionError(err));
+      setActionError(err);
       return null;
     }
   }
@@ -92,7 +88,7 @@ export function TeamManager() {
     return <p className="text-sm text-[var(--color-muted)]">{t('readOnly')}</p>;
   }
 
-  const columns: Column<TeamMember>[] = [
+  const columns: DataTableColumn<TeamMember>[] = [
     {
       key: 'name',
       header: t('table.name'),
@@ -107,11 +103,14 @@ export function TeamManager() {
     {
       key: 'status',
       header: t('table.status'),
-      render: (m) => (
-        <Badge variant={m.invitationExpired ? 'warning' : STATUS_VARIANT[m.status]} dot>
-          {m.invitationExpired ? t('invitationExpired') : t(`status.${m.status}`)}
-        </Badge>
-      ),
+      render: (m) =>
+        m.invitationExpired ? (
+          <Badge variant="warning" dot>
+            {t('invitationExpired')}
+          </Badge>
+        ) : (
+          <StatusBadge domain="usuario" status={m.status} />
+        ),
     },
     {
       key: 'lastLogin',
@@ -168,17 +167,14 @@ export function TeamManager() {
       </div>
 
       {!canManage && <p className="text-sm text-[var(--color-muted)]">{t('readOnly')}</p>}
-      {loadError && (
-        <p role="alert" className="text-sm text-[var(--color-danger)]">
-          {t('loadError')}
-        </p>
-      )}
+      {actionError != null && <ErrorNotice error={actionError} />}
 
-      <ResponsiveTable
+      <DataTable
         items={members ?? []}
         columns={columns}
         keyExtractor={(m) => m.id}
         loading={members === null}
+        error={loadError}
         empty={{ title: t('noUsers') }}
       />
 

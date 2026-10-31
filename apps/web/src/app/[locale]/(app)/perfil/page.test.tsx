@@ -22,6 +22,6 @@ describe('/perfil', () => {
     renderEs(<PerfilPage />);
     expect(screen.getByRole('heading', { name: 'Mi perfil' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Contraseña' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Contraseña actual')).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Contraseña actual/)).toBeInTheDocument();
   });
 });

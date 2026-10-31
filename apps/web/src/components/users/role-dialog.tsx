@@ -6,9 +6,9 @@ import type { TeamMember } from '@realfy/shared';
 import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { RoleSelect } from './role-select';
 import { memberName } from './member-name';
-import { useActionError } from './use-action-error';
 
 interface RoleDialogProps {
   member: TeamMember | null;
@@ -19,26 +19,25 @@ interface RoleDialogProps {
 export function RoleDialog({ member, onClose, onSaved }: RoleDialogProps) {
   const t = useTranslations('users.roleDialog');
   const tCommon = useTranslations('common');
-  const actionError = useActionError();
   const [role, setRole] = useState('');
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
     setRole(member?.role ?? '');
-    setError('');
+    setError(null);
   }, [member]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!member) return;
     setSaving(true);
-    setError('');
+    setError(null);
     try {
       await apiClient(`/users/${member.id}`, { method: 'PATCH', body: JSON.stringify({ role }) });
       onSaved();
     } catch (err) {
-      setError(actionError(err, t('error')));
+      setError(err);
     } finally {
       setSaving(false);
     }
@@ -52,17 +51,12 @@ export function RoleDialog({ member, onClose, onSaved }: RoleDialogProps) {
         </DialogHeader>
         <DialogBody className="space-y-4">
           <RoleSelect
-            id="role-select"
             label={member ? t('body', { name: memberName(member) }) : ''}
             value={role}
             onChange={setRole}
             disabled={saving}
           />
-          {error && (
-            <p role="alert" className="text-sm text-[var(--color-danger)]">
-              {error}
-            </p>
-          )}
+          {error != null && <ErrorNotice error={error} fallback={t('error')} />}
         </DialogBody>
         <DialogFooter>
           <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>

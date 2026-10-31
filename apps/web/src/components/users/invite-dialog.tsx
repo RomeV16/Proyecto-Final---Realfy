@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { UserRole, type ShareableLink } from '@realfy/shared';
-import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { InviteUserFormSchema, UserRole, type ShareableLink } from '@realfy/shared';
+import { apiClient } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
+import { ErrorNotice } from '@/components/ui/error-notice';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
+import { useSchemaMessages, useZodForm } from '@/hooks/use-zod-form';
 import { RoleSelect } from './role-select';
 
 interface InviteDialogProps {
@@ -15,100 +17,68 @@ interface InviteDialogProps {
   onCreated: (link: ShareableLink) => void;
 }
 
-const EMAIL_RE = /^\S+@\S+\.\S+$/;
+const INITIAL = { email: '', role: UserRole.Ventas as string };
 
 export function InviteDialog({ open, onClose, onCreated }: InviteDialogProps) {
   const t = useTranslations('users.modal');
   const tCommon = useTranslations('common');
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState<string>(UserRole.Ventas);
-  const [emailError, setEmailError] = useState('');
-  const [roleError, setRoleError] = useState('');
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  function reset() {
-    setEmail('');
-    setRole(UserRole.Ventas);
-    setEmailError('');
-    setRoleError('');
-    setError('');
-  }
+  const { values, set, setValues, errors, formError, setFormError, submitting, submit } = useZodForm({
+    schema: InviteUserFormSchema,
+    initialValues: INITIAL,
+    translate: useSchemaMessages(),
+  });
 
   function close() {
-    reset();
+    setValues(INITIAL);
+    setFormError(null);
     onClose();
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    const value = email.trim();
-    const emailProblem = !value ? t('emailRequired') : EMAIL_RE.test(value) ? '' : t('emailInvalid');
-    const roleProblem = role ? '' : t('roleRequired');
-    setEmailError(emailProblem);
-    setRoleError(roleProblem);
-    if (emailProblem || roleProblem) return;
-
-    setSaving(true);
-    try {
-      const link = await apiClient<ShareableLink>('/users/invite', {
-        method: 'POST',
-        body: JSON.stringify({ email: value, role }),
-      });
-      reset();
-      onCreated(link);
-    } catch (err) {
-      const code = err instanceof ApiRequestError ? err.errorCode : '';
-      setError(
-        code === 'USER_ALREADY_EXISTS' || code === 'INVITATION_ALREADY_PENDING'
-          ? t(code)
-          : t('error'),
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
+  const handleSubmit = submit(async (data) => {
+    const link = await apiClient<ShareableLink>('/users/invite', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    setValues(INITIAL);
+    onCreated(link);
+  });
 
   return (
-    <Dialog open={open} onClose={close} busy={saving}>
+    <Dialog open={open} onClose={close} busy={submitting}>
       <form onSubmit={handleSubmit} noValidate>
         <DialogHeader>
           <h2 className="text-base font-semibold text-[var(--color-text)]">{t('title')}</h2>
         </DialogHeader>
         <DialogBody className="space-y-4">
-          <Input
-            id="invite-email"
-            type="email"
-            label={t('email')}
-            placeholder={t('emailPlaceholder')}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={emailError || undefined}
-            autoComplete="off"
-            disabled={saving}
-          />
+          <FormField label={t('email')} error={errors.email} required>
+            {(c) => (
+              <Input
+                {...c}
+                type="email"
+                placeholder={t('emailPlaceholder')}
+                value={values.email}
+                onChange={(e) => set('email', e.target.value)}
+                autoComplete="off"
+                disabled={submitting}
+              />
+            )}
+          </FormField>
           <RoleSelect
-            id="invite-role"
             label={t('role')}
             placeholder={t('rolePlaceholder')}
-            value={role}
-            onChange={setRole}
-            error={roleError || undefined}
-            disabled={saving}
+            value={values.role}
+            onChange={(v) => set('role', v)}
+            error={errors.role}
+            disabled={submitting}
           />
-          {error && (
-            <p role="alert" className="text-sm text-[var(--color-danger)]">
-              {error}
-            </p>
-          )}
+          {formError != null && <ErrorNotice error={formError} fallback={t('error')} />}
         </DialogBody>
         <DialogFooter>
-          <Button type="button" variant="secondary" onClick={close} disabled={saving}>
+          <Button type="button" variant="secondary" onClick={close} disabled={submitting}>
             {tCommon('cancel')}
           </Button>
-          <Button type="submit" disabled={saving}>
-            {saving ? t('submitting') : t('submit')}
+          <Button type="submit" disabled={submitting}>
+            {submitting ? t('submitting') : t('submit')}
           </Button>
         </DialogFooter>
       </form>

@@ -43,9 +43,7 @@
    "sending": "Sending…",
    "sent": "If the account exists, we sent the instructions. If nothing arrives, ask an administrator of your agency to generate a link for you.",
    "error": "The request could not be sent. Please try again.",
-   "backToLogin": "Back to sign in",
-   "emailRequired": "Enter your email",
-   "emailInvalid": "Enter a valid email"
+   "backToLogin": "Back to sign in"
   },
   "passwordRules": "At least 8 characters.",
   "passwordFields": {
@@ -63,12 +61,7 @@
    "confirmPassword": "Repeat the password",
    "submit": "Create my account",
    "submitting": "Creating account…",
-   "firstNameRequired": "First name is required",
-   "lastNameRequired": "Last name is required",
    "missingToken": "The invitation link is missing. Ask your administrator to share it again.",
-   "NOT_FOUND": "This invitation link is not valid. Ask for a new one.",
-   "EXPIRED": "The invitation expired. Ask your administrator to resend it.",
-   "USED": "This invitation was already used. If you already created your account, sign in.",
    "error": "The account could not be created. Please try again.",
    "loginFailed": "Your account was created, but we could not sign you in. Sign in with your email and password.",
    "loginLink": "Already have an account? Sign in"
@@ -82,9 +75,6 @@
    "submitting": "Saving…",
    "success": "Done, your password was updated. You can now sign in with the new one.",
    "loginLink": "Sign in",
-   "INVALID": "This link is not valid. Ask your administrator for a new one.",
-   "USED": "This link was already used. If you need another, ask your administrator.",
-   "EXPIRED": "The link expired. Ask your administrator for a new one.",
    "error": "The password could not be changed. Please try again."
   }
  },
@@ -154,7 +144,20 @@
   "codes": {
    "INTERNAL_ERROR": "The server ran into a problem. Please try again in a few minutes.",
    "UNAUTHORIZED": "Your session has expired. Please sign in again.",
-   "FORBIDDEN": "You do not have permission to do this."
+   "FORBIDDEN": "You do not have permission to do this.",
+   "LAST_ADMIN": "The agency needs at least one active administrator.",
+   "CANNOT_DEACTIVATE_SELF": "You cannot deactivate your own account.",
+   "USER_NOT_FOUND": "The user no longer exists in your agency.",
+   "INVITATION_NOT_FOUND": "This invitation link is not valid or is no longer pending. Ask for a new one.",
+   "INVITATION_EXPIRED": "The invitation expired. Ask your administrator to resend it.",
+   "INVITATION_ALREADY_ACCEPTED": "This invitation was already used. If you already created your account, sign in.",
+   "INVITATION_ALREADY_PENDING": "There is already a pending invitation for this email. Resend it from the list.",
+   "USER_ALREADY_EXISTS": "There is already a user with this email in your agency.",
+   "USER_INACTIVE": "The user is deactivated: reactivate them before generating a link.",
+   "INVALID_CURRENT_PASSWORD": "The current password is not correct.",
+   "PASSWORD_RESET_INVALID": "This link is not valid. Ask your administrator for a new one.",
+   "PASSWORD_RESET_USED": "This link was already used. If you need another, ask your administrator.",
+   "PASSWORD_RESET_EXPIRED": "The link expired. Ask your administrator for a new one."
   },
   "segment": {
    "loading": "Loading…",
@@ -309,11 +312,7 @@
    "submitting": "Creating…",
    "success": "Invitation created",
    "error": "The invitation could not be created",
-   "emailRequired": "Enter an email",
-   "emailInvalid": "Enter a valid email",
-   "roleRequired": "Choose a role",
-   "USER_ALREADY_EXISTS": "There is already a user with this email in your agency",
-   "INVITATION_ALREADY_PENDING": "There is already a pending invitation for this email. Resend it from the list."
+   "roleRequired": "Choose a role"
   },
   "table": {
    "name": "Name",
@@ -342,7 +341,6 @@
    "resetLink": "Password change link"
   },
   "readOnly": "Only an administrator can invite or modify users.",
-  "loadError": "The team could not be loaded",
   "status": {
    "invited": "Invited",
    "active": "Active",
@@ -368,14 +366,6 @@
    "reactivateBody": "{name} will be able to sign in again with their password.",
    "reactivateConfirm": "Reactivate",
    "reactivated": "User reactivated"
-  },
-  "errors": {
-   "LAST_ADMIN": "The agency needs at least one active administrator.",
-   "CANNOT_DEACTIVATE_SELF": "You cannot deactivate your own account.",
-   "USER_NOT_FOUND": "The user no longer exists in your agency.",
-   "INVITATION_NOT_FOUND": "The invitation is no longer pending.",
-   "USER_INACTIVE": "The user is deactivated: reactivate them before generating a link.",
-   "generic": "The action could not be completed. Please try again."
   },
   "share": {
    "invitationTitle": "Invitation link",
@@ -3732,11 +3722,9 @@
    "current": "Current password",
    "new": "New password",
    "confirm": "Repeat the new password",
-   "currentRequired": "Enter your current password",
    "submit": "Change password",
    "saving": "Saving…",
    "saved": "Password updated",
-   "wrongCurrent": "The current password is not correct",
    "error": "The password could not be changed"
   }
  },

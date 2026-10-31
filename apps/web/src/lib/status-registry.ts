@@ -4,6 +4,7 @@ import {
   LiquidacionStatus,
   RendicionStatus,
   TicketStatus,
+  USER_STATUSES,
   VisitStatus,
 } from '@realfy/shared';
 import type { BadgeVariant } from '@/components/ui/badge';
@@ -25,7 +26,7 @@ import type { BadgeVariant } from '@/components/ui/badge';
  * `Enviada` es info; es el tono que ya mostraba el listado, y la chapa del
  * detalle se alinea con él.
  */
-export type StatusDomain = 'liquidacion' | 'rendicion' | 'contrato' | 'ticket' | 'lead' | 'visita';
+export type StatusDomain = 'liquidacion' | 'rendicion' | 'contrato' | 'ticket' | 'lead' | 'visita' | 'usuario';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -101,6 +102,11 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
     [VisitStatus.Completada]: 'success',
     [VisitStatus.Cancelada]: 'danger',
     [VisitStatus.NoShow]: 'warning',
+  }),
+  usuario: entries('users.status', {
+    [USER_STATUSES.Invited]: 'info',
+    [USER_STATUSES.Active]: 'success',
+    [USER_STATUSES.Inactive]: 'neutral',
   }),
 };
 

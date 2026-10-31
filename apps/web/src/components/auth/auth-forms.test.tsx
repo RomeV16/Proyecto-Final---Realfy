@@ -27,20 +27,9 @@ vi.mock('@/i18n/navigation', () => ({
 import { ApiRequestError } from '@/lib/api-client';
 import { AcceptInvitationForm } from './accept-invitation-form';
 import { ChangePasswordForm } from './change-password-form';
-import { validateNewPassword } from './password-fields';
 import { PasswordResetForm } from './password-reset-form';
 
 const GOOD = 'ClaveSegura123';
-
-describe('validateNewPassword', () => {
-  it('aplica las reglas de la API', () => {
-    expect(validateNewPassword('', '')).toEqual({ password: 'required' });
-    expect(validateNewPassword('corta', 'corta')).toEqual({ password: 'tooShort' });
-    expect(validateNewPassword('x'.repeat(129), 'x'.repeat(129))).toEqual({ password: 'tooLong' });
-    expect(validateNewPassword(GOOD, 'otra')).toEqual({ confirm: 'mismatch' });
-    expect(validateNewPassword(GOOD, GOOD)).toEqual({});
-  });
-});
 
 describe('AcceptInvitationForm', () => {
   beforeEach(() => {
@@ -50,10 +39,10 @@ describe('AcceptInvitationForm', () => {
   });
 
   async function fill(user: ReturnType<typeof userEvent.setup>, password = GOOD, confirm = GOOD) {
-    await user.type(screen.getByLabelText('Nombre'), ' Nuria ');
-    await user.type(screen.getByLabelText('Apellido'), 'Prueba');
-    await user.type(screen.getByLabelText('Contraseña'), password);
-    await user.type(screen.getByLabelText('Repetí la contraseña'), confirm);
+    await user.type(screen.getByLabelText(/^Nombre/), ' Nuria ');
+    await user.type(screen.getByLabelText(/^Apellido/), 'Prueba');
+    await user.type(screen.getByLabelText(/^Contraseña/), password);
+    await user.type(screen.getByLabelText(/^Repetí la contraseña/), confirm);
   }
 
   it('sin token avisa que falta el enlace', () => {
@@ -66,8 +55,7 @@ describe('AcceptInvitationForm', () => {
     const user = userEvent.setup();
     renderEs(<AcceptInvitationForm token="tok" />);
     await user.click(screen.getByRole('button', { name: 'Crear mi cuenta' }));
-    expect(screen.getByText('El nombre es obligatorio')).toBeInTheDocument();
-    expect(screen.getByText('El apellido es obligatorio')).toBeInTheDocument();
+    expect(screen.getAllByText('Este campo es obligatorio')).toHaveLength(2);
     expect(screen.getByText('Ingresá una contraseña')).toBeInTheDocument();
     await fill(user, 'corta', 'corta');
     await user.click(screen.getByRole('button', { name: 'Crear mi cuenta' }));
@@ -81,7 +69,7 @@ describe('AcceptInvitationForm', () => {
     );
     const user = userEvent.setup();
     renderEs(<AcceptInvitationForm token="tok" />);
-    await user.clear(screen.getByLabelText('Nombre'));
+    await user.clear(screen.getByLabelText(/^Nombre/));
     await fill(user);
     await user.click(screen.getByRole('button', { name: 'Crear mi cuenta' }));
 
@@ -103,9 +91,9 @@ describe('AcceptInvitationForm', () => {
     ['INVITATION_NOT_FOUND', 'no es válido'],
     ['INVITATION_EXPIRED', 'La invitación venció'],
     ['INVITATION_ALREADY_ACCEPTED', 'ya se usó'],
-    ['OTRO', 'No se pudo crear la cuenta'],
+    ['OTRO', 'Mensaje del servidor'],
   ])('muestra el error %s', async (code, text) => {
-    apiClient.mockRejectedValue(new ApiRequestError(400, code, 'x'));
+    apiClient.mockRejectedValue(new ApiRequestError(400, code, 'Mensaje del servidor'));
     const user = userEvent.setup();
     renderEs(<AcceptInvitationForm token="tok" />);
     await fill(user);
@@ -137,13 +125,13 @@ describe('PasswordResetForm', () => {
     const user = userEvent.setup();
     renderEs(<PasswordResetForm token={null} />);
     await user.click(screen.getByRole('button', { name: 'Enviar instrucciones' }));
-    expect(screen.getByText('Ingresá tu correo electrónico')).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Correo electrónico'), 'mal');
+    expect(screen.getByText('Este campo es obligatorio')).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/^Correo electrónico/), 'mal');
     await user.click(screen.getByRole('button', { name: 'Enviar instrucciones' }));
     expect(screen.getByText('Ingresá un correo electrónico válido')).toBeInTheDocument();
 
-    await user.clear(screen.getByLabelText('Correo electrónico'));
-    await user.type(screen.getByLabelText('Correo electrónico'), 'ana@example.test');
+    await user.clear(screen.getByLabelText(/^Correo electrónico/));
+    await user.type(screen.getByLabelText(/^Correo electrónico/), 'ana@example.test');
     await user.click(screen.getByRole('button', { name: 'Enviar instrucciones' }));
     expect(await screen.findByRole('status')).toHaveTextContent('Si la cuenta existe, enviamos las instrucciones');
     expect(apiClient).toHaveBeenCalledWith('/auth/password-reset/request', expect.objectContaining({ method: 'POST' }));
@@ -154,7 +142,7 @@ describe('PasswordResetForm', () => {
     apiClient.mockRejectedValue(new Error('down'));
     const user = userEvent.setup();
     renderEs(<PasswordResetForm token={null} />);
-    await user.type(screen.getByLabelText('Correo electrónico'), 'ana@example.test');
+    await user.type(screen.getByLabelText(/^Correo electrónico/), 'ana@example.test');
     await user.click(screen.getByRole('button', { name: 'Enviar instrucciones' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo enviar el pedido');
   });
@@ -163,14 +151,14 @@ describe('PasswordResetForm', () => {
     apiClient.mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderEs(<PasswordResetForm token="tok" />);
-    await user.type(screen.getByLabelText('Contraseña nueva'), GOOD);
-    await user.type(screen.getByLabelText('Repetí la contraseña'), 'distinta');
+    await user.type(screen.getByLabelText(/^Contraseña nueva/), GOOD);
+    await user.type(screen.getByLabelText(/^Repetí la contraseña/), 'distinta');
     await user.click(screen.getByRole('button', { name: 'Guardar contraseña' }));
     expect(screen.getByText('Las contraseñas no coinciden')).toBeInTheDocument();
     expect(apiClient).not.toHaveBeenCalled();
 
-    await user.clear(screen.getByLabelText('Repetí la contraseña'));
-    await user.type(screen.getByLabelText('Repetí la contraseña'), GOOD);
+    await user.clear(screen.getByLabelText(/^Repetí la contraseña/));
+    await user.type(screen.getByLabelText(/^Repetí la contraseña/), GOOD);
     await user.click(screen.getByRole('button', { name: 'Guardar contraseña' }));
     expect(await screen.findByRole('status')).toHaveTextContent('tu contraseña se actualizó');
     const [path, init] = apiClient.mock.calls[0];
@@ -183,13 +171,13 @@ describe('PasswordResetForm', () => {
     ['PASSWORD_RESET_INVALID', 'no es válido'],
     ['PASSWORD_RESET_USED', 'ya se usó'],
     ['PASSWORD_RESET_EXPIRED', 'venció'],
-    ['OTRO', 'No se pudo cambiar la contraseña'],
+    ['OTRO', 'Mensaje del servidor'],
   ])('muestra el error %s', async (code, text) => {
-    apiClient.mockRejectedValue(new ApiRequestError(400, code, 'x'));
+    apiClient.mockRejectedValue(new ApiRequestError(400, code, 'Mensaje del servidor'));
     const user = userEvent.setup();
     renderEs(<PasswordResetForm token="tok" />);
-    await user.type(screen.getByLabelText('Contraseña nueva'), GOOD);
-    await user.type(screen.getByLabelText('Repetí la contraseña'), GOOD);
+    await user.type(screen.getByLabelText(/^Contraseña nueva/), GOOD);
+    await user.type(screen.getByLabelText(/^Repetí la contraseña/), GOOD);
     await user.click(screen.getByRole('button', { name: 'Guardar contraseña' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(text);
   });
@@ -201,16 +189,16 @@ describe('ChangePasswordForm', () => {
   });
 
   async function fill(user: ReturnType<typeof userEvent.setup>, current = 'Actual12345') {
-    if (current) await user.type(screen.getByLabelText('Contraseña actual'), current);
-    await user.type(screen.getByLabelText('Contraseña nueva'), GOOD);
-    await user.type(screen.getByLabelText('Repetí la contraseña nueva'), GOOD);
+    if (current) await user.type(screen.getByLabelText(/^Contraseña actual/), current);
+    await user.type(screen.getByLabelText(/^Contraseña nueva/), GOOD);
+    await user.type(screen.getByLabelText(/^Repetí la contraseña nueva/), GOOD);
   }
 
   it('valida la actual y la nueva', async () => {
     const user = userEvent.setup();
     renderEs(<ChangePasswordForm />);
     await user.click(screen.getByRole('button', { name: 'Cambiar contraseña' }));
-    expect(screen.getByText('Ingresá tu contraseña actual')).toBeInTheDocument();
+    expect(screen.getByText('Este campo es obligatorio')).toBeInTheDocument();
     expect(screen.getByText('Ingresá una contraseña')).toBeInTheDocument();
     expect(apiClient).not.toHaveBeenCalled();
   });
@@ -225,7 +213,7 @@ describe('ChangePasswordForm', () => {
     const [path, init] = apiClient.mock.calls[0];
     expect(path).toBe('/auth/change-password');
     expect(JSON.parse(init.body)).toEqual({ currentPassword: 'Actual12345', newPassword: GOOD });
-    expect(screen.getByLabelText('Contraseña actual')).toHaveValue('');
+    expect(screen.getByLabelText(/^Contraseña actual/)).toHaveValue('');
   });
 
   it('marca la contraseña actual incorrecta y los demás errores', async () => {
@@ -234,7 +222,7 @@ describe('ChangePasswordForm', () => {
     await fill(user);
     apiClient.mockRejectedValueOnce(new ApiRequestError(400, 'INVALID_CURRENT_PASSWORD', 'x'));
     await user.click(screen.getByRole('button', { name: 'Cambiar contraseña' }));
-    expect(await screen.findByText('La contraseña actual no es correcta')).toBeInTheDocument();
+    expect(await screen.findByText('La contraseña actual no es correcta.')).toBeInTheDocument();
 
     apiClient.mockRejectedValueOnce(new Error('down'));
     await user.click(screen.getByRole('button', { name: 'Cambiar contraseña' }));
