@@ -10,6 +10,8 @@ export {
   PropertyState,
   PersonRole,
   FiscalCondition,
+  PersonType,
+  PayoutMethod,
   ContractStatus,
   ContractType,
   AdjustmentType,
@@ -66,6 +68,8 @@ export {
   UpdatePersonSchema,
   PersonFilterSchema,
   AssignPersonRoleSchema,
+  CreatePersonBankAccountSchema,
+  UpdatePersonBankAccountSchema,
   validateCuit,
 } from './schemas/person.schema';
 
@@ -180,11 +184,15 @@ import {
   UpdatePersonSchema as _UpdatePersonSchema,
   PersonFilterSchema as _PersonFilterSchema,
   AssignPersonRoleSchema as _AssignPersonRoleSchema,
+  CreatePersonBankAccountSchema as _CreatePersonBankAccountSchema,
+  UpdatePersonBankAccountSchema as _UpdatePersonBankAccountSchema,
 } from './schemas/person.schema';
 export type CreatePersonInput = z.infer<typeof _CreatePersonSchema>;
 export type UpdatePersonInput = z.infer<typeof _UpdatePersonSchema>;
 export type PersonFilterInput = z.infer<typeof _PersonFilterSchema>;
 export type AssignPersonRoleInput = z.infer<typeof _AssignPersonRoleSchema>;
+export type CreatePersonBankAccountInput = z.infer<typeof _CreatePersonBankAccountSchema>;
+export type UpdatePersonBankAccountInput = z.infer<typeof _UpdatePersonBankAccountSchema>;
 
 import {
   CreateContractSchema as _CreateContractSchema,

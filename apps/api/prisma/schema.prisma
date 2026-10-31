@@ -89,6 +89,17 @@ enum PersonRole {
   Proveedor
 }
 
+enum PersonType {
+  Fisica
+  Juridica
+}
+
+enum PayoutMethod {
+  Transferencia
+  Efectivo
+  Custodia
+}
+
 enum FiscalCondition {
   ResponsableInscripto
   Monotributista
@@ -377,12 +388,19 @@ model Property {
   price       Decimal?     @db.Decimal(15, 2)
   currency    Currency     @default(ARS)
 
+  // Catastro y edificio (la unidad apunta al edificio que la contiene)
+  cadastralId      String?
+  parentPropertyId String?
+  externalRef      String?
+
   isActive    Boolean      @default(true)
   tenantId    String
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent          Property?              @relation("edificio", fields: [parentPropertyId], references: [id], onDelete: SetNull)
+  units           Property[]             @relation("edificio")
   operations      PropertyOperation[]
   media           PropertyMedia[]
   priceHistory    PriceHistory[]
@@ -398,6 +416,8 @@ model Property {
   @@index([tenantId])
   @@index([tenantId, type])
   @@index([tenantId, isActive])
+  @@index([parentPropertyId])
+  @@unique([tenantId, externalRef])
   @@map("properties")
 }
 
@@ -468,8 +488,18 @@ model Person {
   phone2          String?
   cuit            String?
   fiscalCondition FiscalCondition?
+  personType      PersonType       @default(Fisica)
+  dni             String?
+  address         String?
+  maritalStatus   String?
+  nationality     String?
+  payoutMethod    PayoutMethod?
+  externalRef     String?
+  /// @deprecated Reemplazada por PersonBankAccount; se elimina en la próxima versión.
   bankName        String?
+  /// @deprecated Reemplazada por PersonBankAccount; se elimina en la próxima versión.
   cbu             String?
+  /// @deprecated Reemplazada por PersonBankAccount; se elimina en la próxima versión.
   bankAlias       String?
   notes           String?
   isActive        Boolean          @default(true)
@@ -479,6 +509,7 @@ model Person {
 
   tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   roles           PersonRoleAssignment[]
+  bankAccounts    PersonBankAccount[]
   documents       PersonDocument[]
   contractPersons ContractPerson[]
   providerProfile ProviderProfile?
@@ -494,10 +525,31 @@ model Person {
   tenantScores           TenantScore[]
 
   @@unique([tenantId, cuit])
+  @@unique([tenantId, externalRef])
   @@index([tenantId])
   @@index([tenantId, isActive])
   @@index([tenantId, firstName, lastName])
   @@map("persons")
+}
+
+model PersonBankAccount {
+  id        String   @id @default(uuid())
+  tenantId  String
+  personId  String
+  currency  Currency
+  bankName  String?
+  cbu       String?
+  alias     String?
+  holder    String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([personId, currency])
+  @@map("person_bank_accounts")
 }
 
 model ProviderProfile {
@@ -697,6 +749,7 @@ model Contract {
   notes                String?
   isActive             Boolean          @default(true)
   closedAt             DateTime?
+  externalRef          String?
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 
@@ -713,6 +766,7 @@ model Contract {
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, propertyId])
+  @@unique([tenantId, externalRef])
   @@map("contracts")
 }
 
