@@ -105,7 +105,7 @@ export function LessorsEditor({ open, onClose, contract, lessors, legacyOwners, 
       if (resources[id]) continue;
       setResources((prev) => ({ ...prev, [id]: { powers: [], accounts: [] } }));
       const today = new Date().toISOString().slice(0, 10);
-      Promise.all([
+      void Promise.all([
         apiClient<PowerOfAttorney[]>(`/persons/${id}/powers?activeOn=${today}`).catch(() => []),
         apiClient<BankAccount[]>(`/persons/${id}/bank-accounts`).catch(() => []),
       ]).then(([powers, accounts]) =>

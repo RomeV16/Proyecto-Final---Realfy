@@ -31,7 +31,7 @@ export function PersonLessorships({ personId }: { personId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const list = await apiClient<{ items: ContractSummary[] }>(`/contracts?personId=${personId}&limit=50`);
         const found = await Promise.all(
