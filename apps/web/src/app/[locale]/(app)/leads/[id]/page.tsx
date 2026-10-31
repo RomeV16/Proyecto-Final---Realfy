@@ -21,6 +21,7 @@ import { RowList } from '@/components/ui/card-grid';
 import { EntityRow } from '@/components/ui/entity-card';
 import { ListTransition, AnimatedList, StaggerItem, type ListState } from '@/components/ui/motion';
 import { formatNumber, formatLocalDate, formatDateTime } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -217,7 +218,7 @@ export default function LeadDetailPage() {
   const [visitStatus, setVisitStatus] = useState<string>(VisitStatus.Programada);
   const [visitOutcome, setVisitOutcome] = useState<string>('');
 
-  const canEdit = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
+  const canEdit = useCan('leads.manage');
 
   // ── Flash message auto-dismiss ──
   useEffect(() => {

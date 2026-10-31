@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import {
   ContractStatus,
@@ -17,6 +16,7 @@ import { CardGrid } from '@/components/ui/card-grid';
 import { Badge } from '@/components/ui/badge';
 import { ProgressRing } from '@/components/ui/micro-viz';
 import { formatMoneyFixed, formatDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -231,15 +231,14 @@ export function ContractList() {
   const tFilters = useTranslations('contracts.filters');
   const tPagination = useTranslations('contracts.pagination');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-  const pathname = usePathname();
+    const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
-  const canCreate = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
+  const canCreate = useCan('contracts.manage');
 
   const fetchContracts = useCallback(async (f: Filters) => {
     setLoading(true);

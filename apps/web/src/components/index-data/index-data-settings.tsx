@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { IndexType } from '@realfy/shared';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,7 @@ import {
 } from '@/lib/index-values';
 import { IndexValueDialog, type IndexValueDraft } from './index-value-dialog';
 import { BulkPasteDialog } from './bulk-paste-dialog';
+import { useCan } from '@/lib/permissions';
 
 const PAGE_SIZE = 24;
 const DAY_MS = 86_400_000;
@@ -62,10 +62,9 @@ export function IndexDataSettings() {
   const tCommon = useTranslations('common');
   const locale = useLocale();
   const reduceMotion = useReducedMotion();
-  const { user } = useAuth();
-
-  const isAdmin = user?.role === 'Admin';
-  const canView = isAdmin || user?.role === 'Gerente';
+  
+  const isAdmin = useCan('indexData.manage');
+  const canView = useCan('indexData.view');
 
   const [latest, setLatest] = useState<LatestEntry[] | null>(null);
   const [latestError, setLatestError] = useState('');

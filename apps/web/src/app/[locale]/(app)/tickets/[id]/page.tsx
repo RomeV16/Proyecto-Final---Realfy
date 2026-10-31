@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Reveal } from '@/components/ui/reveal';
 import { Spinner } from '@/components/ui/spinner';
 import { formatDateTime } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -111,7 +112,6 @@ function partyName(p?: Party | null): string {
   return `${p.firstName} ${p.lastName}`;
 }
 
-const CAN_MANAGE_ROLES = ['Admin', 'Gerente', 'Soporte'];
 
 /* ──────────── Detail Row ──────────── */
 
@@ -134,7 +134,7 @@ export default function TicketDetailPage() {
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const ticketId = params.id as string;
 
-  const canManage = CAN_MANAGE_ROLES.includes(user?.role || '');
+  const canManage = useCan('tickets.manage');
 
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [loading, setLoading] = useState(true);

@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { LeadSource } from '@realfy/shared';
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -12,6 +11,7 @@ import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { useCan, can } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -341,7 +341,7 @@ function CreateLeadModal({ open, onClose, onCreated, pipelines, users, propertie
 
   if (!open) return null;
 
-  const ventasUsers = users.filter(u => ['Admin', 'Gerente', 'Ventas'].includes(u.role));
+  const ventasUsers = users.filter(u => can(u.role, 'leads.assignable'));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -497,7 +497,7 @@ function ReassignModal({ open, lead, users, onClose, onDone }: {
           <select required value={userId} onChange={e => setUserId(e.target.value)}
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500">
             <option value="">Seleccionar usuario…</option>
-            {users.filter(u => ['Admin', 'Gerente', 'Ventas'].includes(u.role)).map(u => (
+            {users.filter(u => can(u.role, 'leads.assignable')).map(u => (
               <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
             ))}
           </select>
@@ -635,8 +635,7 @@ export function LeadList() {
   const tFilters = useTranslations('leads.filters');
   const tPagination = useTranslations('leads.pagination');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-  const pathname = usePathname();
+    const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedLeads | null>(null);
@@ -654,7 +653,7 @@ export function LeadList() {
   const [convertLead, setConvertLead] = useState<LeadItem | null>(null);
   const [loseLead, setLoseLead] = useState<LeadItem | null>(null);
 
-  const canCreate = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
+  const canCreate = useCan('leads.manage');
 
   useEffect(() => {
     async function loadRefs() {

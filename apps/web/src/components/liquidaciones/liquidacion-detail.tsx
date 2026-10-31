@@ -19,6 +19,7 @@ import { PaymentForm } from './payment-form';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { Icon } from '@/components/ui/icon';
 import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -113,8 +114,8 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const [liDescription, setLiDescription] = useState('');
   const [liAmount, setLiAmount] = useState('');
 
-  const canAct = ['Admin', 'Gerente', 'Ventas', 'Liquidaciones'].includes(user?.role || '');
-  const readOnly = ['Lectura', 'Soporte', 'Marketing'].includes(user?.role || '');
+  const canAct = useCan('liquidaciones.act');
+  const readOnly = !!user && !canAct;
 
   const fetchData = useCallback(async () => {
     setLoading(true);

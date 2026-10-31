@@ -1,9 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -30,8 +30,7 @@ type WeightKey = (typeof WEIGHT_KEYS)[number];
 export default function ScoringConfigPage() {
   const t = useTranslations('scoring');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -45,7 +44,7 @@ export default function ScoringConfigPage() {
   });
 
   // RBAC gate: solo Admin/Gerente pueden ver y editar la configuración de puntaje.
-  const canAccess = user?.role === 'Admin' || user?.role === 'Gerente';
+  const canAccess = useCan('scoring.configure');
 
   const loadConfig = useCallback(async () => {
     try {

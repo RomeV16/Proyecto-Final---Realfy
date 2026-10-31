@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
@@ -10,6 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { formatMoneyFixed, formatDate, formatLocalDate, formatCompNumber } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -78,8 +78,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   const tFc = useTranslations('persons.fiscalConditions');
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('invoices.errors');
-  const { user } = useAuth();
-
+  
   const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
@@ -87,7 +86,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   const [loading, setLoading] = useState(true);
   const [pdfDownloading, setPdfDownloading] = useState(false);
 
-  const canEmit = ['Admin', 'Gerente', 'Liquidaciones'].includes(user?.role || '');
+  const canEmit = useCan('invoices.emit');
 
   const fetchData = useCallback(async () => {
     setLoading(true);

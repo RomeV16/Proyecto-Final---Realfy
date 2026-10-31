@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Icon } from '@/components/ui/icon';
-import { navItems } from './nav-items';
+import { useVisibleNavItems } from './nav-items';
 import {
   RAIL_ASIDE_CLASS,
   RAIL_NAV_CLASS,
@@ -33,11 +33,12 @@ interface IconRailProps {
 }
 
 function IconRail({ isActive, localePrefix, t }: IconRailProps) {
+  const items = useVisibleNavItems();
   return (
     <aside aria-label="Navigation rail" className={RAIL_ASIDE_CLASS}>
       <RailBrand />
       <nav className={RAIL_NAV_CLASS} aria-label="Main navigation">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const label = t(item.key);
           return (
             <div key={item.key} className="relative group">
@@ -71,6 +72,7 @@ function IconRail({ isActive, localePrefix, t }: IconRailProps) {
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const t = useTranslations('nav');
   const pathname = usePathname();
+  const items = useVisibleNavItems();
 
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
@@ -96,7 +98,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
         <nav className={SIDEBAR_NAV_CLASS}>
           {!collapsed && <SidebarSectionLabel />}
-          {navItems.map((item) => {
+          {items.map((item) => {
             const active = isActive(item.href);
             return (
               <Link

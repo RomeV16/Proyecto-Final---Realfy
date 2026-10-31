@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { useConfirm } from '@/components/ui/confirm-dialog';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
@@ -13,6 +12,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { formatMoneyFixed, formatLocalDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -91,11 +91,10 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
   const tLineItemTypes = useTranslations('renditions.lineItemTypes');
   const tCommon = useTranslations('common');
   const confirm = useConfirm();
-  const { user } = useAuth();
-  const pathname = usePathname();
+    const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
-  const canManage = ['Admin', 'Gerente', 'Liquidaciones'].includes(user?.role || '');
+  const canManage = useCan('renditions.manage');
 
   const [rendition, setRendition] = useState<RenditionDetail | null>(null);
   const [loading, setLoading] = useState(true);

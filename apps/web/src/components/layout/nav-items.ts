@@ -1,10 +1,20 @@
+'use client';
+
 import type { IconName } from '@/components/ui/icon';
+import { useAuth } from '@/lib/auth-context';
+import { can, type Action } from '@/lib/permissions';
 
 export interface NavItem {
   /** Translation key under the `nav` namespace. */
   key: string;
   href: string;
   icon: IconName;
+  /**
+   * Acción de `lib/permissions` que habilita el ítem. Sin acción, lo ven todos
+   * los roles del personal (hoy ningún ítem restringe: cada pantalla ya decide
+   * qué ofrece según el rol).
+   */
+  action?: Action;
 }
 
 /**
@@ -30,3 +40,17 @@ export const navItems: NavItem[] = [
   { key: 'notifications', href: '/notifications', icon: 'bell' },
   { key: 'import', href: '/import', icon: 'import' },
 ];
+
+/** Los ítems que el rol puede ver. */
+export function visibleNavItems(
+  role: string | null | undefined,
+  items: readonly NavItem[] = navItems,
+): NavItem[] {
+  return items.filter((item) => !item.action || can(role, item.action));
+}
+
+/** Los ítems de navegación del usuario de la sesión. */
+export function useVisibleNavItems(): NavItem[] {
+  const { user } = useAuth();
+  return visibleNavItems(user?.role);
+}

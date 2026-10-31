@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ import {
   type ActivationProblem,
 } from './activation-problems';
 import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -401,8 +401,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
   const tPropTypes = useTranslations('properties.types');
   const tCommon = useTranslations('common');
   const tAdjustments = useTranslations('contracts.adjustments');
-  const { user } = useAuth();
-  const pathname = usePathname();
+    const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [contract, setContract] = useState<ContractDetail | null>(null);
@@ -416,8 +415,8 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
   const [activeTab, setActiveTab] = useState<'resumen' | 'ajustes'>('resumen');
   const cancelConfirmRef = useRef<HTMLButtonElement>(null);
 
-  const isAdmin = ['Admin', 'Gerente'].includes(user?.role || '');
-  const canManage = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
+  const isAdmin = useCan('contracts.administer');
+  const canManage = useCan('contracts.manage');
 
   const fetchContract = useCallback(async () => {
     setLoading(true);

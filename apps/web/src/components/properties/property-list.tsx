@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import {
   PropertyType,
@@ -20,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
 import { ExportButtons } from '../import/export-buttons';
 import { formatMoney } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -184,15 +184,14 @@ export function PropertyList() {
   const tFilters = useTranslations('properties.filters');
   const tPagination = useTranslations('properties.pagination');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-  const pathname = usePathname();
+    const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
-  const canCreate = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
+  const canCreate = useCan('properties.manage');
 
   const fetchProperties = useCallback(async (f: Filters) => {
     setLoading(true);

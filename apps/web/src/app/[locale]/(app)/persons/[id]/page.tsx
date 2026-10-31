@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { PersonRole } from '@realfy/shared';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -12,6 +11,7 @@ import { PersonRoleBadge } from '@/components/persons/person-role-badge';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Icon } from '@/components/ui/icon';
 import { formatLocalDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -782,8 +782,7 @@ export default function PersonDetailPage() {
   const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
+    const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const personId = params.id as string;
 
   const [person, setPerson] = useState<PersonDetail | null>(null);
@@ -792,8 +791,9 @@ export default function PersonDetailPage() {
   const [editing, setEditing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
-  const canEdit = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
-  const canDelete = ['Admin', 'Gerente'].includes(user?.role || '');
+  const canEdit = useCan('persons.manage');
+  const canDelete = useCan('persons.delete');
+  const canScore = useCan('persons.scoring');
 
   const loadPerson = useCallback(async () => {
     try {
@@ -1009,7 +1009,7 @@ export default function PersonDetailPage() {
           />
 
           {/* Scoring — Admin/Gerente only */}
-          {['Admin', 'Gerente'].includes(user?.role || '') && (
+          {canScore && (
             <ScoringSection personId={person.id} />
           )}
         </div>

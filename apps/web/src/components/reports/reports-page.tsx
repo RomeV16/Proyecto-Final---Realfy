@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { useState, useCallback } from 'react';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
 import { downloadFile } from '@/lib/download';
@@ -16,6 +15,7 @@ import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
 import { ReportSchedulingSection } from './report-scheduling';
 import { formatNumber, formatDateTime } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -123,8 +123,7 @@ export function ReportsPage() {
   const tColumns = useTranslations('reports.columns');
   const tSummary = useTranslations('reports.summaryLabels');
   const tEmpty = useTranslations('emptyStates.reports');
-  const { user } = useAuth();
-
+  
   const [reportType, setReportType] = useState<ReportType | ''>('');
   const [filters, setFilters] = useState({ ...EMPTY_FILTERS });
 
@@ -133,8 +132,8 @@ export function ReportsPage() {
   const [excelDownloading, setExcelDownloading] = useState(false);
   const [pdfDownloading, setPdfDownloading] = useState(false);
 
-  const canAccess = ['Admin', 'Gerente', 'Liquidaciones'].includes(user?.role || '');
-  const canSchedule = ['Admin', 'Gerente'].includes(user?.role || '');
+  const canAccess = useCan('reports.view');
+  const canSchedule = useCan('reports.schedule');
 
   /** Query string shared by the JSON fetch and both file downloads. */
   const buildParams = useCallback(() => {

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Icon } from '@/components/ui/icon';
-import { navItems } from './nav-items';
+import { useVisibleNavItems } from './nav-items';
 
 interface MobileNavProps {
   open: boolean;
@@ -17,6 +17,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const items = useVisibleNavItems();
 
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
@@ -73,7 +74,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
         </div>
 
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
+          {items.map((item) => {
             const active = isActive(item.href);
             return (
               <Link

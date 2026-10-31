@@ -1,13 +1,13 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
 import { CertificateSection } from './certificate-section';
 import { IssuersSection } from './issuers-section';
 import { PdvSection } from './pdv-section';
 import type { ArcaCertificateDTO, ArcaIssuerDTO } from '@/lib/schemas/invoices';
+import { useCan } from '@/lib/permissions';
 
 type TabKey = 'cert' | 'issuers' | 'pdv';
 
@@ -18,14 +18,13 @@ interface FiscalData {
 
 export function FiscalSettings() {
   const t = useTranslations('invoices.fiscal');
-  const { user } = useAuth();
-
+  
   const [tab, setTab] = useState<TabKey>('cert');
   const [data, setData] = useState<FiscalData>({ certificate: null, issuers: [] });
   const [loading, setLoading] = useState(true);
   const [selectedIssuerId, setSelectedIssuerId] = useState<string | null>(null);
 
-  const canAccess = ['Admin', 'Gerente'].includes(user?.role || '');
+  const canAccess = useCan('fiscal.configure');
 
   const fetchData = useCallback(async () => {
     setLoading(true);

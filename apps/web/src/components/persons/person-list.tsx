@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { PersonRole } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
@@ -14,6 +13,7 @@ import { CardGrid } from '@/components/ui/card-grid';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { ExportButtons } from '../import/export-buttons';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -113,15 +113,14 @@ export function PersonList() {
   const tFilters = useTranslations('persons.filters');
   const tPagination = useTranslations('persons.pagination');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-  const pathname = usePathname();
+    const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
-  const canCreate = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
+  const canCreate = useCan('persons.manage');
 
   const fetchPersons = useCallback(async (f: Filters) => {
     setLoading(true);

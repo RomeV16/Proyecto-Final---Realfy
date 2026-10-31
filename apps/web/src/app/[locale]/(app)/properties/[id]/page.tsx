@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import {
   PropertyOperationType,
@@ -35,6 +34,7 @@ import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
 import { formatMoney, formatLocalDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -596,8 +596,7 @@ export default function PropertyDetailPage() {
   const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
+    const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const propertyId = params.id as string;
   const listHref = `${localePrefix}/properties`;
 
@@ -608,8 +607,8 @@ export default function PropertyDetailPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const canEdit = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
-  const canDelete = ['Admin', 'Gerente'].includes(user?.role || '');
+  const canEdit = useCan('properties.manage');
+  const canDelete = useCan('properties.delete');
 
   const loadProperty = useCallback(async () => {
     try {

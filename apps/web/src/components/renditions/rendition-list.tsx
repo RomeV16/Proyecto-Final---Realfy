@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
@@ -17,6 +16,7 @@ import { Icon, type IconName } from '@/components/ui/icon';
 import { Avatar } from '@/components/ui/avatar';
 import { Meter } from '@/components/ui/micro-viz';
 import { formatMoneyFixed } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -285,11 +285,10 @@ export function RenditionList() {
   const t = useTranslations('renditions');
   const tMonths = useTranslations('renditions.months');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-  const pathname = usePathname();
+    const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
-  const canManage = ['Admin', 'Gerente', 'Liquidaciones'].includes(user?.role || '');
+  const canManage = useCan('renditions.manage');
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);

@@ -10,6 +10,7 @@ import { apiClient } from '@/lib/api-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
+import { useCan } from '@/lib/permissions';
 
 interface TenantData {
   id: string;
@@ -68,7 +69,7 @@ export default function ConfiguracionPage() {
     };
   }, [user, t]);
 
-  const canEdit = user?.role === 'Admin' || user?.role === 'Gerente';
+  const canEdit = useCan('settings.manage');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

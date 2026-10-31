@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { StatTile, StatTileSkeleton } from '@/components/ui/stat-tile';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { formatNumber } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 interface DelinquentTenant {
   personId: string;
@@ -34,12 +34,11 @@ function severityOf(days: number): { tone: 'danger' | 'warning' | 'info'; key: s
 
 export default function DelinquencyPage() {
   const t = useTranslations('delinquency');
-  const { user } = useAuth();
-
+  
   const [items, setItems] = useState<DelinquentTenant[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const canAccess = ['Admin', 'Gerente'].includes(user?.role || '');
+  const canAccess = useCan('delinquency.view');
 
   const load = useCallback(async () => {
     setLoading(true);

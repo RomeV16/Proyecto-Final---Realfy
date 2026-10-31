@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
@@ -16,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
 import { formatMoneyFixed, formatDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 
 /* ──────────── Types ──────────── */
@@ -319,8 +319,7 @@ export function LiquidacionList() {
   const tMonths = useTranslations('liquidaciones.months');
   const tErrors = useTranslations('liquidaciones.errors');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-  const pathname = usePathname();
+    const pathname = usePathname();
   const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
@@ -331,9 +330,9 @@ export function LiquidacionList() {
   const [bulkLoading, setBulkLoading] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
-  const canGenerate = ['Admin', 'Gerente'].includes(user?.role || '');
-  const canBulkAct = ['Admin', 'Gerente'].includes(user?.role || '');
-  const isReadOnly = user?.role === 'Lectura';
+  const canGenerate = useCan('liquidaciones.generate');
+  const canBulkAct = useCan('liquidaciones.bulk');
+  const isReadOnly = useCan('liquidaciones.readOnlyNotice');
 
   const fetchData = useCallback(async (f: Filters) => {
     setLoading(true);

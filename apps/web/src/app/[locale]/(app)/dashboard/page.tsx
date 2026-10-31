@@ -28,6 +28,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { formatMoneyRounded, formatMoneyCompact, formatDate, formatLocalDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────────── Types ──────────────── */
 
@@ -196,7 +197,7 @@ export default function DashboardPage() {
 
   const accent = tenant?.brandPrimary || '#bd5a32';
   // Los widgets de ocupación y rentabilidad van contra endpoints de Admin/Gerencia.
-  const canSeeAnalytics = ['Admin', 'Gerente'].includes(user?.role || '');
+  const canSeeAnalytics = useCan('dashboard.analytics');
 
   if (error) {
     return (
