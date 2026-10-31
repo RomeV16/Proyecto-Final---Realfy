@@ -87,6 +87,22 @@ export {
 } from './schemas/read-policy.schema';
 export type { ReadResource, ReadPolicy } from './schemas/read-policy.schema';
 
+// Schemas — ajustes del mes (previsualización y aplicación masiva)
+export {
+  PreviewAdjustmentBatchSchema,
+  ApplyAdjustmentBatchSchema,
+} from './schemas/adjustment-batch.schema';
+export type {
+  PreviewAdjustmentBatchInput,
+  ApplyAdjustmentBatchInput,
+  AdjustmentRowStatus,
+  AdjustmentIndexValue,
+  AdjustmentPreviewRow,
+  AdjustmentPreviewBatch,
+  AdjustmentApplyResult,
+  AdjustmentApplyBatch,
+} from './schemas/adjustment-batch.schema';
+
 // Schemas — valores por defecto de la inmobiliaria
 export {
   OperationalDefaultsSchema,
