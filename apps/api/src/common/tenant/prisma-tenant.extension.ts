@@ -28,6 +28,7 @@ const TENANT_SCOPED_MODELS = new Set([
   'ContractTermsVersion',
   'PowerOfAttorney',
   'PropertyOwnership',
+  'DocumentSequence',
   'ContractGuarantee',
   'ContractAdjustment',
   'ContractCommission',

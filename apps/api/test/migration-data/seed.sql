@@ -102,7 +102,11 @@ INSERT INTO "liquidaciones" ("id", "tenantId", "contractId", "period", "dueDate"
 INSERT INTO "liquidacion_line_items" ("id", "tenantId", "liquidacionId", "type", "description", "amount") VALUES
   ('li-1',  'tenant-a', 'liq-1',  'Alquiler', 'Alquiler marzo', 100000.00),
   ('li-2',  'tenant-a', 'liq-2',  'Alquiler', 'Alquiler marzo', 150000.00),
-  ('li-b1', 'tenant-b', 'liq-b1', 'Alquiler', 'Alquiler marzo',  90000.00);
+  ('li-b1', 'tenant-b', 'liq-b1', 'Alquiler', 'Alquiler marzo',  90000.00),
+  ('li-3',  'tenant-a', 'liq-2',  'Extra',     'Reparación a cargo del inquilino', 8000.00),
+  ('li-4',  'tenant-a', 'liq-2',  'Multa',     'Punitorio 3 días de mora',          1500.00),
+  ('li-5',  'tenant-a', 'liq-2',  'Descuento', 'Bonificación',                      5000.00),
+  ('li-6',  'tenant-a', 'liq-2',  'Ajuste',    'Ajuste por índice',                 4000.00);
 
 INSERT INTO "payments" ("id", "tenantId", "liquidacionId", "amount", "method", "paidAt") VALUES
   ('pay-1', 'tenant-a', 'liq-1', 100000.00, 'Transferencia', '2026-03-05'),
