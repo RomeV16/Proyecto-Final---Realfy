@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { TicketCategoriesService } from './ticket-categories.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('ticket-categories')
 export class TicketCategoriesController {
@@ -22,7 +22,7 @@ export class TicketCategoriesController {
    * POST /ticket-categories — Create a category.
    * Admin, Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post()
   async create(@Body() body: Record<string, any>) {
     return this.categoriesService.create(body);
@@ -43,7 +43,7 @@ export class TicketCategoriesController {
    * PATCH /ticket-categories/:id — Update a category.
    * Admin, Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -56,7 +56,7 @@ export class TicketCategoriesController {
    * DELETE /ticket-categories/:id — Soft delete (set isActive=false).
    * Admin, Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.categoriesService.softDelete(id);

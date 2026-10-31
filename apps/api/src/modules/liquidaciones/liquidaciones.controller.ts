@@ -13,7 +13,7 @@ import {
 import type { Response } from 'express';
 import { LiquidacionesService } from './liquidaciones.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('liquidaciones')
 export class LiquidacionesController {
@@ -41,7 +41,7 @@ export class LiquidacionesController {
    * POST /liquidaciones/generate — Auto-generate liquidaciones for a month/year.
    * Admin, Gerente, Liquidaciones roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Post('generate')
   async generate(@Body() body: Record<string, any>) {
     return this.liquidacionesService.generate(body);
@@ -51,7 +51,7 @@ export class LiquidacionesController {
    * POST /liquidaciones/bulk-approve — Bulk approve liquidaciones.
    * Admin and Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post('bulk-approve')
   async bulkApprove(@Body() body: { ids: string[] }) {
     return this.liquidacionesService.bulkApprove(body.ids);
@@ -61,7 +61,7 @@ export class LiquidacionesController {
    * POST /liquidaciones/bulk-send — Bulk send liquidaciones.
    * Admin and Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post('bulk-send')
   async bulkSend(@Body() body: { ids: string[] }) {
     return this.liquidacionesService.bulkSend(body.ids);
@@ -95,7 +95,7 @@ export class LiquidacionesController {
    * POST /liquidaciones/:id/line-items — Add a line item.
    * Admin, Gerente, Liquidaciones roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Post(':id/line-items')
   async addLineItem(
     @Param('id') id: string,
@@ -108,7 +108,7 @@ export class LiquidacionesController {
    * PATCH /liquidaciones/:id/line-items/:lineItemId — Update a line item.
    * Admin, Gerente, Liquidaciones roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Patch(':id/line-items/:lineItemId')
   async updateLineItem(
     @Param('lineItemId') lineItemId: string,
@@ -121,7 +121,7 @@ export class LiquidacionesController {
    * DELETE /liquidaciones/:id/line-items/:lineItemId — Remove a line item.
    * Admin, Gerente, Liquidaciones roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Delete(':id/line-items/:lineItemId')
   async removeLineItem(@Param('lineItemId') lineItemId: string) {
     return this.liquidacionesService.removeLineItem(lineItemId);
@@ -131,7 +131,7 @@ export class LiquidacionesController {
    * POST /liquidaciones/:id/transition — Transition liquidación status.
    * Admin, Gerente, Liquidaciones roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Post(':id/transition')
   @HttpCode(200)
   async transition(
@@ -145,7 +145,7 @@ export class LiquidacionesController {
    * POST /liquidaciones/:id/payments — Register a payment.
    * Admin, Gerente, Liquidaciones roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Post(':id/payments')
   @HttpCode(200)
   async registerPayment(
@@ -168,7 +168,7 @@ export class LiquidacionesController {
    * DELETE /liquidaciones/:id — Soft delete (annul) or hard delete.
    * Admin and Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.liquidacionesService.remove(id);

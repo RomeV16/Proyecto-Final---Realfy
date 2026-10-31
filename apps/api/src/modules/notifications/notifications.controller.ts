@@ -6,10 +6,10 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
-import { UserRole } from '@realfy/shared';
 import { Roles } from '../../common/auth/roles.decorator';
 import { NotificationsService } from './notifications.service';
 import { NotificationSchedulerService } from './notification-scheduler.service';
+import { ADMIN_ONLY } from '../../common/auth/role-groups';
 
 @Controller('notifications')
 export class NotificationsController {
@@ -24,7 +24,7 @@ export class NotificationsController {
    * contratos por vencer y liquidaciones vencidas). Sirve para regenerar la
    * bandeja sin esperar a la corrida de la madrugada. Solo Admin.
    */
-  @Roles(UserRole.Admin)
+  @Roles(...ADMIN_ONLY)
   @Post('run')
   async run() {
     await this.scheduler.handleServiceDueReminders();

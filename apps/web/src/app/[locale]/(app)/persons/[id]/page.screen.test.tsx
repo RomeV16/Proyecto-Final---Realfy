@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderEs } from '@/components/index-data/test-utils';
 
@@ -45,6 +45,7 @@ vi.mock('@/components/persons/person-form', () => ({
 }));
 
 import { ApiRequestError } from '@/lib/api-client';
+import { invalidateReadAccess } from '@/lib/read-access';
 import PersonDetailPage from './page';
 
 function person(overrides: Record<string, unknown> = {}) {
@@ -105,12 +106,23 @@ interface Opts {
   person?: () => unknown;
   score?: () => unknown;
   mutate?: (path: string, init: { method?: string }) => unknown;
+  /** Recursos que la política de lectura le cierra al rol. */
+  denied?: string[];
 }
 
 function mockApi(opts: Opts = {}) {
   apiClient.mockImplementation((path: string, init?: { method?: string }) => {
     if (init?.method && init.method !== 'GET') {
       return Promise.resolve().then(() => (opts.mutate ? opts.mutate(path, init) : {}));
+    }
+    if (path === '/tenants/me/read-access') {
+      const closed = opts.denied ?? [];
+      return Promise.resolve({
+        role: auth.role,
+        resources: Object.fromEntries(
+          ['persons.bankAccounts', 'persons.document', 'contracts.commission', 'renditions', 'reports.financial', 'invoices', 'audit'].map((r) => [r, !closed.includes(r)]),
+        ),
+      });
     }
     if (path === '/persons/pe-1') return Promise.resolve().then(opts.person ?? (() => person()));
     if (path === '/scoring/persons/pe-1') {
@@ -139,6 +151,7 @@ describe('PersonDetailPage', () => {
   beforeEach(() => {
     apiClient.mockReset();
     push.mockReset();
+    invalidateReadAccess();
     auth.role = 'Admin';
   });
   afterEach(() => vi.unstubAllGlobals());
@@ -467,5 +480,32 @@ describe('PersonDetailPage', () => {
 
     await user.click(screen.getByRole('tab', { name: 'Datos' }));
     expect(screen.getByText('Nota ficticia de la persona')).toBeInTheDocument();
+  });
+  it('sin acceso a las cuentas bancarias la pestaña muestra el aviso y no pide las cuentas', async () => {
+    mockApi({ denied: ['persons.bankAccounts'] });
+    const user = await renderPage();
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/tenants/me/read-access'));
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    await user.click(screen.getByRole('tab', { name: 'Cuentas bancarias' }));
+    expect(await screen.findByRole('note')).toHaveTextContent('Sin acceso');
+    expect(apiClient).not.toHaveBeenCalledWith('/persons/pe-1/bank-accounts');
+  });
+
+  it('con el documento enmascarado por la API muestra un guion en lugar de ocultarlo', async () => {
+    mockApi({
+      denied: ['persons.document'],
+      person: () => person({ personType: 'Fisica', cuit: null, dni: null, address: 'Calle Ficticia 1' }),
+    });
+    await renderPage();
+    await waitFor(() => expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(2));
+    expect(screen.queryByText('20-00000000-1')).not.toBeInTheDocument();
+  });
+
+  it('con acceso al documento y sin datos no inventa guiones', async () => {
+    mockApi({ person: () => person({ cuit: null, dni: null, personType: 'Fisica' }) });
+    await renderPage();
+    expect(screen.queryByText('—')).not.toBeInTheDocument();
   });
 });

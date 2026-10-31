@@ -20,6 +20,7 @@ cronograma y la columna "estado" registra si el riesgo se materializó.
 | R-12 | Se pierden o corrompen los datos reales del piloto | 2 | 5 | 10 | Copias nativas diarias y semanales de la base y el almacenamiento; copia lógica semanal fuera del proveedor; restauración probada y repetida antes de cada cierre de ciclo | Prueba de restauración del 2026-10-31; `operacion-piloto.md` | Abierto |
 | R-13 | Un despliegue rompe el ciclo mensual en el piloto | 3 | 5 | 15 | Despliegue manual y controlado: solo desde `main` con CI en verde, primero `production` y verificación, después `piloto`; retroceso al despliegue anterior; ensayo local de migraciones con relleno | Verificación posterior al despliegue; `despliegue.md` | Abierto |
 | R-14 | Una imagen de terceros del almacenamiento es retirada y el servicio no puede volver a levantarse | 3 | 4 | 12 | Imagen fijada por versión (`bitnamilegacy/minio:2025.7.23-debian-12-r5`); copia nativa del volumen; evaluar otro almacenamiento compatible con S3 | `despliegue.md` | **Materializado** (`minio/minio` retirada de Docker Hub); mitigado el 2026-10-31 al cambiar los dos ambientes |
+| R-15 | El inicio de sesión busca al usuario solo por correo, y el mismo correo puede existir en dos inmobiliarias: el ingreso queda ambiguo | 2 | 4 | 8 | Decidir antes de incorporar una segunda inmobiliaria: correo único entre inmobiliarias para el personal, o elección de la inmobiliaria al ingresar. Hoy el piloto tiene una sola | Sin prueba: decisión pendiente | Abierto |
 
 ## Riesgos ordenados por prioridad
 
@@ -28,7 +29,7 @@ cronograma y la columna "estado" registra si el riesgo se materializó.
 3. R-02, R-14 (12)
 4. R-04, R-05, R-12 (10)
 5. R-06, R-08, R-10 (9)
-6. R-07, R-09, R-11 (8)
+6. R-07, R-09, R-11, R-15 (8)
 
 ## Relación con los riesgos de la tesis
 

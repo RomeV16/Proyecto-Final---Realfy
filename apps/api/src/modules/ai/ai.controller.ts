@@ -1,11 +1,11 @@
 import { Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
-import { UserRole } from '@realfy/shared';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { RbacGuard } from '../../common/auth/rbac.guard';
 import { Roles } from '../../common/auth/roles.decorator';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { AiPrioritiesService } from './ai-priorities.service';
 import { ContractClosureService } from './contract-closure.service';
+import { MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 // Las prioridades agregan la operación completa de la inmobiliaria, así que la
 // sesión se exige acá y no sólo desde los guards globales.
@@ -24,7 +24,7 @@ export class AiController {
    * Restringido a Admin y Gerencia, como el resto de las vistas de cartera.
    */
   @Get('priorities')
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   async getPriorities() {
     return this.priorities.getDailyPriorities(this.tenantContext.getTenantId()!);
   }
@@ -35,7 +35,7 @@ export class AiController {
    * Restringido a Admin y Gerencia: es la lectura de cierre de una cartera.
    */
   @Get('contracts/:contractId/closure-summary')
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   async getClosureSummary(@Param('contractId') contractId: string) {
     return this.closureSummaries.get(this.tenantContext.getTenantId()!, contractId);
   }
@@ -45,7 +45,7 @@ export class AiController {
    * resumen del contrato cerrado. Restringido a Admin y Gerencia.
    */
   @Post('contracts/:contractId/closure-summary')
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   async generateClosureSummary(@Param('contractId') contractId: string) {
     return this.closureSummaries.generate(this.tenantContext.getTenantId()!, contractId);
   }

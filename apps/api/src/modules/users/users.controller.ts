@@ -13,7 +13,7 @@ import { Public } from '../../common/auth/public.decorator';
 import { Roles } from '../../common/auth/roles.decorator';
 import { CREDENTIALS_THROTTLE } from '../../common/auth/credentials-throttle';
 import { AuditOperation } from '../../common/audit/audit-operation.decorator';
-import { UserRole } from '@realfy/shared';
+import { ADMIN_ONLY, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('users')
 export class UsersController {
@@ -26,7 +26,7 @@ export class UsersController {
    * GET /users — equipo de la inmobiliaria con su estado
    * (invited / active / inactive). Admin y Gerente (solo lectura).
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Get()
   async findAll() {
     return this.usersService.findAll();
@@ -36,7 +36,7 @@ export class UsersController {
    * POST /users/invite — invita a alguien con un rol. Admin only; la respuesta
    * trae el enlace de aceptación para compartirlo a mano.
    */
-  @Roles(UserRole.Admin)
+  @Roles(...ADMIN_ONLY)
   @Post('invite')
   async invite(@Body() body: Record<string, unknown>) {
     return this.usersService.invite(body);
@@ -65,7 +65,7 @@ export class UsersController {
   }
 
   /** PATCH /users/:id — cambia el rol. Admin only. */
-  @Roles(UserRole.Admin)
+  @Roles(...ADMIN_ONLY)
   @AuditOperation('role-change')
   @Patch(':id')
   async update(@Param('id') id: string, @Body() body: Record<string, unknown>) {
@@ -73,7 +73,7 @@ export class UsersController {
   }
 
   /** POST /users/:id/deactivate — baja del usuario y cierre de sesiones. Admin only. */
-  @Roles(UserRole.Admin)
+  @Roles(...ADMIN_ONLY)
   @AuditOperation('deactivate')
   @Post(':id/deactivate')
   async deactivate(@Param('id') id: string) {
@@ -81,7 +81,7 @@ export class UsersController {
   }
 
   /** POST /users/:id/reactivate — vuelve a habilitar al usuario. Admin only. */
-  @Roles(UserRole.Admin)
+  @Roles(...ADMIN_ONLY)
   @AuditOperation('reactivate')
   @Post(':id/reactivate')
   async reactivate(@Param('id') id: string) {
@@ -89,7 +89,7 @@ export class UsersController {
   }
 
   /** POST /users/:id/invitation/resend — `:id` es el de la invitación pendiente. Admin only. */
-  @Roles(UserRole.Admin)
+  @Roles(...ADMIN_ONLY)
   @AuditOperation('invitation-resend')
   @Post(':id/invitation/resend')
   async resendInvitation(@Param('id') id: string) {
@@ -97,7 +97,7 @@ export class UsersController {
   }
 
   /** POST /users/:id/password-reset-link — enlace de un solo uso para compartir. Admin only. */
-  @Roles(UserRole.Admin)
+  @Roles(...ADMIN_ONLY)
   @AuditOperation('password-reset-link')
   @Post(':id/password-reset-link')
   async passwordResetLink(@Param('id') id: string) {

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { EmailTemplatesService } from './email-templates.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MARKETING_ROLES, SALES_MARKETING_ROLES } from '../../common/auth/role-groups';
 
 @Controller()
 export class EmailTemplatesController {
@@ -22,7 +22,7 @@ export class EmailTemplatesController {
    * GET /email-templates — List all email templates for the tenant.
    * Admin/Gerente/Marketing (campaign comms).
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Marketing)
+  @Roles(...MARKETING_ROLES)
   @Get('email-templates')
   async findAll(@Query() query: Record<string, any>) {
     return this.emailTemplatesService.findAll(query);
@@ -32,7 +32,7 @@ export class EmailTemplatesController {
    * GET /email-templates/:id — Get a single email template.
    * Admin/Gerente/Marketing (campaign comms).
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Marketing)
+  @Roles(...MARKETING_ROLES)
   @Get('email-templates/:id')
   async findOne(@Param('id') id: string) {
     return this.emailTemplatesService.findOne(id);
@@ -42,7 +42,7 @@ export class EmailTemplatesController {
    * POST /email-templates — Create a new email template.
    * Admin/Gerente/Marketing (campaign comms).
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Marketing)
+  @Roles(...MARKETING_ROLES)
   @Post('email-templates')
   async create(@Body() body: Record<string, any>) {
     return this.emailTemplatesService.create(body);
@@ -52,7 +52,7 @@ export class EmailTemplatesController {
    * PATCH /email-templates/:id — Update an email template.
    * Admin/Gerente/Marketing (campaign comms).
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Marketing)
+  @Roles(...MARKETING_ROLES)
   @Patch('email-templates/:id')
   async update(
     @Param('id') id: string,
@@ -65,7 +65,7 @@ export class EmailTemplatesController {
    * DELETE /email-templates/:id — Delete an email template.
    * Admin/Gerente/Marketing (campaign comms).
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Marketing)
+  @Roles(...MARKETING_ROLES)
   @Delete('email-templates/:id')
   async remove(@Param('id') id: string) {
     return this.emailTemplatesService.remove(id);
@@ -75,7 +75,7 @@ export class EmailTemplatesController {
    * POST /email-templates/:id/preview — Preview a template with sample data.
    * Admin/Gerente/Ventas can preview.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas, UserRole.Marketing)
+  @Roles(...SALES_MARKETING_ROLES)
   @Post('email-templates/:id/preview')
   async preview(
     @Param('id') id: string,
@@ -88,7 +88,7 @@ export class EmailTemplatesController {
    * POST /leads/:leadId/send-email — Send email using a template for a lead.
    * Admin/Gerente/Ventas can send.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas, UserRole.Marketing)
+  @Roles(...SALES_MARKETING_ROLES)
   @Post('leads/:leadId/send-email')
   async sendEmail(
     @Param('leadId') leadId: string,

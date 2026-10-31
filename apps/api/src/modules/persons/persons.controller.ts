@@ -16,7 +16,8 @@ import { PersonsService } from './persons.service';
 import { PersonBankAccountsService } from './person-bank-accounts.service';
 import { PersonPowersService } from './person-powers.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MANAGEMENT_ROLES, SALES_ROLES } from '../../common/auth/role-groups';
+import { MaskReads, ReadResource } from '../../common/read-policy/read-resource.decorator';
 
 @Controller('persons')
 export class PersonsController {
@@ -30,6 +31,7 @@ export class PersonsController {
    * GET /persons — List with filters + pagination.
    * Any authenticated user can read.
    */
+  @MaskReads('persons.document', 'persons.bankAccounts')
   @Get()
   async findAll(@Query() query: Record<string, any>) {
     const coerced = { ...query };
@@ -49,6 +51,7 @@ export class PersonsController {
    * GET /persons/:id — Full detail with roles + documents.
    * Any authenticated user can read.
    */
+  @MaskReads('persons.document', 'persons.bankAccounts')
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.personsService.findOne(id);
@@ -58,7 +61,7 @@ export class PersonsController {
    * POST /persons — Create a person.
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post()
   async create(@Body() body: Record<string, any>) {
     return this.personsService.create(body);
@@ -68,7 +71,7 @@ export class PersonsController {
    * PATCH /persons/:id — Update a person.
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -81,7 +84,7 @@ export class PersonsController {
    * DELETE /persons/:id — Soft delete.
    * Admin and Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.personsService.softDelete(id);
@@ -93,7 +96,7 @@ export class PersonsController {
    * POST /persons/:id/roles — Assign a role.
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/roles')
   async assignRole(
     @Param('id') id: string,
@@ -106,7 +109,7 @@ export class PersonsController {
    * DELETE /persons/:id/roles/:roleId — Remove a role.
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Delete(':id/roles/:roleId')
   async removeRole(
     @Param('id') id: string,
@@ -118,20 +121,21 @@ export class PersonsController {
   // ─── Bank accounts ─────────────────────────────────
 
   /** GET /persons/:id/bank-accounts — Any authenticated user can read. */
+  @ReadResource('persons.bankAccounts')
   @Get(':id/bank-accounts')
   async listBankAccounts(@Param('id') id: string) {
     return this.bankAccounts.list(id);
   }
 
   /** POST /persons/:id/bank-accounts — Admin, Gerente, Ventas roles. */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/bank-accounts')
   async createBankAccount(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.bankAccounts.create(id, body);
   }
 
   /** PATCH /persons/:id/bank-accounts/:accountId — Admin, Gerente, Ventas roles. */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id/bank-accounts/:accountId')
   async updateBankAccount(
     @Param('id') id: string,
@@ -142,7 +146,7 @@ export class PersonsController {
   }
 
   /** DELETE /persons/:id/bank-accounts/:accountId — Admin, Gerente, Ventas roles. */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Delete(':id/bank-accounts/:accountId')
   async removeBankAccount(@Param('id') id: string, @Param('accountId') accountId: string) {
     return this.bankAccounts.remove(id, accountId);
@@ -155,7 +159,7 @@ export class PersonsController {
    * Multer memory storage, 10MB limit, image/* and application/pdf filter.
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/documents')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -194,7 +198,7 @@ export class PersonsController {
    * DELETE /persons/:id/documents/:docId — Remove a document.
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Delete(':id/documents/:docId')
   async deleteDocument(
     @Param('id') id: string,
@@ -209,7 +213,7 @@ export class PersonsController {
    * POST /persons/:id/portal-invite — Genera el token con el que el inquilino
    * crea su contraseña y activa el acceso al portal. Admin y Gerente.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post(':id/portal-invite')
   async createPortalInvitation(@Param('id') id: string) {
     return this.personsService.createPortalInvitation(id);
@@ -231,7 +235,7 @@ export class PersonsController {
    * POST /persons/:id/powers — La persona otorga un poder a otra.
    * Admin, Gerente, Ventas.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/powers')
   async createPower(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.powers.create(id, body);
@@ -241,7 +245,7 @@ export class PersonsController {
    * PATCH /persons/:id/powers/:powerId — Cambia alcances, firma o vigencia.
    * Admin, Gerente, Ventas.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id/powers/:powerId')
   async updatePower(
     @Param('id') id: string,
@@ -255,7 +259,7 @@ export class PersonsController {
    * DELETE /persons/:id/powers/:powerId — Revoca el poder.
    * Admin, Gerente, Ventas.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Delete(':id/powers/:powerId')
   async removePower(@Param('id') id: string, @Param('powerId') powerId: string) {
     return this.powers.remove(id, powerId);

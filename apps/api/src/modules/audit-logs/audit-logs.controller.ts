@@ -4,8 +4,9 @@ import {
   Query,
 } from '@nestjs/common';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { MANAGEMENT_ROLES } from '../../common/auth/role-groups';
+import { ReadResource } from '../../common/read-policy/read-resource.decorator';
 
 @Controller('audit-logs')
 export class AuditLogsController {
@@ -16,7 +17,8 @@ export class AuditLogsController {
    * Supports filtering by entity, date range, and pagination.
    * Auto-filtered by tenant_id via Prisma Extension.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
+  @ReadResource('audit')
   @Get()
   async findAll(
     @Query('entity') entity?: string,

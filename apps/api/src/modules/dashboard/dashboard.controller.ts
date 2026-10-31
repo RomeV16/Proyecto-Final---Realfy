@@ -10,13 +10,9 @@ import { Roles } from '../../common/auth/roles.decorator';
 import { JwtAuthGuard } from '../../common/auth/jwt-auth.guard';
 import { RbacGuard } from '../../common/auth/rbac.guard';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
-import {
-  UserRole,
-  OccupancyTrendQuerySchema,
-  DashboardRangeQuerySchema,
-  DashboardCashFlowQuerySchema,
-} from '@realfy/shared';
+import { OccupancyTrendQuerySchema, DashboardRangeQuerySchema, DashboardCashFlowQuerySchema } from '@realfy/shared';
 import type { DateRange } from './dashboard-calculations';
+import { BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 /** Cuántos meses cubren los widgets de rango cuando no se pide uno explícito. */
 const DEFAULT_RANGE_MONTHS = 12;
@@ -86,7 +82,7 @@ export class DashboardController {
    * alquiler al cierre de cada uno de los últimos meses.
    */
   @Get('occupancy-trend')
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   async getOccupancyTrend(@Query() query: Record<string, unknown>) {
     const { months } = parseQuery(OccupancyTrendQuerySchema, query);
     return this.dashboardService.getOccupancyTrend(this.tenantId(), months);
@@ -97,7 +93,7 @@ export class DashboardController {
    * propiedad en el rango pedido, ordenado por neto descendente.
    */
   @Get('profitability')
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   async getProfitability(@Query() query: Record<string, unknown>) {
     const filters = parseQuery(DashboardRangeQuerySchema, query);
     return this.dashboardService.getProfitabilityByProperty(
@@ -111,7 +107,7 @@ export class DashboardController {
    * agrupados por mes o por semana ISO.
    */
   @Get('cash-flow')
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   async getCashFlow(@Query() query: Record<string, unknown>) {
     const filters = parseQuery(DashboardCashFlowQuerySchema, query);
     return this.dashboardService.getCashFlow(
@@ -126,7 +122,7 @@ export class DashboardController {
    * de los últimos doce meses.
    */
   @Get('delinquency-rate')
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   async getDelinquencyRate() {
     return this.dashboardService.getDelinquencyRate(this.tenantId());
   }
@@ -136,7 +132,7 @@ export class DashboardController {
    * Restricted to Admin and Gerente roles.
    */
   @Get('fiscal')
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   async getFiscalStats() {
     return this.dashboardService.getFiscalStats(this.tenantId());
   }

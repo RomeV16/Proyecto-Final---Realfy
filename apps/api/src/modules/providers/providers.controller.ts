@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ProvidersService } from './providers.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MANAGEMENT_ROLES, SALES_ROLES, SUPPORT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('providers')
 export class ProvidersController {
@@ -20,7 +20,7 @@ export class ProvidersController {
    * POST /providers — Create a provider (person + profile in transaction).
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post()
   async create(@Body() body: Record<string, any>) {
     return this.providersService.create(body);
@@ -43,7 +43,7 @@ export class ProvidersController {
    * GET /providers/for-ticket/:ticketId — Providers filtered by ticket's category rubro and property city.
    * Admin, Gerente, Soporte roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Soporte)
+  @Roles(...SUPPORT_ROLES)
   @Get('for-ticket/:ticketId')
   async findForTicket(@Param('ticketId') ticketId: string) {
     return this.providersService.findForTicket(ticketId);
@@ -62,7 +62,7 @@ export class ProvidersController {
    * PATCH /providers/:id — Update provider (person fields + profile fields).
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -75,7 +75,7 @@ export class ProvidersController {
    * DELETE /providers/:id — Soft delete provider (deactivates person + profile).
    * Admin and Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.providersService.softDelete(id);

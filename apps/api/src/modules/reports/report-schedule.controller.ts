@@ -13,12 +13,9 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import {
-  UserRole,
-  CreateReportScheduleSchema,
-  UpdateReportScheduleSchema,
-} from '@realfy/shared';
+import { CreateReportScheduleSchema, UpdateReportScheduleSchema } from '@realfy/shared';
 import { computeNextRunAt } from './compute-next-run-at';
+import { MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('report-schedules')
 export class ReportScheduleController {
@@ -32,7 +29,7 @@ export class ReportScheduleController {
   /**
    * GET /report-schedules — list all schedules for the current tenant.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Get()
   async findAll() {
     const tenantId = this.tenantContext.getTenantId()!;
@@ -45,7 +42,7 @@ export class ReportScheduleController {
   /**
    * POST /report-schedules — create a new schedule.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post()
   async create(@Body() body: unknown) {
     let data: any;
@@ -87,7 +84,7 @@ export class ReportScheduleController {
   /**
    * PATCH /report-schedules/:id — update a schedule.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Patch(':id')
   async update(@Param('id') id: string, @Body() body: unknown) {
     let data: any;
@@ -134,7 +131,7 @@ export class ReportScheduleController {
   /**
    * DELETE /report-schedules/:id — hard delete a schedule.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     const tenantId = this.tenantContext.getTenantId()!;

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ValuationsService } from './valuations.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MANAGEMENT_ROLES, SALES_ROLES } from '../../common/auth/role-groups';
 
 @Controller('properties/:propertyId/valuations')
 export class ValuationsController {
@@ -58,7 +58,7 @@ export class ValuationsController {
    * POST /properties/:propertyId/valuations — Create a valuation.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post()
   async create(
     @Param('propertyId') propertyId: string,
@@ -71,7 +71,7 @@ export class ValuationsController {
    * PATCH /properties/:propertyId/valuations/:valuationId — Update a valuation.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':valuationId')
   async update(
     @Param('propertyId') propertyId: string,
@@ -85,7 +85,7 @@ export class ValuationsController {
    * DELETE /properties/:propertyId/valuations/:valuationId — Delete a valuation.
    * Admin and Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':valuationId')
   async remove(
     @Param('propertyId') propertyId: string,

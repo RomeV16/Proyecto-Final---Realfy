@@ -73,6 +73,16 @@ export {
   UpdateTenantSchema,
 } from './schemas/tenant.schema';
 
+// Schemas — política de lectura por rol
+export {
+  READ_RESOURCES,
+  DEFAULT_READ_POLICY,
+  ReadPolicySchema,
+  resolveReadPolicy,
+  canReadResource,
+} from './schemas/read-policy.schema';
+export type { ReadResource, ReadPolicy } from './schemas/read-policy.schema';
+
 // Schemas — propiedades
 export {
   CreatePropertySchema,

@@ -14,7 +14,8 @@ import { ContractsService } from './contracts.service';
 import { ContractLessorsService } from './contract-lessors.service';
 import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MANAGEMENT_ROLES, SALES_ROLES } from '../../common/auth/role-groups';
+import { MaskReads } from '../../common/read-policy/read-resource.decorator';
 
 @Controller('contracts')
 export class ContractsController {
@@ -30,6 +31,7 @@ export class ContractsController {
    * GET /contracts — List with filters + pagination.
    * Any authenticated user can read.
    */
+  @MaskReads('persons.document', 'persons.bankAccounts', 'contracts.commission')
   @Get()
   async findAll(@Query() query: Record<string, any>) {
     const coerced = { ...query };
@@ -46,6 +48,7 @@ export class ContractsController {
    * GET /contracts/:id — Full detail with persons, guarantees, adjustments.
    * Any authenticated user can read.
    */
+  @MaskReads('persons.document', 'persons.bankAccounts', 'contracts.commission')
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.contractsService.findOne(id);
@@ -55,7 +58,7 @@ export class ContractsController {
    * POST /contracts — Create a contract with linked persons and guarantees.
    * Ventas+ roles (Admin, Gerente, Ventas).
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post()
   async create(@Body() body: Record<string, any>) {
     return this.contractsService.create(body);
@@ -65,7 +68,7 @@ export class ContractsController {
    * PATCH /contracts/:id — Update contract fields.
    * Ventas+ roles (Admin, Gerente, Ventas).
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -81,7 +84,7 @@ export class ContractsController {
    * Ventas+ roles (Admin, Gerente, Ventas): los mismos que pueden crear un
    * contrato, y crearlo ya activo pasa por las mismas reglas.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/activate')
   async activate(@Param('id') id: string) {
     return this.contractsService.activate(id);
@@ -91,7 +94,7 @@ export class ContractsController {
    * POST /contracts/:id/terminate — Terminate contract (set Rescindido, isActive false).
    * Admin and Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post(':id/terminate')
   async terminate(@Param('id') id: string) {
     return this.contractsService.terminate(id);
@@ -102,7 +105,7 @@ export class ContractsController {
    * Ventas+ roles (Admin, Gerente, Ventas).
    * Body: { scheduleId: string }
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/adjustments/calculate')
   async calculateAdjustment(
     @Param('id') id: string,
@@ -121,7 +124,7 @@ export class ContractsController {
    * POST /contracts/:id/adjustments/:adjId/apply — Apply a calculated adjustment.
    * Admin and Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post(':id/adjustments/:adjId/apply')
   async applyAdjustment(
     @Param('id') id: string,
@@ -148,7 +151,7 @@ export class ContractsController {
    * so the :id param resolver, RBAC guard, and tenant scoping all work via the
    * existing ContractsController pipeline.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post(':id/preview-adjustment')
   async previewAdjustment(@Param('id') id: string) {
     const preview = await this.contractAdjustmentService.preview(id);
@@ -169,6 +172,7 @@ export class ContractsController {
    * cobro. `?at=` limita a los vigentes en esa fecha.
    * Any authenticated user can read.
    */
+  @MaskReads('persons.document', 'persons.bankAccounts', 'contracts.commission')
   @Get(':id/lessors')
   async listLessors(@Param('id') id: string, @Query('at') at?: string) {
     return this.lessors.list(id, at);
@@ -178,7 +182,7 @@ export class ContractsController {
    * POST /contracts/:id/lessors — Agrega un locador.
    * Admin, Gerente, Ventas.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/lessors')
   async addLessor(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.lessors.create(id, body);
@@ -188,7 +192,7 @@ export class ContractsController {
    * PUT /contracts/:id/lessors — Reemplaza todo el conjunto de locadores en una
    * transacción (reparto entre varios, cesión). Admin, Gerente, Ventas.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Put(':id/lessors')
   async replaceLessors(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.lessors.replace(id, body);
@@ -198,7 +202,7 @@ export class ContractsController {
    * PATCH /contracts/:id/lessors/:lessorId — Cambia porcentaje, cuenta,
    * cobrador o vigencia. Admin, Gerente, Ventas.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id/lessors/:lessorId')
   async updateLessor(
     @Param('id') id: string,
@@ -212,7 +216,7 @@ export class ContractsController {
    * DELETE /contracts/:id/lessors/:lessorId — Quita un locador.
    * Admin, Gerente, Ventas.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Delete(':id/lessors/:lessorId')
   async removeLessor(@Param('id') id: string, @Param('lessorId') lessorId: string) {
     return this.lessors.remove(id, lessorId);

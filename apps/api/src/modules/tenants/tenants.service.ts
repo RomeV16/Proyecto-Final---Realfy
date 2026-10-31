@@ -14,6 +14,8 @@ import {
 } from '@realfy/shared';
 import type { CreateTenantInput, UpdateTenantInput } from '@realfy/shared';
 import { DEFAULT_PENALTY_CONFIG, PenaltyConfig } from './penalty-config.types';
+import { ReadPolicyService } from '../../common/read-policy/read-policy.service';
+import { ReadPolicySchema, READ_RESOURCES, canReadResource } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
 
 /**
@@ -39,6 +41,7 @@ export class TenantsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
+    private readonly readPolicies: ReadPolicyService,
   ) {}
 
   /**
@@ -196,5 +199,38 @@ export class TenantsService {
     } finally {
       this.tenantContext.setBypassTenantFilter(false);
     }
+  }
+
+  private requireTenantId(): string {
+    const tenantId = this.tenantContext.getTenantId();
+    if (!tenantId) {
+      throw new ForbiddenException({
+        error: 'TENANT_CONTEXT_REQUIRED',
+        message: 'Tenant context is required',
+      });
+    }
+    return tenantId;
+  }
+
+  /** Política de lectura vigente de la inmobiliaria (por defecto si no hay). */
+  async getReadPolicy() {
+    return this.readPolicies.getPolicy(this.requireTenantId());
+  }
+
+  async updateReadPolicy(data: unknown) {
+    const validated = parseOrThrow(ReadPolicySchema, data, 'Invalid read policy');
+    return this.readPolicies.setPolicy(this.requireTenantId(), validated);
+  }
+
+  /** Recursos sensibles que el rol del usuario actual puede leer. */
+  async getReadAccess() {
+    const policy = await this.readPolicies.getPolicy(this.requireTenantId());
+    const role = this.tenantContext.getUserRole() ?? null;
+    return {
+      role,
+      resources: Object.fromEntries(
+        READ_RESOURCES.map((r) => [r, canReadResource(policy, r, role)]),
+      ),
+    };
   }
 }

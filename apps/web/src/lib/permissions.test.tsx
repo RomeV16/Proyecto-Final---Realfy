@@ -41,6 +41,7 @@ const EXPECTED: Record<Action, string[]> = {
   'settings.manage': ['Admin', 'Gerente'],
   'users.view': ['Admin', 'Gerente'],
   'users.manage': ['Admin'],
+  'permissions.manage': ['Admin'],
   'indexData.view': ['Admin', 'Gerente'],
   'indexData.manage': ['Admin'],
 };

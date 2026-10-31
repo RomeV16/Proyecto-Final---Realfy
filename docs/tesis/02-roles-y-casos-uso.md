@@ -4,7 +4,25 @@
 
 El sistema define siete roles internos en el enum `UserRole`, compartido entre el backend y el frontend. Un usuario tiene exactamente un rol, y al crearse sin especificarlo queda en Lectura, que es el más restringido.
 
-El control de acceso se aplica endpoint por endpoint sobre las operaciones que modifican datos. La mayoría de las lecturas están disponibles para cualquier usuario autenticado de la inmobiliaria: lo que se restringe por rol es crear, editar, borrar, transicionar estados y configurar.
+El control de acceso se aplica endpoint por endpoint. Las operaciones que modifican datos se restringen por rol con `@Roles`, usando grupos de roles con nombre (`MANAGEMENT_ROLES`, `SALES_ROLES`, `BILLING_ROLES` y otros, en `apps/api/src/common/auth/role-groups.ts`) en lugar de listas escritas en cada ruta. La mayoría de las lecturas están disponibles para cualquier usuario autenticado de la inmobiliaria: lo que se restringe por rol es crear, editar, borrar, transicionar estados y configurar.
+
+### Matriz de lectura de datos sensibles
+
+Además de `@Roles`, siete recursos sensibles tienen una política de lectura por rol, configurable por inmobiliaria (`Tenant.readPolicy`). **Por defecto todos los roles de personal leen todo**: el "casi todo abierto" ya no es un hecho fijo del código sino el valor por defecto, que la dirección puede cerrar sin desarrollo. Para el piloto se mantiene el valor por defecto, por decisión de la dirección.
+
+| Recurso | Qué protege | Cuando el rol no puede leerlo |
+|---|---|---|
+| `persons.bankAccounts` | Cuentas bancarias (CBU y alias) de personas y propietarios | `GET /persons/:id/bank-accounts` responde 403 `READ_FORBIDDEN`; en las fichas y contratos el campo `bankAccounts` viaja en `null` |
+| `persons.document` | DNI y CUIT en las personas | La persona se lee completa, con `dni` y `cuit` en `null` |
+| `contracts.commission` | Comisión pactada en cada contrato | `GET /contracts/:id/commission` responde 403; en el contrato, `commission` en `null` |
+| `renditions` | Rendiciones a propietarios | 403 `READ_FORBIDDEN` |
+| `reports.financial` | Reportes (JSON, Excel y PDF) | 403 `READ_FORBIDDEN` |
+| `invoices` | Facturas y sus PDF | 403 `READ_FORBIDDEN` |
+| `audit` | Registro de auditoría | 403 `READ_FORBIDDEN` |
+
+El rol Admin siempre puede leer todo: la política que lo omite se rechaza al guardarla, para que la inmobiliaria no pierda el acceso a su propia información. La política se aplica sumada a `@Roles`: ambas deben permitir. Si la política no se puede cargar, la lectura se deniega (falla cerrado), en el espíritu del ADR-0006.
+
+Se configura desde Configuración → Permisos (Admin) o con `PUT /tenants/me/read-policy`. La web oculta las secciones y los ítems del menú que el rol no puede leer; la API es la que impone la política.
 
 ### Admin
 
@@ -78,11 +96,11 @@ Permisos principales:
 
 - Alta, edición, borrado y previsualización de plantillas de email.
 - Envío de un correo a un lead a partir de una plantilla.
-- Acceso de lectura general.
+- Acceso de lectura general, sujeto a la política de lectura de datos sensibles.
 
 ### Lectura
 
-Rol de consulta. Ve los listados y los detalles sin ninguna acción disponible. Sobre pagos y comprobantes tiene lectura explícita.
+Rol de consulta. Ve los listados y los detalles sin ninguna acción disponible, salvo los datos sensibles que la política de lectura de la inmobiliaria le cierre. Sobre pagos y comprobantes tiene lectura explícita.
 
 ### Inquilino
 
@@ -151,5 +169,6 @@ A continuación se listan los casos de uso considerados centrales para la operac
 
 - **CU-27 Invitar un usuario** — Admin. Invita a una persona con un rol (Admin, Gerente, Ventas, Liquidaciones, Soporte, Marketing o Lectura) y recibe un enlace de un solo uso que vence a los 7 días. Mientras no haya correo configurado, el Admin comparte el enlace a mano; si lo hay, además se envía por correo. La persona abre el enlace, elige nombre y contraseña, y entra con el rol asignado. El Admin también cambia roles, da de baja y reactiva usuarios, reenvía invitaciones pendientes (el enlace anterior deja de servir) y nunca puede quedarse sin un Admin activo ni darse de baja a sí mismo. El Gerente ve el equipo en solo lectura. *Flujo alternativo:* una invitación vencida o ya usada se rechaza y el Admin genera otra; una baja cierra las sesiones abiertas de inmediato. *Origen:* FB-26.
 - **CU-28 Recuperar la contraseña** — Usuario del personal, Admin. Quien la olvidó pide instrucciones desde el ingreso y la respuesta es siempre la misma, exista o no la cuenta; si el correo no está configurado no se envía nada, y entonces el Admin le genera un enlace de un solo uso, válido 1 hora, que le comparte a mano. Con el enlace elige una contraseña nueva y se cierran todas sus sesiones. Quien sabe su contraseña la cambia desde su perfil, pidiendo la actual; se cierran las sesiones de los otros dispositivos. *Origen:* FB-26.
+- **CU-29 Configurar los permisos de lectura** — Admin. Elige, para cada recurso sensible (cuentas bancarias, documento, comisión, rendiciones, reportes financieros, facturas y auditoría), qué roles pueden leerlo. Sin configurar, todos los roles de personal leen todo. El Admin siempre conserva la lectura. *Flujo alternativo:* un rol sin acceso recibe 403 `READ_FORBIDDEN` en las rutas que devuelven el recurso y ve ocultos (`null`) el documento y las cuentas dentro de personas y contratos; si la política no se puede cargar, se deniega. *Origen:* FB-03.
 
 <!-- Revisado por Manuel: refinamiento de casos para liquidaciones y ARCA -->

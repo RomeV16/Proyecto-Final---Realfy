@@ -48,7 +48,7 @@ describe('TenantsService — penalty config', () => {
   beforeEach(() => {
     prisma = createMockPrismaService();
     tenantContext = createMockTenantContext();
-    service = new TenantsService(prisma as any, tenantContext as any);
+    service = new TenantsService(prisma as any, tenantContext as any, {} as any);
   });
 
   afterEach(() => {

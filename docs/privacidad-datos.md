@@ -46,7 +46,21 @@ El texto de información al titular y el mecanismo de consentimiento se deciden 
 
 Hoy el control de acceso se aplica sobre las operaciones que modifican datos; la mayoría de las lecturas está disponible para cualquier usuario autenticado de la inmobiliaria (ver `tesis/02-roles-y-casos-uso.md`). En el piloto las tres personas de la inmobiliaria ven todo el contenido, por decisión de la dirección.
 
-Esto es un límite que el piloto declara y reduce: el ítem 32 construye el menú y una matriz de lectura por rol, de modo que cerrar la lectura de datos sensibles (cuentas bancarias, documentos adjuntos, estados de cuenta) sea configuración y no desarrollo.
+Esto es un límite que el piloto declara y reduce: la política de lectura por rol vuelve la restricción de datos sensibles una configuración y no un desarrollo. Cada inmobiliaria puede elegir qué roles leen cada recurso sensible; sin configurar rige el valor por defecto (todos leen todo).
+
+### Datos sensibles y cómo restringirlos
+
+| Recurso | Datos | Efecto de restringirlo a un rol |
+|---|---|---|
+| `persons.bankAccounts` | CBU, alias y banco de personas y propietarios | El rol recibe 403 `READ_FORBIDDEN` al pedir las cuentas y ve `null` en fichas y contratos |
+| `persons.document` | DNI y CUIT de las personas | El rol ve la persona con esos campos ocultos (`null`); no se rechaza la lectura |
+| `contracts.commission` | Comisión de la inmobiliaria en cada contrato | 403 al pedirla; `null` dentro del contrato |
+| `renditions` | Lo que se paga a cada propietario | 403 `READ_FORBIDDEN` |
+| `reports.financial` | Estados de cuenta, flujo de caja, rentabilidad | 403 `READ_FORBIDDEN` |
+| `invoices` | Comprobantes emitidos | 403 `READ_FORBIDDEN` |
+| `audit` | Registro de quién cambió qué | 403 `READ_FORBIDDEN` |
+
+Para restringirlos, el Admin entra a Configuración → Permisos, destilda los roles que no deben leer el recurso y guarda; el cambio rige desde el siguiente pedido de cada usuario. Los datos ocultos se enmascaran en la respuesta de la API: no se modifican en la base. El Admin siempre conserva la lectura. Ver `tesis/02-roles-y-casos-uso.md` para la matriz completa.
 
 | Quién | Qué ve |
 |---|---|

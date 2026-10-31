@@ -110,6 +110,9 @@ el registro del servidor, junto con el método, la ruta, el estado, el
 | POST | `/tenants` | Crea una inmobiliaria. | Público |
 | GET | `/tenants/me` | Datos de la inmobiliaria de la sesión. | Autenticado |
 | PATCH | `/tenants/:id` | Edita nombre, provincia, colores de marca y logo. | Admin, Gerente |
+| GET | `/tenants/me/read-policy` | Política de lectura por rol: un objeto con un arreglo de roles por recurso (`persons.bankAccounts`, `persons.document`, `contracts.commission`, `renditions`, `reports.financial`, `invoices`, `audit`). Sin configurar devuelve la de por defecto: todos los roles leen todo. | Admin |
+| PUT | `/tenants/me/read-policy` | Reemplaza la política completa. Debe traer los siete recursos, solo roles válidos y al Admin en cada uno; si no, 400 `VALIDATION_ERROR`. Rige desde el pedido siguiente. | Admin |
+| GET | `/tenants/me/read-access` | Qué recursos puede leer el rol del usuario actual: `{ role, resources: { <recurso>: boolean } }`. Lo usa la web para ocultar secciones. | Autenticado |
 | GET | `/users` | El equipo: usuarios más invitaciones pendientes, cada uno con `status` (`invited`, `active` o `inactive`). En una invitación, `id` es el de la invitación y vienen `invitationExpiresAt` e `invitationExpired`. | Admin, Gerente |
 | POST | `/users/invite` | Invita a un usuario con un rol asignado (`email`, `role`). Responde 201 con el enlace de aceptación (ver abajo). Errores: 400 `USER_ALREADY_EXISTS`, 409 `INVITATION_ALREADY_PENDING`. | Admin |
 | POST | `/users/accept-invitation` | Acepta la invitación (`token`, `password`, `firstName`, `lastName`) y crea el usuario con el rol de la invitación. Errores: 400 `INVITATION_NOT_FOUND`, `INVITATION_EXPIRED`, `INVITATION_ALREADY_ACCEPTED`. | Público, 5/min |
@@ -124,6 +127,8 @@ el registro del servidor, junto con el método, la ruta, el estado, el
 **Enlaces de invitación y de recupero.** `invite`, `invitation/resend` y `password-reset-link` devuelven `{ id, email, role?, expiresAt, token, link, emailSent }`. El `token` tiene 256 bits aleatorios, en base de datos solo queda su hash SHA-256, y el valor en claro se ve una única vez, en esa respuesta. La invitación vence a los 7 días y el enlace de recupero a la hora; ambos se consumen al usarse. `link` apunta a `WEB_BASE_URL` (o, si falta, al primer origen de `CORS_ORIGINS`) y se comparte a mano. `emailSent` es `true` solo si el servicio de correo está configurado y el envío salió bien; un fallo de correo nunca corta la operación. Un token inexistente, ajeno o de otra inmobiliaria responde como inexistente. Una llamada sobre un usuario (o una invitación) de otra inmobiliaria responde 404 `USER_NOT_FOUND` (`INVITATION_NOT_FOUND`).
 
 La baja y el cambio de rol rigen desde el pedido siguiente: el token de acceso se contrasta con el estado vigente del usuario. En la traza (`/audit-logs`), las operaciones de usuarios llevan `changes.operation` (`role-change`, `deactivate`, `reactivate`, `invitation-resend`, `password-reset-link`); contraseñas y tokens se registran como `[REDACTED]` o no se registran.
+
+**Política de lectura.** Las rutas de lectura de recursos sensibles responden 403 `READ_FORBIDDEN` (con `resource` en el cuerpo) cuando la política de la inmobiliaria no deja leer al rol: cuentas bancarias de personas, rendiciones, reportes, facturas, comisión del contrato y auditoría. En personas y contratos, `dni`, `cuit`, `bankAccounts` y `commission` viajan en `null` para los roles sin acceso, sin rechazar la lectura. Si la política no se puede cargar, se deniega. Se suma a los roles de cada ruta.
 
 ## Propiedades
 
