@@ -1,8 +1,10 @@
 import Decimal from 'decimal.js';
-import { LineItemType } from '../enums';
+import { LineBeneficiary, LineItemType } from '../enums';
 import {
   calculateLineItemsTotal,
   calculateRemainingBalance,
+  defaultBeneficiary,
+  defaultCommissionable,
   isFullyPaid,
 } from './index';
 
@@ -209,5 +211,34 @@ describe('liquidacion-engine — pago completo', () => {
     // 100 - 99,996 = 0,004 -> 0,00 ; 100 - 99,995 = 0,005 -> 0,01
     expect(isFullyPaid(100, [{ amount: '99.996' }])).toBe(true);
     expect(isFullyPaid(100, [{ amount: '99.995' }])).toBe(false);
+  });
+});
+
+describe('destino y comisión por defecto', () => {
+  it('la comisión corre sobre alquiler, ajustes, punitorios y descuentos; no sobre gastos', () => {
+    const commissionable = [
+      LineItemType.Alquiler,
+      LineItemType.Ajuste,
+      LineItemType.AjusteRetroactivo,
+      LineItemType.Multa,
+      LineItemType.Descuento,
+    ];
+    const notCommissionable = [
+      LineItemType.Extra,
+      LineItemType.Impuesto,
+      LineItemType.Servicio,
+      LineItemType.Cargo,
+      LineItemType.Honorario,
+    ];
+    for (const t of commissionable) expect(defaultCommissionable(t)).toBe(true);
+    for (const t of notCommissionable) expect(defaultCommissionable(t)).toBe(false);
+  });
+
+  it('impuestos y servicios van al ente, el honorario a la inmobiliaria, el resto al locador', () => {
+    expect(defaultBeneficiary(LineItemType.Impuesto)).toBe(LineBeneficiary.Ente);
+    expect(defaultBeneficiary(LineItemType.Servicio)).toBe(LineBeneficiary.Ente);
+    expect(defaultBeneficiary(LineItemType.Honorario)).toBe(LineBeneficiary.Inmobiliaria);
+    expect(defaultBeneficiary(LineItemType.Alquiler)).toBe(LineBeneficiary.Locador);
+    expect(defaultBeneficiary(LineItemType.Extra)).toBe(LineBeneficiary.Locador);
   });
 });
