@@ -29,7 +29,7 @@ WHERE v."validFrom" = c."startDate"
     OR v."adjustmentPeriod" <> c."adjustmentPeriod"
     OR v."customPct" IS DISTINCT FROM c."customAdjustmentPct"
     OR v."adjustmentBase" <> 'Vigente'
-    OR v."indexLagMonths" <> 2
+    OR v."indexLagMonths" <> 0
     OR v."dueDay" <> 10
     OR v."paymentFlow" <> 'Partido'
     OR v."tenantId" <> c."tenantId")

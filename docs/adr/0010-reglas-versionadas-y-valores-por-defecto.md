@@ -81,8 +81,11 @@ contrato se versionan en lugar de pisarse.**
   `trueUpOfId`).
 - **Migración.** Cada contrato existente recibe un período original y una
   versión inicial con sus columnas de hoy: base `Vigente` (es lo que el motor
-  actual hace, aplica el índice sobre el alquiler vigente), rezago 2, vencimiento
-  el día 10 y flujo `Partido`. El cálculo de los contratos existentes no cambia.
+  actual hace, aplica el índice sobre el alquiler vigente), rezago 0 (el motor
+  actual cierra la ventana del índice en el mes del ajuste), vencimiento el día
+  10 y flujo `Partido`. El cálculo de los contratos existentes no cambia. Los
+  contratos nuevos, y los importados del sistema anterior, toman el rezago de la
+  inmobiliaria: 2 meses por defecto, la regla de la inmobiliaria piloto.
 
 ## Alternativas descartadas
 

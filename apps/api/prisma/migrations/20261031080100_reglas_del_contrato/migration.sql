@@ -164,8 +164,10 @@ FROM "contracts" c;
 
 -- Backfill: una versión de reglas por contrato, vigente desde el inicio, con
 -- las columnas de hoy. El motor actual aplica el índice sobre el alquiler
--- vigente (Vigente), sin escalonado ni rezago propio, y el vencimiento
--- por defecto es el día 10. El reparto queda en Partido.
+-- vigente (Vigente), sin escalonado y sin rezago: la ventana del índice
+-- termina en el mes del ajuste, así que el rezago de estos contratos es 0.
+-- Los contratos nuevos toman el rezago de la inmobiliaria (2 por defecto).
+-- El vencimiento por defecto es el día 10 y el reparto queda en Partido.
 INSERT INTO "contract_terms_versions" ("id", "tenantId", "contractId", "validFrom", "adjustmentType", "adjustmentPeriod", "adjustmentBase", "indexLagMonths", "fixedInitialMonths", "customPct", "dueDay", "paymentFlow")
-SELECT gen_random_uuid()::text, c."tenantId", c."id", c."startDate", c."adjustmentType", c."adjustmentPeriod", 'Vigente', 2, 0, c."customAdjustmentPct", 10, 'Partido'
+SELECT gen_random_uuid()::text, c."tenantId", c."id", c."startDate", c."adjustmentType", c."adjustmentPeriod", 'Vigente', 0, 0, c."customAdjustmentPct", 10, 'Partido'
 FROM "contracts" c;
