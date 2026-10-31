@@ -427,7 +427,7 @@ describe('IndexData (e2e)', () => {
       expect(Number(res.body.currentRent)).toBe(150000);
     });
 
-    it('CP-266 (DEF-26): without index data responds 400 MISSING_INDEX_DATA instead of a 0 % projection', async () => {
+    it('CP-270 (DEF-26): without index data responds 400 MISSING_INDEX_DATA instead of a 0 % projection', async () => {
       const { user, contract } = await createContractWithIPC('preview-no-data', false);
 
       const res = await request(app.getHttpServer())
