@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -12,19 +11,7 @@ import {
   ProviderFilterSchema,
   PersonRole,
 } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class ProvidersService {
@@ -80,22 +67,10 @@ export class ProvidersService {
       });
 
       // Validate and create provider profile
-      let profileValidated: any;
-      try {
-        profileValidated = CreateProviderProfileSchema.parse({
+      const profileValidated: any = parseOrThrow(CreateProviderProfileSchema, {
           personId: person.id,
           ...profileFields,
-        });
-      } catch (err) {
-        if (isZodError(err)) {
-          throw new BadRequestException({
-            error: 'VALIDATION_ERROR',
-            message: 'Invalid provider profile data',
-            details: err.errors,
-          });
-        }
-        throw err;
-      }
+        }, 'Invalid provider profile data');
 
       const profile = await tx.providerProfile.create({
         data: {
@@ -124,19 +99,7 @@ export class ProvidersService {
   // ─── List ─────────────────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = ProviderFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(ProviderFilterSchema, query, 'Invalid filter parameters');
 
     const { page, limit, ...where } = filters;
     const skip = (page - 1) * limit;
@@ -256,18 +219,7 @@ export class ProvidersService {
 
     // Validate profile updates if any
     if (Object.keys(profileData).length > 0) {
-      try {
-        UpdateProviderProfileSchema.parse(profileData);
-      } catch (err) {
-        if (isZodError(err)) {
-          throw new BadRequestException({
-            error: 'VALIDATION_ERROR',
-            message: 'Invalid provider profile data',
-            details: err.errors,
-          });
-        }
-        throw err;
-      }
+      parseOrThrow(UpdateProviderProfileSchema, profileData, 'Invalid provider profile data');
     }
 
     // Update person fields and profile in transaction

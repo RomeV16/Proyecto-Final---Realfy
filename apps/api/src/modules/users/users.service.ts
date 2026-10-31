@@ -10,19 +10,7 @@ import { TenantContextService } from '../../common/tenant/tenant-context.service
 import { InviteUserSchema, UserRole } from '@realfy/shared';
 import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
-
-/**
- * Checks if an error is a Zod validation error.
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class UsersService {
@@ -104,19 +92,7 @@ export class UsersService {
    * Email sending is deferred to a later slice.
    */
   async invite(data: unknown) {
-    let validated: { email: string; role: UserRole };
-    try {
-      validated = InviteUserSchema.parse(data) as { email: string; role: UserRole };
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid invitation data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated = parseOrThrow(InviteUserSchema, data, 'Invalid invitation data') as { email: string; role: UserRole };
 
     const tenantId = this.tenantContext.getTenantId();
     const userId = this.tenantContext.getUserId();

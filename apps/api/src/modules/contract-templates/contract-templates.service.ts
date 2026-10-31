@@ -18,19 +18,7 @@ import {
 } from '@realfy/shared';
 import { renderTemplatePlain, extractVariableNames } from '@realfy/shared';
 import { DEFAULT_TEMPLATES } from './default-templates';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 /**
  * Checks if a Prisma error is a unique constraint violation (P2002).
@@ -59,19 +47,7 @@ export class ContractTemplatesService {
   // ─── Create Template ──────────────────────────────────
 
   async create(body: unknown) {
-    let validated: any;
-    try {
-      validated = CreateContractTemplateSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid contract template data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateContractTemplateSchema, body, 'Invalid contract template data');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -115,19 +91,7 @@ export class ContractTemplatesService {
   // ─── List Templates ───────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = ContractTemplateFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(ContractTemplateFilterSchema, query, 'Invalid filter parameters');
 
     const tenantId = this.tenantContext.getTenantId()!;
     const where: any = { tenantId };
@@ -188,19 +152,7 @@ export class ContractTemplatesService {
   // ─── Update Template ──────────────────────────────────
 
   async update(id: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateContractTemplateSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid contract template update data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateContractTemplateSchema, body, 'Invalid contract template update data');
 
     const tenantId = this.tenantContext.getTenantId()!;
     const existing = await this.prisma.client.contractTemplate.findFirst({
@@ -321,19 +273,7 @@ export class ContractTemplatesService {
   // ─── Generate Document ────────────────────────────────
 
   async generateDocument(contractId: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = GenerateDocumentSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid generate document request',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(GenerateDocumentSchema, body, 'Invalid generate document request');
 
     const tenantId = this.tenantContext.getTenantId()!;
 

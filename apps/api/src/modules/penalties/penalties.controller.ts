@@ -11,15 +11,15 @@ import {
 } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { PenaltyConfigSchema, PreviewPenaltySchema, UserRole } from '@realfy/shared';
+import type { PenaltyConfig, PreviewPenaltyInput } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { TenantsService } from '../tenants/tenants.service';
 import { PenaltiesService } from './penalties.service';
 import { PenaltiesScheduler } from './penalties.scheduler';
-import { UpdatePenaltyConfigDto } from '../tenants/dto/update-penalty-config.dto';
 import { WaivePenaltyDto } from './dto/waive-penalty.dto';
-import { PreviewPenaltyDto } from './dto/preview-penalty.dto';
+import { ZodValidationPipe } from '../../common/validation/zod';
 import { OVERDUE_LIQUIDACION_STATUSES } from './overdue';
 
 @Controller()
@@ -251,7 +251,7 @@ export class PenaltiesController {
    */
   @Roles(UserRole.Admin)
   @Put('tenants/me/penalty-config')
-  async updatePenaltyConfig(@Body() dto: UpdatePenaltyConfigDto) {
+  async updatePenaltyConfig(@Body(new ZodValidationPipe(PenaltyConfigSchema, 'Invalid penalty config')) dto: PenaltyConfig) {
     const tenantId = this.tenantContext.getTenantId();
     if (!tenantId) {
       throw new ForbiddenException({ error: 'TENANT_CONTEXT_REQUIRED', message: 'Tenant context is required' });
@@ -265,7 +265,7 @@ export class PenaltiesController {
    */
   @Roles(UserRole.Admin, UserRole.Gerente)
   @Post('penalties/preview')
-  async previewPenalty(@Body() dto: PreviewPenaltyDto) {
+  async previewPenalty(@Body(new ZodValidationPipe(PreviewPenaltySchema, 'Invalid penalty preview')) dto: PreviewPenaltyInput) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -281,7 +281,7 @@ export class PenaltiesController {
         tenantId: 'preview',
       },
       config: {
-        mode: dto.config.mode as 'daily_fixed' | 'daily_percent' | 'compound_percent',
+        mode: dto.config.mode,
         value: new Decimal(dto.config.value),
         graceDays: dto.config.graceDays,
         maxMultiplier: new Decimal(dto.config.maxMultiplier),

@@ -3,7 +3,6 @@ import {
   Logger,
   ForbiddenException,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -14,19 +13,7 @@ import {
   CreatePortalTicketCommentSchema,
   TicketPriority,
 } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error.
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class PortalTicketsService {
@@ -112,19 +99,7 @@ export class PortalTicketsService {
    * POST /portal/tickets — Create ticket from portal.
    */
   async createTicket(body: unknown, file?: Express.Multer.File) {
-    let validated: any;
-    try {
-      validated = CreatePortalTicketSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid ticket data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreatePortalTicketSchema, body, 'Invalid ticket data');
 
     const personId = this.tenantContext.getPersonId();
     if (!personId) {
@@ -271,19 +246,7 @@ export class PortalTicketsService {
    * POST /portal/tickets/:id/comments — Add comment from portal.
    */
   async addComment(ticketId: string, body: unknown, file?: Express.Multer.File) {
-    let validated: any;
-    try {
-      validated = CreatePortalTicketCommentSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid comment data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreatePortalTicketCommentSchema, body, 'Invalid comment data');
 
     const personId = this.tenantContext.getPersonId();
     if (!personId) {

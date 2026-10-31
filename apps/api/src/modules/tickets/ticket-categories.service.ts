@@ -10,19 +10,7 @@ import {
   CreateTicketCategorySchema,
   UpdateTicketCategorySchema,
 } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class TicketCategoriesService {
@@ -36,19 +24,7 @@ export class TicketCategoriesService {
   // ─── Create ───────────────────────────────────────────
 
   async create(body: unknown) {
-    let validated: any;
-    try {
-      validated = CreateTicketCategorySchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid category data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateTicketCategorySchema, body, 'Invalid category data');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -94,19 +70,7 @@ export class TicketCategoriesService {
   // ─── Update ───────────────────────────────────────────
 
   async update(id: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateTicketCategorySchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid category data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateTicketCategorySchema, body, 'Invalid category data');
 
     const existing = await this.prisma.client.ticketCategory.findUnique({
       where: { id },

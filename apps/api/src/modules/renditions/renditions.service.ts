@@ -26,19 +26,7 @@ import { RenditionPdfService } from './rendition-pdf.service';
 import { RenditionEmailService } from './rendition-email.service';
 import Decimal from 'decimal.js';
 import { assertTransition } from '../../common/errors/assert-transition';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class RenditionsService {
@@ -54,19 +42,7 @@ export class RenditionsService {
   // ─── Commission CRUD ────────────────────────────────
 
   async createCommission(contractId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = CreateCommissionSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid commission data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateCommissionSchema, data, 'Invalid commission data');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -154,19 +130,7 @@ export class RenditionsService {
   // ─── Rendition Generation ───────────────────────────
 
   async generate(data: unknown) {
-    let validated: { contractId: string; month: number; year: number };
-    try {
-      validated = GenerateRendicionSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid generation parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: { contractId: string; month: number; year: number } = parseOrThrow(GenerateRendicionSchema, data, 'Invalid generation parameters');
 
     const { contractId, month, year } = validated;
     const tenantId = this.tenantContext.getTenantId()!;
@@ -329,19 +293,7 @@ export class RenditionsService {
   // ─── Rendition CRUD ─────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = RendicionFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(RendicionFilterSchema, query, 'Invalid filter parameters');
 
     const tenantId = this.tenantContext.getTenantId()!;
     const where: any = { tenantId };
@@ -415,19 +367,7 @@ export class RenditionsService {
   }
 
   async updateNotes(id: string, data: unknown) {
-    let validated: { notes: string };
-    try {
-      validated = UpdateRendicionNotesSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid notes data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: { notes: string } = parseOrThrow(UpdateRendicionNotesSchema, data, 'Invalid notes data');
 
     const rendicion = await this.findOne(id);
 
@@ -447,19 +387,7 @@ export class RenditionsService {
   // ─── State Transitions ──────────────────────────────
 
   async transition(id: string, data: unknown) {
-    let validated: { status: RendicionStatus };
-    try {
-      validated = TransitionRendicionSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid transition data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: { status: RendicionStatus } = parseOrThrow(TransitionRendicionSchema, data, 'Invalid transition data');
 
     const rendicion = await this.findOne(id);
     const fromStatus = rendicion.status as RendicionStatus;
@@ -494,19 +422,7 @@ export class RenditionsService {
   // ─── Line Item Management ───────────────────────────
 
   async addLineItem(rendicionId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = CreateRendicionLineItemSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid line item data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateRendicionLineItemSchema, data, 'Invalid line item data');
 
     const rendicion = await this.ensureDraft(rendicionId);
     const tenantId = this.tenantContext.getTenantId()!;

@@ -27,19 +27,7 @@ import { PdfService } from './pdf.service';
 import { EmailService } from './email.service';
 import Decimal from 'decimal.js';
 import { assertTransition } from '../../common/errors/assert-transition';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class LiquidacionesService {
@@ -55,19 +43,7 @@ export class LiquidacionesService {
   // ─── Auto-Generation ────────────────────────────────
 
   async generate(data: unknown) {
-    let validated: { month: number; year: number };
-    try {
-      validated = GenerateLiquidacionesSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid generation parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: { month: number; year: number } = parseOrThrow(GenerateLiquidacionesSchema, data, 'Invalid generation parameters');
 
     const { month, year } = validated;
     const tenantId = this.tenantContext.getTenantId()!;
@@ -151,19 +127,7 @@ export class LiquidacionesService {
   // ─── List ───────────────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = LiquidacionFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(LiquidacionFilterSchema, query, 'Invalid filter parameters');
 
     const where: any = {};
     if (filters.status) where.status = filters.status;
@@ -242,19 +206,7 @@ export class LiquidacionesService {
   // ─── Line Item CRUD ─────────────────────────────────
 
   async addLineItem(liquidacionId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = CreateLiquidacionLineItemSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid line item data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateLiquidacionLineItemSchema, data, 'Invalid line item data');
 
     const liquidacion = await this.ensureEditable(liquidacionId);
     const tenantId = this.tenantContext.getTenantId()!;
@@ -291,19 +243,7 @@ export class LiquidacionesService {
   }
 
   async updateLineItem(lineItemId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateLiquidacionLineItemSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid line item data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateLiquidacionLineItemSchema, data, 'Invalid line item data');
 
     const lineItem = await this.prisma.client.liquidacionLineItem.findFirst({
       where: { id: lineItemId },
@@ -365,19 +305,7 @@ export class LiquidacionesService {
   // ─── State Transitions ──────────────────────────────
 
   async transition(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = TransitionLiquidacionSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid transition data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(TransitionLiquidacionSchema, data, 'Invalid transition data');
 
     const liquidacion = await this.prisma.client.liquidacion.findFirst({
       where: { id },
@@ -435,19 +363,7 @@ export class LiquidacionesService {
   // ─── Payments ───────────────────────────────────────
 
   async registerPayment(liquidacionId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = CreatePaymentSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid payment data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreatePaymentSchema, data, 'Invalid payment data');
 
     const liquidacion = await this.prisma.client.liquidacion.findFirst({
       where: { id: liquidacionId },

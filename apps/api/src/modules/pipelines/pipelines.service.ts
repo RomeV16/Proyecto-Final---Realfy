@@ -16,19 +16,7 @@ import {
   PipelineType,
   DEFAULT_PIPELINE_STAGES,
 } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class PipelinesService {
@@ -115,19 +103,7 @@ export class PipelinesService {
   // ─── Create Pipeline ─────────────────────────────────
 
   async create(data: unknown) {
-    let validated: any;
-    try {
-      validated = CreatePipelineSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid pipeline data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreatePipelineSchema, data, 'Invalid pipeline data');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -164,19 +140,7 @@ export class PipelinesService {
   // ─── Update Pipeline ─────────────────────────────────
 
   async update(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = UpdatePipelineSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid pipeline data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdatePipelineSchema, data, 'Invalid pipeline data');
 
     const existing = await this.prisma.client.pipeline.findFirst({
       where: { id },
@@ -233,19 +197,7 @@ export class PipelinesService {
   // ─── Add Stage ────────────────────────────────────────
 
   async addStage(pipelineId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = CreatePipelineStageSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid stage data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreatePipelineStageSchema, data, 'Invalid stage data');
 
     const pipeline = await this.prisma.client.pipeline.findFirst({
       where: { id: pipelineId },
@@ -298,19 +250,7 @@ export class PipelinesService {
   // ─── Update Stage ────────────────────────────────────
 
   async updateStage(pipelineId: string, stageId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = UpdatePipelineStageSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid stage data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdatePipelineStageSchema, data, 'Invalid stage data');
 
     const stage = await this.prisma.client.pipelineStage.findFirst({
       where: { id: stageId, pipelineId },
@@ -381,19 +321,7 @@ export class PipelinesService {
   // ─── Reorder Stages ──────────────────────────────────
 
   async reorderStages(pipelineId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = ReorderPipelineStagesSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid reorder data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(ReorderPipelineStagesSchema, data, 'Invalid reorder data');
 
     const pipeline = await this.prisma.client.pipeline.findFirst({
       where: { id: pipelineId },

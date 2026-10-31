@@ -13,6 +13,7 @@ import {
   IndexDataFilterSchema,
   IndexType,
 } from '@realfy/shared';
+import { parseOrThrow } from '../../common/validation/zod';
 
 /**
  * Identificador bajo el que el scraper guarda los índices publicados por el
@@ -26,19 +27,6 @@ interface IndexRow {
   tenantId: string;
   indexType: string;
   period: Date;
-}
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
 }
 
 /**
@@ -85,19 +73,7 @@ export class IndexDataService {
   // ─── List ───────────────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = IndexDataFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(IndexDataFilterSchema, query, 'Invalid filter parameters');
 
     const tenantId = this.requireTenantId('findMany');
 
@@ -155,19 +131,7 @@ export class IndexDataService {
   // ─── Create (upsert) ───────────────────────────────
 
   async create(data: unknown) {
-    let validated: any;
-    try {
-      validated = CreateIndexDataSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid index data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateIndexDataSchema, data, 'Invalid index data');
 
     const tenantId = this.tenantContext.getTenantId()!;
     const period = new Date(validated.period);

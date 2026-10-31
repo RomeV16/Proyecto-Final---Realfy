@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -11,19 +10,7 @@ import {
   UpdateValuationSchema,
   ValuationFilterSchema,
 } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class ValuationsService {
@@ -37,19 +24,7 @@ export class ValuationsService {
   // ─── List valuations for a property ─────────────────
 
   async findAll(propertyId: string, query: unknown) {
-    let filters: any;
-    try {
-      filters = ValuationFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(ValuationFilterSchema, query, 'Invalid filter parameters');
 
     await this.ensurePropertyExists(propertyId);
 
@@ -97,22 +72,10 @@ export class ValuationsService {
   // ─── Create ─────────────────────────────────────────
 
   async create(propertyId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = CreateValuationSchema.parse({
+    const validated: any = parseOrThrow(CreateValuationSchema, {
         ...((data as any) || {}),
         propertyId,
-      });
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid valuation data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+      }, 'Invalid valuation data');
 
     await this.ensurePropertyExists(propertyId);
 
@@ -141,19 +104,7 @@ export class ValuationsService {
   // ─── Update ─────────────────────────────────────────
 
   async update(propertyId: string, valuationId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateValuationSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid valuation data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateValuationSchema, data, 'Invalid valuation data');
 
     const existing = await this.prisma.client.propertyValuation.findFirst({
       where: { id: valuationId, propertyId },

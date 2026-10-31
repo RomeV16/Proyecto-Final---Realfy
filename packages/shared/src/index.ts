@@ -444,14 +444,15 @@ export interface AuthResponse {
 }
 
 export {
-  penaltyConfigFormSchema,
-  penaltyConfigStringFormSchema,
   PenaltyModeEnum,
-} from './schemas/penalty-config.form';
+  PenaltyConfigSchema,
+  PreviewPenaltySchema,
+} from './schemas/penalty-config.schema';
 export type {
-  PenaltyConfigFormInput,
-  PenaltyConfigStringFormInput,
-} from './schemas/penalty-config.form';
+  PenaltyMode,
+  PenaltyConfig,
+  PreviewPenaltyInput,
+} from './schemas/penalty-config.schema';
 
 export { NotificationFilterSchema } from './schemas/notification.schema';
 export {

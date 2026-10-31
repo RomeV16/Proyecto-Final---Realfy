@@ -16,19 +16,7 @@ import {
   InteractionType,
 } from '@realfy/shared';
 import { renderTemplate, extractVariableNames } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 /**
  * Checks if a Prisma error is a unique constraint violation (P2002).
@@ -55,19 +43,7 @@ export class EmailTemplatesService {
   // ─── Create Template ──────────────────────────────────
 
   async create(body: unknown) {
-    let validated: any;
-    try {
-      validated = CreateEmailTemplateSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid email template data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateEmailTemplateSchema, body, 'Invalid email template data');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -113,19 +89,7 @@ export class EmailTemplatesService {
   // ─── List Templates ───────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = EmailTemplateFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(EmailTemplateFilterSchema, query, 'Invalid filter parameters');
 
     const where: any = {};
 
@@ -181,19 +145,7 @@ export class EmailTemplatesService {
   // ─── Update Template ──────────────────────────────────
 
   async update(id: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateEmailTemplateSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid email template update data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateEmailTemplateSchema, body, 'Invalid email template update data');
 
     // Verify template exists
     const existing = await this.prisma.client.emailTemplate.findFirst({
@@ -272,19 +224,7 @@ export class EmailTemplatesService {
   // ─── Preview Template ─────────────────────────────────
 
   async preview(id: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = PreviewEmailTemplateSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid preview data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(PreviewEmailTemplateSchema, body, 'Invalid preview data');
 
     const renderedSubject = renderTemplate(validated.subject, validated.variables);
     const renderedBody = renderTemplate(validated.body, validated.variables);
@@ -299,19 +239,7 @@ export class EmailTemplatesService {
   // ─── Send Email via Template ──────────────────────────
 
   async sendEmail(leadId: string, body: unknown) {
-    let validated: any;
-    try {
-      validated = SendEmailSchema.parse(body);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid send email data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(SendEmailSchema, body, 'Invalid send email data');
 
     // Check email service configuration
     if (!this.emailService.isConfigured()) {

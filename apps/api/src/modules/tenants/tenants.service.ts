@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
@@ -15,20 +14,7 @@ import {
 } from '@realfy/shared';
 import type { CreateTenantInput, UpdateTenantInput } from '@realfy/shared';
 import { DEFAULT_PENALTY_CONFIG, PenaltyConfig } from './penalty-config.types';
-import { UpdatePenaltyConfigDto } from './dto/update-penalty-config.dto';
-
-/**
- * Checks if an error is a Zod validation error.
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 /**
  * Turns a display name into a URL-safe slug root: lowercase, accents stripped,
@@ -61,19 +47,7 @@ export class TenantsService {
    * Tier defaults to Professional (trial).
    */
   async create(data: unknown) {
-    let validated: CreateTenantInput;
-    try {
-      validated = CreateTenantSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid tenant data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: CreateTenantInput = parseOrThrow(CreateTenantSchema, data, 'Invalid tenant data');
 
     // Bypass tenant filter — we're creating a new tenant
     this.tenantContext.setBypassTenantFilter(true);
@@ -130,19 +104,7 @@ export class TenantsService {
    * Only updates own tenant — enforced by Prisma Extension.
    */
   async update(id: string, data: unknown) {
-    let validated: UpdateTenantInput;
-    try {
-      validated = UpdateTenantSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid tenant data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: UpdateTenantInput = parseOrThrow(UpdateTenantSchema, data, 'Invalid tenant data');
 
     const tenantId = this.tenantContext.getTenantId();
     if (tenantId !== id) {
@@ -221,7 +183,7 @@ export class TenantsService {
    */
   async updatePenaltyConfig(
     tenantId: string,
-    dto: UpdatePenaltyConfigDto,
+    dto: PenaltyConfig,
   ): Promise<PenaltyConfig> {
     this.tenantContext.setBypassTenantFilter(true);
     try {

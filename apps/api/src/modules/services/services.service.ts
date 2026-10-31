@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -12,19 +11,7 @@ import {
   ServiceFilterSchema,
   CreateServicePaymentSchema,
 } from '@realfy/shared';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class ServicesService {
@@ -38,19 +25,7 @@ export class ServicesService {
   // ─── List ───────────────────────────────────────────
 
   async findAll(query: unknown) {
-    let filters: any;
-    try {
-      filters = ServiceFilterSchema.parse(query);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid filter parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const filters: any = parseOrThrow(ServiceFilterSchema, query, 'Invalid filter parameters');
 
     const where: any = {};
 
@@ -106,19 +81,7 @@ export class ServicesService {
   // ─── Create ─────────────────────────────────────────
 
   async create(data: unknown) {
-    let validated: any;
-    try {
-      validated = CreateServiceSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid service data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateServiceSchema, data, 'Invalid service data');
 
     const tenantId = this.tenantContext.getTenantId()!;
 
@@ -154,19 +117,7 @@ export class ServicesService {
   // ─── Update ─────────────────────────────────────────
 
   async update(id: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = UpdateServiceSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid service data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(UpdateServiceSchema, data, 'Invalid service data');
 
     const existing = await this.prisma.client.service.findFirst({
       where: { id },
@@ -223,19 +174,7 @@ export class ServicesService {
   // ─── Register Payment ──────────────────────────────
 
   async registerPayment(serviceId: string, data: unknown) {
-    let validated: any;
-    try {
-      validated = CreateServicePaymentSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid payment data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const validated: any = parseOrThrow(CreateServicePaymentSchema, data, 'Invalid payment data');
 
     // Check service exists
     const service = await this.prisma.client.service.findFirst({

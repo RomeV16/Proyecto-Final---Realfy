@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import Decimal from 'decimal.js';
+import type { PenaltyMode } from '@realfy/shared';
 
-export type PenaltyMode = 'daily_fixed' | 'daily_percent' | 'compound_percent';
+export type { PenaltyMode };
 
 export interface PenaltyConfig {
   mode: PenaltyMode;

@@ -2,7 +2,6 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -11,19 +10,7 @@ import {
   UpsertTenantScoreSchema,
 } from '@realfy/shared';
 import { Decimal } from '@prisma/client/runtime/library';
-
-/**
- * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
- */
-function isZodError(err: unknown): err is { errors: any[] } {
-  return (
-    typeof err === 'object' &&
-    err !== null &&
-    'name' in err &&
-    (err as any).name === 'ZodError' &&
-    'errors' in err
-  );
-}
+import { parseOrThrow } from '../../common/validation/zod';
 
 @Injectable()
 export class ScoringService {
@@ -69,19 +56,7 @@ export class ScoringService {
   async updateConfig(data: unknown) {
     const tenantId = this.tenantContext.getTenantId()!;
 
-    let parsed;
-    try {
-      parsed = UpdateScoreConfigSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid score config data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const parsed = parseOrThrow(UpdateScoreConfigSchema, data, 'Invalid score config data');
 
     this.logger.log(`Updating score config for tenant ${tenantId}`);
 
@@ -126,19 +101,7 @@ export class ScoringService {
     const tenantId = this.tenantContext.getTenantId()!;
     const userId = this.tenantContext.getUserId()!;
 
-    let parsed;
-    try {
-      parsed = UpsertTenantScoreSchema.parse(data);
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid score data',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
+    const parsed = parseOrThrow(UpsertTenantScoreSchema, data, 'Invalid score data');
 
     // Verify person exists in this tenant
     const person = await this.prisma.client.person.findFirst({
