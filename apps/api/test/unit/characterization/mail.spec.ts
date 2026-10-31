@@ -8,6 +8,7 @@ jest.mock('resend', () => ({
 import { EmailService } from '../../../src/modules/liquidaciones/email.service';
 import { RenditionEmailService } from '../../../src/modules/renditions/rendition-email.service';
 import { NotificationEmailService } from '../../../src/modules/notifications/notification-email.service';
+import { CommonEmailService } from '../../../src/common/email/common-email.service';
 
 /**
  * Caracterización de los mails: asunto, cuerpo, adjuntos y destinatario que
@@ -18,11 +19,11 @@ function config(values: Record<string, string> = { RESEND_API_KEY: 're_test' }):
 }
 
 function build() {
-  const cfg = config();
+  const common = new CommonEmailService(config());
   return {
-    liquidaciones: new EmailService(cfg),
-    renditions: new RenditionEmailService(cfg),
-    notifications: new NotificationEmailService(cfg),
+    liquidaciones: new EmailService(common),
+    renditions: new RenditionEmailService(common),
+    notifications: new NotificationEmailService(common),
   };
 }
 
@@ -45,7 +46,7 @@ describe('Caracterización de mails', () => {
       Buffer.from('pdf'),
       'Inmobiliaria Demo',
     );
-    expect(result).toEqual({ id: 'email-1' });
+    expect(result).toEqual({ status: 'sent', id: 'email-1' });
     expect(sentPayload()).toMatchSnapshot();
   });
 
@@ -61,7 +62,7 @@ describe('Caracterización de mails', () => {
       Buffer.from('pdf'),
       'Inmobiliaria Demo',
     );
-    expect(result).toEqual({ id: 'email-1' });
+    expect(result).toEqual({ status: 'sent', id: 'email-1' });
     expect(sentPayload()).toMatchSnapshot();
   });
 
@@ -87,26 +88,25 @@ describe('Caracterización de mails', () => {
   });
 
   it('sin RESEND_API_KEY no envía nada', async () => {
-    const result = await new EmailService(config({})).sendLiquidacionEmail(
+    const result = await new EmailService(new CommonEmailService(config({}))).sendLiquidacionEmail(
       'a@example.com',
       { id: 'l-1', period: new Date('2025-03-01T00:00:00.000Z'), total: 1 },
       Buffer.from('pdf'),
       'Demo',
     );
     expect(send).not.toHaveBeenCalled();
-    expect(result).toBeNull();
+    expect(result).toEqual({ status: 'skipped' });
   });
 
-  it('un fallo de Resend en la liquidación se propaga', async () => {
+  it('un fallo de Resend en la liquidación se informa en el resultado, sin lanzar', async () => {
     send.mockRejectedValue(new Error('resend caído'));
-    await expect(
-      build().liquidaciones.sendLiquidacionEmail(
-        'a@example.com',
-        { id: 'l-1', period: new Date('2025-03-01T00:00:00.000Z'), total: 1 },
-        Buffer.from('pdf'),
-        'Demo',
-      ),
-    ).rejects.toThrow('resend caído');
+    const result = await build().liquidaciones.sendLiquidacionEmail(
+      'a@example.com',
+      { id: 'l-1', period: new Date('2025-03-01T00:00:00.000Z'), total: 1 },
+      Buffer.from('pdf'),
+      'Demo',
+    );
+    expect(result).toEqual({ status: 'failed', error: 'resend caído' });
   });
 
   it('un fallo de Resend en la notificación no lanza', async () => {
@@ -118,6 +118,6 @@ describe('Caracterización de mails', () => {
       message: 'Mensaje',
       tenantName: 'Demo',
     });
-    expect(result).toBeNull();
+    expect(result).toEqual({ status: 'failed', error: 'resend caído' });
   });
 });

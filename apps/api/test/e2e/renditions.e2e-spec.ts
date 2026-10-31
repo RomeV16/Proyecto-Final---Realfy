@@ -38,7 +38,7 @@ describe('Renditions (e2e)', () => {
 
   // Mock email service to avoid Resend calls
   const mockEmailService = {
-    sendRendicionEmail: jest.fn().mockResolvedValue({ id: 'resend-mock-id' }),
+    sendRendicionEmail: jest.fn().mockResolvedValue({ status: 'sent', id: 'resend-mock-id' }),
   };
 
   beforeAll(async () => {
@@ -70,6 +70,7 @@ describe('Renditions (e2e)', () => {
       Buffer.from('%PDF-1.4 mock rendition'),
     );
     mockEmailService.sendRendicionEmail.mockResolvedValue({
+      status: 'sent',
       id: 'resend-mock-id',
     });
   });
