@@ -12,6 +12,7 @@ import { AUDIT_OPERATION_KEY } from './audit-operation.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../tenant/tenant-context.service';
 import { AuditAction } from '@realfy/shared';
+import { AuditService, sanitizeChanges } from './audit.service';
 
 /**
  * Maps HTTP methods to audit actions.
@@ -22,36 +23,6 @@ const METHOD_TO_ACTION: Record<string, AuditAction> = {
   PATCH: AuditAction.UPDATE,
   DELETE: AuditAction.DELETE,
 };
-
-/**
- * Fields that must never appear in audit log changes.
- */
-const REDACTED_FIELDS = new Set([
-  'password',
-  'passwordHash',
-  'token',
-  'refreshToken',
-  'currentPassword',
-  'newPassword',
-  'secret',
-]);
-
-/**
- * Redacts sensitive fields from an object before storing in audit log.
- */
-function sanitizeChanges(data: any): any {
-  if (!data || typeof data !== 'object') return data;
-
-  const sanitized: Record<string, any> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (REDACTED_FIELDS.has(key)) {
-      sanitized[key] = '[REDACTED]';
-    } else {
-      sanitized[key] = value;
-    }
-  }
-  return sanitized;
-}
 
 /**
  * Derives entity name from the request URL.
@@ -69,6 +40,10 @@ function deriveEntity(url: string): string {
   return singular.charAt(0).toUpperCase() + singular.slice(1);
 }
 
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === 'object' && !Array.isArray(v);
+}
+
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
   private readonly logger = new Logger(AuditInterceptor.name);
@@ -76,6 +51,7 @@ export class AuditInterceptor implements NestInterceptor {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
+    private readonly audit: AuditService,
     private readonly reflector: Reflector,
   ) {}
 
@@ -95,7 +71,11 @@ export class AuditInterceptor implements NestInterceptor {
       context.getHandler(),
     );
     const sanitized = sanitizeChanges(request.body);
-    const changes = operation ? { ...(sanitized ?? {}), operation } : sanitized;
+    const metadata = operation
+      ? { ...(isPlainObject(sanitized) ? sanitized : {}), operation }
+      : isPlainObject(sanitized)
+        ? sanitized
+        : undefined;
     const ipAddress = this.tenantContext.getIpAddress();
     const userAgent = request.headers['user-agent'] || null;
 
@@ -114,18 +94,16 @@ export class AuditInterceptor implements NestInterceptor {
           null;
 
         // Fire-and-forget — don't block the response
-        this.prisma.baseClient.auditLog
-          .create({
-            data: {
-              tenantId,
-              userId: userId || null,
-              action,
-              entity,
-              entityId: entityId ? String(entityId) : null,
-              changes: changes ?? undefined,
-              ipAddress,
-              userAgent,
-            },
+        this.audit
+          .record(this.prisma.baseClient, {
+            tenantId,
+            userId: userId || null,
+            action,
+            entity,
+            entityId: entityId ? String(entityId) : null,
+            metadata,
+            ipAddress,
+            userAgent,
           })
           .catch((err: any) => {
             this.logger.error(

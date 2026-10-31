@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { AR_TIME_ZONE } from '@realfy/shared';
 import { CronBaseService } from '../../common/scheduler/cron.service';
 import { IndexScraperService } from './index-scraper.service';
 
@@ -16,7 +17,7 @@ export class IndexScraperScheduler extends CronBaseService {
     super();
   }
 
-  @Cron('0 6 * * *', { timeZone: 'America/Argentina/Buenos_Aires' })
+  @Cron('0 6 * * *', { timeZone: AR_TIME_ZONE })
   async handleDailyScrape(): Promise<void> {
     await this.runGuarded(async () => {
       const counts = await this.scraperService.upsertAll();

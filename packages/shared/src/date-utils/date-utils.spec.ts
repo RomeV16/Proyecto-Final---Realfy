@@ -1,8 +1,10 @@
 import { AdjustmentPeriod } from '../enums';
 import {
+  AR_TIME_ZONE,
   addMonthsClamped,
   formatDateAR,
   monthStartUTC,
+  normalizeTimeZone,
   periodFilter,
   periodKey,
   periodToMonths,
@@ -120,5 +122,18 @@ describe('formatDateAR', () => {
 
   it('acepta un texto ISO', () => {
     expect(formatDateAR('2024-02-29T00:00:00.000Z')).toBe('29/02/2024');
+  });
+});
+
+describe('normalizeTimeZone', () => {
+  it('normaliza el nombre viejo de Buenos Aires y rellena lo vacío', () => {
+    expect(normalizeTimeZone('America/Buenos_Aires')).toBe(AR_TIME_ZONE);
+    expect(normalizeTimeZone(AR_TIME_ZONE)).toBe(AR_TIME_ZONE);
+    expect(normalizeTimeZone(undefined)).toBe(AR_TIME_ZONE);
+    expect(normalizeTimeZone(null)).toBe(AR_TIME_ZONE);
+  });
+
+  it('deja pasar una zona de otro lugar', () => {
+    expect(normalizeTimeZone('America/Montevideo')).toBe('America/Montevideo');
   });
 });

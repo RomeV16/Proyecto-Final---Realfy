@@ -1,6 +1,7 @@
 import { PenaltiesScheduler } from './penalties.scheduler';
 import { PenaltiesService } from './penalties.service';
 import Decimal from 'decimal.js';
+import { makeTenantCron } from '../../common/scheduler/tenant-cron.testing';
 
 /**
  * Unit tests for PenaltiesScheduler.applyPenalties()
@@ -36,11 +37,7 @@ function buildScheduler({
 } = {}) {
   const createdPenalties: object[] = [];
 
-  const prisma = {
-    baseClient: {
-      tenant: {
-        findMany: jest.fn().mockResolvedValue(tenants),
-      },
+  const client: any = {
       liquidacion: {
         findMany: jest.fn().mockResolvedValue(liquidaciones.map((l) => ({ payments: [], ...l }))),
       },
@@ -49,21 +46,23 @@ function buildScheduler({
         aggregate: jest.fn().mockResolvedValue({ _sum: { amount: priorSum ? new Decimal(priorSum) : null } }),
         create: jest.fn().mockImplementation(async ({ data }: { data: object }) => {
           createdPenalties.push(data);
-          return data;
+          return { id: 'pen-1', ...data };
         }),
       },
-    },
-  } as any;
+  };
+  client.$transaction = jest.fn((fn: (tx: any) => unknown) => fn(client));
+  const prisma = { client } as any;
 
   const tenantsService = {
     getPenaltyConfig: jest.fn().mockResolvedValue(penaltyConfig),
   } as any;
 
-  const penaltiesService = new PenaltiesService();
+  const audit = { record: jest.fn().mockResolvedValue(undefined) } as any;
+  const { tenantCron } = makeTenantCron(tenants);
 
-  const scheduler = new PenaltiesScheduler(prisma, penaltiesService, tenantsService);
+  const scheduler = new PenaltiesScheduler(prisma, new PenaltiesService(), tenantsService, tenantCron, audit);
 
-  return { scheduler, createdPenalties, prisma };
+  return { scheduler, createdPenalties, prisma, audit };
 }
 
 describe('PenaltiesScheduler.applyPenalties()', () => {
@@ -92,6 +91,28 @@ describe('PenaltiesScheduler.applyPenalties()', () => {
     expect((createdPenalties[0] as any).amount).toBeGreaterThan(0);
   });
 
+  it('queries without tenantId (the tenant client filters) and audits the insert as a cron action', async () => {
+    const { scheduler, prisma, audit } = buildScheduler({
+      tenants: [{ id: 'tenant-1', name: 'Test Inmobiliaria' }],
+      liquidaciones: [liquidacion],
+    });
+
+    await scheduler.applyPenalties();
+
+    expect(prisma.client.liquidacion.findMany.mock.calls[0][0].where).not.toHaveProperty('tenantId');
+    expect(audit.record).toHaveBeenCalledTimes(1);
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        action: 'CREATE',
+        entity: 'Penalty',
+        entityId: 'pen-1',
+        userId: null,
+        metadata: { source: 'cron', job: 'penalties-daily' },
+      }),
+    );
+  });
+
   it('is idempotent — skips if Penalty already exists for today', async () => {
     const { scheduler, createdPenalties, prisma } = buildScheduler({
       tenants: [{ id: 'tenant-1', name: 'Test Inmobiliaria' }],
@@ -105,47 +126,25 @@ describe('PenaltiesScheduler.applyPenalties()', () => {
     // Both runs should find the existing penalty and skip
     expect(result1.penaltiesInserted).toBe(0);
     expect(result2.penaltiesInserted).toBe(0);
-    expect(prisma.baseClient.penalty.create).not.toHaveBeenCalled();
+    expect(prisma.client.penalty.create).not.toHaveBeenCalled();
     expect(createdPenalties).toHaveLength(0);
   });
 
   it('inserts only once when called twice with no existing penalty (run-now twice scenario)', async () => {
     let callCount = 0;
-    const createdPenalties: object[] = [];
-
-    const prisma = {
-      baseClient: {
-        tenant: {
-          findMany: jest.fn().mockResolvedValue([{ id: 'tenant-1', name: 'Test' }]),
-        },
-        liquidacion: {
-          findMany: jest.fn().mockResolvedValue([liquidacion]),
-        },
-        penalty: {
-          // First call: no existing. After create, subsequent calls find the row.
-          findFirst: jest.fn().mockImplementation(async () => {
-            return callCount > 0 ? { id: 'p1', liquidacionId: 'liq-1' } : null;
-          }),
-          aggregate: jest.fn().mockResolvedValue({ _sum: { amount: null } }),
-          create: jest.fn().mockImplementation(async ({ data }: { data: object }) => {
-            callCount++;
-            createdPenalties.push(data);
-            return data;
-          }),
-        },
-      },
-    } as any;
-
-    const tenantsService = {
-      getPenaltyConfig: jest.fn().mockResolvedValue({
-        mode: 'daily_fixed',
-        value: '10',
-        graceDays: 0,
-        maxMultiplier: '2.0',
-      }),
-    } as any;
-
-    const scheduler = new PenaltiesScheduler(prisma, new PenaltiesService(), tenantsService);
+    const { scheduler, createdPenalties, prisma } = buildScheduler({
+      tenants: [{ id: 'tenant-1', name: 'Test' }],
+      liquidaciones: [liquidacion],
+    });
+    // First call: no existing. After create, subsequent calls find the row.
+    prisma.client.penalty.findFirst.mockImplementation(async () =>
+      callCount > 0 ? { id: 'p1', liquidacionId: 'liq-1' } : null,
+    );
+    prisma.client.penalty.create.mockImplementation(async ({ data }: { data: object }) => {
+      callCount++;
+      createdPenalties.push(data);
+      return { id: 'p1', ...data };
+    });
 
     const r1 = await scheduler.applyPenalties();
     const r2 = await scheduler.applyPenalties();

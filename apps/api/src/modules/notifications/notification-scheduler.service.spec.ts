@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { NotificationSchedulerService } from './notification-scheduler.service';
+import { makeTenantCron } from '../../common/scheduler/tenant-cron.testing';
 
 const mockCreateNotification = jest.fn();
 const mockSendNotificationEmail = jest.fn();
@@ -16,10 +17,14 @@ function createMockPrismaService() {
   return {
     baseClient: {
       tenant: { findMany: jest.fn() },
+      user: { findMany: jest.fn() },
+    },
+    client: {
       service: { findMany: jest.fn() },
       contract: { findMany: jest.fn() },
       liquidacion: { findMany: jest.fn() },
-      user: { findMany: jest.fn() },
+      lead: { findMany: jest.fn() },
+      notification: { findFirst: jest.fn().mockResolvedValue(null) },
     },
   } as any;
 }
@@ -36,6 +41,7 @@ describe('NotificationSchedulerService', () => {
       prisma,
       mockNotificationsService,
       mockEmailService,
+      makeTenantCron([], prisma).tenantCron,
     );
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
@@ -64,7 +70,7 @@ describe('NotificationSchedulerService', () => {
       { id: 't1', name: 'Inmo Uno' },
     ]);
     const today = new Date();
-    prisma.baseClient.service.findMany.mockResolvedValue([
+    prisma.client.service.findMany.mockResolvedValue([
       {
         id: 's1',
         dueDay: today.getDate(),
@@ -96,7 +102,7 @@ describe('NotificationSchedulerService', () => {
     prisma.baseClient.tenant.findMany.mockResolvedValue([
       { id: 't1', name: 'Inmo Uno' },
     ]);
-    prisma.baseClient.contract.findMany.mockRejectedValue(
+    prisma.client.contract.findMany.mockRejectedValue(
       new Error('db down'),
     );
 
@@ -123,7 +129,7 @@ describe('NotificationSchedulerService', () => {
     beforeEach(() => {
       process.env.NODE_ENV = 'production';
       stored = [];
-      prisma.baseClient.notification = {
+      prisma.client.notification = {
         findFirst: jest.fn(async ({ where }: any) =>
           stored.find((n) =>
             Object.entries(where).every(([key, value]) => n[key] === value),
@@ -137,7 +143,7 @@ describe('NotificationSchedulerService', () => {
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 't1', name: 'Inmo Uno' }]);
       prisma.baseClient.user.findMany.mockResolvedValue(users);
       // Como la base: solo devuelve el contrato si vence dentro del rango pedido.
-      prisma.baseClient.contract.findMany.mockImplementation(async ({ where }: any) =>
+      prisma.client.contract.findMany.mockImplementation(async ({ where }: any) =>
         END_DATE >= where.endDate.gte && END_DATE <= where.endDate.lte
           ? [{ id: 'c1', endDate: END_DATE, property: { title: 'Depto Centro' } }]
           : [],

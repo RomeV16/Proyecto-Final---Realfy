@@ -154,3 +154,24 @@ Negativas:
 - `RefreshToken` y `PipelineStage` no tienen columna `tenantId` y quedan fuera de
   la lista a propósito: su aislamiento depende de la relación con su padre
   —el usuario y el embudo respectivamente—, que sí está filtrado.
+
+## Addendum (2026-10-31): modelos nuevos y procesos programados
+
+La decisión no cambia. Se agregan dos reglas que cierran las deudas que dejó
+registradas en las consecuencias:
+
+- **Todo modelo nuevo con columna `tenantId` se registra en
+  `TENANT_SCOPED_MODELS`** en la misma migración que lo crea. Una prueba compara
+  la lista con el esquema de Prisma, de modo que olvidarlo rompe la integración
+  continua en lugar de dejar la tabla sin filtro.
+- **Todo proceso programado corre dentro del contexto de la inmobiliaria.** Los
+  procesos que barren inmobiliarias usan `forEachActiveTenant`
+  (`apps/api/src/common/scheduler/tenant-cron.ts`): lee la lista de
+  inmobiliarias activas con el cliente sin extensión y ejecuta cada vuelta en un
+  contexto propio con la inmobiliaria fijada, de modo que dentro de la vuelta se
+  usa el cliente con extensión, sin filtro de `tenantId` escrito a mano, y fuera
+  de ella la extensión sigue fallando cerrado. Un error en una inmobiliaria se
+  registra con el nombre del proceso, el `tenantId` y el identificador de
+  correlación, y no corta a las demás. Los usos de `baseClient` en un proceso
+  programado quedan reducidos a esa lista de inmobiliarias y a lecturas que
+  declaran su filtro explícito.

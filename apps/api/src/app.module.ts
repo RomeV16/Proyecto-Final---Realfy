@@ -45,6 +45,8 @@ import { PdfModule } from './common/pdf/pdf.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
 import { AuditInterceptor } from './common/audit/audit.interceptor';
+import { AuditModule } from './common/audit/audit.module';
+import { SchedulerModule } from './common/scheduler/scheduler.module';
 
 import { ReadPolicyGuard } from './common/read-policy/read-policy.guard';
 import { ReadMaskInterceptor } from './common/read-policy/read-mask.interceptor';
@@ -57,6 +59,8 @@ import { ReadPolicyModule } from './common/read-policy/read-policy.module';
       envFilePath: ['.env', '../../.env'],
     }),
     ScheduleModule.forRoot(),
+    AuditModule,
+    SchedulerModule,
     // El frontend proxea sus llamadas a la API, así que buena parte del tráfico
     // legítimo llega con la IP del proxy. El límite general es holgado a
     // propósito: corta avalanchas contra la API expuesta sin castigar a los

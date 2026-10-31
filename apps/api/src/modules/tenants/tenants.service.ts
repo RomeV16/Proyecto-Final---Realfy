@@ -15,7 +15,7 @@ import {
 import type { CreateTenantInput, UpdateTenantInput } from '@realfy/shared';
 import { DEFAULT_PENALTY_CONFIG, PenaltyConfig } from './penalty-config.types';
 import { ReadPolicyService } from '../../common/read-policy/read-policy.service';
-import { ReadPolicySchema, READ_RESOURCES, canReadResource } from '@realfy/shared';
+import { normalizeTimeZone, ReadPolicySchema, READ_RESOURCES, canReadResource } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
 
 /**
@@ -63,7 +63,7 @@ export class TenantsService {
           slug,
           cuit: validated.cuit,
           province: validated.province,
-          timezone: validated.timezone ?? 'America/Buenos_Aires',
+          timezone: normalizeTimeZone(validated.timezone),
           currency: validated.currency ?? 'ARS',
           tier: validated.tier ?? TenantTier.Professional,
           brandPrimary: validated.brandPrimary,
