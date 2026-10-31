@@ -27,7 +27,7 @@ const CURRENCIES: Record<string, { one: string; many: string }> = {
   EUR: { one: 'euro', many: 'euros' },
 };
 
-export class AmountInWordsError extends Error {
+class AmountInWordsError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'AmountInWordsError';
