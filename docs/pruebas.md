@@ -281,6 +281,15 @@ Cuando una migración nueva transforma datos, se agrega el caso borde a
 `seed.sql` (siempre con valores inventados) y una verificación en `checks/`; el
 conjunto de datos y las verificaciones evolucionan con las migraciones.
 
+Una verificación que prueba el backfill de una migración concreta lo declara en
+su primera línea (`-- migracion: <carpeta de la migración>`) y el script solo la
+corre mientras esa migración sea nueva respecto de la base: cuando la base ya la
+incluye, el backfill corrió sobre una base vacía y no hay nada que verificar (las
+verificaciones sin esa línea, como los conteos, corren siempre). El conjunto
+sintético cubre los dos extremos de cada transformación: por ejemplo, un contrato
+con tres propietarios, cuyo reparto en partes iguales no cierra en centésimas, y
+un borrador sin propietario.
+
 **API E2E Tests.** Depende del trabajo de unitarias, así que solo corre si esas
 pasaron. Levanta PostgreSQL 16, aplica las migraciones y corre la suite de
 integración con `NODE_ENV=test`, `RATE_LIMIT_DISABLED=1` y secretos de sesión

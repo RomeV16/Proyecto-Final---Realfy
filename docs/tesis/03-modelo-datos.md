@@ -62,10 +62,19 @@ Cuenta bancaria de una persona, en una moneda. Es lo que alimenta la rendición 
 
 ### PersonRoleAssignment
 
-Vincula a una `Person` con un rol: propietario, inquilino, garante, comprador, proveedor o lead.
+Vincula a una `Person` con un rol: propietario, inquilino, garante, comprador, proveedor, lead o apoderado.
 
-- `id`, `tenantId`, `personId`, `role`, `assignedAt`, `propertyId`, `guarantorForPersonId`.
-- La asignación puede acotarse a una propiedad concreta mediante `propertyId`, y en el caso del garante apunta a quién garantiza mediante `guarantorForPersonId`. Es lo que permite que la misma persona sea propietaria de un inmueble e inquilina de otro.
+- `id`, `tenantId`, `personId`, `role`, `assignedAt`, `propertyId`, `guarantorForPersonId`. Única por persona y rol (`@@unique([personId, role])`).
+- El rol es una **etiqueta de cliente**: no dice a qué contrato ni a qué propiedad pertenece la persona. `ensureRole` es el único lugar que la crea, y la usan el alta de consultas, de proveedores, de locadores, de titulares, de poderes y la asignación manual. En el garante, `guarantorForPersonId` apunta a quién garantiza.
+- **`propertyId` ya no se escribe.** La propiedad de un propietario vive en `PropertyOwnership`; la columna se conserva por una versión más para poder volver atrás y la migración copió sus valores a la titularidad.
+
+### PropertyOwnership
+
+Quién es titular de una propiedad. Es información opcional: no define a quién se le paga.
+
+- `id`, `tenantId`, `propertyId`, `personId`, `sharePct` (`Decimal(7,4)`, opcional), `title` (por ejemplo, el título de dominio), `since`, `until`, `createdAt`, `updatedAt`.
+- No se exige que los porcentajes sumen 100 ni que haya titulares cargados; cuando los datos existen sirven para un aviso del panel de calidad. Índices: `(tenantId, propertyId)` y `(tenantId, personId)`. Se borra en cascada con la propiedad y con la persona; lleva `tenantId` y está registrada en `TENANT_SCOPED_MODELS`.
+- La migración creó una titularidad, sin porcentaje, por cada asignación de rol `Propietario` que tenía propiedad. El alta de un titular agrega a la persona el rol `Propietario`.
 
 ### PersonDocument
 
@@ -121,18 +130,85 @@ Tasación de la propiedad.
 
 ### Contract
 
-Contrato entre propietario e inquilino, o de venta.
+Contrato entre locadores e inquilino, o de venta.
 
 - `id`, `tenantId`, `propertyId`, `contractType`, `status`, `startDate`, `endDate`, `rentAmount`, `rentCurrency`, `depositAmount`, `depositCurrency`, `adjustmentType`, `adjustmentPeriod`, `customAdjustmentPct`, `notes`, `isActive`, `closedAt`, `externalRef`.
 - `externalRef` identifica el contrato en el sistema anterior y es único por inmobiliaria (`@@unique([tenantId, externalRef])`, 409 `EXTERNAL_REF_TAKEN`).
 - **La configuración del ajuste vive en el contrato**, no en una tabla aparte: `adjustmentType` toma IPC, ICL, CCP, porcentaje fijo o personalizado, `adjustmentPeriod` va de mensual a anual, y `customAdjustmentPct` guarda el porcentaje cuando la modalidad es de porcentaje fijo.
-- Relación 1-N con `ContractPerson`, `ContractGuarantee`, `ContractAdjustment`, `AdjustmentSchedule`, `Liquidacion`, `OwnerRendicion`; 1-1 con `ContractCommission` y `ContractClosureSummary`.
+- Relación 1-N con `ContractPerson`, `ContractLessor`, `PowerOfAttorney`, `ContractGuarantee`, `ContractAdjustment`, `AdjustmentSchedule`, `Liquidacion`, `OwnerRendicion`; 1-1 con `ContractCommission` y `ContractClosureSummary`.
 
 ### ContractPerson
 
-Relación N-M entre `Contract` y `Person`, indicando el rol de cada parte.
+Relación N-M entre `Contract` y `Person`, indicando el rol de cada parte que **no** es locador: inquilino, garante y comprador.
 
 - `id`, `tenantId`, `contractId`, `personId`, `role`.
+- Las filas con rol `Propietario` son datos anteriores a `ContractLessor`: la migración las copió a locadores y ya no se leen ni se escriben. Los propietarios que llegan en `persons` al crear un contrato se guardan como locadores. `getParty` y `getParties` (`contract-parties.ts`) son la única forma de buscar una parte por rol.
+
+### ContractLessor
+
+Quien alquila en un contrato y qué parte del cobro le corresponde. No es la titularidad de la propiedad: el porcentaje es un acuerdo del contrato.
+
+- `id`, `tenantId`, `contractId`, `personId`, `capacity` (`Propietario`, `Usufructuario`, `Sublocador`, `Acreedor`, `Otro`), `payoutPct` (`Decimal(7,4)`), `payeePersonId`, `bankAccountId`, `validFrom`, `validTo`, `needsReview`, `createdAt`, `updatedAt`.
+- Índices: `(contractId, validTo)` y `(tenantId, personId)`. Se borra en cascada con el contrato y con la persona; si se borra el cobrador o la cuenta, esos campos quedan vacíos.
+- **Regla:** los locadores vigentes en cada fecha del contrato suman exactamente 100,0000. La vigencia es `[validFrom, validTo)`: una cesión es cerrar a uno con `validTo` y abrir a otro con `validFrom` en esa misma fecha. Se exige al activar el contrato, al cambiar los locadores de un contrato que ya salió de borrador y al generar la rendición; si no se cumple, `LESSOR_SHARES_INVALID` con las fechas y sumas que no cierran. `getLessorsAt(contrato, fecha)` devuelve los vigentes.
+- `payeePersonId` es el apoderado que cobra: solo se acepta con un poder vigente con alcance `Cobrar` del locador (`PAYEE_WITHOUT_POWER`). `bankAccountId` tiene que ser una cuenta del locador (`BANK_ACCOUNT_NOT_OF_LESSOR`).
+- `needsReview` marca las filas que la migración repartió en partes iguales entre varios propietarios, por suposición; baja al confirmar o cambiar el porcentaje.
+- Lleva `tenantId` y está registrada en `TENANT_SCOPED_MODELS`.
+
+### PowerOfAttorney
+
+Poder por el que un apoderado actúa en nombre de otra persona.
+
+- `id`, `tenantId`, `principalId` (poderdante), `agentId` (apoderado), `scopes` (arreglo de `Cobrar`, `Firmar`, `Administrar`, validado en la API), `signatureMode` (`Indistinta` o `Conjunta`), `groupKey`, `contractId`, `propertyId`, `validFrom`, `validTo`, `documentUrl`, `createdAt`, `updatedAt`.
+- Sin `contractId` ni `propertyId` es un poder general; con uno de los dos, vale solo para ese contrato o esa propiedad (no se admiten los dos a la vez). `getApoderadosAt` junta los que alcanzan a un contrato.
+- Con firma conjunta, los apoderados del mismo alcance comparten `groupKey` (por defecto, poderdante y alcance) y firman juntos; con firma indistinta `groupKey` queda vacía.
+- Un poder con alcance `Cobrar` que un locador usa como cobrador no se puede revocar ni recortar (`POWER_IN_USE`). Dar un poder agrega a la persona el rol `Apoderado`.
+- Índices: `(tenantId, principalId)`, `(tenantId, agentId)` y `(contractId)`. Lleva `tenantId` y está registrada en `TENANT_SCOPED_MODELS`.
+
+### Partes del contrato
+
+```mermaid
+erDiagram
+    Contract ||--o{ ContractPerson : "inquilino, garante, comprador"
+    Contract ||--o{ ContractLessor : "locadores con vigencia"
+    Contract ||--o{ PowerOfAttorney : "poderes del contrato"
+    Property ||--o{ Contract : "a lo largo del tiempo"
+    Property ||--o{ PropertyOwnership : "titulares"
+    Property ||--o{ PowerOfAttorney : "poderes de la propiedad"
+    Person ||--o{ ContractPerson : "participa"
+    Person ||--o{ ContractLessor : "es locador"
+    Person ||--o{ ContractLessor : "cobra como apoderado"
+    Person ||--o{ PersonBankAccount : "tiene cuentas"
+    PersonBankAccount |o--o{ ContractLessor : "cuenta de cobro"
+    Person ||--o{ PowerOfAttorney : "otorga"
+    Person ||--o{ PowerOfAttorney : "ejerce"
+    Person ||--o{ PropertyOwnership : "es titular"
+    Person ||--o{ PersonRoleAssignment : "etiquetas de rol"
+    Contract ||--o{ OwnerRendicion : "una por locador y período"
+    Person ||--o{ OwnerRendicion : "locador al que se rinde"
+    ContractLessor {
+        string capacity
+        decimal payoutPct
+        datetime validFrom
+        datetime validTo
+        boolean needsReview
+    }
+    PowerOfAttorney {
+        string[] scopes
+        string signatureMode
+        string groupKey
+        datetime validFrom
+        datetime validTo
+    }
+    PropertyOwnership {
+        decimal sharePct
+        string title
+        datetime since
+        datetime until
+    }
+```
+
+La titularidad (`PropertyOwnership`) no se conecta con el cobro: quien recibe dinero lo define `ContractLessor`, y la rendición se reparte entre los locadores vigentes.
 
 ### ContractGuarantee
 
@@ -222,7 +298,8 @@ Servicios asociados a una propiedad (gas, luz, ABL) y sus pagos.
 
 Rendición mensual al propietario y sus conceptos.
 
-- `OwnerRendicion`: `id`, `tenantId`, `contractId`, `ownerId`, `period`, `status`, `rentCollected`, `commissionAmount`, `adminFeeAmount`, `deductionTotal`, `netDeposit`, `currency`, `pdfUrl`, `sentAt`, `depositedAt`, `notes`.
+- `OwnerRendicion`: `id`, `tenantId`, `contractId`, `ownerId`, `period`, `status`, `rentCollected`, `commissionAmount`, `adminFeeAmount`, `deductionTotal`, `netDeposit`, `currency`, `pdfUrl`, `sentAt`, `depositedAt`, `notes`. Única por contrato, período y locador (`@@unique([contractId, period, ownerId])`): hay una rendición por cada locador vigente al inicio del período.
+- **Reparto:** cada renglón de la rendición (lo cobrado, la comisión, los gastos, las deducciones) se reparte entre los locadores según `payoutPct`, por el método del mayor resto, de modo que las partes suman el renglón y los netos suman el neto total. Con un solo locador la rendición es la de siempre.
 - `RendicionLineItem`: `id`, `tenantId`, `rendicionId`, `type`, `description`, `amount`, `isDebit`, `currency`, `sortOrder`.
 - Los montos de la rendición están desagregados en columnas propias —lo cobrado, la comisión, el honorario administrativo, el total deducido y el depósito neto— y no se recalculan al leer.
 
@@ -381,9 +458,10 @@ Envío periódico de un reporte.
 ## Relaciones críticas
 
 - `Tenant` 1-N `User`, `Property`, `Person`, `Pipeline`, `Ticket`, `TicketCategory`, `ArcaIssuer`, `ReportSchedule`, con relación declarada. El resto de las tablas del dominio —`Contract`, `Liquidacion`, `Lead`, `Payment` y demás— lleva la columna `tenantId` sin relación inversa.
-- `Property` 1-N `PropertyOperation`, y es la operación la que tiene el estado de disponibilidad. La titularidad del propietario se expresa mediante `PersonRoleAssignment`, no con una clave foránea en `Property`.
+- `Property` 1-N `PropertyOperation`, y es la operación la que tiene el estado de disponibilidad. La titularidad se expresa con `PropertyOwnership`, no con una clave foránea en `Property`, y es opcional.
 - `Property` 1-N `Contract` a lo largo del tiempo.
-- `Contract` N-M `Person` mediante `ContractPerson`.
+- `Contract` N-M `Person` mediante `ContractPerson` (inquilino, garante, comprador) y mediante `ContractLessor` (locadores, con porcentaje de cobro y vigencia).
+- `Person` N-M `Person` mediante `PowerOfAttorney` (poderdante y apoderado), con alcance general o acotado a un contrato o una propiedad.
 - `Contract` 1-N `AdjustmentSchedule` (lo pendiente) y 1-N `ContractAdjustment` (lo calculado y aplicado).
 - `Contract` 1-N `Liquidacion` 1-N `LiquidacionLineItem`.
 - `Liquidacion` 1-N `Payment` 1-N `Comprobante` (opcional), y 1-N `Penalty`.
