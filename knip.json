@@ -1,0 +1,59 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "ignoreExportsUsedInFile": false,
+  "ignoreBinaries": ["k6"],
+  "ignoreDependencies": [
+    "ts-node",
+    "ts-loader",
+    "tsconfig-paths",
+    "source-map-support",
+    "@nestjs/schematics",
+    "@types/.*",
+    "eslint.*",
+    "@eslint/js",
+    "@typescript-eslint/.*",
+    "tailwindcss",
+    "postcss",
+    "@tailwindcss/postcss",
+    "jest-environment-node"
+  ],
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/*.mjs"],
+      "project": ["scripts/*.mjs"]
+    },
+    "apps/api": {
+      "entry": [
+        "src/main.ts",
+        "src/**/*.module.ts",
+        "src/**/*.controller.ts",
+        "src/**/*.spec.ts",
+        "test/**/*.ts",
+        "test/**/*.js",
+        "test/**/*.mjs",
+        "jest*.config.ts",
+        "webpack.config.js",
+        "prisma/seed*.ts"
+      ],
+      "project": ["src/**/*.ts", "test/**/*.{ts,js,mjs}", "prisma/**/*.ts"]
+    },
+    "apps/web": {
+      "entry": [
+        "next.config.ts",
+        "vitest.config.ts",
+        "test/setup.ts",
+        "src/middleware.ts",
+        "src/app/**/{page,layout,route,error,global-error,loading,not-found,template,default}.{ts,tsx}",
+        "src/app/**/{sitemap,robots,opengraph-image,icon}.{ts,tsx}",
+        "src/i18n/**/*.ts",
+        "src/**/*.{test,spec}.{ts,tsx}",
+        "test/**/*.{test,spec}.{ts,tsx}"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}"]
+    },
+    "packages/shared": {
+      "entry": ["src/index.ts", "jest.config.js", "test-utc.js", "src/**/*.spec.ts"],
+      "project": ["src/**/*.ts", "*.js"]
+    }
+  }
+}
