@@ -250,11 +250,11 @@ Registro literal de cada llamada a los web services de ARCA (WSAA/WSFEv1), con e
 
 ### Comprobante
 
-Comprobante electrónico autorizado por ARCA (factura, nota de crédito o nota de débito, en sus variantes A, B o C) emitido sobre un `Payment`.
+Comprobante electrónico autorizado por ARCA (factura, nota de crédito o nota de débito, en sus variantes A, B o C) emitido, en general, sobre un `Payment`; el vínculo es opcional.
 
-- `id`, `tenantId`, `paymentId`, `issuerId?`, `type` (`ComprobanteType`), `status` (Emitido, Anulado), `cbteTipo`, `puntoDeVenta`, `numero`, `docTipo`, `docNro`, `receptorName`, `receptorFiscalCondition`, `impTotal`, `impNeto`, `impIva`, `cae`, `caeFchVto`, `emittedAt`.
+- `id`, `tenantId`, `paymentId?`, `issuerId?`, `type` (`ComprobanteType`), `status` (Emitido, Anulado), `cbteTipo`, `puntoDeVenta`, `numero`, `docTipo`, `docNro`, `receptorName`, `receptorFiscalCondition`, `impTotal`, `impNeto`, `impIva`, `cae`, `caeFchVto`, `emittedAt`.
 - La combinación `(tenantId, issuerId, puntoDeVenta, cbteTipo, numero)` es única: AFIP numera por CUIT, punto de venta y tipo, sin huecos ni repeticiones, así que dos emisores de la misma inmobiliaria pueden tener el mismo número.
-- Relación N-1 con `Payment` y con `ArcaIssuer`. Una nota de crédito referencia al comprobante que anula a través de `originalComprobanteId` (relación `ComprobanteNC`).
+- Relación N-1 opcional con `Payment` (si se borra el pago, `paymentId` queda en nulo: `ON DELETE SET NULL`) y N-1 con `ArcaIssuer`. Una nota de crédito referencia al comprobante que anula a través de `originalComprobanteId` (relación `ComprobanteNC`).
 
 ### LibroIvaExport
 
@@ -373,7 +373,7 @@ Envío periódico de un reporte.
 - `Contract` N-M `Person` mediante `ContractPerson`.
 - `Contract` 1-N `AdjustmentSchedule` (lo pendiente) y 1-N `ContractAdjustment` (lo calculado y aplicado).
 - `Contract` 1-N `Liquidacion` 1-N `LiquidacionLineItem`.
-- `Liquidacion` 1-N `Payment` 1-N `Comprobante`, y 1-N `Penalty`.
+- `Liquidacion` 1-N `Payment` 1-N `Comprobante` (opcional), y 1-N `Penalty`.
 - `Contract` 1-1 `ContractCommission`, y esa comisión es la que determina el `netDeposit` de `OwnerRendicion`.
 - `Lead` N-1 `Pipeline` y N-1 `PipelineStage` a través de `currentStageId`.
 - `Ticket` N-1 `Property`, N-1 `TicketCategory` y N-1 `Person` en el rol de proveedor (opcional). `TicketAttachment` cuelga de `TicketComment`.

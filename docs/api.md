@@ -300,7 +300,7 @@ Admin. En la tabla, esos seis roles de lectura figuran como **lectura**.
 | GET | `/invoices/:id` | Detalle con CAE y su vencimiento. | Lectura |
 | GET | `/invoices/:id/pdf` | Comprobante en PDF. | Lectura |
 | POST | `/invoices/preview` | Simula la emisión sin enviarla al organismo. | Admin, Gerente, Liquidaciones |
-| POST | `/invoices/emit` | Emite una factura A, B o C. | Admin, Gerente, Liquidaciones |
+| POST | `/invoices/emit` | Emite una factura A, B o C. `paymentId` es opcional; la moneda sale de `monId` (`PES` o `DOL`). | Admin, Gerente, Liquidaciones |
 | POST | `/invoices/emit-nc` | Emite una nota de crédito. | Admin, Gerente, Liquidaciones |
 | POST | `/invoices/:id/void` | Anula un comprobante por nota de crédito. | Admin, Gerente, Liquidaciones |
 | GET | `/invoices/healthcheck` | Estado de la conexión con los servicios del organismo. | Lectura |
