@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ImportExportService } from './import-export.service';
 import { CsvParserService } from './csv-parser.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -16,6 +16,7 @@ function createMockPrismaService() {
 function createMockTenantContext() {
   return {
     getTenantId: jest.fn().mockReturnValue('tenant-1'),
+    getUserId: jest.fn().mockReturnValue('user-1'),
   } as unknown as TenantContextService;
 }
 
@@ -54,6 +55,25 @@ describe('ImportExportService', () => {
       expect(() => service.upload(Buffer.from('', 'utf-8'), 'vacio.csv')).toThrow(
         BadRequestException,
       );
+    });
+  });
+
+  describe('CP-85: archivo de otra inmobiliaria', () => {
+    const mappings = [{ sourceColumn: 'title', targetField: 'title' }];
+
+    it('validate y execute lo tratan como inexistente', async () => {
+      (tenantContext.getTenantId as jest.Mock).mockReturnValue('tenant-a');
+      const { fileId } = service.upload(Buffer.from('title\nCasa', 'utf-8'), 'a.csv');
+
+      (tenantContext.getTenantId as jest.Mock).mockReturnValue('tenant-b');
+      expect(() => service.validate(fileId, 'property', mappings)).toThrow(NotFoundException);
+      await expect(service.execute(fileId, 'property', mappings)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(prisma.client.property.create).not.toHaveBeenCalled();
+
+      (tenantContext.getTenantId as jest.Mock).mockReturnValue('tenant-a');
+      expect(service.validate(fileId, 'property', mappings).validRows).toBe(1);
     });
   });
 
@@ -116,7 +136,7 @@ describe('ImportExportService', () => {
 
     it('throws when the fileId does not exist', () => {
       expect(() => service.validate('missing-file-id', 'property', [])).toThrow(
-        BadRequestException,
+        NotFoundException,
       );
     });
   });
@@ -165,7 +185,7 @@ describe('ImportExportService', () => {
 
       expect(() =>
         service.validate(fileId, 'property', [{ sourceColumn: 'title', targetField: 'title' }]),
-      ).toThrow(BadRequestException);
+      ).toThrow(NotFoundException);
     });
   });
 });
