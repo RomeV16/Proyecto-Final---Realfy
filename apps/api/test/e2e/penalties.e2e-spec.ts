@@ -18,6 +18,7 @@ import {
   AdjustmentType,
   AdjustmentPeriod,
   LiquidacionStatus,
+  todayInAR,
 } from '@realfy/shared';
 
 /**
@@ -278,7 +279,7 @@ describe('Penalties (e2e)', () => {
         .expect(201);
       expect(first.body.penaltiesInserted).toBeGreaterThanOrEqual(1);
 
-      // Second run same "day" (same process, same UTC date)
+      // Second run same "day" (same day in Buenos Aires)
       const second = await request(app.getHttpServer())
         .post('/api/penalties/_run-now')
         .set('Authorization', `Bearer ${user.accessToken}`)
@@ -286,8 +287,7 @@ describe('Penalties (e2e)', () => {
       expect(second.body.penaltiesInserted).toBe(0);
 
       // Confirm only one penalty row for this liquidacion today
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const today = todayInAR();
       const count = await prisma.baseClient.penalty.count({
         where: { liquidacionId: liquidacion.id, appliedOn: today },
       });
