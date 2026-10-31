@@ -683,3 +683,37 @@ describe('ContractAdjustmentService.loadParams — reglas versionadas', () => {
     ).rejects.toMatchObject({ response: { error: 'UNKNOWN_ADJUSTMENT_TYPE' } });
   });
 });
+
+describe('ContractAdjustmentService — ventana incompleta (DEF-27)', () => {
+  let service: ContractAdjustmentService;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    service = new ContractAdjustmentService(mockPrisma, mockIndexData);
+    mockFindTerms.mockReset();
+    mockFindTerms.mockResolvedValue(null);
+    mockFindFirstContract.mockReset();
+    mockFindFirstSchedule.mockReset();
+  });
+
+  it('CP-273 (DEF-27): con abril sin publicar la previsualización no ajusta con tres meses de cuatro', async () => {
+    mockFindFirstContract.mockResolvedValueOnce(
+      makeContract({ adjustmentType: AdjustmentType.IPC, customAdjustmentPct: null }),
+    );
+    mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
+    mockFindManyIndex.mockImplementation(
+      series([
+        ['2025-01-01', '2.000000'],
+        ['2025-02-01', '2.000000'],
+        ['2025-03-01', '3.000000'],
+      ]),
+    );
+
+    const err: any = await service.preview('contract-1').catch((e) => e);
+
+    expect(err.getResponse?.()).toMatchObject({
+      error: 'MISSING_INDEX_DATA',
+      missingPeriods: ['2025-04'],
+    });
+  });
+});
