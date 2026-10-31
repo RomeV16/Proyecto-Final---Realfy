@@ -1175,7 +1175,7 @@ export class ContractsService {
 
   // ─── List Adjustments ───────────────────────────────
 
-  async findAdjustments(contractId: string) {
+  async findAdjustments(contractId: string, options: { pendingTrueUp?: boolean; upTo?: string } = {}) {
     const contract = await this.prisma.client.contract.findFirst({
       where: { id: contractId },
     });
@@ -1185,6 +1185,17 @@ export class ContractsService {
         error: 'CONTRACT_NOT_FOUND',
         message: 'Contract not found',
       });
+    }
+
+    // Correcciones de ajustes provisorios sin facturar: lo que lee el armado de liquidaciones.
+    if (options.pendingTrueUp) {
+      if (options.upTo !== undefined && !/^\d{4}-(0[1-9]|1[0-2])$/.test(options.upTo)) {
+        throw new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'upTo must be YYYY-MM',
+        });
+      }
+      return this.adjustments.getPendingTrueUps(contractId, options.upTo);
     }
 
     return this.prisma.client.contractAdjustment.findMany({

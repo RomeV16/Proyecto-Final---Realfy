@@ -12,6 +12,7 @@ import {
   ScheduleStatus,
   assessCoverage,
   calculateAdjustment,
+  calculateTrueUp,
   addMonthsClamped,
   expectedMonthlyPeriods,
   isWithinFixedInitialPeriod,
@@ -110,6 +111,30 @@ export interface AdjustmentSkipped {
   reason: string;
   indexTypes?: string[];
   missingPeriods?: string[];
+}
+
+/**
+ * Corrección retroactiva pendiente de facturar: el ajuste provisorio de un
+ * contrato ya tiene su valor oficial y los meses facturados con el alquiler
+ * provisorio quedaron con una diferencia. Es el dato que consume el armado de
+ * liquidaciones (ver ADR-0011).
+ */
+export interface PendingTrueUp {
+  /** Ajuste definitivo (el que corrige al provisorio): se marca facturado con `markTrueUpBilled`. */
+  adjustmentId: string;
+  provisionalAdjustmentId: string;
+  contractId: string;
+  periodNumber: number;
+  /** Primer mes (`YYYY-MM`) facturado con el alquiler provisorio. */
+  effectiveFrom: string;
+  provisionalRent: string;
+  officialRent: string;
+  /** Oficial menos provisorio, por mes; negativo si el estimado se pasó. */
+  monthlyDelta: string;
+  /** Meses de `effectiveFrom` a `upTo` con su diferencia. */
+  months: { period: string; delta: string }[];
+  /** Suma de la diferencia de esos meses. */
+  total: string;
 }
 
 export interface AdjustmentRun {
@@ -641,6 +666,67 @@ export class ContractAdjustmentService {
     if (err instanceof MissingIndexDataError) return MISSING_INDEX_DATA;
     const code = (err as any)?.getResponse?.()?.error;
     return typeof code === 'string' ? code : 'ADJUSTMENT_FAILED';
+  }
+
+  // ─── Correcciones pendientes de facturar ──────────────────────────────────
+
+  /**
+   * Correcciones de ajustes provisorios que todavía no se facturaron, de un
+   * contrato de la inmobiliaria actual. `upTo` (`YYYY-MM`, por defecto el mes
+   * actual) es el último mes que ya se facturó con el alquiler provisorio: la
+   * liquidación de un período pide hasta el mes anterior, porque el propio
+   * período ya sale con el alquiler corregido.
+   */
+  async getPendingTrueUps(contractId: string, upTo?: string): Promise<PendingTrueUp[]> {
+    const finals = await this.prisma.client.contractAdjustment.findMany({
+      where: { contractId, trueUpOfId: { not: null }, trueUpBilledAt: null },
+      orderBy: { periodNumber: 'asc' },
+    });
+    if (finals.length === 0) return [];
+    const provisionals = await this.prisma.client.contractAdjustment.findMany({
+      where: { id: { in: finals.map((f) => f.trueUpOfId as string) } },
+    });
+    const toPeriod = upTo ?? periodKey(todayInAR());
+
+    return finals.flatMap((final) => {
+      const provisional = provisionals.find((p) => p.id === final.trueUpOfId);
+      if (!provisional) return [];
+      const effectiveFrom = periodKey(final.adjustmentDate);
+      const trueUp = calculateTrueUp({
+        provisionalRent: new Decimal(provisional.newAmount.toString()),
+        officialRent: new Decimal(final.newAmount.toString()),
+        fromPeriod: effectiveFrom,
+        toPeriod,
+      });
+      return [
+        {
+          adjustmentId: final.id,
+          provisionalAdjustmentId: provisional.id,
+          contractId: final.contractId,
+          periodNumber: final.periodNumber,
+          effectiveFrom,
+          provisionalRent: provisional.newAmount.toString(),
+          officialRent: final.newAmount.toString(),
+          monthlyDelta: trueUp.monthlyDelta.toFixed(2),
+          months: trueUp.months.map((m) => ({ period: m.period, delta: m.delta.toFixed(2) })),
+          total: trueUp.total.toFixed(2),
+        },
+      ];
+    });
+  }
+
+  /**
+   * Marca facturadas las correcciones (`PendingTrueUp.adjustmentId`) que una
+   * liquidación ya incluyó. Se llama dentro de la misma transacción que crea la
+   * liquidación; marca una sola vez, así una corrección no se factura dos veces.
+   */
+  async markTrueUpBilled(adjustmentIds: string[], tx: any = this.prisma.client): Promise<number> {
+    if (adjustmentIds.length === 0) return 0;
+    const result = await tx.contractAdjustment.updateMany({
+      where: { id: { in: adjustmentIds }, trueUpOfId: { not: null }, trueUpBilledAt: null },
+      data: { trueUpBilledAt: new Date() },
+    });
+    return result.count;
   }
 
   // ─── Barrido de ajustes vencidos ───────────────────────────────────────────

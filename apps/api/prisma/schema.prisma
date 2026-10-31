@@ -999,6 +999,8 @@ model ContractAdjustment {
   isProvisional  Boolean         @default(false)
   /// Ajuste provisional que este ajuste corrige.
   trueUpOfId     String?
+  /// Cuándo se facturó la diferencia retroactiva de la corrección (nulo: pendiente).
+  trueUpBilledAt DateTime?
 
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
