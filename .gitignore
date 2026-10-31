@@ -75,3 +75,4 @@ blob-report/
 
 # cobertura de la suite del módulo (docs/calidad)
 apps/api/coverage-modulo/
+apps/api/coverage-e2e/

@@ -139,6 +139,12 @@ La configuración (`apps/api/test/jest-e2e.json`) fija un solo trabajador y un
 tiempo máximo de treinta segundos por caso. El trabajador único es necesario: las
 pruebas comparten la base, y en paralelo se pisarían entre ellas.
 
+En el pipeline la suite corre con cobertura (`pnpm --filter @realfy/api
+test:e2e:coverage`, informe en `apps/api/coverage-e2e/`). Buena parte de los
+servicios sólo se ejercita contra la base real, así que SonarCloud suma este
+informe al de las unitarias para medir la cobertura del código nuevo. Por eso el
+trabajo de Sonar espera a que termine el e2e.
+
 ### Qué cubre cada suite
 
 Son treinta y dos archivos. Los que están en la raíz de `apps/api/test` cubren
