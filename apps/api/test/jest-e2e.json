@@ -1,8 +1,12 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
-  "rootDir": ".",
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": "..",
   "testEnvironment": "node",
-  "globalSetup": "<rootDir>/setup/utc.js",
+  "globalSetup": "<rootDir>/test/setup/utc.js",
   "testRegex": ".e2e-spec.ts$",
   "testTimeout": 30000,
   "maxWorkers": 1,
@@ -26,8 +30,21 @@
     ]
   },
   "moduleNameMapper": {
-    "^@/(.*)$": "<rootDir>/../src/$1",
-    "pdfmake/src/printer": "<rootDir>/mocks/pdfmake-printer.js",
-    "pdfmake/build/vfs_fonts/(.*)": "<rootDir>/mocks/pdfmake-font.js"
-  }
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "pdfmake/src/printer": "<rootDir>/test/mocks/pdfmake-printer.js",
+    "pdfmake/build/vfs_fonts/(.*)": "<rootDir>/test/mocks/pdfmake-font.js"
+  },
+  "roots": [
+    "<rootDir>/test"
+  ],
+  "collectCoverageFrom": [
+    "src/**/*.ts",
+    "!src/**/*.spec.ts",
+    "!src/main.ts"
+  ],
+  "coverageDirectory": "<rootDir>/coverage-e2e",
+  "coverageReporters": [
+    "lcov",
+    "json-summary"
+  ]
 }

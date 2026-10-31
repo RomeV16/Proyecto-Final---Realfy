@@ -9,7 +9,7 @@ despliegue incremental.
 | Función | Herramienta | Estado antes del TP | Estado después |
 |---|---|---|---|
 | Pruebas unitarias e integración | Jest + ts-jest + supertest | En uso | En uso, con suite por módulo |
-| Cobertura | Istanbul (vía Jest) y v8 (vía vitest, web) | Umbral global 38 % | Umbral por módulo + reporte en SonarCloud, con la cobertura de la web y del paquete compartido |
+| Cobertura | Istanbul (vía Jest) y v8 (vía vitest, web) | Umbral global 38 % | Umbral por módulo + reporte en SonarCloud, con la cobertura de la web, del paquete compartido y de las pruebas e2e de la API |
 | Análisis estático local | ESLint 9 con `typescript-eslint` | En uso | En uso |
 | Análisis estático centralizado + quality gate | **SonarCloud** | No existía | Nueva |
 | Integración continua | GitHub Actions | 5 trabajos | 6 trabajos (+ despliegue efímero, integración externa y stress en los días 4 y 6) |

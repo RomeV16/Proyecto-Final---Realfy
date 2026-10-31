@@ -173,7 +173,7 @@ jobs:
     name: SonarCloud & Quality Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: unit
+    needs: [unit, e2e-api]
     # Los PRs desde forks no reciben el secret; el análisis corre en PRs del repositorio y en main.
     if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
 
@@ -190,6 +190,12 @@ jobs:
           # El artefacto conserva la ruta desde la raíz del repositorio
           # (apps/api/coverage, apps/web/coverage, packages/shared/coverage).
           path: .
+
+      - name: Download e2e coverage
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage-e2e
+          path: apps/api/coverage-e2e
 
       - name: SonarCloud scan
         uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
@@ -496,5 +502,14 @@ jobs:
       - name: Apply migrations
         run: pnpm --filter @realfy/api exec prisma migrate deploy
 
+      # Con cobertura: buena parte de los servicios sólo se ejercita contra la base real,
+      # y Sonar mide la cobertura del código nuevo sumando unitarias y e2e.
       - name: API e2e tests
-        run: pnpm --filter @realfy/api test:e2e
+        run: pnpm --filter @realfy/api test:e2e:coverage
+
+      - name: Upload e2e coverage
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-e2e
+          path: apps/api/coverage-e2e/lcov.info
+          retention-days: 7
