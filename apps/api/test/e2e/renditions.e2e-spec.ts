@@ -765,6 +765,44 @@ describe('Renditions (e2e)', () => {
 
   // ─── 7. RBAC ──────────────────────────────────────────
 
+  describe('Envío por mail (DEF-24)', () => {
+    async function generated() {
+      const chain = await setupFullChain();
+      const res = await request(app.getHttpServer())
+        .post('/api/renditions/generate')
+        .set('Authorization', `Bearer ${chain.accessToken}`)
+        .send({ contractId: chain.contract.id, month: 3, year: 2026 })
+        .expect(201);
+      return { chain, rendicionId: res.body.id as string };
+    }
+
+    it('CP-266 — sin mail configurado responde 422 EMAIL_NOT_CONFIGURED y no la marca enviada', async () => {
+      const { chain, rendicionId } = await generated();
+      mockEmailService.sendRendicionEmail.mockResolvedValueOnce({ status: 'skipped' });
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/renditions/${rendicionId}/send`)
+        .set('Authorization', `Bearer ${chain.accessToken}`)
+        .expect(422);
+
+      expect(res.body.errorCode).toBe('EMAIL_NOT_CONFIGURED');
+      const stored = await prisma.baseClient.ownerRendicion.findUnique({ where: { id: rendicionId } });
+      expect(stored?.sentAt).toBeNull();
+    });
+
+    it('con envío real guarda la fecha de envío', async () => {
+      const { chain, rendicionId } = await generated();
+
+      await request(app.getHttpServer())
+        .post(`/api/renditions/${rendicionId}/send`)
+        .set('Authorization', `Bearer ${chain.accessToken}`)
+        .expect(201);
+
+      const stored = await prisma.baseClient.ownerRendicion.findUnique({ where: { id: rendicionId } });
+      expect(stored?.sentAt).not.toBeNull();
+    });
+  });
+
   describe('RBAC', () => {
     it('Admin can perform transitions — 200', async () => {
       const chain = await setupFullChain();
