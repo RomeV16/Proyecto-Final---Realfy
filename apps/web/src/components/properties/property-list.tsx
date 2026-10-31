@@ -14,6 +14,7 @@ import { PropertyTypeBadge } from './property-type-badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
 import { ExportButtons } from '../import/export-buttons';
@@ -186,12 +187,14 @@ export function PropertyList() {
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
   const canCreate = useCan('properties.manage');
 
   const fetchProperties = useCallback(async (f: Filters) => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       params.set('page', String(f.page));
@@ -204,6 +207,7 @@ export function PropertyList() {
       const res = await apiClient<PaginatedResponse>(`/properties?${params.toString()}`);
       setData(res);
     } catch (err) {
+      setError(err);
       if (err instanceof ApiRequestError) {
         console.error(`[PropertyList] fetch error: ${err.statusCode} ${err.errorCode}`);
       }
@@ -341,8 +345,10 @@ export function PropertyList() {
         </div>
       </div>
 
+      {error != null && <ErrorNotice error={error} />}
+
       {/* Grid — owns the loading → content → empty transition */}
-      <div>
+      <div className={error != null ? 'hidden' : undefined}>
         <CardGrid
           items={items}
           loading={loading && !data}

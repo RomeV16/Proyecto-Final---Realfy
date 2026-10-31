@@ -16,6 +16,7 @@ import { contractFormSchema } from '@realfy/shared/schemas';
 import { useState, type FormEvent } from 'react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { GuaranteeBadge } from './guarantee-badge';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import {
   ActivationProblems,
   activationProblemsOf,
@@ -122,7 +123,7 @@ export function ContractForm() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState<'' | 'draft' | 'activate'>('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>(null);
   const [activationProblems, setActivationProblems] = useState<ActivationProblem[] | null>(null);
   const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
 
@@ -270,7 +271,7 @@ export function ContractForm() {
   async function save(mode: 'draft' | 'activate') {
     if (!validateStep(step)) return;
     setSubmitting(mode);
-    setError('');
+    setError(null);
     setActivationProblems(null);
 
     try {
@@ -316,7 +317,7 @@ export function ContractForm() {
       if (problems) {
         setActivationProblems(problems);
       } else if (err instanceof ApiRequestError) {
-        setError(err.message);
+        setError(err);
       } else {
         setError(t('error'));
       }
@@ -797,11 +798,7 @@ export function ContractForm() {
         {activationProblems && (
           <ActivationProblems problems={activationProblems} />
         )}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        )}
+        {error != null && <ErrorNotice error={error} />}
 
         <div className="flex items-center justify-between">
           <button

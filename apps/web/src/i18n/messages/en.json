@@ -66,6 +66,28 @@
   "pagos": "Pagos",
   "notifications": "Notificaciones"
  },
+ "errors": {
+  "generic": "An unexpected error occurred.",
+  "code": "Code",
+  "reference": "Reference",
+  "copyReference": "Copy reference",
+  "copied": "Copied",
+  "codes": {
+   "INTERNAL_ERROR": "The server ran into a problem. Please try again in a few minutes.",
+   "UNAUTHORIZED": "Your session has expired. Please sign in again.",
+   "FORBIDDEN": "You do not have permission to do this."
+  },
+  "segment": {
+   "loading": "Loading…",
+   "errorTitle": "We could not load this section",
+   "errorMessage": "Something went wrong while showing this screen. You can retry or go back to the dashboard.",
+   "retry": "Retry",
+   "home": "Go to dashboard",
+   "notFoundTitle": "We could not find what you were looking for",
+   "notFoundMessage": "The record does not exist or is no longer available.",
+   "back": "Back"
+  }
+ },
  "common": {
   "loading": "Cargando…",
   "error": "Ocurrió un error",

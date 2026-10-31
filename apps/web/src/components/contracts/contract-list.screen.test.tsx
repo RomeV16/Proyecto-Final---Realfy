@@ -172,20 +172,22 @@ describe('ContractList', () => {
     expect(screen.queryAllByRole('link').filter((a) => a.getAttribute('href') === '/es/contracts/new')).toHaveLength(0);
   });
 
-  it('un error de la API deja la lista vacía y lo registra', async () => {
+  it('un error de la API se avisa con código y se registra', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     apiClient.mockRejectedValue(new ApiRequestError(500, 'BOOM', 'caído'));
     renderEs(<ContractList />);
     await waitFor(() => expect(spy).toHaveBeenCalled());
     expect(spy.mock.calls[0][0]).toContain('500 BOOM');
+    expect(await screen.findByRole('alert')).toHaveTextContent('caído');
     spy.mockRestore();
   });
 
-  it('un error no tipado también deja la lista vacía', async () => {
+  it('un error no tipado también se avisa', async () => {
     apiClient.mockRejectedValue(new Error('red'));
     renderEs(<ContractList />);
     await waitFor(() => expect(apiClient).toHaveBeenCalled());
-    await waitFor(() => expect(screen.queryByText(/Mario/)).not.toBeInTheDocument());
+    expect(await screen.findByRole('alert')).toHaveTextContent('red');
+    expect(screen.queryByText(/Mario/)).not.toBeInTheDocument();
   });
 
   it('pagina hacia adelante y atrás', async () => {

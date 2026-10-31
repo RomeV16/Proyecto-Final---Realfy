@@ -3,7 +3,8 @@
 import { useTranslations } from 'next-intl';
 import { FiscalCondition } from '@realfy/shared';
 import { personFormSchema } from '@realfy/shared/schemas';
-import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { apiClient } from '@/lib/api-client';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { FormShell } from '@/components/ui/form-shell';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
@@ -75,8 +76,6 @@ export function PersonForm({ mode, initialData, personId, onSuccess, onCancel }:
     }
   });
 
-  const error = formError instanceof ApiRequestError ? formError.message : formError ? tForm('error') : '';
-
   return (
     <FormShell
       onSubmit={handleSubmit}
@@ -84,7 +83,7 @@ export function PersonForm({ mode, initialData, personId, onSuccess, onCancel }:
       submitBusy={submitting}
       secondaryAction={onCancel ? { label: tCommon('cancel'), onClick: onCancel } : undefined}
     >
-      {error && <div role="alert" className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
+      {formError != null && <ErrorNotice error={formError} fallback={tForm('error')} />}
       <FormShell.Section title={tForm('personalInfo')} className="max-w-sm sm:max-w-none">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label={tForm('firstName')} required error={errors.firstName}>

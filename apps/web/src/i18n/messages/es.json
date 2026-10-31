@@ -66,6 +66,28 @@
   "pagos": "Pagos",
   "notifications": "Notificaciones"
  },
+ "errors": {
+  "generic": "Ocurrió un error inesperado.",
+  "code": "Código",
+  "reference": "Referencia",
+  "copyReference": "Copiar referencia",
+  "copied": "Copiada",
+  "codes": {
+   "INTERNAL_ERROR": "El servidor tuvo un problema. Intentá de nuevo en unos minutos.",
+   "UNAUTHORIZED": "Tu sesión venció. Iniciá sesión de nuevo.",
+   "FORBIDDEN": "No tenés permiso para hacer esto."
+  },
+  "segment": {
+   "loading": "Cargando…",
+   "errorTitle": "No pudimos cargar esta sección",
+   "errorMessage": "Algo falló al mostrar la pantalla. Podés reintentar o volver al inicio.",
+   "retry": "Reintentar",
+   "home": "Ir al panel",
+   "notFoundTitle": "No encontramos lo que buscás",
+   "notFoundMessage": "El registro no existe o ya no está disponible.",
+   "back": "Volver"
+  }
+ },
  "common": {
   "loading": "Cargando…",
   "error": "Ocurrió un error",

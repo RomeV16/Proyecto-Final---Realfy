@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { FormShell } from '@/components/ui/form-shell';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -248,8 +249,6 @@ export function PropertyForm({
     (ot) => !existingOpTypes.includes(ot)
   );
 
-  const error = formError instanceof ApiRequestError ? formError.message : formError ? tForm('error') : '';
-
   /** Campo de texto del formulario: etiqueta, error y valor enlazados al estado. */
   function textField(
     field: StringField,
@@ -279,11 +278,7 @@ export function PropertyForm({
       secondaryAction={onCancel ? { label: tCommon('cancel'), onClick: onCancel } : undefined}
     >
       {/* Error banner */}
-      {error && (
-        <div role="alert" className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-          {error}
-        </div>
-      )}
+      {formError != null && <ErrorNotice error={formError} fallback={tForm('error')} />}
 
       {/* Basic Info */}
       <FormShell.Section title={tForm('basicInfo')} className="max-w-sm sm:max-w-none">

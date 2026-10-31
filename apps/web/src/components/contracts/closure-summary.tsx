@@ -9,6 +9,7 @@ import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
 import { formatMoneyRounded, formatPercent, formatLocalDate } from '@/lib/format';
+import { ErrorNotice } from '@/components/ui/error-notice';
 
 /* ──────────── Types ──────────── */
 
@@ -125,16 +126,16 @@ export function ClosureSummary({ contractId }: { contractId: string }) {
   const [data, setData] = useState<ClosureSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>(null);
 
   const load = useCallback(async () => {
     try {
-      setError('');
+      setError(null);
       setData(await apiClient<ClosureSummaryResponse>(
         `/ai/contracts/${contractId}/closure-summary`,
       ));
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : t('loadError'));
+      setError(err instanceof ApiRequestError ? err : t('loadError'));
     } finally {
       setLoading(false);
     }
@@ -146,7 +147,7 @@ export function ClosureSummary({ contractId }: { contractId: string }) {
 
   async function handleGenerate() {
     setGenerating(true);
-    setError('');
+    setError(null);
     try {
       setData(
         await apiClient<ClosureSummaryResponse>(
@@ -155,7 +156,7 @@ export function ClosureSummary({ contractId }: { contractId: string }) {
         ),
       );
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : t('generateError'));
+      setError(err instanceof ApiRequestError ? err : t('generateError'));
     } finally {
       setGenerating(false);
     }
@@ -267,7 +268,7 @@ export function ClosureSummary({ contractId }: { contractId: string }) {
       {loading ? (
         <SummarySkeleton />
       ) : !data ? (
-        <EmptyState iconName="alert" title={t('loadError')} subtitle={error || undefined} />
+        <EmptyState iconName="alert" title={t('loadError')} subtitle={error instanceof ApiRequestError ? error.message : typeof error === 'string' ? error : undefined} />
       ) : !data.closed ? (
         <EmptyState
           iconName="calendarClock"
@@ -332,11 +333,7 @@ export function ClosureSummary({ contractId }: { contractId: string }) {
         </div>
       )}
 
-      {error && !loading && data && (
-        <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
-      )}
+      {error != null && !loading && data && <ErrorNotice error={error} className="mt-3" />}
     </div>
   );
 }

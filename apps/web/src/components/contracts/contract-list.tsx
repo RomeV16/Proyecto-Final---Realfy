@@ -12,6 +12,7 @@ import { Link } from '@/i18n/navigation';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { Badge } from '@/components/ui/badge';
 import { ProgressRing } from '@/components/ui/micro-viz';
 import { formatMoneyFixed, formatDate } from '@/lib/format';
@@ -233,12 +234,14 @@ export function ContractList() {
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
   const canCreate = useCan('contracts.manage');
 
   const fetchContracts = useCallback(async (f: Filters) => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       params.set('page', String(f.page));
@@ -249,6 +252,7 @@ export function ContractList() {
       const res = await apiClient<PaginatedResponse>(`/contracts?${params.toString()}`);
       setData(res);
     } catch (err) {
+      setError(err);
       if (err instanceof ApiRequestError) {
         console.error(`[ContractList] fetch error: ${err.statusCode} ${err.errorCode}`);
       }
@@ -362,8 +366,10 @@ export function ContractList() {
         </div>
       </div>
 
+      {error != null && <ErrorNotice error={error} />}
+
       {/* Grid — owns the loading → content → empty transition */}
-      <div>
+      <div className={error != null ? 'hidden' : undefined}>
         <CardGrid
           items={items}
           loading={loading && !data}

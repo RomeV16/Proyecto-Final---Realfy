@@ -206,18 +206,19 @@ describe('PropertyList', () => {
     await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith(expect.stringContaining('page=1')));
   });
 
-  it('un error de la API cae en el estado vacío', async () => {
+  it('un error de la API se avisa con código y no se disfraza de lista vacía', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     apiClient.mockRejectedValue(new ApiRequestError(500, 'BOOM', 'falló'));
     renderEs(<PropertyList />);
-    expect(await screen.findByText('No hay propiedades')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('falló');
+    expect(screen.getByRole('alert')).toHaveTextContent('BOOM');
     expect(spy).toHaveBeenCalled();
     spy.mockRestore();
   });
 
-  it('un fallo que no es de la API también cae en el estado vacío', async () => {
+  it('un fallo que no es de la API también se avisa', async () => {
     apiClient.mockRejectedValue(new Error('red'));
     renderEs(<PropertyList />);
-    expect(await screen.findByText('No hay propiedades')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('red');
   });
 });
