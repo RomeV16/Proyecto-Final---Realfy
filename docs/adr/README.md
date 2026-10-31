@@ -12,6 +12,7 @@
 | [0004](0004-sistema-de-tarjetas.md) | Sistema de tarjetas para pantallas con registros repetidos | Aceptado | 2026-08-13 |
 | [0005](0005-manejo-uniforme-de-errores.md) | Manejo uniforme de errores | Aceptado | 2026-08-18 |
 | [0006](0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md) | El aislamiento entre inmobiliarias falla cerrado | Aceptado | 2026-08-18 |
+| [0007](0007-locadores-apoderados-y-titularidad.md) | Locadores por contrato, apoderados y titularidad de propiedades | Aceptado | 2026-10-31 |
 | [0014](0014-ambiente-piloto-con-datos-reales.md) | Ambiente piloto con datos reales | Aceptado | 2026-10-31 |
 | [0016](0016-diagramas-como-codigo.md) | Diagramas como código (mermaid) | Aceptado | 2026-10-30 |
 
@@ -21,7 +22,6 @@ Las decisiones que el piloto vuelve necesarias (ver `../tesis/30-piloto.md`) se 
 
 | Número | Título | Estado | Se decide en |
 |---|---|---|---|
-| 0007 | Locadores por contrato con porcentaje de cobro, apoderados y titularidad separada | Planificada | Ítem 33, PR de locadores y apoderados |
 | 0008 | Impuestos y servicios trasladables: tres pagadores, reglas con vigencia y boletas | Planificada | Ítem 35, PR de boletas y reglas de traslado |
 | 0009 | Cuenta corriente y estado de cuenta del locador, en reemplazo de la rendición por contrato | Planificada | Ítem 37, PR de cuenta corriente |
 | 0010 | Reglas versionadas del contrato y valores por defecto de la inmobiliaria | Planificada | Ítem 34, PR de versiones de reglas y acuerdos |
