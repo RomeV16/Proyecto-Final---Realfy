@@ -15,6 +15,7 @@ import {
   clearStoredUser,
   ApiRequestError,
 } from './api-client';
+import { localizedPath } from '@/i18n/locale-path';
 import type { AuthResponse } from '@realfy/shared';
 
 interface User {
@@ -126,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearStoredUser();
     setUser(null);
-    window.location.href = '/es/auth/login';
+    window.location.href = localizedPath('/auth/login');
   }, []);
 
   return (

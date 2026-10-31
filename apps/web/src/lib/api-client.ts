@@ -1,51 +1,15 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+import { createApiClient, ApiRequestError, type BlobResult } from './create-api-client';
 
-// ── Error types ──
+export { ApiRequestError, createApiClient };
+export type { ApiClientConfig, BlobResult } from './create-api-client';
+
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 export interface ApiError {
   error: string;
   message: string;
   statusCode: number;
-}
-
-export class ApiRequestError extends Error {
-  constructor(
-    public statusCode: number,
-    public errorCode: string,
-    message: string,
-    /** Cuerpo completo de la respuesta: trae el contexto que agrega la API (p. ej. `problems`). */
-    public body?: Record<string, unknown>,
-  ) {
-    super(message);
-    this.name = 'ApiRequestError';
-  }
-}
-
-// ── Refresh flow ──
-
-let refreshPromise: Promise<boolean> | null = null;
-
-async function attemptRefresh(): Promise<boolean> {
-  // Deduplicate concurrent refresh attempts
-  if (refreshPromise) return refreshPromise;
-
-  refreshPromise = (async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // sends refresh_token cookie
-      });
-      return res.ok;
-    } catch {
-      return false;
-    } finally {
-      refreshPromise = null;
-    }
-  })();
-
-  return refreshPromise;
 }
 
 // ── Auth helpers for UI state (user info only, no tokens) ──
@@ -72,70 +36,32 @@ export function clearStoredUser() {
   }
 }
 
-// ── Core fetch wrapper with cookie-based auth + automatic token refresh ──
+// ── Cliente del personal: sesión por cookies httpOnly + renovación automática ──
 
-export async function apiClient<T = unknown>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const url = `${API_BASE_URL}${path}`;
-
-  const makeRequest = () => {
-    const headers: Record<string, string> = {
-      ...((options.headers as Record<string, string>) || {}),
-    };
-
-    // Only set Content-Type for JSON bodies (not FormData)
-    if (!options.body || typeof options.body === 'string') {
-      headers['Content-Type'] = headers['Content-Type'] || 'application/json';
-    }
-
-    return fetch(url, {
-      ...options,
-      headers,
-      credentials: 'include', // send httpOnly cookies
-    });
-  };
-
-  let response = await makeRequest();
-
-  // On 401, try cookie-based refresh then retry once
-  if (response.status === 401) {
-    const refreshed = await attemptRefresh();
-    if (refreshed) {
-      response = await makeRequest();
-    } else {
-      clearStoredUser();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/es/auth/login';
-      }
-      throw new ApiRequestError(401, 'UNAUTHORIZED', 'Session expired');
-    }
-  }
-
-  if (!response.ok) {
-    let body: ApiError & Record<string, unknown>;
+const staffClient = createApiClient({
+  baseUrl: API_BASE_URL,
+  credentials: 'include',
+  loginPath: '/auth/login',
+  refresh: async () => {
     try {
-      body = await response.json();
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // envía la cookie refresh_token
+      });
+      return res.ok;
     } catch {
-      throw new ApiRequestError(
-        response.status,
-        'UNKNOWN_ERROR',
-        response.statusText,
-      );
+      return false;
     }
-    throw new ApiRequestError(
-      response.status,
-      body.error || 'UNKNOWN_ERROR',
-      body.message || response.statusText,
-      body,
-    );
-  }
+  },
+  onUnauthorized: clearStoredUser,
+});
 
-  // Handle 204 No Content
-  if (response.status === 204) {
-    return undefined as T;
-  }
+export function apiClient<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
+  return staffClient.request<T>(path, options);
+}
 
-  return response.json();
+/** Descarga binaria (PDF, planillas) con la misma sesión que `apiClient`. */
+export function apiBlob(path: string, options: RequestInit = {}): Promise<BlobResult> {
+  return staffClient.blob(path, options);
 }

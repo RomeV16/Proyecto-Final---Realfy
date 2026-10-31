@@ -14,6 +14,7 @@ import {
   clearPortalTokens,
   getPortalAccessToken,
 } from './portal-api-client';
+import { localizedPath } from '@/i18n/locale-path';
 import type { PortalAuthResponse } from '@realfy/shared';
 
 interface PortalPerson {
@@ -104,7 +105,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     }
     clearPortalTokens();
     setPerson(null);
-    window.location.href = '/es/portal/auth/login';
+    window.location.href = localizedPath('/portal/auth/login');
   }, []);
 
   return (
