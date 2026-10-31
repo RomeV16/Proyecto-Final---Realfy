@@ -23,7 +23,7 @@ import type { ParamType } from './arca/arca-param-cache.service';
 import { parseOrThrow } from '../../common/validation/zod';
 import { Roles } from '../../common/auth/roles.decorator';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
-import { UserRole } from '@realfy/shared';
+import { ADMIN_ONLY, BILLING_ROLES, BILLING_VIEW_ROLES } from '../../common/auth/role-groups';
 import {
   EmitInvoiceDtoSchema,
   EmitNotaCreditoDtoSchema,
@@ -32,10 +32,6 @@ import {
   PuntoDeVentaCreateDtoSchema,
 } from '@realfy/shared';
 
-// Role shorthand constants
-const MUTATE_ROLES = [UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones] as const;
-const READ_ROLES = [UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones, UserRole.Ventas, UserRole.Soporte, UserRole.Lectura] as const;
-const ADMIN_ROLES = [UserRole.Admin] as const;
 
 @Controller('invoices')
 export class InvoicesController {
@@ -55,7 +51,7 @@ export class InvoicesController {
    * POST /invoices/preview
    * Build the WSFE payload and get next numero WITHOUT calling AFIP for a CAE.
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Post('preview')
   async previewEmit(@Body() body: Record<string, unknown>) {
     return this.invoicesService.previewEmitFromDto(parseOrThrow(EmitInvoiceDtoSchema, body, 'Validation failed'));
@@ -67,7 +63,7 @@ export class InvoicesController {
    * POST /invoices/emit
    * Emit a comprobante (factura). Idempotent via clientRequestId.
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Post('emit')
   async emitInvoice(@Body() body: Record<string, unknown>, @Res({ passthrough: true }) res: Response) {
     const { comprobante, isIdempotentReplay } = await this.invoicesService.emitFromDto(
@@ -85,7 +81,7 @@ export class InvoicesController {
    * POST /invoices/emit-nc
    * Emit a nota de crédito. Requires cbtesAsoc.
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Post('emit-nc')
   async emitNotaCredito(@Body() body: Record<string, unknown>, @Res({ passthrough: true }) res: Response) {
     const { comprobante, isIdempotentReplay } = await this.invoicesService.emitNotaCreditoFromDto(
@@ -105,7 +101,7 @@ export class InvoicesController {
    * GET /invoices
    * List comprobantes with optional filters + pagination.
    */
-  @Roles(...READ_ROLES)
+  @Roles(...BILLING_VIEW_ROLES)
   @Get()
   async findAll(@Query() query: Record<string, any>) {
     return this.invoicesService.findAll(query);
@@ -117,7 +113,7 @@ export class InvoicesController {
    * GET /invoices/certificate
    * Returns cert metadata — NO private key material.
    */
-  @Roles(...ADMIN_ROLES)
+  @Roles(...ADMIN_ONLY)
   @Get('certificate')
   async getCertificate() {
     return this.certificateService.getCertificateMetadata();
@@ -127,7 +123,7 @@ export class InvoicesController {
    * POST /invoices/certificate
    * Upload PEM cert + key. Parses X.509, encrypts, stores.
    */
-  @Roles(...ADMIN_ROLES)
+  @Roles(...ADMIN_ONLY)
   @Post('certificate')
   async uploadCertificate(@Body() body: Record<string, any>) {
     if (!body.certPem || !body.keyPem) {
@@ -148,7 +144,7 @@ export class InvoicesController {
    * DELETE /invoices/certificate
    * Refuses if active issuers unless ?force=true.
    */
-  @Roles(...ADMIN_ROLES)
+  @Roles(...ADMIN_ONLY)
   @Delete('certificate')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteCertificate(@Query('force') force?: string) {
@@ -160,7 +156,7 @@ export class InvoicesController {
   /**
    * GET /invoices/healthcheck
    */
-  @Roles(...READ_ROLES)
+  @Roles(...BILLING_VIEW_ROLES)
   @Get('healthcheck')
   async healthcheck() {
     const tenantId = this.tenantContext.getTenantId() ?? '';
@@ -187,7 +183,7 @@ export class InvoicesController {
    * Optionally accepts ?issuerId= to use a specific issuer for auth; otherwise picks the
    * first active self-issuer for the tenant.
    */
-  @Roles(...READ_ROLES)
+  @Roles(...BILLING_VIEW_ROLES)
   @Get('param-cache/:type')
   async getParamCache(
     @Param('type') type: string,
@@ -251,7 +247,7 @@ export class InvoicesController {
    * GET /invoices/padron/:cuit
    * AFIP Padrón A5 lookup. Returns null when the CUIT is not in the padrón.
    */
-  @Roles(...READ_ROLES)
+  @Roles(...BILLING_VIEW_ROLES)
   @Get('padron/:cuit')
   async padronLookup(
     @Param('cuit') cuit: string,
@@ -273,7 +269,7 @@ export class InvoicesController {
    * GET /invoices/issuers
    * List issuers for tenant.
    */
-  @Roles(...READ_ROLES)
+  @Roles(...BILLING_VIEW_ROLES)
   @Get('issuers')
   async listIssuers() {
     return this.issuersService.listIssuers();
@@ -283,7 +279,7 @@ export class InvoicesController {
    * POST /invoices/issuers
    * Create issuer. Validates CUIT checksum.
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Post('issuers')
   async createIssuer(@Body() body: Record<string, unknown>) {
     return this.issuersService.createIssuer(parseOrThrow(IssuerCreateDtoSchema, body, 'Validation failed'));
@@ -293,7 +289,7 @@ export class InvoicesController {
    * PATCH /invoices/issuers/:id
    * Partial update issuer.
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Patch('issuers/:id')
   async updateIssuer(@Param('id') id: string, @Body() body: Record<string, unknown>) {
     return this.issuersService.updateIssuer(id, parseOrThrow(IssuerUpdateDtoSchema, body, 'Validation failed'));
@@ -303,7 +299,7 @@ export class InvoicesController {
    * DELETE /invoices/issuers/:id
    * Soft-delete via isActive=false. Blocked if comprobantes exist.
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Delete('issuers/:id')
   async deleteIssuer(@Param('id') id: string) {
     return this.issuersService.deleteIssuer(id);
@@ -313,7 +309,7 @@ export class InvoicesController {
    * POST /invoices/issuers/:id/verify-delegation
    * Calls ArcaService.verifyDelegation.
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Post('issuers/:id/verify-delegation')
   async verifyDelegation(@Param('id') id: string) {
     const tenantId = this.tenantContext.getTenantId() ?? '';
@@ -324,7 +320,7 @@ export class InvoicesController {
    * POST /invoices/issuers/:id/sync-pdv
    * Calls ArcaService.syncPuntosDeVenta.
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Post('issuers/:id/sync-pdv')
   async syncPdv(@Param('id') id: string) {
     const tenantId = this.tenantContext.getTenantId() ?? '';
@@ -335,7 +331,7 @@ export class InvoicesController {
    * GET /invoices/issuers/:id/pdv
    * List PdV for issuer.
    */
-  @Roles(...READ_ROLES)
+  @Roles(...BILLING_VIEW_ROLES)
   @Get('issuers/:id/pdv')
   async listPdv(@Param('id') id: string) {
     return this.issuersService.listPdv(id);
@@ -345,7 +341,7 @@ export class InvoicesController {
    * POST /invoices/issuers/:id/pdv
    * Manually add PdV (when AFIP sync fails or for testing).
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Post('issuers/:id/pdv')
   async createPdv(@Param('id') id: string, @Body() body: Record<string, unknown>) {
     return this.issuersService.createPdv(id, parseOrThrow(PuntoDeVentaCreateDtoSchema, body, 'Validation failed'));
@@ -357,7 +353,7 @@ export class InvoicesController {
    * DELETE /invoices/pdv/:id
    * Remove PdV by its own ID.
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Delete('pdv/:id')
   async deletePdv(@Param('id') id: string) {
     return this.issuersService.deletePdv(id);
@@ -369,7 +365,7 @@ export class InvoicesController {
    * POST /invoices/:id/void
    * Void a comprobante via NC emission (convenience wrapper).
    */
-  @Roles(...MUTATE_ROLES)
+  @Roles(...BILLING_ROLES)
   @Post(':id/void')
   async voidComprobante(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.invoicesService.voidComprobante(id, body);
@@ -379,7 +375,7 @@ export class InvoicesController {
    * GET /invoices/:id/pdf
    * Streams fiscal PDF.
    */
-  @Roles(...READ_ROLES)
+  @Roles(...BILLING_VIEW_ROLES)
   @Get(':id/pdf')
   async getPdf(@Param('id') id: string, @Res() res: Response) {
     const { buffer, filename } = await this.fiscalPdfService.generatePdfForComprobante(id);
@@ -397,7 +393,7 @@ export class InvoicesController {
    * GET /invoices/:id
    * Comprobante detail including ArcaRequestLog tail.
    */
-  @Roles(...READ_ROLES)
+  @Roles(...BILLING_VIEW_ROLES)
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.invoicesService.findOneWithLogs(id);

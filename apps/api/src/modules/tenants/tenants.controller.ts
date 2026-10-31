@@ -9,7 +9,7 @@ import {
 import { TenantsService } from './tenants.service';
 import { Public } from '../../common/auth/public.decorator';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('tenants')
 export class TenantsController {
@@ -31,7 +31,7 @@ export class TenantsController {
    * Restricted to Admin and Gerente roles.
    * Only own tenant — enforced both by guard and Prisma Extension.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Patch(':id')
   async update(
     @Param('id') id: string,

@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { LeadsService } from './leads.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { SALES_ROLES } from '../../common/auth/role-groups';
 
 @Controller('leads')
 export class LeadsController {
@@ -43,7 +43,7 @@ export class LeadsController {
    * POST /leads — Create a new lead.
    * Admin/Gerente/Ventas can create.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post()
   async create(@Body() body: Record<string, any>) {
     return this.leadsService.create(body);
@@ -53,7 +53,7 @@ export class LeadsController {
    * PATCH /leads/:id — Update lead fields (notes, budget, propertyId, source).
    * Admin/Gerente/Ventas can update.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id')
   async update(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.leadsService.update(id, body);
@@ -63,7 +63,7 @@ export class LeadsController {
    * PATCH /leads/:id/stage — Move lead to a new stage (same pipeline).
    * Admin/Gerente/Ventas can move.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id/stage')
   async moveStage(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.leadsService.moveStage(id, body);
@@ -73,7 +73,7 @@ export class LeadsController {
    * PATCH /leads/:id/assign — Reassign lead to a specific user.
    * Admin/Gerente/Ventas can reassign.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id/assign')
   async assign(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.leadsService.assign(id, body);
@@ -83,7 +83,7 @@ export class LeadsController {
    * POST /leads/:id/convert — Convert lead to Inquilino or Comprador.
    * Admin/Gerente/Ventas can convert.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/convert')
   @HttpCode(200)
   async convert(@Param('id') id: string, @Body() body: Record<string, any>) {
@@ -94,7 +94,7 @@ export class LeadsController {
    * POST /leads/:id/lose — Mark lead as lost with mandatory reason.
    * Admin/Gerente/Ventas can mark as lost.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/lose')
   @HttpCode(200)
   async lose(@Param('id') id: string, @Body() body: Record<string, any>) {
@@ -105,7 +105,7 @@ export class LeadsController {
    * DELETE /leads/:id — Soft-delete a lead.
    * Admin/Gerente/Ventas can delete.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.leadsService.remove(id);

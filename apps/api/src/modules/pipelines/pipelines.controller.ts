@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { PipelinesService } from './pipelines.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('pipelines')
 export class PipelinesController {
@@ -19,7 +19,7 @@ export class PipelinesController {
    * POST /pipelines — Create a new pipeline.
    * Admin/Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post()
   async create(@Body() body: Record<string, any>) {
     return this.pipelinesService.create(body);
@@ -47,7 +47,7 @@ export class PipelinesController {
    * PATCH /pipelines/:id — Update pipeline fields.
    * Admin/Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Patch(':id')
   async update(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.pipelinesService.update(id, body);
@@ -57,7 +57,7 @@ export class PipelinesController {
    * DELETE /pipelines/:id — Remove a pipeline.
    * Admin/Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.pipelinesService.remove(id);
@@ -67,7 +67,7 @@ export class PipelinesController {
    * POST /pipelines/:id/stages — Add a stage to a pipeline.
    * Admin/Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post(':id/stages')
   async addStage(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.pipelinesService.addStage(id, body);
@@ -79,7 +79,7 @@ export class PipelinesController {
    * "reorder" as a stageId value.
    * Admin/Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Patch(':pipelineId/stages/reorder')
   async reorderStages(
     @Param('pipelineId') pipelineId: string,
@@ -92,7 +92,7 @@ export class PipelinesController {
    * PATCH /pipelines/:pipelineId/stages/:stageId — Update a stage.
    * Admin/Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Patch(':pipelineId/stages/:stageId')
   async updateStage(
     @Param('pipelineId') pipelineId: string,
@@ -106,7 +106,7 @@ export class PipelinesController {
    * DELETE /pipelines/:pipelineId/stages/:stageId — Remove a stage.
    * Admin/Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':pipelineId/stages/:stageId')
   async removeStage(
     @Param('pipelineId') pipelineId: string,

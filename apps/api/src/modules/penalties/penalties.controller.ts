@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { Roles } from '../../common/auth/roles.decorator';
-import { PenaltyConfigSchema, PreviewPenaltySchema, UserRole, OVERDUE_STATUSES, todayInAR } from '@realfy/shared';
+import { PenaltyConfigSchema, PreviewPenaltySchema, OVERDUE_STATUSES, todayInAR } from '@realfy/shared';
 import type { PenaltyConfig, PreviewPenaltyInput } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -21,6 +21,7 @@ import { PenaltiesScheduler } from './penalties.scheduler';
 import { WaivePenaltyDto } from './dto/waive-penalty.dto';
 import { ZodValidationPipe } from '../../common/validation/zod';
 import { outstandingBalance } from '../liquidaciones/receivables';
+import { ADMIN_ONLY, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller()
 export class PenaltiesController {
@@ -36,7 +37,7 @@ export class PenaltiesController {
    * GET /penalties?status=active|waived|all
    * List penalties for the current tenant, optionally filtered by status.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Get('penalties')
   async listPenalties(@Query('status') status?: string) {
     const where: Record<string, any> = {};
@@ -74,7 +75,7 @@ export class PenaltiesController {
    * GET /penalties/delinquent-tenants
    * Returns grouped delinquency summary per person/property.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Get('penalties/delinquent-tenants')
   async getDelinquentTenants() {
     const tenantId = this.tenantContext.getTenantId();
@@ -184,7 +185,7 @@ export class PenaltiesController {
    * GET /penalties/delinquent-tenants/count
    * Returns count of delinquent persons.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Get('penalties/delinquent-tenants/count')
   async getDelinquentTenantsCount() {
     const tenantId = this.tenantContext.getTenantId();
@@ -205,7 +206,7 @@ export class PenaltiesController {
    * POST /penalties/:id/waive
    * Waive a penalty. Admin only.
    */
-  @Roles(UserRole.Admin)
+  @Roles(...ADMIN_ONLY)
   @Post('penalties/:id/waive')
   async waivePenalty(
     @Param('id') id: string,
@@ -238,7 +239,7 @@ export class PenaltiesController {
    * GET /tenants/me/penalty-config
    * Returns the current tenant's penalty configuration. Admin+Gerente.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Get('tenants/me/penalty-config')
   async getPenaltyConfig() {
     const tenantId = this.tenantContext.getTenantId();
@@ -252,7 +253,7 @@ export class PenaltiesController {
    * PUT /tenants/me/penalty-config
    * Updates the current tenant's penalty configuration. Admin only.
    */
-  @Roles(UserRole.Admin)
+  @Roles(...ADMIN_ONLY)
   @Put('tenants/me/penalty-config')
   async updatePenaltyConfig(@Body(new ZodValidationPipe(PenaltyConfigSchema, 'Invalid penalty config')) dto: PenaltyConfig) {
     const tenantId = this.tenantContext.getTenantId();
@@ -266,7 +267,7 @@ export class PenaltiesController {
    * POST /penalties/preview
    * Live preview of penalty calculation with a synthetic liquidacion. Admin+Gerente.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post('penalties/preview')
   async previewPenalty(@Body(new ZodValidationPipe(PreviewPenaltySchema, 'Invalid penalty preview')) dto: PreviewPenaltyInput) {
     const today = todayInAR();
@@ -304,7 +305,7 @@ export class PenaltiesController {
    * la misma que ejecuta el cron diario. Sirve para regularizar la mora sin
    * esperar a la corrida de la madrugada. Solo Admin.
    */
-  @Roles(UserRole.Admin)
+  @Roles(...ADMIN_ONLY)
   @Post('penalties/run')
   async run() {
     return this.scheduler.applyPenalties();

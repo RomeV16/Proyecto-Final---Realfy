@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { InteractionsService } from './interactions.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { SALES_ROLES } from '../../common/auth/role-groups';
 
 @Controller('leads')
 export class InteractionsController {
@@ -19,7 +19,7 @@ export class InteractionsController {
    * POST /leads/:leadId/interactions — Log a new interaction (call, email, WhatsApp, visit, note).
    * Admin/Gerente/Ventas can create.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':leadId/interactions')
   async createInteraction(
     @Param('leadId') leadId: string,
@@ -44,7 +44,7 @@ export class InteractionsController {
    * POST /leads/:leadId/visits — Schedule a new visit.
    * Admin/Gerente/Ventas can create.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':leadId/visits')
   async createVisit(
     @Param('leadId') leadId: string,
@@ -69,7 +69,7 @@ export class InteractionsController {
    * PATCH /leads/:leadId/visits/:visitId — Update visit status/outcome.
    * Admin/Gerente/Ventas can update.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':leadId/visits/:visitId')
   async updateVisit(
     @Param('leadId') leadId: string,

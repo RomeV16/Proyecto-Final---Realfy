@@ -14,7 +14,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { TicketsService } from './tickets.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { SUPPORT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('tickets')
 export class TicketsController {
@@ -24,7 +24,7 @@ export class TicketsController {
    * POST /tickets — Create a ticket.
    * Admin, Gerente, Soporte can create.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Soporte)
+  @Roles(...SUPPORT_ROLES)
   @Post()
   async create(@Body() body: Record<string, any>) {
     return this.ticketsService.create(body);
@@ -55,7 +55,7 @@ export class TicketsController {
    * PATCH /tickets/:id — Update ticket fields.
    * Admin, Gerente, Soporte.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Soporte)
+  @Roles(...SUPPORT_ROLES)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -68,7 +68,7 @@ export class TicketsController {
    * POST /tickets/:id/transition — Validate and apply state transition.
    * Admin, Gerente, Soporte.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Soporte)
+  @Roles(...SUPPORT_ROLES)
   @Post(':id/transition')
   @HttpCode(200)
   async transition(
@@ -82,7 +82,7 @@ export class TicketsController {
    * POST /tickets/:id/assign-provider — Assign a provider to a ticket.
    * Admin, Gerente, Soporte.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Soporte)
+  @Roles(...SUPPORT_ROLES)
   @Post(':id/assign-provider')
   @HttpCode(200)
   async assignProvider(
@@ -96,7 +96,7 @@ export class TicketsController {
    * PATCH /tickets/:id/cost — Update cost tracking fields.
    * Admin, Gerente, Soporte.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Soporte)
+  @Roles(...SUPPORT_ROLES)
   @Patch(':id/cost')
   async updateCost(
     @Param('id') id: string,
@@ -109,7 +109,7 @@ export class TicketsController {
    * POST /tickets/:id/comments — Add comment with optional photo.
    * Admin, Gerente, Soporte.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Soporte)
+  @Roles(...SUPPORT_ROLES)
   @Post(':id/comments')
   @UseInterceptors(
     FileInterceptor('file', {

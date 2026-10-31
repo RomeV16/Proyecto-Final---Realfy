@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MANAGEMENT_ROLES, SALES_ROLES } from '../../common/auth/role-groups';
 
 @Controller('services')
 export class ServicesController {
@@ -48,7 +48,7 @@ export class ServicesController {
    * POST /services — Create a service.
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post()
   async create(@Body() body: Record<string, any>) {
     return this.servicesService.create(body);
@@ -58,7 +58,7 @@ export class ServicesController {
    * PATCH /services/:id — Update a service.
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -71,7 +71,7 @@ export class ServicesController {
    * DELETE /services/:id — Soft delete.
    * Admin and Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.servicesService.softDelete(id);
@@ -81,7 +81,7 @@ export class ServicesController {
    * POST /services/:id/payments — Register a service payment.
    * Admin, Gerente, Ventas roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/payments')
   async registerPayment(
     @Param('id') id: string,

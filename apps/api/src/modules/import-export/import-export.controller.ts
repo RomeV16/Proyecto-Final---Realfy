@@ -13,7 +13,8 @@ import type { Response } from 'express';
 import { ImportExportService } from './import-export.service';
 import { ExportService } from './export.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole, ImportValidateRequestSchema, ImportExecuteRequestSchema } from '@realfy/shared';
+import { ImportValidateRequestSchema, ImportExecuteRequestSchema } from '@realfy/shared';
+import { MANAGEMENT_ROLES, SALES_ROLES } from '../../common/auth/role-groups';
 
 @Controller()
 export class ImportExportController {
@@ -28,7 +29,7 @@ export class ImportExportController {
    * POST /import/upload — Upload a CSV file, parse headers and sample rows.
    * Returns fileId for subsequent validate/execute calls.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post('import/upload')
   @UseInterceptors(FileInterceptor('file'))
   async upload(@UploadedFile() file: Express.Multer.File) {
@@ -53,7 +54,7 @@ export class ImportExportController {
    * POST /import/validate — Validate CSV data against entity schema.
    * Returns per-row errors and preview of valid rows.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post('import/validate')
   async validate(@Body() body: any) {
     const parsed = ImportValidateRequestSchema.safeParse(body);
@@ -76,7 +77,7 @@ export class ImportExportController {
    * POST /import/execute — Execute the import, creating entities.
    * Skips invalid rows and returns error details.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post('import/execute')
   async execute(@Body() body: any) {
     const parsed = ImportExecuteRequestSchema.safeParse(body);
@@ -100,7 +101,7 @@ export class ImportExportController {
   /**
    * GET /properties/export/csv — Download all properties as CSV.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Get('properties/export/csv')
   async exportPropertiesCsv(@Res() res: Response) {
     const { buffer, fileName } = await this.exportService.exportPropertiesCsv();
@@ -115,7 +116,7 @@ export class ImportExportController {
   /**
    * GET /properties/export/excel — Download all properties as Excel.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Get('properties/export/excel')
   async exportPropertiesExcel(@Res() res: Response) {
     const { buffer, fileName } = await this.exportService.exportPropertiesExcel();
@@ -132,7 +133,7 @@ export class ImportExportController {
   /**
    * GET /persons/export/csv — Download all persons as CSV.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Get('persons/export/csv')
   async exportPersonsCsv(@Res() res: Response) {
     const { buffer, fileName } = await this.exportService.exportPersonsCsv();
@@ -147,7 +148,7 @@ export class ImportExportController {
   /**
    * GET /persons/export/excel — Download all persons as Excel.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Get('persons/export/excel')
   async exportPersonsExcel(@Res() res: Response) {
     const { buffer, fileName } = await this.exportService.exportPersonsExcel();

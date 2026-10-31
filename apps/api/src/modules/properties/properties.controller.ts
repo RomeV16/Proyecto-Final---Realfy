@@ -15,7 +15,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { PropertiesService } from './properties.service';
 import { PropertyOwnershipsService } from './property-ownerships.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MANAGEMENT_ROLES, SALES_ROLES } from '../../common/auth/role-groups';
 
 @Controller('properties')
 export class PropertiesController {
@@ -60,7 +60,7 @@ export class PropertiesController {
    * POST /properties — Create a property.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post()
   async create(@Body() body: Record<string, any>) {
     return this.propertiesService.create(body);
@@ -70,7 +70,7 @@ export class PropertiesController {
    * PATCH /properties/:id — Update a property.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -83,7 +83,7 @@ export class PropertiesController {
    * DELETE /properties/:id — Soft delete.
    * Admin and Gerente only.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.propertiesService.softDelete(id);
@@ -95,7 +95,7 @@ export class PropertiesController {
    * POST /properties/:id/operations — Add a new operation.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/operations')
   async addOperation(
     @Param('id') id: string,
@@ -108,7 +108,7 @@ export class PropertiesController {
    * PATCH /properties/:id/operations/:opId/state — Transition state.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id/operations/:opId/state')
   async transitionState(
     @Param('id') id: string,
@@ -125,7 +125,7 @@ export class PropertiesController {
    * Multer memory storage, 10MB limit, image/* filter.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/media')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -156,7 +156,7 @@ export class PropertiesController {
    * DELETE /properties/:id/media/:mediaId — Remove an image.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Delete(':id/media/:mediaId')
   async deleteMedia(
     @Param('id') id: string,
@@ -169,7 +169,7 @@ export class PropertiesController {
    * PATCH /properties/:id/media/reorder — Reorder media.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Patch(':id/media/reorder')
   async reorderMedia(
     @Param('id') id: string,
@@ -193,7 +193,7 @@ export class PropertiesController {
    * POST /properties/:id/ownerships — Registra un titular.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Post(':id/ownerships')
   async addOwnership(@Param('id') id: string, @Body() body: Record<string, any>) {
     return this.ownerships.create(id, body);
@@ -203,7 +203,7 @@ export class PropertiesController {
    * DELETE /properties/:id/ownerships/:ownershipId — Quita un titular.
    * Ventas+ roles.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Roles(...SALES_ROLES)
   @Delete(':id/ownerships/:ownershipId')
   async removeOwnership(
     @Param('id') id: string,

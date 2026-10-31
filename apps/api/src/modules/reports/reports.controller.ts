@@ -11,7 +11,7 @@ import { ReportsService } from './reports.service';
 import { ReportExcelService } from './report-excel.service';
 import { ReportPdfService } from './report-pdf.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { BILLING_ROLES } from '../../common/auth/role-groups';
 
 const VALID_TYPES = ['ownerStatement', 'propertyProfitability', 'cashFlow', 'commissionSummary', 'pipelineAnalytics', 'morosidad'] as const;
 type ValidReportType = (typeof VALID_TYPES)[number];
@@ -36,7 +36,7 @@ export class ReportsController {
   /**
    * GET /reports/:type/excel — Download Excel (.xlsx) for a report type.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Get(':type/excel')
   async getExcel(
     @Param('type') type: string,
@@ -58,7 +58,7 @@ export class ReportsController {
   /**
    * GET /reports/:type/pdf — Download PDF for a report type.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Get(':type/pdf')
   async getPdf(
     @Param('type') type: string,
@@ -81,7 +81,7 @@ export class ReportsController {
    * GET /reports/:type — JSON data for a report type.
    * Filters passed as query params: from, to, ownerId, propertyId, contractId, pipelineId.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Get(':type')
   async getReport(
     @Param('type') type: string,

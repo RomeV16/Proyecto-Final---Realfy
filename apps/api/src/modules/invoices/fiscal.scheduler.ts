@@ -8,6 +8,8 @@ import { ArcaService } from './arca/arca.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { S3Service } from '../../common/media/s3.service';
 import { monthStartUTC, periodKey, todayInAR } from '@realfy/shared';
+import { findStaff } from '../../common/auth/find-staff';
+import { ADMIN_ONLY, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -139,14 +141,7 @@ export class FiscalScheduler extends CronBaseService {
             : `El certificado digital AFIP vence el ${cert.notAfter.toLocaleDateString('es-AR')} (${days} días restantes). Por favor renuévelo a la brevedad.`;
 
         // ── Notify Admin users ────────────────────────────────────────────────
-        const admins = await this.prisma.baseClient.user.findMany({
-          where: {
-            tenantId,
-            isActive: true,
-            role: { in: ['Admin'] },
-          },
-          select: { id: true },
-        });
+        const admins = await findStaff(this.prisma, tenantId, ADMIN_ONLY, { id: true });
 
         for (const admin of admins) {
           await this.notifications.createNotification({
@@ -249,14 +244,7 @@ export class FiscalScheduler extends CronBaseService {
             );
 
             // Notify tenant admins
-            const admins = await this.prisma.baseClient.user.findMany({
-              where: {
-                tenantId: issuer.tenantId,
-                isActive: true,
-                role: { in: ['Admin'] },
-              },
-              select: { id: true },
-            });
+            const admins = await findStaff(this.prisma, issuer.tenantId, ADMIN_ONLY, { id: true });
 
             for (const admin of admins) {
               await this.notifications.createNotification({
@@ -373,14 +361,7 @@ export class FiscalScheduler extends CronBaseService {
         });
 
         // ── Notify tenant admins ──────────────────────────────────────────────
-        const admins = await this.prisma.baseClient.user.findMany({
-          where: {
-            tenantId: tenant.id,
-            isActive: true,
-            role: { in: ['Admin', 'Gerente'] },
-          },
-          select: { id: true },
-        });
+        const admins = await findStaff(this.prisma, tenant.id, MANAGEMENT_ROLES, { id: true });
 
         for (const admin of admins) {
           await this.notifications.createNotification({

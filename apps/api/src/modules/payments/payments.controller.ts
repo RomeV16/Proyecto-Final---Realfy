@@ -1,14 +1,14 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { BILLING_READ_ROLES } from '../../common/auth/role-groups';
 
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
   @Get()
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones, UserRole.Lectura)
+  @Roles(...BILLING_READ_ROLES)
   list(@Query('page') page?: string, @Query('limit') limit?: string) {
     return this.paymentsService.list(
       page ? parseInt(page, 10) : 1,
@@ -17,7 +17,7 @@ export class PaymentsController {
   }
 
   @Get('debt')
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones, UserRole.Lectura)
+  @Roles(...BILLING_READ_ROLES)
   debt() {
     return this.paymentsService.debtSummary();
   }

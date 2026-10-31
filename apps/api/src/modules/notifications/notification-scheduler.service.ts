@@ -5,6 +5,8 @@ import { CronBaseService } from '../../common/scheduler/cron.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
 import { NotificationEmailService } from './notification-email.service';
+import { findStaff } from '../../common/auth/find-staff';
+import { BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 /** Los avisos diarios salen a las 08:00 de Buenos Aires. */
 const DAILY_08_AR = { timeZone: 'America/Argentina/Buenos_Aires' } as const;
@@ -85,14 +87,7 @@ export class NotificationSchedulerService extends CronBaseService {
           if (dueServices.length === 0) continue;
 
           // Get Admin/Gerente users in this tenant
-          const users = await this.prisma.baseClient.user.findMany({
-            where: {
-              tenantId: tenant.id,
-              isActive: true,
-              role: { in: ['Admin', 'Gerente'] },
-            },
-            select: { id: true, email: true },
-          });
+          const users = await findStaff(this.prisma, tenant.id, MANAGEMENT_ROLES, { id: true, email: true });
 
           for (const service of dueServices) {
             for (const user of users) {
@@ -157,14 +152,7 @@ export class NotificationSchedulerService extends CronBaseService {
 
           if (contracts.length === 0) continue;
 
-          const users = await this.prisma.baseClient.user.findMany({
-            where: {
-              tenantId: tenant.id,
-              isActive: true,
-              role: { in: ['Admin', 'Gerente'] },
-            },
-            select: { id: true, email: true },
-          });
+          const users = await findStaff(this.prisma, tenant.id, MANAGEMENT_ROLES, { id: true, email: true });
 
           for (const contract of contracts) {
             const daysLeft = Math.ceil((contract.endDate.getTime() - today.getTime()) / DAY_MS);
@@ -260,14 +248,7 @@ export class NotificationSchedulerService extends CronBaseService {
 
           if (liquidaciones.length === 0) continue;
 
-          const users = await this.prisma.baseClient.user.findMany({
-            where: {
-              tenantId: tenant.id,
-              isActive: true,
-              role: { in: ['Admin', 'Gerente', 'Liquidaciones'] },
-            },
-            select: { id: true, email: true },
-          });
+          const users = await findStaff(this.prisma, tenant.id, BILLING_ROLES, { id: true, email: true });
 
           for (const liq of liquidaciones) {
             const periodStr = liq.period.toLocaleDateString('es-AR', {
@@ -382,14 +363,7 @@ export class NotificationSchedulerService extends CronBaseService {
               notificationsCreated++;
             } else {
               // Fallback: notify Admin/Gerente users in this tenant
-              const admins = await this.prisma.baseClient.user.findMany({
-                where: {
-                  tenantId: tenant.id,
-                  isActive: true,
-                  role: { in: ['Admin', 'Gerente'] },
-                },
-                select: { id: true },
-              });
+              const admins = await findStaff(this.prisma, tenant.id, MANAGEMENT_ROLES, { id: true });
 
               for (const admin of admins) {
                 await this.notificationsService.createNotification({

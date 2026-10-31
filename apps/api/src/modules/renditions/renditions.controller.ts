@@ -12,7 +12,7 @@ import {
 import type { Response } from 'express';
 import { RenditionsService } from './renditions.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('renditions')
 export class RenditionsController {
@@ -21,7 +21,7 @@ export class RenditionsController {
   /**
    * POST /renditions/generate — Generate a rendition for a contract + period.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Post('generate')
   async generate(@Body() body: Record<string, any>) {
     return this.renditionsService.generate(body);
@@ -53,7 +53,7 @@ export class RenditionsController {
   /**
    * PATCH /renditions/:id/transition — State transition.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Patch(':id/transition')
   async transition(
     @Param('id') id: string,
@@ -79,7 +79,7 @@ export class RenditionsController {
   /**
    * POST /renditions/:id/send — Send rendition email with PDF.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Post(':id/send')
   async sendEmail(@Param('id') id: string) {
     return this.renditionsService.sendEmail(id);
@@ -88,7 +88,7 @@ export class RenditionsController {
   /**
    * POST /renditions/:id/line-items — Add a line item.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Post(':id/line-items')
   async addLineItem(
     @Param('id') id: string,
@@ -100,7 +100,7 @@ export class RenditionsController {
   /**
    * DELETE /renditions/:id/line-items/:itemId — Remove a line item.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Delete(':id/line-items/:itemId')
   async removeLineItem(
     @Param('id') id: string,
@@ -112,7 +112,7 @@ export class RenditionsController {
   /**
    * PATCH /renditions/:id/notes — Update notes.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones)
+  @Roles(...BILLING_ROLES)
   @Patch(':id/notes')
   async updateNotes(
     @Param('id') id: string,
@@ -132,7 +132,7 @@ export class CommissionsController {
   /**
    * POST /contracts/:contractId/commission — Create/update commission config.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Post(':contractId/commission')
   async createCommission(
     @Param('contractId') contractId: string,
@@ -152,7 +152,7 @@ export class CommissionsController {
   /**
    * DELETE /contracts/:contractId/commission — Delete commission config.
    */
-  @Roles(UserRole.Admin, UserRole.Gerente)
+  @Roles(...MANAGEMENT_ROLES)
   @Delete(':contractId/commission')
   async deleteCommission(@Param('contractId') contractId: string) {
     return this.renditionsService.deleteCommission(contractId);

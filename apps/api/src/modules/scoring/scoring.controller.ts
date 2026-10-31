@@ -9,10 +9,10 @@ import {
 } from '@nestjs/common';
 import { ScoringService } from './scoring.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { UserRole } from '@realfy/shared';
+import { MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('scoring')
-@Roles(UserRole.Admin, UserRole.Gerente)
+@Roles(...MANAGEMENT_ROLES)
 export class ScoringController {
   constructor(private readonly scoringService: ScoringService) {}
 

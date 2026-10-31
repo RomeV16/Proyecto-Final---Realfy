@@ -1,0 +1,900 @@
+{
+  "src/modules/ai/ai.controller.ts#AiController.getPriorities": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/ai/ai.controller.ts#AiController.getClosureSummary": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/ai/ai.controller.ts#AiController.generateClosureSummary": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/audit-logs/audit-logs.controller.ts#AuditLogsController.findAll": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/auth/auth.controller.ts#AuthController.register": null,
+  "src/modules/auth/auth.controller.ts#AuthController.login": null,
+  "src/modules/auth/auth.controller.ts#AuthController.refresh": null,
+  "src/modules/auth/auth.controller.ts#AuthController.changePassword": null,
+  "src/modules/auth/auth.controller.ts#AuthController.requestPasswordReset": null,
+  "src/modules/auth/auth.controller.ts#AuthController.confirmPasswordReset": null,
+  "src/modules/auth/auth.controller.ts#AuthController.logout": null,
+  "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.findAll": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.seedDefaults": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.findOne": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.create": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.update": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.remove": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.getAvailableTemplates": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.getTemplateVariables": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.generateDocument": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.findAll": null,
+  "src/modules/contracts/contracts.controller.ts#ContractsController.findOne": null,
+  "src/modules/contracts/contracts.controller.ts#ContractsController.create": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.update": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.activate": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.terminate": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.calculateAdjustment": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.applyAdjustment": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.findAdjustments": null,
+  "src/modules/contracts/contracts.controller.ts#ContractsController.previewAdjustment": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.listLessors": null,
+  "src/modules/contracts/contracts.controller.ts#ContractsController.addLessor": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.replaceLessors": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.updateLessor": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/contracts/contracts.controller.ts#ContractsController.removeLessor": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/dashboard/dashboard.controller.ts#DashboardController.getStats": null,
+  "src/modules/dashboard/dashboard.controller.ts#DashboardController.getOccupancyTrend": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/dashboard/dashboard.controller.ts#DashboardController.getProfitability": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/dashboard/dashboard.controller.ts#DashboardController.getCashFlow": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/dashboard/dashboard.controller.ts#DashboardController.getDelinquencyRate": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/dashboard/dashboard.controller.ts#DashboardController.getFiscalStats": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/email-templates/email-templates.controller.ts#EmailTemplatesController.findAll": [
+    "Admin",
+    "Gerente",
+    "Marketing"
+  ],
+  "src/modules/email-templates/email-templates.controller.ts#EmailTemplatesController.findOne": [
+    "Admin",
+    "Gerente",
+    "Marketing"
+  ],
+  "src/modules/email-templates/email-templates.controller.ts#EmailTemplatesController.create": [
+    "Admin",
+    "Gerente",
+    "Marketing"
+  ],
+  "src/modules/email-templates/email-templates.controller.ts#EmailTemplatesController.update": [
+    "Admin",
+    "Gerente",
+    "Marketing"
+  ],
+  "src/modules/email-templates/email-templates.controller.ts#EmailTemplatesController.remove": [
+    "Admin",
+    "Gerente",
+    "Marketing"
+  ],
+  "src/modules/email-templates/email-templates.controller.ts#EmailTemplatesController.preview": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Ventas"
+  ],
+  "src/modules/email-templates/email-templates.controller.ts#EmailTemplatesController.sendEmail": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Ventas"
+  ],
+  "src/modules/import-export/import-export.controller.ts#ImportExportController.upload": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/import-export/import-export.controller.ts#ImportExportController.validate": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/import-export/import-export.controller.ts#ImportExportController.execute": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/import-export/import-export.controller.ts#ImportExportController.exportPropertiesCsv": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/import-export/import-export.controller.ts#ImportExportController.exportPropertiesExcel": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/import-export/import-export.controller.ts#ImportExportController.exportPersonsCsv": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/import-export/import-export.controller.ts#ImportExportController.exportPersonsExcel": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/index-data/index-data.controller.ts#IndexDataController.findAll": null,
+  "src/modules/index-data/index-data.controller.ts#IndexDataController.create": [
+    "Admin"
+  ],
+  "src/modules/index-data/index-data.controller.ts#IndexDataController.createBulk": [
+    "Admin"
+  ],
+  "src/modules/index-data/index-data.controller.ts#IndexDataController.delete": [
+    "Admin"
+  ],
+  "src/modules/index-data/index-data.controller.ts#IndexDataController.getLatest": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/index-data/index-data.controller.ts#IndexDataController.refresh": [
+    "Admin"
+  ],
+  "src/modules/interactions/interactions.controller.ts#InteractionsController.createInteraction": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/interactions/interactions.controller.ts#InteractionsController.findInteractions": null,
+  "src/modules/interactions/interactions.controller.ts#InteractionsController.createVisit": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/interactions/interactions.controller.ts#InteractionsController.findVisits": null,
+  "src/modules/interactions/interactions.controller.ts#InteractionsController.updateVisit": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.previewEmit": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.emitInvoice": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.emitNotaCredito": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.findAll": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.getCertificate": [
+    "Admin"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.uploadCertificate": [
+    "Admin"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.deleteCertificate": [
+    "Admin"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.healthcheck": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.getParamCache": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.padronLookup": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.listIssuers": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.createIssuer": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.updateIssuer": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.deleteIssuer": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.verifyDelegation": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.syncPdv": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.listPdv": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.createPdv": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.deletePdv": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.voidComprobante": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.getPdf": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/invoices/invoices.controller.ts#InvoicesController.findOne": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/leads/leads.controller.ts#LeadsController.findAll": null,
+  "src/modules/leads/leads.controller.ts#LeadsController.findOne": null,
+  "src/modules/leads/leads.controller.ts#LeadsController.create": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/leads/leads.controller.ts#LeadsController.update": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/leads/leads.controller.ts#LeadsController.moveStage": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/leads/leads.controller.ts#LeadsController.assign": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/leads/leads.controller.ts#LeadsController.convert": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/leads/leads.controller.ts#LeadsController.lose": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/leads/leads.controller.ts#LeadsController.remove": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.findAll": null,
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.generate": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.bulkApprove": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.bulkSend": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.findOne": null,
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.getPdf": null,
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.addLineItem": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.updateLineItem": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.removeLineItem": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.transition": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.registerPayment": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.findPayments": null,
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.remove": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/notifications/notifications.controller.ts#NotificationsController.run": [
+    "Admin"
+  ],
+  "src/modules/notifications/notifications.controller.ts#NotificationsController.findAll": null,
+  "src/modules/notifications/notifications.controller.ts#NotificationsController.getUnreadCount": null,
+  "src/modules/notifications/notifications.controller.ts#NotificationsController.markAsRead": null,
+  "src/modules/notifications/notifications.controller.ts#NotificationsController.markAllAsRead": null,
+  "src/modules/payments/payments.controller.ts#PaymentsController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/payments/payments.controller.ts#PaymentsController.debt": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.listPenalties": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.getDelinquentTenants": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.getDelinquentTenantsCount": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.waivePenalty": [
+    "Admin"
+  ],
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.getPenaltyConfig": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.updatePenaltyConfig": [
+    "Admin"
+  ],
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.previewPenalty": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.run": [
+    "Admin"
+  ],
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.runNow": null,
+  "src/modules/persons/persons.controller.ts#PersonsController.findAll": null,
+  "src/modules/persons/persons.controller.ts#PersonsController.findOne": null,
+  "src/modules/persons/persons.controller.ts#PersonsController.create": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.update": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.remove": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.assignRole": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.removeRole": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.listBankAccounts": null,
+  "src/modules/persons/persons.controller.ts#PersonsController.createBankAccount": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.updateBankAccount": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.removeBankAccount": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.uploadDocument": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.deleteDocument": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.createPortalInvitation": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.listPowers": null,
+  "src/modules/persons/persons.controller.ts#PersonsController.createPower": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.updatePower": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/persons/persons.controller.ts#PersonsController.removePower": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/pipelines/pipelines.controller.ts#PipelinesController.create": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/pipelines/pipelines.controller.ts#PipelinesController.findAll": null,
+  "src/modules/pipelines/pipelines.controller.ts#PipelinesController.findOne": null,
+  "src/modules/pipelines/pipelines.controller.ts#PipelinesController.update": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/pipelines/pipelines.controller.ts#PipelinesController.remove": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/pipelines/pipelines.controller.ts#PipelinesController.addStage": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/pipelines/pipelines.controller.ts#PipelinesController.reorderStages": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/pipelines/pipelines.controller.ts#PipelinesController.updateStage": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/pipelines/pipelines.controller.ts#PipelinesController.removeStage": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/portal-auth/portal-auth.controller.ts#PortalAuthController.login": null,
+  "src/modules/portal-auth/portal-auth.controller.ts#PortalAuthController.refresh": null,
+  "src/modules/portal-auth/portal-auth.controller.ts#PortalAuthController.setPassword": null,
+  "src/modules/portal-auth/portal-auth.controller.ts#PortalAuthController.logout": null,
+  "src/modules/portal/portal.controller.ts#PortalController.getContracts": null,
+  "src/modules/portal/portal.controller.ts#PortalController.getLiquidaciones": null,
+  "src/modules/portal/portal.controller.ts#PortalController.getLiquidacionPdf": null,
+  "src/modules/portal/portal.controller.ts#PortalController.getCategories": null,
+  "src/modules/portal/portal.controller.ts#PortalController.getTickets": null,
+  "src/modules/portal/portal.controller.ts#PortalController.createTicket": null,
+  "src/modules/portal/portal.controller.ts#PortalController.getTicketDetail": null,
+  "src/modules/portal/portal.controller.ts#PortalController.addComment": null,
+  "src/modules/properties/properties.controller.ts#PropertiesController.findAll": null,
+  "src/modules/properties/properties.controller.ts#PropertiesController.findOne": null,
+  "src/modules/properties/properties.controller.ts#PropertiesController.create": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/properties/properties.controller.ts#PropertiesController.update": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/properties/properties.controller.ts#PropertiesController.remove": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/properties/properties.controller.ts#PropertiesController.addOperation": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/properties/properties.controller.ts#PropertiesController.transitionState": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/properties/properties.controller.ts#PropertiesController.uploadMedia": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/properties/properties.controller.ts#PropertiesController.deleteMedia": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/properties/properties.controller.ts#PropertiesController.reorderMedia": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/properties/properties.controller.ts#PropertiesController.listOwnerships": null,
+  "src/modules/properties/properties.controller.ts#PropertiesController.addOwnership": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/properties/properties.controller.ts#PropertiesController.removeOwnership": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/providers/providers.controller.ts#ProvidersController.create": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/providers/providers.controller.ts#ProvidersController.findAll": null,
+  "src/modules/providers/providers.controller.ts#ProvidersController.findForTicket": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/providers/providers.controller.ts#ProvidersController.findOne": null,
+  "src/modules/providers/providers.controller.ts#ProvidersController.update": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/providers/providers.controller.ts#ProvidersController.remove": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/public/public.controller.ts#PublicController.getProfile": null,
+  "src/modules/public/public.controller.ts#PublicController.listProperties": null,
+  "src/modules/public/public.controller.ts#PublicController.getProperty": null,
+  "src/modules/public/public.controller.ts#PublicController.createInquiry": null,
+  "src/modules/renditions/renditions.controller.ts#RenditionsController.generate": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/renditions/renditions.controller.ts#RenditionsController.findAll": null,
+  "src/modules/renditions/renditions.controller.ts#RenditionsController.findOne": null,
+  "src/modules/renditions/renditions.controller.ts#RenditionsController.transition": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/renditions/renditions.controller.ts#RenditionsController.getPdf": null,
+  "src/modules/renditions/renditions.controller.ts#RenditionsController.sendEmail": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/renditions/renditions.controller.ts#RenditionsController.addLineItem": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/renditions/renditions.controller.ts#RenditionsController.removeLineItem": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/renditions/renditions.controller.ts#RenditionsController.updateNotes": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/renditions/renditions.controller.ts#CommissionsController.createCommission": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/renditions/renditions.controller.ts#CommissionsController.getCommission": null,
+  "src/modules/renditions/renditions.controller.ts#CommissionsController.deleteCommission": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/reports/report-schedule.controller.ts#ReportScheduleController.findAll": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/reports/report-schedule.controller.ts#ReportScheduleController.create": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/reports/report-schedule.controller.ts#ReportScheduleController.update": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/reports/report-schedule.controller.ts#ReportScheduleController.remove": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/reports/reports.controller.ts#ReportsController.getExcel": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/reports/reports.controller.ts#ReportsController.getPdf": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/reports/reports.controller.ts#ReportsController.getReport": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/scoring/scoring.controller.ts#ScoringController.getConfig": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/scoring/scoring.controller.ts#ScoringController.updateConfig": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/scoring/scoring.controller.ts#ScoringController.getPersonScore": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/scoring/scoring.controller.ts#ScoringController.upsertPersonScore": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/services/services.controller.ts#ServicesController.findAll": null,
+  "src/modules/services/services.controller.ts#ServicesController.findOne": null,
+  "src/modules/services/services.controller.ts#ServicesController.create": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/services/services.controller.ts#ServicesController.update": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/services/services.controller.ts#ServicesController.remove": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/services/services.controller.ts#ServicesController.registerPayment": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/tenants/tenants.controller.ts#TenantsController.create": null,
+  "src/modules/tenants/tenants.controller.ts#TenantsController.update": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/tenants/tenants.controller.ts#TenantsController.findMine": null,
+  "src/modules/tickets/ticket-categories.controller.ts#TicketCategoriesController.create": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/tickets/ticket-categories.controller.ts#TicketCategoriesController.findAll": null,
+  "src/modules/tickets/ticket-categories.controller.ts#TicketCategoriesController.update": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/tickets/ticket-categories.controller.ts#TicketCategoriesController.remove": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.create": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.findAll": null,
+  "src/modules/tickets/tickets.controller.ts#TicketsController.findOne": null,
+  "src/modules/tickets/tickets.controller.ts#TicketsController.update": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.transition": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.assignProvider": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.updateCost": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.addComment": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.listComments": null,
+  "src/modules/users/users.controller.ts#UsersController.findAll": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/users/users.controller.ts#UsersController.invite": [
+    "Admin"
+  ],
+  "src/modules/users/users.controller.ts#UsersController.acceptInvitation": null,
+  "src/modules/users/users.controller.ts#UsersController.updateMe": null,
+  "src/modules/users/users.controller.ts#UsersController.update": [
+    "Admin"
+  ],
+  "src/modules/users/users.controller.ts#UsersController.deactivate": [
+    "Admin"
+  ],
+  "src/modules/users/users.controller.ts#UsersController.reactivate": [
+    "Admin"
+  ],
+  "src/modules/users/users.controller.ts#UsersController.resendInvitation": [
+    "Admin"
+  ],
+  "src/modules/users/users.controller.ts#UsersController.passwordResetLink": [
+    "Admin"
+  ],
+  "src/modules/valuations/valuations.controller.ts#ValuationsController.findAll": null,
+  "src/modules/valuations/valuations.controller.ts#ValuationsController.findComparables": null,
+  "src/modules/valuations/valuations.controller.ts#ValuationsController.findOne": null,
+  "src/modules/valuations/valuations.controller.ts#ValuationsController.create": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/valuations/valuations.controller.ts#ValuationsController.update": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/valuations/valuations.controller.ts#ValuationsController.remove": [
+    "Admin",
+    "Gerente"
+  ]
+}
