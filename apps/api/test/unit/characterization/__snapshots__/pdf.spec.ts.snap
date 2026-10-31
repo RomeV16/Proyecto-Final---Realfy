@@ -1,0 +1,2656 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Caracterización de PDF comprobante fiscal 1`] = `
+{
+  "content": [
+    {
+      "columns": [
+        {
+          "stack": [
+            {
+              "style": "header",
+              "text": "Inmobiliaria Demo",
+            },
+            {
+              "fontSize": 9,
+              "text": "CUIT: 30-11111111-1",
+            },
+            {
+              "fontSize": 9,
+              "text": "Calle 1",
+            },
+            {
+              "fontSize": 9,
+              "text": "IVA Responsable Inscripto",
+            },
+          ],
+          "width": "*",
+        },
+        {
+          "alignment": "center",
+          "stack": [
+            {
+              "layout": {
+                "hLineWidth": 2,
+                "vLineWidth": 2,
+              },
+              "table": {
+                "body": [
+                  [
+                    {
+                      "alignment": "center",
+                      "bold": true,
+                      "fontSize": 24,
+                      "text": "C",
+                    },
+                  ],
+                ],
+                "widths": [
+                  40,
+                ],
+              },
+            },
+          ],
+          "width": 50,
+        },
+        {
+          "stack": [
+            {
+              "alignment": "right",
+              "style": "header",
+              "text": "Factura C",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "fontSize": 12,
+              "text": "Nº 0003-00000045",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 9,
+              "text": "Fecha: 10/6/2025",
+            },
+          ],
+          "width": "*",
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+    },
+    {
+      "canvas": [
+        {
+          "lineWidth": 1,
+          "type": "line",
+          "x1": 0,
+          "x2": 515,
+          "y1": 0,
+          "y2": 0,
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+    },
+    {
+      "columns": [
+        {
+          "stack": [
+            {
+              "bold": true,
+              "fontSize": 10,
+              "text": "Señor/a: Receptor Demo SA",
+            },
+            {
+              "fontSize": 9,
+              "text": "CUIT: 20-22222222-2",
+            },
+            {
+              "fontSize": 9,
+              "text": "Condición IVA: Consumidor Final",
+            },
+          ],
+          "width": "*",
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+    },
+    {
+      "canvas": [
+        {
+          "lineWidth": 0.5,
+          "type": "line",
+          "x1": 0,
+          "x2": 515,
+          "y1": 0,
+          "y2": 0,
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "table": {
+        "body": [
+          [
+            {
+              "bold": true,
+              "text": "Concepto",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "text": "Importe",
+            },
+          ],
+          [
+            "Servicios de alquiler",
+            {
+              "alignment": "right",
+              "text": "$ 121.000,00",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "*",
+          "auto",
+        ],
+      },
+    },
+    {
+      "columns": [
+        {
+          "text": "",
+          "width": "*",
+        },
+        {
+          "layout": "noBorders",
+          "table": {
+            "body": [
+              [
+                {
+                  "bold": true,
+                  "fontSize": 12,
+                  "text": "Total:",
+                },
+                {
+                  "alignment": "right",
+                  "bold": true,
+                  "fontSize": 12,
+                  "text": "$ 121.000,00",
+                },
+              ],
+            ],
+          },
+          "width": "auto",
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+    },
+    {
+      "canvas": [
+        {
+          "lineWidth": 0.5,
+          "type": "line",
+          "x1": 0,
+          "x2": 515,
+          "y1": 0,
+          "y2": 0,
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+    },
+    {
+      "columns": [
+        {
+          "stack": [
+            {
+              "bold": true,
+              "fontSize": 10,
+              "text": "CAE: 75123456789012",
+            },
+            {
+              "fontSize": 9,
+              "text": "Fecha de Vencimiento CAE: 10/7/2025",
+            },
+          ],
+          "width": "*",
+        },
+        {
+          "alignment": "right",
+          "fit": [
+            150,
+            150,
+          ],
+          "image": "[imagen 6398 caracteres]",
+          "width": 160,
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 10,
+  },
+  "footer": {
+    "columns": [
+      {
+        "fontSize": 8,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "CUIT: 30-11111111-1",
+      },
+      {
+        "alignment": "right",
+        "fontSize": 8,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 16,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF contrato 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        0,
+        0,
+        5,
+      ],
+      "style": "header",
+      "text": "Inmobiliaria Demo",
+    },
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        5,
+        0,
+        15,
+      ],
+      "style": "title",
+      "text": "Contrato de locación",
+    },
+    {
+      "margin": [
+        0,
+        1,
+        0,
+        1,
+      ],
+      "text": "Primera línea",
+    },
+    {
+      "fontSize": 6,
+      "margin": [
+        0,
+        2,
+        0,
+        2,
+      ],
+      "text": " ",
+    },
+    {
+      "margin": [
+        0,
+        1,
+        0,
+        1,
+      ],
+      "text": "Segunda línea",
+    },
+    {
+      "margin": [
+        0,
+        1,
+        0,
+        1,
+      ],
+      "text": "Tercera",
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 10,
+    "lineHeight": 1.3,
+  },
+  "footer": {
+    "columns": [
+      {
+        "fontSize": 8,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Contrato de locación",
+      },
+      {
+        "alignment": "right",
+        "fontSize": 8,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "pageMargins": [
+    40,
+    40,
+    40,
+    40,
+  ],
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 16,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 13,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF contrato sin nombre de inmobiliaria 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        5,
+        0,
+        15,
+      ],
+      "style": "title",
+      "text": "Sin nombre",
+    },
+    {
+      "margin": [
+        0,
+        1,
+        0,
+        1,
+      ],
+      "text": "Texto",
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 10,
+    "lineHeight": 1.3,
+  },
+  "footer": {
+    "columns": [
+      {
+        "fontSize": 8,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Sin nombre",
+      },
+      {
+        "alignment": "right",
+        "fontSize": 8,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "pageMargins": [
+    40,
+    40,
+    40,
+    40,
+  ],
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 16,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 13,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF liquidación 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "style": "header",
+      "text": "Inmobiliaria Demo",
+    },
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "text": "CUIT: 30-11111111-1",
+    },
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        10,
+        0,
+        5,
+      ],
+      "style": "title",
+      "text": "LIQUIDACIÓN",
+    },
+    {
+      "columns": [
+        {
+          "text": "Período: marzo de 2025",
+          "width": "*",
+        },
+        {
+          "text": "Vencimiento: 20/3/2025",
+          "width": "auto",
+        },
+      ],
+      "margin": [
+        0,
+        10,
+        0,
+        5,
+      ],
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "text": "Propiedad: Calle Falsa 123, piso 2 B",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "text": "Moneda: ARS",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "table": {
+        "body": [
+          [
+            {
+              "bold": true,
+              "text": "Tipo",
+            },
+            {
+              "bold": true,
+              "text": "Descripción",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "text": "Monto",
+            },
+          ],
+          [
+            {
+              "text": "Alquiler",
+            },
+            {
+              "text": "Alquiler marzo",
+            },
+            {
+              "alignment": "right",
+              "text": "150.000,50",
+            },
+          ],
+          [
+            {
+              "fillColor": "#FEF2F2",
+              "text": [
+                {
+                  "bold": true,
+                  "color": "#991B1B",
+                  "text": "Multa",
+                },
+              ],
+            },
+            {
+              "fillColor": "#FEF2F2",
+              "text": "Mora de 5 días de mora — 5 días de mora",
+            },
+            {
+              "alignment": "right",
+              "fillColor": "#FEF2F2",
+              "text": "2.499,50",
+            },
+          ],
+          [
+            {
+              "fillColor": "#FEF2F2",
+              "text": [
+                {
+                  "bold": true,
+                  "color": "#991B1B",
+                  "text": "Multa",
+                },
+              ],
+            },
+            {
+              "fillColor": "#FEF2F2",
+              "text": "Recargo — 3 días de mora",
+            },
+            {
+              "alignment": "right",
+              "fillColor": "#FEF2F2",
+              "text": "1.000,00",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "auto",
+        ],
+      },
+    },
+    {
+      "columns": [
+        {
+          "text": "",
+          "width": "*",
+        },
+        {
+          "layout": "noBorders",
+          "table": {
+            "body": [
+              [
+                {
+                  "bold": true,
+                  "text": "Subtotal:",
+                },
+                {
+                  "alignment": "right",
+                  "text": "$ 150.000,50",
+                },
+              ],
+              [
+                {
+                  "bold": true,
+                  "text": "Total:",
+                },
+                {
+                  "alignment": "right",
+                  "bold": true,
+                  "text": "$ 152.500,00",
+                },
+              ],
+            ],
+          },
+          "width": "auto",
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+    },
+    {
+      "margin": [
+        0,
+        10,
+        0,
+        5,
+      ],
+      "style": "subheader",
+      "text": "Pagos registrados",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "table": {
+        "body": [
+          [
+            {
+              "bold": true,
+              "text": "Método",
+            },
+            {
+              "bold": true,
+              "text": "Referencia",
+            },
+            {
+              "bold": true,
+              "text": "Fecha",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "text": "Monto",
+            },
+          ],
+          [
+            "Transferencia",
+            "—",
+            "18/3/2025",
+            {
+              "alignment": "right",
+              "text": "$ 152.500,00",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "auto",
+          "auto",
+        ],
+      },
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 10,
+  },
+  "footer": {
+    "columns": [
+      {
+        "fontSize": 8,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "CUIT: 30-11111111-1",
+      },
+      {
+        "alignment": "right",
+        "fontSize": 8,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 18,
+    },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF liquidación sin CUIT ni pagos 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "style": "header",
+      "text": "Inmobiliaria Demo",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "text": "",
+    },
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        10,
+        0,
+        5,
+      ],
+      "style": "title",
+      "text": "LIQUIDACIÓN",
+    },
+    {
+      "columns": [
+        {
+          "text": "Período: abril de 2025",
+          "width": "*",
+        },
+        {
+          "text": "Vencimiento: 20/4/2025",
+          "width": "auto",
+        },
+      ],
+      "margin": [
+        0,
+        10,
+        0,
+        5,
+      ],
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "text": "Propiedad: —",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "text": "Moneda: USD",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "table": {
+        "body": [
+          [
+            {
+              "bold": true,
+              "text": "Tipo",
+            },
+            {
+              "bold": true,
+              "text": "Descripción",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "text": "Monto",
+            },
+          ],
+          [
+            {
+              "text": "Alquiler",
+            },
+            {
+              "text": "Alquiler abril",
+            },
+            {
+              "alignment": "right",
+              "text": "1.000,00",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "auto",
+        ],
+      },
+    },
+    {
+      "columns": [
+        {
+          "text": "",
+          "width": "*",
+        },
+        {
+          "layout": "noBorders",
+          "table": {
+            "body": [
+              [
+                {
+                  "bold": true,
+                  "text": "Subtotal:",
+                },
+                {
+                  "alignment": "right",
+                  "text": "$ 1.000,00",
+                },
+              ],
+              [
+                {
+                  "bold": true,
+                  "text": "Total:",
+                },
+                {
+                  "alignment": "right",
+                  "bold": true,
+                  "text": "$ 1.000,00",
+                },
+              ],
+            ],
+          },
+          "width": "auto",
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 10,
+  },
+  "footer": {
+    "columns": [
+      {
+        "text": "",
+      },
+      {
+        "alignment": "right",
+        "fontSize": 8,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 18,
+    },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF rendición 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "style": "header",
+      "text": "Inmobiliaria Demo",
+    },
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "text": "CUIT: 30-11111111-1",
+    },
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        10,
+        0,
+        5,
+      ],
+      "style": "title",
+      "text": "RENDICIÓN DE ALQUILERES",
+    },
+    {
+      "alignment": "center",
+      "fontSize": 12,
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "text": "03/2025",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        5,
+      ],
+      "style": "subheader",
+      "text": "Datos del propietario",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        3,
+      ],
+      "text": "Propietario: Ana Pérez",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        3,
+      ],
+      "text": "Propiedad: —",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "text": "Contrato #abcdef12",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "table": {
+        "body": [
+          [
+            {
+              "bold": true,
+              "text": "Tipo",
+            },
+            {
+              "bold": true,
+              "text": "Descripción",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "text": "Monto",
+            },
+          ],
+          [
+            "Alquiler",
+            "Alquiler marzo",
+            {
+              "alignment": "right",
+              "color": "#000000",
+              "text": " $ 150.000,00",
+            },
+          ],
+          [
+            "Comision",
+            "Comisión 5%",
+            {
+              "alignment": "right",
+              "color": "#CC0000",
+              "text": "- $ 7.500,00",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "auto",
+        ],
+      },
+    },
+    {
+      "margin": [
+        0,
+        10,
+        0,
+        5,
+      ],
+      "style": "subheader",
+      "text": "Resumen",
+    },
+    {
+      "columns": [
+        {
+          "text": "",
+          "width": "*",
+        },
+        {
+          "layout": "noBorders",
+          "table": {
+            "body": [
+              [
+                {
+                  "bold": false,
+                  "text": "Total cobrado:",
+                },
+                {
+                  "alignment": "right",
+                  "text": "$ 150.000,00",
+                },
+              ],
+              [
+                {
+                  "bold": false,
+                  "text": "Comisión:",
+                },
+                {
+                  "alignment": "right",
+                  "color": "#CC0000",
+                  "text": "- $ 7.500,00",
+                },
+              ],
+              [
+                {
+                  "bold": false,
+                  "text": "Honorarios admin:",
+                },
+                {
+                  "alignment": "right",
+                  "color": "#CC0000",
+                  "text": "- $ 1.000,00",
+                },
+              ],
+              [
+                {
+                  "bold": false,
+                  "text": "Deducciones:",
+                },
+                {
+                  "alignment": "right",
+                  "color": "#CC0000",
+                  "text": "- $ 500,25",
+                },
+              ],
+              [
+                {
+                  "bold": true,
+                  "text": "Depósito neto:",
+                },
+                {
+                  "alignment": "right",
+                  "bold": true,
+                  "fontSize": 12,
+                  "text": "$ 140.999,75",
+                },
+              ],
+            ],
+          },
+          "width": "auto",
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+    },
+    {
+      "margin": [
+        0,
+        10,
+        0,
+        5,
+      ],
+      "style": "subheader",
+      "text": "Notas",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "text": "Sin novedades",
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 10,
+  },
+  "footer": {
+    "columns": [
+      {
+        "fontSize": 8,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Generado: 15/6/2025",
+      },
+      {
+        "alignment": "right",
+        "fontSize": 8,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 18,
+    },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF rendición sin propietario, contrato ni notas 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "style": "header",
+      "text": "Inmobiliaria Demo",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "text": "",
+    },
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        10,
+        0,
+        5,
+      ],
+      "style": "title",
+      "text": "RENDICIÓN DE ALQUILERES",
+    },
+    {
+      "alignment": "center",
+      "fontSize": 12,
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "text": "04/2025",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        5,
+      ],
+      "style": "subheader",
+      "text": "Datos del propietario",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        3,
+      ],
+      "text": "Propietario: —",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        3,
+      ],
+      "text": "Propiedad: —",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "text": "—",
+    },
+    {
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "table": {
+        "body": [
+          [
+            {
+              "bold": true,
+              "text": "Tipo",
+            },
+            {
+              "bold": true,
+              "text": "Descripción",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "text": "Monto",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "auto",
+        ],
+      },
+    },
+    {
+      "margin": [
+        0,
+        10,
+        0,
+        5,
+      ],
+      "style": "subheader",
+      "text": "Resumen",
+    },
+    {
+      "columns": [
+        {
+          "text": "",
+          "width": "*",
+        },
+        {
+          "layout": "noBorders",
+          "table": {
+            "body": [
+              [
+                {
+                  "bold": false,
+                  "text": "Total cobrado:",
+                },
+                {
+                  "alignment": "right",
+                  "text": "$ 0,00",
+                },
+              ],
+              [
+                {
+                  "bold": false,
+                  "text": "Comisión:",
+                },
+                {
+                  "alignment": "right",
+                  "color": "#CC0000",
+                  "text": "- $ 0,00",
+                },
+              ],
+              [
+                {
+                  "bold": false,
+                  "text": "Honorarios admin:",
+                },
+                {
+                  "alignment": "right",
+                  "color": "#CC0000",
+                  "text": "- $ 0,00",
+                },
+              ],
+              [
+                {
+                  "bold": false,
+                  "text": "Deducciones:",
+                },
+                {
+                  "alignment": "right",
+                  "color": "#CC0000",
+                  "text": "- $ 0,00",
+                },
+              ],
+              [
+                {
+                  "bold": true,
+                  "text": "Depósito neto:",
+                },
+                {
+                  "alignment": "right",
+                  "bold": true,
+                  "fontSize": 12,
+                  "text": "$ 0,00",
+                },
+              ],
+            ],
+          },
+          "width": "auto",
+        },
+      ],
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 10,
+  },
+  "footer": {
+    "columns": [
+      {
+        "fontSize": 8,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Generado: 15/6/2025",
+      },
+      {
+        "alignment": "right",
+        "fontSize": 8,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 18,
+    },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 14,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF reporte cashFlow 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "style": "header",
+      "text": "Flujo de Caja Mensual",
+    },
+    {
+      "alignment": "center",
+      "color": "#666666",
+      "fontSize": 9,
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "text": "Generado: 15/6/2025",
+    },
+    {
+      "layout": {
+        "hLineColor": "#CCCCCC",
+        "hLineWidth": 0.5,
+        "vLineColor": "#CCCCCC",
+        "vLineWidth": 0.5,
+      },
+      "table": {
+        "body": [
+          [
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Mes",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Ingresos",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Egresos",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Facturado",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Saldo Neto",
+            },
+          ],
+          [
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "marzo 2025",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "1.000,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "200,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "900,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "800,00",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "*",
+          "*",
+          "*",
+        ],
+      },
+    },
+    {
+      "color": "#999999",
+      "fontSize": 8,
+      "margin": [
+        0,
+        10,
+        0,
+        0,
+      ],
+      "text": "1 registro(s)",
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 9,
+  },
+  "footer": {
+    "columns": [
+      {
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Flujo de Caja Mensual",
+      },
+      {
+        "alignment": "right",
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "pageOrientation": "portrait",
+  "pageSize": "A4",
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 16,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF reporte commissionSummary 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "style": "header",
+      "text": "Resumen de Comisiones",
+    },
+    {
+      "alignment": "center",
+      "color": "#666666",
+      "fontSize": 9,
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "text": "Generado: 15/6/2025",
+    },
+    {
+      "layout": {
+        "hLineColor": "#CCCCCC",
+        "hLineWidth": 0.5,
+        "vLineColor": "#CCCCCC",
+        "vLineWidth": 0.5,
+      },
+      "table": {
+        "body": [
+          [
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Propiedad",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Propietario",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Período",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Tipo Comisión",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Comisión",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Honorarios",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Total",
+            },
+          ],
+          [
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "Depto Centro",
+            },
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "Ana Pérez",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "NaN",
+            },
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "Porcentaje",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "7.500,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "1.000,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "8.500,00",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "*",
+          "*",
+          "*",
+          "*",
+          "*",
+        ],
+      },
+    },
+    {
+      "color": "#999999",
+      "fontSize": 8,
+      "margin": [
+        0,
+        10,
+        0,
+        0,
+      ],
+      "text": "1 registro(s)",
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 9,
+  },
+  "footer": {
+    "columns": [
+      {
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Resumen de Comisiones",
+      },
+      {
+        "alignment": "right",
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "pageOrientation": "landscape",
+  "pageSize": "A4",
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 16,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF reporte morosidad 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "style": "header",
+      "text": "Reporte de Morosidad",
+    },
+    {
+      "alignment": "center",
+      "color": "#666666",
+      "fontSize": 9,
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "text": "Generado: 15/6/2025",
+    },
+    {
+      "layout": {
+        "hLineColor": "#CCCCCC",
+        "hLineWidth": 0.5,
+        "vLineColor": "#CCCCCC",
+        "vLineWidth": 0.5,
+      },
+      "table": {
+        "body": [
+          [
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Propiedad",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Inquilino",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Período",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Vencimiento",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Días Vencidos",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Monto",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Moneda",
+            },
+          ],
+          [
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "Depto Centro",
+            },
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "Juan Gómez",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "NaN",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "NaN",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "12,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "150.000,00",
+            },
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "ARS",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "*",
+          "*",
+          "*",
+          "*",
+          "*",
+        ],
+      },
+    },
+    {
+      "color": "#999999",
+      "fontSize": 8,
+      "margin": [
+        0,
+        10,
+        0,
+        0,
+      ],
+      "text": "1 registro(s)",
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 9,
+  },
+  "footer": {
+    "columns": [
+      {
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Reporte de Morosidad",
+      },
+      {
+        "alignment": "right",
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "pageOrientation": "landscape",
+  "pageSize": "A4",
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 16,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF reporte ownerStatement 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "style": "header",
+      "text": "Estado de Cuenta del Propietario",
+    },
+    {
+      "alignment": "center",
+      "color": "#666666",
+      "fontSize": 9,
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "text": "Generado: 15/6/2025",
+    },
+    {
+      "layout": {
+        "hLineColor": "#CCCCCC",
+        "hLineWidth": 0.5,
+        "vLineColor": "#CCCCCC",
+        "vLineWidth": 0.5,
+      },
+      "table": {
+        "body": [
+          [
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Período",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Propiedad",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Cobrado",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Comisión",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Honorarios",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Deducciones",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Depósito Neto",
+            },
+          ],
+          [
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "03/2025",
+            },
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "Depto Centro",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "150.000,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "7.500,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "1.000,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "0,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "141.500,00",
+            },
+          ],
+          [
+            {
+              "bold": true,
+              "fillColor": "#E2EFDA",
+              "fontSize": 9,
+              "text": "TOTAL",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "fillColor": "#E2EFDA",
+              "fontSize": 9,
+              "text": "",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "fillColor": "#E2EFDA",
+              "fontSize": 9,
+              "text": "150.000,00",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "fillColor": "#E2EFDA",
+              "fontSize": 9,
+              "text": "7.500,00",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "fillColor": "#E2EFDA",
+              "fontSize": 9,
+              "text": "1.000,00",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "fillColor": "#E2EFDA",
+              "fontSize": 9,
+              "text": "0,00",
+            },
+            {
+              "alignment": "right",
+              "bold": true,
+              "fillColor": "#E2EFDA",
+              "fontSize": 9,
+              "text": "141.500,00",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "*",
+          "*",
+          "*",
+          "*",
+          "*",
+        ],
+      },
+    },
+    {
+      "color": "#999999",
+      "fontSize": 8,
+      "margin": [
+        0,
+        10,
+        0,
+        0,
+      ],
+      "text": "1 registro(s)",
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 9,
+  },
+  "footer": {
+    "columns": [
+      {
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Estado de Cuenta del Propietario",
+      },
+      {
+        "alignment": "right",
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "pageOrientation": "landscape",
+  "pageSize": "A4",
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 16,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF reporte pipelineAnalytics 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "style": "header",
+      "text": "Analítica de Pipeline",
+    },
+    {
+      "alignment": "center",
+      "color": "#666666",
+      "fontSize": 9,
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "text": "Generado: 15/6/2025",
+    },
+    {
+      "layout": {
+        "hLineColor": "#CCCCCC",
+        "hLineWidth": 0.5,
+        "vLineColor": "#CCCCCC",
+        "vLineWidth": 0.5,
+      },
+      "table": {
+        "body": [
+          [
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Etapa",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Leads Actuales",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Convertidos",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Perdidos",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Tasa Conversión",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Promedio Conversión (días)",
+            },
+          ],
+          [
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "Nuevo",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "3,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "1,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "0,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "NaN",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "4,50",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "*",
+          "*",
+          "*",
+          "*",
+        ],
+      },
+    },
+    {
+      "color": "#999999",
+      "fontSize": 8,
+      "margin": [
+        0,
+        10,
+        0,
+        0,
+      ],
+      "text": "1 registro(s)",
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 9,
+  },
+  "footer": {
+    "columns": [
+      {
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Analítica de Pipeline",
+      },
+      {
+        "alignment": "right",
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "pageOrientation": "landscape",
+  "pageSize": "A4",
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 16,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF reporte propertyProfitability 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        0,
+        0,
+        10,
+      ],
+      "style": "header",
+      "text": "Rentabilidad por Propiedad",
+    },
+    {
+      "alignment": "center",
+      "color": "#666666",
+      "fontSize": 9,
+      "margin": [
+        0,
+        0,
+        0,
+        15,
+      ],
+      "text": "Generado: 15/6/2025",
+    },
+    {
+      "layout": {
+        "hLineColor": "#CCCCCC",
+        "hLineWidth": 0.5,
+        "vLineColor": "#CCCCCC",
+        "vLineWidth": 0.5,
+      },
+      "table": {
+        "body": [
+          [
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Propiedad",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Cobrado",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Facturado",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Comisiones",
+            },
+            {
+              "alignment": "center",
+              "bold": true,
+              "color": "#FFFFFF",
+              "fillColor": "#4472C4",
+              "fontSize": 9,
+              "text": "Ingreso Neto",
+            },
+          ],
+          [
+            {
+              "alignment": "left",
+              "fontSize": 8,
+              "text": "Depto Centro",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "100,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "90,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "5,00",
+            },
+            {
+              "alignment": "right",
+              "fontSize": 8,
+              "text": "85,00",
+            },
+          ],
+        ],
+        "headerRows": 1,
+        "widths": [
+          "auto",
+          "*",
+          "*",
+          "*",
+          "*",
+        ],
+      },
+    },
+    {
+      "color": "#999999",
+      "fontSize": 8,
+      "margin": [
+        0,
+        10,
+        0,
+        0,
+      ],
+      "text": "1 registro(s)",
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 9,
+  },
+  "footer": {
+    "columns": [
+      {
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Rentabilidad por Propiedad",
+      },
+      {
+        "alignment": "right",
+        "color": "#999999",
+        "fontSize": 7,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "pageOrientation": "portrait",
+  "pageSize": "A4",
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 16,
+    },
+  },
+}
+`;
