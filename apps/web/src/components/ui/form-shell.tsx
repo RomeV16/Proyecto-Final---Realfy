@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, type FormEvent, type HTMLAttributes, useRef } from 'react';
+import { type ReactNode, type FormEvent, type HTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -65,27 +65,9 @@ export function FormShell({
   children,
   className,
 }: FormShellProps) {
-  const formRef = useRef<HTMLFormElement>(null);
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    // Focus first invalid field for accessibility
-    if (formRef.current) {
-      const invalid = formRef.current.querySelector<HTMLElement>(
-        'input:invalid, select:invalid, textarea:invalid',
-      );
-      if (invalid) {
-        invalid.focus();
-        return;
-      }
-    }
-    onSubmit(e);
-  }
-
   return (
     <form
-      ref={formRef}
-      onSubmit={handleSubmit}
+      onSubmit={onSubmit}
       className={cn('w-full max-w-2xl', className)}
       noValidate
     >
