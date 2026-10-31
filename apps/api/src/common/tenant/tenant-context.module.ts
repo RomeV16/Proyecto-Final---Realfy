@@ -2,6 +2,8 @@ import { Global, Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ClsModule, ClsMiddleware } from 'nestjs-cls';
 import { TenantContextService } from './tenant-context.service';
 import { TenantContextMiddleware } from './tenant-context.middleware';
+import { CorrelationIdMiddleware } from '../middleware/correlation-id.middleware';
+import { RequestContextService } from '../logger/request-context.service';
 
 @Global()
 @Module({
@@ -14,15 +16,16 @@ import { TenantContextMiddleware } from './tenant-context.middleware';
       },
     }),
   ],
-  providers: [TenantContextService],
-  exports: [TenantContextService],
+  providers: [TenantContextService, RequestContextService],
+  exports: [TenantContextService, RequestContextService],
 })
 export class TenantContextModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // Mount CLS middleware first, then tenant context middleware.
-    // Using mount: false + explicit apply ensures correct ordering.
+    // El CLS va primero (el identificador de correlación se guarda ahí) y el
+    // contexto del tenant al final. Con mount: false y apply explícito el
+    // orden queda garantizado.
     consumer
-      .apply(ClsMiddleware, TenantContextMiddleware)
+      .apply(ClsMiddleware, CorrelationIdMiddleware, TenantContextMiddleware)
       .forRoutes('*');
   }
 }
