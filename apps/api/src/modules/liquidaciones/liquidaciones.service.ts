@@ -4,6 +4,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
@@ -365,96 +366,111 @@ export class LiquidacionesService {
 
   async registerPayment(liquidacionId: string, data: unknown) {
     const validated: any = parseOrThrow(CreatePaymentSchema, data, 'Invalid payment data');
-
-    const liquidacion = await this.prisma.client.liquidacion.findFirst({
-      where: { id: liquidacionId },
-      include: { payments: true },
-    });
-
-    if (!liquidacion) {
-      throw new NotFoundException({
-        error: 'LIQUIDACION_NOT_FOUND',
-        message: 'Liquidación not found',
-      });
-    }
-
-    // Payments are only allowed when status is Enviada or Vencida
-    const status = liquidacion.status as LiquidacionStatus;
-    if (
-      status !== LiquidacionStatus.Enviada &&
-      status !== LiquidacionStatus.Vencida
-    ) {
-      throw new BadRequestException({
-        error: 'INVALID_STATUS_FOR_PAYMENT',
-        message: `Cannot register payment when status is ${status}. Must be Enviada or Vencida.`,
-      });
-    }
-
-    // Un pago no puede superar lo que falta saldar: el excedente no tiene a qué
-    // imputarse y dejaría la liquidación con saldo negativo.
-    const balanceBefore = calculateRemainingBalance(
-      liquidacion.total.toString(),
-      liquidacion.payments.map((p: any) => ({ amount: p.amount.toString() })),
-    );
-    if (new Decimal(validated.amount).gt(balanceBefore)) {
-      throw new BadRequestException({
-        error: 'PAYMENT_EXCEEDS_BALANCE',
-        message: `Payment amount exceeds the remaining balance of ${balanceBefore.toFixed(2)}`,
-        remainingBalance: balanceBefore.toFixed(2),
-      });
-    }
-
     const tenantId = this.tenantContext.getTenantId()!;
 
-    const payment = await this.prisma.client.payment.create({
-      data: {
-        tenantId,
-        liquidacionId,
-        amount: validated.amount,
-        method: validated.method,
-        reference: validated.reference ?? null,
-        notes: validated.notes ?? null,
-        paidAt: new Date(validated.paidAt),
-        currency: liquidacion.currency,
+    // Validar el saldo, crear el pago y pasar a Pagada es una sola unidad: la
+    // fila de la liquidación se bloquea (SELECT ... FOR UPDATE) hasta el commit,
+    // así que dos pagos simultáneos se serializan y el segundo ve el saldo que
+    // dejó el primero. El SQL crudo no pasa por la extensión de inmobiliaria,
+    // por eso filtra por tenantId a mano (ADR-0006).
+    const { payment, remaining, fullyPaid, totalPaid } = await this.prisma.client.$transaction(
+      async (tx: any) => {
+        const locked: { id: string }[] = await tx.$queryRaw(
+          Prisma.sql`SELECT id FROM liquidaciones WHERE id = ${liquidacionId} AND "tenantId" = ${tenantId} FOR UPDATE`,
+        );
+        if (locked.length === 0) {
+          throw new NotFoundException({
+            error: 'LIQUIDACION_NOT_FOUND',
+            message: 'Liquidación not found',
+          });
+        }
+
+        const liquidacion = await tx.liquidacion.findFirst({
+          where: { id: liquidacionId },
+          include: { payments: true },
+        });
+
+        if (!liquidacion) {
+          throw new NotFoundException({
+            error: 'LIQUIDACION_NOT_FOUND',
+            message: 'Liquidación not found',
+          });
+        }
+
+        // Payments are only allowed when status is Enviada or Vencida
+        const status = liquidacion.status as LiquidacionStatus;
+        if (status !== LiquidacionStatus.Enviada && status !== LiquidacionStatus.Vencida) {
+          throw new BadRequestException({
+            error: 'INVALID_STATUS_FOR_PAYMENT',
+            message: `Cannot register payment when status is ${status}. Must be Enviada or Vencida.`,
+          });
+        }
+
+        // Un pago no puede superar lo que falta saldar: el excedente no tiene a qué
+        // imputarse y dejaría la liquidación con saldo negativo.
+        const priorPayments: PaymentInput[] = liquidacion.payments.map((p: any) => ({
+          amount: p.amount.toString(),
+        }));
+        const balanceBefore = calculateRemainingBalance(liquidacion.total.toString(), priorPayments);
+        if (new Decimal(validated.amount).gt(balanceBefore)) {
+          throw new BadRequestException({
+            error: 'PAYMENT_EXCEEDS_BALANCE',
+            message: `Payment amount exceeds the remaining balance of ${balanceBefore.toFixed(2)}`,
+            remainingBalance: balanceBefore.toFixed(2),
+          });
+        }
+
+        const created = await tx.payment.create({
+          data: {
+            tenantId,
+            liquidacionId,
+            amount: validated.amount,
+            method: validated.method,
+            reference: validated.reference ?? null,
+            notes: validated.notes ?? null,
+            paidAt: new Date(validated.paidAt),
+            currency: liquidacion.currency,
+          },
+        });
+
+        // Check if fully paid using shared engine
+        const allPayments: PaymentInput[] = [...priorPayments, { amount: validated.amount }];
+        const isPaid = isFullyPaid(liquidacion.total.toString(), allPayments);
+        const left = calculateRemainingBalance(liquidacion.total.toString(), allPayments);
+
+        if (isPaid) {
+          // Auto-transition to Pagada. La fecha de saldado es la del último pago que
+          // la completó, no el momento en que se cargó en el sistema: una cobranza
+          // del día 5 registrada el día 20 se saldó el 5, y de esa fecha dependen la
+          // puntualidad, el puntaje del inquilino y el resumen de cierre.
+          const settledOn = [
+            ...liquidacion.payments.map((p: { paidAt: Date }) => p.paidAt),
+            created.paidAt,
+          ].reduce((latest, date) => (date > latest ? date : latest));
+
+          await tx.liquidacion.update({
+            where: { id: liquidacionId },
+            data: {
+              status: LiquidacionStatus.Pagada,
+              paidAt: settledOn,
+            },
+          });
+        }
+
+        return {
+          payment: created,
+          remaining: left,
+          fullyPaid: isPaid,
+          totalPaid: new Decimal(liquidacion.total.toString()).minus(left).toFixed(2),
+        };
       },
-    });
-
-    // Check if fully paid using shared engine
-    const allPayments: PaymentInput[] = [
-      ...liquidacion.payments.map((p: any) => ({ amount: p.amount.toString() })),
-      { amount: validated.amount },
-    ];
-
-    const fullyPaid = isFullyPaid(liquidacion.total.toString(), allPayments);
-    const remaining = calculateRemainingBalance(
-      liquidacion.total.toString(),
-      allPayments,
     );
 
     if (fullyPaid) {
-      // Auto-transition to Pagada. La fecha de saldado es la del último pago que
-      // la completó, no el momento en que se cargó en el sistema: una cobranza
-      // del día 5 registrada el día 20 se saldó el 5, y de esa fecha dependen la
-      // puntualidad, el puntaje del inquilino y el resumen de cierre.
-      const settledOn = [
-        ...liquidacion.payments.map((p: { paidAt: Date }) => p.paidAt),
-        payment.paidAt,
-      ].reduce((latest, date) => (date > latest ? date : latest));
-
-      await this.prisma.client.liquidacion.update({
-        where: { id: liquidacionId },
-        data: {
-          status: LiquidacionStatus.Pagada,
-          paidAt: settledOn,
-        },
-      });
-
       this.logger.log('Liquidación auto-transitioned to Pagada', {
         liquidacionId,
         paymentId: payment.id,
-        totalPaid: new Decimal(liquidacion.total.toString())
-          .minus(remaining)
-          .toFixed(2),
+        totalPaid,
       });
     }
 
