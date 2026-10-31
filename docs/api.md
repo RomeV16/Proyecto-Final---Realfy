@@ -99,6 +99,9 @@ el registro del servidor, junto con el método, la ruta, el estado, el
 | POST | `/auth/login` | Inicia sesión y emite el par de tokens. | Público, 5/min |
 | POST | `/auth/refresh` | Rota el token de refresco y emite uno nuevo de acceso. | Público |
 | POST | `/auth/logout` | Invalida el token de refresco de la sesión. | Autenticado |
+| POST | `/auth/change-password` | Cambia la contraseña propia. Pide `currentPassword` y `newPassword` (8 a 128 caracteres) y cierra las demás sesiones: la actual, identificada por su cookie de refresco, sigue abierta. Responde 204; con la actual equivocada, 400 `INVALID_CURRENT_PASSWORD`. | Autenticado, 5/min |
+| POST | `/auth/password-reset/request` | Pide instrucciones por correo (`email`). Responde siempre 202 con el mismo cuerpo, exista o no la cuenta; si el servicio de correo no está configurado no envía nada. | Público, 5/min |
+| POST | `/auth/password-reset/confirm` | Fija la contraseña nueva con el token del enlace (`token`, `newPassword`). Responde 204 y cierra todas las sesiones del usuario. Errores: 400 `PASSWORD_RESET_INVALID`, `PASSWORD_RESET_USED`, `PASSWORD_RESET_EXPIRED`. | Público, 5/min |
 
 ## Inmobiliaria y usuarios
 
@@ -107,13 +110,20 @@ el registro del servidor, junto con el método, la ruta, el estado, el
 | POST | `/tenants` | Crea una inmobiliaria. | Público |
 | GET | `/tenants/me` | Datos de la inmobiliaria de la sesión. | Autenticado |
 | PATCH | `/tenants/:id` | Edita nombre, provincia, colores de marca y logo. | Admin, Gerente |
-| GET | `/users` | Usuarios de la inmobiliaria. | Admin, Gerente |
-| POST | `/users/invite` | Invita a un usuario con un rol asignado. | Admin, Gerente |
-| POST | `/users/accept-invitation` | Acepta la invitación y define la contraseña. | Público |
+| GET | `/users` | El equipo: usuarios más invitaciones pendientes, cada uno con `status` (`invited`, `active` o `inactive`). En una invitación, `id` es el de la invitación y vienen `invitationExpiresAt` e `invitationExpired`. | Admin, Gerente |
+| POST | `/users/invite` | Invita a un usuario con un rol asignado (`email`, `role`). Responde 201 con el enlace de aceptación (ver abajo). Errores: 400 `USER_ALREADY_EXISTS`, 409 `INVITATION_ALREADY_PENDING`. | Admin |
+| POST | `/users/accept-invitation` | Acepta la invitación (`token`, `password`, `firstName`, `lastName`) y crea el usuario con el rol de la invitación. Errores: 400 `INVITATION_NOT_FOUND`, `INVITATION_EXPIRED`, `INVITATION_ALREADY_ACCEPTED`. | Público, 5/min |
 | PATCH | `/users/me` | Edita los datos propios. | Autenticado |
-| PATCH | `/users/:id/role` | Cambia el rol de un usuario. | Admin |
-| PATCH | `/users/:id/deactivate` | Desactiva un usuario. | Admin |
+| PATCH | `/users/:id` | Cambia el rol de un usuario (`role`). 409 `LAST_ADMIN` si dejaría a la inmobiliaria sin un Admin activo. | Admin |
+| POST | `/users/:id/deactivate` | Da de baja al usuario y cierra sus sesiones. 400 `CANNOT_DEACTIVATE_SELF`; 409 `LAST_ADMIN`. | Admin |
+| POST | `/users/:id/reactivate` | Vuelve a habilitar al usuario. | Admin |
+| POST | `/users/:id/invitation/resend` | Reenvía una invitación pendiente (`:id` es el de la invitación): rota el token, el anterior deja de servir y el plazo se renueva. | Admin |
+| POST | `/users/:id/password-reset-link` | Genera un enlace de un solo uso para que ese usuario elija una contraseña nueva. 400 `USER_INACTIVE` si está dado de baja. | Admin |
 | GET | `/audit-logs` | Traza de las operaciones sensibles, con filtros. | Admin, Gerente |
+
+**Enlaces de invitación y de recupero.** `invite`, `invitation/resend` y `password-reset-link` devuelven `{ id, email, role?, expiresAt, token, link, emailSent }`. El `token` tiene 256 bits aleatorios, en base de datos solo queda su hash SHA-256, y el valor en claro se ve una única vez, en esa respuesta. La invitación vence a los 7 días y el enlace de recupero a la hora; ambos se consumen al usarse. `link` apunta a `WEB_BASE_URL` (o, si falta, al primer origen de `CORS_ORIGINS`) y se comparte a mano. `emailSent` es `true` solo si el servicio de correo está configurado y el envío salió bien; un fallo de correo nunca corta la operación. Un token inexistente, ajeno o de otra inmobiliaria responde como inexistente. Una llamada sobre un usuario (o una invitación) de otra inmobiliaria responde 404 `USER_NOT_FOUND` (`INVITATION_NOT_FOUND`).
+
+La baja y el cambio de rol rigen desde el pedido siguiente: el token de acceso se contrasta con el estado vigente del usuario. En la traza (`/audit-logs`), las operaciones de usuarios llevan `changes.operation` (`role-change`, `deactivate`, `reactivate`, `invitation-resend`, `password-reset-link`); contraseñas y tokens se registran como `[REDACTED]` o no se registran.
 
 ## Propiedades
 

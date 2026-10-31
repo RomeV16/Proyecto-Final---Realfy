@@ -147,4 +147,9 @@ A continuación se listan los casos de uso considerados centrales para la operac
 - **CU-23 Consultar saldo y liquidaciones** — Inquilino. Visualiza liquidaciones del contrato y descarga comprobantes.
 - **CU-24 Abrir reclamo desde el portal** — Inquilino. Genera un ticket que llega al backlog de la inmobiliaria.
 
+### Equipo y acceso
+
+- **CU-27 Invitar un usuario** — Admin. Invita a una persona con un rol (Admin, Gerente, Ventas, Liquidaciones, Soporte, Marketing o Lectura) y recibe un enlace de un solo uso que vence a los 7 días. Mientras no haya correo configurado, el Admin comparte el enlace a mano; si lo hay, además se envía por correo. La persona abre el enlace, elige nombre y contraseña, y entra con el rol asignado. El Admin también cambia roles, da de baja y reactiva usuarios, reenvía invitaciones pendientes (el enlace anterior deja de servir) y nunca puede quedarse sin un Admin activo ni darse de baja a sí mismo. El Gerente ve el equipo en solo lectura. *Flujo alternativo:* una invitación vencida o ya usada se rechaza y el Admin genera otra; una baja cierra las sesiones abiertas de inmediato. *Origen:* FB-26.
+- **CU-28 Recuperar la contraseña** — Usuario del personal, Admin. Quien la olvidó pide instrucciones desde el ingreso y la respuesta es siempre la misma, exista o no la cuenta; si el correo no está configurado no se envía nada, y entonces el Admin le genera un enlace de un solo uso, válido 1 hora, que le comparte a mano. Con el enlace elige una contraseña nueva y se cierran todas sus sesiones. Quien sabe su contraseña la cambia desde su perfil, pidiendo la actual; se cierran las sesiones de los otros dispositivos. *Origen:* FB-26.
+
 <!-- Revisado por Manuel: refinamiento de casos para liquidaciones y ARCA -->

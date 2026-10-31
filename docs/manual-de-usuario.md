@@ -391,7 +391,43 @@ Admin y Gerente; los demás la ven en modo lectura. Desde ahí se llega a las
 cuatro pantallas de configuración específicas: la fiscal (`/configuracion/fiscal`),
 las etapas del embudo (`/configuracion/pipeline`), los pesos del puntaje de
 inquilinos (`/configuracion/scoring`) y los índices de ajuste
-(`/configuracion/indices`).
+(`/configuracion/indices`); y, además, la del equipo
+(`/configuracion/usuarios`).
+
+### Usuarios: alta del equipo y contraseñas
+
+`/configuracion/usuarios` lista a las personas de la inmobiliaria con su estado:
+*Invitado* (todavía no aceptó), *Activo* o *Desactivado*. El Admin gestiona el
+equipo; el Gerente lo ve en solo lectura y los demás roles no tienen la pantalla.
+Se llega desde *Usuarios* en el menú o desde la tarjeta en `/configuracion`.
+
+**Invitar a alguien.** *Invitar usuario*, correo y rol. Al crear la invitación se
+abre una ventana con el **enlace para compartir**. Mientras la plataforma no
+envíe correos, es el Admin quien lo manda a mano —por WhatsApp o el medio que
+prefiera— con *Copiar enlace*. El enlace sirve **una sola vez**, vence a los
+7 días y se muestra en esa ventana una única vez: no queda guardado en claro, así
+que si se pierde hay que usar *Reenviar invitación* en la fila, que genera uno
+nuevo e invalida el anterior. La persona abre el enlace, escribe nombre, apellido
+y una contraseña de al menos 8 caracteres, y entra directamente con el rol que se
+le asignó.
+
+**Cambiar el rol, desactivar y reactivar.** Cada fila tiene *Cambiar rol*,
+*Desactivar* o *Activar*. Desactivar pide confirmación y corta las sesiones
+abiertas de esa persona de inmediato; se puede revertir con *Activar*. La
+plataforma no deja desactivar la propia cuenta ni dejar a la inmobiliaria sin un
+Admin activo: en ese caso avisa el motivo.
+
+**Recuperar una contraseña.** Quien la olvidó entra a *¿Olvidaste tu contraseña?*
+en la pantalla de ingreso, escribe su correo y recibe siempre el mismo mensaje,
+tenga o no cuenta. Mientras no haya correo configurado no le va a llegar nada: en
+ese caso el Admin usa *Enlace para cambiar contraseña* en la fila de la persona,
+copia el enlace y se lo comparte. Ese enlace sirve **una sola vez** y vence a la
+hora; al usarlo, la persona elige una contraseña nueva y se cierran todas sus
+sesiones.
+
+**Cambiar la propia contraseña.** En `/perfil`, *Contraseña*: se escribe la
+actual y la nueva dos veces. Las sesiones abiertas en otros dispositivos se
+cierran; la actual sigue.
 
 ### Índices de ajuste
 

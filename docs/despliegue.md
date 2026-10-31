@@ -107,6 +107,7 @@ Las que hay que definir sí o sí en producción:
 | `DATABASE_URL` | Conexión a PostgreSQL. | La API no arranca. |
 | `JWT_SECRET` | Firma de los tokens de acceso, tanto del personal como del portal. | En producción la API no arranca. Fuera de producción se usa una clave de desarrollo y se avisa en el registro. |
 | `CORS_ORIGINS` | Lista de orígenes permitidos, separados por comas. | Se permite solo `http://localhost:3000`, con lo cual el frontend desplegado queda bloqueado. |
+| `WEB_BASE_URL` | URL pública de la web, usada para armar los enlaces de invitación y de recupero de contraseña que ve el Admin. | Se usa el primer origen de `CORS_ORIGINS`; si tampoco está, `http://localhost:3000`. |
 | `NODE_ENV` | Debe ser `production`. | Se habilitan comportamientos de desarrollo. |
 
 Las opcionales, con su valor por defecto:

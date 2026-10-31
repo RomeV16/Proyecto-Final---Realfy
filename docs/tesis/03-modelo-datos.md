@@ -31,7 +31,15 @@ Token de refresco emitido al usuario, rotado en cada uso.
 
 Invitación pendiente para incorporar un usuario nuevo.
 
-- `id`, `tenantId`, `email`, `role`, `token`, `expiresAt`, `acceptedAt`.
+- `id`, `tenantId`, `invitedByUserId`, `email`, `role`, `token`, `expiresAt`, `acceptedAt`.
+- `token` guarda el SHA-256 en hexadecimal de un valor aleatorio de 256 bits; el valor en claro se entrega una sola vez, al Admin. Dura 7 días y se consume al aceptarse. Reenviar la invitación reemplaza el hash.
+
+### PasswordResetToken
+
+Enlace de un solo uso para elegir una contraseña nueva.
+
+- `id`, `tenantId`, `userId`, `tokenHash` (único), `expiresAt`, `usedAt`, `createdById`, `createdAt`.
+- Guarda solo el SHA-256 del token. Dura 1 hora y `usedAt` marca que ya se consumió; generar uno nuevo para el mismo usuario consume los anteriores sin usar. Lo genera el Admin o el pedido por correo.
 
 ### AuditLog
 
