@@ -257,6 +257,30 @@ al quedar registrada como fallida, bloqueó también todas las migraciones
 siguientes y trabó el despliegue entero. Aplicarlas desde cero en cada cambio es
 lo que detecta eso antes de producción.
 
+**Migration over synthetic data.** Es un paso del trabajo anterior que corre
+`scripts/migration-rehearsal.sh` sobre una segunda base vacía del mismo servicio.
+El script aplica las migraciones que ya tenía la rama base (en un pull request,
+`origin/<rama base>`; en un push, `HEAD~1`), carga los datos sintéticos de
+`apps/api/test/migration-data/seed.sql`, aplica todas las migraciones del árbol
+actual y ejecuta cada archivo de `apps/api/test/migration-data/checks/`. Una
+verificación es una consulta que devuelve filas solo cuando algo salió mal
+(una persona con datos bancarios viejos sin su cuenta, conteos que cambiaron,
+filas huérfanas); si alguna devuelve filas el paso falla y las imprime. Si el
+cambio no agrega migraciones, el script termina sin hacer nada.
+
+Para correrlo en local hace falta una base vacía y la rama base en el
+repositorio:
+
+```bash
+createdb realfy_migracion_ensayo
+DATABASE_URL=postgresql://usuario:clave@localhost:5432/realfy_migracion_ensayo \
+  scripts/migration-rehearsal.sh origin/main
+```
+
+Cuando una migración nueva transforma datos, se agrega el caso borde a
+`seed.sql` (siempre con valores inventados) y una verificación en `checks/`; el
+conjunto de datos y las verificaciones evolucionan con las migraciones.
+
 **API E2E Tests.** Depende del trabajo de unitarias, así que solo corre si esas
 pasaron. Levanta PostgreSQL 16, aplica las migraciones y corre la suite de
 integración con `NODE_ENV=test`, `RATE_LIMIT_DISABLED=1` y secretos de sesión
