@@ -26,6 +26,8 @@ import {
   ScheduleStatus,
   IndexType,
   calculateAdjustment,
+  addMonthsClamped,
+  periodToMonths,
   findTransitionPath,
   contractMachine,
   isClosedStatus,
@@ -73,37 +75,6 @@ function requiresInquilino(contractType: string): boolean {
 /** Sólo el alquiler tradicional ocupa la operación de alquiler de la propiedad. */
 function occupiesRentalOperation(contractType: string): boolean {
   return contractType === ContractType.Alquiler;
-}
-
-/**
- * Returns the number of months between adjustment periods.
- */
-function periodToMonths(period: AdjustmentPeriod): number {
-  switch (period) {
-    case AdjustmentPeriod.Mensual:
-      return 1;
-    case AdjustmentPeriod.Bimestral:
-      return 2;
-    case AdjustmentPeriod.Trimestral:
-      return 3;
-    case AdjustmentPeriod.Cuatrimestral:
-      return 4;
-    case AdjustmentPeriod.Semestral:
-      return 6;
-    case AdjustmentPeriod.Anual:
-      return 12;
-    default:
-      return 3; // fallback to trimestral
-  }
-}
-
-/**
- * Adds N months to a Date.
- */
-function addMonths(date: Date, months: number): Date {
-  const result = new Date(date);
-  result.setMonth(result.getMonth() + months);
-  return result;
 }
 
 @Injectable()
@@ -458,8 +429,8 @@ export class ContractsService {
 
       const startPeriod = lastApplied ? lastApplied.periodNumber + 1 : 1;
       const startFrom = lastApplied
-        ? addMonths(lastApplied.nextAdjustmentDate, periodToMonths(period))
-        : addMonths(existing.startDate, periodToMonths(period));
+        ? lastApplied.nextAdjustmentDate
+        : existing.startDate;
 
       const newEntries = this.generateScheduleEntriesFrom(
         startFrom,
@@ -1114,28 +1085,31 @@ export class ContractsService {
     period: AdjustmentPeriod,
   ): { date: Date; periodNumber: number }[] {
     return this.generateScheduleEntriesFrom(
-      addMonths(startDate, periodToMonths(period)),
+      startDate,
       endDate,
       period,
       1,
     );
   }
 
+  /**
+   * Fechas `anchor + k períodos` (k = 1, 2, ...) hasta `endDate`. `anchor` es
+   * el inicio del contrato o la fecha del último ajuste ya aplicado.
+   */
   private generateScheduleEntriesFrom(
-    from: Date,
+    anchor: Date,
     endDate: Date,
     period: AdjustmentPeriod,
     startPeriod: number,
   ): { date: Date; periodNumber: number }[] {
     const entries: { date: Date; periodNumber: number }[] = [];
     const months = periodToMonths(period);
-    let currentDate = new Date(from);
-    let periodNumber = startPeriod;
-
-    while (currentDate <= endDate) {
-      entries.push({ date: new Date(currentDate), periodNumber });
-      currentDate = addMonths(currentDate, months);
-      periodNumber++;
+    // Cada fecha se calcula desde el ancla, no desde la anterior: encadenar
+    // con recorte a fin de mes arrastra el desvío.
+    for (let k = 1; ; k++) {
+      const date = addMonthsClamped(anchor, k * months);
+      if (date > endDate) break;
+      entries.push({ date, periodNumber: startPeriod + k - 1 });
     }
 
     return entries;
