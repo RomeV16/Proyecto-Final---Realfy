@@ -122,3 +122,57 @@ Cálculo: Σ(peso × puntaje). SonarCloud: 25+20+15+15+20+15+10 = 120.
 - Panel: https://sonarcloud.io/project/overview?id=RomeV16_Proyecto-Final---Realfy
 - Métricas por API (sin token, proyecto público):
   `https://sonarcloud.io/api/measures/component?component=RomeV16_Proyecto-Final---Realfy&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density`
+
+## Gates de código muerto y duplicación (knip y jscpd)
+
+SonarCloud mide la duplicación del repositorio entero, pero no ve archivos sin
+uso ni dependencias que nadie importa. Dos gates baratos, sin servicio externo,
+cubren ese hueco. Corren en el trabajo `quality-gates` del pipeline (requisito
+31, issue #89) y en local con un comando.
+
+| Gate | Qué mide | Cómo se corre | Falla cuando |
+|---|---|---|---|
+| knip 5.88.1 | Archivos sin uso, exports de valor sin uso y dependencias sin uso (`--include files,exports,dependencies`; los tipos exportados quedan fuera) | `pnpm knip` | Aparece un hallazgo que no está en `knip-baseline.json` |
+| jscpd 4.3.0 | Porcentaje de líneas duplicadas por paquete (70 tokens y 5 líneas mínimas; sin pruebas, mocks ni generados) | `pnpm jscpd` | El porcentaje supera el umbral del paquete |
+
+**Umbrales de duplicación.** Son la medición al fijarlos más un margen chico,
+para que sólo empeoren por una decisión consciente. Se bajan a medida que se
+extraen componentes de lista y helpers de PDF; no se suben sin dejarlo escrito
+en el PR.
+
+| Paquete | Umbral | Medición (31 oct 2026) |
+|---|---|---|
+| api | 2,6 % | 2,32 % |
+| web | 2,3 % | 1,93 % |
+| shared | 1,8 % | 1,11 % |
+
+**Política de línea base de knip.** `knip-baseline.json` lista los hallazgos
+aceptados (categoría, archivo y nombre; sin número de línea). El gate falla sólo
+con los nuevos y avisa cuando uno de la línea base ya se resolvió. Un hallazgo
+entra a la línea base únicamente si no es código muerto trivial de quitar y
+queda anotado acá con su motivo. Para regenerarla: `pnpm knip:baseline` y
+revisar el diff antes de commitear. Una falsa alarma de una herramienta se
+corrige en `knip.json` (`ignoreDependencies`, `ignoreBinaries`, entradas), no en
+la línea base.
+
+Falsos positivos ya cubiertos en `knip.json`: `ts-node` (jest lee
+`jest.config.ts`), `ts-loader`, `tsconfig-paths`, `source-map-support` y
+`@nestjs/schematics` (CLI de Nest), `@types/*`, `eslint*` y `@typescript-eslint/*`
+(configuración de lint), `tailwindcss`, `postcss` y `@tailwindcss/postcss` (se
+usan desde el CSS) y el binario `k6` (herramienta del sistema).
+
+Línea base actual (1 hallazgo):
+
+| Hallazgo | Motivo |
+|---|---|
+| export `MISSING_INDEX_DATA` en `contract-adjustment.service.ts` | No es código muerto: `contracts.service.ts` repite el literal `'MISSING_INDEX_DATA'` en vez de importar la constante. Es una oportunidad de reutilización, no una baja trivial; se resuelve con ese cambio y sale de la línea base |
+
+**Limitación.** `packages/shared/src/index.ts` es entry point, así que knip
+considera usado todo lo que exporta y no detecta exports muertos del paquete
+compartido. Una revisión por búsqueda de texto (octubre 2026) encontró 157
+exports de shared sin consumidor en api ni web, la mayoría tipos `*Input`
+inferidos de zod. Ese control sigue siendo manual.
+
+**Despliegue.** El paso de knip es informativo (`continue-on-error`) hasta el
+14 de noviembre de 2026 y después pasa a bloqueante; el de jscpd bloquea desde
+el primer día.

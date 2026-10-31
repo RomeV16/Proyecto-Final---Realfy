@@ -24,6 +24,7 @@ Cierra #N
 ### Código
 - [ ] Textos de interfaz en `es.json` y `en.json` (mismas claves en ambos).
 - [ ] Se reutilizó antes de escribir: helpers de `common/`, `shared/` y `components/ui`; sin copias.
+- [ ] `pnpm knip` y `pnpm jscpd` en verde (sin código muerto ni duplicación nueva).
 - [ ] Si un dato se reemplaza por otro, cambian todos los que lo leen.
 
 ### Documentación y repositorio
