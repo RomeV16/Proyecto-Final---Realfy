@@ -14,6 +14,7 @@
 | [0006](0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md) | El aislamiento entre inmobiliarias falla cerrado | Aceptado | 2026-08-18 |
 | [0007](0007-locadores-apoderados-y-titularidad.md) | Locadores por contrato, apoderados y titularidad de propiedades | Aceptado | 2026-10-31 |
 | [0010](0010-reglas-versionadas-y-valores-por-defecto.md) | Reglas versionadas del contrato y valores por defecto de la inmobiliaria | Aceptado | 2026-10-31 |
+| [0011](0011-ajuste-con-rezago-estimacion-y-correccion.md) | Ajuste con rezago, estimación y corrección | Aceptado | 2026-10-31 |
 | [0014](0014-ambiente-piloto-con-datos-reales.md) | Ambiente piloto con datos reales | Aceptado | 2026-10-31 |
 | [0016](0016-diagramas-como-codigo.md) | Diagramas como código (mermaid) | Aceptado | 2026-10-30 |
 
