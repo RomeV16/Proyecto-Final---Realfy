@@ -312,8 +312,9 @@ export class PenaltiesController {
   /**
    * POST /penalties/_run-now
    * Test-only endpoint: triggers the daily penalty scheduler immediately.
-   * Guarded by NODE_ENV=test or E2E_TEST_MODE=1.
+   * Solo Admin, y además solo con NODE_ENV=test o E2E_TEST_MODE=1.
    */
+  @Roles(...ADMIN_ONLY)
   @Post('penalties/_run-now')
   async runNow() {
     const isTestMode =

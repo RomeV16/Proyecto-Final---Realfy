@@ -502,7 +502,9 @@
   "src/modules/penalties/penalties.controller.ts#PenaltiesController.run": [
     "Admin"
   ],
-  "src/modules/penalties/penalties.controller.ts#PenaltiesController.runNow": null,
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.runNow": [
+    "Admin"
+  ],
   "src/modules/persons/persons.controller.ts#PersonsController.findAll": null,
   "src/modules/persons/persons.controller.ts#PersonsController.findOne": null,
   "src/modules/persons/persons.controller.ts#PersonsController.create": [
