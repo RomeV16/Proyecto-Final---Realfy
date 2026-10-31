@@ -115,6 +115,7 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
   await prisma.baseClient.inquilinoCredential.deleteMany();
 
   // Person tables
+  await prisma.baseClient.personBankAccount.deleteMany();
   await prisma.baseClient.personDocument.deleteMany();
   await prisma.baseClient.personRoleAssignment.deleteMany();
   await prisma.baseClient.providerProfile.deleteMany();

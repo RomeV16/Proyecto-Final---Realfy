@@ -50,9 +50,15 @@ const MOCK_PERSON = {
   phone2: null,
   cuit: '20304050607',
   fiscalCondition: 'RESPONSABLE_INSCRIPTO',
-  bankName: 'Banco Nacion',
-  cbu: '0110599520000001234567',
-  bankAlias: 'ana.gomez',
+  bankAccounts: [
+    {
+      currency: 'ARS',
+      isDefault: true,
+      bankName: 'Banco Nacion',
+      cbu: '0110599520000001234567',
+      alias: 'ana.gomez',
+    },
+  ],
   notes: null,
 };
 

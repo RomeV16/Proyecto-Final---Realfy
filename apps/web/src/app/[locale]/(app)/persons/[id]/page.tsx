@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { Link, useRouter } from '@/i18n/navigation';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { PersonRole } from '@realfy/shared';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { Fragment, useState, useEffect, useCallback, useRef } from 'react';
 import { PersonForm, type PersonFormData } from '@/components/persons/person-form';
 import { PersonRoleBadge } from '@/components/persons/person-role-badge';
 import { EntityRow } from '@/components/ui/entity-card';
@@ -45,6 +45,15 @@ interface PersonDocument {
   createdAt: string;
 }
 
+interface PersonBankAccount {
+  id: string;
+  currency: string;
+  bankName?: string | null;
+  cbu?: string | null;
+  alias?: string | null;
+  isDefault: boolean;
+}
+
 interface PersonDetail {
   id: string;
   firstName: string;
@@ -54,9 +63,7 @@ interface PersonDetail {
   phone2?: string;
   cuit?: string;
   fiscalCondition?: string;
-  bankName?: string;
-  cbu?: string;
-  bankAlias?: string;
+  bankAccounts?: PersonBankAccount[];
   notes?: string;
   isActive: boolean;
   roles: PersonRoleAssignment[];
@@ -67,7 +74,14 @@ interface PersonDetail {
 
 /* ──────────── Helpers ──────────── */
 
+/** Cuenta que alimenta los campos bancarios del formulario: la predeterminada en pesos. */
+function formAccount(detail: PersonDetail): PersonBankAccount | undefined {
+  const accounts = detail.bankAccounts ?? [];
+  return accounts.find((a) => a.currency === 'ARS' && a.isDefault) ?? accounts.find((a) => a.isDefault);
+}
+
 function toFormData(detail: PersonDetail): PersonFormData {
+  const account = formAccount(detail);
   return {
     id: detail.id,
     firstName: detail.firstName,
@@ -77,9 +91,9 @@ function toFormData(detail: PersonDetail): PersonFormData {
     phone2: detail.phone2 || '',
     cuit: detail.cuit || '',
     fiscalCondition: detail.fiscalCondition || '',
-    bankName: detail.bankName || '',
-    cbu: detail.cbu || '',
-    bankAlias: detail.bankAlias || '',
+    bankName: account?.bankName || '',
+    cbu: account?.cbu || '',
+    bankAlias: account?.alias || '',
     notes: detail.notes || '',
   };
 }
@@ -944,7 +958,7 @@ export default function PersonDetailPage() {
           </div>
 
           {/* Fiscal info */}
-          {(person.fiscalCondition || person.bankName || person.cbu || person.bankAlias) && (
+          {(person.fiscalCondition || (person.bankAccounts?.length ?? 0) > 0) && (
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="text-base font-semibold text-slate-900 pb-2 mb-3 border-b border-slate-100">
                 {t('form.fiscalData')} / {t('form.bankingData')}
@@ -958,24 +972,28 @@ export default function PersonDetailPage() {
                     </p>
                   </div>
                 )}
-                {person.bankName && (
-                  <div>
-                    <p className="text-xs text-slate-500">{t('form.bankName')}</p>
-                    <p className="text-sm font-medium text-slate-900">{person.bankName}</p>
-                  </div>
-                )}
-                {person.cbu && (
-                  <div>
-                    <p className="text-xs text-slate-500">{t('form.cbu')}</p>
-                    <p className="text-sm font-medium text-slate-900 tabular-nums">{person.cbu}</p>
-                  </div>
-                )}
-                {person.bankAlias && (
-                  <div>
-                    <p className="text-xs text-slate-500">{t('form.bankAlias')}</p>
-                    <p className="text-sm font-medium text-slate-900">{person.bankAlias}</p>
-                  </div>
-                )}
+                {person.bankAccounts?.map((account) => (
+                  <Fragment key={account.id}>
+                    {account.bankName && (
+                      <div>
+                        <p className="text-xs text-slate-500">{t('form.bankName')} ({account.currency})</p>
+                        <p className="text-sm font-medium text-slate-900">{account.bankName}</p>
+                      </div>
+                    )}
+                    {account.cbu && (
+                      <div>
+                        <p className="text-xs text-slate-500">{t('form.cbu')} ({account.currency})</p>
+                        <p className="text-sm font-medium text-slate-900 tabular-nums">{account.cbu}</p>
+                      </div>
+                    )}
+                    {account.alias && (
+                      <div>
+                        <p className="text-xs text-slate-500">{t('form.bankAlias')} ({account.currency})</p>
+                        <p className="text-sm font-medium text-slate-900">{account.alias}</p>
+                      </div>
+                    )}
+                  </Fragment>
+                ))}
               </div>
             </div>
           )}

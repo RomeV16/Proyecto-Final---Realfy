@@ -3,15 +3,24 @@ import { PrismaClient } from '@prisma/client';
 import { TenantContextService } from '../tenant/tenant-context.service';
 import { createTenantExtension } from '../tenant/prisma-tenant.extension';
 
+// bankName/cbu/bankAlias de Person están deprecadas: la fuente única es
+// PersonBankAccount, así que ninguna lectura devuelve las columnas viejas.
+function createBaseClient() {
+  return new PrismaClient({
+    omit: { person: { bankName: true, cbu: true, bankAlias: true } },
+  });
+}
+type BaseClient = ReturnType<typeof createBaseClient>;
+
 @Injectable()
 export class PrismaService implements OnModuleInit, OnModuleDestroy {
-  private readonly _baseClient: PrismaClient;
+  private readonly _baseClient: BaseClient;
   private readonly _extendedClient: ReturnType<
     typeof PrismaService.prototype._createExtendedClient
   >;
 
   constructor(private readonly tenantContext: TenantContextService) {
-    this._baseClient = new PrismaClient();
+    this._baseClient = createBaseClient();
     this._extendedClient = this._createExtendedClient();
   }
 
@@ -31,7 +40,7 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
    * that must bypass tenant isolation (e.g. migrations, seeding).
    * Prefer tenantContext.setBypassTenantFilter(true) + client when possible.
    */
-  get baseClient(): PrismaClient {
+  get baseClient(): BaseClient {
     return this._baseClient;
   }
 
