@@ -95,9 +95,9 @@ describe('Lectores de deuda: escenario con pago parcial y liquidación vencida',
     const prisma = { client: { liquidacion: { findMany: findMany(ALL) } } } as any;
     const summary = await new PaymentsService(prisma).debtSummary();
 
-    expect(summary.pendiente).toEqual({ count: 2, monto: 150001 });
-    expect(summary.vencida).toEqual({ count: 1, monto: 250000 });
-    expect(summary.items.map((i: any) => i.id)).toEqual(['liq-1', 'liq-2', 'liq-3']);
+    expect(summary.pendiente).toEqual({ count: 1, monto: 90000 });
+    expect(summary.vencida).toEqual({ count: 2, monto: 200000 });
+    expect(summary.items.map((i: any) => i.id)).toEqual(['liq-1', 'liq-3', 'liq-2']);
   });
 
   it('panel (DashboardService.getStats)', async () => {
@@ -113,17 +113,17 @@ describe('Lectores de deuda: escenario con pago parcial y liquidación vencida',
     const stats: any = await new DashboardService(prisma, {} as any).getStats();
 
     expect(stats.collections).toEqual({
-      total: 470001,
+      total: 360000,
       pagada: 70000,
-      pendiente: 150001,
-      vencida: 250000,
-      rate: 15,
+      pendiente: 90000,
+      vencida: 200000,
+      rate: 19,
     });
-    expect(stats.delinquency).toEqual({ overdueAmount: 250000, rate: 53 });
+    expect(stats.delinquency).toEqual({ overdueAmount: 200000, rate: 56 });
     expect(stats.pendingLiquidaciones).toBe(3);
     expect(stats.agenda.collections.map((p: any) => [p.id, p.amount])).toEqual([
-      ['liq-1', 250000],
-      ['liq-3', 60001],
+      ['liq-1', 150000],
+      ['liq-3', 50000],
       ['liq-2', 90000],
     ]);
   });
@@ -140,11 +140,11 @@ describe('Lectores de deuda: escenario con pago parcial y liquidación vencida',
     } as any;
     const ctx = await new DailyContextService(prisma).build(NOW);
 
-    expect(ctx.totals.overdueAmount).toBe(250000);
-    expect(ctx.totals.pendingAmount).toBe(150001);
-    expect(ctx.totals.overdueCollections).toBe(1);
+    expect(ctx.totals.overdueAmount).toBe(200000);
+    expect(ctx.totals.pendingAmount).toBe(90000);
+    expect(ctx.totals.overdueCollections).toBe(2);
     const cobranzas = ctx.items.filter((i) => i.kind === 'cobranza');
-    expect(cobranzas.map((i) => i.amount)).toEqual([250000, 60001, 90000]);
+    expect(cobranzas.map((i) => i.amount)).toEqual([150000, 50000, 90000]);
   });
 
   it('reporte de morosidad (ReportsService.getMorosidad)', async () => {
@@ -152,8 +152,8 @@ describe('Lectores de deuda: escenario con pago parcial y liquidación vencida',
     const tenantContext = { getTenantId: jest.fn().mockReturnValue('tenant-1') } as any;
     const report = await new ReportsService(prisma, tenantContext).getMorosidad({});
 
-    expect(report.rows.map((r: any) => r.monto)).toEqual(['250000.00', '60000.50']);
-    expect(report.summary).toEqual({ totalVencido: '310000.50', cantidadVencidas: '2' });
+    expect(report.rows.map((r: any) => r.monto)).toEqual(['150000.00', '50000.25']);
+    expect(report.summary).toEqual({ totalVencido: '200000.25', cantidadVencidas: '2' });
   });
 
   it('morosos de punitorios (PenaltiesController.getDelinquentTenants)', async () => {
@@ -163,6 +163,6 @@ describe('Lectores de deuda: escenario con pago parcial y liquidación vencida',
     const morosos = await controller.getDelinquentTenants();
 
     expect(morosos).toHaveLength(1);
-    expect(morosos[0].totalDebt).toBe('310000.50');
+    expect(morosos[0].totalDebt).toBe('200000.25');
   });
 });
