@@ -91,6 +91,7 @@ export type { ReadResource, ReadPolicy } from './schemas/read-policy.schema';
 export {
   PreviewAdjustmentBatchSchema,
   ApplyAdjustmentBatchSchema,
+  ADJUSTMENT_ROW_STATUSES,
 } from './schemas/adjustment-batch.schema';
 export type {
   PreviewAdjustmentBatchInput,

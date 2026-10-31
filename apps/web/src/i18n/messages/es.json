@@ -104,6 +104,7 @@
   "import": "Importar",
   "migration": "Migración",
   "delinquency": "Morosos",
+  "adjustments": "Ajustes del mes",
   "penalties": "Punitorios",
   "fiscal": "Configuración Fiscal",
   "pagos": "Pagos",
@@ -3569,6 +3570,82 @@
   "severeHint": "Más de 30 días de mora",
   "tenantCount": "{count, plural, =0 {Sin inquilinos en mora} one {# inquilino} other {# inquilinos}}"
  },
+ "adjustments": {
+  "title": "Ajustes del mes",
+  "subtitle": "Los ajustes de alquiler que vencen en el mes: revisá el alquiler nuevo de cada contrato, elegí los que querés aplicar y aplicalos todos juntos.",
+  "forbidden": "No tenés permiso para aplicar ajustes.",
+  "month": "Mes",
+  "refresh": "Actualizar",
+  "loadError": "No se pudieron cargar los ajustes del mes.",
+  "applyError": "No se pudieron aplicar los ajustes.",
+  "empty": {
+    "title": "No hay ajustes para este mes",
+    "subtitle": "Ningún contrato activo tiene un ajuste pendiente que venza hasta fin de mes."
+  },
+  "columns": {
+    "select": "Elegir",
+    "contract": "Contrato",
+    "date": "Fecha del ajuste",
+    "type": "Índice",
+    "current": "Alquiler actual",
+    "new": "Alquiler nuevo",
+    "percentage": "Variación",
+    "months": "Meses de índice",
+    "status": "Estado",
+    "result": "Resultado"
+  },
+  "selectAll": "Elegir todos los ajustes aplicables",
+  "selectRow": "Elegir el ajuste de {title}",
+  "overdue": "Atrasado",
+  "noTitle": "Contrato {id}",
+  "estimatedMonth": "{period} (estimado)",
+  "noIndexMonths": "—",
+  "statuses": {
+    "ready": "Listo",
+    "provisional": "A cuenta",
+    "fixed_initial": "Sin cambio (meses fijos)",
+    "missing_data": "Faltan datos",
+    "error": "No se puede calcular"
+  },
+  "provisionalHint": "Calculado con índices estimados; se corrige cuando se publique el oficial.",
+  "missing": {
+    "months": "Faltan {indexes}: {periods}",
+    "estimatesOnly": "Hay un estimado, pero el pago a cuenta está desactivado.",
+    "loadIndex": "Cargar el índice"
+  },
+  "errors": {
+    "MISSING_ADJUSTMENT_PCT": "Falta cargar el porcentaje del contrato.",
+    "MISSING_ADJUSTMENT_STEPS": "Faltan cargar los escalones del contrato.",
+    "UNKNOWN_ADJUSTMENT_TYPE": "La modalidad de ajuste no es válida.",
+    "generic": "No se puede calcular este ajuste."
+  },
+  "summary": {
+    "selected": "{count, plural, =0 {Ningún ajuste elegido} one {# ajuste elegido} other {# ajustes elegidos}}",
+    "provisional": "{count, plural, one {# a cuenta} other {# a cuenta}}"
+  },
+  "apply": {
+    "button": "Aplicar {count, plural, one {# ajuste} other {# ajustes}}",
+    "applying": "Aplicando…",
+    "confirmTitle": "Aplicar los ajustes elegidos",
+    "confirmBody": "Se van a actualizar los alquileres de {count, plural, one {# contrato} other {# contratos}}.",
+    "confirmProvisional": "{count, plural, one {# se aplica} other {# se aplican}} a cuenta con índices estimados y se corregirá al publicarse el oficial.",
+    "confirmLabel": "Aplicar",
+    "done": "{applied, plural, =0 {No se aplicó ningún ajuste} one {Se aplicó # ajuste} other {Se aplicaron # ajustes}}.",
+    "doneSkipped": "{skipped, plural, one {# quedó pendiente} other {# quedaron pendientes}}."
+  },
+  "result": {
+    "applied": "Aplicado",
+    "provisional": "Aplicado a cuenta",
+    "fixed_initial": "Sin cambio",
+    "skipped": "Pendiente",
+    "reasons": {
+      "MISSING_INDEX_DATA": "Faltan datos del índice",
+      "NO_DUE_ADJUSTMENT": "Ya no tiene un ajuste que venza",
+      "CONTRACT_NOT_FOUND": "No se encontró el contrato",
+      "generic": "No se pudo aplicar"
+    }
+  }
+ },
  "indexData": {
   "title": "Índices de ajuste",
   "subtitle": "Últimos valores de IPC, ICL, UVA, CVS y CER. El sistema trae IPC, ICL y UVA todos los días del INDEC y el BCRA; acá se completa lo que falte o se corrige un valor.",
@@ -4183,6 +4260,10 @@
    "leadDays": {
     "label": "Días de anticipación",
     "hint": "Días antes del vencimiento en que se genera la liquidación (de fábrica {value}, es decir el día 20)."
+   },
+   "allowProvisional": {
+    "label": "Pago a cuenta si falta el índice",
+    "hint": "Si el INDEC todavía no publicó el índice de un ajuste, se aplica uno provisorio con el valor estimado y se corrige cuando se publique el oficial. Apagado, el ajuste queda pendiente."
    },
    "ipcLagMonths": {
     "label": "Rezago del IPC (meses)",

@@ -16,8 +16,9 @@ export const ApplyAdjustmentBatchSchema = z
   .strict();
 export type ApplyAdjustmentBatchInput = z.infer<typeof ApplyAdjustmentBatchSchema>;
 
-/** Estado de una fila de la previsualización. */
-export type AdjustmentRowStatus = 'ready' | 'provisional' | 'fixed_initial' | 'missing_data' | 'error';
+/** Estados de una fila de la previsualización. */
+export const ADJUSTMENT_ROW_STATUSES = ['ready', 'provisional', 'fixed_initial', 'missing_data', 'error'] as const;
+export type AdjustmentRowStatus = (typeof ADJUSTMENT_ROW_STATUSES)[number];
 
 /** Un valor de índice que entra en el cálculo del ajuste. */
 export interface AdjustmentIndexValue {

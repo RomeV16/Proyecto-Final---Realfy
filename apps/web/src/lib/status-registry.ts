@@ -26,7 +26,15 @@ import type { BadgeVariant } from '@/components/ui/badge';
  * `Enviada` es info; es el tono que ya mostraba el listado, y la chapa del
  * detalle se alinea con él.
  */
-export type StatusDomain = 'liquidacion' | 'rendicion' | 'contrato' | 'ticket' | 'lead' | 'visita' | 'usuario';
+export type StatusDomain =
+  | 'liquidacion'
+  | 'rendicion'
+  | 'contrato'
+  | 'ticket'
+  | 'lead'
+  | 'visita'
+  | 'usuario'
+  | 'ajuste';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -64,6 +72,13 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
     },
     [LiquidacionStatus.Anulada],
   ),
+  ajuste: entries('adjustments.statuses', {
+    ready: 'success',
+    provisional: 'warning',
+    fixed_initial: 'neutral',
+    missing_data: 'danger',
+    error: 'danger',
+  }),
   rendicion: entries('renditions.statuses', {
     [RendicionStatus.Borrador]: 'neutral',
     [RendicionStatus.Aprobada]: 'info',

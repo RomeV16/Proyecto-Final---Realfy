@@ -20,7 +20,7 @@ import { FormShell } from '@/components/ui/form-shell';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 
-type FieldName = keyof OperationalDefaultsFormInput;
+type FieldName = Exclude<keyof OperationalDefaultsFormInput, 'allowProvisional'>;
 
 /** Campos de cada sección, en el orden en que se muestran. */
 const SECTIONS: { key: string; fields: FieldName[] }[] = [
@@ -91,6 +91,20 @@ function DefaultsForm({
               </FormField>
             ))}
           </div>
+          {section.key === 'rent' && (
+            <label className="mt-4 flex items-start gap-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 accent-[var(--color-brand-500)]"
+                checked={values.allowProvisional}
+                onChange={(e) => set('allowProvisional', e.target.checked)}
+              />
+              <span>
+                <span className="block font-medium">{t('fields.allowProvisional.label')}</span>
+                <span className="block text-[var(--color-muted)]">{t('fields.allowProvisional.hint')}</span>
+              </span>
+            </label>
+          )}
         </FormShell.Section>
       ))}
     </FormShell>
