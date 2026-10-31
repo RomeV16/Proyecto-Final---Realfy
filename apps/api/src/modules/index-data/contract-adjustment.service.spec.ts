@@ -22,7 +22,10 @@ const mockTxContractUpdate = jest.fn();
 const mockTxContractFindUnique = jest.fn();
 const mockTxScheduleUpdate = jest.fn();
 const mockTxScheduleFindFirst = jest.fn();
-const mockTxAuditCreate = jest.fn();
+const mockAuditRecord = jest.fn();
+const mockAudit = { record: mockAuditRecord } as any;
+const mockTxAdjustmentCreate = jest.fn();
+const mockTenantFind = jest.fn();
 const mockTransaction = jest.fn();
 /** ContractTermsVersion vigente a la fecha del ajuste; null: el contrato no tiene versiones. */
 const mockFindTerms = jest.fn();
@@ -31,19 +34,19 @@ const tx = {
   indexData: { findMany: jest.fn() },
   contract: { update: mockTxContractUpdate, findUnique: mockTxContractFindUnique },
   adjustmentSchedule: { update: mockTxScheduleUpdate, findFirst: mockTxScheduleFindFirst },
-  auditLog: { create: mockTxAuditCreate },
+  contractAdjustment: { create: mockTxAdjustmentCreate },
   contractTermsVersion: { findFirst: mockFindTerms },
 };
 
 const mockPrisma = {
   client: {
     contract: { findFirst: mockFindFirstContract },
-    adjustmentSchedule: { findFirst: mockFindFirstSchedule },
+    adjustmentSchedule: { findFirst: mockFindFirstSchedule, findMany: mockFindManyDueSchedules },
+    $transaction: mockTransaction,
   },
   baseClient: {
     contractTermsVersion: { findFirst: mockFindTerms },
-    adjustmentSchedule: { findMany: mockFindManyDueSchedules },
-    $transaction: mockTransaction,
+    tenant: { findUnique: mockTenantFind },
   },
 } as any;
 
@@ -57,7 +60,7 @@ function makeContract(overrides: Partial<any> = {}): any {
     adjustmentType: AdjustmentType.FixedPercent,
     adjustmentPeriod: AdjustmentPeriod.Trimestral,
     customAdjustmentPct: '10.00',
-    startDate: new Date('2025-01-01'),
+    startDate: new Date('2025-03-01'),
     status: ContractStatus.Activo,
     isActive: true,
     ...overrides,
@@ -80,7 +83,13 @@ function makeDue(contractOverrides: Partial<any> = {}, scheduleOverrides: Partia
   return makeSchedule({ contract: makeContract(contractOverrides), ...scheduleOverrides });
 }
 
-const rows = (...values: string[]) => values.map((value) => ({ value }));
+/** Serie mensual desde marzo de 2025, el primer mes de la ventana de los contratos de prueba. */
+const rows = (...values: string[]) =>
+  values.map((value, i) => ({
+    value,
+    period: new Date(Date.UTC(2025, 2 + i, 1)),
+    isEstimate: false,
+  }));
 
 /**
  * Serie mensual con fechas: el doble responde como IndexDataService.getForPeriod,
@@ -101,7 +110,7 @@ describe('ContractAdjustmentService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new ContractAdjustmentService(mockPrisma, mockIndexData);
+    service = new ContractAdjustmentService(mockPrisma, mockIndexData, mockAudit);
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     // La transacción ejecuta el callback con el cliente simulado.
@@ -116,6 +125,10 @@ describe('ContractAdjustmentService', () => {
     mockTxContractUpdate.mockReset();
     mockTxContractFindUnique.mockReset();
     mockTxScheduleFindFirst.mockReset();
+    mockTenantFind.mockReset();
+    mockTenantFind.mockResolvedValue(null);
+    mockTxAdjustmentCreate.mockReset();
+    mockTxAdjustmentCreate.mockResolvedValue({ id: 'adj-1' });
   });
 
   // ── preview ───────────────────────────────────────────────────────────────
@@ -188,7 +201,7 @@ describe('ContractAdjustmentService', () => {
       const contract = makeContract({ adjustmentType: AdjustmentType.IPC });
       mockFindFirstContract.mockResolvedValueOnce(contract);
       mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
-      mockFindManyIndex.mockResolvedValueOnce(rows('2.000000'));
+      mockFindManyIndex.mockResolvedValueOnce(rows('2.000000', '2.000000'));
 
       await service.preview('contract-1');
 
@@ -196,7 +209,7 @@ describe('ContractAdjustmentService', () => {
         IndexType.IPC,
         contract.startDate,
         new Date('2025-04-01T12:00:00.000Z'),
-        { tenantId: 'tenant-1' },
+        { tenantId: 'tenant-1', includeEstimates: true },
       );
     });
 
@@ -292,6 +305,8 @@ describe('ContractAdjustmentService', () => {
           ['2025-03-01', '3.000000'],
           ['2025-04-01', '1.000000'],
           ['2025-05-01', '4.000000'],
+          ['2025-06-01', '0.000000'],
+          ['2025-07-01', '0.000000'],
         ]),
       );
 
@@ -345,16 +360,16 @@ describe('ContractAdjustmentService', () => {
     it('CP-12: sin cronogramas vencidos devuelve lista vacía y no escribe nada', async () => {
       mockFindManyDueSchedules.mockResolvedValueOnce([]);
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
-      expect(result).toEqual([]);
+      expect(result.applied).toEqual([]);
       expect(mockTransaction).not.toHaveBeenCalled();
     });
 
-    it('CP-12: el barrido busca solo pendientes vencidos de contratos activos, sin filtro de inmobiliaria', async () => {
+    it('CP-12: el barrido busca solo pendientes vencidos de contratos activos; el aislamiento lo da el cliente de la inmobiliaria', async () => {
       mockFindManyDueSchedules.mockResolvedValueOnce([]);
 
-      await service.applyDueAdjustments();
+      await service.applyDueAdjustments('tenant-1');
 
       const args = mockFindManyDueSchedules.mock.calls[0][0];
       expect(args.where.status).toBe(ScheduleStatus.Pending);
@@ -367,7 +382,7 @@ describe('ContractAdjustmentService', () => {
     it('CP-13 (D8): fijo 10 % actualiza el alquiler, marca Applied y audita con los valores usados', async () => {
       mockFindManyDueSchedules.mockResolvedValueOnce([makeDue()]);
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
       expect(mockTxContractUpdate).toHaveBeenCalledWith({
         where: { id: 'contract-1' },
@@ -378,25 +393,29 @@ describe('ContractAdjustmentService', () => {
         data: { status: ScheduleStatus.Applied },
       });
 
-      const audit = mockTxAuditCreate.mock.calls[0][0].data;
+      expect(mockAuditRecord.mock.calls[0][0]).toBe(tx);
+      const audit = mockAuditRecord.mock.calls[0][1];
       expect(audit).toMatchObject({
         tenantId: 'tenant-1',
         userId: null,
         action: 'UPDATE',
         entity: 'adjustment_applied',
         entityId: 'contract-1',
+        before: { rent: '50000' },
+        after: { rent: '55000' },
       });
-      expect(audit.changes).toMatchObject({
+      expect(audit.metadata).toMatchObject({
+        source: 'cron',
         appliedPeriod: '2025-04',
         previousRent: '50000',
         newRent: '55000',
         delta: '5000',
       });
 
-      expect(result).toHaveLength(1);
-      expect(result[0].contractId).toBe('contract-1');
-      expect(result[0].appliedPeriod).toBe('2025-04');
-      expect(Number(result[0].deltaAmount)).toBe(5000);
+      expect(result.applied).toHaveLength(1);
+      expect(result.applied[0].contractId).toBe('contract-1');
+      expect(result.applied[0].appliedPeriod).toBe('2025-04');
+      expect(Number(result.applied[0].deltaAmount)).toBe(5000);
     });
 
     it('CP-13: lee los índices de la inmobiliaria del contrato dentro de la transacción', async () => {
@@ -405,13 +424,13 @@ describe('ContractAdjustmentService', () => {
       ]);
       mockFindManyIndex.mockResolvedValueOnce(rows('100', '110'));
 
-      await service.applyDueAdjustments();
+      await service.applyDueAdjustments('tenant-7');
 
       expect(mockFindManyIndex).toHaveBeenCalledWith(
         IndexType.ICL,
         expect.any(Date),
         expect.any(Date),
-        { tenantId: 'tenant-7', client: tx },
+        { tenantId: 'tenant-7', client: tx, includeEstimates: true },
       );
       expect(mockTxContractUpdate.mock.calls[0][0].data.rentAmount).toBe('55000');
     });
@@ -422,11 +441,11 @@ describe('ContractAdjustmentService', () => {
       ]);
       mockFindManyIndex.mockResolvedValueOnce(rows('2.000000', '3.000000'));
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
       expect(mockTxContractUpdate.mock.calls[0][0].data.rentAmount).toBe('105060');
-      expect(mockTxAuditCreate.mock.calls[0][0].data.changes.delta).toBe('5060');
-      expect(Number(result[0].deltaAmount)).toBe(5060);
+      expect(mockAuditRecord.mock.calls[0][1].metadata.delta).toBe('5060');
+      expect(Number(result.applied[0].deltaAmount)).toBe(5060);
     });
 
     it('CP-15: si una transacción falla, registra el error y sigue con el resto', async () => {
@@ -438,10 +457,10 @@ describe('ContractAdjustmentService', () => {
         .mockRejectedValueOnce(new Error('deadlock'))
         .mockImplementationOnce(async (fn: (t: typeof tx) => Promise<void>) => fn(tx));
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
-      expect(result).toHaveLength(1);
-      expect(result[0].contractId).toBe('contract-B');
+      expect(result.applied).toHaveLength(1);
+      expect(result.applied[0].contractId).toBe('contract-B');
       expect(Logger.prototype.error).toHaveBeenCalledWith(
         expect.stringContaining('contract-A'),
         expect.anything(),
@@ -459,14 +478,14 @@ describe('ContractAdjustmentService', () => {
         makeDue({}, { id: 'schedule-2', periodNumber: 2, nextAdjustmentDate: new Date('2025-07-01T00:00:00.000Z') }),
       ]);
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
       expect(mockTxContractUpdate.mock.calls.map((c) => c[0].data.rentAmount)).toEqual(['55000', '60500']);
-      expect(mockTxAuditCreate.mock.calls[1][0].data.changes).toMatchObject({
+      expect(mockAuditRecord.mock.calls[1][1].metadata).toMatchObject({
         previousRent: '55000',
         newRent: '60500',
       });
-      expect(result.map((r) => Number(r.deltaAmount))).toEqual([5000, 5500]);
+      expect(result.applied.map((r) => Number(r.deltaAmount))).toEqual([5000, 5500]);
     });
 
     it.each([
@@ -479,20 +498,20 @@ describe('ContractAdjustmentService', () => {
     ])('CP-16: periodicidad %s avanza la próxima fecha a %s', async (period, expected) => {
       mockFindManyDueSchedules.mockResolvedValueOnce([makeDue({ adjustmentPeriod: period })]);
 
-      await service.applyDueAdjustments();
+      await service.applyDueAdjustments('tenant-1');
 
-      const next = mockTxAuditCreate.mock.calls[0][0].data.changes.nextAdjustmentDate;
+      const next = mockAuditRecord.mock.calls[0][1].metadata.nextAdjustmentDate;
       expect(next.slice(0, 10)).toBe(expected);
     });
 
     it('CP-16: una periodicidad desconocida no aplica el ajuste ni asume trimestral (DEF-10)', async () => {
       mockFindManyDueSchedules.mockResolvedValueOnce([makeDue({ adjustmentPeriod: 'Inventada' })]);
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
-      expect(result).toEqual([]);
+      expect(result.applied).toEqual([]);
       expect(mockTxContractUpdate).not.toHaveBeenCalled();
-      expect(mockTxAuditCreate).not.toHaveBeenCalled();
+      expect(mockAuditRecord).not.toHaveBeenCalled();
     });
 
     it.each([
@@ -506,9 +525,9 @@ describe('ContractAdjustmentService', () => {
         makeDue({ adjustmentPeriod: period }, { nextAdjustmentDate: new Date(`${from}T12:00:00.000Z`) }),
       ]);
 
-      await service.applyDueAdjustments();
+      await service.applyDueAdjustments('tenant-1');
 
-      const next = mockTxAuditCreate.mock.calls[0][0].data.changes.nextAdjustmentDate;
+      const next = mockAuditRecord.mock.calls[0][1].metadata.nextAdjustmentDate;
       expect(next.slice(0, 10)).toBe(expected);
     });
   });
@@ -525,7 +544,7 @@ describe('ContractAdjustmentService', () => {
     const expectUntouched = () => {
       expect(mockTxContractUpdate).not.toHaveBeenCalled();
       expect(mockTxScheduleUpdate).not.toHaveBeenCalled();
-      expect(mockTxAuditCreate).not.toHaveBeenCalled();
+      expect(mockAuditRecord).not.toHaveBeenCalled();
     };
 
     it('IPC sin datos: no toca el alquiler, deja el cronograma pendiente y lo informa', async () => {
@@ -534,9 +553,9 @@ describe('ContractAdjustmentService', () => {
       ]);
       mockFindManyIndex.mockResolvedValue([]);
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
-      expect(result).toEqual([]);
+      expect(result.applied).toEqual([]);
       expectUntouched();
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('MISSING_INDEX_DATA'),
@@ -554,9 +573,9 @@ describe('ContractAdjustmentService', () => {
       ]);
       mockFindManyIndex.mockResolvedValue([]);
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
-      expect(result).toEqual([]);
+      expect(result.applied).toEqual([]);
       expectUntouched();
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('MISSING_INDEX_DATA'),
@@ -572,9 +591,9 @@ describe('ContractAdjustmentService', () => {
         type === IndexType.CVS ? rows('1.5', '1.6') : [],
       );
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
-      expect(result).toEqual([]);
+      expect(result.applied).toEqual([]);
       expectUntouched();
       expect(warn).toHaveBeenCalledWith(
         expect.stringContaining('MISSING_INDEX_DATA'),
@@ -589,9 +608,9 @@ describe('ContractAdjustmentService', () => {
       ]);
       mockFindManyIndex.mockResolvedValue([]);
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
-      expect(result.map((r) => r.contractId)).toEqual(['contract-B']);
+      expect(result.applied.map((r) => r.contractId)).toEqual(['contract-B']);
       expect(mockTxScheduleUpdate).toHaveBeenCalledTimes(1);
       expect(mockTxScheduleUpdate.mock.calls[0][0].where).toEqual({ id: 'schedule-B' });
     });
@@ -602,9 +621,9 @@ describe('ContractAdjustmentService', () => {
       ]);
       mockFindManyIndex.mockResolvedValue(rows('2.000000', '3.000000'));
 
-      const result = await service.applyDueAdjustments();
+      const result = await service.applyDueAdjustments('tenant-1');
 
-      expect(result).toHaveLength(1);
+      expect(result.applied).toHaveLength(1);
       expect(warn).not.toHaveBeenCalled();
     });
   });
@@ -622,7 +641,7 @@ describe('ContractAdjustmentService.loadParams — reglas versionadas', () => {
     mockFindTerms.mockReset();
     mockFindManyIndex.mockReset();
     mockFindManyIndex.mockResolvedValue([]);
-    service = new ContractAdjustmentService(mockPrisma, mockIndexData);
+    service = new ContractAdjustmentService(mockPrisma, mockIndexData, mockAudit);
   });
 
   it('lee la versión vigente a la fecha del ajuste', async () => {
@@ -639,7 +658,7 @@ describe('ContractAdjustmentService.loadParams — reglas versionadas', () => {
 
     expect(params).toMatchObject({ type: AdjustmentType.FixedPercent });
     expect((params as any).percentage.toString()).toBe('8');
-    expect(rules).toEqual({ adjustmentBase: 'Original', indexLagMonths: 3 });
+    expect(rules).toEqual({ adjustmentBase: 'Original', indexLagMonths: 3, fixedInitialMonths: 0 });
     expect(mockFindTerms).toHaveBeenCalledWith({
       where: { tenantId: 'tenant-1', contractId: 'contract-1', validFrom: { lte: window.until } },
       orderBy: { validFrom: 'desc' },
@@ -652,7 +671,8 @@ describe('ContractAdjustmentService.loadParams — reglas versionadas', () => {
     const { params, rules } = await service.loadParams(makeContract(), window, { tenantId: 'tenant-1' });
 
     expect((params as any).percentage.toString()).toBe('10');
-    expect(rules).toEqual({ adjustmentBase: 'Vigente', indexLagMonths: 2 });
+    // Sin versión rige lo de siempre: base vigente y sin rezago.
+    expect(rules).toEqual({ adjustmentBase: 'Vigente', indexLagMonths: 0, fixedInitialMonths: 0 });
   });
 
   it('lee las versiones con el cliente de la transacción cuando se pasa', async () => {
@@ -670,17 +690,19 @@ describe('ContractAdjustmentService.loadParams — reglas versionadas', () => {
     expect(mockFindTerms).not.toHaveBeenCalled();
   });
 
-  it('una modalidad sin cálculo todavía (UVA, Escalonado) se informa como desconocida', async () => {
+  it('un escalonado sin escalones se informa como faltante, no como 0 %', async () => {
     mockFindTerms.mockResolvedValue({
       adjustmentType: AdjustmentType.Escalonado,
       customPct: null,
+      customSteps: null,
       adjustmentBase: 'Vigente',
       indexLagMonths: 2,
+      fixedInitialMonths: 0,
     });
 
     await expect(
       service.loadParams(makeContract(), window, { tenantId: 'tenant-1' }),
-    ).rejects.toMatchObject({ response: { error: 'UNKNOWN_ADJUSTMENT_TYPE' } });
+    ).rejects.toMatchObject({ response: { error: 'MISSING_ADJUSTMENT_STEPS' } });
   });
 });
 
@@ -689,7 +711,7 @@ describe('ContractAdjustmentService — ventana incompleta (DEF-27)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new ContractAdjustmentService(mockPrisma, mockIndexData);
+    service = new ContractAdjustmentService(mockPrisma, mockIndexData, mockAudit);
     mockFindTerms.mockReset();
     mockFindTerms.mockResolvedValue(null);
     mockFindFirstContract.mockReset();
@@ -698,7 +720,11 @@ describe('ContractAdjustmentService — ventana incompleta (DEF-27)', () => {
 
   it('CP-273 (DEF-27): con abril sin publicar la previsualización no ajusta con tres meses de cuatro', async () => {
     mockFindFirstContract.mockResolvedValueOnce(
-      makeContract({ adjustmentType: AdjustmentType.IPC, customAdjustmentPct: null }),
+      makeContract({
+        adjustmentType: AdjustmentType.IPC,
+        customAdjustmentPct: null,
+        startDate: new Date('2025-01-01'),
+      }),
     );
     mockFindFirstSchedule.mockResolvedValueOnce(makeSchedule());
     mockFindManyIndex.mockImplementation(
