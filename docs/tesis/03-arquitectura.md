@@ -46,6 +46,18 @@ Los servicios reciben el `tenantId` desde el contexto autenticado, jamás desde 
 
 El frontend consume la API del backend a través de un cliente HTTP tipado, con el token JWT en `Authorization: Bearer`. El portal del inquilino vive en una rama de rutas separada (`/[locale]/portal/...`) y utiliza un flujo de autenticación distinto al de los usuarios internos.
 
+### Convenciones de la web
+
+Estas piezas viven en `apps/web/src` y son el lugar único para su tema. Antes de escribir un helper en una pantalla, se busca acá; si falta algo, se agrega acá y no en el archivo.
+
+- **Cliente de API** (`lib/api-client.ts`, `lib/portal-api-client.ts`, `lib/create-api-client.ts`). `createApiClient` concentra el envío, la renovación única de la sesión ante un 401 y el reintento; el personal (cookies httpOnly) y el portal (token Bearer) solo aportan su configuración. Todo error sale como `ApiRequestError` con `status`, `errorCode`, `message`, `correlationId` y `details` (el contexto que agrega el servicio, como `problems`). El `correlationId` es el `x-request-id` que la API devuelve en cada respuesta y repite en el cuerpo de los errores. Las respuestas binarias pasan por `apiBlob`.
+- **Descargas** (`lib/download.ts`). `downloadFile(path, nombre)` baja el archivo por el cliente de API, de modo que lleva la sesión. No se usa `window.open` ni `<a href>` directo a la API: no envían el token y se rompen con la sesión.
+- **Formatos** (`lib/format.ts`, `ui/money-text.tsx`, `ui/date-text.tsx`). Dinero, fechas y porcentajes se formatean ahí, con el locale de next-intl. Las fechas de solo día (vencimientos, inicio y fin de contrato, períodos) llegan como medianoche UTC y se leen en UTC con `formatDate`; los instantes (`createdAt`, `paidAt`) usan `formatLocalDate` o `formatDateTime`, en la zona del usuario. Un `toLocaleDateString` suelto en una pantalla vuelve a mostrar el día anterior en Argentina.
+- **Permisos** (`lib/permissions.ts`). `can(rol, acción)` y `useCan(acción)` leen una matriz acción -> roles con nombres de lo que habilitan (`contracts.manage`, `liquidaciones.act`, `indexData.manage`). La API sigue siendo la que impone el permiso; la matriz decide qué se muestra. El menú pasa por `useVisibleNavItems()`, y un `NavItem` puede declarar la acción que lo habilita.
+- **Navegación** (`i18n/navigation.ts`). `Link`, `useRouter`, `usePathname` y `redirect` de `createNavigation(routing)` agregan el prefijo de locale solos: las rutas internas se escriben sin él (`href="/contracts"`). Fuera de React, `localizedPath('/auth/login')` arma la ruta con el locale actual. `next/link` queda solo para enlaces externos o del sitio público.
+- **Diálogos y confirmaciones** (`ui/dialog.tsx`, `ui/confirm-dialog.tsx`). Un modal se arma con `Dialog` y una confirmación se pide con `useConfirm()`; no se usan `window.confirm` ni overlays `fixed inset-0` hechos a mano.
+- **Reutilizar antes de escribir un helper.** Si una pantalla necesita formatear, descargar, preguntar un permiso o armar un enlace, usa la pieza de arriba. Los helpers locales con `es-AR` fijo, los arreglos literales de roles y los regex de `localePrefix` son justamente lo que estas piezas reemplazaron.
+
 ## Multi-tenant por row-level
 
 Todas las tablas de dominio incluyen una columna `tenantId` que identifica a la inmobiliaria. Las dos únicas excepciones son `RefreshToken` y `PipelineStage`, que se aíslan por su relación con `User` y `Pipeline` respectivamente.

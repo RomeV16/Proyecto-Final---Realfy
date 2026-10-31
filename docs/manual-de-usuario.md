@@ -244,8 +244,11 @@ ven las líneas —alquiler, ajuste, extras, descuentos, multas— y se agregan,
 editan o quitan las que hagan falta antes de aprobar. Aprobar y enviar en lote
 desde el listado es una acción reservada a Admin y Gerente.
 
-La liquidación tiene su comprobante en PDF, descargable desde el detalle. Es el
-documento que el inquilino ve en su portal.
+La liquidación tiene su comprobante en PDF, descargable desde el listado y desde
+el detalle. Es el documento que el inquilino ve en su portal. El archivo se baja
+con la sesión abierta; si la descarga falla, la pantalla muestra un aviso en lugar
+de quedarse callada. Los vencimientos y las fechas de contrato se ven tal como se
+cargaron, sin correrse un día.
 
 ### Registrar un pago
 
@@ -296,7 +299,8 @@ llegar al depósito neto que recibe el propietario.
 
 En el detalle (`/renditions/[id]`) se ven los conceptos discriminados y se pueden
 agregar o quitar líneas y dejar notas. Los estados son Borrador, Aprobada,
-Enviada y Depositada. El PDF se descarga desde el listado o el detalle, y desde
+Enviada y Depositada. El PDF se descarga, con la sesión abierta, desde el listado
+o el detalle, y desde
 el detalle se lo envía por correo al propietario. Todo el circuito es de Admin,
 Gerente y Liquidaciones.
 
