@@ -9,6 +9,9 @@ export {
   PropertyOperationType,
   PropertyState,
   PersonRole,
+  LessorCapacity,
+  SignatureMode,
+  PowerScope,
   FiscalCondition,
   PersonType,
   PayoutMethod,
@@ -72,6 +75,27 @@ export {
   UpdatePersonBankAccountSchema,
   validateCuit,
 } from './schemas/person.schema';
+
+// Schemas — locadores, poderes y titularidad
+export {
+  CreateContractLessorSchema,
+  UpdateContractLessorSchema,
+  ReplaceContractLessorsSchema,
+  CreatePowerOfAttorneySchema,
+  UpdatePowerOfAttorneySchema,
+  PowerOfAttorneyFilterSchema,
+  CreatePropertyOwnershipSchema,
+  payoutPctSchema,
+} from './schemas/party.schema';
+export {
+  FULL_SHARE_UNITS,
+  pctToUnits,
+  unitsToPct,
+  splitEqualPct,
+  isLessorActiveAt,
+  findInvalidShareDates,
+} from './parties/lessor-shares';
+export type { LessorShareRow, InvalidShareDate } from './parties/lessor-shares';
 
 // Schemas — contratos
 export {

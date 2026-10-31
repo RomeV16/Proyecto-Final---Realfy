@@ -102,6 +102,25 @@ export enum PersonRole {
   Apoderado = 'Apoderado',
 }
 
+export enum LessorCapacity {
+  Propietario = 'Propietario',
+  Usufructuario = 'Usufructuario',
+  Sublocador = 'Sublocador',
+  Acreedor = 'Acreedor',
+  Otro = 'Otro',
+}
+
+export enum SignatureMode {
+  Indistinta = 'Indistinta',
+  Conjunta = 'Conjunta',
+}
+
+export enum PowerScope {
+  Cobrar = 'Cobrar',
+  Firmar = 'Firmar',
+  Administrar = 'Administrar',
+}
+
 export enum PersonType {
   Fisica = 'Fisica',
   Juridica = 'Juridica',

@@ -1,3 +1,4 @@
+-- migracion: 20261031030500_personas_datos_y_referencias
 -- personas_datos_y_referencias: backfill de cuentas bancarias.
 -- Devuelve filas SOLO si algo salió mal.
 

@@ -6,7 +6,7 @@
 -- secuencias), nada proviene de una persona o una inmobiliaria real.
 --
 -- Inmobiliaria A (tenant-a): 10 personas con distintas combinaciones de datos
--- bancarios, 3 propiedades, 2 contratos con partes y garantes, liquidaciones,
+-- bancarios, 3 propiedades, 4 contratos con partes y garantes (uno con tres propietarios, uno sin propietario), liquidaciones,
 -- pagos y un comprobante. Inmobiliaria B (tenant-b): lo mínimo para comprobar
 -- que ninguna migración mezcla datos entre inmobiliarias.
 --
@@ -71,6 +71,28 @@ INSERT INTO "contract_persons" ("id", "tenantId", "contractId", "personId", "rol
   ('cp-6',  'tenant-a', 'con-2',  'p10', 'Garante'),
   ('cp-b1', 'tenant-b', 'con-b1', 'pb1', 'Propietario'),
   ('cp-b2', 'tenant-b', 'con-b1', 'pb2', 'Inquilino');
+
+-- Propietarios con la propiedad guardada en la asignación de rol (forma vieja).
+UPDATE "person_role_assignments" SET "propertyId" = 'prop-1'  WHERE "id" = 'r01';
+UPDATE "person_role_assignments" SET "propertyId" = 'prop-2'  WHERE "id" = 'r05';
+UPDATE "person_role_assignments" SET "propertyId" = 'prop-b1' WHERE "id" = 'rb1';
+
+-- con-3: tres propietarios (el reparto en partes iguales no cierra en centésimas);
+-- con-4: un borrador sin propietario.
+INSERT INTO "contracts" ("id", "tenantId", "propertyId", "contractType", "status", "startDate", "endDate", "rentAmount", "adjustmentType", "adjustmentPeriod", "updatedAt") VALUES
+  ('con-3', 'tenant-a', 'prop-3', 'Alquiler', 'Activo',   '2026-05-01', '2028-05-01', 120000.00, 'IPC', 'Trimestral', now()),
+  ('con-4', 'tenant-a', 'prop-3', 'Alquiler', 'Borrador', '2027-01-01', '2029-01-01',  80000.00, 'IPC', 'Trimestral', now());
+
+INSERT INTO "contract_persons" ("id", "tenantId", "contractId", "personId", "role") VALUES
+  ('cp-7',  'tenant-a', 'con-3', 'p02', 'Propietario'),
+  ('cp-8',  'tenant-a', 'con-3', 'p03', 'Propietario'),
+  ('cp-9',  'tenant-a', 'con-3', 'p04', 'Propietario'),
+  ('cp-10', 'tenant-a', 'con-3', 'p07', 'Inquilino'),
+  ('cp-11', 'tenant-a', 'con-4', 'p08', 'Inquilino');
+
+-- Una rendición ya generada: la clave única pasa a incluir al locador.
+INSERT INTO "owner_rendiciones" ("id", "tenantId", "contractId", "ownerId", "period", "rentCollected", "commissionAmount", "adminFeeAmount", "deductionTotal", "netDeposit", "updatedAt") VALUES
+  ('rnd-1', 'tenant-a', 'con-1', 'p01', '2026-03-01', 100000.00, 5000.00, 0.00, 0.00, 95000.00, now());
 
 INSERT INTO "liquidaciones" ("id", "tenantId", "contractId", "period", "dueDate", "subtotal", "total", "updatedAt") VALUES
   ('liq-1',  'tenant-a', 'con-1',  '2026-03-01', '2026-03-10', 100000.00, 100000.00, now()),
