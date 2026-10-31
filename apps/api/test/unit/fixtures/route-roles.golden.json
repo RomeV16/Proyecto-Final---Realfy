@@ -833,6 +833,11 @@
   "src/modules/tenants/tenants.controller.ts#TenantsController.updateReadPolicy": [
     "Admin"
   ],
+  "src/modules/tenants/tenants.controller.ts#TenantsController.getOperationalDefaults": null,
+  "src/modules/tenants/tenants.controller.ts#TenantsController.updateOperationalDefaults": [
+    "Admin",
+    "Gerente"
+  ],
   "src/modules/tenants/tenants.controller.ts#TenantsController.getReadAccess": null,
   "src/modules/tickets/ticket-categories.controller.ts#TicketCategoriesController.create": [
     "Admin",
