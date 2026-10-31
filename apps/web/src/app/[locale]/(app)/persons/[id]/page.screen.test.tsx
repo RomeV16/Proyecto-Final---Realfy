@@ -116,6 +116,9 @@ function mockApi(opts: Opts = {}) {
     if (path === '/scoring/persons/pe-1') {
       return Promise.resolve().then(opts.score ?? (() => score));
     }
+    if (path === '/persons/pe-1/bank-accounts') return Promise.resolve([{ id: 'ba-1', currency: 'ARS', isDefault: true, alias: 'alias.prueba' }]);
+    if (path.startsWith('/persons/pe-1/powers')) return Promise.resolve([]);
+    if (path.startsWith('/contracts')) return Promise.resolve({ items: [] });
     if (path.startsWith('/properties')) {
       return Promise.resolve({ items: [{ id: 'p-1', title: 'Depto de prueba', street: 'Calle Falsa' }] });
     }
@@ -437,5 +440,32 @@ describe('PersonDetailPage', () => {
     expect(screen.getByRole('link', { name: 'Volver a personas' }).getAttribute('href')).toBe(
       '/es/persons',
     );
+  });
+
+  it('muestra los datos de la parte y las secciones como pestañas', async () => {
+    mockApi({ person: () => person({ personType: 'Juridica', dni: '30111222', address: 'Calle Ficticia 1', payoutMethod: 'Transferencia' }) });
+    const user = await renderPage();
+    expect(screen.getByText('Persona jurídica')).toBeInTheDocument();
+    expect(screen.getByText('30111222')).toBeInTheDocument();
+    expect(screen.getByText('Calle Ficticia 1')).toBeInTheDocument();
+
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.map((t) => t.textContent)).toEqual(['Datos', 'Cuentas bancarias', 'Poderes', 'Contratos como locador']);
+    expect(screen.getByRole('tab', { name: 'Datos' })).toHaveAttribute('aria-selected', 'true');
+
+    await user.click(screen.getByRole('tab', { name: 'Cuentas bancarias' }));
+    expect(screen.getByRole('tab', { name: 'Cuentas bancarias' })).toHaveAttribute('aria-selected', 'true');
+    expect((await screen.findAllByText('alias.prueba')).length).toBeGreaterThan(0);
+    expect(apiClient).toHaveBeenCalledWith('/persons/pe-1/bank-accounts');
+    expect(screen.queryByText('Nota ficticia de la persona')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Poderes' }));
+    expect(await screen.findByText('No otorgó poderes')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Contratos como locador' }));
+    expect(await screen.findByText('No es locadora en ningún contrato')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'Datos' }));
+    expect(screen.getByText('Nota ficticia de la persona')).toBeInTheDocument();
   });
 });

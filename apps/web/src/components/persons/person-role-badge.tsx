@@ -15,6 +15,7 @@ const ROLE_VARIANT: Record<string, 'neutral' | 'success' | 'warning' | 'danger' 
   [PersonRole.Lead]: 'brand',
   [PersonRole.Comprador]: 'info',
   [PersonRole.Proveedor]: 'neutral',
+  [PersonRole.Apoderado]: 'brand',
 };
 
 interface PersonRoleBadgeProps {

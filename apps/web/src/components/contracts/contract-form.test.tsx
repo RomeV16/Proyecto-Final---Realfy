@@ -30,6 +30,8 @@ const PROPERTY = { id: 'p-1', title: 'Depto de prueba', street: 'Calle Ficticia'
 const PERSONS = [
   { id: 'o-1', firstName: 'Ana', lastName: 'Propietaria', roles: [{ role: 'Propietario' }] },
   { id: 't-1', firstName: 'Beto', lastName: 'Inquilino', roles: [{ role: 'Inquilino' }] },
+  { id: 'o-2', firstName: 'Carlos', lastName: 'Cotitular', roles: [{ role: 'Propietario' }] },
+  { id: 'a-1', firstName: 'Dora', lastName: 'Sinrol', roles: [] },
 ];
 
 let postResult: () => Promise<unknown>;
@@ -63,7 +65,7 @@ async function fillWizard() {
 
   const search = screen.getByPlaceholderText('Buscar persona por nombre o CUIT…');
   await user.type(search, 'Propietaria');
-  await user.click(await screen.findByRole('button', { name: /Agregar propietario/ }));
+  await user.click(await screen.findByRole('button', { name: /Agregar locador/ }));
   await user.type(search, 'Inquilino');
   await user.click(await screen.findByRole('button', { name: /Agregar inquilino/ }));
   await user.click(screen.getByRole('button', { name: 'Siguiente' }));
@@ -105,10 +107,8 @@ describe('ContractForm — guardar como borrador o activo', () => {
       contractType: 'Alquiler',
       status: 'Borrador',
     });
-    expect(body.persons).toEqual([
-      { personId: 'o-1', role: 'Propietario' },
-      { personId: 't-1', role: 'Inquilino' },
-    ]);
+    expect(body.persons).toEqual([{ personId: 't-1', role: 'Inquilino' }]);
+    expect(body.lessors).toEqual([{ personId: 'o-1', payoutPct: '100.0000' }]);
   });
 
   it('guardar y activar envía status Activo', async () => {
@@ -178,5 +178,102 @@ describe('ContractForm — guardar como borrador o activo', () => {
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(screen.getByText('Paso 1 de 4')).toBeInTheDocument();
     expect(apiClient).not.toHaveBeenCalled();
+  });
+});
+
+describe('ContractForm — locadores con su porcentaje de cobro', () => {
+  beforeEach(() => {
+    apiClient.mockReset();
+    router.push.mockReset();
+    postResult = () => Promise.resolve({ id: 'c-77' });
+    mockApi();
+  });
+
+  /** Llega al paso de personas con la propiedad y el tipo ya cargados. */
+  async function toPersonsStep() {
+    const user = userEvent.setup();
+    const { container } = renderEs(<ContractForm />);
+    await user.type(screen.getByPlaceholderText('Buscar propiedad…'), 'Depto');
+    await user.click(await screen.findByRole('button', { name: /Depto de prueba/ }));
+    await user.selectOptions(screen.getAllByRole('combobox')[0], 'Alquiler');
+    fireEvent.change(container.querySelector('input[type=date]')!, { target: { value: '2026-01-01' } });
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    return user;
+  }
+
+  async function addLessor(user: ReturnType<typeof userEvent.setup>, query: string) {
+    const search = screen.getByPlaceholderText('Buscar persona por nombre o CUIT…');
+    await user.clear(search);
+    await user.type(search, query);
+    await user.click(await screen.findByRole('button', { name: /Agregar locador/ }));
+  }
+
+  it('reparte en partes iguales al agregar y quitar locadores', async () => {
+    const user = await toPersonsStep();
+    await addLessor(user, 'Propietaria');
+    await addLessor(user, 'Cotitular');
+    expect(screen.getByLabelText(/% de cobro de Ana Propietaria/)).toHaveValue('50.0000');
+    expect(screen.getByLabelText(/% de cobro de Carlos Cotitular/)).toHaveValue('50.0000');
+    expect(screen.getByText('El reparto suma 100 %.')).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole('button', { name: 'Quitar persona' })[1]);
+    expect(screen.getByLabelText(/% de cobro de Ana Propietaria/)).toHaveValue('100.0000');
+  });
+
+  it('una persona sin el rol de propietario también puede ser locadora', async () => {
+    const user = await toPersonsStep();
+    await addLessor(user, 'Sinrol');
+    expect(screen.getByLabelText(/% de cobro de Dora Sinrol/)).toHaveValue('100.0000');
+  });
+
+  it('con porcentajes que no suman 100 permite el borrador con aviso pero no activar', async () => {
+    const user = await toPersonsStep();
+    await addLessor(user, 'Propietaria');
+    await addLessor(user, 'Cotitular');
+    const pct = screen.getByLabelText(/% de cobro de Ana Propietaria/);
+    await user.clear(pct);
+    await user.type(pct, '60,5');
+    expect(screen.getByText('Los porcentajes suman 110,5000 %, no 100 %.')).toBeInTheDocument();
+    expect(screen.getByText(/Podés guardar como borrador/)).toBeInTheDocument();
+
+    // Con un inquilino y el precio cargados llega al último paso.
+    await addLessorTenant(user);
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+
+    expect(screen.getByRole('button', { name: 'Guardar y activar' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith('/es/contracts/c-77'));
+    expect(lastPost().body.lessors).toEqual([
+      { personId: 'o-1', payoutPct: '60.5' },
+      { personId: 'o-2', payoutPct: '50.0000' },
+    ]);
+  });
+
+  async function addLessorTenant(user: ReturnType<typeof userEvent.setup>) {
+    const search = screen.getByPlaceholderText('Buscar persona por nombre o CUIT…');
+    await user.clear(search);
+    await user.type(search, 'Inquilino');
+    await user.click(await screen.findByRole('button', { name: /Agregar inquilino/ }));
+  }
+
+  it('si el usuario editó un porcentaje, agregar otro locador ya no reparte solo', async () => {
+    const user = await toPersonsStep();
+    await addLessor(user, 'Propietaria');
+    const pct = screen.getByLabelText(/% de cobro de Ana Propietaria/);
+    await user.clear(pct);
+    await user.type(pct, '70');
+    await addLessor(user, 'Cotitular');
+    expect(screen.getByLabelText(/% de cobro de Ana Propietaria/)).toHaveValue('70');
+    expect(screen.getByLabelText(/% de cobro de Carlos Cotitular/)).toHaveValue('');
+  });
+
+  it('exige al menos un locador para pasar al paso siguiente', async () => {
+    const user = await toPersonsStep();
+    await addLessorTenant(user);
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(screen.getByText('Paso 2 de 4')).toBeInTheDocument();
+    expect(screen.getByText('Sin locadores asignados')).toHaveClass('text-red-500');
   });
 });

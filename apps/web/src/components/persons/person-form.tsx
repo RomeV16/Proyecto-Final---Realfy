@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { FiscalCondition } from '@realfy/shared';
+import { FiscalCondition, PayoutMethod, PersonType } from '@realfy/shared';
 import { personFormSchema } from '@realfy/shared/schemas';
 import { apiClient } from '@/lib/api-client';
 import { ErrorNotice } from '@/components/ui/error-notice';
@@ -25,11 +25,18 @@ export interface PersonFormData {
   cbu: string;
   bankAlias: string;
   notes: string;
+  personType?: string;
+  dni?: string;
+  address?: string;
+  maritalStatus?: string;
+  nationality?: string;
+  payoutMethod?: string;
 }
 
-const EMPTY_PERSON: PersonFormData = {
+const EMPTY_PERSON: Required<Omit<PersonFormData, 'id'>> = {
   firstName: '', lastName: '', email: '', phone: '', phone2: '',
   cuit: '', fiscalCondition: '', bankName: '', cbu: '', bankAlias: '', notes: '',
+  personType: '', dni: '', address: '', maritalStatus: '', nationality: '', payoutMethod: '',
 };
 
 function formatCuit(raw: string): string {
@@ -53,7 +60,7 @@ export function PersonForm({ mode, initialData, personId, onSuccess, onCancel }:
   const tCommon = useTranslations('common');
   const { values: form, set, errors, formError, submitting, submit } = useZodForm({
     schema: personFormSchema,
-    initialValues: initialData || EMPTY_PERSON,
+    initialValues: { ...EMPTY_PERSON, ...initialData },
     translate: useSchemaMessages(),
   });
 
@@ -66,6 +73,15 @@ export function PersonForm({ mode, initialData, personId, onSuccess, onCancel }:
       bankName: form.bankName || undefined, cbu: form.cbu || undefined,
       bankAlias: form.bankAlias || undefined, notes: form.notes || undefined,
     };
+    // Datos de la parte: al editar, vaciar un campo lo limpia (null); al crear, se omite.
+    const party: Record<string, string> = {
+      personType: form.personType, dni: form.dni, address: form.address,
+      maritalStatus: form.maritalStatus, nationality: form.nationality, payoutMethod: form.payoutMethod,
+    };
+    for (const [key, value] of Object.entries(party)) {
+      if (value) body[key] = value;
+      else if (mode === 'edit' && key !== 'personType') body[key] = null;
+    }
     Object.keys(body).forEach((k) => { if (body[k] === undefined) delete body[k]; });
     if (mode === 'create') {
       const res = await apiClient<{ id: string }>('/persons', { method: 'POST', body: JSON.stringify(body) });
@@ -100,6 +116,38 @@ export function PersonForm({ mode, initialData, personId, onSuccess, onCancel }:
           </FormField>
           <FormField label={tForm('phone2')} error={errors.phone2} className="sm:col-span-2">
             {(c) => <Input {...c} type="tel" value={form.phone2} onChange={(e) => set('phone2', e.target.value)} placeholder={tForm('phone2Placeholder')} />}
+          </FormField>
+        </div>
+      </FormShell.Section>
+      <FormShell.Section title={tForm('partyData')} className="max-w-sm sm:max-w-none">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormField label={tForm('personType')} error={errors.personType}>
+            {(c) => (
+              <Select {...c} value={form.personType} onChange={(e) => set('personType', e.target.value)}>
+                <option value="">{tForm('personTypePlaceholder')}</option>
+                {Object.values(PersonType).map((pt) => <option key={pt} value={pt}>{t(`personTypes.${pt}`)}</option>)}
+              </Select>
+            )}
+          </FormField>
+          <FormField label={tForm('dni')} error={errors.dni}>
+            {(c) => <Input {...c} value={form.dni} maxLength={20} onChange={(e) => set('dni', e.target.value)} placeholder={tForm('dniPlaceholder')} />}
+          </FormField>
+          <FormField label={tForm('address')} error={errors.address} className="sm:col-span-2">
+            {(c) => <Input {...c} value={form.address} maxLength={500} onChange={(e) => set('address', e.target.value)} placeholder={tForm('addressPlaceholder')} />}
+          </FormField>
+          <FormField label={tForm('maritalStatus')} error={errors.maritalStatus}>
+            {(c) => <Input {...c} value={form.maritalStatus} maxLength={50} onChange={(e) => set('maritalStatus', e.target.value)} placeholder={tForm('maritalStatusPlaceholder')} />}
+          </FormField>
+          <FormField label={tForm('nationality')} error={errors.nationality}>
+            {(c) => <Input {...c} value={form.nationality} maxLength={100} onChange={(e) => set('nationality', e.target.value)} placeholder={tForm('nationalityPlaceholder')} />}
+          </FormField>
+          <FormField label={tForm('payoutMethod')} error={errors.payoutMethod} className="sm:col-span-2">
+            {(c) => (
+              <Select {...c} value={form.payoutMethod} onChange={(e) => set('payoutMethod', e.target.value)}>
+                <option value="">{tForm('payoutMethodPlaceholder')}</option>
+                {Object.values(PayoutMethod).map((pm) => <option key={pm} value={pm}>{t(`payoutMethods.${pm}`)}</option>)}
+              </Select>
+            )}
           </FormField>
         </div>
       </FormShell.Section>

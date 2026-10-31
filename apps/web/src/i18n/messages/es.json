@@ -157,7 +157,13 @@
    "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
    "PASSWORD_RESET_INVALID": "Este enlace no es válido. Pedí uno nuevo a tu administrador.",
    "PASSWORD_RESET_USED": "Este enlace ya se usó. Si necesitás otro, pedíselo a tu administrador.",
-   "PASSWORD_RESET_EXPIRED": "El enlace venció. Pedí uno nuevo a tu administrador."
+   "PASSWORD_RESET_EXPIRED": "El enlace venció. Pedí uno nuevo a tu administrador.",
+   "LESSOR_SHARES_INVALID": "Los locadores vigentes tienen que sumar 100 % en cada fecha.",
+   "PAYEE_WITHOUT_POWER": "El cobrador necesita un poder de cobro vigente del locador.",
+   "BANK_ACCOUNT_NOT_OF_LESSOR": "La cuenta elegida no pertenece al locador.",
+   "BANK_ACCOUNT_DEFAULT_REQUIRED": "Tiene que haber una cuenta predeterminada por moneda: marcá otra antes de quitar esta.",
+   "POWER_SELF": "Una persona no puede darse poder a sí misma.",
+   "POWER_IN_USE": "El poder está en uso: un locador lo usa para que cobre su apoderado."
   },
   "segment": {
    "loading": "Cargando…",
@@ -574,7 +580,8 @@
    "noDescription": "Sin descripción cargada",
    "noAmenities": "Sin amenidades cargadas",
    "showMore": "Ver más",
-   "showLess": "Ver menos"
+   "showLess": "Ver menos",
+   "ownerships": "Titulares"
   },
   "empty": {
    "title": "No hay propiedades",
@@ -788,7 +795,20 @@
    "submit": "Guardar persona",
    "creating": "Creando persona…",
    "updating": "Actualizando persona…",
-   "error": "No se pudo guardar la persona. Intentá nuevamente."
+   "error": "No se pudo guardar la persona. Intentá nuevamente.",
+   "partyData": "Datos de la parte",
+   "personType": "Tipo de persona",
+   "personTypePlaceholder": "Seleccioná un tipo",
+   "dni": "Documento (DNI)",
+   "dniPlaceholder": "Ej: 12345678",
+   "address": "Domicilio",
+   "addressPlaceholder": "Calle, número, localidad",
+   "maritalStatus": "Estado civil",
+   "maritalStatusPlaceholder": "Ej: Casada",
+   "nationality": "Nacionalidad",
+   "nationalityPlaceholder": "Ej: Argentina",
+   "payoutMethod": "Forma de cobro",
+   "payoutMethodPlaceholder": "Seleccioná una forma"
   },
   "roles": {
    "title": "Roles asignados",
@@ -808,7 +828,8 @@
    "guarantorFor": "Garante de propietario",
    "guarantorForPlaceholder": "Seleccionar propietario (opcional)",
    "propertyRequired": "Seleccioná una propiedad",
-   "guarantorRequired": "Seleccioná el propietario garantizado"
+   "guarantorRequired": "Seleccioná el propietario garantizado",
+   "Apoderado": "Apoderado"
   },
   "fiscalConditions": {
    "ResponsableInscripto": "Responsable Inscripto",
@@ -868,6 +889,15 @@
    "deleteError": "No se pudo eliminar la persona",
    "createdAt": "Creada el",
    "updatedAt": "Última modificación"
+  },
+  "personTypes": {
+   "Fisica": "Persona física",
+   "Juridica": "Persona jurídica"
+  },
+  "payoutMethods": {
+   "Transferencia": "Transferencia",
+   "Efectivo": "Efectivo",
+   "Custodia": "Custodia"
   }
  },
  "contracts": {
@@ -978,13 +1008,13 @@
     "title": "Personas",
     "description": "Vinculá las personas al contrato",
     "searchPerson": "Buscar persona por nombre o CUIT…",
-    "addPropietario": "Agregar propietario",
+    "addPropietario": "Agregar locador",
     "addInquilino": "Agregar inquilino",
     "addGarante": "Agregar garante",
-    "propietarioRequired": "Se requiere al menos un propietario",
+    "propietarioRequired": "Se requiere al menos un locador",
     "inquilinoRequired": "Se requiere al menos un inquilino",
     "invalidRole": "La persona no tiene el rol requerido: {role}",
-    "noPropietario": "Sin propietario asignado",
+    "noPropietario": "Sin locadores asignados",
     "noInquilino": "Sin inquilino asignado",
     "noGarantes": "Sin garantes",
     "removePerson": "Quitar persona"
@@ -3806,6 +3836,246 @@
    "specsTitle": "Características",
    "amenitiesTitle": "Amenidades",
    "noAmenities": "Sin amenidades cargadas"
+  }
+ },
+ "parties": {
+  "picker": {
+   "change": "Cambiar a {name}",
+   "changeShort": "Cambiar",
+   "hint": "Escribí al menos 2 letras del nombre o del documento",
+   "placeholder": "Buscar persona…",
+   "searching": "Buscando…",
+   "noResults": "No hay personas con ese dato",
+   "results": "Resultados de la búsqueda"
+  },
+  "capacity": {
+   "Propietario": "Propietario",
+   "Usufructuario": "Usufructuario",
+   "Sublocador": "Sublocador",
+   "Acreedor": "Acreedor",
+   "Otro": "Otro"
+  },
+  "scopes": {
+   "Cobrar": "Cobrar",
+   "Firmar": "Firmar",
+   "Administrar": "Administrar"
+  },
+  "signatureModes": {
+   "Indistinta": "Indistinta (firma uno)",
+   "Conjunta": "Conjunta (firman todos)"
+  },
+  "personTabs": {
+   "label": "Secciones de la persona",
+   "data": "Datos",
+   "accounts": "Cuentas bancarias",
+   "powers": "Poderes",
+   "lessorships": "Contratos como locador"
+  },
+  "errors": {
+   "invalid": "Dato inválido",
+   "currency": "Elegí una moneda",
+   "bankName": "El banco es demasiado largo",
+   "cbu": "El CBU debe tener 22 dígitos",
+   "alias": "El alias es demasiado largo",
+   "holder": "El titular es demasiado largo",
+   "agentId": "Elegí al apoderado",
+   "scopes": "Elegí al menos un alcance",
+   "signatureMode": "Elegí el modo de firma",
+   "groupKey": "La clave de grupo solo aplica a la firma conjunta",
+   "contractId": "Elegí el contrato",
+   "propertyId": "Elegí la propiedad",
+   "validFrom": "La fecha de inicio no es válida",
+   "validTo": "La fecha de fin debe ser posterior al inicio",
+   "documentUrl": "Ingresá un enlace válido (https://…)",
+   "personId": "Elegí una persona",
+   "sharePct": "Ingresá un porcentaje mayor que 0 y hasta 100, con hasta 4 decimales",
+   "title": "El título es demasiado largo",
+   "since": "La fecha de inicio no es válida",
+   "until": "La fecha de fin debe ser posterior al inicio"
+  },
+  "lessors": {
+   "title": "Locadores",
+   "edit": "Editar locadores",
+   "load": "Cargar locadores",
+   "needsReview": "A revisar",
+   "needsReviewHint": "El reparto de algún locador se migró en partes iguales por suposición. Confirmá los porcentajes y guardá.",
+   "legacyHint": "Este contrato todavía tiene propietarios cargados como parte del contrato. Cargalos como locadores para fijar su porcentaje de cobro.",
+   "toMigrate": "A migrar",
+   "empty": "Este contrato no tiene locadores cargados",
+   "payeeSelf": "Cobra el propio locador",
+   "noAccount": "Sin cuenta",
+   "openEnded": "sin fin",
+   "columns": {
+    "person": "Persona",
+    "capacity": "Carácter",
+    "payoutPct": "% de cobro",
+    "payee": "Quién cobra",
+    "account": "Cuenta",
+    "validity": "Vigencia"
+   },
+   "editorTitle": "Locadores del contrato",
+   "editorHint": "Se guarda el conjunto completo de una vez. En cada fecha, los locadores vigentes tienen que sumar exactamente 100 %.",
+   "newLessor": "Locador {n}",
+   "fields": {
+    "person": "Persona",
+    "capacity": "Carácter",
+    "payoutPct": "% de cobro",
+    "payee": "Quién cobra",
+    "bankAccount": "Cuenta de cobro",
+    "validFrom": "Vigente desde",
+    "validTo": "Vigente hasta"
+   },
+   "payeeHint": "Solo apoderados con poder de cobro vigente de este locador",
+   "validFromHint": "Vacío: desde el inicio del contrato",
+   "remove": "Quitar a {name}",
+   "add": "Agregar locador",
+   "splitEqually": "Repartir en partes iguales",
+   "sum": "Suma de los locadores vigentes: {sum} %",
+   "sumOk": "El reparto suma 100 %.",
+   "sumIncomplete": "Completá la persona y el porcentaje de cada locador.",
+   "sumMissing": "Falta {diff} % para llegar a 100 %.",
+   "sumExtra": "Sobran {diff} % sobre el 100 %.",
+   "sumDatesOnly": "La suma no cierra en todas las fechas.",
+   "invalidDate": "El {date} suman {sum} %",
+   "saved": "Locadores guardados",
+   "saveError": "No se pudieron guardar los locadores",
+   "saving": "Guardando…",
+   "save": "Guardar locadores",
+   "errors": {
+    "person": "Elegí una persona",
+    "payoutPct": "Ingresá un porcentaje mayor que 0 y hasta 100, con hasta 4 decimales",
+    "validTo": "La fecha de fin debe ser posterior al inicio"
+   }
+  },
+  "powers": {
+   "contractTitle": "Apoderados",
+   "contractEmpty": "No hay poderes vigentes que apliquen a este contrato",
+   "columns": {
+    "principal": "Poderdante",
+    "agent": "Apoderado",
+    "scopes": "Alcances",
+    "signature": "Firma",
+    "applies": "Aplica a",
+    "validity": "Vigencia",
+    "document": "Documento"
+   },
+   "group": "grupo {key}",
+   "appliesContract": "Un contrato",
+   "appliesProperty": "Una propiedad",
+   "appliesGeneral": "General",
+   "openEnded": "sin fin",
+   "on": "por {name}",
+   "editTitle": "Editar poder",
+   "addTitle": "Otorgar poder",
+   "saved": "Poder guardado",
+   "saveError": "No se pudo guardar el poder",
+   "saving": "Guardando…",
+   "fields": {
+    "agent": "Apoderado",
+    "scopes": "Alcances",
+    "signatureMode": "Modo de firma",
+    "groupKey": "Clave de grupo",
+    "applies": "Aplica a",
+    "contract": "Contrato",
+    "property": "Propiedad",
+    "validFrom": "Vigente desde",
+    "validTo": "Vigente hasta",
+    "documentUrl": "Enlace al documento del poder"
+   },
+   "groupKeyHint": "Los apoderados con la misma clave firman juntos",
+   "chooseTarget": "Elegí una opción",
+   "revokeTitle": "Revocar poder",
+   "revokeBody": "¿Revocar el poder de {name}? Si es el cobrador de un locador no se puede revocar.",
+   "revoke": "Revocar",
+   "revokeFor": "Revocar el poder de {name}",
+   "edit": "Editar",
+   "editFor": "Editar el poder de {name}",
+   "add": "Otorgar poder",
+   "actions": "Acciones",
+   "notCurrent": "No vigente",
+   "viewDocument": "Ver documento",
+   "grantedTitle": "Poderes que otorgó",
+   "grantedEmpty": "No otorgó poderes",
+   "heldTitle": "Poderes que ejerce como apoderada",
+   "heldEmpty": "No actúa como apoderada de nadie"
+  },
+  "bankAccounts": {
+   "title": "Cuentas bancarias",
+   "add": "Agregar cuenta",
+   "empty": "No hay cuentas bancarias cargadas",
+   "actions": "Acciones",
+   "default": "Predeterminada",
+   "addTitle": "Agregar cuenta bancaria",
+   "editTitle": "Editar cuenta bancaria",
+   "saved": "Cuenta guardada",
+   "saveError": "No se pudo guardar la cuenta",
+   "saving": "Guardando…",
+   "fields": {
+    "currency": "Moneda",
+    "bankName": "Banco",
+    "cbu": "CBU",
+    "alias": "Alias",
+    "holder": "Titular",
+    "isDefault": "Cuenta predeterminada de la moneda"
+   },
+   "currencyFixed": "La moneda no se cambia: creá otra cuenta.",
+   "defaultHint": "La primera cuenta de cada moneda queda predeterminada; siempre tiene que haber una.",
+   "edit": "Editar",
+   "editFor": "Editar la cuenta {name}",
+   "makeDefault": "Hacer predeterminada",
+   "makeDefaultFor": "Hacer predeterminada la cuenta {name}",
+   "delete": "Eliminar",
+   "deleteFor": "Eliminar la cuenta {name}",
+   "deleteTitle": "Eliminar cuenta",
+   "deleteBody": "¿Eliminar la cuenta {name}?"
+  },
+  "lessorships": {
+   "title": "Contratos como locador",
+   "empty": "No es locadora en ningún contrato",
+   "columns": {
+    "contract": "Contrato",
+    "capacity": "Carácter",
+    "payoutPct": "% de cobro",
+    "payee": "Quién cobra",
+    "validity": "Vigencia"
+   }
+  },
+  "ownerships": {
+   "informative": "Informativo: los titulares no deciden los pagos; el reparto del cobro se define en cada contrato.",
+   "add": "Agregar titular",
+   "empty": "No hay titulares cargados",
+   "actions": "Acciones",
+   "sumWarning": "Los porcentajes de titularidad cargados suman {sum}, no 100 %. Es solo informativo y no impide guardar.",
+   "addTitle": "Agregar titular",
+   "saved": "Titular guardado",
+   "saveError": "No se pudo guardar el titular",
+   "saving": "Guardando…",
+   "fields": {
+    "person": "Persona",
+    "sharePct": "Porcentaje (opcional)",
+    "title": "Título (opcional)",
+    "since": "Desde",
+    "until": "Hasta"
+   },
+   "sharePctHint": "Podés dejarlo vacío",
+   "removeTitle": "Quitar titular",
+   "removeBody": "¿Quitar a {name} como titular?",
+   "remove": "Quitar",
+   "removeFor": "Quitar a {name} como titular",
+   "columns": {
+    "person": "Persona",
+    "share": "Porcentaje",
+    "title": "Título",
+    "period": "Período"
+   }
+  },
+  "contractForm": {
+   "title": "Locadores",
+   "payoutPct": "% de cobro de {name}",
+   "sumOk": "El reparto suma 100 %.",
+   "sumWarning": "Los porcentajes suman {sum} %, no 100 %.",
+   "draftAllowed": "Podés guardar como borrador; para activar tienen que sumar 100 %.",
+   "activateNeedsHundred": "Los porcentajes de los locadores tienen que sumar 100 % para activar"
   }
  }
 }

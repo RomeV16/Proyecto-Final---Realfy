@@ -36,6 +36,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
 import { formatMoney, formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
+import { PropertyOwnerships } from '@/components/parties/property-ownerships';
 
 /* ──────────── Types ──────────── */
 
@@ -479,6 +480,10 @@ function DetailView({
 
           <DetailSection title={t('valuations.title')} icon="wallet">
             <PropertyValuations propertyId={property.id} canEdit={canEdit} />
+          </DetailSection>
+
+          <DetailSection title={t('detail.ownerships')} icon="persons">
+            <PropertyOwnerships propertyId={property.id} canEdit={canEdit} />
           </DetailSection>
 
           <DetailSection
