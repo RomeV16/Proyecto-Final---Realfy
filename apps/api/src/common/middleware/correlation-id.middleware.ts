@@ -28,19 +28,3 @@ export class CorrelationIdMiddleware implements NestMiddleware {
   }
 }
 
-/**
- * Functional middleware version for use in main.ts before NestJS DI is available.
- * Note: this version cannot access CLS; registration via app.use() is only for
- * the header echo. The DI-aware version (above) runs inside the Nest middleware chain.
- */
-export function correlationIdMiddleware(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
-  const existing = req.headers['x-request-id'] as string | undefined;
-  if (!existing) {
-    req.headers['x-request-id'] = randomUUID();
-  }
-  next();
-}
