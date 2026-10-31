@@ -1,15 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { formatDateAR, personName, todayInAR } from '@realfy/shared';
+import { AR_TIME_ZONE, formatDateAR, personName, todayInAR } from '@realfy/shared';
 import { CronBaseService } from '../../common/scheduler/cron.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { TenantCron } from '../../common/scheduler/tenant-cron';
 import { NotificationsService } from './notifications.service';
 import { NotificationEmailService } from './notification-email.service';
 import { findStaff } from '../../common/auth/find-staff';
 import { BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 /** Los avisos diarios salen a las 08:00 de Buenos Aires. */
-const DAILY_08_AR = { timeZone: 'America/Argentina/Buenos_Aires' } as const;
+const DAILY_08_AR = { timeZone: AR_TIME_ZONE } as const;
 
 /**
  * Días antes del vencimiento de un contrato en que se avisa, uno por umbral:
@@ -42,6 +43,7 @@ export class NotificationSchedulerService extends CronBaseService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly emailService: NotificationEmailService,
+    private readonly tenantCron: TenantCron,
   ) {
     super();
   }
@@ -58,58 +60,45 @@ export class NotificationSchedulerService extends CronBaseService {
       let tenantsProcessed = 0;
       let notificationsCreated = 0;
 
-      const tenants = await this.prisma.baseClient.tenant.findMany({
-        where: { isActive: true },
-        select: { id: true, name: true },
-      });
-      tenantsProcessed = tenants.length;
-
       const today = new Date();
       const currentDay = today.getDate();
 
-      for (const tenant of tenants) {
-        try {
-          // Find active services where dueDay is within 5 days of today
-          const services = await this.prisma.baseClient.service.findMany({
-            where: {
-              tenantId: tenant.id,
-              isActive: true,
-            },
-            include: { property: { select: { title: true } } },
-          });
+      const summary = await this.tenantCron.forEachActiveTenant('service-due-reminders', async (tenantId) => {
+        // Find active services where dueDay is within 5 days of today
+        const services = await this.prisma.client.service.findMany({
+          where: {
+            isActive: true,
+          },
+          include: { property: { select: { title: true } } },
+        });
 
-          // Filter services whose dueDay is within 5 days
-          const dueServices = services.filter((s: any) => {
-            const diff = s.dueDay - currentDay;
-            return diff >= 0 && diff <= 5;
-          });
+        // Filter services whose dueDay is within 5 days
+        const dueServices = services.filter((s: any) => {
+          const diff = s.dueDay - currentDay;
+          return diff >= 0 && diff <= 5;
+        });
 
-          if (dueServices.length === 0) continue;
+        if (dueServices.length === 0) return;
 
-          // Get Admin/Gerente users in this tenant
-          const users = await findStaff(this.prisma, tenant.id, MANAGEMENT_ROLES, { id: true, email: true });
+        // Get Admin/Gerente users in this tenant
+        const users = await findStaff(this.prisma, tenantId, MANAGEMENT_ROLES, { id: true, email: true });
 
-          for (const service of dueServices) {
-            for (const user of users) {
-              await this.notificationsService.createNotification({
-                tenantId: tenant.id,
-                userId: user.id,
-                type: 'ServiceDueReminder',
-                title: `Vencimiento de servicio: día ${service.dueDay}`,
-                message: `El servicio ${service.serviceType} de ${service.property.title} vence el día ${service.dueDay} del mes.`,
-                entityType: 'Service',
-                entityId: service.id,
-              });
-              notificationsCreated++;
-            }
+        for (const service of dueServices) {
+          for (const user of users) {
+            await this.notificationsService.createNotification({
+              tenantId,
+              userId: user.id,
+              type: 'ServiceDueReminder',
+              title: `Vencimiento de servicio: día ${service.dueDay}`,
+              message: `El servicio ${service.serviceType} de ${service.property.title} vence el día ${service.dueDay} del mes.`,
+              entityType: 'Service',
+              entityId: service.id,
+            });
+            notificationsCreated++;
           }
-        } catch (err) {
-          this.logger.error(
-            `Service due reminders failed for tenantId=${tenant.id}`,
-            (err as Error).stack,
-          );
         }
-      }
+      });
+      tenantsProcessed = summary.ok + summary.failed;
 
       this.logger.log(
         `Cron job completed: service-due-reminders in ${Date.now() - start}ms — tenants=${tenantsProcessed}, notifications=${notificationsCreated}`,
@@ -129,81 +118,67 @@ export class NotificationSchedulerService extends CronBaseService {
       let tenantsProcessed = 0;
       let notificationsCreated = 0;
 
-      const tenants = await this.prisma.baseClient.tenant.findMany({
-        where: { isActive: true },
-        select: { id: true, name: true },
-      });
-      tenantsProcessed = tenants.length;
-
       // Día calendario de Buenos Aires a medianoche UTC, como se guardan los vencimientos.
       const today = todayInAR();
       const horizon = new Date(today.getTime() + Math.max(...CONTRACT_EXPIRY_THRESHOLDS_DAYS) * DAY_MS);
 
-      for (const tenant of tenants) {
-        try {
-          const contracts = await this.prisma.baseClient.contract.findMany({
-            where: {
-              tenantId: tenant.id,
-              status: 'Activo',
-              endDate: { lte: horizon, gte: today },
-            },
-            include: { property: { select: { title: true } } },
-          });
+      const summary = await this.tenantCron.forEachActiveTenant('contract-expiry-warnings', async (tenantId, tenant) => {
+        const contracts = await this.prisma.client.contract.findMany({
+          where: {
+            status: 'Activo',
+            endDate: { lte: horizon, gte: today },
+          },
+          include: { property: { select: { title: true } } },
+        });
 
-          if (contracts.length === 0) continue;
+        if (contracts.length === 0) return;
 
-          const users = await findStaff(this.prisma, tenant.id, MANAGEMENT_ROLES, { id: true, email: true });
+        const users = await findStaff(this.prisma, tenantId, MANAGEMENT_ROLES, { id: true, email: true });
 
-          for (const contract of contracts) {
-            const daysLeft = Math.ceil((contract.endDate.getTime() - today.getTime()) / DAY_MS);
-            const threshold = contractExpiryThreshold(daysLeft);
-            if (threshold === null) continue;
-            const title = contractExpiryTitle(threshold);
+        for (const contract of contracts) {
+          const daysLeft = Math.ceil((contract.endDate.getTime() - today.getTime()) / DAY_MS);
+          const threshold = contractExpiryThreshold(daysLeft);
+          if (threshold === null) continue;
+          const title = contractExpiryTitle(threshold);
 
-            for (const user of users) {
-              // Un aviso por usuario, contrato y umbral: si ya salió, no se repite.
-              const alreadyNotified = await this.prisma.baseClient.notification.findFirst({
-                where: {
-                  tenantId: tenant.id,
-                  userId: user.id,
-                  type: 'ContractExpiring',
-                  entityType: 'Contract',
-                  entityId: contract.id,
-                  title,
-                },
-                select: { id: true },
-              });
-              if (alreadyNotified) continue;
-
-              const created = await this.notificationsService.createNotification({
-                tenantId: tenant.id,
+          for (const user of users) {
+            // Un aviso por usuario, contrato y umbral: si ya salió, no se repite.
+            const alreadyNotified = await this.prisma.client.notification.findFirst({
+              where: {
                 userId: user.id,
                 type: 'ContractExpiring',
-                title,
-                message: `El contrato de ${contract.property.title} vence el ${formatDateAR(contract.endDate)} (faltan ${daysLeft} días).`,
                 entityType: 'Contract',
                 entityId: contract.id,
-              });
-              if (!created) continue;
-              notificationsCreated++;
-
-              // Send email for critical contract expiry
-              await this.emailService.sendNotificationEmail({
-                to: user.email,
-                subject: `Contrato por vencer — ${contract.property.title}`,
                 title,
-                message: `El contrato de ${contract.property.title} vence el ${formatDateAR(contract.endDate)} (faltan ${daysLeft} días). Por favor revise las opciones de renovación.`,
-                tenantName: tenant.name,
-              });
-            }
+              },
+              select: { id: true },
+            });
+            if (alreadyNotified) continue;
+
+            const created = await this.notificationsService.createNotification({
+              tenantId,
+              userId: user.id,
+              type: 'ContractExpiring',
+              title,
+              message: `El contrato de ${contract.property.title} vence el ${formatDateAR(contract.endDate)} (faltan ${daysLeft} días).`,
+              entityType: 'Contract',
+              entityId: contract.id,
+            });
+            if (!created) continue;
+            notificationsCreated++;
+
+            // Send email for critical contract expiry
+            await this.emailService.sendNotificationEmail({
+              to: user.email,
+              subject: `Contrato por vencer — ${contract.property.title}`,
+              title,
+              message: `El contrato de ${contract.property.title} vence el ${formatDateAR(contract.endDate)} (faltan ${daysLeft} días). Por favor revise las opciones de renovación.`,
+              tenantName: tenant.name,
+            });
           }
-        } catch (err) {
-          this.logger.error(
-            `Contract expiry warnings failed for tenantId=${tenant.id}`,
-            (err as Error).stack,
-          );
         }
-      }
+      });
+      tenantsProcessed = summary.ok + summary.failed;
 
       this.logger.log(
         `Cron job completed: contract-expiry-warnings in ${Date.now() - start}ms — tenants=${tenantsProcessed}, notifications=${notificationsCreated}`,
@@ -223,68 +198,55 @@ export class NotificationSchedulerService extends CronBaseService {
       let tenantsProcessed = 0;
       let notificationsCreated = 0;
 
-      const tenants = await this.prisma.baseClient.tenant.findMany({
-        where: { isActive: true },
-        select: { id: true, name: true },
-      });
-      tenantsProcessed = tenants.length;
-
       const today = new Date();
 
-      for (const tenant of tenants) {
-        try {
-          const liquidaciones = await this.prisma.baseClient.liquidacion.findMany({
-            where: {
-              tenantId: tenant.id,
-              status: 'Enviada',
-              dueDate: { lt: today },
+      const summary = await this.tenantCron.forEachActiveTenant('overdue-liquidaciones', async (tenantId, tenant) => {
+        const liquidaciones = await this.prisma.client.liquidacion.findMany({
+          where: {
+            status: 'Enviada',
+            dueDate: { lt: today },
+          },
+          include: {
+            contract: {
+              include: { property: { select: { title: true } } },
             },
-            include: {
-              contract: {
-                include: { property: { select: { title: true } } },
-              },
-            },
+          },
+        });
+
+        if (liquidaciones.length === 0) return;
+
+        const users = await findStaff(this.prisma, tenantId, BILLING_ROLES, { id: true, email: true });
+
+        for (const liq of liquidaciones) {
+          const periodStr = liq.period.toLocaleDateString('es-AR', {
+            month: 'long',
+            year: 'numeric',
           });
 
-          if (liquidaciones.length === 0) continue;
-
-          const users = await findStaff(this.prisma, tenant.id, BILLING_ROLES, { id: true, email: true });
-
-          for (const liq of liquidaciones) {
-            const periodStr = liq.period.toLocaleDateString('es-AR', {
-              month: 'long',
-              year: 'numeric',
+          for (const user of users) {
+            await this.notificationsService.createNotification({
+              tenantId,
+              userId: user.id,
+              type: 'LiquidacionOverdue',
+              title: `Liquidación vencida: ${periodStr}`,
+              message: `La liquidación de ${liq.contract.property.title} del período ${periodStr} está vencida (vencimiento: ${liq.dueDate.toLocaleDateString('es-AR')}).`,
+              entityType: 'Liquidacion',
+              entityId: liq.id,
             });
+            notificationsCreated++;
 
-            for (const user of users) {
-              await this.notificationsService.createNotification({
-                tenantId: tenant.id,
-                userId: user.id,
-                type: 'LiquidacionOverdue',
-                title: `Liquidación vencida: ${periodStr}`,
-                message: `La liquidación de ${liq.contract.property.title} del período ${periodStr} está vencida (vencimiento: ${liq.dueDate.toLocaleDateString('es-AR')}).`,
-                entityType: 'Liquidacion',
-                entityId: liq.id,
-              });
-              notificationsCreated++;
-
-              // Send email for overdue liquidaciones
-              await this.emailService.sendNotificationEmail({
-                to: user.email,
-                subject: `Liquidación vencida — ${liq.contract.property.title}`,
-                title: `Liquidación vencida: ${periodStr}`,
-                message: `La liquidación de ${liq.contract.property.title} del período ${periodStr} venció el ${liq.dueDate.toLocaleDateString('es-AR')}. Por favor gestione el cobro.`,
-                tenantName: tenant.name,
-              });
-            }
+            // Send email for overdue liquidaciones
+            await this.emailService.sendNotificationEmail({
+              to: user.email,
+              subject: `Liquidación vencida — ${liq.contract.property.title}`,
+              title: `Liquidación vencida: ${periodStr}`,
+              message: `La liquidación de ${liq.contract.property.title} del período ${periodStr} venció el ${liq.dueDate.toLocaleDateString('es-AR')}. Por favor gestione el cobro.`,
+              tenantName: tenant.name,
+            });
           }
-        } catch (err) {
-          this.logger.error(
-            `Overdue liquidaciones failed for tenantId=${tenant.id}`,
-            (err as Error).stack,
-          );
         }
-      }
+      });
+      tenantsProcessed = summary.ok + summary.failed;
 
       this.logger.log(
         `Cron job completed: overdue-liquidaciones in ${Date.now() - start}ms — tenants=${tenantsProcessed}, notifications=${notificationsCreated}`,
@@ -305,55 +267,62 @@ export class NotificationSchedulerService extends CronBaseService {
       let tenantsProcessed = 0;
       let notificationsCreated = 0;
 
-      const tenants = await this.prisma.baseClient.tenant.findMany({
-        where: { isActive: true },
-        select: { id: true, name: true },
-      });
-      tenantsProcessed = tenants.length;
-
       const now = new Date();
 
-      for (const tenant of tenants) {
-        try {
-          // Find leads whose current stage has a staleDays threshold configured
-          const leads = await this.prisma.baseClient.lead.findMany({
-            where: {
-              tenantId: tenant.id,
-              isActive: true,
-              status: { notIn: ['Convertido', 'Perdido'] },
-              currentStage: { staleDays: { not: null } },
-            },
-            include: {
-              currentStage: { select: { staleDays: true, name: true } },
-              person: { select: { firstName: true, lastName: true } },
-              assignedToUser: { select: { id: true } },
-            },
-          });
+      const summary = await this.tenantCron.forEachActiveTenant('stale-lead-alerts', async (tenantId) => {
+        // Find leads whose current stage has a staleDays threshold configured
+        const leads = await this.prisma.client.lead.findMany({
+          where: {
+            isActive: true,
+            status: { notIn: ['Convertido', 'Perdido'] },
+            currentStage: { staleDays: { not: null } },
+          },
+          include: {
+            currentStage: { select: { staleDays: true, name: true } },
+            person: { select: { firstName: true, lastName: true } },
+            assignedToUser: { select: { id: true } },
+          },
+        });
 
-          for (const lead of leads) {
-            const contactDate = new Date(
-              lead.lastContactAt ?? lead.updatedAt,
-            );
-            const daysSinceContact = Math.floor(
-              (now.getTime() - contactDate.getTime()) / (1000 * 60 * 60 * 24),
-            );
+        for (const lead of leads) {
+          const contactDate = new Date(
+            lead.lastContactAt ?? lead.updatedAt,
+          );
+          const daysSinceContact = Math.floor(
+            (now.getTime() - contactDate.getTime()) / (1000 * 60 * 60 * 24),
+          );
 
-            if (
-              lead.currentStage.staleDays == null ||
-              daysSinceContact <= lead.currentStage.staleDays
-            ) {
-              continue;
-            }
+          if (
+            lead.currentStage.staleDays == null ||
+            daysSinceContact <= lead.currentStage.staleDays
+          ) {
+            continue;
+          }
 
-            const leadName = personName(lead.person);
-            const title = `Lead inactivo: ${leadName}`;
-            const message = `El lead ${leadName} lleva ${daysSinceContact} días sin contacto en la etapa "${lead.currentStage.name}" (límite: ${lead.currentStage.staleDays} días).`;
+          const leadName = personName(lead.person);
+          const title = `Lead inactivo: ${leadName}`;
+          const message = `El lead ${leadName} lleva ${daysSinceContact} días sin contacto en la etapa "${lead.currentStage.name}" (límite: ${lead.currentStage.staleDays} días).`;
 
-            if (lead.assignedToUserId && lead.assignedToUser) {
-              // Notify the assigned user
+          if (lead.assignedToUserId && lead.assignedToUser) {
+            // Notify the assigned user
+            await this.notificationsService.createNotification({
+              tenantId,
+              userId: lead.assignedToUser.id,
+              type: 'StaleLeadAlert',
+              title,
+              message,
+              entityType: 'Lead',
+              entityId: lead.id,
+            });
+            notificationsCreated++;
+          } else {
+            // Fallback: notify Admin/Gerente users in this tenant
+            const admins = await findStaff(this.prisma, tenantId, MANAGEMENT_ROLES, { id: true });
+
+            for (const admin of admins) {
               await this.notificationsService.createNotification({
-                tenantId: tenant.id,
-                userId: lead.assignedToUser.id,
+                tenantId,
+                userId: admin.id,
                 type: 'StaleLeadAlert',
                 title,
                 message,
@@ -361,31 +330,11 @@ export class NotificationSchedulerService extends CronBaseService {
                 entityId: lead.id,
               });
               notificationsCreated++;
-            } else {
-              // Fallback: notify Admin/Gerente users in this tenant
-              const admins = await findStaff(this.prisma, tenant.id, MANAGEMENT_ROLES, { id: true });
-
-              for (const admin of admins) {
-                await this.notificationsService.createNotification({
-                  tenantId: tenant.id,
-                  userId: admin.id,
-                  type: 'StaleLeadAlert',
-                  title,
-                  message,
-                  entityType: 'Lead',
-                  entityId: lead.id,
-                });
-                notificationsCreated++;
-              }
             }
           }
-        } catch (err) {
-          this.logger.error(
-            `Stale lead alerts failed for tenantId=${tenant.id}`,
-            (err as Error).stack,
-          );
         }
-      }
+      });
+      tenantsProcessed = summary.ok + summary.failed;
 
       this.logger.log(
         `Cron job completed: stale-lead-alerts in ${Date.now() - start}ms — tenants=${tenantsProcessed}, notifications=${notificationsCreated}`,
