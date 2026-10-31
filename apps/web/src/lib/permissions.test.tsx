@@ -4,7 +4,8 @@ import { render, screen } from '@testing-library/react';
 import { UserRole } from '@realfy/shared';
 
 let currentUser: { role: string } | null = null;
-vi.mock('@/lib/auth-context', () => ({ useAuth: () => ({ user: currentUser }) }));
+vi.mock('@/lib/auth-context', () => ({ useAuth: () => ({ user: currentUser }),
+  useOptionalAuth: () => ({ user: currentUser }) }));
 
 import { ACTION_ROLES, can, useCan, type Action } from './permissions';
 import { navItems, useVisibleNavItems, visibleNavItems, type NavItem } from '@/components/layout/nav-items';

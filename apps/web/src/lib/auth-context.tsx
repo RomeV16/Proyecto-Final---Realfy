@@ -44,6 +44,15 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * Sesión del staff sin exigir el proveedor: devuelve null fuera de él. Lo usan el
+ * menú y los permisos, que también se montan en piezas compartidas por toda la web
+ * (por ejemplo la transición de ingreso, que vive en el layout de idioma).
+ */
+export function useOptionalAuth(): AuthContextValue | null {
+  return useContext(AuthContext);
+}
+
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {

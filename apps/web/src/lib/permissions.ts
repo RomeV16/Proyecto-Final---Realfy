@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/auth-context';
+import { useOptionalAuth } from '@/lib/auth-context';
 import { UserRole } from '@realfy/shared';
 
 const { Admin, Gerente, Ventas, Liquidaciones, Soporte, Lectura } = UserRole;
@@ -62,6 +62,6 @@ export function can(role: string | null | undefined, action: Action): boolean {
 
 /** `can` con el rol del usuario de la sesión. */
 export function useCan(action: Action): boolean {
-  const { user } = useAuth();
+  const user = useOptionalAuth()?.user;
   return can(user?.role, action);
 }

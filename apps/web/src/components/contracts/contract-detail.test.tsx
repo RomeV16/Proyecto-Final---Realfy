@@ -15,6 +15,7 @@ vi.mock('@/lib/api-client', async (importOriginal) => ({
 }));
 vi.mock('@/lib/auth-context', () => ({
   useAuth: () => ({ user: { id: 'u1', role: auth.role } }),
+  useOptionalAuth: () => ({ user: { id: 'u1', role: auth.role } }),
 }));
 vi.mock('next/navigation', async (importOriginal) => ({
   ...(await importOriginal<typeof import('next/navigation')>()),

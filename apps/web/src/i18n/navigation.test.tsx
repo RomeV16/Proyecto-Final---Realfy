@@ -13,6 +13,7 @@ vi.mock('next/navigation', async (importOriginal) => ({
 }));
 vi.mock('@/lib/auth-context', () => ({
   useAuth: () => ({ user: { id: 'u', role: 'Admin', firstName: 'A', lastName: 'B' }, logout: vi.fn() }),
+  useOptionalAuth: () => ({ user: { id: 'u', role: 'Admin', firstName: 'A', lastName: 'B' }, logout: vi.fn() }),
 }));
 
 import { Link, usePathname, useRouter } from './navigation';

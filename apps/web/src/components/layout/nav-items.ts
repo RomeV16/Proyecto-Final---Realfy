@@ -1,7 +1,7 @@
 'use client';
 
 import type { IconName } from '@/components/ui/icon';
-import { useAuth } from '@/lib/auth-context';
+import { useOptionalAuth } from '@/lib/auth-context';
 import { can, type Action } from '@/lib/permissions';
 
 export interface NavItem {
@@ -51,6 +51,6 @@ export function visibleNavItems(
 
 /** Los ítems de navegación del usuario de la sesión. */
 export function useVisibleNavItems(): NavItem[] {
-  const { user } = useAuth();
+  const user = useOptionalAuth()?.user;
   return visibleNavItems(user?.role);
 }
