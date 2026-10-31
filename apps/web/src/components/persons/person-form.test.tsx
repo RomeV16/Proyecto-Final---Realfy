@@ -130,4 +130,51 @@ describe('PersonForm', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar persona' }));
     expect(await screen.findByRole('alert')).not.toHaveTextContent('red caída');
   });
+
+  it('carga los datos de la parte (tipo, documento, domicilio, estado civil, nacionalidad, forma de cobro)', async () => {
+    const user = userEvent.setup();
+    const onSuccess = vi.fn();
+    apiClient.mockResolvedValue({ id: 'pe-9' });
+    renderEs(<PersonForm mode="create" onSuccess={onSuccess} />);
+    await user.type(screen.getByLabelText(/^Nombre/), 'Ana');
+    await user.type(screen.getByLabelText(/^Apellido/), 'Prueba');
+    await user.selectOptions(screen.getByLabelText('Tipo de persona'), 'Juridica');
+    await user.type(screen.getByLabelText('Documento (DNI)'), '12345678');
+    await user.type(screen.getByLabelText('Domicilio'), 'Calle Falsa 123');
+    await user.type(screen.getByLabelText('Estado civil'), 'Casada');
+    await user.type(screen.getByLabelText('Nacionalidad'), 'Argentina');
+    await user.selectOptions(screen.getByLabelText('Forma de cobro'), 'Custodia');
+    await user.click(screen.getByRole('button', { name: 'Guardar persona' }));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith('pe-9'));
+    expect(JSON.parse(apiClient.mock.calls[0][1].body)).toEqual({
+      firstName: 'Ana',
+      lastName: 'Prueba',
+      personType: 'Juridica',
+      dni: '12345678',
+      address: 'Calle Falsa 123',
+      maritalStatus: 'Casada',
+      nationality: 'Argentina',
+      payoutMethod: 'Custodia',
+    });
+  });
+
+  it('al editar, vaciar un dato de la parte lo limpia con null y se mantiene lo cargado', async () => {
+    const user = userEvent.setup();
+    apiClient.mockResolvedValue({});
+    renderEs(
+      <PersonForm
+        mode="edit"
+        personId="pe-1"
+        initialData={{ ...existing, personType: 'Fisica', dni: '111', address: 'Calle 1', nationality: 'Argentina', payoutMethod: 'Efectivo' }}
+        onSuccess={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText('Documento (DNI)')).toHaveValue('111');
+    expect(screen.getByLabelText('Forma de cobro')).toHaveValue('Efectivo');
+    await user.clear(screen.getByLabelText('Domicilio'));
+    await user.click(screen.getByRole('button', { name: 'Guardar persona' }));
+    await waitFor(() => expect(apiClient).toHaveBeenCalled());
+    const body = JSON.parse(apiClient.mock.calls[0][1].body);
+    expect(body).toMatchObject({ personType: 'Fisica', dni: '111', address: null, maritalStatus: null, nationality: 'Argentina', payoutMethod: 'Efectivo' });
+  });
 });

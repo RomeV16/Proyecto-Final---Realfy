@@ -13,6 +13,9 @@ import { ErrorNotice } from '@/components/ui/error-notice';
 import { Icon } from '@/components/ui/icon';
 import { formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
+import { PersonBankAccounts } from '@/components/parties/person-bank-accounts';
+import { PersonPowers } from '@/components/parties/person-powers';
+import { PersonLessorships } from '@/components/parties/person-lessorships';
 
 /* ──────────── Types ──────────── */
 
@@ -64,6 +67,12 @@ interface PersonDetail {
   phone2?: string;
   cuit?: string;
   fiscalCondition?: string;
+  personType?: string;
+  dni?: string | null;
+  address?: string | null;
+  maritalStatus?: string | null;
+  nationality?: string | null;
+  payoutMethod?: string | null;
   bankAccounts?: PersonBankAccount[];
   notes?: string;
   isActive: boolean;
@@ -92,6 +101,12 @@ function toFormData(detail: PersonDetail): PersonFormData {
     phone2: detail.phone2 || '',
     cuit: detail.cuit || '',
     fiscalCondition: detail.fiscalCondition || '',
+    personType: detail.personType || '',
+    dni: detail.dni || '',
+    address: detail.address || '',
+    maritalStatus: detail.maritalStatus || '',
+    nationality: detail.nationality || '',
+    payoutMethod: detail.payoutMethod || '',
     bankName: account?.bankName || '',
     cbu: account?.cbu || '',
     bankAlias: account?.alias || '',
@@ -781,6 +796,7 @@ function ScoringSection({ personId }: { personId: string }) {
 
 export default function PersonDetailPage() {
   const t = useTranslations('persons');
+  const tTabs = useTranslations('parties.personTabs');
   const tCommon = useTranslations('common');
   const router = useRouter();
   const params = useParams();
@@ -791,6 +807,7 @@ export default function PersonDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [editing, setEditing] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [tab, setTab] = useState<'data' | 'accounts' | 'powers' | 'lessorships'>('data');
 
   const canEdit = useCan('persons.manage');
   const canDelete = useCan('persons.delete');
@@ -946,7 +963,55 @@ export default function PersonDetailPage() {
             </div>
           </div>
 
+          {/* Secciones de la ficha */}
+          <div role="tablist" aria-label={tTabs('label')} className="flex flex-wrap gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+            {(['data', 'accounts', 'powers', 'lessorships'] as const).map((id) => (
+              <button
+                key={id}
+                role="tab"
+                id={`person-tab-${id}`}
+                aria-selected={tab === id}
+                aria-controls="person-tabpanel"
+                onClick={() => setTab(id)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  tab === id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {tTabs(id)}
+              </button>
+            ))}
+          </div>
+
+          <div role="tabpanel" id="person-tabpanel" aria-labelledby={`person-tab-${tab}`} className="space-y-6">
+            {tab === 'accounts' && <PersonBankAccounts personId={person.id} canEdit={canEdit} />}
+            {tab === 'powers' && <PersonPowers personId={person.id} canEdit={canEdit} />}
+            {tab === 'lessorships' && <PersonLessorships personId={person.id} />}
+            {tab === 'data' && (
+              <>
           {/* Fiscal info */}
+          {(person.personType || person.dni || person.address || person.maritalStatus || person.nationality || person.payoutMethod) && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h3 className="text-base font-semibold text-slate-900 pb-2 mb-3 border-b border-slate-100">
+                {t('form.partyData')}
+              </h3>
+              <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {([
+                  ['personType', person.personType ? t(`personTypes.${person.personType}`) : null],
+                  ['dni', person.dni],
+                  ['address', person.address],
+                  ['maritalStatus', person.maritalStatus],
+                  ['nationality', person.nationality],
+                  ['payoutMethod', person.payoutMethod ? t(`payoutMethods.${person.payoutMethod}`) : null],
+                ] as const).filter(([, value]) => value).map(([key, value]) => (
+                  <div key={key}>
+                    <dt className="text-xs text-slate-500">{t(`form.${key}`)}</dt>
+                    <dd className="text-sm font-medium text-slate-900">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
           {(person.fiscalCondition || (person.bankAccounts?.length ?? 0) > 0) && (
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="text-base font-semibold text-slate-900 pb-2 mb-3 border-b border-slate-100">
@@ -1017,6 +1082,9 @@ export default function PersonDetailPage() {
           {canScore && (
             <ScoringSection personId={person.id} />
           )}
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
