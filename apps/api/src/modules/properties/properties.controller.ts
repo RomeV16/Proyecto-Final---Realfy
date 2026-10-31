@@ -13,12 +13,16 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PropertiesService } from './properties.service';
+import { PropertyOwnershipsService } from './property-ownerships.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { UserRole } from '@realfy/shared';
 
 @Controller('properties')
 export class PropertiesController {
-  constructor(private readonly propertiesService: PropertiesService) {}
+  constructor(
+    private readonly propertiesService: PropertiesService,
+    private readonly ownerships: PropertyOwnershipsService,
+  ) {}
 
   /**
    * GET /properties — List with filters + pagination.
@@ -172,5 +176,39 @@ export class PropertiesController {
     @Body('mediaIds') mediaIds: string[],
   ) {
     return this.propertiesService.reorderMedia(id, mediaIds);
+  }
+
+  // ─── Titularidad ───────────────────────────────────
+
+  /**
+   * GET /properties/:id/ownerships — Titulares de la propiedad.
+   * Any authenticated user can read.
+   */
+  @Get(':id/ownerships')
+  async listOwnerships(@Param('id') id: string) {
+    return this.ownerships.list(id);
+  }
+
+  /**
+   * POST /properties/:id/ownerships — Registra un titular.
+   * Ventas+ roles.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Post(':id/ownerships')
+  async addOwnership(@Param('id') id: string, @Body() body: Record<string, any>) {
+    return this.ownerships.create(id, body);
+  }
+
+  /**
+   * DELETE /properties/:id/ownerships/:ownershipId — Quita un titular.
+   * Ventas+ roles.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Delete(':id/ownerships/:ownershipId')
+  async removeOwnership(
+    @Param('id') id: string,
+    @Param('ownershipId') ownershipId: string,
+  ) {
+    return this.ownerships.remove(id, ownershipId);
   }
 }

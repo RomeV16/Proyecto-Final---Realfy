@@ -14,6 +14,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PersonsService } from './persons.service';
 import { PersonBankAccountsService } from './person-bank-accounts.service';
+import { PersonPowersService } from './person-powers.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { UserRole } from '@realfy/shared';
 
@@ -22,6 +23,7 @@ export class PersonsController {
   constructor(
     private readonly personsService: PersonsService,
     private readonly bankAccounts: PersonBankAccountsService,
+    private readonly powers: PersonPowersService,
   ) {}
 
   /**
@@ -211,5 +213,51 @@ export class PersonsController {
   @Post(':id/portal-invite')
   async createPortalInvitation(@Param('id') id: string) {
     return this.personsService.createPortalInvitation(id);
+  }
+
+  // ─── Poderes ────────────────────────────────────────
+
+  /**
+   * GET /persons/:id/powers — Poderes que otorgó la persona; con `?as=agent`,
+   * los que tiene como apoderada. `?activeOn=` limita a los vigentes ese día.
+   * Any authenticated user can read.
+   */
+  @Get(':id/powers')
+  async listPowers(@Param('id') id: string, @Query() query: Record<string, any>) {
+    return this.powers.list(id, query);
+  }
+
+  /**
+   * POST /persons/:id/powers — La persona otorga un poder a otra.
+   * Admin, Gerente, Ventas.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Post(':id/powers')
+  async createPower(@Param('id') id: string, @Body() body: Record<string, any>) {
+    return this.powers.create(id, body);
+  }
+
+  /**
+   * PATCH /persons/:id/powers/:powerId — Cambia alcances, firma o vigencia.
+   * Admin, Gerente, Ventas.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Patch(':id/powers/:powerId')
+  async updatePower(
+    @Param('id') id: string,
+    @Param('powerId') powerId: string,
+    @Body() body: Record<string, any>,
+  ) {
+    return this.powers.update(id, powerId, body);
+  }
+
+  /**
+   * DELETE /persons/:id/powers/:powerId — Revoca el poder.
+   * Admin, Gerente, Ventas.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Delete(':id/powers/:powerId')
+  async removePower(@Param('id') id: string, @Param('powerId') powerId: string) {
+    return this.powers.remove(id, powerId);
   }
 }

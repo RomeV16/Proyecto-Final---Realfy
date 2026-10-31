@@ -12,8 +12,12 @@ import { join } from 'path';
  * debe tener una razon escrita; las que se corrijan se borran de la lista.
  */
 
-/** Enums que existen en shared y no en Prisma (no son enum de base de datos). */
-const SOLO_EN_SHARED = ['Province'];
+/**
+ * Enums que existen en shared y no en Prisma (no son enum de base de datos).
+ * PowerScope: los alcances de un poder se guardan como texto (String[]) y se
+ * validan con este enum en la API.
+ */
+const SOLO_EN_SHARED = ['Province', 'PowerScope'];
 
 /** Enums que existen en Prisma y no en shared. */
 const SOLO_EN_PRISMA = [

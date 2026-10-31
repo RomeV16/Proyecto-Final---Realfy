@@ -3,12 +3,15 @@ import {
   Get,
   Post,
   Patch,
+  Put,
+  Delete,
   Param,
   Body,
   Query,
   BadRequestException,
 } from '@nestjs/common';
 import { ContractsService } from './contracts.service';
+import { ContractLessorsService } from './contract-lessors.service';
 import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { UserRole } from '@realfy/shared';
@@ -17,6 +20,7 @@ import { UserRole } from '@realfy/shared';
 export class ContractsController {
   constructor(
     private readonly contractsService: ContractsService,
+    private readonly lessors: ContractLessorsService,
     // NOTE: ContractAdjustmentService is provided by IndexDataModule (exported)
     // and imported into ContractsModule so RBAC + tenant scoping stay consistent.
     private readonly contractAdjustmentService: ContractAdjustmentService,
@@ -156,5 +160,61 @@ export class ContractsController {
       projectedRent: preview.projectedRent.toFixed(2),
       projectedDelta: preview.projectedDelta.toFixed(2),
     };
+  }
+
+  // ─── Locadores ─────────────────────────────────────
+
+  /**
+   * GET /contracts/:id/lessors — Locadores del contrato, con su porcentaje de
+   * cobro. `?at=` limita a los vigentes en esa fecha.
+   * Any authenticated user can read.
+   */
+  @Get(':id/lessors')
+  async listLessors(@Param('id') id: string, @Query('at') at?: string) {
+    return this.lessors.list(id, at);
+  }
+
+  /**
+   * POST /contracts/:id/lessors — Agrega un locador.
+   * Admin, Gerente, Ventas.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Post(':id/lessors')
+  async addLessor(@Param('id') id: string, @Body() body: Record<string, any>) {
+    return this.lessors.create(id, body);
+  }
+
+  /**
+   * PUT /contracts/:id/lessors — Reemplaza todo el conjunto de locadores en una
+   * transacción (reparto entre varios, cesión). Admin, Gerente, Ventas.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Put(':id/lessors')
+  async replaceLessors(@Param('id') id: string, @Body() body: Record<string, any>) {
+    return this.lessors.replace(id, body);
+  }
+
+  /**
+   * PATCH /contracts/:id/lessors/:lessorId — Cambia porcentaje, cuenta,
+   * cobrador o vigencia. Admin, Gerente, Ventas.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Patch(':id/lessors/:lessorId')
+  async updateLessor(
+    @Param('id') id: string,
+    @Param('lessorId') lessorId: string,
+    @Body() body: Record<string, any>,
+  ) {
+    return this.lessors.update(id, lessorId, body);
+  }
+
+  /**
+   * DELETE /contracts/:id/lessors/:lessorId — Quita un locador.
+   * Admin, Gerente, Ventas.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Delete(':id/lessors/:lessorId')
+  async removeLessor(@Param('id') id: string, @Param('lessorId') lessorId: string) {
+    return this.lessors.remove(id, lessorId);
   }
 }
