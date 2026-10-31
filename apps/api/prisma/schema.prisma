@@ -256,12 +256,13 @@ model Tenant {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
-  users       User[]
-  invitations UserInvitation[]
-  auditLogs   AuditLog[]
-  properties  Property[]
-  persons     Person[]
-  pipelines   Pipeline[]
+  users               User[]
+  invitations         UserInvitation[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]
+  properties          Property[]
+  persons             Person[]
+  pipelines           Pipeline[]
 
   ticketCategories TicketCategory[]
   tickets          Ticket[]
@@ -269,8 +270,8 @@ model Tenant {
   arcaCertificate ArcaCertificate?
   arcaIssuers     ArcaIssuer[]
   libroIvaExports LibroIvaExport[]
-  scoreConfigs TenantScoreConfig[]
-  scores       TenantScore[]
+  scoreConfigs    TenantScoreConfig[]
+  scores          TenantScore[]
 
   reportSchedules ReportSchedule[]
 
@@ -290,20 +291,21 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  refreshTokens RefreshToken[]
-  invitations   UserInvitation[] @relation("InvitedByUser")
-  auditLogs     AuditLog[]
-  notifications Notification[]
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens       RefreshToken[]
+  invitations         UserInvitation[]     @relation("InvitedByUser")
+  passwordResetTokens PasswordResetToken[] @relation("PasswordResetUser")
+  auditLogs           AuditLog[]
+  notifications       Notification[]
 
-  ticketsCreated  Ticket[]        @relation("TicketCreator")
-  ticketsAssigned Ticket[]        @relation("TicketAssignee")
-  ticketComments  TicketComment[] @relation("TicketCommentUser")
+  ticketsCreated    Ticket[]           @relation("TicketCreator")
+  ticketsAssigned   Ticket[]           @relation("TicketAssignee")
+  ticketComments    TicketComment[]    @relation("TicketCommentUser")
   portalInvitations PortalInvitation[] @relation("PortalInvitedByUser")
 
-  assignedLeads       Lead[]
-  interactionsLogged  LeadInteraction[] @relation("InteractionUser")
-  visitsConducted     LeadVisit[]       @relation("VisitUser")
+  assignedLeads      Lead[]
+  interactionsLogged LeadInteraction[] @relation("InteractionUser")
+  visitsConducted    LeadVisit[]       @relation("VisitUser")
 
   scoredTenantScores TenantScore[] @relation("ScoredByUser")
 
@@ -366,6 +368,27 @@ model UserInvitation {
   @@map("user_invitations")
 }
 
+/// Enlace de un solo uso para elegir una contraseña nueva. Solo se guarda el
+/// hash SHA-256 del token; el valor en claro existe una vez, en la respuesta
+/// al Admin o en el correo.
+model PasswordResetToken {
+  id          String    @id @default(uuid())
+  tenantId    String
+  userId      String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation("PasswordResetUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
 // ─── Property Models ────────────────────────────────────
 
 model Property {
@@ -375,18 +398,18 @@ model Property {
   type        PropertyType
 
   // Address
-  street      String?
-  number      String?
-  floor       String?
-  apartment   String?
-  city        String?
-  province    String?
-  zipCode     String?
-  country     String       @default("Argentina")
+  street    String?
+  number    String?
+  floor     String?
+  apartment String?
+  city      String?
+  province  String?
+  zipCode   String?
+  country   String  @default("Argentina")
 
   // Geolocation
-  latitude    Float?
-  longitude   Float?
+  latitude  Float?
+  longitude Float?
 
   // Characteristics
   area        Float?
@@ -399,41 +422,41 @@ model Property {
   amenities   String[]
 
   // Pricing (default / display price)
-  price       Decimal?     @db.Decimal(15, 2)
-  currency    Currency     @default(ARS)
+  price    Decimal? @db.Decimal(15, 2)
+  currency Currency @default(ARS)
 
   // Catastro y edificio (la unidad apunta al edificio que la contiene)
   cadastralId      String?
   parentPropertyId String?
   externalRef      String?
 
-  isActive    Boolean      @default(true)
-  tenantId    String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  isActive  Boolean  @default(true)
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  parent          Property?              @relation("edificio", fields: [parentPropertyId], references: [id], onDelete: SetNull)
-  units           Property[]             @relation("edificio")
-  operations      PropertyOperation[]
-  media           PropertyMedia[]
-  priceHistory    PriceHistory[]
-  contracts       Contract[]
-  personRoles     PersonRoleAssignment[]
-  ownerships      PropertyOwnership[]
-  powers          PowerOfAttorney[]
-  services        Service[]
-  leads           Lead[]
-  leadVisits      LeadVisit[]
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  parent       Property?              @relation("edificio", fields: [parentPropertyId], references: [id], onDelete: SetNull)
+  units        Property[]             @relation("edificio")
+  operations   PropertyOperation[]
+  media        PropertyMedia[]
+  priceHistory PriceHistory[]
+  contracts    Contract[]
+  personRoles  PersonRoleAssignment[]
+  ownerships   PropertyOwnership[]
+  powers       PowerOfAttorney[]
+  services     Service[]
+  leads        Lead[]
+  leadVisits   LeadVisit[]
 
-  tickets Ticket[]
+  tickets    Ticket[]
   valuations PropertyValuation[]
 
+  @@unique([tenantId, externalRef])
   @@index([tenantId])
   @@index([tenantId, type])
   @@index([tenantId, isActive])
   @@index([parentPropertyId])
-  @@unique([tenantId, externalRef])
   @@map("properties")
 }
 
@@ -457,7 +480,7 @@ model PropertyOperation {
 }
 
 model PropertyMedia {
-  id           String  @id @default(uuid())
+  id           String   @id @default(uuid())
   propertyId   String
   url          String
   thumbnailUrl String?
@@ -465,8 +488,8 @@ model PropertyMedia {
   sizeBytes    Int?
   width        Int?
   height       Int?
-  sortOrder    Int     @default(0)
-  isPrimary    Boolean @default(false)
+  sortOrder    Int      @default(0)
+  isPrimary    Boolean  @default(false)
   tenantId     String
   createdAt    DateTime @default(now())
 
@@ -537,12 +560,12 @@ model Person {
   leads           Lead[]
   rendiciones     OwnerRendicion[]
 
-  assignedTickets        Ticket[]        @relation("TicketProvider")
-  ticketsCreatedByPerson Ticket[]        @relation("TicketPortalCreator")
-  ticketCommentsByPerson TicketComment[] @relation("TicketCommentPerson")
-  portalCredential     InquilinoCredential?
-  portalRefreshTokens  PortalRefreshToken[]
-  portalInvitations    PortalInvitation[]
+  assignedTickets        Ticket[]             @relation("TicketProvider")
+  ticketsCreatedByPerson Ticket[]             @relation("TicketPortalCreator")
+  ticketCommentsByPerson TicketComment[]      @relation("TicketCommentPerson")
+  portalCredential       InquilinoCredential?
+  portalRefreshTokens    PortalRefreshToken[]
+  portalInvitations      PortalInvitation[]
   tenantScores           TenantScore[]
 
   @@unique([tenantId, cuit])
@@ -566,7 +589,7 @@ model PersonBankAccount {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  person  Person            @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person  Person           @relation(fields: [personId], references: [id], onDelete: Cascade)
   lessors ContractLessor[]
 
   @@index([tenantId])
@@ -669,7 +692,7 @@ model PipelineStage {
 // ─── Lead Models ────────────────────────────────────────
 
 model Lead {
-  id               String       @id @default(uuid())
+  id               String     @id @default(uuid())
   tenantId         String
   personId         String
   pipelineId       String
@@ -677,24 +700,24 @@ model Lead {
   propertyId       String?
   assignedToUserId String?
   source           LeadSource
-  status           LeadStatus   @default(Nuevo)
+  status           LeadStatus @default(Nuevo)
   notes            String?
-  budget           Decimal?     @db.Decimal(15, 2)
-  budgetCurrency   Currency     @default(ARS)
+  budget           Decimal?   @db.Decimal(15, 2)
+  budgetCurrency   Currency   @default(ARS)
   lostReason       String?
   convertedAt      DateTime?
   lostAt           DateTime?
   lastContactAt    DateTime?
   staleDays        Int?
-  isActive         Boolean      @default(true)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  isActive         Boolean    @default(true)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
-  person         Person         @relation(fields: [personId], references: [id], onDelete: Cascade)
-  pipeline       Pipeline       @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
-  currentStage   PipelineStage  @relation(fields: [currentStageId], references: [id], onDelete: Cascade)
-  property       Property?      @relation(fields: [propertyId], references: [id], onDelete: SetNull)
-  assignedToUser User?          @relation(fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  person         Person            @relation(fields: [personId], references: [id], onDelete: Cascade)
+  pipeline       Pipeline          @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  currentStage   PipelineStage     @relation(fields: [currentStageId], references: [id], onDelete: Cascade)
+  property       Property?         @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  assignedToUser User?             @relation(fields: [assignedToUserId], references: [id], onDelete: SetNull)
   interactions   LeadInteraction[]
   visits         LeadVisit[]
 
@@ -754,43 +777,43 @@ model LeadVisit {
 // ─── Contract Models ────────────────────────────────────
 
 model Contract {
-  id                   String           @id @default(uuid())
-  tenantId             String
-  propertyId           String
-  contractType         ContractType
-  status               ContractStatus   @default(Borrador)
-  startDate            DateTime
-  endDate              DateTime
-  rentAmount           Decimal          @db.Decimal(15, 2)
-  rentCurrency         Currency         @default(ARS)
-  depositAmount        Decimal?         @db.Decimal(15, 2)
-  depositCurrency      Currency?
-  adjustmentType       AdjustmentType
-  adjustmentPeriod     AdjustmentPeriod
-  customAdjustmentPct  Decimal?         @db.Decimal(5, 2)
-  notes                String?
-  isActive             Boolean          @default(true)
-  closedAt             DateTime?
-  externalRef          String?
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
+  id                  String           @id @default(uuid())
+  tenantId            String
+  propertyId          String
+  contractType        ContractType
+  status              ContractStatus   @default(Borrador)
+  startDate           DateTime
+  endDate             DateTime
+  rentAmount          Decimal          @db.Decimal(15, 2)
+  rentCurrency        Currency         @default(ARS)
+  depositAmount       Decimal?         @db.Decimal(15, 2)
+  depositCurrency     Currency?
+  adjustmentType      AdjustmentType
+  adjustmentPeriod    AdjustmentPeriod
+  customAdjustmentPct Decimal?         @db.Decimal(5, 2)
+  notes               String?
+  isActive            Boolean          @default(true)
+  closedAt            DateTime?
+  externalRef         String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
-  property      Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  persons       ContractPerson[]
-  lessors       ContractLessor[]
-  powers        PowerOfAttorney[]
-  guarantees    ContractGuarantee[]
-  adjustments   ContractAdjustment[]
-  schedules     AdjustmentSchedule[]
-  liquidaciones Liquidacion[]
-  commission    ContractCommission?
-  rendiciones   OwnerRendicion[]
+  property       Property                @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  persons        ContractPerson[]
+  lessors        ContractLessor[]
+  powers         PowerOfAttorney[]
+  guarantees     ContractGuarantee[]
+  adjustments    ContractAdjustment[]
+  schedules      AdjustmentSchedule[]
+  liquidaciones  Liquidacion[]
+  commission     ContractCommission?
+  rendiciones    OwnerRendicion[]
   closureSummary ContractClosureSummary?
 
+  @@unique([tenantId, externalRef])
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, propertyId])
-  @@unique([tenantId, externalRef])
   @@map("contracts")
 }
 
@@ -936,12 +959,12 @@ model ContractAdjustment {
 }
 
 model AdjustmentSchedule {
-  id                  String         @id @default(uuid())
-  tenantId            String
-  contractId          String
-  nextAdjustmentDate  DateTime
-  periodNumber        Int
-  status              ScheduleStatus @default(Pending)
+  id                 String         @id @default(uuid())
+  tenantId           String
+  contractId         String
+  nextAdjustmentDate DateTime
+  periodNumber       Int
+  status             ScheduleStatus @default(Pending)
 
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
@@ -953,7 +976,7 @@ model AdjustmentSchedule {
 model IndexData {
   id        String    @id @default(uuid())
   tenantId  String
-  indexType  IndexType
+  indexType IndexType
   period    DateTime
   value     Decimal   @db.Decimal(12, 6)
   source    String?
@@ -1043,28 +1066,28 @@ enum LineItemType {
 // ─── Liquidacion Models ─────────────────────────────────
 
 model Liquidacion {
-  id           String             @id @default(uuid())
-  tenantId     String
-  contractId   String
-  period       DateTime
-  status       LiquidacionStatus  @default(Borrador)
-  dueDate      DateTime
-  subtotal     Decimal            @db.Decimal(15, 2)
-  total        Decimal            @db.Decimal(15, 2)
-  currency     Currency           @default(ARS)
-  notes        String?
-  pdfUrl       String?
-  sentAt       DateTime?
-  paidAt       DateTime?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id         String            @id @default(uuid())
+  tenantId   String
+  contractId String
+  period     DateTime
+  status     LiquidacionStatus @default(Borrador)
+  dueDate    DateTime
+  subtotal   Decimal           @db.Decimal(15, 2)
+  total      Decimal           @db.Decimal(15, 2)
+  currency   Currency          @default(ARS)
+  notes      String?
+  pdfUrl     String?
+  sentAt     DateTime?
+  paidAt     DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
-  contract         Contract                @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  lineItems        LiquidacionLineItem[]
-  payments         Payment[]
+  contract  Contract              @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  lineItems LiquidacionLineItem[]
+  payments  Payment[]
 
-  penalties        Penalty[]               @relation("PenaltyLiquidacion")
-  settledPenalties Penalty[]               @relation("PenaltySettledLiquidacion")
+  penalties        Penalty[] @relation("PenaltyLiquidacion")
+  settledPenalties Penalty[] @relation("PenaltySettledLiquidacion")
 
   @@unique([contractId, period])
   @@index([tenantId])
@@ -1074,15 +1097,15 @@ model Liquidacion {
 }
 
 model LiquidacionLineItem {
-  id             String       @id @default(uuid())
-  tenantId       String
-  liquidacionId  String
-  type           LineItemType
-  description    String
-  amount         Decimal      @db.Decimal(15, 2)
-  currency       Currency     @default(ARS)
-  sortOrder      Int          @default(0)
-  createdAt      DateTime     @default(now())
+  id            String       @id @default(uuid())
+  tenantId      String
+  liquidacionId String
+  type          LineItemType
+  description   String
+  amount        Decimal      @db.Decimal(15, 2)
+  currency      Currency     @default(ARS)
+  sortOrder     Int          @default(0)
+  createdAt     DateTime     @default(now())
 
   liquidacion Liquidacion @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
 
@@ -1092,18 +1115,18 @@ model LiquidacionLineItem {
 }
 
 model Payment {
-  id             String        @id @default(uuid())
-  tenantId       String
-  liquidacionId  String
-  amount         Decimal       @db.Decimal(15, 2)
-  currency       Currency      @default(ARS)
-  method         PaymentMethod
-  reference      String?
-  notes          String?
-  paidAt         DateTime
-  createdAt      DateTime      @default(now())
+  id            String        @id @default(uuid())
+  tenantId      String
+  liquidacionId String
+  amount        Decimal       @db.Decimal(15, 2)
+  currency      Currency      @default(ARS)
+  method        PaymentMethod
+  reference     String?
+  notes         String?
+  paidAt        DateTime
+  createdAt     DateTime      @default(now())
 
-  liquidacion Liquidacion @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
+  liquidacion  Liquidacion   @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
   comprobantes Comprobante[]
 
   @@index([tenantId])
@@ -1172,20 +1195,20 @@ enum PenaltyStatus {
 }
 
 model Penalty {
-  id                    String        @id @default(uuid())
-  tenantId              String
-  liquidacionId         String
-  amount                Decimal       @db.Decimal(14, 2)
-  appliedOn             DateTime
-  daysOverdue           Int
-  compoundBase          Decimal?      @db.Decimal(14, 2)
-  status                PenaltyStatus @default(active)
-  waivedAt              DateTime?
-  waivedBy              String?       // userId
-  waiveReason           String?
-  settledLiquidacionId  String?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  id                   String        @id @default(uuid())
+  tenantId             String
+  liquidacionId        String
+  amount               Decimal       @db.Decimal(14, 2)
+  appliedOn            DateTime
+  daysOverdue          Int
+  compoundBase         Decimal?      @db.Decimal(14, 2)
+  status               PenaltyStatus @default(active)
+  waivedAt             DateTime?
+  waivedBy             String? // userId
+  waiveReason          String?
+  settledLiquidacionId String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   liquidacion        Liquidacion  @relation("PenaltyLiquidacion", fields: [liquidacionId], references: [id], onDelete: Cascade)
   settledLiquidacion Liquidacion? @relation("PenaltySettledLiquidacion", fields: [settledLiquidacionId], references: [id], onDelete: SetNull)
@@ -1314,8 +1337,8 @@ model OwnerRendicion {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
-  contract  Contract             @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  owner     Person               @relation(fields: [ownerId], references: [id])
+  contract  Contract            @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  owner     Person              @relation(fields: [ownerId], references: [id])
   lineItems RendicionLineItem[]
 
   @@unique([contractId, period, ownerId])
@@ -1326,16 +1349,16 @@ model OwnerRendicion {
 }
 
 model RendicionLineItem {
-  id           String                @id @default(uuid())
-  tenantId     String
-  rendicionId  String
-  type         RendicionLineItemType
-  description  String
-  amount       Decimal               @db.Decimal(15, 2)
-  isDebit      Boolean               @default(false)
-  currency     Currency              @default(ARS)
-  sortOrder    Int                   @default(0)
-  createdAt    DateTime              @default(now())
+  id          String                @id @default(uuid())
+  tenantId    String
+  rendicionId String
+  type        RendicionLineItemType
+  description String
+  amount      Decimal               @db.Decimal(15, 2)
+  isDebit     Boolean               @default(false)
+  currency    Currency              @default(ARS)
+  sortOrder   Int                   @default(0)
+  createdAt   DateTime              @default(now())
 
   rendicion OwnerRendicion @relation(fields: [rendicionId], references: [id], onDelete: Cascade)
 
@@ -1387,36 +1410,36 @@ model TicketCategory {
 }
 
 model Ticket {
-  id               String         @id @default(uuid())
-  tenantId         String
-  propertyId       String
-  categoryId       String?
-  createdByUserId    String?
-  createdByPersonId  String?
-  assignedToUserId   String?
-  providerId       String?
-  title            String
-  description      String?
-  status           TicketStatus   @default(Abierto)
-  priority         TicketPriority @default(Media)
-  slaDeadline      DateTime?
-  costAmount       Decimal?       @db.Decimal(15, 2)
-  costCurrency     Currency?
-  costPayer        String?
-  providerNotes    String?
-  resolvedAt       DateTime?
-  closedAt         DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id                String         @id @default(uuid())
+  tenantId          String
+  propertyId        String
+  categoryId        String?
+  createdByUserId   String?
+  createdByPersonId String?
+  assignedToUserId  String?
+  providerId        String?
+  title             String
+  description       String?
+  status            TicketStatus   @default(Abierto)
+  priority          TicketPriority @default(Media)
+  slaDeadline       DateTime?
+  costAmount        Decimal?       @db.Decimal(15, 2)
+  costCurrency      Currency?
+  costPayer         String?
+  providerNotes     String?
+  resolvedAt        DateTime?
+  closedAt          DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
-  tenant     Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  property   Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  category   TicketCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  property        Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  category        TicketCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdBy       User?           @relation("TicketCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
   createdByPerson Person?         @relation("TicketPortalCreator", fields: [createdByPersonId], references: [id], onDelete: SetNull)
   assignedTo      User?           @relation("TicketAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
-  provider   Person?         @relation("TicketProvider", fields: [providerId], references: [id], onDelete: SetNull)
-  comments   TicketComment[]
+  provider        Person?         @relation("TicketProvider", fields: [providerId], references: [id], onDelete: SetNull)
+  comments        TicketComment[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -1450,7 +1473,7 @@ model TicketComment {
 }
 
 model TicketAttachment {
-  id           String  @id @default(uuid())
+  id           String   @id @default(uuid())
   tenantId     String
   commentId    String
   url          String
