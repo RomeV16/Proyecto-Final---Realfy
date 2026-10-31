@@ -9,7 +9,7 @@ describe('TenantsService — política de lectura', () => {
       setPolicy: jest.fn(async (_t: string, p: unknown) => p),
     };
     const ctx = { getTenantId: () => tenantId, getUserRole: () => role };
-    const service = new TenantsService({} as never, ctx as never, policies as never);
+    const service = new TenantsService({} as never, ctx as never, policies as never, {} as never);
     return { service, policies };
   };
 

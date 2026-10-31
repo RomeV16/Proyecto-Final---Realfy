@@ -947,7 +947,9 @@
    "ICL": "ICL",
    "CCP": "CCP",
    "FixedPercent": "Porcentaje fijo",
-   "Custom": "Personalizado"
+   "Custom": "Personalizado",
+   "UVA": "UVA",
+   "Escalonado": "Stepped"
   },
   "adjustmentPeriods": {
    "Mensual": "Mensual",
@@ -3717,7 +3719,8 @@
   },
   "cuit": {
    "invalid": "The CUIT/CUIL entered is not valid"
-  }
+  },
+  "outOfRange": "The value is out of the allowed range"
  },
  "payments": {
   "title": "Pagos y deuda",
@@ -3780,7 +3783,8 @@
   "manageScoring": "Configurar puntuación",
   "manageIndices": "View and enter indices",
   "manageUsers": "Manage users",
-  "managePermissions": "Manage permissions"
+  "managePermissions": "Manage permissions",
+  "manageDefaults": "Configure values"
  },
  "portalPublico": {
   "footer": {
@@ -4137,5 +4141,137 @@
  "readGate": {
   "title": "No access",
   "body": "Your role does not have access to this information. Ask the administrator to enable it."
+ },
+ "operationalDefaults": {
+  "title": "Default values",
+  "cardSubtitle": "Due day, CPI lag, commission and fees every new contract starts from",
+  "subtitle": "Every new contract starts from these rules. A contract or an agreement can change them later without touching these values.",
+  "readOnly": "Only Admin and Management can see and change the default values.",
+  "loadError": "The default values could not be loaded",
+  "saveError": "The default values could not be saved",
+  "save": "Save values",
+  "saving": "Saving...",
+  "saved": "Default values saved",
+  "restore": "Restore factory values",
+  "sections": {
+   "rent": {
+    "title": "Rentals",
+    "description": "Due day, statement generation and CPI adjustment."
+   },
+   "fees": {
+    "title": "Commission and fees",
+    "description": "Percentages over the rent collected and over each operation."
+   },
+   "valuation": {
+    "title": "Valuations and advances",
+    "description": "Valuation fee and threshold to ask for an advance payment."
+   },
+   "collection": {
+    "title": "Collections",
+    "description": "When a debt is reminded and how often it repeats."
+   },
+   "expiry": {
+    "title": "Expiry light",
+    "description": "How many days before the end a contract turns yellow or red."
+   }
+  },
+  "fields": {
+   "dueDay": {
+    "label": "Due day",
+    "hint": "Day of the month the rent is due (factory value {value})."
+   },
+   "leadDays": {
+    "label": "Lead days",
+    "hint": "Days before the due day the statement is generated (factory value {value}, that is the 20th)."
+   },
+   "ipcLagMonths": {
+    "label": "CPI lag (months)",
+    "hint": "Months of delay used to take the CPI when adjusting (factory value {value})."
+   },
+   "commissionPct": {
+    "label": "Management commission (%)",
+    "hint": "Over the rent collected (factory value {value})."
+   },
+   "feeAlta": {
+    "label": "Fee for a new rental (%)",
+    "hint": "Factory value {value}."
+   },
+   "feeRenovacion": {
+    "label": "Fee for a renewal (%)",
+    "hint": "Factory value {value}."
+   },
+   "feeVentaConstruido": {
+    "label": "Sale fee, built property (%)",
+    "hint": "Factory value {value}."
+   },
+   "feeVentaLote": {
+    "label": "Sale fee, lot (%)",
+    "hint": "Factory value {value}."
+   },
+   "valuationUsd": {
+    "label": "Valuation (USD)",
+    "hint": "Fee for a valuation (factory value {value})."
+   },
+   "upfrontThresholdFees": {
+    "label": "Advance threshold (fees)",
+    "hint": "How many monthly fees are needed to ask for an advance payment (factory value {value})."
+   },
+   "firstReminderDays": {
+    "label": "First reminder (days)",
+    "hint": "Days after the due date (factory value {value})."
+   },
+   "everyDays": {
+    "label": "Repeat every (days)",
+    "hint": "Factory value {value}."
+   },
+   "redDays": {
+    "label": "Red up to (days to end)",
+    "hint": "Factory value {value}."
+   },
+   "yellowDays": {
+    "label": "Yellow up to (days to end)",
+    "hint": "Factory value {value}."
+   }
+  }
+ },
+ "contractRules": {
+  "title": "Current rules",
+  "loadError": "The contract rules could not be loaded",
+  "none": "The contract has no current rules yet.",
+  "adjustmentType": "Adjustment",
+  "adjustmentPeriod": "Adjustment period",
+  "adjustmentBase": "Adjustment base",
+  "indexLagMonths": "Index lag",
+  "months": "{count, plural, one {# month} other {# months}}",
+  "customPct": "Percentage",
+  "dueDay": "Due day",
+  "paymentFlow": "Who collects",
+  "rentOverride": "Agreed rent",
+  "discountPct": "Discount",
+  "discountAmount": "Fixed discount",
+  "validFrom": "In force since {date}",
+  "versions": "{count, plural, one {# version} other {# versions}}",
+  "bases": {
+   "Original": "Original rent",
+   "Vigente": "Current rent"
+  },
+  "flows": {
+   "Partido": "Split",
+   "TodoInmobiliaria": "All to the agency",
+   "TodoLocador": "All to the lessor"
+  },
+  "agreements": "Agreements",
+  "noAgreements": "No agreements registered.",
+  "kinds": {
+   "Renegociacion": "Renegotiation",
+   "Rebaja": "Rent reduction",
+   "Bonificacion": "Bonus",
+   "CambioRegla": "Rules change",
+   "CambioReparto": "Split change",
+   "CambioCargo": "Charge change"
+  },
+  "since": "since {date}",
+  "range": "from {from} to {to}",
+  "document": "View document"
  }
 }

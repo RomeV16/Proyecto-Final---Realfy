@@ -201,7 +201,7 @@ el monto inicial, las partes con su rol en el contrato, las garantías y el
 esquema de ajuste.
 
 El ajuste se define por tipo y por periodicidad. Los tipos disponibles son IPC,
-ICL, CCP, porcentaje fijo y personalizado; la periodicidad va de mensual a anual.
+ICL, CCP, porcentaje fijo y personalizado (UVA y escalonado se podrán elegir cuando el cálculo los soporte); la periodicidad va de mensual a anual.
 Con eso el sistema arma el cronograma de ajustes del contrato.
 
 El último paso del formulario ofrece dos salidas. *Guardar como borrador* deja el
@@ -257,6 +257,24 @@ misma pantalla, y produce el resumen de cierre. Si el contrato rescindido era el
 *Disponible*; si queda otro contrato activo sobre la propiedad, o si alguien ya
 había movido la operación a otro estado, no se toca. Lo mismo pasa cuando un
 contrato activo se marca como vencido o renovado.
+
+### Ver las reglas vigentes y los acuerdos de un contrato
+
+En el detalle del contrato, *Reglas vigentes* muestra lo que rige hoy: modalidad y
+período de ajuste, base del ajuste (sobre el alquiler original o sobre el vigente),
+rezago del índice, día de vencimiento, quién cobra (se reparte, todo la inmobiliaria
+o todo el locador) y los descuentos o el alquiler acordado, si los hay, con la fecha
+desde la que rigen y cuántas versiones tuvo. Debajo, *Acuerdos* lista los convenios
+registrados (renegociación, rebaja, bonificación, cambio de reglas, de reparto o de
+cargo) con su vigencia, sus notas y un enlace al documento. Ambas secciones son de
+solo lectura: los acuerdos todavía se cargan por la API (`POST
+/contracts/:id/agreements`, Admin y Gerente). Un acuerdo no pisa las reglas
+anteriores: crea una versión nueva desde su fecha, y el contrato sigue mostrando la
+que corresponde a cada día.
+
+Si un contrato venció el día pactado y nadie lo cerró, sigue activo y se sigue
+liquidando hasta que se registre su fin real (`actualEndDate`) o se rescinda: una
+prórroga de palabra se registra cargando esa fecha en el contrato.
 
 ### Cargar los locadores de un contrato y su porcentaje de cobro
 
@@ -466,11 +484,30 @@ puerta de entrada del circuito de CRM.
 `/configuracion` reúne los datos de la inmobiliaria: nombre, CUIT, provincia,
 colores de marca y logo —los mismos que usa el micrositio público—. Editar es de
 Admin y Gerente; los demás la ven en modo lectura. Desde ahí se llega a las
-cuatro pantallas de configuración específicas: la fiscal (`/configuracion/fiscal`),
+pantallas de configuración específicas: la fiscal (`/configuracion/fiscal`),
 las etapas del embudo (`/configuracion/pipeline`), los pesos del puntaje de
 inquilinos (`/configuracion/scoring`) y los índices de ajuste
-(`/configuracion/indices`); y, además, la del equipo
+(`/configuracion/indices`) y los valores por defecto
+(`/configuracion/valores-por-defecto`); y, además, la del equipo
 (`/configuracion/usuarios`) y la de permisos de lectura (`/configuracion/permisos`).
+
+### Valores por defecto
+
+`/configuracion/valores-por-defecto` (Admin y Gerente) reúne los valores con los que
+arranca cada contrato nuevo y cada cálculo de la inmobiliaria: el día de
+vencimiento (de fábrica el 10), los días de anticipación con que se genera la
+liquidación (10, es decir el día 20), el rezago del IPC (2 meses), la comisión de
+administración (7 %), los honorarios por alta, renovación y venta (5 %, 5 %, 3 % si
+es construido y 5 % si es lote), la tasación (USD 100), el umbral de anticipo (2
+honorarios), la cadencia de cobranza (primer recordatorio a los 5 días y después
+cada 5) y el semáforo de vencimientos de contratos (rojo a los 0 días, amarillo a
+los 60). Cada campo muestra debajo el valor de fábrica. Cambiá lo que necesites y
+tocá *Guardar valores*; *Volver a los valores de fábrica* los restaura en el
+formulario (hay que guardar para aplicarlo).
+
+Cambiar un valor por defecto no toca los contratos que ya existen: rige para los
+que se carguen desde ese momento, y cada contrato o acuerdo puede después fijar
+el suyo.
 
 ### Permisos de lectura
 

@@ -947,7 +947,9 @@
    "ICL": "ICL",
    "CCP": "CCP",
    "FixedPercent": "Porcentaje fijo",
-   "Custom": "Personalizado"
+   "Custom": "Personalizado",
+   "UVA": "UVA",
+   "Escalonado": "Escalonado"
   },
   "adjustmentPeriods": {
    "Mensual": "Mensual",
@@ -3717,7 +3719,8 @@
   },
   "cuit": {
    "invalid": "El CUIT/CUIL ingresado no es válido"
-  }
+  },
+  "outOfRange": "El valor está fuera del rango permitido"
  },
  "payments": {
   "title": "Pagos y deuda",
@@ -3780,7 +3783,8 @@
   "manageScoring": "Configurar puntuación",
   "manageIndices": "Ver y cargar índices",
   "manageUsers": "Gestionar usuarios",
-  "managePermissions": "Gestionar permisos"
+  "managePermissions": "Gestionar permisos",
+  "manageDefaults": "Configurar valores"
  },
  "portalPublico": {
   "footer": {
@@ -4137,5 +4141,137 @@
  "readGate": {
   "title": "Sin acceso",
   "body": "Tu rol no tiene acceso a esta información. Pedile al administrador que lo habilite."
+ },
+ "operationalDefaults": {
+  "title": "Valores por defecto",
+  "cardSubtitle": "Vencimiento, rezago del IPC, comisión y honorarios con los que arranca cada contrato",
+  "subtitle": "De acá parten las reglas de cada contrato nuevo. Un contrato o un acuerdo pueden cambiarlas después sin tocar estos valores.",
+  "readOnly": "Solo Administración y Gerencia pueden ver y cambiar los valores por defecto.",
+  "loadError": "No se pudieron cargar los valores por defecto",
+  "saveError": "No se pudieron guardar los valores por defecto",
+  "save": "Guardar valores",
+  "saving": "Guardando...",
+  "saved": "Valores por defecto guardados",
+  "restore": "Volver a los valores de fábrica",
+  "sections": {
+   "rent": {
+    "title": "Alquileres",
+    "description": "Vencimiento, generación de liquidaciones y ajuste por IPC."
+   },
+   "fees": {
+    "title": "Comisión y honorarios",
+    "description": "Porcentajes sobre el alquiler cobrado y sobre cada operación."
+   },
+   "valuation": {
+    "title": "Tasaciones y anticipos",
+    "description": "Honorario de tasación y umbral para pedir un pago a cuenta."
+   },
+   "collection": {
+    "title": "Cobranza",
+    "description": "Cuándo se recuerda una deuda y cada cuánto se repite."
+   },
+   "expiry": {
+    "title": "Semáforo de vencimientos",
+    "description": "Cuántos días antes del fin un contrato pasa a amarillo o rojo."
+   }
+  },
+  "fields": {
+   "dueDay": {
+    "label": "Día de vencimiento",
+    "hint": "Día del mes en que vence el alquiler (de fábrica {value})."
+   },
+   "leadDays": {
+    "label": "Días de anticipación",
+    "hint": "Días antes del vencimiento en que se genera la liquidación (de fábrica {value}, es decir el día 20)."
+   },
+   "ipcLagMonths": {
+    "label": "Rezago del IPC (meses)",
+    "hint": "Meses de atraso con que se toma el IPC al ajustar (de fábrica {value})."
+   },
+   "commissionPct": {
+    "label": "Comisión de administración (%)",
+    "hint": "Sobre el alquiler cobrado (de fábrica {value})."
+   },
+   "feeAlta": {
+    "label": "Honorarios por alta (%)",
+    "hint": "De fábrica {value}."
+   },
+   "feeRenovacion": {
+    "label": "Honorarios por renovación (%)",
+    "hint": "De fábrica {value}."
+   },
+   "feeVentaConstruido": {
+    "label": "Honorarios de venta, construido (%)",
+    "hint": "De fábrica {value}."
+   },
+   "feeVentaLote": {
+    "label": "Honorarios de venta, lote (%)",
+    "hint": "De fábrica {value}."
+   },
+   "valuationUsd": {
+    "label": "Tasación (USD)",
+    "hint": "Honorario por tasación (de fábrica {value})."
+   },
+   "upfrontThresholdFees": {
+    "label": "Umbral de anticipo (honorarios)",
+    "hint": "Cuántos honorarios mensuales hacen falta para pedir un pago a cuenta (de fábrica {value})."
+   },
+   "firstReminderDays": {
+    "label": "Primer recordatorio (días)",
+    "hint": "Días después del vencimiento (de fábrica {value})."
+   },
+   "everyDays": {
+    "label": "Repetir cada (días)",
+    "hint": "De fábrica {value}."
+   },
+   "redDays": {
+    "label": "Rojo hasta (días al fin)",
+    "hint": "De fábrica {value}."
+   },
+   "yellowDays": {
+    "label": "Amarillo hasta (días al fin)",
+    "hint": "De fábrica {value}."
+   }
+  }
+ },
+ "contractRules": {
+  "title": "Reglas vigentes",
+  "loadError": "No se pudieron cargar las reglas del contrato",
+  "none": "El contrato todavía no tiene reglas vigentes.",
+  "adjustmentType": "Ajuste",
+  "adjustmentPeriod": "Período de ajuste",
+  "adjustmentBase": "Base del ajuste",
+  "indexLagMonths": "Rezago del índice",
+  "months": "{count, plural, one {# mes} other {# meses}}",
+  "customPct": "Porcentaje",
+  "dueDay": "Día de vencimiento",
+  "paymentFlow": "Quién cobra",
+  "rentOverride": "Alquiler acordado",
+  "discountPct": "Descuento",
+  "discountAmount": "Descuento fijo",
+  "validFrom": "Vigentes desde el {date}",
+  "versions": "{count, plural, one {# versión} other {# versiones}}",
+  "bases": {
+   "Original": "Alquiler original",
+   "Vigente": "Alquiler vigente"
+  },
+  "flows": {
+   "Partido": "Se reparte",
+   "TodoInmobiliaria": "Todo la inmobiliaria",
+   "TodoLocador": "Todo el locador"
+  },
+  "agreements": "Acuerdos",
+  "noAgreements": "No hay acuerdos registrados.",
+  "kinds": {
+   "Renegociacion": "Renegociación",
+   "Rebaja": "Rebaja",
+   "Bonificacion": "Bonificación",
+   "CambioRegla": "Cambio de reglas",
+   "CambioReparto": "Cambio de reparto",
+   "CambioCargo": "Cambio de cargo"
+  },
+  "since": "desde el {date}",
+  "range": "del {from} al {to}",
+  "document": "Ver documento"
  }
 }

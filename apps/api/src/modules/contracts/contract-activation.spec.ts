@@ -4,6 +4,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { ContractClosureService } from '../ai/contract-closure.service';
 import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
+import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
+import { DEFAULT_OPERATIONAL_DEFAULTS } from '@realfy/shared';
 import { ContractsService } from './contracts.service';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -68,6 +70,8 @@ function buildMocks() {
     },
     personRoleAssignment: { upsert: jest.fn().mockResolvedValue({}) },
     contractGuarantee: { create: jest.fn().mockResolvedValue({}) },
+    contractPeriod: { create: jest.fn().mockResolvedValue({}) },
+    contractTermsVersion: { create: jest.fn().mockResolvedValue({}) },
     adjustmentSchedule: {
       create: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
@@ -92,6 +96,10 @@ async function buildService(mocks: ReturnType<typeof buildMocks>) {
       },
       { provide: ContractClosureService, useValue: mocks.closureSummaries },
       { provide: ContractAdjustmentService, useValue: { loadParams: jest.fn() } },
+      {
+        provide: OperationalDefaultsService,
+        useValue: { get: jest.fn().mockResolvedValue(DEFAULT_OPERATIONAL_DEFAULTS) },
+      },
     ],
   }).compile();
 
@@ -334,7 +342,10 @@ describe('ContractsService — activación del contrato', () => {
             status: 'Activo',
             id: { not: CONTRACT_ID },
             startDate: { lt: DRAFT.endDate },
-            endDate: { gt: DRAFT.startDate },
+            OR: [
+              { actualEndDate: null, endDate: { gt: DRAFT.startDate } },
+              { actualEndDate: { gt: DRAFT.startDate } },
+            ],
           },
         }),
       );
@@ -485,6 +496,34 @@ describe('ContractsService — activación del contrato', () => {
       const body = await rejection(service.create(BODY));
 
       expect(codes(body)).toEqual(['OVERLAPPING_CONTRACT']);
+    });
+
+    it('crea el período original y la primera versión de reglas con los valores por defecto', async () => {
+      await service.create({ ...BODY, status: 'Borrador', customAdjustmentPct: undefined });
+
+      expect(mocks.client.contractPeriod.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          tenantId: TENANT_ID,
+          seq: 1,
+          kind: 'Original',
+          startDate: new Date(BODY.startDate),
+          endDate: new Date(BODY.endDate),
+          initialRent: '500000',
+        }),
+      });
+      expect(mocks.client.contractTermsVersion.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          tenantId: TENANT_ID,
+          validFrom: new Date(BODY.startDate),
+          adjustmentType: 'ICL',
+          adjustmentPeriod: 'Anual',
+          adjustmentBase: 'Vigente',
+          indexLagMonths: 2,
+          dueDay: 10,
+          paymentFlow: 'Partido',
+          customPct: null,
+        }),
+      });
     });
 
     it('ocupa la propiedad al crearse', async () => {

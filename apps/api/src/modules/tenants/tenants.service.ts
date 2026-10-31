@@ -15,8 +15,15 @@ import {
 import type { CreateTenantInput, UpdateTenantInput } from '@realfy/shared';
 import { DEFAULT_PENALTY_CONFIG, PenaltyConfig } from './penalty-config.types';
 import { ReadPolicyService } from '../../common/read-policy/read-policy.service';
-import { normalizeTimeZone, ReadPolicySchema, READ_RESOURCES, canReadResource } from '@realfy/shared';
+import {
+  normalizeTimeZone,
+  ReadPolicySchema,
+  READ_RESOURCES,
+  canReadResource,
+  OperationalDefaultsSchema,
+} from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
+import { OperationalDefaultsService } from './operational-defaults.service';
 
 /**
  * Turns a display name into a URL-safe slug root: lowercase, accents stripped,
@@ -42,6 +49,7 @@ export class TenantsService {
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
     private readonly readPolicies: ReadPolicyService,
+    private readonly operationalDefaults: OperationalDefaultsService,
   ) {}
 
   /**
@@ -220,6 +228,17 @@ export class TenantsService {
   async updateReadPolicy(data: unknown) {
     const validated = parseOrThrow(ReadPolicySchema, data, 'Invalid read policy');
     return this.readPolicies.setPolicy(this.requireTenantId(), validated);
+  }
+
+  /** Valores por defecto vigentes de la inmobiliaria (los del código si no guardó nada). */
+  async getOperationalDefaults() {
+    return this.operationalDefaults.get(this.requireTenantId());
+  }
+
+  /** Reemplaza los valores por defecto; lo que falte se completa con los del código. */
+  async updateOperationalDefaults(data: unknown) {
+    const validated = parseOrThrow(OperationalDefaultsSchema, data, 'Invalid operational defaults');
+    return this.operationalDefaults.set(this.requireTenantId(), validated);
   }
 
   /** Recursos sensibles que el rol del usuario actual puede leer. */

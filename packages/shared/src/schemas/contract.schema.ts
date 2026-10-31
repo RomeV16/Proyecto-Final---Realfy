@@ -109,6 +109,8 @@ export const CreateContractSchema = z
 export const UpdateContractSchema = z.object({
   status: z.nativeEnum(ContractStatus).optional(),
   endDate: dateString.optional(),
+  /** Fin real o prórroga de palabra; null la quita. */
+  actualEndDate: dateString.optional().nullable(),
   rentAmount: positiveDecimalString.optional(),
   rentCurrency: z.nativeEnum(Currency).optional(),
   depositAmount: decimalStringOptional,
@@ -139,14 +141,22 @@ export const ContractFilterSchema = z.object({
 
 // ─── Index Data ─────────────────────────────────────────
 
-export const CreateIndexDataSchema = z.object({
-  indexType: z.nativeEnum(IndexType),
-  period: dateString,
-  value: z.union([z.string(), z.number().transform(String)]).pipe(
-    z.string().regex(/^-?\d+(\.\d{1,6})?$/, 'Must be a valid decimal with up to 6 decimal places')
-  ),
-  source: z.string().max(200).optional(),
-});
+export const CreateIndexDataSchema = z
+  .object({
+    indexType: z.nativeEnum(IndexType),
+    period: dateString,
+    value: z.union([z.string(), z.number().transform(String)]).pipe(
+      z.string().regex(/^-?\d+(\.\d{1,6})?$/, 'Must be a valid decimal with up to 6 decimal places')
+    ),
+    source: z.string().max(200).optional(),
+    /** Valor estimado (por ejemplo REM): el oficial lo reemplaza cuando llegue. */
+    isEstimate: z.boolean().optional().default(false),
+    estimateSource: z.string().max(100).optional(),
+  })
+  .refine((v) => v.isEstimate || v.estimateSource === undefined, {
+    message: 'estimateSource only applies to estimated values',
+    path: ['estimateSource'],
+  });
 
 export const IndexDataFilterSchema = z.object({
   indexType: z.nativeEnum(IndexType).optional(),

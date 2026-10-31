@@ -13,6 +13,7 @@
 | [0005](0005-manejo-uniforme-de-errores.md) | Manejo uniforme de errores | Aceptado | 2026-08-18 |
 | [0006](0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md) | El aislamiento entre inmobiliarias falla cerrado | Aceptado | 2026-08-18 |
 | [0007](0007-locadores-apoderados-y-titularidad.md) | Locadores por contrato, apoderados y titularidad de propiedades | Aceptado | 2026-10-31 |
+| [0010](0010-reglas-versionadas-y-valores-por-defecto.md) | Reglas versionadas del contrato y valores por defecto de la inmobiliaria | Aceptado | 2026-10-31 |
 | [0014](0014-ambiente-piloto-con-datos-reales.md) | Ambiente piloto con datos reales | Aceptado | 2026-10-31 |
 | [0016](0016-diagramas-como-codigo.md) | Diagramas como código (mermaid) | Aceptado | 2026-10-30 |
 
@@ -24,7 +25,6 @@ Las decisiones que el piloto vuelve necesarias (ver `../tesis/30-piloto.md`) se 
 |---|---|---|---|
 | 0008 | Impuestos y servicios trasladables: tres pagadores, reglas con vigencia y boletas | Planificada | Ítem 35, PR de boletas y reglas de traslado |
 | 0009 | Cuenta corriente y estado de cuenta del locador, en reemplazo de la rendición por contrato | Planificada | Ítem 37, PR de cuenta corriente |
-| 0010 | Reglas versionadas del contrato y valores por defecto de la inmobiliaria | Planificada | Ítem 34, PR de versiones de reglas y acuerdos |
 | 0011 | Ajuste con rezago, estimación y corrección; fuente del índice de precios | Planificada | Ítem 34, PR del motor de ajuste |
 | 0012 | Flujos de cobro, caja y custodia | Planificada | Ítem 36, PR de caja y cuentas |
 | 0013 | Mensajería saliente con outbox y cobranza escalonada | Planificada | Ítem 43, PR de mensajería |

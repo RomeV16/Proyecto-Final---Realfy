@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common';
 import { ContractsService } from './contracts.service';
 import { ContractLessorsService } from './contract-lessors.service';
+import { ContractRulesService } from './contract-rules.service';
+import { AuditOperation } from '../../common/audit/audit-operation.decorator';
 import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { MANAGEMENT_ROLES, SALES_ROLES } from '../../common/auth/role-groups';
@@ -22,6 +24,7 @@ export class ContractsController {
   constructor(
     private readonly contractsService: ContractsService,
     private readonly lessors: ContractLessorsService,
+    private readonly rules: ContractRulesService,
     // NOTE: ContractAdjustmentService is provided by IndexDataModule (exported)
     // and imported into ContractsModule so RBAC + tenant scoping stay consistent.
     private readonly contractAdjustmentService: ContractAdjustmentService,
@@ -220,5 +223,74 @@ export class ContractsController {
   @Delete(':id/lessors/:lessorId')
   async removeLessor(@Param('id') id: string, @Param('lessorId') lessorId: string) {
     return this.lessors.remove(id, lessorId);
+  }
+
+  // ─── Reglas versionadas y convenios ────────────────
+
+  /**
+   * GET /contracts/:id/terms — Versiones de reglas del contrato y la vigente a
+   * `?at=` (hoy si se omite): `{ at, current, versions }`.
+   * Any authenticated user can read.
+   */
+  @Get(':id/terms')
+  async listTerms(@Param('id') id: string, @Query('at') at?: string) {
+    return this.rules.listTerms(id, at);
+  }
+
+  /**
+   * GET /contracts/:id/periods — Períodos del contrato (original, renovaciones,
+   * prórrogas). Any authenticated user can read.
+   */
+  @Get(':id/periods')
+  async listPeriods(@Param('id') id: string) {
+    return this.rules.listPeriods(id);
+  }
+
+  /**
+   * GET /contracts/:id/agreements — Convenios del contrato con la versión de
+   * reglas que crearon. Any authenticated user can read.
+   */
+  @Get(':id/agreements')
+  async listAgreements(@Param('id') id: string) {
+    return this.rules.listAgreements(id);
+  }
+
+  /**
+   * POST /contracts/:id/agreements — Registra un convenio. Si cambia las reglas
+   * (`termsPatch`) crea una versión nueva en la misma transacción y actualiza
+   * las columnas vigentes del contrato si rige desde hoy o antes.
+   * Admin and Gerente only.
+   */
+  @Roles(...MANAGEMENT_ROLES)
+  @AuditOperation('contract-agreement')
+  @Post(':id/agreements')
+  async createAgreement(@Param('id') id: string, @Body() body: Record<string, any>) {
+    return this.rules.createAgreement(id, body);
+  }
+
+  /**
+   * PATCH /contracts/:id/agreements/:agreementId — Corrige notas, documento o
+   * fin del convenio, si ninguna versión posterior depende de él.
+   * Admin and Gerente only.
+   */
+  @Roles(...MANAGEMENT_ROLES)
+  @Patch(':id/agreements/:agreementId')
+  async updateAgreement(
+    @Param('id') id: string,
+    @Param('agreementId') agreementId: string,
+    @Body() body: Record<string, any>,
+  ) {
+    return this.rules.updateAgreement(id, agreementId, body);
+  }
+
+  /**
+   * DELETE /contracts/:id/agreements/:agreementId — Quita el convenio y su
+   * versión de reglas, si ninguna versión posterior depende de él.
+   * Admin and Gerente only.
+   */
+  @Roles(...MANAGEMENT_ROLES)
+  @Delete(':id/agreements/:agreementId')
+  async removeAgreement(@Param('id') id: string, @Param('agreementId') agreementId: string) {
+    return this.rules.removeAgreement(id, agreementId);
   }
 }

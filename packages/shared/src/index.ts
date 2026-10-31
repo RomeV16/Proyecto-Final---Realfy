@@ -22,6 +22,10 @@ export {
   GuaranteeType,
   GuaranteeStatus,
   IndexType,
+  ContractPeriodKind,
+  ContractAgreementKind,
+  AdjustmentBase,
+  PaymentFlow,
   ScheduleStatus,
   LiquidacionStatus,
   PaymentMethod,
@@ -82,6 +86,31 @@ export {
   canReadResource,
 } from './schemas/read-policy.schema';
 export type { ReadResource, ReadPolicy } from './schemas/read-policy.schema';
+
+// Schemas — valores por defecto de la inmobiliaria
+export {
+  OperationalDefaultsSchema,
+  DEFAULT_OPERATIONAL_DEFAULTS,
+  resolveOperationalDefaults,
+} from './schemas/operational-defaults.schema';
+export type { OperationalDefaults, OperationalDefaultsInput } from './schemas/operational-defaults.schema';
+export {
+  operationalDefaultsFormSchema,
+  operationalDefaultsToForm,
+  operationalDefaultsFromForm,
+} from './schemas/operational-defaults.form';
+export type { OperationalDefaultsFormInput } from './schemas/operational-defaults.form';
+
+// Schemas — reglas versionadas del contrato y acuerdos
+export {
+  CustomStepSchema,
+  CustomStepsSchema,
+  TermsPatchSchema,
+  RULE_CHANGING_AGREEMENT_KINDS,
+  CreateContractAgreementSchema,
+  UpdateContractAgreementSchema,
+} from './schemas/contract-rules.schema';
+export type { TermsPatch, CreateContractAgreementInput } from './schemas/contract-rules.schema';
 
 // Schemas — propiedades
 export {

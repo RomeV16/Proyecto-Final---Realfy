@@ -197,6 +197,8 @@ enum AdjustmentType {
   CCP
   FixedPercent
   Custom
+  UVA
+  Escalonado
 }
 
 enum AdjustmentPeriod {
@@ -228,6 +230,35 @@ enum IndexType {
   CVS
   CER
   UVA
+  TasaActivaBNA
+}
+
+enum ContractPeriodKind {
+  Original
+  Renovacion
+  Prorroga
+}
+
+enum ContractAgreementKind {
+  Renegociacion
+  Rebaja
+  Bonificacion
+  CambioRegla
+  CambioReparto
+  CambioCargo
+}
+
+/// Sobre qué alquiler se aplica el ajuste: el original del período o el vigente.
+enum AdjustmentBase {
+  Original
+  Vigente
+}
+
+/// Quién cobra el alquiler y quién rinde a quién.
+enum PaymentFlow {
+  Partido
+  TodoInmobiliaria
+  TodoLocador
 }
 
 enum ScheduleStatus {
@@ -240,22 +271,24 @@ enum ScheduleStatus {
 // ─── Auth & Tenancy Models ──────────────────────────────
 
 model Tenant {
-  id             String     @id @default(uuid())
-  name           String
-  slug           String?    @unique
-  cuit           String
-  province       String
-  timezone       String     @default("America/Buenos_Aires")
-  currency       Currency   @default(ARS)
-  tier           TenantTier @default(Professional)
-  brandPrimary   String?
-  brandSecondary String?
-  logoUrl        String?
-  penaltyConfig  Json?
-  readPolicy     Json?
-  isActive       Boolean    @default(true)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id                  String     @id @default(uuid())
+  name                String
+  slug                String?    @unique
+  cuit                String
+  province            String
+  timezone            String     @default("America/Buenos_Aires")
+  currency            Currency   @default(ARS)
+  tier                TenantTier @default(Professional)
+  brandPrimary        String?
+  brandSecondary      String?
+  logoUrl             String?
+  penaltyConfig       Json?
+  readPolicy          Json?
+  /// Valores por defecto de la operación (null: rigen los del código). Ver OperationalDefaultsSchema.
+  operationalDefaults Json?
+  isActive            Boolean    @default(true)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
   users               User[]
   invitations         UserInvitation[]
@@ -795,9 +828,16 @@ model Contract {
   notes               String?
   isActive            Boolean          @default(true)
   closedAt            DateTime?
+  /// Fin real o prórroga de palabra. El fin efectivo es coalesce(actualEndDate, endDate).
+  actualEndDate       DateTime?
+  /// Contrato anterior de la cadena de renovaciones.
+  previousContractId  String?
   externalRef         String?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime         @updatedAt
+
+  previousContract Contract?  @relation("ContractRenewal", fields: [previousContractId], references: [id], onDelete: SetNull)
+  renewals         Contract[] @relation("ContractRenewal")
 
   property       Property                @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   persons        ContractPerson[]
@@ -810,8 +850,12 @@ model Contract {
   commission     ContractCommission?
   rendiciones    OwnerRendicion[]
   closureSummary ContractClosureSummary?
+  periods        ContractPeriod[]
+  agreements     ContractAgreement[]
+  termsVersions  ContractTermsVersion[]
 
   @@unique([tenantId, externalRef])
+  @@index([previousContractId])
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, propertyId])
@@ -951,9 +995,14 @@ model ContractAdjustment {
   notes          String?
   calculatedAt   DateTime
   appliedAt      DateTime?
+  /// Ajuste calculado con un índice estimado, a corregir cuando llegue el oficial.
+  isProvisional  Boolean         @default(false)
+  /// Ajuste provisional que este ajuste corrige.
+  trueUpOfId     String?
 
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
+  @@unique([contractId, periodNumber, isProvisional])
   @@index([tenantId])
   @@index([contractId, periodNumber])
   @@map("contract_adjustments")
@@ -974,14 +1023,91 @@ model AdjustmentSchedule {
   @@map("adjustment_schedules")
 }
 
+/// Un tramo de vigencia del contrato: el original, una renovación o una prórroga.
+model ContractPeriod {
+  id          String             @id @default(uuid())
+  tenantId    String
+  contractId  String
+  seq         Int
+  kind        ContractPeriodKind
+  startDate   DateTime
+  endDate     DateTime
+  initialRent Decimal            @db.Decimal(15, 2)
+  signedAt    DateTime?
+  createdAt   DateTime           @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@unique([contractId, seq])
+  @@index([tenantId])
+  @@map("contract_periods")
+}
+
+/// Convenio fechado que cambia las reglas del contrato desde `effectiveFrom`.
+model ContractAgreement {
+  id            String                @id @default(uuid())
+  tenantId      String
+  contractId    String
+  kind          ContractAgreementKind
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  documentUrl   String?
+  notes         String?
+  createdById   String?
+  createdAt     DateTime              @default(now())
+
+  contract Contract               @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  versions ContractTermsVersion[]
+
+  @@index([tenantId])
+  @@index([contractId, effectiveFrom])
+  @@map("contract_agreements")
+}
+
+/// Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se pisa:
+/// un cambio crea una versión nueva.
+model ContractTermsVersion {
+  id                 String           @id @default(uuid())
+  tenantId           String
+  contractId         String
+  validFrom          DateTime
+  agreementId        String?
+  adjustmentType     AdjustmentType
+  adjustmentPeriod   AdjustmentPeriod
+  adjustmentBase     AdjustmentBase   @default(Vigente)
+  indexLagMonths     Int              @default(2)
+  fixedInitialMonths Int              @default(0)
+  customPct          Decimal?         @db.Decimal(5, 2)
+  /// Escalonado: lista de { fromMonth, pct }.
+  customSteps        Json?
+  rentOverride       Decimal?         @db.Decimal(15, 2)
+  discountPct        Decimal?         @db.Decimal(5, 2)
+  discountAmount     Decimal?         @db.Decimal(15, 2)
+  dueDay             Int
+  paymentFlow        PaymentFlow      @default(Partido)
+  penaltyConfig      Json?
+  createdAt          DateTime         @default(now())
+
+  contract  Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  agreement ContractAgreement? @relation(fields: [agreementId], references: [id])
+
+  @@unique([contractId, validFrom])
+  @@index([tenantId])
+  @@index([agreementId])
+  @@map("contract_terms_versions")
+}
+
 model IndexData {
-  id        String    @id @default(uuid())
-  tenantId  String
-  indexType IndexType
-  period    DateTime
-  value     Decimal   @db.Decimal(12, 6)
-  source    String?
-  createdAt DateTime  @default(now())
+  id             String    @id @default(uuid())
+  tenantId       String
+  indexType      IndexType
+  period         DateTime
+  value          Decimal   @db.Decimal(12, 6)
+  source         String?
+  /// Valor estimado (por ejemplo del REM); el oficial lo reemplaza con la misma clave.
+  isEstimate     Boolean   @default(false)
+  estimateSource String?
+  createdAt      DateTime  @default(now())
 
   @@unique([tenantId, indexType, period])
   @@index([tenantId])

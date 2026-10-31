@@ -29,7 +29,12 @@ Términos del dominio inmobiliario y técnicos utilizados a lo largo de la docum
 - **Ajuste CCP**: Actualización tomando como referencia el Coeficiente Casa Propia.
 - **Ajuste por porcentaje fijo**: Modalidad donde el contrato pacta de antemano el porcentaje de aumento de cada período, sin atarse a un índice publicado.
 - **Ajuste personalizado**: Modalidad donde las partes acuerdan el nuevo valor en cada período y se carga a mano.
-- **UVA**: Unidad de Valor Adquisitivo publicada por el BCRA. El sistema la registra como tipo de índice —igual que el CVS y el CER—, pero no es una modalidad de ajuste que un contrato pueda pactar: las modalidades disponibles son las cinco anteriores.
+- **UVA**: Unidad de Valor Adquisitivo publicada por el BCRA. El sistema la registra como tipo de índice —igual que el CVS y el CER— y el modelo la reconoce como modalidad de ajuste, pero el cálculo todavía no la resuelve: hoy las modalidades que un contrato puede pactar son las cinco anteriores.
+- **Fin real**: Fecha en que el contrato terminó o terminará de hecho (`actualEndDate`), distinta del fin pactado. El fin efectivo es el fin real si se registró y, si no, el pactado. Un contrato pasado de su fin pactado sin fin real sigue activo y se sigue liquidando.
+- **Prórroga de palabra**: Continuación del alquiler más allá del fin pactado, sin contrato nuevo. Se registra con un fin real posterior al pactado.
+- **Acuerdo**: Convenio con fecha entre las partes que cambia las reglas de un contrato (renegociación, rebaja, bonificación, cambio de reglas, de reparto o de cargo). No pisa lo anterior: crea una versión de reglas desde su fecha.
+- **Versión de reglas**: Foto de las reglas de un contrato (ajuste, base, rezago, vencimiento, flujo de cobro, descuentos) vigente desde una fecha. La regla de un día es la de la última versión con fecha anterior o igual. Los valores que la versión no fija salen de los valores por defecto de la inmobiliaria.
+- **Rezago**: Cantidad de meses de atraso con que se toma un índice al ajustar. Con rezago 2, el ajuste de un mes usa el IPC publicado dos meses antes. El rezago por defecto del IPC es de 2 meses.
 - **Comprobante ARCA**: Documento fiscal electrónico (factura A, B o C, recibo, nota de crédito) emitido contra los servicios web de ARCA (ex AFIP).
 - **CAE**: Código de Autorización Electrónico devuelto por ARCA al aprobar un comprobante. Sin CAE, el comprobante no tiene validez fiscal.
 - **Morosidad**: Estado del contrato cuando el inquilino registra una o más liquidaciones impagas vencidas.

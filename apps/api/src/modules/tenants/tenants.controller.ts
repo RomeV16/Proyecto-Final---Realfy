@@ -70,6 +70,26 @@ export class TenantsController {
   }
 
   /**
+   * GET /tenants/me/operational-defaults — Valores por defecto de la operación
+   * (vencimiento, rezago del IPC, comisión, honorarios...). Cualquier usuario
+   * de la inmobiliaria puede leerlos; sin configurar rigen los del código.
+   */
+  @Get('me/operational-defaults')
+  async getOperationalDefaults() {
+    return this.tenantsService.getOperationalDefaults();
+  }
+
+  /**
+   * PUT /tenants/me/operational-defaults — Reemplaza los valores por defecto
+   * (Admin y Gerente). Lo que falte en el cuerpo toma el valor del código.
+   */
+  @Roles(...MANAGEMENT_ROLES)
+  @Put('me/operational-defaults')
+  async updateOperationalDefaults(@Body() body: unknown) {
+    return this.tenantsService.updateOperationalDefaults(body);
+  }
+
+  /**
    * GET /tenants/me/read-access — Qué recursos sensibles puede leer el rol del
    * usuario actual. Lo usa la web para ocultar secciones.
    */

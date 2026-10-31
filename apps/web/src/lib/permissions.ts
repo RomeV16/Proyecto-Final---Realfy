@@ -54,6 +54,8 @@ export const ACTION_ROLES = {
   'users.manage': [Admin],
   /** Configurar qué roles leen los datos sensibles (política de lectura). */
   'permissions.manage': [Admin],
+  /** Cambiar los valores por defecto de la operación (vencimiento, rezago, honorarios...). */
+  'operationalDefaults.manage': [Admin, Gerente],
   'indexData.view': [Admin, Gerente],
   'indexData.manage': [Admin],
 } as const satisfies Record<string, readonly UserRole[]>;

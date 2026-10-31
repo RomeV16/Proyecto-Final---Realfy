@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   BadRequestException,
+  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -12,6 +13,7 @@ import {
   CreateIndexDataSchema,
   IndexDataFilterSchema,
   IndexType,
+  AdjustmentType,
 } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
 
@@ -23,26 +25,52 @@ import { parseOrThrow } from '../../common/validation/zod';
  */
 export const SYSTEM_TENANT_ID = '__system__';
 
+/** Entidad del registro de auditoría con que se anota un estimado reemplazado por el oficial. */
+const ESTIMATE_REPLACED_ENTITY = 'index_estimate_replaced';
+
 interface IndexRow {
   tenantId: string;
   indexType: string;
   period: Date;
+  isEstimate?: boolean;
+}
+
+/** `row` debe reemplazar a `current`: el oficial le gana al estimado y, entre iguales, la fila propia a la de sistema. */
+function outranks<T extends IndexRow>(row: T, current: T, tenantId: string): boolean {
+  const rowEstimate = row.isEstimate === true;
+  const currentEstimate = current.isEstimate === true;
+  if (rowEstimate !== currentEstimate) return currentEstimate;
+  return current.tenantId === SYSTEM_TENANT_ID && row.tenantId === tenantId;
 }
 
 /**
- * Entre una fila propia y una de sistema para el mismo (tipo, período), gana
- * la propia. Conserva el orden de entrada para el resto.
+ * Entre dos filas para el mismo (tipo, período), gana la oficial sobre la
+ * estimada y, si son del mismo tipo, la propia sobre la de sistema. Conserva
+ * el orden de entrada para el resto.
  */
 export function mergeVisibleRows<T extends IndexRow>(rows: T[], tenantId: string): T[] {
   const byKey = new Map<string, T>();
   for (const row of rows) {
     const key = `${row.indexType}|${row.period.toISOString()}`;
     const current = byKey.get(key);
-    if (!current || (current.tenantId === SYSTEM_TENANT_ID && row.tenantId === tenantId)) {
+    if (!current || outranks(row, current, tenantId)) {
       byKey.set(key, row);
     }
   }
   return [...byKey.values()];
+}
+
+/** Un estimado que ya tiene valor oficial. */
+export interface ReplacedEstimate {
+  indexType: string;
+  period: string;
+  estimateValue: string;
+  estimateSource: string | null;
+  officialValue: string;
+  replacedAt: string;
+  /** manual: se cargó el oficial a mano; published: lo publicó la fuente de sistema. */
+  via: 'manual' | 'published';
+  contractIds: string[];
 }
 
 @Injectable()
@@ -98,10 +126,10 @@ export class IndexDataService {
 
     const visible = Prisma.sql`
       SELECT DISTINCT ON ("indexType", "period")
-        "id", "tenantId", "indexType", "period", "value", "source", "createdAt"
+        "id", "tenantId", "indexType", "period", "value", "source", "isEstimate", "estimateSource", "createdAt"
       FROM "index_data"
       WHERE ${where}
-      ORDER BY "indexType", "period", ("tenantId" = ${tenantId}) DESC
+      ORDER BY "indexType", "period", "isEstimate" ASC, ("tenantId" = ${tenantId}) DESC
     `;
 
     const skip = (filters.page - 1) * filters.limit;
@@ -135,6 +163,19 @@ export class IndexDataService {
 
     const tenantId = this.tenantContext.getTenantId()!;
     const period = new Date(validated.period);
+    const isEstimate: boolean = validated.isEstimate;
+    const estimateSource: string | null = isEstimate ? (validated.estimateSource ?? null) : null;
+
+    const existing = await this.prisma.client.indexData.findFirst({
+      where: { indexType: validated.indexType, period },
+    });
+    // Un estimado nunca pisa a un valor oficial ya cargado.
+    if (existing && !existing.isEstimate && isEstimate) {
+      throw new ConflictException({
+        error: 'OFFICIAL_VALUE_EXISTS',
+        message: 'There is already an official value for that index and period',
+      });
+    }
 
     // Upsert by [tenantId, indexType, period] unique constraint
     const record = await this.prisma.client.indexData.upsert({
@@ -148,6 +189,8 @@ export class IndexDataService {
       update: {
         value: validated.value,
         source: validated.source ?? null,
+        isEstimate,
+        estimateSource,
       },
       create: {
         tenantId,
@@ -155,14 +198,38 @@ export class IndexDataService {
         period,
         value: validated.value,
         source: validated.source ?? null,
+        isEstimate,
+        estimateSource,
       },
     });
+
+    // El oficial reemplaza al estimado bajo la misma clave: queda registrado
+    // qué se había estimado para corregir los ajustes provisionales.
+    if (existing?.isEstimate && !isEstimate) {
+      await this.prisma.baseClient.auditLog.create({
+        data: {
+          tenantId,
+          userId: this.tenantContext.getUserId() ?? null,
+          action: 'UPDATE',
+          entity: ESTIMATE_REPLACED_ENTITY,
+          entityId: record.id,
+          changes: {
+            indexType: validated.indexType,
+            period: period.toISOString(),
+            estimateValue: existing.value.toString(),
+            estimateSource: existing.estimateSource,
+            officialValue: record.value.toString(),
+          },
+        },
+      });
+    }
 
     this.logger.log('Created/updated index data', {
       indexDataId: record.id,
       tenantId,
       indexType: validated.indexType,
       period: period.toISOString(),
+      isEstimate,
     });
 
     return record;
@@ -241,6 +308,8 @@ export class IndexDataService {
       tenantId?: string;
       client?: { indexData: { findMany: (args: any) => Promise<any[]> } };
       startExclusive?: boolean;
+      /** Incluye los valores estimados (REM). Por defecto el cálculo usa solo oficiales. */
+      includeEstimates?: boolean;
     } = {},
   ) {
     const tenantId = options.tenantId ?? this.requireTenantId('findMany');
@@ -250,6 +319,7 @@ export class IndexDataService {
       where: {
         ...this.visibleTo(tenantId),
         indexType: indexType as any,
+        ...(options.includeEstimates ? {} : { isEstimate: false }),
         period: {
           ...(options.startExclusive ? { gt: startDate } : { gte: startDate }),
           lte: endDate,
@@ -259,6 +329,88 @@ export class IndexDataService {
     });
 
     return mergeVisibleRows(rows, tenantId);
+  }
+
+  // ─── Estimados reemplazados por el oficial ─────────────
+
+  /**
+   * Estimados (REM) que ya tienen valor oficial, para corregir los ajustes
+   * provisionales calculados con ellos. Reúne los reemplazos manuales (quedan
+   * en el registro de auditoría) y los estimados propios tapados por un valor
+   * oficial de sistema publicado desde `since`. `contractIds` son los contratos
+   * con un ajuste provisional sin corregir de ese índice desde el período: la
+   * corrección en sí (cargo de ajuste retroactivo) es de una etapa posterior.
+   */
+  async findEstimatesReplaced(since?: string) {
+    const tenantId = this.requireTenantId('findMany');
+    const sinceDate = since ? new Date(since) : new Date(0);
+    if (Number.isNaN(sinceDate.getTime())) {
+      throw new BadRequestException({ error: 'VALIDATION_ERROR', message: 'since must be a valid date' });
+    }
+
+    const logs = await this.prisma.baseClient.auditLog.findMany({
+      where: { tenantId, entity: ESTIMATE_REPLACED_ENTITY, createdAt: { gte: sinceDate } },
+      orderBy: { createdAt: 'asc' },
+    });
+    const items: ReplacedEstimate[] = logs.map((log) => {
+      const c = log.changes as Record<string, string | null>;
+      return {
+        indexType: c.indexType as string,
+        period: c.period as string,
+        estimateValue: c.estimateValue as string,
+        estimateSource: c.estimateSource ?? null,
+        officialValue: c.officialValue as string,
+        replacedAt: log.createdAt.toISOString(),
+        via: 'manual',
+        contractIds: [],
+      };
+    });
+
+    const estimates = await this.prisma.baseClient.indexData.findMany({
+      where: { tenantId, isEstimate: true },
+    });
+    if (estimates.length > 0) {
+      const published = await this.prisma.baseClient.indexData.findMany({
+        where: {
+          tenantId: SYSTEM_TENANT_ID,
+          isEstimate: false,
+          createdAt: { gte: sinceDate },
+          OR: estimates.map((e) => ({ indexType: e.indexType, period: e.period })),
+        },
+      });
+      for (const official of published) {
+        const estimate = estimates.find(
+          (e) => e.indexType === official.indexType && e.period.getTime() === official.period.getTime(),
+        )!;
+        items.push({
+          indexType: official.indexType,
+          period: official.period.toISOString(),
+          estimateValue: estimate.value.toString(),
+          estimateSource: estimate.estimateSource,
+          officialValue: official.value.toString(),
+          replacedAt: official.createdAt.toISOString(),
+          via: 'published',
+          contractIds: [],
+        });
+      }
+    }
+
+    for (const item of items) {
+      if (!(item.indexType in AdjustmentType)) continue;
+      const provisional = await this.prisma.baseClient.contractAdjustment.findMany({
+        where: {
+          tenantId,
+          isProvisional: true,
+          indexType: item.indexType as AdjustmentType,
+          adjustmentDate: { gte: new Date(item.period) },
+          trueUpOfId: null,
+        },
+        select: { contractId: true },
+      });
+      item.contractIds = [...new Set(provisional.map((a) => a.contractId))];
+    }
+
+    return { since: sinceDate.toISOString(), items };
   }
 
   // ─── Latest per IndexType ────────────────────────────────
@@ -277,11 +429,11 @@ export class IndexDataService {
         SELECT DISTINCT ON ("indexType")
           "id", "tenantId", "indexType", "period", "value", "source", "createdAt"
         FROM "index_data"
-        WHERE "tenantId" IN (${tenantId}, ${SYSTEM_TENANT_ID})
+        WHERE "tenantId" IN (${tenantId}, ${SYSTEM_TENANT_ID}) AND NOT "isEstimate"
         ORDER BY "indexType", "period" DESC, ("tenantId" = ${tenantId}) DESC
       `),
       this.prisma.baseClient.indexData.findMany({
-        where: { ...this.visibleTo(tenantId), period: { gte: thirtyDaysAgo } },
+        where: { ...this.visibleTo(tenantId), isEstimate: false, period: { gte: thirtyDaysAgo } },
         orderBy: { period: 'asc' },
       }),
     ]);

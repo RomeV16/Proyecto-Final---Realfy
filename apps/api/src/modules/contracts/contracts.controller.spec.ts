@@ -10,6 +10,7 @@ import { UserRole } from '@realfy/shared';
 import { RbacGuard } from '../../common/auth/rbac.guard';
 import { ContractsController } from './contracts.controller';
 import { ContractsService } from './contracts.service';
+import { ContractRulesService } from './contract-rules.service';
 import { ContractLessorsService } from './contract-lessors.service';
 import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
 
@@ -66,7 +67,16 @@ function buildMocks() {
     remove: jest.fn().mockResolvedValue({ deleted: true }),
   };
 
-  return { contractsService, contractAdjustmentService, lessors };
+  const rules = {
+    listTerms: jest.fn().mockResolvedValue({ current: null, versions: [] }),
+    listPeriods: jest.fn().mockResolvedValue([]),
+    listAgreements: jest.fn().mockResolvedValue([]),
+    createAgreement: jest.fn().mockResolvedValue({}),
+    updateAgreement: jest.fn().mockResolvedValue({}),
+    removeAgreement: jest.fn().mockResolvedValue({ deleted: true }),
+  };
+
+  return { contractsService, contractAdjustmentService, lessors, rules };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -84,6 +94,7 @@ describe('ContractsController', () => {
         { provide: ContractsService, useValue: mocks.contractsService },
         { provide: ContractAdjustmentService, useValue: mocks.contractAdjustmentService },
         { provide: ContractLessorsService, useValue: mocks.lessors },
+        { provide: ContractRulesService, useValue: mocks.rules },
       ],
     })
       .overrideGuard(require('../../common/auth/jwt-auth.guard').JwtAuthGuard)
@@ -353,5 +364,57 @@ describe('ContractsController', () => {
         expect(guard.canActivate(contextFor(ContractsController.prototype.listLessors, UserRole.Lectura))).toBe(true);
       });
     });
+  });
+
+  // ─── Reglas versionadas y convenios ───────────────────────────────────────
+
+  describe('reglas y convenios', () => {
+    const guard = new RbacGuard(new Reflector());
+    const contextFor = (handler: (...args: any[]) => unknown, role: UserRole) =>
+      ({
+        getHandler: () => handler,
+        getClass: () => ContractsController,
+        switchToHttp: () => ({ getRequest: () => ({ user: { role } }) }),
+      }) as unknown as ExecutionContext;
+    const writes = [
+      ContractsController.prototype.createAgreement,
+      ContractsController.prototype.updateAgreement,
+      ContractsController.prototype.removeAgreement,
+    ];
+
+    it('las lecturas delegan en el servicio de reglas', async () => {
+      await controller.listTerms(CONTRACT_ID, '2026-06-01');
+      await controller.listPeriods(CONTRACT_ID);
+      await controller.listAgreements(CONTRACT_ID);
+
+      expect(mocks.rules.listTerms).toHaveBeenCalledWith(CONTRACT_ID, '2026-06-01');
+      expect(mocks.rules.listPeriods).toHaveBeenCalledWith(CONTRACT_ID);
+      expect(mocks.rules.listAgreements).toHaveBeenCalledWith(CONTRACT_ID);
+    });
+
+    it('POST, PATCH y DELETE de convenios delegan en el servicio', async () => {
+      await controller.createAgreement(CONTRACT_ID, { kind: 'Rebaja' });
+      await controller.updateAgreement(CONTRACT_ID, 'a1', { notes: 'x' });
+      await controller.removeAgreement(CONTRACT_ID, 'a1');
+
+      expect(mocks.rules.createAgreement).toHaveBeenCalledWith(CONTRACT_ID, { kind: 'Rebaja' });
+      expect(mocks.rules.updateAgreement).toHaveBeenCalledWith(CONTRACT_ID, 'a1', { notes: 'x' });
+      expect(mocks.rules.removeAgreement).toHaveBeenCalledWith(CONTRACT_ID, 'a1');
+    });
+
+    it.each([UserRole.Admin, UserRole.Gerente])('%s puede registrar convenios', (role) => {
+      for (const handler of writes) {
+        expect(guard.canActivate(contextFor(handler, role))).toBe(true);
+      }
+    });
+
+    it.each([UserRole.Ventas, UserRole.Liquidaciones, UserRole.Marketing, UserRole.Soporte, UserRole.Lectura])(
+      '%s no puede registrar convenios',
+      (role) => {
+        for (const handler of writes) {
+          expect(() => guard.canActivate(contextFor(handler, role))).toThrow(ForbiddenException);
+        }
+      },
+    );
   });
 });
