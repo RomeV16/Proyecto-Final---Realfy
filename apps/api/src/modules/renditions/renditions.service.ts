@@ -3,6 +3,7 @@ import {
   Logger,
   BadRequestException,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -553,7 +554,10 @@ export class RenditionsService {
         rendicionId: id,
         ownerId: rendicion.ownerId,
       });
-      return { sent: false, reason: 'No owner email' };
+      throw new UnprocessableEntityException({
+        error: 'OWNER_EMAIL_MISSING',
+        message: 'El locador no tiene email cargado: descargá el PDF y compartilo por otro medio.',
+      });
     }
 
     try {
@@ -566,6 +570,13 @@ export class RenditionsService {
 
       // A delivery failure fails the request, as before.
       if (result.status === 'failed') throw new Error(result.error);
+      // Sin mail configurado no hubo envío: no se marca como enviada.
+      if (result.status === 'skipped') {
+        throw new UnprocessableEntityException({
+          error: 'EMAIL_NOT_CONFIGURED',
+          message: 'El envío de mails no está configurado: descargá el PDF y compartilo por otro medio.',
+        });
+      }
 
       // Update sentAt
       await this.prisma.client.ownerRendicion.update({
@@ -585,6 +596,7 @@ export class RenditionsService {
         resendId: result.status === 'sent' ? result.id : undefined,
       };
     } catch (error) {
+      if (error instanceof UnprocessableEntityException) throw error;
       this.logger.error('Rendition email delivery failed', {
         rendicionId: id,
         to: ownerEmail,
