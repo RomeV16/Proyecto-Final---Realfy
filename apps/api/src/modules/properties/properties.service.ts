@@ -19,6 +19,7 @@ import {
 } from '@realfy/shared';
 import { applyOperationTransition } from './operation-state';
 import { parseOrThrow } from '../../common/validation/zod';
+import { rethrowExternalRefConflict } from '../../common/validation/external-ref';
 
 @Injectable()
 export class PropertiesService {
@@ -38,6 +39,7 @@ export class PropertiesService {
     const where: any = {};
 
     if (filters.type) where.type = filters.type;
+    if (filters.externalRef) where.externalRef = filters.externalRef;
     if (filters.city) where.city = { contains: filters.city, mode: 'insensitive' };
     if (filters.province) where.province = filters.province;
     if (filters.isActive !== undefined) where.isActive = filters.isActive;
@@ -151,16 +153,21 @@ export class PropertiesService {
 
     const tenantId = this.tenantContext.getTenantId()!;
 
-    const property = await this.prisma.client.property.create({
-      data: {
-        ...validated,
-        tenantId,
-      },
-      include: {
-        operations: true,
-        media: true,
-      },
-    });
+    let property;
+    try {
+      property = await this.prisma.client.property.create({
+        data: {
+          ...validated,
+          tenantId,
+        },
+        include: {
+          operations: true,
+          media: true,
+        },
+      });
+    } catch (err) {
+      rethrowExternalRefConflict(err, 'property');
+    }
 
     // If price is set, create initial PriceHistory record
     if (validated.price !== undefined && validated.price !== null) {
@@ -195,14 +202,19 @@ export class PropertiesService {
       });
     }
 
-    const updated = await this.prisma.client.property.update({
-      where: { id },
-      data: validated,
-      include: {
-        operations: true,
-        media: true,
-      },
-    });
+    let updated;
+    try {
+      updated = await this.prisma.client.property.update({
+        where: { id },
+        data: validated,
+        include: {
+          operations: true,
+          media: true,
+        },
+      });
+    } catch (err) {
+      rethrowExternalRefConflict(err, 'property');
+    }
 
     // Track price changes in PriceHistory
     const priceChanged =
