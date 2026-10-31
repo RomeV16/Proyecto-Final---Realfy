@@ -2,8 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 interface ExportButtonsProps {
   /** API path prefix, e.g. 'properties' or 'persons' */
@@ -12,6 +13,7 @@ interface ExportButtonsProps {
 
 export function ExportButtons({ entityPath }: ExportButtonsProps) {
   const t = useTranslations('import');
+  const tCommon = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -31,27 +33,13 @@ export function ExportButtons({ entityPath }: ExportButtonsProps) {
     setExporting(true);
     setOpen(false);
     try {
-      const res = await fetch(`${API_BASE_URL}/${entityPath}/export/${format}`, {
-        credentials: 'include',
-      });
-
-      if (!res.ok) throw new Error('Export failed');
-
-      const blob = await res.blob();
-      const disposition = res.headers.get('content-disposition') || '';
-      const match = disposition.match(/filename="?([^"]+)"?/);
-      const fileName = match?.[1] || `${entityPath}-export.${format === 'csv' ? 'csv' : 'xlsx'}`;
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(`[ExportButtons] Export failed:`, err);
+      await downloadFile(
+        `/${entityPath}/export/${format}`,
+        `${entityPath}-export.${format === 'csv' ? 'csv' : 'xlsx'}`,
+        { preferServerName: true },
+      );
+    } catch {
+      toast.error(tCommon('downloadFailed'));
     } finally {
       setExporting(false);
     }

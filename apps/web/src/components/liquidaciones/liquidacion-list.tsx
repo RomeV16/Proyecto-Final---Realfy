@@ -2,19 +2,20 @@
 
 import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { LiquidacionStatus } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
 import { Badge } from '@/components/ui/badge';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
+import { formatMoneyFixed, formatDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 /* ──────────── Types ──────────── */
 
@@ -84,32 +85,21 @@ const STATUS_ACCENT: Record<string, 'brand' | 'success' | 'warning' | 'danger' |
 
 /* ──────────── Helpers ──────────── */
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
 
-function formatCurrency(amount: string | number | undefined): string {
-  if (amount == null) return '—';
-  return '$ ' + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 /* ──────────── Card ──────────── */
 
 interface CardProps {
   item: LiquidacionItem;
-  localePrefix: string;
   selected: boolean;
   onToggle: () => void;
   bulkMode: boolean;
 }
 
-function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: CardProps) {
+function LiquidacionCard({ item, selected, onToggle, bulkMode }: CardProps) {
   const t = useTranslations('liquidaciones');
   const tCard = useTranslations('liquidaciones.card');
+  const tCommon = useTranslations('common');
   const tMonths = useTranslations('liquidaciones.months');
 
   // Derive month/year from period date (API returns period as ISO date, not separate month/year)
@@ -129,11 +119,11 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
     ? [item.contract.property.title, item.contract.property.street, item.contract.property.city].filter(Boolean).join(' — ')
     : tCard('noProperty');
 
-  const href = `${localePrefix}/liquidaciones/${item.id}`;
+  const href = `/liquidaciones/${item.id}`;
 
   const metaItems: Array<{ icon?: IconName; label: string }> = [{ icon: 'mapPin', label: propertyText }];
   if (item.dueDate) {
-    metaItems.push({ icon: 'calendarClock', label: t('card.dueDate', { date: formatDate(item.dueDate) }) });
+    metaItems.push({ icon: 'calendarClock', label: t('card.dueDate', { date: formatDate(item.dueDate, 'medium') }) });
   }
 
   /* One blocker at a time, so the grid doubles as a worklist. */
@@ -141,7 +131,7 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
     ? {
         tone: 'danger' as const,
         icon: 'alert' as const,
-        text: item.dueDate ? tCard('overdueAlert', { date: formatDate(item.dueDate) }) : t('statuses.Vencida'),
+        text: item.dueDate ? tCard('overdueAlert', { date: formatDate(item.dueDate, 'medium') }) : t('statuses.Vencida'),
       }
     : isPending
       ? { tone: 'warning' as const, icon: 'clock' as const, text: tCard('pendingApproval') }
@@ -194,7 +184,7 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
 
       <EntityCard.Body>
         <EntityCard.Amount
-          value={formatCurrency(total)}
+          value={formatMoneyFixed(total)}
           hint={tCard('totalAmount')}
           tone={isVoided ? 'muted' : isPaid ? 'success' : 'default'}
         />
@@ -213,11 +203,13 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
           {/* El PDF se arma en el momento desde la API, no hay archivo guardado. */}
           {!isVoided && (
             <EntityCard.Action
-              href={`${API_BASE_URL}/liquidaciones/${item.id}/pdf`}
               icon="download"
               variant="quiet"
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() =>
+                downloadFile(`/liquidaciones/${item.id}/pdf`, `liquidacion-${item.id}.pdf`).catch(() =>
+                  toast.error(tCommon('downloadFailed')),
+                )
+              }
             >
               {tCard('downloadPdf')}
             </EntityCard.Action>
@@ -325,9 +317,6 @@ export function LiquidacionList() {
   const tMonths = useTranslations('liquidaciones.months');
   const tErrors = useTranslations('liquidaciones.errors');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -337,9 +326,9 @@ export function LiquidacionList() {
   const [bulkLoading, setBulkLoading] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
 
-  const canGenerate = ['Admin', 'Gerente'].includes(user?.role || '');
-  const canBulkAct = ['Admin', 'Gerente'].includes(user?.role || '');
-  const isReadOnly = user?.role === 'Lectura';
+  const canGenerate = useCan('liquidaciones.generate');
+  const canBulkAct = useCan('liquidaciones.bulk');
+  const isReadOnly = useCan('liquidaciones.readOnlyNotice');
 
   const fetchData = useCallback(async (f: Filters) => {
     setLoading(true);
@@ -570,7 +559,7 @@ export function LiquidacionList() {
           renderItem={(item) => (
             <LiquidacionCard
               item={item}
-              localePrefix={localePrefix}
+             
               selected={selectedIds.has(item.id)}
               onToggle={() => toggleSelected(item.id)}
               bulkMode={bulkMode}

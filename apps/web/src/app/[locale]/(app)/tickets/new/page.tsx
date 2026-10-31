@@ -1,8 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useState, useEffect } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { TicketPriority } from '@realfy/shared';
@@ -32,9 +31,7 @@ const selectClass =
 
 export default function NewTicketPage() {
   const t = useTranslations('tickets');
-  const pathname = usePathname();
   const router = useRouter();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [properties, setProperties] = useState<PropertyOption[]>([]);
   const [categories, setCategories] = useState<CategoryOption[]>([]);
@@ -101,7 +98,7 @@ export default function NewTicketPage() {
         body: JSON.stringify(payload),
       });
 
-      router.push(`${localePrefix}/tickets/${ticket.id}`);
+      router.push(`/tickets/${ticket.id}`);
     } catch (err) {
       if (err instanceof ApiRequestError) setError(err.message);
       else setError(t('form.error'));
@@ -114,7 +111,7 @@ export default function NewTicketPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          href={`${localePrefix}/tickets`}
+          href={'/tickets'}
           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           aria-label={t('backToList')}
         >
@@ -234,7 +231,7 @@ export default function NewTicketPage() {
             <Button type="submit" variant="primary" disabled={submitting}>
               {submitting ? t('form.creating') : t('form.submit')}
             </Button>
-            <Link href={`${localePrefix}/tickets`}>
+            <Link href={'/tickets'}>
               <Button type="button" variant="ghost">
                 Cancelar
               </Button>

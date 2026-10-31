@@ -1,21 +1,18 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/navigation';
 import { PersonForm } from '@/components/persons/person-form';
 
 export default function NewPersonPage() {
   const t = useTranslations('persons');
-  const pathname = usePathname();
   const router = useRouter();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link
-          href={`${localePrefix}/persons`}
+          href={'/persons'}
           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           aria-label={t('backToList')}
         >
@@ -28,8 +25,8 @@ export default function NewPersonPage() {
 
       <PersonForm
         mode="create"
-        onSuccess={(id) => router.push(`${localePrefix}/persons/${id}`)}
-        onCancel={() => router.push(`${localePrefix}/persons`)}
+        onSuccess={(id) => router.push(`/persons/${id}`)}
+        onCancel={() => router.push('/persons')}
       />
     </div>
   );

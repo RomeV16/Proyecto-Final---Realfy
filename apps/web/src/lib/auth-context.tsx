@@ -15,6 +15,7 @@ import {
   clearStoredUser,
   ApiRequestError,
 } from './api-client';
+import { localizedPath } from '@/i18n/locale-path';
 import type { AuthResponse } from '@realfy/shared';
 
 interface User {
@@ -42,6 +43,15 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/**
+ * Sesión del staff sin exigir el proveedor: devuelve null fuera de él. Lo usan el
+ * menú y los permisos, que también se montan en piezas compartidas por toda la web
+ * (por ejemplo la transición de ingreso, que vive en el layout de idioma).
+ */
+export function useOptionalAuth(): AuthContextValue | null {
+  return useContext(AuthContext);
+}
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
@@ -126,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearStoredUser();
     setUser(null);
-    window.location.href = '/es/auth/login';
+    window.location.href = localizedPath('/auth/login');
   }, []);
 
   return (

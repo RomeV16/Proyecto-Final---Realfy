@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import {
   PropertyType,
@@ -9,8 +8,7 @@ import {
   PropertyState,
 } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { PropertyStateBadge } from './property-state-badge';
 import { PropertyTypeBadge } from './property-type-badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -19,6 +17,8 @@ import { CardGrid } from '@/components/ui/card-grid';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
 import { ExportButtons } from '../import/export-buttons';
+import { formatMoney } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -88,7 +88,7 @@ const LIMIT = 12;
 
 /* ──────────── Card ──────────── */
 
-function PropertyCard({ property, localePrefix }: { property: PropertyItem; localePrefix: string }) {
+function PropertyCard({ property }: { property: PropertyItem }) {
   const t = useTranslations('properties');
   const primaryOp = property.operations[0];
   const photos = property.media || [];
@@ -100,7 +100,7 @@ function PropertyCard({ property, localePrefix }: { property: PropertyItem; loca
      valores distintos); si no lo hace, vale el precio de referencia de la ficha. */
   const price = primaryOp?.price ?? property.price;
   const currency = primaryOp?.currency || property.currency || 'ARS';
-  const href = `${localePrefix}/properties/${property.id}`;
+  const href = `/properties/${property.id}`;
 
   const specs: Array<{ icon?: 'mapPin'; label: string }> = [];
   if (property.rooms) specs.push({ label: `${property.rooms} amb.` });
@@ -145,7 +145,7 @@ function PropertyCard({ property, localePrefix }: { property: PropertyItem; loca
         <div className="flex items-start justify-between gap-2">
           {price ? (
             <EntityCard.Amount
-              value={`${currency === 'USD' ? 'US$' : '$'} ${Number(price).toLocaleString('es-AR')}`}
+              value={formatMoney(price, currency)}
               hint={primaryOp && t(`operationTypes.${primaryOp.operationType}`)}
             />
           ) : (
@@ -183,15 +183,12 @@ export function PropertyList() {
   const tFilters = useTranslations('properties.filters');
   const tPagination = useTranslations('properties.pagination');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
-  const canCreate = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
+  const canCreate = useCan('properties.manage');
 
   const fetchProperties = useCallback(async (f: Filters) => {
     setLoading(true);
@@ -245,7 +242,7 @@ export function PropertyList() {
           <ExportButtons entityPath="properties" />
           {canCreate && (
             <Link
-              href={`${localePrefix}/properties/new`}
+              href={'/properties/new'}
               className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 active:bg-brand-700 transition-colors shadow-sm flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -354,7 +351,7 @@ export function PropertyList() {
           skeletonCount={8}
           keyOf={(p) => p.id}
           renderItem={(property) => (
-            <PropertyCard property={property} localePrefix={localePrefix} />
+            <PropertyCard property={property} />
           )}
           empty={
             hasFilters ? (
@@ -381,7 +378,7 @@ export function PropertyList() {
                 action={
                   canCreate && (
                     <Link
-                      href={`${localePrefix}/properties/new`}
+                      href={'/properties/new'}
                       className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-brand-500)] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-brand-600)]"
                     >
                       <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />

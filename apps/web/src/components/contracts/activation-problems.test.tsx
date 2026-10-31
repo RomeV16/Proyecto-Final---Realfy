@@ -28,7 +28,6 @@ describe('ActivationProblems', () => {
   it('traduce cada motivo conocido', () => {
     renderEs(
       <ActivationProblems
-        localePrefix="/es"
         problems={[
           { code: 'MISSING_PROPIETARIO' },
           { code: 'MISSING_INQUILINO' },
@@ -47,7 +46,6 @@ describe('ActivationProblems', () => {
   it('con una superposición muestra las fechas y enlaza al otro contrato', () => {
     renderEs(
       <ActivationProblems
-        localePrefix="/es"
         problems={[
           {
             code: 'OVERLAPPING_CONTRACT',
@@ -67,7 +65,7 @@ describe('ActivationProblems', () => {
 
   it('una superposición sin id de contrato no muestra enlace', () => {
     renderEs(
-      <ActivationProblems localePrefix="/es" problems={[{ code: 'OVERLAPPING_CONTRACT' }]} />,
+      <ActivationProblems problems={[{ code: 'OVERLAPPING_CONTRACT' }]} />,
     );
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
@@ -75,11 +73,11 @@ describe('ActivationProblems', () => {
   it('un código desconocido o una lista vacía caen en el mensaje genérico', () => {
     const generic = 'El contrato no cumple las condiciones para activarse.';
     const { unmount } = renderEs(
-      <ActivationProblems localePrefix="/es" problems={[{ code: 'NUEVO_CODIGO' }]} />,
+      <ActivationProblems problems={[{ code: 'NUEVO_CODIGO' }]} />,
     );
     expect(screen.getByText(generic)).toBeInTheDocument();
     unmount();
-    renderEs(<ActivationProblems localePrefix="/es" problems={[]} />);
+    renderEs(<ActivationProblems problems={[]} />);
     expect(screen.getByText(generic)).toBeInTheDocument();
   });
 });

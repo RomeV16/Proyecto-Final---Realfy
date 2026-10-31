@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import {
   ContractStatus,
@@ -9,13 +8,14 @@ import {
   AdjustmentType,
 } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
 import { Badge } from '@/components/ui/badge';
 import { ProgressRing } from '@/components/ui/micro-viz';
+import { formatMoneyFixed, formatDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -71,19 +71,7 @@ const LIMIT = 12;
 
 /* ──────────── Formatting ──────────── */
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
 
-function formatCurrency(amount: string | number | undefined, currency?: string): string {
-  if (amount == null) return '—';
-  const prefix = currency === 'USD' ? 'US$ ' : '$ ';
-  return prefix + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 /** Whole calendar months between two dates (can be negative). */
 function monthsBetween(a: Date, b: Date): number {
@@ -131,7 +119,7 @@ function contractAccent(contract: ContractItem, expiringSoon: boolean): Accent {
 
 /* ──────────── Card ──────────── */
 
-function ContractCard({ contract, localePrefix }: { contract: ContractItem; localePrefix: string }) {
+function ContractCard({ contract }: { contract: ContractItem }) {
   const t = useTranslations('contracts');
 
   const inquilino = contract.persons?.find((p) => p.role === 'Inquilino');
@@ -170,7 +158,7 @@ function ContractCard({ contract, localePrefix }: { contract: ContractItem; loca
             : null;
 
   const address = [contract.property?.street, contract.property?.city].filter(Boolean).join(', ');
-  const href = `${localePrefix}/contracts/${contract.id}`;
+  const href = `/contracts/${contract.id}`;
 
   return (
     <EntityCard href={href} label={`${tenantName} · ${propertyTitle}`} accent={accent}>
@@ -194,20 +182,20 @@ function ContractCard({ contract, localePrefix }: { contract: ContractItem; loca
               {tenantName} → {propertyTitle}
             </EntityCard.Title>
             <EntityCard.Subtitle>
-              {term ? t('card.termProgress', { elapsed: term.elapsed, total: term.total }) : formatDate(contract.startDate)}
+              {term ? t('card.termProgress', { elapsed: term.elapsed, total: term.total }) : formatDate(contract.startDate, 'medium')}
             </EntityCard.Subtitle>
           </div>
         </div>
 
         {contract.endDate && (
           <EntityCard.Meta
-            items={[{ icon: 'calendar', label: t('card.dateRange', { start: formatDate(contract.startDate), end: formatDate(contract.endDate) }) }]}
+            items={[{ icon: 'calendar', label: t('card.dateRange', { start: formatDate(contract.startDate, 'medium'), end: formatDate(contract.endDate, 'medium') }) }]}
           />
         )}
 
         {contract.rentAmount != null ? (
           <EntityCard.Amount
-            value={formatCurrency(contract.rentAmount, contractCurrency)}
+            value={formatMoneyFixed(contract.rentAmount, contractCurrency)}
             hint={contract.adjustmentType ? t(`adjustmentTypes.${contract.adjustmentType}`) : t('card.rent')}
           />
         ) : (
@@ -242,15 +230,12 @@ export function ContractList() {
   const tFilters = useTranslations('contracts.filters');
   const tPagination = useTranslations('contracts.pagination');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
-  const canCreate = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
+  const canCreate = useCan('contracts.manage');
 
   const fetchContracts = useCallback(async (f: Filters) => {
     setLoading(true);
@@ -301,7 +286,7 @@ export function ContractList() {
         <div className="flex items-center gap-2">
           {canCreate && (
             <Link
-              href={`${localePrefix}/contracts/new`}
+              href={'/contracts/new'}
               className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 active:bg-brand-700 transition-colors shadow-sm flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -387,7 +372,7 @@ export function ContractList() {
           skeletonCount={6}
           keyOf={(c) => c.id}
           renderItem={(contract) => (
-            <ContractCard contract={contract} localePrefix={localePrefix} />
+            <ContractCard contract={contract} />
           )}
           empty={
             hasFilters ? (
@@ -414,7 +399,7 @@ export function ContractList() {
                 action={
                   canCreate && (
                     <Link
-                      href={`${localePrefix}/contracts/new`}
+                      href={'/contracts/new'}
                       className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-brand-500)] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-brand-600)]"
                     >
                       {t('newContract')}

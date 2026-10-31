@@ -1,12 +1,14 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { ComprobanteType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
+import { formatMoneyFixed, formatDate, formatLocalDate, formatCompNumber } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -38,22 +40,8 @@ interface InvoiceDetailProps {
 
 /* ──────────── Helpers ──────────── */
 
-function formatCompNumber(pdv: number, num: number): string {
-  return `${String(pdv).padStart(4, '0')}-${String(num).padStart(8, '0')}`;
-}
 
-function formatCurrency(amount: string | number | undefined | null): string {
-  if (amount == null) return '—';
-  return '$ ' + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
 
 const TYPE_COLORS: Record<string, string> = {
   FacturaA: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -89,16 +77,13 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   const tFc = useTranslations('persons.fiscalConditions');
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('invoices.errors');
-  const { user } = useAuth();
-
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
+  
 
   const [data, setData] = useState<ComprobanteData | null>(null);
   const [loading, setLoading] = useState(true);
   const [pdfDownloading, setPdfDownloading] = useState(false);
 
-  const canEmit = ['Admin', 'Gerente', 'Liquidaciones'].includes(user?.role || '');
+  const canEmit = useCan('invoices.emit');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -117,22 +102,12 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   async function handleDownloadPdf() {
     setPdfDownloading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/invoices/${invoiceId}/pdf`,
-        { credentials: 'include' as RequestCredentials },
+      await downloadFile(
+        `/invoices/${invoiceId}/pdf`,
+        `comprobante-${data?.type}-${data?.comprobanteNumber || invoiceId}.pdf`,
       );
-      if (!response.ok) throw new Error('PDF download failed');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `comprobante-${data?.type}-${data?.comprobanteNumber || invoiceId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     } catch {
-      // Could add error feedback
+      toast.error(tCommon('downloadFailed'));
     } finally {
       setPdfDownloading(false);
     }
@@ -150,7 +125,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <h2 className="text-lg font-semibold text-slate-900">{tErrors('notFound')}</h2>
-        <Link href={`${localePrefix}/invoices`} className="mt-4 text-sm text-brand-600 hover:text-brand-700">
+        <Link href={'/invoices'} className="mt-4 text-sm text-brand-600 hover:text-brand-700">
           ← {t('back')}
         </Link>
       </div>
@@ -163,7 +138,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Back link */}
-      <Link href={`${localePrefix}/invoices`} className="text-sm text-brand-600 hover:text-brand-700">
+      <Link href={'/invoices'} className="text-sm text-brand-600 hover:text-brand-700">
         ← {t('back')}
       </Link>
 
@@ -179,12 +154,12 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             <p className="text-xl font-bold text-slate-900 font-mono tabular-nums">
               {formatCompNumber(data.puntoDeVenta, data.comprobanteNumber)}
             </p>
-            <p className="text-xs text-slate-400">{t('createdAt')}: {formatDate(data.createdAt)}</p>
+            <p className="text-xs text-slate-400">{t('createdAt')}: {formatLocalDate(data.createdAt, 'long')}</p>
           </div>
 
           <div className="flex flex-col gap-2 sm:items-end">
             <p className="text-2xl font-bold text-slate-900 tabular-nums">
-              {isNC ? '- ' : ''}{formatCurrency(data.amount)}
+              {isNC ? '- ' : ''}{formatMoneyFixed(data.amount)}
             </p>
             {/* PDF download */}
             <button
@@ -199,7 +174,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             </button>
             {/* Emit NC button for facturas */}
             {isFactura && canEmit && (
-              <Link href={`${localePrefix}/invoices/${invoiceId}?action=emit-nc`}
+              <Link href={`/invoices/${invoiceId}?action=emit-nc`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
               >
                 {tInvoices('emitNC')}
@@ -237,18 +212,18 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           {data.impNeto != null && Number(data.impNeto) > 0 && (
             <div>
               <p className="text-xs text-slate-500">{t('netAmount')}</p>
-              <p className="text-sm font-semibold tabular-nums text-slate-900">{formatCurrency(data.impNeto)}</p>
+              <p className="text-sm font-semibold tabular-nums text-slate-900">{formatMoneyFixed(data.impNeto)}</p>
             </div>
           )}
           {data.impIva != null && Number(data.impIva) > 0 && (
             <div>
               <p className="text-xs text-slate-500">{t('ivaAmount')} {data.ivaRate ? `(${data.ivaRate}%)` : ''}</p>
-              <p className="text-sm font-semibold tabular-nums text-slate-900">{formatCurrency(data.impIva)}</p>
+              <p className="text-sm font-semibold tabular-nums text-slate-900">{formatMoneyFixed(data.impIva)}</p>
             </div>
           )}
           <div>
             <p className="text-xs text-slate-500">{t('amount')}</p>
-            <p className="text-lg font-bold tabular-nums text-slate-900">{formatCurrency(data.amount)}</p>
+            <p className="text-lg font-bold tabular-nums text-slate-900">{formatMoneyFixed(data.amount)}</p>
           </div>
           {data.currency && (
             <div>
@@ -269,7 +244,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
           {data.caeExpiration && (
             <div>
               <p className="text-xs text-slate-500">{t('caeExpiration')}</p>
-              <p className="text-sm text-slate-700">{formatDate(data.caeExpiration)}</p>
+              <p className="text-sm text-slate-700">{formatDate(data.caeExpiration, 'long')}</p>
             </div>
           )}
         </div>
@@ -285,7 +260,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
       {isNC && data.originalComprobante && (
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <p className="text-xs text-slate-500 mb-1">{t('originalComprobante')}</p>
-          <Link href={`${localePrefix}/invoices/${data.originalComprobante.id}`}
+          <Link href={`/invoices/${data.originalComprobante.id}`}
             className="text-sm text-brand-600 hover:text-brand-700 font-medium"
           >
             {tShortTypes(data.originalComprobante.type)} {formatCompNumber(data.originalComprobante.puntoDeVenta, data.originalComprobante.comprobanteNumber)} →

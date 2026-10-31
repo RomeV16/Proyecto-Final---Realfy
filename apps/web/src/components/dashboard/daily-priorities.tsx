@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { Reveal } from '@/components/ui/reveal';
@@ -9,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Icon, type IconName } from '@/components/ui/icon';
+import { formatMoneyRounded } from '@/lib/format';
 
 /* ──────────────── Types ──────────────── */
 
@@ -72,12 +72,6 @@ const URGENCY_TONE: Record<Urgency, 'danger' | 'warning' | 'brand'> = {
 
 /* ──────────────── Formatting ──────────────── */
 
-const fmtAmount = (amount: number, currency: string | null) =>
-  new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: currency || 'ARS',
-    maximumFractionDigits: 0,
-  }).format(amount);
 
 /* ──────────────── Small pieces ──────────────── */
 
@@ -139,8 +133,6 @@ function PriorityRowSkeleton() {
  */
 export function DailyPriorities() {
   const t = useTranslations('dashboard.priorities');
-  const pathname = usePathname();
-  const lp = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<DailyPrioritiesResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -180,13 +172,13 @@ export function DailyPriorities() {
   function hrefFor(priority: DailyPriority): string {
     switch (priority.kind) {
       case 'cobranza':
-        return `${lp}/liquidaciones`;
+        return '/liquidaciones';
       case 'reclamo':
-        return `${lp}/tickets/${priority.entityId}`;
+        return `/tickets/${priority.entityId}`;
       case 'contrato':
-        return `${lp}/contracts/${priority.entityId}`;
+        return `/contracts/${priority.entityId}`;
       case 'lead':
-        return `${lp}/leads/${priority.entityId}`;
+        return `/leads/${priority.entityId}`;
     }
   }
 
@@ -195,7 +187,7 @@ export function DailyPriorities() {
     if (priority.kind === 'cobranza' && priority.amount !== null) {
       return (
         <EntityRow.Amount
-          value={fmtAmount(priority.amount, priority.currency)}
+          value={formatMoneyRounded(priority.amount, priority.currency)}
           hint={
             priority.daysOverdue && priority.daysOverdue > 0
               ? t('overdueDays', { days: priority.daysOverdue })

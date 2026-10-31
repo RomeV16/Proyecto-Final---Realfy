@@ -5,9 +5,9 @@ import { Spinner } from '@/components/ui/spinner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { useState, useEffect, useCallback } from 'react';
+import { useCan } from '@/lib/permissions';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -545,8 +545,7 @@ function StageCard({
 export default function PipelineSettingsPage() {
   const t = useTranslations('pipeline');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-
+  
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('Alquiler');
@@ -555,7 +554,7 @@ export default function PipelineSettingsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // RBAC: solo Admin y Gerente pueden administrar pipelines
-  const isAdminOrGerente = user?.role === 'Admin' || user?.role === 'Gerente';
+  const isAdminOrGerente = useCan('pipeline.configure');
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });

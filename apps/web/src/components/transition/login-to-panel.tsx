@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton';
-import { navItems } from '@/components/layout/nav-items';
+import { useVisibleNavItems } from '@/components/layout/nav-items';
 import { SEGMENT_LABELS } from '@/components/layout/segment-labels';
 import {
   RAIL_ASIDE_CLASS,
@@ -49,6 +49,7 @@ export function LoginToPanel() {
   const { active, data, runId } = useTransitionState();
   const reduceMotion = useReducedMotion();
   const t = useTranslations('nav');
+  const items = useVisibleNavItems();
   const locale = useLocale();
 
   useEffect(() => {
@@ -106,7 +107,7 @@ export function LoginToPanel() {
           >
             <RailBrand />
             <div className={RAIL_NAV_CLASS}>
-              {navItems.map((item, i) => (
+              {items.map((item, i) => (
                 <motion.div
                   key={item.key}
                   className={railItemClass(item.key === ACTIVE_KEY)}
@@ -127,7 +128,7 @@ export function LoginToPanel() {
 
             <div className={SIDEBAR_NAV_CLASS}>
               <SidebarSectionLabel />
-              {navItems.map((item, i) => {
+              {items.map((item, i) => {
                 const isActive = item.key === ACTIVE_KEY;
                 return (
                   <motion.div

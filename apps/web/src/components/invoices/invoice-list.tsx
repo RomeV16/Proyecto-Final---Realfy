@@ -2,14 +2,16 @@
 
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api-client';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { ComprobanteType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/navigation';
 import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar } from '@/components/ui/avatar';
+import { formatMoneyFixed, formatLocalDate, formatCompNumber } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -38,22 +40,8 @@ interface PaginatedResponse {
 
 /* ──────────── Helpers ──────────── */
 
-function formatCompNumber(pdv: number, num: number): string {
-  return `${String(pdv).padStart(4, '0')}-${String(num).padStart(8, '0')}`;
-}
 
-function formatCurrency(amount: string | number | undefined): string {
-  if (amount == null) return '—';
-  return '$ ' + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
 
 /** Comprobante type → badge tone. Credit/debit notes read as adjustments, so
  * they get the danger/warning tones; regular invoices stay brand-neutral. */
@@ -77,15 +65,14 @@ const LIMIT = 20;
 
 export function InvoiceList() {
   const t = useTranslations('invoices');
+  const tCommon = useTranslations('common');
   const tTable = useTranslations('invoices.table');
   const tTypes = useTranslations('invoices.types');
   const tFilters = useTranslations('invoices.filters');
   const tEmpty = useTranslations('invoices.empty');
   const tPag = useTranslations('invoices.pagination');
 
-  const pathname = usePathname();
   const router = useRouter();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [data, setData] = useState<PaginatedResponse | null>(null);
@@ -115,22 +102,9 @@ export function InvoiceList() {
 
   async function handleDownloadPdf(id: string) {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/invoices/${id}/pdf`,
-        { credentials: 'include' as RequestCredentials },
-      );
-      if (!response.ok) throw new Error('PDF download failed');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `comprobante-${id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await downloadFile(`/invoices/${id}/pdf`, `comprobante-${id}.pdf`);
     } catch {
-      // Silent fail for now
+      toast.error(tCommon('downloadFailed'));
     }
   }
 
@@ -141,7 +115,7 @@ export function InvoiceList() {
     {
       key: 'fecha',
       header: tTable('fecha'),
-      render: (item) => <span className="text-slate-600">{formatDate(item.createdAt)}</span>,
+      render: (item) => <span className="text-slate-600">{formatLocalDate(item.createdAt, 'medium')}</span>,
     },
     {
       key: 'tipo',
@@ -168,7 +142,7 @@ export function InvoiceList() {
       alignRight: true,
       render: (item) => (
         <span className="font-semibold tabular-nums text-slate-900">
-          {ncTypes.includes(item.type as ComprobanteType) ? '- ' : ''}{formatCurrency(item.impTotal ?? item.amount)}
+          {ncTypes.includes(item.type as ComprobanteType) ? '- ' : ''}{formatMoneyFixed(item.impTotal ?? item.amount)}
         </span>
       ),
     },
@@ -193,7 +167,7 @@ export function InvoiceList() {
       render: (item) => (
         <div className="flex items-center justify-end gap-1">
           <Link
-            href={`${localePrefix}/invoices/${item.id}`}
+            href={`/invoices/${item.id}`}
             className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
             title={tTable('view')}
           >
@@ -226,7 +200,7 @@ export function InvoiceList() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push(`${localePrefix}/invoices/new`)}
+            onClick={() => router.push('/invoices/new')}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -274,9 +248,9 @@ export function InvoiceList() {
         }}
         cardRenderer={(item) => {
           const isCredit = ncTypes.includes(item.type as ComprobanteType);
-          const amountLabel = `${isCredit ? '- ' : ''}${formatCurrency(item.impTotal ?? item.amount)}`;
+          const amountLabel = `${isCredit ? '- ' : ''}${formatMoneyFixed(item.impTotal ?? item.amount)}`;
           const displayTitle = item.receptorName || tTypes(item.type);
-          const href = `${localePrefix}/invoices/${item.id}`;
+          const href = `/invoices/${item.id}`;
 
           return (
             <EntityRow
@@ -288,7 +262,7 @@ export function InvoiceList() {
               subtitle={formatCompNumber(item.puntoDeVenta, item.numero ?? item.comprobanteNumber ?? 0)}
               meta={
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                  <EntityRow.Meta items={[{ icon: 'calendar', label: formatDate(item.createdAt) }]} />
+                  <EntityRow.Meta items={[{ icon: 'calendar', label: formatLocalDate(item.createdAt, 'medium') }]} />
                   <span
                     className={`text-sm font-bold tabular-nums sm:hidden ${
                       isCredit ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'

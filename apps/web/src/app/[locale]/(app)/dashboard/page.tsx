@@ -1,8 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
@@ -27,6 +26,8 @@ import {
   Cell,
   ResponsiveContainer,
 } from 'recharts';
+import { formatMoneyRounded, formatMoneyCompact, formatDate, formatLocalDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────────── Types ──────────────── */
 
@@ -63,17 +64,8 @@ interface Stats {
 
 /* ──────────────── Formatting ──────────────── */
 
-const fmt = (n: number) =>
-  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n);
 
-const fmtCompact = (n: number) => {
-  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1).replace('.', ',')}M`;
-  if (Math.abs(n) >= 1_000) return `$${Math.round(n / 1000)}K`;
-  return `$${n}`;
-};
 
-const monthName = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
 
 const TYPE_COLORS = ['#bd5a32', '#3d5f49', '#c58a2b', '#8a7e6d', '#a4481f', '#5f8168', '#d8926f'];
 
@@ -160,8 +152,6 @@ function AgendaGroup({
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const { user, isLoading } = useAuth();
-  const pathname = usePathname();
-  const lp = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -171,7 +161,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setToday(
-      new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' }),
+      formatLocalDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' }),
     );
   }, []);
 
@@ -204,7 +194,7 @@ export default function DashboardPage() {
 
   const accent = tenant?.brandPrimary || '#bd5a32';
   // Los widgets de ocupación y rentabilidad van contra endpoints de Admin/Gerencia.
-  const canSeeAnalytics = ['Admin', 'Gerente'].includes(user?.role || '');
+  const canSeeAnalytics = useCan('dashboard.analytics');
 
   if (error) {
     return (
@@ -274,7 +264,7 @@ export default function DashboardPage() {
           <div className="p-7 lg:border-r border-[var(--color-border)] flex flex-col justify-center">
             <p className="micro">Renta mensual de cartera</p>
             <p className="font-display text-[clamp(2.4rem,4vw,3.4rem)] leading-none mt-3" style={{ color: accent }}>
-              {fmt(s.monthlyRentRoll)}
+              {formatMoneyRounded(s.monthlyRentRoll)}
             </p>
             <div className="mt-5 flex flex-wrap gap-x-8 gap-y-3">
               <div>
@@ -282,7 +272,7 @@ export default function DashboardPage() {
                 <p className="text-xs text-[var(--color-muted)] mt-0.5">Contratos activos</p>
               </div>
               <div>
-                <p className="numeric-xl text-[1.4rem]">{fmt(s.avgRent)}</p>
+                <p className="numeric-xl text-[1.4rem]">{formatMoneyRounded(s.avgRent)}</p>
                 <p className="text-xs text-[var(--color-muted)] mt-0.5">Alquiler promedio</p>
               </div>
               <div>
@@ -320,7 +310,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#8a7e6d' }} axisLine={false} tickLine={false} />
                   <YAxis hide />
                   <Tooltip
-                    formatter={(v, n) => [fmt(Number(v)), n === 'collected' ? 'Cobrado' : 'Facturado']}
+                    formatter={(v, n) => [formatMoneyRounded(Number(v)), n === 'collected' ? 'Cobrado' : 'Facturado']}
                     contentStyle={{ borderRadius: 10, border: '1px solid #e4dac7', background: '#fbf8f1', fontSize: 12 }}
                     cursor={{ stroke: '#d3c6ac' }}
                   />
@@ -342,29 +332,29 @@ export default function DashboardPage() {
             progress={s.occupancyRate}
             tone="brand"
             hint={`${s.occupiedUnits} ocupadas · ${s.vacantUnits} libres`}
-            href={`${lp}/properties`}
+            href={'/properties'}
             className="min-h-[128px]"
           />
         </Reveal>
         <Reveal delay={1}>
           <StatTile
             label="Cobrado este ciclo"
-            value={fmtCompact(s.collections.pagada)}
+            value={formatMoneyCompact(s.collections.pagada)}
             icon="wallet"
             tone="success"
             hint={`${s.collections.rate}% de lo facturado`}
-            href={`${lp}/liquidaciones`}
+            href={'/liquidaciones'}
             className="min-h-[128px]"
           />
         </Reveal>
         <Reveal delay={2}>
           <StatTile
             label="Mora"
-            value={fmtCompact(s.delinquency.overdueAmount)}
+            value={formatMoneyCompact(s.delinquency.overdueAmount)}
             icon="alert"
             tone={s.delinquency.overdueAmount > 0 ? 'danger' : 'success'}
             hint={`${s.delinquency.rate}% de la cartera`}
-            href={`${lp}/delinquency`}
+            href={'/delinquency'}
             className="min-h-[128px]"
           />
         </Reveal>
@@ -375,7 +365,7 @@ export default function DashboardPage() {
             icon="tickets"
             tone={s.tickets.urgent > 0 ? 'warning' : 'neutral'}
             hint={`${s.tickets.urgent} de prioridad alta`}
-            href={`${lp}/tickets`}
+            href={'/tickets'}
             className="min-h-[128px]"
           />
         </Reveal>
@@ -393,13 +383,13 @@ export default function DashboardPage() {
               <AgendaGroup
                 title="Vencimientos de contrato"
                 count={s.agenda.expiring.length}
-                href={`${lp}/contracts`}
+                href={'/contracts'}
                 emptyText="Sin contratos por vencer en los próximos 90 días."
               >
                 {s.agenda.expiring.slice(0, 3).map((c) => (
                   <EntityRow
                     key={c.id}
-                    href={`${lp}/contracts/${c.id}`}
+                    href={`/contracts/${c.id}`}
                     label={c.property}
                     accent={c.daysLeft <= 30 ? 'danger' : 'warning'}
                     leading={<RowIcon icon="contracts" tone={c.daysLeft <= 30 ? 'danger' : 'warning'} />}
@@ -414,7 +404,7 @@ export default function DashboardPage() {
                     }
                     actions={
                       <EntityRow.Action
-                        href={`${lp}/contracts/${c.id}`}
+                        href={`/contracts/${c.id}`}
                         icon="arrowRight"
                         variant="ghost"
                       >
@@ -428,7 +418,7 @@ export default function DashboardPage() {
               <AgendaGroup
                 title="Cobranzas pendientes"
                 count={s.agenda.collections.length}
-                href={`${lp}/liquidaciones`}
+                href={'/liquidaciones'}
                 emptyText="No hay cobranzas pendientes."
               >
                 {s.agenda.collections.slice(0, 3).map((c) => {
@@ -436,22 +426,22 @@ export default function DashboardPage() {
                   return (
                     <EntityRow
                       key={c.id}
-                      href={`${lp}/liquidaciones`}
+                      href={'/liquidaciones'}
                       label={c.property}
                       accent={overdue ? 'danger' : 'warning'}
                       leading={<RowIcon icon="liquidaciones" tone={overdue ? 'danger' : 'warning'} />}
                       title={c.property}
-                      subtitle={`${monthName(c.period)} · ${statusLabel[c.status] ?? c.status}`}
+                      subtitle={`${formatDate(c.period, { month: 'short', year: '2-digit' })} · ${statusLabel[c.status] ?? c.status}`}
                       trailing={
                         <EntityRow.Amount
-                          value={fmt(c.amount)}
+                          value={formatMoneyRounded(c.amount)}
                           hint={overdue ? 'vencida' : 'pendiente'}
                           tone={overdue ? 'danger' : 'default'}
                         />
                       }
                       actions={
                         <EntityRow.Action
-                          href={`${lp}/liquidaciones`}
+                          href={'/liquidaciones'}
                           icon="arrowRight"
                           variant="ghost"
                         >
@@ -466,13 +456,13 @@ export default function DashboardPage() {
               <AgendaGroup
                 title="Tickets prioritarios"
                 count={s.agenda.tickets.length}
-                href={`${lp}/tickets`}
+                href={'/tickets'}
                 emptyText="No hay tickets abiertos."
               >
                 {s.agenda.tickets.slice(0, 3).map((tk) => (
                   <EntityRow
                     key={tk.id}
-                    href={`${lp}/tickets/${tk.id}`}
+                    href={`/tickets/${tk.id}`}
                     label={tk.title}
                     accent={tk.priority === 'Urgente' ? 'danger' : 'brand'}
                     leading={
@@ -486,7 +476,7 @@ export default function DashboardPage() {
                       </div>
                     }
                     actions={
-                      <EntityRow.Action href={`${lp}/tickets/${tk.id}`} icon="arrowRight" variant="ghost">
+                      <EntityRow.Action href={`/tickets/${tk.id}`} icon="arrowRight" variant="ghost">
                         Atender
                       </EntityRow.Action>
                     }
@@ -544,7 +534,7 @@ export default function DashboardPage() {
               <div>
                 <div className="flex justify-between text-sm mb-1.5">
                   <span className="text-[var(--color-muted)]">Cobrado</span>
-                  <span className="font-medium tabular-nums">{fmt(s.collections.pagada)}</span>
+                  <span className="font-medium tabular-nums">{formatMoneyRounded(s.collections.pagada)}</span>
                 </div>
                 <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-sunken)]">
                   <span className="h-full bg-[#3d5f49]" style={{ width: `${collectedPct}%` }} />
@@ -563,7 +553,7 @@ export default function DashboardPage() {
                       <span className="h-2 w-2 rounded-full" style={{ background: x.c }} />
                       <span className="text-xs text-[var(--color-muted)]">{x.label}</span>
                     </div>
-                    <p className="text-sm font-medium tabular-nums mt-0.5">{fmtCompact(x.v)}</p>
+                    <p className="text-sm font-medium tabular-nums mt-0.5">{formatMoneyCompact(x.v)}</p>
                   </div>
                 ))}
               </div>

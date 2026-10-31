@@ -15,15 +15,12 @@ import {
 import { InquiryForm } from '@/components/portal-publico/inquiry-form';
 import { Badge } from '@/components/ui/badge';
 import { Icon } from '@/components/ui/icon';
+import { formatMoney } from '@/lib/format';
 
 interface PropertyDetailProps {
   params: Promise<{ locale: string; slug: string; id: string }>;
 }
 
-function formatPrice(price: number | string, currency?: string | null): string {
-  const symbol = currency === 'USD' ? 'US$' : '$';
-  return `${symbol} ${Number(price).toLocaleString('es-AR')}`;
-}
 
 /** Calle 1234, Ciudad, Provincia */
 function addressLine(property: { street?: string | null; city?: string | null; province?: string | null }): string {
@@ -106,7 +103,7 @@ export default async function PublicPropertyDetailPage({ params }: PropertyDetai
             )}
 
             <p className="font-display mt-4 text-2xl font-medium tabular-nums tracking-[var(--tracking-tight)] text-[var(--color-text)] [overflow-wrap:anywhere] sm:text-3xl">
-              {property.price ? formatPrice(property.price, property.currency) : t('card.noPrice')}
+              {property.price ? formatMoney(property.price, property.currency) : t('card.noPrice')}
             </p>
             {property.price != null && (
               <p className="mt-1 text-xs text-[var(--color-muted)]">

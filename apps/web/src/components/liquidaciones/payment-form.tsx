@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { PaymentMethod } from '@realfy/shared';
 import { useState } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { formatMoneyFixed, formatNumber } from '@/lib/format';
 
 interface PaymentFormProps {
   liquidacionId: string;
@@ -55,7 +56,7 @@ export function PaymentForm({ liquidacionId, remainingBalance, onSuccess, onClos
       onSuccess();
     } catch (err) {
       if (err instanceof ApiRequestError && err.errorCode === 'PAYMENT_EXCEEDS_BALANCE') {
-        setError(t('exceedsBalance', { balance: remainingBalance.toLocaleString('es-AR') }));
+        setError(t('exceedsBalance', { balance: formatNumber(remainingBalance) }));
       } else {
         setError(err instanceof ApiRequestError ? err.message : t('registerError'));
       }
@@ -64,8 +65,6 @@ export function PaymentForm({ liquidacionId, remainingBalance, onSuccess, onClos
     }
   }
 
-  const formatCurrency = (val: number) =>
-    '$ ' + val.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -78,7 +77,7 @@ export function PaymentForm({ liquidacionId, remainingBalance, onSuccess, onClos
         <div className="bg-slate-50 px-6 py-4 border-b border-slate-100">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{t('remainingBalance')}</p>
           <p className="text-2xl font-bold text-slate-900 tabular-nums mt-0.5">
-            {formatCurrency(remainingBalance)}
+            {formatMoneyFixed(remainingBalance)}
           </p>
         </div>
 

@@ -69,6 +69,7 @@
  "common": {
   "loading": "Cargando…",
   "error": "Ocurrió un error",
+  "downloadFailed": "No se pudo descargar el archivo. Intentá de nuevo.",
   "save": "Guardar",
   "cancel": "Cancelar",
   "delete": "Eliminar",

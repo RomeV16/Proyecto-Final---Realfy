@@ -2,8 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
-import { usePathname, useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { Link } from '@/i18n/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import {
@@ -20,6 +20,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { RowList } from '@/components/ui/card-grid';
 import { EntityRow } from '@/components/ui/entity-card';
 import { ListTransition, AnimatedList, StaggerItem, type ListState } from '@/components/ui/motion';
+import { formatNumber, formatLocalDate, formatDateTime } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -148,22 +150,9 @@ function formatRelativeTime(dateStr: string): string {
   if (diffMin < 60) return `hace ${diffMin} min`;
   if (diffHrs < 24) return `hace ${diffHrs}h`;
   if (diffDays < 7) return `hace ${diffDays}d`;
-  return date.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  return formatLocalDate(date, 'numeric');
 }
 
-function formatDateTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function visitAddress(visit: Visit): string | undefined {
   if (!visit.property) return undefined;
@@ -189,10 +178,8 @@ export default function LeadDetailPage() {
   const t = useTranslations('interactions');
   const tLeads = useTranslations('leads');
   const tCommon = useTranslations('common');
-  const pathname = usePathname();
   const params = useParams();
   const { user } = useAuth();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const leadId = params.id as string;
 
   // ── Core state ──
@@ -229,7 +216,7 @@ export default function LeadDetailPage() {
   const [visitStatus, setVisitStatus] = useState<string>(VisitStatus.Programada);
   const [visitOutcome, setVisitOutcome] = useState<string>('');
 
-  const canEdit = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
+  const canEdit = useCan('leads.manage');
 
   // ── Flash message auto-dismiss ──
   useEffect(() => {
@@ -433,7 +420,7 @@ export default function LeadDetailPage() {
           <Icon name="alert" className="w-8 h-8 text-slate-400" strokeWidth={1.5} />
         </div>
         <h2 className="h3">{t('leadDetail.notFound')}</h2>
-        <Link href={`${localePrefix}/leads`} className="mt-4">
+        <Link href={'/leads'} className="mt-4">
           <Button variant="secondary">{t('leadDetail.back')}</Button>
         </Link>
       </div>
@@ -463,7 +450,7 @@ export default function LeadDetailPage() {
       {/* ── Header ── */}
       <div className="flex items-center gap-4">
         <Link
-          href={`${localePrefix}/leads`}
+          href={'/leads'}
           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           aria-label={t('leadDetail.back')}
         >
@@ -490,7 +477,7 @@ export default function LeadDetailPage() {
           {lead.budget != null && (
             <DetailRow
               label={t('leadDetail.budget')}
-              value={`${lead.budgetCurrency} ${lead.budget.toLocaleString('es-AR')}`}
+              value={`${lead.budgetCurrency} ${formatNumber(lead.budget)}`}
             />
           )}
           <DetailRow label={t('leadDetail.pipeline')} value={lead.pipeline.name} />
@@ -589,7 +576,7 @@ export default function LeadDetailPage() {
                         <Badge variant={VISIT_STATUS_VARIANT[visit.status] || 'neutral'}>
                           {t(`visits.statuses.${visit.status}`)}
                         </Badge>
-                        <span className="text-xs text-[var(--color-muted)]">{formatDateTime(visit.scheduledAt)}</span>
+                        <span className="text-xs text-[var(--color-muted)]">{formatDateTime(visit.scheduledAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       {addr && (
                         <p className="text-xs text-[var(--color-muted)] mt-1 flex items-center gap-1">
@@ -647,7 +634,7 @@ export default function LeadDetailPage() {
                 }
                 title={
                   <span className="inline-flex flex-wrap items-center gap-2">
-                    <span>{formatDateTime(v.scheduledAt)}</span>
+                    <span>{formatDateTime(v.scheduledAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                     <Badge variant={VISIT_STATUS_VARIANT[v.status] || 'neutral'}>{t(`visits.statuses.${v.status}`)}</Badge>
                     {v.outcome && <Badge variant="brand">{t(`visits.outcomes.${v.outcome}`)}</Badge>}
                   </span>

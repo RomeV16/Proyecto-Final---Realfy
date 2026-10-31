@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { portalApiClient } from '@/lib/portal-api-client';
+import { toUtcDay } from '@/lib/format';
 
 /**
  * Everything the tenant portal knows, in one place.
@@ -97,21 +97,6 @@ export interface PortalCategory {
 
 const DAY_MS = 86_400_000;
 
-/**
- * Collapse an API timestamp to a UTC midnight. Periods and due dates are
- * date-only values stored at 00:00Z, so parsing them in the browser's zone
- * would move "1 de agosto" to July 31 for anyone west of Greenwich.
- */
-export function toUtcDay(value?: string | null): number | null {
-  if (!value) return null;
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (match) return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime())
-    ? null
-    : Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate());
-}
-
 /** Today, as the tenant experiences it — their local calendar day. */
 export function todayUtcDay(): number {
   const now = new Date();
@@ -121,52 +106,6 @@ export function todayUtcDay(): number {
 /** Whole days from `from` to `to`. Negative means `to` is in the past. */
 export function daysBetween(from: number, to: number): number {
   return Math.round((to - from) / DAY_MS);
-}
-
-/* ──────────── Formatting ──────────── */
-
-const LOCALE = 'es-AR';
-
-export function formatMoney(value: number | string | null | undefined, currency = 'ARS'): string {
-  const amount = typeof value === 'string' ? Number(value) : (value ?? 0);
-  return new Intl.NumberFormat(LOCALE, {
-    style: 'currency',
-    currency: currency || 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(Number.isFinite(amount) ? amount : 0);
-}
-
-function formatUtc(value: string | null | undefined, options: Intl.DateTimeFormatOptions): string {
-  const day = toUtcDay(value);
-  if (day === null) return '—';
-  return new Intl.DateTimeFormat(LOCALE, { timeZone: 'UTC', ...options }).format(new Date(day));
-}
-
-/** "10/08/2026" */
-export function formatDate(value?: string | null): string {
-  return formatUtc(value, { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-/** "10 ago" */
-export function formatDayMonth(value?: string | null): string {
-  return formatUtc(value, { day: 'numeric', month: 'short' });
-}
-
-/** "Agosto 2026" */
-export function formatPeriod(value?: string | null): string {
-  const label = formatUtc(value, { month: 'long', year: 'numeric' });
-  return label === '—' ? label : label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-/** "ago" — the month chip on an invoice row. */
-export function formatMonthShort(value?: string | null): string {
-  return formatUtc(value, { month: 'short' }).replace('.', '');
-}
-
-/** "26" — the year under the month chip. */
-export function formatYearShort(value?: string | null): string {
-  return formatUtc(value, { year: '2-digit' });
 }
 
 export function addressOf(property: PortalProperty | null | undefined): string | null {
@@ -411,14 +350,16 @@ export interface PortalPaths {
   claims: string;
 }
 
-/** Locale-prefixed portal routes. The invoice route keeps its original name. */
-export function usePortalPaths(): PortalPaths {
-  const pathname = usePathname();
-  const prefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
+/**
+ * Portal routes, without locale: `Link` and `useRouter` from `@/i18n/navigation`
+ * add the prefix. The invoice route keeps its original name.
+ */
+export const PORTAL_PATHS: PortalPaths = {
+  home: '/portal',
+  invoices: '/portal/liquidaciones',
+  claims: '/portal/tickets',
+};
 
-  return {
-    home: `${prefix}/portal`,
-    invoices: `${prefix}/portal/liquidaciones`,
-    claims: `${prefix}/portal/tickets`,
-  };
+export function usePortalPaths(): PortalPaths {
+  return PORTAL_PATHS;
 }

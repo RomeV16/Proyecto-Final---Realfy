@@ -15,8 +15,12 @@ vi.mock('@/lib/api-client', async (importOriginal) => ({
 }));
 vi.mock('@/lib/auth-context', () => ({
   useAuth: () => ({ user: { id: 'u1', role: auth.role } }),
+  useOptionalAuth: () => ({ user: { id: 'u1', role: auth.role } }),
 }));
-vi.mock('next/navigation', () => ({ usePathname: () => '/es/contracts/c-1' }));
+vi.mock('next/navigation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/navigation')>()),
+  usePathname: () => '/es/contracts/c-1',
+}));
 vi.mock('./closure-summary', () => ({ ClosureSummary: () => null }));
 vi.mock('./commission-config', () => ({ CommissionConfig: () => null }));
 vi.mock('./generate-document-modal', () => ({ GenerateDocumentModal: () => null }));

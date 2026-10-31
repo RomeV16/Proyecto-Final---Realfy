@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { PortalLoginRequestSchema } from '@realfy/shared';
 import { usePortalAuth } from '@/lib/portal-auth-context';
 import { PortalApiRequestError } from '@/lib/portal-api-client';
@@ -13,10 +13,7 @@ import { Spinner } from '@/components/ui/spinner';
 export default function PortalLoginPage() {
   const t = useTranslations();
   const router = useRouter();
-  const pathname = usePathname();
   const { login } = usePortalAuth();
-  const localePrefix =
-    pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,7 +33,7 @@ export default function PortalLoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      router.push(`${localePrefix}/portal`);
+      router.push('/portal');
     } catch (err) {
       if (err instanceof PortalApiRequestError) {
         setError(t('portal.auth.login.error'));

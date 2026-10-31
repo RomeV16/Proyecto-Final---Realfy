@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { toast } from '@/lib/toast';
 import { cn } from '@/lib/cn';
+import { formatLocalDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -36,9 +37,6 @@ const FORMATS = ['excel', 'pdf'] as const;
 const SELECT_CLASS =
   'h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text)] focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]';
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' });
-}
 
 /* ──────────── Component ──────────── */
 
@@ -305,7 +303,7 @@ export function ReportSchedulingSection({ reportTypes }: ReportSchedulingSection
             empty={<EmptyState variant="filtered" iconName="calendarClock" title={t('noSchedules')} />}
             renderItem={(schedule) => {
               const nextRunLabel = schedule.nextRunAt
-                ? `${t('nextRun')}: ${formatDate(schedule.nextRunAt)}`
+                ? `${t('nextRun')}: ${formatLocalDate(schedule.nextRunAt, 'mediumPadded')}`
                 : null;
               return (
                 <EntityRow

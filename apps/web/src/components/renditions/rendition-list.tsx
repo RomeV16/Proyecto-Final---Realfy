@@ -2,11 +2,11 @@
 
 import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { RendicionStatus } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Avatar } from '@/components/ui/avatar';
 import { Meter } from '@/components/ui/micro-viz';
+import { formatMoneyFixed } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -83,20 +85,15 @@ function RenditionStatusBadge({ status, onCover }: { status: string; onCover?: b
 
 /* ──────────── Helpers ──────────── */
 
-function formatCurrency(amount: string | number | undefined): string {
-  if (amount == null) return '—';
-  return '$ ' + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 /* ──────────── Card ──────────── */
 
 interface CardProps {
   item: RenditionItem;
-  localePrefix: string;
   onDownloadPdf: (id: string) => void;
 }
 
-function RenditionCard({ item, localePrefix, onDownloadPdf }: CardProps) {
+function RenditionCard({ item, onDownloadPdf }: CardProps) {
   const t = useTranslations('renditions');
   const tCard = useTranslations('renditions.card');
   const tMonths = useTranslations('renditions.months');
@@ -106,7 +103,7 @@ function RenditionCard({ item, localePrefix, onDownloadPdf }: CardProps) {
     ? `${item.owner.firstName} ${item.owner.lastName}`.trim()
     : item.ownerName || null;
   const propertyText = item.contract?.property?.title || tCard('noProperty');
-  const href = `${localePrefix}/renditions/${item.id}`;
+  const href = `/renditions/${item.id}`;
 
   const rentCollected = Number(item.rentCollected || 0);
   const netDeposit = Number(item.netDeposit || 0);
@@ -144,9 +141,9 @@ function RenditionCard({ item, localePrefix, onDownloadPdf }: CardProps) {
           </span>
         </div>
 
-        <EntityCard.Amount value={formatCurrency(netDeposit)} hint={t('summary.netDeposit')} />
+        <EntityCard.Amount value={formatMoneyFixed(netDeposit)} hint={t('summary.netDeposit')} />
 
-        <Meter value={retainedPct} tone="brand" label={t('table.rentCollected')} hint={formatCurrency(rentCollected)} />
+        <Meter value={retainedPct} tone="brand" label={t('table.rentCollected')} hint={formatMoneyFixed(rentCollected)} />
 
         <EntityCard.Meta items={metaItems} />
 
@@ -286,11 +283,8 @@ export function RenditionList() {
   const t = useTranslations('renditions');
   const tMonths = useTranslations('renditions.months');
   const tCommon = useTranslations('common');
-  const { user } = useAuth();
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
-  const canManage = ['Admin', 'Gerente', 'Liquidaciones'].includes(user?.role || '');
+  const canManage = useCan('renditions.manage');
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -324,8 +318,12 @@ export function RenditionList() {
     setFilters((prev) => ({ ...prev, [key]: value, page: key === 'page' ? (value as number) : 1 }));
   }
 
-  function handleDownloadPdf(id: string) {
-    window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/renditions/${id}/pdf`, '_blank');
+  async function handleDownloadPdf(id: string) {
+    try {
+      await downloadFile(`/renditions/${id}/pdf`, `rendicion-${id}.pdf`);
+    } catch {
+      toast.error(tCommon('downloadFailed'));
+    }
   }
 
   const currentYear = new Date().getFullYear();
@@ -409,7 +407,7 @@ export function RenditionList() {
         skeletonCount={6}
         keyOf={(item) => item.id}
         renderItem={(item) => (
-          <RenditionCard item={item} localePrefix={localePrefix} onDownloadPdf={handleDownloadPdf} />
+          <RenditionCard item={item} onDownloadPdf={handleDownloadPdf} />
         )}
         empty={
           hasFilters ? (

@@ -1,8 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useState, type FormEvent } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
@@ -21,9 +20,7 @@ function parseList(raw: string): string[] {
 export default function ProviderCreatePage() {
   const t = useTranslations('providers');
   const tForm = useTranslations('providers.form');
-  const pathname = usePathname();
   const router = useRouter();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -63,7 +60,7 @@ export default function ProviderCreatePage() {
         method: 'POST',
         body: JSON.stringify(body),
       });
-      router.push(`${localePrefix}/providers/${created.id}`);
+      router.push(`/providers/${created.id}`);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : tForm('error'));
       setSubmitting(false);
@@ -75,7 +72,7 @@ export default function ProviderCreatePage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          href={`${localePrefix}/providers`}
+          href={'/providers'}
           className="p-2 rounded-lg text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-sunken)] transition-colors"
           aria-label={t('backToList')}
         >
@@ -224,7 +221,7 @@ export default function ProviderCreatePage() {
                 tForm('submit')
               )}
             </Button>
-            <Link href={`${localePrefix}/providers`}>
+            <Link href={'/providers'}>
               <Button type="button" variant="secondary">
                 Cancelar
               </Button>

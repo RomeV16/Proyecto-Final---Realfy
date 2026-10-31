@@ -5,20 +5,8 @@ import { EntityRow } from '@/components/ui/entity-card';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { Plate } from './portal-primitives';
-import {
-  INVOICE_TONE,
-  addressOf,
-  daysBetween,
-  formatDate,
-  formatMonthShort,
-  formatMoney,
-  formatPeriod,
-  formatYearShort,
-  invoiceState,
-  todayUtcDay,
-  toUtcDay,
-  type PortalInvoice,
-} from './portal-data';
+import { INVOICE_TONE, addressOf, daysBetween, invoiceState, todayUtcDay, type PortalInvoice } from './portal-data';
+import { formatDate, formatMonthShort, formatMoney, formatPeriod, formatYearShort, toUtcDay } from '@/lib/format';
 
 /**
  * One invoice, as the tenant reads it: which month, how much, paid or not, and

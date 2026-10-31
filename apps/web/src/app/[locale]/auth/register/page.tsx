@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { registerSchema } from '@realfy/shared/schemas';
 import { apiClient, setStoredUser, ApiRequestError } from '@/lib/api-client';
 import type { AuthResponse } from '@realfy/shared';
@@ -13,8 +13,6 @@ import { Spinner } from '@/components/ui/spinner';
 export default function RegisterPage() {
   const t = useTranslations();
   const router = useRouter();
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [form, setForm] = useState({
     firstName: '',
@@ -87,7 +85,7 @@ export default function RegisterPage() {
       localStorage.setItem('user', JSON.stringify(res.user));
 
       // Redirect to onboarding (future) or dashboard
-      router.push(`${localePrefix}`);
+      router.push('/');
     } catch (err) {
       if (err instanceof ApiRequestError) {
         if (err.errorCode === 'EMAIL_EXISTS') {
@@ -179,7 +177,7 @@ export default function RegisterPage() {
 
       <p className="mt-8 text-sm text-[var(--color-muted)]">
         <a
-          href={`${localePrefix}/auth/login`}
+          href={'/auth/login'}
           className="link-underline font-medium text-[var(--color-text)]"
         >
           {t('auth.register.loginLink')}

@@ -15,6 +15,7 @@ import { ListTransition, type ListState } from '@/components/ui/motion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import type { KanbanLead } from './kanban-card';
+import { formatMoney } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -60,8 +61,7 @@ function stageValueLabel(leadIds: string[], leadMap: Map<string, KanbanLead>): s
     sums[currency] = (sums[currency] || 0) + n;
   }
   const parts = Object.entries(sums).map(([currency, total]) => {
-    const symbol = currency === 'USD' ? 'US$' : '$';
-    return `${symbol} ${total.toLocaleString('es-AR')}`;
+    return formatMoney(total, currency);
   });
   return parts.length ? parts.join(' + ') : null;
 }

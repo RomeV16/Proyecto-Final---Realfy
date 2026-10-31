@@ -1,8 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
@@ -36,10 +35,10 @@ interface ListResponse {
 
 /* ──────────── Row ──────────── */
 
-function ProviderRow({ provider, localePrefix }: { provider: ProviderItem; localePrefix: string }) {
+function ProviderRow({ provider }: { provider: ProviderItem }) {
   const t = useTranslations('providers');
   const fullName = `${provider.firstName} ${provider.lastName}`;
-  const href = `${localePrefix}/providers/${provider.id}`;
+  const href = `/providers/${provider.id}`;
   const profile = provider.providerProfile;
   const isInactive = Boolean(profile && !profile.isActive);
   const rubros = profile?.rubros || [];
@@ -108,8 +107,6 @@ function ProviderRow({ provider, localePrefix }: { provider: ProviderItem; local
 export default function ProviderListPage() {
   const t = useTranslations('providers');
   const tCommon = useTranslations('common');
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [items, setItems] = useState<ProviderItem[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -162,7 +159,7 @@ export default function ProviderListPage() {
           <h1 className="h1">{t('title')}</h1>
           <p className="mt-2 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
-        <Link href={`${localePrefix}/providers/new`} className="shrink-0">
+        <Link href={'/providers/new'} className="shrink-0">
           <Button variant="primary">
             <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
             {t('newProvider')}
@@ -207,7 +204,7 @@ export default function ProviderListPage() {
         busy={loading && loaded}
         skeletonCount={5}
         keyOf={(provider) => provider.id}
-        renderItem={(provider) => <ProviderRow provider={provider} localePrefix={localePrefix} />}
+        renderItem={(provider) => <ProviderRow provider={provider} />}
         empty={
           hasFilters ? (
             <EmptyState
@@ -228,7 +225,7 @@ export default function ProviderListPage() {
               subtitle={t('empty.subtitle')}
               steps={[t('empty.step1'), t('empty.step2'), t('empty.step3')]}
               action={
-                <Link href={`${localePrefix}/providers/new`}>
+                <Link href={'/providers/new'}>
                   <Button variant="primary">
                     <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
                     {t('newProvider')}

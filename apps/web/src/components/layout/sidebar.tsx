@@ -1,10 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link, usePathname } from '@/i18n/navigation';
 import { Icon } from '@/components/ui/icon';
-import { navItems } from './nav-items';
+import { useVisibleNavItems } from './nav-items';
 import {
   RAIL_ASIDE_CLASS,
   RAIL_NAV_CLASS,
@@ -28,21 +27,21 @@ interface SidebarProps {
 
 interface IconRailProps {
   isActive: (href: string) => boolean;
-  localePrefix: string;
   t: (key: string) => string;
 }
 
-function IconRail({ isActive, localePrefix, t }: IconRailProps) {
+function IconRail({ isActive, t }: IconRailProps) {
+  const items = useVisibleNavItems();
   return (
     <aside aria-label="Navigation rail" className={RAIL_ASIDE_CLASS}>
       <RailBrand />
       <nav className={RAIL_NAV_CLASS} aria-label="Main navigation">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const label = t(item.key);
           return (
             <div key={item.key} className="relative group">
               <Link
-                href={`${localePrefix}${item.href}`}
+                href={item.href}
                 aria-label={label}
                 title={label}
                 className={railItemClass(isActive(item.href))}
@@ -71,19 +70,16 @@ function IconRail({ isActive, localePrefix, t }: IconRailProps) {
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const t = useTranslations('nav');
   const pathname = usePathname();
-
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
+  const items = useVisibleNavItems();
 
   const isActive = (href: string) => {
-    const fullPath = `${localePrefix}${href}`;
-    return pathname === fullPath || pathname.startsWith(`${fullPath}/`);
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   return (
     <>
       <IconRail
         isActive={isActive}
-        localePrefix={localePrefix}
         t={t as unknown as (key: string) => string}
       />
 
@@ -96,12 +92,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
         <nav className={SIDEBAR_NAV_CLASS}>
           {!collapsed && <SidebarSectionLabel />}
-          {navItems.map((item) => {
+          {items.map((item) => {
             const active = isActive(item.href);
             return (
               <Link
                 key={item.key}
-                href={`${localePrefix}${item.href}`}
+                href={item.href}
                 aria-label={collapsed ? t(item.key) : undefined}
                 className={sidebarItemClass(active, collapsed)}
                 title={collapsed ? t(item.key) : undefined}

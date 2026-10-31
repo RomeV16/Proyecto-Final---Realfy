@@ -1,10 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import type { EmitResult } from '@/lib/schemas/invoices';
+import { formatMoneyFixed, formatLocalDate } from '@/lib/format';
 
 function generateId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -16,8 +17,6 @@ function generateId(): string {
 }
 
 function toAFIPDate(iso: string): string { return iso.replace(/-/g, ''); }
-function fmt(n: number) { return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-function formatDate(iso: string) { try { return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'short', day: 'numeric' }); } catch { return iso; } }
 
 /* ── Types ── */
 
@@ -122,9 +121,7 @@ export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
         body: JSON.stringify(payload),
       });
 
-      const pathname = window.location.pathname;
-      const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
-      router.push(`${localePrefix}/invoices/${res.id}`);
+      router.push(`/invoices/${res.id}`);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : t('emitError'));
     } finally {
@@ -171,11 +168,11 @@ export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
           <p className="text-sm font-semibold text-slate-900">
             {String(original.puntoDeVenta).padStart(4, '0')}-{String(original.numero).padStart(8, '0')}
           </p>
-          <p className="text-sm font-semibold text-slate-900">{fmt(original.impTotal)}</p>
+          <p className="text-sm font-semibold text-slate-900">{formatMoneyFixed(original.impTotal)}</p>
         </div>
         <div className="flex items-center justify-between text-xs text-slate-500">
           <span>{original.receptorName}</span>
-          <span>{formatDate(original.emittedAt)}</span>
+          <span>{formatLocalDate(original.emittedAt, 'medium')}</span>
         </div>
       </div>
 
@@ -216,7 +213,7 @@ export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
           />
           <p className="text-xs text-slate-400 mt-1">
-            {t('amountHint', { max: fmt(original.impTotal) })}
+            {t('amountHint', { max: formatMoneyFixed(original.impTotal) })}
           </p>
         </div>
 

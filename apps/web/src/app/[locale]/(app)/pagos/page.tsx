@@ -8,6 +8,7 @@ import { RowList } from '@/components/ui/card-grid';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatTile, StatTileSkeleton } from '@/components/ui/stat-tile';
 import { Icon } from '@/components/ui/icon';
+import { formatMoneyRounded, formatLocalDate, formatPeriod } from '@/lib/format';
 
 interface Payment {
   id: string;
@@ -22,14 +23,7 @@ interface Debt {
   vencida: { count: number; monto: number };
 }
 
-const money = (n: number | string) =>
-  '$' + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 0 });
 
-const periodLabel = (iso?: string) => {
-  if (!iso) return '—';
-  const s = new Date(iso).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
-  return s.charAt(0).toUpperCase() + s.slice(1);
-};
 
 const METHOD_LABELS: Record<string, string> = {
   Transferencia: 'Transferencia bancaria',
@@ -75,21 +69,21 @@ export default function PagosPage() {
           <>
             <StatTile
               label={t('pendingDebt')}
-              value={money(debt?.pendiente.monto ?? 0)}
+              value={formatMoneyRounded(debt?.pendiente.monto ?? 0)}
               icon="clock"
               tone="warning"
               hint={`${debt?.pendiente.count ?? 0} ${t('settlements')}`}
             />
             <StatTile
               label={t('overdueDebt')}
-              value={money(debt?.vencida.monto ?? 0)}
+              value={formatMoneyRounded(debt?.vencida.monto ?? 0)}
               icon="alert"
               tone="danger"
               hint={`${debt?.vencida.count ?? 0} ${t('settlements')}`}
             />
             <StatTile
               label={t('collected')}
-              value={money(totalCollected)}
+              value={formatMoneyRounded(totalCollected)}
               icon="wallet"
               tone="success"
               hint={t('collectedHint', { count: payments?.length ?? 0 })}
@@ -121,23 +115,19 @@ export default function PagosPage() {
                   <Icon name="check" className="h-5 w-5" strokeWidth={2} />
                 </span>
               }
-              title={periodLabel(p.liquidacion?.period)}
+              title={formatPeriod(p.liquidacion?.period)}
               subtitle={METHOD_LABELS[p.method] ?? p.method}
               meta={
                 <EntityRow.Meta
                   items={[
                     {
                       icon: 'calendar',
-                      label: new Date(p.paidAt).toLocaleDateString('es-AR', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                      }),
+                      label: formatLocalDate(p.paidAt, 'mediumPadded'),
                     },
                   ]}
                 />
               }
-              trailing={<EntityRow.Amount value={money(p.amount)} hint={p.currency} tone="success" />}
+              trailing={<EntityRow.Amount value={formatMoneyRounded(p.amount)} hint={p.currency} tone="success" />}
             />
           )}
           empty={

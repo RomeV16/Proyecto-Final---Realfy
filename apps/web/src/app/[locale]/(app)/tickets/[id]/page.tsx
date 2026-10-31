@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname, useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { Link } from '@/i18n/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Reveal } from '@/components/ui/reveal';
 import { Spinner } from '@/components/ui/spinner';
+import { formatDateTime } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -104,23 +106,12 @@ function priorityVariant(priority: string): 'danger' | 'warning' | 'info' | 'neu
   }
 }
 
-function formatDate(iso?: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function partyName(p?: Party | null): string {
   if (!p) return '—';
   return `${p.firstName} ${p.lastName}`;
 }
 
-const CAN_MANAGE_ROLES = ['Admin', 'Gerente', 'Soporte'];
 
 /* ──────────── Detail Row ──────────── */
 
@@ -137,13 +128,11 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 export default function TicketDetailPage() {
   const t = useTranslations('tickets');
-  const pathname = usePathname();
   const params = useParams();
   const { user } = useAuth();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const ticketId = params.id as string;
 
-  const canManage = CAN_MANAGE_ROLES.includes(user?.role || '');
+  const canManage = useCan('tickets.manage');
 
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -307,7 +296,7 @@ export default function TicketDetailPage() {
           </svg>
         </div>
         <h2 className="h3">{t('empty.detail')}</h2>
-        <Link href={`${localePrefix}/tickets`} className="mt-4">
+        <Link href={'/tickets'} className="mt-4">
           <Button variant="secondary">{t('backToList')}</Button>
         </Link>
       </div>
@@ -323,7 +312,7 @@ export default function TicketDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          href={`${localePrefix}/tickets`}
+          href={'/tickets'}
           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           aria-label={t('backToList')}
         >
@@ -367,9 +356,9 @@ export default function TicketDetailPage() {
             />
             <DetailRow
               label="Fecha límite"
-              value={ticket.slaDeadline ? formatDate(ticket.slaDeadline) : '—'}
+              value={ticket.slaDeadline ? formatDateTime(ticket.slaDeadline, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
             />
-            <DetailRow label={t('detail.createdAt')} value={formatDate(ticket.createdAt)} />
+            <DetailRow label={t('detail.createdAt')} value={formatDateTime(ticket.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} />
           </div>
         </div>
       </Reveal>
@@ -540,7 +529,7 @@ export default function TicketDetailPage() {
                       <span className="text-sm font-medium text-[var(--color-text)]">
                         {partyName(c.user || c.person)}
                       </span>
-                      <span className="micro text-[var(--color-muted)]">{formatDate(c.createdAt)}</span>
+                      <span className="micro text-[var(--color-muted)]">{formatDateTime(c.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <p className="text-sm text-[var(--color-text)] mt-0.5 whitespace-pre-wrap">{c.content}</p>
                     {c.attachments && c.attachments.length > 0 && (

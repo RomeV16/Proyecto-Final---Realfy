@@ -16,7 +16,8 @@ vi.mock('@/lib/api-client', async (importOriginal) => ({
   apiClient: (...args: unknown[]) => apiClient(...args),
 }));
 vi.mock('@/lib/toast', () => ({ toast }));
-vi.mock('@/lib/auth-context', () => ({ useAuth: () => ({ user: { role: auth.role } }) }));
+vi.mock('@/lib/auth-context', () => ({ useAuth: () => ({ user: { role: auth.role } }),
+  useOptionalAuth: () => ({ user: { role: auth.role } }) }));
 
 import { ApiRequestError } from '@/lib/api-client';
 import { IndexDataSettings } from './index-data-settings';

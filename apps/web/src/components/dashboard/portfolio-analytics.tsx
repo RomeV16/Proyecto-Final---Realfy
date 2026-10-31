@@ -18,6 +18,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from 'recharts';
+import { formatMoneyCompact, formatMoneyRounded, formatDate } from '@/lib/format';
 
 /* ──────────────── Types ──────────────── */
 
@@ -40,26 +41,8 @@ const TOP_PROPERTIES = 6;
 /* ──────────────── Formatting ──────────────── */
 
 /** '2026-08' → 'ago 26' */
-function monthLabel(period: string): string {
-  const [year, month] = period.split('-');
-  const date = new Date(Number(year), Number(month) - 1, 1);
-  return date
-    .toLocaleDateString('es-AR', { month: 'short', year: '2-digit' })
-    .replace('.', '');
-}
 
-const fmtCurrency = (n: number) =>
-  new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    maximumFractionDigits: 0,
-  }).format(n);
 
-const fmtCompact = (n: number) => {
-  if (Math.abs(n) >= 1_000_000) return `$${(n / 1_000_000).toFixed(1).replace('.', ',')}M`;
-  if (Math.abs(n) >= 1_000) return `$${Math.round(n / 1000)}K`;
-  return `$${n}`;
-};
 
 /** Las etiquetas de propiedad son direcciones: se cortan para no comerse el eje. */
 const shortLabel = (label: string) => (label.length > 22 ? `${label.slice(0, 21)}…` : label);
@@ -147,7 +130,7 @@ export function PortfolioAnalytics() {
 
   const occupancyData = occupancy.map((point) => ({
     ...point,
-    label: monthLabel(point.month),
+    label: formatDate(`${point.month}-01`, { month: 'short', year: '2-digit' }).replace('.', ''),
   }));
 
   const topProperties = profitability.slice(0, TOP_PROPERTIES).map((row) => ({
@@ -243,7 +226,7 @@ export function PortfolioAnalytics() {
                 />
                 <XAxis
                   type="number"
-                  tickFormatter={fmtCompact}
+                  tickFormatter={(value: number) => formatMoneyCompact(value)}
                   tick={{ fontSize: 12, fill: 'var(--color-muted)' }}
                   axisLine={false}
                   tickLine={false}
@@ -258,7 +241,7 @@ export function PortfolioAnalytics() {
                 />
                 <Tooltip
                   formatter={(value, name) => [
-                    fmtCurrency(Number(value)),
+                    formatMoneyRounded(Number(value)),
                     name === 'revenue' ? t('revenue') : t('expenses'),
                   ]}
                   contentStyle={TOOLTIP_STYLE}

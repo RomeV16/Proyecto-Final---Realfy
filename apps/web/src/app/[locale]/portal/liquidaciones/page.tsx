@@ -2,19 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { getPortalAccessToken } from '@/lib/portal-api-client';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { RowList } from '@/components/ui/card-grid';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InvoiceRow } from '@/components/portal/invoice-row';
-import {
-  INVOICE_PAGE_SIZE,
-  buildOverview,
-  formatMoney,
-  usePortalInvoices,
-  type PortalInvoice,
-} from '@/components/portal/portal-data';
+import { INVOICE_PAGE_SIZE, buildOverview, usePortalInvoices, type PortalInvoice } from '@/components/portal/portal-data';
+import { formatMoney } from '@/lib/format';
 
 /**
  * Invoices.
@@ -26,8 +22,6 @@ import {
  * the only per-row action, because it is the document that carries the payment
  * details the tenant actually needs.
  */
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 export default function PortalInvoicesPage() {
   const t = useTranslations();
@@ -48,22 +42,9 @@ export default function PortalInvoicesPage() {
   const handleDownload = async (invoice: PortalInvoice) => {
     setDownloadingId(invoice.id);
     try {
-      const token = getPortalAccessToken();
-      const res = await fetch(`${API_BASE_URL}/portal/liquidaciones/${invoice.id}/pdf`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
-      if (!res.ok) throw new Error('download failed');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `factura-${invoice.id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      await downloadFile(`/portal/liquidaciones/${invoice.id}/pdf`, `factura-${invoice.id}.pdf`, { portal: true });
     } catch {
-      // Silent failure — user can retry.
+      toast.error(t('common.downloadFailed'));
     } finally {
       setDownloadingId(null);
     }

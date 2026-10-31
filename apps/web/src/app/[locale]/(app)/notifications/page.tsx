@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { RowList } from '@/components/ui/card-grid';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { apiClient } from '@/lib/api-client';
+import { formatDateTime } from '@/lib/format';
 
 interface Notification {
   id: string;
@@ -28,15 +28,6 @@ interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 /**
  * Notification kind → icon, tone and accent. The type strings come from the
@@ -56,8 +47,6 @@ function kindOf(type: string): {
 }
 
 export default function NotificationsPage() {
-  const pathname = usePathname();
-  const lp = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
@@ -90,11 +79,11 @@ export default function NotificationsPage() {
   const entityHref = (n: Notification): string | undefined => {
     if (!n.entityId) return undefined;
     const kind = (n.entityType || '').toLowerCase();
-    if (kind.includes('ticket')) return `${lp}/tickets/${n.entityId}`;
-    if (kind.includes('liquidacion')) return `${lp}/liquidaciones`;
-    if (kind.includes('contract') || kind.includes('contrato')) return `${lp}/contracts/${n.entityId}`;
-    if (kind.includes('propert') || kind.includes('propiedad')) return `${lp}/properties/${n.entityId}`;
-    if (kind.includes('person') || kind.includes('persona')) return `${lp}/persons/${n.entityId}`;
+    if (kind.includes('ticket')) return `/tickets/${n.entityId}`;
+    if (kind.includes('liquidacion')) return '/liquidaciones';
+    if (kind.includes('contract') || kind.includes('contrato')) return `/contracts/${n.entityId}`;
+    if (kind.includes('propert') || kind.includes('propiedad')) return `/properties/${n.entityId}`;
+    if (kind.includes('person') || kind.includes('persona')) return `/persons/${n.entityId}`;
     return undefined;
   };
 
@@ -153,7 +142,7 @@ export default function NotificationsPage() {
                 </span>
               }
               subtitle={n.message}
-              meta={<EntityRow.Meta items={[{ icon: 'clock', label: formatDate(n.createdAt) }]} />}
+              meta={<EntityRow.Meta items={[{ icon: 'clock', label: formatDateTime(n.createdAt, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }]} />}
               actions={
                 <>
                   {!n.isRead && (

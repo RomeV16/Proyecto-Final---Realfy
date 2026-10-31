@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, usePathname } from '@/i18n/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { PortalAuthProvider, usePortalAuth } from '@/lib/portal-auth-context';
 import { Icon, type IconName } from '@/components/ui/icon';
@@ -18,11 +17,6 @@ function makeQueryClient() {
       },
     },
   });
-}
-
-function useLocalePrefix() {
-  const pathname = usePathname();
-  return pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 }
 
 function PortalHeader() {
@@ -58,19 +52,18 @@ function PortalHeader() {
 function PortalNav() {
   const t = useTranslations();
   const pathname = usePathname();
-  const prefix = useLocalePrefix();
 
   const items: { href: string; label: string; icon: IconName; exact: boolean }[] = [
-    { href: `${prefix}/portal`, label: t('portal.nav.home'), icon: 'dashboard', exact: true },
+    { href: '/portal', label: t('portal.nav.home'), icon: 'dashboard', exact: true },
     {
       // The route keeps the API's name; the label is the tenant's.
-      href: `${prefix}/portal/liquidaciones`,
+      href: '/portal/liquidaciones',
       label: t('portal.nav.invoices'),
       icon: 'invoices',
       exact: false,
     },
     {
-      href: `${prefix}/portal/tickets`,
+      href: '/portal/tickets',
       label: t('portal.nav.claims'),
       icon: 'tickets',
       exact: false,

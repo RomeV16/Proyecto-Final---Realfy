@@ -12,12 +12,13 @@ import {
   getValidLiquidacionTransitions,
 } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { LiquidacionStatusBadge } from './liquidacion-status-badge';
 import { PaymentForm } from './payment-form';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { Icon } from '@/components/ui/icon';
+import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -65,18 +66,7 @@ interface LiquidacionDetailProps {
 
 /* ──────────── Helpers ──────────── */
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' });
-  } catch {
-    return iso;
-  }
-}
 
-function formatCurrency(amount: string | number | undefined | null): string {
-  if (amount == null) return '—';
-  return '$ ' + Number(amount).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 const LINE_ITEM_ICONS: Record<string, string> = {
   [LineItemType.Alquiler]: '🏠',
@@ -107,8 +97,6 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const tCommon = useTranslations('common');
   const confirm = useConfirm();
   const { user } = useAuth();
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<LiquidacionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,8 +111,8 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const [liDescription, setLiDescription] = useState('');
   const [liAmount, setLiAmount] = useState('');
 
-  const canAct = ['Admin', 'Gerente', 'Ventas', 'Liquidaciones'].includes(user?.role || '');
-  const readOnly = ['Lectura', 'Soporte', 'Marketing'].includes(user?.role || '');
+  const canAct = useCan('liquidaciones.act');
+  const readOnly = !!user && !canAct;
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -244,7 +232,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <h2 className="text-lg font-semibold text-slate-900">{tErrors('notFound')}</h2>
-        <Link href={`${localePrefix}/liquidaciones`} className="mt-4 text-sm text-brand-600 hover:text-brand-700">
+        <Link href={'/liquidaciones'} className="mt-4 text-sm text-brand-600 hover:text-brand-700">
           {'\u2190'} {tCommon('back')}
         </Link>
       </div>
@@ -260,7 +248,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Back link */}
-      <Link href={`${localePrefix}/liquidaciones`} className="text-sm text-brand-600 hover:text-brand-700">
+      <Link href={'/liquidaciones'} className="text-sm text-brand-600 hover:text-brand-700">
         {'\u2190'} {tCommon('back')}
       </Link>
 
@@ -279,13 +267,13 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
               </p>
             )}
             {data.dueDate && (
-              <p className="text-xs text-slate-400">{tDetail('dueDate')}: {formatDate(data.dueDate)}</p>
+              <p className="text-xs text-slate-400">{tDetail('dueDate')}: {formatDate(data.dueDate, 'long')}</p>
             )}
           </div>
 
           <div className="text-right space-y-2">
             <p className="text-xs text-slate-500">{tTotals('total')}</p>
-            <p className="text-2xl font-bold text-slate-900 tabular-nums">{formatCurrency(totalAmount)}</p>
+            <p className="text-2xl font-bold text-slate-900 tabular-nums">{formatMoneyFixed(totalAmount)}</p>
           </div>
         </div>
 
@@ -325,7 +313,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
                 <p className="text-sm text-slate-600">{data.contract.property.title}</p>
               )}
             </div>
-            <Link href={`${localePrefix}/contracts/${data.contract.id}`}
+            <Link href={`/contracts/${data.contract.id}`}
               className="text-sm text-brand-600 hover:text-brand-700"
             >
               {tDetail('viewContract')} {'\u2192'}
@@ -381,7 +369,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
                   }
                   trailing={
                     <EntityRow.Amount
-                      value={`${isDiscount ? '- ' : ''}${formatCurrency(li.amount)}`}
+                      value={`${isDiscount ? '- ' : ''}${formatMoneyFixed(li.amount)}`}
                       tone={isDiscount ? 'danger' : 'default'}
                     />
                   }
@@ -419,17 +407,17 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
           <div className="mt-4 pt-4 border-t border-slate-100 space-y-1.5">
             <div className="flex justify-between text-sm text-slate-500">
               <span>{tTotals('subtotal')}</span>
-              <span className="tabular-nums">{formatCurrency(subtotal)}</span>
+              <span className="tabular-nums">{formatMoneyFixed(subtotal)}</span>
             </div>
             {discounts > 0 && (
               <div className="flex justify-between text-sm text-red-500">
                 <span>{tTotals('discounts')}</span>
-                <span className="tabular-nums">- {formatCurrency(discounts)}</span>
+                <span className="tabular-nums">- {formatMoneyFixed(discounts)}</span>
               </div>
             )}
             <div className="flex justify-between text-base font-bold text-slate-900 pt-1 border-t border-slate-100">
               <span>{tTotals('total')}</span>
-              <span className="tabular-nums">{formatCurrency(totalAmount)}</span>
+              <span className="tabular-nums">{formatMoneyFixed(totalAmount)}</span>
             </div>
           </div>
         )}
@@ -544,8 +532,8 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
                 }
                 title={tMethods(p.method)}
                 subtitle={p.reference || undefined}
-                meta={<EntityRow.Meta items={[{ icon: 'calendar', label: formatDate(p.paidAt) }]} />}
-                trailing={<EntityRow.Amount value={formatCurrency(p.amount)} tone="success" />}
+                meta={<EntityRow.Meta items={[{ icon: 'calendar', label: formatLocalDate(p.paidAt, 'long') }]} />}
+                trailing={<EntityRow.Amount value={formatMoneyFixed(p.amount)} tone="success" />}
               />
             ))}
           </div>
@@ -555,7 +543,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
           <span className="text-sm font-medium text-slate-600">{tPayments('remainingBalance')}</span>
           <span className={`text-lg font-bold tabular-nums ${remainingBalance <= 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
-            {remainingBalance <= 0 ? tPayments('fullyPaid') : formatCurrency(remainingBalance)}
+            {remainingBalance <= 0 ? tPayments('fullyPaid') : formatMoneyFixed(remainingBalance)}
           </span>
         </div>
       </div>
@@ -576,8 +564,8 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
 
       {/* Metadata */}
       <div className="text-xs text-slate-400 flex gap-4">
-        <span>{tDetail('createdAt')}: {formatDate(data.createdAt)}</span>
-        <span>{tDetail('updatedAt')}: {formatDate(data.updatedAt)}</span>
+        <span>{tDetail('createdAt')}: {formatLocalDate(data.createdAt, 'long')}</span>
+        <span>{tDetail('updatedAt')}: {formatLocalDate(data.updatedAt, 'long')}</span>
       </div>
     </div>
   );

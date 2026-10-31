@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import type { ParamCacheItem } from '@/lib/schemas/invoices';
+import { formatMoneyFixed } from '@/lib/format';
 
 export interface LineItem {
   descripcion: string;
@@ -49,9 +50,6 @@ function calcLine(item: LineItem): { subtotal: number; iva: number; total: numbe
   return { subtotal, iva, total: subtotal + iva };
 }
 
-function fmt(n: number): string {
-  return '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
 
 interface Props {
   value: StepItemsData;
@@ -208,9 +206,9 @@ export function StepItems({ value, onChange, onNext, onBack, alicuotaOptions }: 
 
               {/* Line summary */}
               <div className="flex justify-end gap-4 text-xs text-slate-500 pt-1 border-t border-slate-100">
-                <span>{t('subtotal')}: <strong className="text-slate-700 tabular-nums">{fmt(subtotal)}</strong></span>
-                <span>{t('iva')}: <strong className="text-slate-700 tabular-nums">{fmt(iva)}</strong></span>
-                <span>{t('total')}: <strong className="text-slate-900 tabular-nums">{fmt(total)}</strong></span>
+                <span>{t('subtotal')}: <strong className="text-slate-700 tabular-nums">{formatMoneyFixed(subtotal)}</strong></span>
+                <span>{t('iva')}: <strong className="text-slate-700 tabular-nums">{formatMoneyFixed(iva)}</strong></span>
+                <span>{t('total')}: <strong className="text-slate-900 tabular-nums">{formatMoneyFixed(total)}</strong></span>
               </div>
             </div>
           );
@@ -229,15 +227,15 @@ export function StepItems({ value, onChange, onNext, onBack, alicuotaOptions }: 
       <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-slate-600">{t('impNeto')}</span>
-          <span className="font-mono tabular-nums text-slate-900">{fmt(computed.impNeto)}</span>
+          <span className="font-mono tabular-nums text-slate-900">{formatMoneyFixed(computed.impNeto)}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-slate-600">{t('impIva')}</span>
-          <span className="font-mono tabular-nums text-slate-900">{fmt(computed.impIva)}</span>
+          <span className="font-mono tabular-nums text-slate-900">{formatMoneyFixed(computed.impIva)}</span>
         </div>
         <div className="flex justify-between text-base font-semibold border-t border-slate-200 pt-2 mt-2">
           <span className="text-slate-900">{t('impTotal')}</span>
-          <span className="font-mono tabular-nums text-slate-900">{fmt(computed.impTotal)}</span>
+          <span className="font-mono tabular-nums text-slate-900">{formatMoneyFixed(computed.impTotal)}</span>
         </div>
       </div>
 

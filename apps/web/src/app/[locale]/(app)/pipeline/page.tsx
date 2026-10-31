@@ -1,16 +1,14 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth-context';
+import { useCan } from '@/lib/permissions';
 import { KanbanBoard } from '@/components/kanban/kanban-board';
-
-const ALLOWED_ROLES = ['Admin', 'Gerente', 'Ventas'];
 
 export default function PipelinePage() {
   const t = useTranslations('kanban');
-  const { user } = useAuth();
+  const allowed = useCan('pipeline.access');
 
-  if (!ALLOWED_ROLES.includes(user?.role || '')) {
+  if (!allowed) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-sm text-slate-500">{t('rbac.noAccess')}</p>

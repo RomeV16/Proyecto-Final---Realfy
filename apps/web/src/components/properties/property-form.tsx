@@ -14,6 +14,7 @@ import { propertyFormSchema } from '@realfy/shared/schemas';
 import { useState, type FormEvent } from 'react';
 import { PropertyStateBadge } from './property-state-badge';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { formatMoney, formatLocalDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -569,7 +570,7 @@ export function PropertyForm({
                       <PropertyStateBadge state={op.state} />
                       {op.price && (
                         <span className="text-sm text-slate-600 tabular-nums">
-                          {op.currency === 'USD' ? 'US$' : '$'} {Number(op.price).toLocaleString('es-AR')}
+                          {formatMoney(op.price, op.currency)}
                         </span>
                       )}
                     </div>
@@ -662,14 +663,10 @@ export function PropertyForm({
             {(form.priceHistory || []).map((ph) => (
               <div key={ph.id} className="flex items-center justify-between text-sm py-2 border-b border-slate-50 last:border-0">
                 <span className="font-medium text-slate-900 tabular-nums">
-                  {ph.currency === 'USD' ? 'US$' : '$'} {Number(ph.price).toLocaleString('es-AR')}
+                  {formatMoney(ph.price, ph.currency)}
                 </span>
                 <span className="text-xs text-slate-500">
-                  {new Date(ph.changedAt).toLocaleDateString('es-AR', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                  })}
+                  {formatLocalDate(ph.changedAt, 'numeric')}
                 </span>
               </div>
             ))}

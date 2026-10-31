@@ -1,9 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname, useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
-import { useAuth } from '@/lib/auth-context';
+import { useParams } from 'next/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import {
   PropertyOperationType,
@@ -34,6 +33,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
+import { formatMoney, formatLocalDate } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -112,18 +113,7 @@ interface PropertyPersonRole {
 
 /* ──────────── Helpers ──────────── */
 
-function formatPrice(price: string | number, currency?: string): string {
-  const symbol = currency === 'USD' ? 'US$' : '$';
-  return `${symbol} ${Number(price).toLocaleString('es-AR')}`;
-}
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
 
 function toFormData(detail: PropertyDetail): PropertyData {
   return {
@@ -214,9 +204,6 @@ function DetailView({
 }) {
   const t = useTranslations('properties');
   const tCommon = useTranslations('common');
-  const pathname = usePathname();
-  const localePrefix =
-    pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [transitionLoading, setTransitionLoading] = useState<string | null>(null);
   const [operations, setOperations] = useState(property.operations || []);
@@ -282,8 +269,8 @@ function DetailView({
       value: `${property.latitude.toFixed(5)}, ${property.longitude.toFixed(5)}`,
     });
   }
-  facts.push({ label: t('detail.createdAt'), value: formatDate(property.createdAt) });
-  facts.push({ label: t('detail.updatedAt'), value: formatDate(property.updatedAt) });
+  facts.push({ label: t('detail.createdAt'), value: formatLocalDate(property.createdAt, 'mediumPadded') });
+  facts.push({ label: t('detail.updatedAt'), value: formatLocalDate(property.updatedAt, 'mediumPadded') });
 
   return (
     <div className="space-y-5">
@@ -319,7 +306,7 @@ function DetailView({
           <DetailSection>
             <p className="micro">{t('form.price')}</p>
             <p className="font-display mt-1 text-2xl font-medium tabular-nums tracking-[var(--tracking-tight)] text-[var(--color-text)] [overflow-wrap:anywhere] sm:text-3xl">
-              {headlinePrice ? formatPrice(headlinePrice, headlineCurrency) : t('card.noPrice')}
+              {headlinePrice ? formatMoney(headlinePrice, headlineCurrency) : t('card.noPrice')}
             </p>
             {headlinePrice != null && (
               <p className="mt-1 text-xs text-[var(--color-muted)]">
@@ -379,9 +366,9 @@ function DetailView({
                       </div>
                       <p className="font-display mt-1 text-base font-medium tabular-nums text-[var(--color-text)] [overflow-wrap:anywhere]">
                         {op.price
-                          ? formatPrice(op.price, op.currency)
+                          ? formatMoney(op.price, op.currency)
                           : property.price
-                            ? formatPrice(property.price, property.currency)
+                            ? formatMoney(property.price, property.currency)
                             : t('card.noPrice')}
                       </p>
 
@@ -518,7 +505,7 @@ function DetailView({
               <div className="space-y-3">
                 {personRoles.map((pr) => {
                   const fullName = `${pr.person.firstName} ${pr.person.lastName}`;
-                  const href = `${localePrefix}/persons/${pr.person.id}`;
+                  const href = `/persons/${pr.person.id}`;
                   return (
                     <EntityRow
                       key={pr.id}
@@ -603,13 +590,10 @@ function DetailSkeleton() {
 export default function PropertyDetailPage() {
   const t = useTranslations('properties');
   const tCommon = useTranslations('common');
-  const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
-  const { user } = useAuth();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const propertyId = params.id as string;
-  const listHref = `${localePrefix}/properties`;
+  const listHref = '/properties';
 
   const [property, setProperty] = useState<PropertyDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -618,8 +602,8 @@ export default function PropertyDetailPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const canEdit = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
-  const canDelete = ['Admin', 'Gerente'].includes(user?.role || '');
+  const canEdit = useCan('properties.manage');
+  const canDelete = useCan('properties.delete');
 
   const loadProperty = useCallback(async () => {
     try {

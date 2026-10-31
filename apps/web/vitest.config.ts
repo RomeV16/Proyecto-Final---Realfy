@@ -16,6 +16,8 @@ export default defineConfig({
     pool: 'forks',
     poolOptions: { forks: { singleFork: true } },
     env: { TZ: 'UTC' },
+    // next-intl/navigation importa `next/navigation` sin extensión: Vite tiene que resolverlo.
+    server: { deps: { inline: [/next-intl/] } },
     coverage: {
       provider: 'v8',
       // Todo el código de la web entra al informe: Sonar mide la cobertura del código nuevo en cualquier archivo.

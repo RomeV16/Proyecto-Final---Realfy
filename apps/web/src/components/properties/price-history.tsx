@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Icon } from '@/components/ui/icon';
 import { Sparkline, TrendDelta } from '@/components/ui/micro-viz';
+import { formatMoney, formatLocalDate } from '@/lib/format';
 
 /* ──────────── Types ──────────── */
 
@@ -20,10 +21,6 @@ interface PriceHistoryProps {
 
 /* ──────────── Helpers ──────────── */
 
-function formatPrice(price: string | number, currency: string): string {
-  const symbol = currency === 'USD' ? 'US$' : '$';
-  return `${symbol} ${Number(price).toLocaleString('es-AR')}`;
-}
 
 /** Percent change from `prev` to `curr`, rounded to one decimal. */
 function pctChange(curr: number, prev: number): number {
@@ -65,7 +62,7 @@ export function PriceHistory({ entries }: PriceHistoryProps) {
       <div className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] bg-[var(--color-bg)] px-4 py-3">
         <div className="min-w-0">
           <p className="truncate text-lg font-bold tabular-nums text-[var(--color-text)]">
-            {formatPrice(latest.price, latest.currency)}
+            {formatMoney(latest.price, latest.currency)}
           </p>
           {overallPct != null && overallPct !== 0 && (
             <div className="mt-0.5 flex items-center gap-1.5">
@@ -102,10 +99,10 @@ export function PriceHistory({ entries }: PriceHistoryProps) {
                 <div className="min-w-0 flex-1 pb-0.5">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="text-sm font-semibold tabular-nums text-[var(--color-text)]">
-                      {formatPrice(entry.price, entry.currency)}
+                      {formatMoney(entry.price, entry.currency)}
                     </span>
                     <span className="shrink-0 text-xs text-[var(--color-muted)]">
-                      {date.toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {formatLocalDate(date, 'mediumPadded')}
                     </span>
                   </div>
                   {pct != null && pct !== 0 && (

@@ -16,11 +16,8 @@ import { InvoiceRow } from '@/components/portal/invoice-row';
 import { ClaimRow } from '@/components/portal/claim-row';
 import { NewClaimDialog } from '@/components/portal/new-claim-dialog';
 import { SectionHead } from '@/components/portal/portal-primitives';
-import {
-  formatDayMonth,
-  usePortalOverview,
-  usePortalPaths,
-} from '@/components/portal/portal-data';
+import { usePortalOverview, usePortalPaths } from '@/components/portal/portal-data';
+import { formatDayMonth } from '@/lib/format';
 
 /**
  * Portal home — the whole tenant situation on one screen.

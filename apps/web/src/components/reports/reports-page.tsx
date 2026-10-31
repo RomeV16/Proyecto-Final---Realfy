@@ -2,9 +2,9 @@
 
 import { useTranslations } from 'next-intl';
 import { useState, useCallback } from 'react';
-import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
+import { downloadFile } from '@/lib/download';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
@@ -14,6 +14,8 @@ import { StatTile } from '@/components/ui/stat-tile';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
 import { ReportSchedulingSection } from './report-scheduling';
+import { formatNumber, formatDateTime } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
 
@@ -85,21 +87,16 @@ interface ReportResult {
 
 /* ──────────── Helpers ──────────── */
 
-function formatNumber(value: string): string {
-  const num = Number(value);
-  if (isNaN(num)) return value;
-  return num.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/** Muestra el valor tal cual si no es numérico (columnas de texto en un reporte). */
+function formatReportNumber(value: string, decimals: number): string {
+  return Number.isNaN(Number(value)) ? value : formatNumber(value, { decimals });
 }
 
-function formatCount(value: string): string {
-  const num = Number(value);
-  if (isNaN(num)) return value;
-  return num.toLocaleString('es-AR', { maximumFractionDigits: 0 });
-}
+
 
 function formatCell(key: string, value: string | undefined): string {
-  if (CURRENCY_COLUMNS.has(key)) return `$${formatNumber(value ?? '0')}`;
-  if (COUNT_COLUMNS.has(key)) return formatCount(value ?? '0');
+  if (CURRENCY_COLUMNS.has(key)) return `$${formatReportNumber(value ?? '0', 2)}`;
+  if (COUNT_COLUMNS.has(key)) return formatReportNumber(value ?? '0', 0);
   return value ?? '—';
 }
 
@@ -126,8 +123,7 @@ export function ReportsPage() {
   const tColumns = useTranslations('reports.columns');
   const tSummary = useTranslations('reports.summaryLabels');
   const tEmpty = useTranslations('emptyStates.reports');
-  const { user } = useAuth();
-
+  
   const [reportType, setReportType] = useState<ReportType | ''>('');
   const [filters, setFilters] = useState({ ...EMPTY_FILTERS });
 
@@ -136,8 +132,8 @@ export function ReportsPage() {
   const [excelDownloading, setExcelDownloading] = useState(false);
   const [pdfDownloading, setPdfDownloading] = useState(false);
 
-  const canAccess = ['Admin', 'Gerente', 'Liquidaciones'].includes(user?.role || '');
-  const canSchedule = ['Admin', 'Gerente'].includes(user?.role || '');
+  const canAccess = useCan('reports.view');
+  const canSchedule = useCan('reports.schedule');
 
   /** Query string shared by the JSON fetch and both file downloads. */
   const buildParams = useCallback(() => {
@@ -192,29 +188,12 @@ export function ReportsPage() {
     setDownloading(true);
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-      const response = await fetch(
-        `${apiBase}/reports/${reportType}/${format}?${buildParams().toString()}`,
-        { credentials: 'include' },
-      );
-
-      if (!response.ok) throw new Error(`${format} download failed`);
-
-      const blob = await response.blob();
-      const disposition = response.headers.get('content-disposition') || '';
-      const match = disposition.match(/filename="?([^"]+)"?/);
       const ext = format === 'excel' ? 'xlsx' : 'pdf';
-      const fileName =
-        match?.[1] || `reporte-${reportType}-${new Date().toISOString().slice(0, 10)}.${ext}`;
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      await downloadFile(
+        `/reports/${reportType}/${format}?${buildParams().toString()}`,
+        `reporte-${reportType}-${new Date().toISOString().slice(0, 10)}.${ext}`,
+        { preferServerName: true },
+      );
     } catch {
       toast.error(t('errors.downloadFailed'));
     } finally {
@@ -418,7 +397,7 @@ export function ReportsPage() {
             <p className="eyebrow">{t('summary')}</p>
             <Badge variant="neutral">{t('rowCount', { count: rows.length })}</Badge>
             <span className="text-xs text-[var(--color-muted)]">
-              {t('generatedAt')}: {new Date(data.generatedAt).toLocaleString('es-AR')}
+              {t('generatedAt')}: {formatDateTime(data.generatedAt, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })}
             </span>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

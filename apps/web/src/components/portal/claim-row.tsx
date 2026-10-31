@@ -4,16 +4,8 @@ import { useTranslations } from 'next-intl';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Badge } from '@/components/ui/badge';
 import { Plate } from './portal-primitives';
-import {
-  addressOf,
-  claimTone,
-  daysBetween,
-  formatDate,
-  isClaimOpen,
-  todayUtcDay,
-  toUtcDay,
-  type PortalClaim,
-} from './portal-data';
+import { addressOf, claimTone, daysBetween, isClaimOpen, todayUtcDay, type PortalClaim } from './portal-data';
+import { formatDate, toUtcDay } from '@/lib/format';
 
 /**
  * One claim. The row answers "what is happening with it" rather than just
