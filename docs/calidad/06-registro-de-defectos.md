@@ -24,20 +24,13 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-14 | La comisión acepta porcentajes mayores a 100 y montos negativos | Media | — | CP-134 | [#122](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/122) | Corregido (31 oct) |
 | DEF-15 | `LiquidacionStatus.Pendiente` existe en la base y no en el paquete compartido | Baja | — | CP-135 | [#123](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/123) | Corregido (31 oct) |
 | DEF-16 | Un comprobante sin pago no se puede guardar después de que el organismo ya autorizó el CAE | Alta | facturación (ítem 38) | CP-160 a CP-163 | [#124](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/124) | Corregido (31 oct) |
-| DEF-09 | Un archivo de importación subido por una inmobiliaria se puede usar desde otra | Media | — | CP-85 | [#97](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/97) | Corregido (30 oct) |
-| DEF-10 | El cronograma de ajustes encadena cada fecha a la anterior, en hora local, y un período desconocido se toma como trimestral | Media | RF-12 | CP-130 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-11 | Períodos, "hoy" y meses de documentos se arman en hora local del proceso | Media | — | CP-131 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-12 | La rendición muestra totales que no suman sus líneas | Media | — | CP-132 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-13 | El motor de liquidación acepta descuentos negativos y su total puede diferir en un centavo de lo mostrado | Baja | — | CP-133 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-14 | La comisión acepta porcentajes mayores a 100 y montos negativos | Media | — | CP-134 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-15 | `LiquidacionStatus.Pendiente` existe en la base y no en el paquete compartido | Baja | — | CP-135 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-17 | El PDF de la liquidación imprime "Propiedad: —" | Media | — | CP-137 | se completa al abrir el PR | Corregido (31 oct) |
-| DEF-18 | El punitorio se calcula sobre el total de la liquidación y con el día local del servidor | Alta | — | CP-138 | se completa al abrir el PR | Corregido (31 oct) |
-| DEF-19 | Cinco criterios distintos de "deuda", todos sobre el total y con sumas en coma flotante | Alta | — | CP-139 | se completa al abrir el PR | Corregido (31 oct) |
-| DEF-20 | El ajuste automático sin datos de índice se aplica al 0 % y marca el cronograma como aplicado | Alta | RF-12 | CP-240 | se completa al abrir el PR | Corregido (31 oct) |
-| DEF-21 | Dos pagos simultáneos pueden superar el saldo de la liquidación | Alta | — | CP-241 | se completa al abrir el PR | Corregido (31 oct) |
-| DEF-22 | El aviso de vencimiento de contrato se repite cada día durante 30 días | Media | — | CP-242 | se completa al abrir el PR | Corregido (31 oct) |
-| DEF-23 | La rendición acepta pagos y deducciones negativos | Media | — | CP-243 | se completa al abrir el PR | Corregido (31 oct) |
+| DEF-17 | El PDF de la liquidación imprime "Propiedad: —" | Media | — | CP-137 | [#126](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/126) | Corregido (31 oct) |
+| DEF-18 | El punitorio se calcula sobre el total de la liquidación y con el día local del servidor | Alta | — | CP-138 | [#127](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/127) | Corregido (31 oct) |
+| DEF-19 | Cinco criterios distintos de "deuda", todos sobre el total y con sumas en coma flotante | Alta | — | CP-139 | [#128](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/128) | Corregido (31 oct) |
+| DEF-20 | El ajuste automático sin datos de índice se aplica al 0 % y marca el cronograma como aplicado | Alta | RF-12 | CP-240 | [#129](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/129) | Corregido (31 oct) |
+| DEF-21 | Dos pagos simultáneos pueden superar el saldo de la liquidación | Alta | — | CP-241 | [#130](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/130) | Corregido (31 oct) |
+| DEF-22 | El aviso de vencimiento de contrato se repite cada día durante 30 días | Media | — | CP-242 | [#131](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/131) | Corregido (31 oct) |
+| DEF-23 | La rendición acepta pagos y deducciones negativos | Media | — | CP-243 | [#132](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/132) | Corregido (31 oct) |
 
 ---
 
