@@ -218,6 +218,25 @@ describe('LiquidacionList', () => {
     expect(screen.queryByText('Generar Liquidaciones del Mes')).not.toBeInTheDocument();
   });
 
+  it('informa los contratos fuera del período del contrato al generar', async () => {
+    mockList(() => page([item('l-1')]), () => Promise.resolve({ created: 2, skipped: 0, outOfRange: 3 }));
+    const user = await mount();
+    await user.click(screen.getByRole('button', { name: 'Generar Mes' }));
+    await user.click(screen.getByRole('button', { name: 'Generar' }));
+    expect(
+      await screen.findByText('2 liquidaciones generadas · 3 fuera del período del contrato (omitidas)'),
+    ).toBeInTheDocument();
+  });
+
+  it('marca el pago a cuenta y las liquidaciones provisionales', async () => {
+    mockList(() =>
+      page([item('l-1', { kind: 'PagoACuenta', isProvisional: true }), item('l-2', { kind: 'Mensual' })]),
+    );
+    await mount();
+    expect(await screen.findAllByText('Pago a cuenta')).toHaveLength(1);
+    expect(screen.getAllByText('Provisional')).toHaveLength(1);
+  });
+
   it('muestra el error al fallar la generación y permite cerrar el modal', async () => {
     mockList(() => page([item('l-1')]), () => Promise.reject(new ApiRequestError(400, 'BAD', 'Sin contratos de prueba')));
     const user = await mount();

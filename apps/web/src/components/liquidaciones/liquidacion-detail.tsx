@@ -19,6 +19,8 @@ import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { Icon } from '@/components/ui/icon';
 import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 
 /* ──────────── Types ──────────── */
 
@@ -28,6 +30,8 @@ interface LineItem {
   description: string;
   amount: string | number;
   meta?: { daysOverdue?: number } | null;
+  beneficiary?: string;
+  commissionable?: boolean;
 }
 
 interface Payment {
@@ -52,6 +56,9 @@ interface LiquidacionData {
   currency?: string;
   createdAt: string;
   updatedAt: string;
+  kind?: string;
+  isProvisional?: boolean;
+  receiptNumber?: string | null;
   contract?: {
     id: string;
     property?: { id: string; title: string; street?: string; city?: string };
@@ -73,6 +80,11 @@ const LINE_ITEM_ICONS: Record<string, string> = {
   [LineItemType.Ajuste]: '📊',
   [LineItemType.Extra]: '➕',
   [LineItemType.Descuento]: '🏷️',
+  [LineItemType.Impuesto]: '🏛️',
+  [LineItemType.Servicio]: '💡',
+  [LineItemType.Cargo]: '🔧',
+  [LineItemType.Honorario]: '💼',
+  [LineItemType.AjusteRetroactivo]: '↩️',
 };
 
 function transitionVariant(target: string): 'primary' | 'secondary' | 'danger' {
@@ -92,6 +104,9 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const tPayments = useTranslations('liquidaciones.payments');
   const tMethods = useTranslations('liquidaciones.paymentMethods');
   const tTypes = useTranslations('liquidaciones.lineItemTypes');
+  const tBeneficiary = useTranslations('liquidaciones.beneficiary');
+  const tKinds = useTranslations('liquidaciones.kinds');
+  const tReceipt = useTranslations('liquidaciones.receipt');
   const tMonths = useTranslations('liquidaciones.months');
   const tErrors = useTranslations('liquidaciones.errors');
   const tCommon = useTranslations('common');
@@ -258,6 +273,15 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <StatusBadge domain="liquidacion" status={data.status} size="md" />
+              {data.kind && data.kind !== 'Mensual' && <Badge variant="info">{tKinds(data.kind)}</Badge>}
+              {data.isProvisional && (
+                <Badge variant="warning" title={t('provisionalHint')}>{t('provisional')}</Badge>
+              )}
+              {data.receiptNumber ? (
+                <Badge variant="neutral">{tReceipt('number', { number: data.receiptNumber })}</Badge>
+              ) : (
+                <span className="text-xs text-slate-400">{tReceipt('pending')}</span>
+              )}
             </div>
             <h1 className="text-xl font-bold text-slate-900">{periodLabel}</h1>
             {data.contract?.property && (
@@ -276,6 +300,22 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
             <p className="text-2xl font-bold text-slate-900 tabular-nums">{formatMoneyFixed(totalAmount)}</p>
           </div>
         </div>
+
+        {data.status !== LiquidacionStatus.Anulada && (
+          <div className="mt-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() =>
+                downloadFile(`/liquidaciones/${liquidacionId}/pdf`, `recibo-${data.receiptNumber ?? liquidacionId}.pdf`).catch(() =>
+                  toast.error(tCommon('downloadFailed')),
+                )
+              }
+            >
+              {tReceipt('print')}
+            </Button>
+          </div>
+        )}
 
         {/* Transition action buttons */}
         {!readOnly && validTransitions.length > 0 && (
@@ -365,6 +405,8 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
                   meta={
                     <div className="flex flex-wrap items-center gap-1.5">
                       <Badge variant={isDiscount ? 'danger' : 'neutral'}>{tTypes(li.type)}</Badge>
+                      {li.beneficiary && <Badge variant="info">{tBeneficiary(li.beneficiary)}</Badge>}
+                      {li.commissionable && <Badge variant="brand">{t('commissionable')}</Badge>}
                     </div>
                   }
                   trailing={

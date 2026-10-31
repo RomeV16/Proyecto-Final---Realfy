@@ -33,6 +33,9 @@ interface LiquidacionItem {
   subtotal?: string | number;
   currency?: string;
   pdfUrl?: string | null;
+  kind?: string;
+  isProvisional?: boolean;
+  receiptNumber?: string | null;
   contract?: {
     id: string;
     property?: { id: string; title: string; street?: string; city?: string };
@@ -79,6 +82,7 @@ function LiquidacionCard({ item, selected, onToggle, bulkMode }: CardProps) {
   const tCard = useTranslations('liquidaciones.card');
   const tCommon = useTranslations('common');
   const tMonths = useTranslations('liquidaciones.months');
+  const tKinds = useTranslations('liquidaciones.kinds');
 
   // Derive month/year from period date (API returns period as ISO date, not separate month/year)
   const periodDate = item.period ? new Date(item.period) : null;
@@ -149,12 +153,16 @@ function LiquidacionCard({ item, selected, onToggle, bulkMode }: CardProps) {
           </h3>
         }
         bottomRight={
-          paymentsCount > 0 && (
-            <Badge onCover>
-              <Icon name="check" className="h-3 w-3" strokeWidth={2} />
-              {paymentsCount}
-            </Badge>
-          )
+          <>
+            {item.kind && item.kind !== 'Mensual' && <Badge onCover>{tKinds(item.kind)}</Badge>}
+            {item.isProvisional && <Badge onCover>{t('provisional')}</Badge>}
+            {paymentsCount > 0 && (
+              <Badge onCover>
+                <Icon name="check" className="h-3 w-3" strokeWidth={2} />
+                {paymentsCount}
+              </Badge>
+            )}
+          </>
         }
       />
 
@@ -363,12 +371,14 @@ export function LiquidacionList() {
   async function handleGenerate(month: number, year: number) {
     setFeedback(null);
     try {
-      const res = await apiClient<{ created: number; skipped: number }>('/liquidaciones/generate', {
+      const res = await apiClient<{ created: number; skipped: number; outOfRange?: number }>('/liquidaciones/generate', {
         method: 'POST',
         body: JSON.stringify({ month, year }),
       });
       setShowGenerate(false);
-      setFeedback({ type: 'success', msg: t('generatedCount', { count: res.created ?? 0 }) });
+      const parts = [t('generatedCount', { count: res.created ?? 0 })];
+      if (res.outOfRange) parts.push(t('outOfRangeCount', { count: res.outOfRange }));
+      setFeedback({ type: 'success', msg: parts.join(' · ') });
       fetchData(filters);
     } catch (err) {
       setFeedback({ type: 'error', msg: err instanceof ApiRequestError ? err.message : tErrors('generateFailed') });
