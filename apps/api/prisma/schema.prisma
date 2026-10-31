@@ -87,6 +87,7 @@ enum PersonRole {
   Lead
   Comprador
   Proveedor
+  Apoderado
 }
 
 enum PersonType {

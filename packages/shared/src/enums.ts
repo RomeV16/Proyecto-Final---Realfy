@@ -99,6 +99,7 @@ export enum PersonRole {
   Lead = 'Lead',
   Comprador = 'Comprador',
   Proveedor = 'Proveedor',
+  Apoderado = 'Apoderado',
 }
 
 export enum PersonType {
