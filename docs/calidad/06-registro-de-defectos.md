@@ -16,14 +16,14 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-06 | El IPC se obtiene como nivel y de los 24 meses más viejos, no como variación mensual reciente | Alta | RF-14, RF-12 | CP-52, CP-54 | [#82](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/82) | Corregido (día 5) |
 | DEF-07 | Los ajustes consecutivos vuelven a contar la inflación ya aplicada | Alta | RF-12, RF-13 | CP-55, CP-56, CP-58 | [#83](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/83) | Corregido (28 oct) |
 | DEF-08 | El barrido automático pisa un ajuste con el siguiente del mismo contrato | Media | RF-12, RF-13 | CP-57 | [#84](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/84) | Corregido (28 oct) |
-| DEF-09 | Un archivo de importación subido por una inmobiliaria se puede usar desde otra | Media | — | CP-85 | [#97](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/97) | Corregido (30 oct) |
-| DEF-10 | El cronograma de ajustes encadena cada fecha a la anterior, en hora local, y un período desconocido se toma como trimestral | Media | RF-12 | CP-130 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-11 | Períodos, "hoy" y meses de documentos se arman en hora local del proceso | Media | — | CP-131 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-12 | La rendición muestra totales que no suman sus líneas | Media | — | CP-132 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-13 | El motor de liquidación acepta descuentos negativos y su total puede diferir en un centavo de lo mostrado | Baja | — | CP-133 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-14 | La comisión acepta porcentajes mayores a 100 y montos negativos | Media | — | CP-134 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-15 | `LiquidacionStatus.Pendiente` existe en la base y no en el paquete compartido | Baja | — | CP-135 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
-| DEF-16 | Un comprobante sin pago no se puede guardar después de que el organismo ya autorizó el CAE | Alta | facturación (ítem 38) | CP-160 a CP-163 | [#96](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/96) | Corregido (31 oct) |
+| DEF-09 | Un archivo de importación subido por una inmobiliaria se puede usar desde otra | Media | — | CP-85 | [#111](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/111) | Corregido (30 oct) |
+| DEF-10 | El cronograma de ajustes encadena cada fecha a la anterior, en hora local, y un período desconocido se toma como trimestral | Media | RF-12 | CP-130 | [#118](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/118) | Corregido (31 oct) |
+| DEF-11 | Períodos, "hoy" y meses de documentos se arman en hora local del proceso | Media | — | CP-131 | [#119](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/119) | Corregido (31 oct) |
+| DEF-12 | La rendición muestra totales que no suman sus líneas | Media | — | CP-132 | [#120](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/120) | Corregido (31 oct) |
+| DEF-13 | El motor de liquidación acepta descuentos negativos y su total puede diferir en un centavo de lo mostrado | Baja | — | CP-133 | [#121](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/121) | Corregido (31 oct) |
+| DEF-14 | La comisión acepta porcentajes mayores a 100 y montos negativos | Media | — | CP-134 | [#122](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/122) | Corregido (31 oct) |
+| DEF-15 | `LiquidacionStatus.Pendiente` existe en la base y no en el paquete compartido | Baja | — | CP-135 | [#123](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/123) | Corregido (31 oct) |
+| DEF-16 | Un comprobante sin pago no se puede guardar después de que el organismo ya autorizó el CAE | Alta | facturación (ítem 38) | CP-160 a CP-163 | [#124](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/124) | Corregido (31 oct) |
 
 ---
 
