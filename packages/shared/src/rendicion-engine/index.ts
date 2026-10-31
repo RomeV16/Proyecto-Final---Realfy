@@ -30,6 +30,24 @@ export interface RendicionResult {
   lineItems: RendicionLineItem[];
 }
 
+// ─── Errors ─────────────────────────────────────────────
+
+/** Un pago o una deducción con un monto que la rendición no admite (negativo). */
+export class InvalidRendicionLineError extends Error {
+  readonly code = 'INVALID_LINE_AMOUNT';
+
+  constructor(
+    readonly lineType: RendicionLineItemType,
+    readonly description: string,
+    readonly amount: string,
+  ) {
+    super(
+      `Monto inválido para un renglón ${lineType} (${description}): ${amount} (no puede ser negativo)`,
+    );
+    this.name = 'InvalidRendicionLineError';
+  }
+}
+
 // ─── Engine ─────────────────────────────────────────────
 
 /**
@@ -44,6 +62,8 @@ export interface RendicionResult {
  * rentCollected y deductionTotal son la suma de las líneas ya redondeadas: el
  * documento tiene que sumar lo que muestra.
  * netDeposit = rentCollected - commissionAmount - adminFeeAmount - deductionTotal
+ * Ningún pago ni deducción puede ser negativo: lanza InvalidRendicionLineError
+ * (INVALID_LINE_AMOUNT), igual que la liquidación y la comisión.
  * All arithmetic uses Decimal.js; outputs are rounded to 2 decimal places.
  */
 export function buildRendicionFromPayments(
@@ -56,7 +76,15 @@ export function buildRendicionFromPayments(
 
   // 1. Alquiler line items (one per payment)
   for (const payment of payments) {
-    const amt = new Money(payment.amount).toDecimalPlaces(2);
+    const raw = new Money(payment.amount);
+    if (raw.isNegative()) {
+      throw new InvalidRendicionLineError(
+        RendicionLineItemType.Alquiler,
+        payment.description,
+        raw.toString(),
+      );
+    }
+    const amt = raw.toDecimalPlaces(2);
     rentCollected = rentCollected.plus(amt);
     lineItems.push({
       type: RendicionLineItemType.Alquiler,
@@ -87,7 +115,15 @@ export function buildRendicionFromPayments(
   // 5. Deduction line items
   let deductionTotal = new Money(0);
   for (const deduction of deductions) {
-    const amt = new Money(deduction.amount).toDecimalPlaces(2);
+    const raw = new Money(deduction.amount);
+    if (raw.isNegative()) {
+      throw new InvalidRendicionLineError(
+        RendicionLineItemType.Deduccion,
+        deduction.description,
+        raw.toString(),
+      );
+    }
+    const amt = raw.toDecimalPlaces(2);
     deductionTotal = deductionTotal.plus(amt);
     lineItems.push({
       type: RendicionLineItemType.Deduccion,

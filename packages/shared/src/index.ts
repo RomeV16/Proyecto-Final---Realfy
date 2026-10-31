@@ -432,7 +432,7 @@ export { calculateCommission, InvalidCommissionError } from './commission-engine
 export type { CommissionConfig, CommissionResult } from './commission-engine';
 
 // Rendicion engine
-export { buildRendicionFromPayments } from './rendicion-engine';
+export { buildRendicionFromPayments, InvalidRendicionLineError } from './rendicion-engine';
 export type {
   RendicionPaymentInput,
   RendicionDeductionInput,
