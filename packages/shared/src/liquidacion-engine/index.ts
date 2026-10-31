@@ -1,8 +1,6 @@
-import Decimal from 'decimal.js';
+import type Decimal from 'decimal.js';
+import { Money } from '../money';
 import { LineItemType } from '../enums';
-
-// Configure Decimal for financial calculations: 20 significant digits, ROUND_HALF_UP
-Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -21,20 +19,40 @@ export interface PaymentInput {
   amount: Decimal | string | number;
 }
 
+// ─── Errors ─────────────────────────────────────────────
+
+/** Un renglón con un monto que el tipo no admite (por ejemplo, negativo). */
+export class InvalidLineAmountError extends Error {
+  readonly code = 'INVALID_LINE_AMOUNT';
+
+  constructor(
+    readonly lineType: LineItemType,
+    readonly amount: string,
+  ) {
+    super(`Monto inválido para un renglón ${lineType}: ${amount} (no puede ser negativo)`);
+    this.name = 'InvalidLineAmountError';
+  }
+}
+
 // ─── Line Item Calculation ──────────────────────────────
 
 /**
  * Calculate totals from a list of line items.
- * - Alquiler, Ajuste, Extra are positive (summed into subtotal)
- * - Descuento is negative (subtracted from subtotal)
- * - Total = subtotal - discounts (never negative, floored at 0)
+ * - Alquiler, Ajuste, Extra, Multa suman al subtotal
+ * - Descuento se resta del subtotal (su monto se carga en positivo)
+ * - Ningún monto puede ser negativo: lanza InvalidLineAmountError
+ * - Total = subtotal redondeado - descuentos redondeados (nunca negativo, piso en 0),
+ *   que es exactamente lo que muestra el documento
  */
 export function calculateLineItemsTotal(items: LineItemInput[]): LineItemsTotalResult {
-  let subtotal = new Decimal(0);
-  let discounts = new Decimal(0);
+  let subtotal = new Money(0);
+  let discounts = new Money(0);
 
   for (const item of items) {
-    const amount = new Decimal(item.amount);
+    const amount = new Money(item.amount);
+    if (amount.isNegative()) {
+      throw new InvalidLineAmountError(item.type, amount.toString());
+    }
 
     if (item.type === LineItemType.Descuento) {
       discounts = discounts.plus(amount);
@@ -43,13 +61,15 @@ export function calculateLineItemsTotal(items: LineItemInput[]): LineItemsTotalR
     }
   }
 
+  const roundedSubtotal = subtotal.toDecimalPlaces(2);
+  const roundedDiscounts = discounts.toDecimalPlaces(2);
   // Total cannot go below 0
-  const total = Decimal.max(subtotal.minus(discounts), new Decimal(0));
+  const total = Money.max(roundedSubtotal.minus(roundedDiscounts), new Money(0));
 
   return {
-    subtotal: subtotal.toDecimalPlaces(2),
-    discounts: discounts.toDecimalPlaces(2),
-    total: total.toDecimalPlaces(2),
+    subtotal: roundedSubtotal,
+    discounts: roundedDiscounts,
+    total,
   };
 }
 
@@ -63,11 +83,11 @@ export function calculateRemainingBalance(
   total: Decimal | string | number,
   payments: PaymentInput[],
 ): Decimal {
-  const totalDecimal = new Decimal(total);
-  let paid = new Decimal(0);
+  const totalDecimal = new Money(total);
+  let paid = new Money(0);
 
   for (const payment of payments) {
-    paid = paid.plus(new Decimal(payment.amount));
+    paid = paid.plus(new Money(payment.amount));
   }
 
   return totalDecimal.minus(paid).toDecimalPlaces(2);

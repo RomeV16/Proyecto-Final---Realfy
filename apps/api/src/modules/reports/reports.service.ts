@@ -15,6 +15,10 @@ import {
   LiquidacionStatus,
   LeadStatus,
   PersonRole,
+  formatDateAR,
+  monthStartUTC,
+  periodKey,
+  todayInAR,
 } from '@realfy/shared';
 import Decimal from 'decimal.js';
 import { parseOrThrow } from '../../common/validation/zod';
@@ -129,6 +133,7 @@ export class ReportsService {
         periodo: new Date(r.period).toLocaleDateString('es-AR', {
           month: '2-digit',
           year: 'numeric',
+          timeZone: 'UTC',
         }),
         propiedad:
           r.contract?.property?.title ??
@@ -300,12 +305,13 @@ export class ReportsService {
     const tenantId = this.tenantContext.getTenantId()!;
 
     // Default to current year if no dates specified
+    const currentYear = todayInAR().getUTCFullYear();
     const fromDate = filters.from
       ? new Date(filters.from)
-      : new Date(new Date().getFullYear(), 0, 1);
+      : new Date(Date.UTC(currentYear, 0, 1));
     const toDate = filters.to
       ? new Date(filters.to)
-      : new Date(new Date().getFullYear(), 11, 31);
+      : new Date(Date.UTC(currentYear, 11, 31));
 
     // Inflow: Payments within date range
     const payments = await this.prisma.client.payment.findMany({
@@ -335,19 +341,18 @@ export class ReportsService {
     }>();
 
     // Initialize months in range
-    const startMonth = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
-    const endMonth = new Date(toDate.getFullYear(), toDate.getMonth(), 1);
+    const startMonth = monthStartUTC(fromDate.getUTCFullYear(), fromDate.getUTCMonth() + 1);
+    const endMonth = monthStartUTC(toDate.getUTCFullYear(), toDate.getUTCMonth() + 1);
     const current = new Date(startMonth);
     while (current <= endMonth) {
-      const key = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
-      monthMap.set(key, { ingresos: new Decimal(0), egresos: new Decimal(0), facturado: new Decimal(0) });
-      current.setMonth(current.getMonth() + 1);
+      monthMap.set(periodKey(current), { ingresos: new Decimal(0), egresos: new Decimal(0), facturado: new Decimal(0) });
+      current.setUTCMonth(current.getUTCMonth() + 1);
     }
 
     // Inflow by month
     for (const payment of payments) {
       const paidAt = new Date(payment.paidAt);
-      const key = `${paidAt.getFullYear()}-${String(paidAt.getMonth() + 1).padStart(2, '0')}`;
+      const key = periodKey(paidAt);
       const entry = monthMap.get(key);
       if (entry) {
         entry.ingresos = entry.ingresos.plus(payment.amount.toString());
@@ -360,7 +365,7 @@ export class ReportsService {
     // Outflow by month
     for (const rend of rendiciones) {
       const depositedAt = rend.depositedAt ? new Date(rend.depositedAt) : new Date(rend.period);
-      const key = `${depositedAt.getFullYear()}-${String(depositedAt.getMonth() + 1).padStart(2, '0')}`;
+      const key = periodKey(depositedAt);
       const entry = monthMap.get(key);
       if (entry) {
         entry.egresos = entry.egresos.plus(rend.netDeposit.toString());
@@ -371,8 +376,8 @@ export class ReportsService {
       .sort(([a]: any, [b]: any) => a.localeCompare(b))
       .map(([key, data]) => {
         const [year, month] = key.split('-');
-        const date = new Date(Number(year), Number(month) - 1, 1);
-        const label = date.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+        const date = monthStartUTC(Number(year), Number(month));
+        const label = date.toLocaleDateString('es-AR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
         return {
           mes: label,
           ingresos: data.ingresos.toFixed(2),
@@ -458,6 +463,7 @@ export class ReportsService {
         periodo: new Date(r.period).toLocaleDateString('es-AR', {
           month: '2-digit',
           year: 'numeric',
+          timeZone: 'UTC',
         }),
         tipoComision: r.contract?.commission?.type ?? '—',
         comision: commissionAmount.toFixed(2),
@@ -682,8 +688,9 @@ export class ReportsService {
         periodo: new Date(liq.period).toLocaleDateString('es-AR', {
           month: '2-digit',
           year: 'numeric',
+          timeZone: 'UTC',
         }),
-        vencimiento: new Date(liq.dueDate).toLocaleDateString('es-AR'),
+        vencimiento: formatDateAR(liq.dueDate),
         diasVencidos: String(diasVencidos),
         monto: monto.toFixed(2),
         moneda: liq.currency,

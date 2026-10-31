@@ -56,8 +56,8 @@ export class PenaltiesScheduler extends CronBaseService {
         const config = await this.tenantsService.getPenaltyConfig(tenant.id);
 
         // Fetch overdue liquidaciones (Enviada or Vencida with dueDate < today).
-        // Note: Prisma schema includes 'Pendiente' but it does not exist in the DB enum —
-        // using it at runtime causes a ConnectorError, so it is not part of the filter.
+        // 'Pendiente' existe en la base y en shared, pero no forma parte del filtro:
+        // los punitorios corren sobre Enviada y Vencida.
         const overdueLiquidaciones = await this.prisma.baseClient.liquidacion.findMany({
           where: {
             tenantId: tenant.id,

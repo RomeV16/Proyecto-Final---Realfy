@@ -18,35 +18,7 @@ import {
   CreateReportScheduleSchema,
   UpdateReportScheduleSchema,
 } from '@realfy/shared';
-
-/**
- * Compute the initial `nextRunAt` based on schedule frequency.
- * daily  → tomorrow at 12:00 UTC
- * weekly → next Monday at 12:00 UTC
- * monthly → 1st of next month at 12:00 UTC
- */
-function computeNextRunAt(frequency: string): Date {
-  const now = new Date();
-  switch (frequency) {
-    case 'daily': {
-      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 12));
-      return d;
-    }
-    case 'weekly': {
-      // Next Monday
-      const d = new Date(now);
-      const dayOfWeek = d.getUTCDay(); // 0=Sun
-      const daysUntilMon = dayOfWeek === 0 ? 1 : dayOfWeek === 1 ? 7 : 8 - dayOfWeek;
-      return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + daysUntilMon, 12));
-    }
-    case 'monthly': {
-      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 12));
-      return d;
-    }
-    default:
-      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 12));
-  }
-}
+import { computeNextRunAt } from './compute-next-run-at';
 
 @Controller('report-schedules')
 export class ReportScheduleController {

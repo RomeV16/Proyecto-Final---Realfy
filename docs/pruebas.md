@@ -58,9 +58,18 @@ registrado en `docs/calidad/09-metricas.md`, y ahora lo cubre CP-73. El mismo
 integración.
 
 Fijar la zona hace reproducibles las pruebas, pero no vuelve correcto el código en
-otra zona: el servicio de reportes sigue sin tener un caso verde con la zona
-local de Buenos Aires, y por eso no hay un script que corra las unitarias con esa
-zona.
+otra zona. Para eso hay dos mecanismos:
+
+- Los casos de CP-131 (`reports.service.spec.ts`, `liquidaciones-periodos.spec.ts`,
+  `renditions-periodos.spec.ts`, `liquidaciones/email.service.spec.ts`) asignan
+  `process.env.TZ = 'America/Argentina/Buenos_Aires'` en `beforeAll` y lo restauran en
+  `afterAll`. Jest entrega a cada archivo una copia de `process.env`, así que el
+  entorno `apps/api/test/setup/tz-environment.js` reenvía esa asignación al proceso
+  real. Corren en la suite normal y fallan si alguien vuelve a armar un período en
+  hora local.
+- `pnpm --filter @realfy/api test:tz-ar` corre toda la suite unitaria de la API con el
+  proceso en esa zona (`JEST_TZ` reemplaza el `UTC` del `globalSetup`). Sirve para
+  detectar código sensible a la zona en pruebas que no la fijan por su cuenta.
 
 ### Cobertura
 

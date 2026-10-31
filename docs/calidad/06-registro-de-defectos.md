@@ -1,6 +1,6 @@
 # Registro de defectos
 
-Versión 1.3 — 28 de octubre de 2026 (1.0: 19 de octubre; 1.2: 20 de octubre). Cada defecto se registra con la
+Versión 1.4 — 31 de octubre de 2026 (1.0: 19 de octubre; 1.2: 20 de octubre; 1.3: 28 de octubre). Cada defecto se registra con la
 plantilla del plan de pruebas, se vincula a su caso y a su requisito, y se
 cierra únicamente con una prueba de regresión en la suite y una ejecución
 del pipeline en rojo (antes) y en verde (después). El issue de GitHub es
@@ -17,6 +17,12 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-07 | Los ajustes consecutivos vuelven a contar la inflación ya aplicada | Alta | RF-12, RF-13 | CP-55, CP-56, CP-58 | [#83](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/83) | Corregido (28 oct) |
 | DEF-08 | El barrido automático pisa un ajuste con el siguiente del mismo contrato | Media | RF-12, RF-13 | CP-57 | [#84](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/84) | Corregido (28 oct) |
 | DEF-09 | Un archivo de importación subido por una inmobiliaria se puede usar desde otra | Media | — | CP-85 | [#97](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/97) | Corregido (30 oct) |
+| DEF-10 | El cronograma de ajustes encadena cada fecha a la anterior, en hora local, y un período desconocido se toma como trimestral | Media | RF-12 | CP-130 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
+| DEF-11 | Períodos, "hoy" y meses de documentos se arman en hora local del proceso | Media | — | CP-131 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
+| DEF-12 | La rendición muestra totales que no suman sus líneas | Media | — | CP-132 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
+| DEF-13 | El motor de liquidación acepta descuentos negativos y su total puede diferir en un centavo de lo mostrado | Baja | — | CP-133 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
+| DEF-14 | La comisión acepta porcentajes mayores a 100 y montos negativos | Media | — | CP-134 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
+| DEF-15 | `LiquidacionStatus.Pendiente` existe en la base y no en el paquete compartido | Baja | — | CP-135 | [#93](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/93) | Corregido (31 oct) |
 
 ---
 
@@ -151,3 +157,87 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** cada archivo guarda `tenantId` y `userId` al subirse; `getUpload` solo lo resuelve si la inmobiliaria coincide y en caso contrario responde como si no existiera. El archivo inexistente pasa de 400 a 404 para que ambos casos sean indistinguibles. Vencimiento y borrado tras importar sin cambios.
 - **Prueba de regresión:** CP-85 en `test/e2e/import-export.e2e-spec.ts` y en `import-export.service.spec.ts`.
 - **Evidencia rojo/verde:** commit de regresión `9857f75` en rojo (e2e: 1 caso en rojo de 16; unitario: 1 de 11); corrección en `4a3bfe0`. Ejecuciones del pipeline: se completa al abrir el PR.
+
+## DEF-10 — El cronograma de ajustes encadena cada fecha a la anterior
+
+- **Requisito afectado:** RF-12 (cronograma de ajustes).
+- **Origen:** revisión de código (ítem 35 de la hoja de ruta).
+- **Caso que lo detecta:** CP-130.
+- **Severidad:** media. Todo contrato que empieza el 29, 30 o 31 de un mes arrastra un día de error en cada ajuste posterior.
+- **Pasos para reproducir:** crear un contrato trimestral que empieza el 31 de enero de 2025 y ver las fechas del cronograma.
+- **Resultado esperado:** 30 de abril, 31 de julio y 31 de octubre.
+- **Resultado obtenido:** 1 de mayo, 1 de agosto y 1 de noviembre. Con período mensual: 3 de marzo, 3 de abril y 3 de mayo.
+- **Causa raíz:** `ContractsService` tenía su propio `addMonths` con `setMonth` en hora local y generaba cada fecha a partir de la anterior, de modo que el desborde del mes corto se acumulaba. Además su copia de `periodToMonths` devolvía 3 ante un valor desconocido.
+- **Corrección:** `addMonthsClamped` y `periodToMonths` en `packages/shared/src/date-utils`. Cada fecha se calcula desde el ancla (inicio del contrato o último ajuste aplicado) más k períodos, con recorte a fin de mes. Un período desconocido lanza. Se eliminan las copias locales de `ContractsService` y de `ContractAdjustmentService`, y el barrido calcula la fecha siguiente antes de escribir.
+- **Prueba de regresión:** CP-130 en `contract-schedule.spec.ts`; el caso de CP-16 que fijaba la periodicidad `Inventada` como trimestral pasa a verificar que el barrido no aplica el ajuste.
+- **Evidencia rojo/verde:** commit de regresión `088d4b8` en rojo (3 casos de 3); corrección en `a02b0ea`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-11 — Períodos, "hoy" y meses de documentos en hora local del proceso
+
+- **Requisito afectado:** ninguno funcional; consistencia de fechas de negocio (las fechas sin hora se guardan a medianoche UTC).
+- **Origen:** revisión de código (ítem 35) y pruebas de caracterización (L0): el caso de flujo de caja que fallaba con la zona de Buenos Aires (CP-73).
+- **Caso que lo detecta:** CP-131.
+- **Severidad:** media. En un servidor en UTC no se nota; en un proceso con `America/Argentina/Buenos_Aires` el flujo de caja de un trimestre devuelve cuatro renglones, el período de una liquidación se guarda a las 03:00 UTC y el mail de una liquidación de marzo dice "02/2025".
+- **Pasos para reproducir:** correr el servicio con `TZ=America/Argentina/Buenos_Aires` y pedir `getCashFlow` de enero a marzo, o `generate` y `findAll` de liquidaciones.
+- **Resultado esperado:** tres renglones; período `2025-03-01T00:00:00.000Z`; asunto "Liquidación 03/2025".
+- **Resultado obtenido:** cuatro renglones (con diciembre), `2025-03-01T03:00:00.000Z` y "Liquidación 02/2025".
+- **Causa raíz:** `new Date(y, m, d)`, `getMonth()`, `getFullYear()` y `toLocaleDateString` sin `timeZone` en liquidaciones, rendiciones, reportes, panel, cron fiscal, PDF fiscal y los mails y PDF de liquidación y rendición. `computeNextRunAt` estaba copiada en dos archivos.
+- **Corrección:** `monthStartUTC`, `periodFilter`, `periodKey`, `todayInAR` y `formatDateAR` en `date-utils`; los meses se formatean con `timeZone: 'UTC'`; `computeNextRunAt` queda en `reports/compute-next-run-at.ts`. Los punitorios quedan para el PR siguiente.
+- **Prueba de regresión:** CP-131 en `reports.service.spec.ts`, `liquidaciones-periodos.spec.ts`, `renditions-periodos.spec.ts` y `liquidaciones/email.service.spec.ts`; cada una fuerza la zona de Buenos Aires con `process.env.TZ` (entorno `test/setup/tz-environment.js`) y la restaura. `pnpm --filter @realfy/api test:tz-ar` corre toda la suite unitaria en esa zona.
+- **Evidencia rojo/verde:** commit de regresión `dcd1701` en rojo (7 casos); corrección en `d5e2afc`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-12 — La rendición muestra totales que no suman sus líneas
+
+- **Requisito afectado:** ninguno funcional; coherencia del documento de rendición al propietario.
+- **Origen:** pruebas de caracterización (L0) de `rendicion-engine`, que fijaron el comportamiento tal cual.
+- **Caso que lo detecta:** CP-132.
+- **Severidad:** media. Una diferencia de uno o dos centavos entre las líneas y el total aparece cuando los pagos o deducciones traen más de dos decimales.
+- **Pasos para reproducir:** tres pagos de 33,333 con comisión de 3,5 %; dos deducciones de 10,005.
+- **Resultado esperado:** líneas 33,33 + 33,33 + 33,33 = 99,99 y cobrado 99,99; deducciones 10,01 + 10,01 = 20,02 y total 20,02.
+- **Resultado obtenido:** cobrado 100,00 con líneas que suman 99,99; total de deducciones 20,01 con líneas que suman 20,02.
+- **Causa raíz:** el motor redondeaba cada línea pero acumulaba `rentCollected` y `deductionTotal` sobre los montos sin redondear.
+- **Corrección:** ambos totales son la suma de las líneas ya redondeadas; la comisión y el neto se calculan sobre ellos.
+- **Prueba de regresión:** CP-132 en `rendicion-engine.spec.ts` (se actualizan los dos casos de caracterización y se agrega uno de suma de líneas).
+- **Evidencia rojo/verde:** commit de regresión `fcd8e4c` en rojo (3 casos); corrección en `059200d`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-13 — El motor de liquidación acepta descuentos negativos y su total no coincide con lo mostrado
+
+- **Requisito afectado:** ninguno funcional; integridad del total de la liquidación.
+- **Origen:** pruebas de caracterización (L0) de `liquidacion-engine`.
+- **Caso que lo detecta:** CP-133.
+- **Severidad:** baja. El esquema de la API ya rechaza montos negativos, de modo que hoy solo se alcanza con datos cargados por fuera de la API; el motor no tenía defensa propia. La diferencia de un centavo sí es alcanzable.
+- **Pasos para reproducir:** alquiler de 1000 con un Descuento de -100; subtotal 20,005 con descuentos 10,004.
+- **Resultado esperado:** error `INVALID_LINE_AMOUNT`; total 10,01 (20,01 menos 10,00, lo que se imprime).
+- **Resultado obtenido:** total 1100,00; total 10,00 con subtotal y descuentos que muestran 20,01 y 10,00.
+- **Causa raíz:** el motor no validaba el signo y redondeaba el total desde el subtotal y los descuentos sin redondear.
+- **Corrección:** `InvalidLineAmountError` (código `INVALID_LINE_AMOUNT`) ante cualquier renglón negativo, que la API devuelve como 400; total = subtotal redondeado menos descuentos redondeados, con piso en cero.
+- **Prueba de regresión:** CP-133 en `liquidacion-engine.spec.ts`.
+- **Evidencia rojo/verde:** commit de regresión `79c672c` en rojo (7 casos); corrección en `5b342cc`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-14 — La comisión acepta porcentajes mayores a 100 y montos negativos
+
+- **Requisito afectado:** ninguno funcional; reglas de comisión de la rendición.
+- **Origen:** pruebas de caracterización (L0) de `commission-engine` y revisión de código del esquema de comisión.
+- **Caso que lo detecta:** CP-134.
+- **Severidad:** media. `POST /api/contracts/:id/commission` aceptaba `percentage: "150.00"` (el esquema solo limitaba la cantidad de dígitos) y la rendición descontaba más de lo cobrado.
+- **Pasos para reproducir:** `POST /api/contracts/:id/commission` con `{ "type": "FixedPercent", "percentage": "150.00" }`.
+- **Resultado esperado:** 400 `VALIDATION_ERROR` y la configuración anterior intacta.
+- **Resultado obtenido:** 201 y 150 guardado.
+- **Causa raíz:** ni el esquema ni el motor acotaban el porcentaje a 0-100 ni validaban el signo de los montos.
+- **Corrección:** `InvalidCommissionError` (código `INVALID_COMMISSION`) en el motor ante un porcentaje fuera de 0-100 o un monto negativo, que la generación de rendiciones devuelve como 400; el esquema de la configuración rechaza porcentajes mayores a 100.
+- **Prueba de regresión:** CP-134 en `commission-engine.spec.ts` (se reemplazan dos casos de caracterización) y en `test/e2e/renditions.e2e-spec.ts`.
+- **Evidencia rojo/verde:** commit de regresión `cb4493c` en rojo (6 casos unitarios y el e2e); corrección en `72b6f08`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-15 — `LiquidacionStatus.Pendiente` no existe en el paquete compartido
+
+- **Requisito afectado:** ninguno funcional; paridad entre la base y el código compartido.
+- **Origen:** revisión de código; la prueba de paridad de enums lo registraba como deriva conocida.
+- **Caso que lo detecta:** CP-135.
+- **Severidad:** baja. Una liquidación en ese estado llega a la web sin etiqueta traducida y la máquina de estados no la conoce.
+- **Pasos para reproducir:** quitar `Pendiente` de la lista de excepciones de `enum-parity.spec.ts`.
+- **Resultado esperado:** la paridad pasa sin excepciones para `LiquidacionStatus`.
+- **Resultado obtenido:** falla porque el valor está en Prisma y no en shared.
+- **Causa raíz:** la migración `20260714120000_liquidaciones_services` creó el valor y nadie lo agregó a `enums.ts`; además un comentario de `penalties.scheduler.ts` afirmaba que no existía.
+- **Corrección:** el valor entra al enum y a la máquina de estados como estado heredado sin transiciones (no se inventa un flujo), con traducción en es y en, variante de etiqueta en la web y el comentario corregido.
+- **Prueba de regresión:** CP-135 en `test/unit/enum-parity.spec.ts` y `liquidacion-state-machine.spec.ts`.
+- **Evidencia rojo/verde:** commit de regresión `8cf7ef1` en rojo (1 caso); corrección en `b5dc17d`. Ejecuciones del pipeline: se completan al abrir el PR.

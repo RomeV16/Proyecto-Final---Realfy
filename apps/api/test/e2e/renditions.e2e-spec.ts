@@ -249,6 +249,22 @@ describe('Renditions (e2e)', () => {
       expect(Number(res.body.adminFee)).toBe(5000);
     });
 
+    it('POST /contracts/:id/commission — rejects a percentage above 100 (CP-134)', async () => {
+      const chain = await setupFullChain();
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/contracts/${chain.contract.id}/commission`)
+        .set('Authorization', `Bearer ${chain.accessToken}`)
+        .send({ type: CommissionType.FixedPercent, percentage: '150.00' })
+        .expect(400);
+
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+      const stored = await prisma.baseClient.contractCommission.findFirst({
+        where: { contractId: chain.contract.id },
+      });
+      expect(Number(stored?.percentage)).toBe(5);
+    });
+
     it('GET /contracts/:id/commission — returns the config', async () => {
       const chain = await setupFullChain();
 

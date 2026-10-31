@@ -149,9 +149,9 @@ describe('rendicion-engine — líneas', () => {
 });
 
 describe('rendicion-engine — redondeo', () => {
-  it('3 pagos de 33,333: cada línea 33,33 pero el cobrado es 99,999 -> 100,00', () => {
-    // suma 99,999 -> 100,00 ; comisión 3,5 % de 100,00 = 3,50 ; neto 96,50
-    // las líneas Alquiler suman 99,99 y no coinciden con el cobrado: se fija tal cual
+  it('3 pagos de 33,333: las líneas suman 99,99 y el cobrado es 99,99 (DEF-12)', () => {
+    // cada línea 33,33 ; cobrado = suma de las líneas = 99,99
+    // comisión 3,5 % de 99,99 = 3,49965 -> 3,50 ; neto 99,99 - 3,50 = 96,49
     const r = buildRendicionFromPayments(
       [
         { amount: '33.333', description: 'P1' },
@@ -162,11 +162,11 @@ describe('rendicion-engine — redondeo', () => {
     );
 
     expect(resumen(r)).toEqual({
-      rent: '100.00',
+      rent: '99.99',
       commission: '3.50',
       adminFee: '0.00',
       deductions: '0.00',
-      net: '96.50',
+      net: '96.49',
     });
     expect(lineas(r).slice(0, 3).map((l) => l[2])).toEqual(['33.33', '33.33', '33.33']);
   });
@@ -178,9 +178,8 @@ describe('rendicion-engine — redondeo', () => {
     expect(resumen(r)).toMatchObject({ rent: '100.01', commission: '5.00', net: '95.01' });
   });
 
-  it('dos deducciones de 10,005: cada línea 10,01 pero el total es 20,01', () => {
-    // total 20,010 -> 20,01 ; neto = 1000 - 0 - 0 - 20,01 = 979,99
-    // las líneas suman 20,02 y no coinciden con el total: se fija tal cual
+  it('dos deducciones de 10,005: las líneas suman 20,02 y el total es 20,02 (DEF-12)', () => {
+    // cada línea 10,01 ; total = suma de las líneas = 20,02 ; neto = 1000 - 20,02 = 979,98
     const r = buildRendicionFromPayments(
       [{ amount: 1000, description: 'A' }],
       porcentaje(0),
@@ -190,7 +189,7 @@ describe('rendicion-engine — redondeo', () => {
       ],
     );
 
-    expect(resumen(r)).toMatchObject({ deductions: '20.01', net: '979.99' });
+    expect(resumen(r)).toMatchObject({ deductions: '20.02', net: '979.98' });
     expect(lineas(r).slice(-2).map((l) => l[2])).toEqual(['10.01', '10.01']);
   });
 
@@ -199,6 +198,35 @@ describe('rendicion-engine — redondeo', () => {
     const r = buildRendicionFromPayments([{ amount: '0.10', description: 'A' }], porcentaje(5));
 
     expect(resumen(r)).toMatchObject({ commission: '0.01', net: '0.09' });
+  });
+});
+
+describe('rendicion-engine — el documento suma (DEF-12)', () => {
+  it('cobrado y deducciones son la suma de las líneas redondeadas', () => {
+    const r = buildRendicionFromPayments(
+      [
+        { amount: '10.004', description: 'P1' },
+        { amount: '10.004', description: 'P2' },
+        { amount: '10.004', description: 'P3' },
+        { amount: '0.006', description: 'P4' },
+      ],
+      porcentaje(0),
+      [
+        { amount: '1.005', description: 'D1' },
+        { amount: '2.005', description: 'D2' },
+      ],
+    );
+
+    const sum = (type: T) =>
+      r.lineItems
+        .filter((l) => l.type === type)
+        .reduce((acc, l) => acc.plus(l.amount), new Decimal(0))
+        .toFixed(2);
+
+    expect(r.rentCollected.toFixed(2)).toBe(sum(T.Alquiler));
+    expect(r.deductionTotal.toFixed(2)).toBe(sum(T.Deduccion));
+    // 10,00 x 3 + 0,01 = 30,01 ; 1,01 + 2,01 = 3,02 (sin redondear sumarían 30,02 y 3,01) ; neto = 30,01 - 3,02
+    expect(resumen(r)).toMatchObject({ rent: '30.01', deductions: '3.02', net: '26.99' });
   });
 });
 

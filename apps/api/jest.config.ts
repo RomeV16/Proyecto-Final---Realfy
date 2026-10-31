@@ -25,7 +25,8 @@ const config: Config = {
       statements: 38,
     },
   },
-  testEnvironment: 'node',
+  // Entorno que permite a una prueba cambiar TZ (ver test/setup/tz-environment.js).
+  testEnvironment: '<rootDir>/test/setup/tz-environment.js',
   // Zona horaria fija (UTC) sin importar la de la máquina.
   globalSetup: '<rootDir>/test/setup/utc.js',
   moduleNameMapper: {

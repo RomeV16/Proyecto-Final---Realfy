@@ -473,4 +473,33 @@ describe('ReportsService', () => {
       expect(args.where.contract.tenantId).toBe('tenant-1');
     });
   });
+
+  // ─── Zona horaria (CP-131, DEF-11) ────────────────────────────────────────
+
+  describe('getCashFlow con el proceso en hora de Buenos Aires', () => {
+    const previousTz = process.env.TZ;
+
+    beforeAll(() => {
+      process.env.TZ = 'America/Argentina/Buenos_Aires';
+    });
+
+    afterAll(() => {
+      if (previousTz === undefined) delete process.env.TZ;
+      else process.env.TZ = previousTz;
+    });
+
+    it('un trimestre da tres renglones y cada pago cae en su mes UTC', async () => {
+      (prisma.client.payment.findMany as jest.Mock).mockResolvedValue([
+        { amount: '60000.00', paidAt: new Date('2026-01-01T00:00:00Z'), comprobantes: [] },
+        { amount: '40000.00', paidAt: new Date('2026-03-31T12:00:00Z'), comprobantes: [] },
+      ]);
+      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([]);
+
+      const report = await service.getCashFlow({ from: '2026-01-01', to: '2026-03-31' });
+
+      expect(report.rows).toHaveLength(3);
+      expect(report.rows.map((r: any) => r.ingresos)).toEqual(['60000.00', '0.00', '40000.00']);
+      expect(report.rows[0].mes).toMatch(/enero/i);
+    });
+  });
 });

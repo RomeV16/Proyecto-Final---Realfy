@@ -9,46 +9,11 @@ import {
   IndexType,
   ScheduleStatus,
   calculateAdjustment,
+  addMonthsClamped,
+  periodToMonths,
 } from '@realfy/shared';
 import type { AdjustmentParams } from '@realfy/shared';
 import Decimal from 'decimal.js';
-
-// ─── Helpers (module-private) ─────────────────────────────────────────────────
-
-function periodToMonths(period: AdjustmentPeriod): number {
-  switch (period) {
-    case AdjustmentPeriod.Mensual:      return 1;
-    case AdjustmentPeriod.Bimestral:   return 2;
-    case AdjustmentPeriod.Trimestral:  return 3;
-    case AdjustmentPeriod.Cuatrimestral: return 4;
-    case AdjustmentPeriod.Semestral:   return 6;
-    case AdjustmentPeriod.Anual:       return 12;
-    default:                            return 3;
-  }
-}
-
-/**
- * Suma meses en UTC recortando al último día del mes destino: 31 de enero
- * más un mes es 28 (o 29) de febrero, no 3 de marzo (DEF-05). Se opera en
- * UTC porque las fechas de cronograma se guardan a medianoche UTC y la
- * aritmética en hora local las corría un día en UTC-3.
- */
-function addMonths(date: Date, months: number): Date {
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth() + months;
-  const lastDayOfTarget = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  return new Date(
-    Date.UTC(
-      year,
-      month,
-      Math.min(date.getUTCDate(), lastDayOfTarget),
-      date.getUTCHours(),
-      date.getUTCMinutes(),
-      date.getUTCSeconds(),
-      date.getUTCMilliseconds(),
-    ),
-  );
-}
 
 const toDecimal = (row: { value: unknown }) => new Decimal(String(row.value));
 
@@ -259,6 +224,11 @@ export class ContractAdjustmentService {
           });
 
           const adjustmentResult = calculateAdjustment(params);
+
+          // ── Next adjustment date (falla antes de escribir si el período es desconocido)
+          const months = periodToMonths(contract.adjustmentPeriod as AdjustmentPeriod);
+          const nextDate = addMonthsClamped(schedule.nextAdjustmentDate, months);
+
           delta = adjustmentResult.newRent.minus(currentRent);
 
           // ── Update contract rentAmount and mark schedule Applied ──────────
@@ -271,10 +241,6 @@ export class ContractAdjustmentService {
             where: { id: schedule.id },
             data: { status: ScheduleStatus.Applied },
           });
-
-          // ── Advance next adjustment date ──────────────────────────────────
-          const months = periodToMonths(contract.adjustmentPeriod as AdjustmentPeriod);
-          const nextDate = addMonths(schedule.nextAdjustmentDate, months);
 
           // Create audit log entry via baseClient (no tenant context in batch job)
           await tx.auditLog.create({

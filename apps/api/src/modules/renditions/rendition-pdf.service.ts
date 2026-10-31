@@ -33,9 +33,10 @@ export class RenditionPdfService {
     const monthYear = period.toLocaleDateString('es-AR', {
       month: 'long',
       year: 'numeric',
+      timeZone: 'UTC',
     });
-    const monthNum = String(period.getMonth() + 1).padStart(2, '0');
-    const yearNum = period.getFullYear();
+    const monthNum = String(period.getUTCMonth() + 1).padStart(2, '0');
+    const yearNum = period.getUTCFullYear();
 
     const ownerName = rendicion.owner
       ? `${rendicion.owner.firstName} ${rendicion.owner.lastName}`

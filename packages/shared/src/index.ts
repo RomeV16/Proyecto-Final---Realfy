@@ -388,6 +388,19 @@ export {
   escapeHtml,
 } from './template-engine';
 
+// Fechas en UTC y dinero exacto
+export {
+  addMonthsClamped,
+  periodToMonths,
+  monthStartUTC,
+  periodFilter,
+  periodKey,
+  todayInAR,
+  formatDateAR,
+} from './date-utils';
+export { Money, round2, toAmountString, sumMoney, allocateLargestRemainder } from './money';
+export type { MoneyInput } from './money';
+
 // Adjustment engine
 export {
   calculateIPC,
@@ -404,11 +417,12 @@ export {
   calculateLineItemsTotal,
   calculateRemainingBalance,
   isFullyPaid,
+  InvalidLineAmountError,
 } from './liquidacion-engine';
 export type { LineItemInput, LineItemsTotalResult, PaymentInput } from './liquidacion-engine';
 
 // Commission engine
-export { calculateCommission } from './commission-engine';
+export { calculateCommission, InvalidCommissionError } from './commission-engine';
 export type { CommissionConfig, CommissionResult } from './commission-engine';
 
 // Rendicion engine

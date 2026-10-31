@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import Decimal from 'decimal.js';
+import { monthStartUTC, periodKey, todayInAR } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   buildMonthRange,
@@ -196,8 +197,8 @@ export class DashboardService {
       }));
 
     // ── Collections (current cycle) + delinquency (all outstanding) ──
-    const curKey = `${now.getFullYear()}-${now.getMonth()}`;
-    const periodKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`;
+    const today = todayInAR(now);
+    const curKey = periodKey(today);
     let pagada = 0; // cobrado en el ciclo actual
     let pendiente = 0; // facturado sin cobrar del ciclo actual
     let vencida = 0; // deuda vencida acumulada (todos los ciclos)
@@ -233,20 +234,20 @@ export class DashboardService {
     // ── Revenue trend — last 6 months (expected vs collected) ──
     const revenueTrend: { month: string; expected: number; collected: number }[] = [];
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
+      const d = monthStartUTC(today.getUTCFullYear(), today.getUTCMonth() + 1 - i);
+      const key = periodKey(d);
       let expected = 0;
       let collected = 0;
       for (const l of liquidaciones) {
         const lp = l.period;
-        if (`${lp.getFullYear()}-${lp.getMonth()}` === key) {
+        if (periodKey(lp) === key) {
           const amt = Number(l.total);
           expected += amt;
           if (l.status === 'Pagada') collected += amt;
         }
       }
       revenueTrend.push({
-        month: MONTHS_ES[d.getMonth()],
+        month: MONTHS_ES[d.getUTCMonth()],
         expected: Math.round(expected),
         collected: Math.round(collected),
       });

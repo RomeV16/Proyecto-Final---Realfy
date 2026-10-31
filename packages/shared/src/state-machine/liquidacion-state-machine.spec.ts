@@ -12,6 +12,7 @@ const permitidas: Array<[S, S[]]> = [
   [S.Borrador, [S.Revision, S.Anulada]],
   [S.Revision, [S.Aprobada, S.Borrador, S.Anulada]],
   [S.Aprobada, [S.Enviada, S.Anulada]],
+  [S.Pendiente, []],
   [S.Enviada, [S.Pagada, S.Vencida, S.Anulada]],
   [S.Pagada, []],
   [S.Vencida, [S.Pagada, S.Anulada]],
@@ -57,6 +58,15 @@ describe('máquina de estados de liquidación', () => {
     });
   });
 
+  describe('Pendiente (estado heredado, sin flujo definido)', () => {
+    it('ningún estado entra ni sale de Pendiente', () => {
+      expect(getValidLiquidacionTransitions(S.Pendiente)).toEqual([]);
+      for (const from of todos) {
+        expect(validateLiquidacionTransition(from, S.Pendiente)).toBe(false);
+      }
+    });
+  });
+
   describe('estados terminales', () => {
     it.each([S.Pagada, S.Anulada])('%s no tiene salidas', (terminal) => {
       expect(getValidLiquidacionTransitions(terminal)).toEqual([]);
@@ -68,7 +78,7 @@ describe('máquina de estados de liquidación', () => {
 
   describe('entradas inválidas', () => {
     it('rechaza un estado de origen desconocido', () => {
-      const raro = 'Pendiente' as S;
+      const raro = 'Inventado' as S;
       expect(validateLiquidacionTransition(raro, S.Borrador)).toBe(false);
       expect(getValidLiquidacionTransitions(raro)).toEqual([]);
     });

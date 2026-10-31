@@ -7,6 +7,7 @@ import { ReportExcelService } from './report-excel.service';
 import { ReportPdfService } from './report-pdf.service';
 import { CommonEmailService } from '../../common/email/common-email.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
+import { computeNextRunAt } from './compute-next-run-at';
 
 /** File extensions and MIME types for report formats */
 const FORMAT_META: Record<string, { ext: string; mime: string }> = {
@@ -33,29 +34,6 @@ const FILE_NAMES: Record<string, string> = {
   pipelineAnalytics: 'analitica-pipeline',
   morosidad: 'morosidad',
 };
-
-/**
- * Compute the next run timestamp based on frequency.
- * daily  → tomorrow 12:00 UTC
- * weekly → next Monday 12:00 UTC
- * monthly → 1st of next month 12:00 UTC
- */
-function computeNextRunAt(frequency: string): Date {
-  const now = new Date();
-  switch (frequency) {
-    case 'daily':
-      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 12));
-    case 'weekly': {
-      const dayOfWeek = now.getUTCDay();
-      const daysUntilMon = dayOfWeek === 0 ? 1 : dayOfWeek === 1 ? 7 : 8 - dayOfWeek;
-      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilMon, 12));
-    }
-    case 'monthly':
-      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 12));
-    default:
-      return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 12));
-  }
-}
 
 @Injectable()
 export class ReportSchedulerService {

@@ -9,7 +9,8 @@ const decimalString = z.union([z.string(), z.number().transform(String)]).pipe(
 
 const percentageString = z
   .string()
-  .regex(/^\d{1,3}(\.\d{1,2})?$/, 'Must be a valid percentage (0-100) with up to 2 decimal places');
+  .regex(/^\d{1,3}(\.\d{1,2})?$/, 'Must be a valid percentage (0-100) with up to 2 decimal places')
+  .refine((value) => Number(value) <= 100, 'Percentage cannot be greater than 100');
 
 // ─── Create Commission Schema ───────────────────────────
 

@@ -474,7 +474,6 @@ describe('ContractAdjustmentService', () => {
       [AdjustmentPeriod.Cuatrimestral, '2025-08-01'],
       [AdjustmentPeriod.Semestral, '2025-10-01'],
       [AdjustmentPeriod.Anual, '2026-04-01'],
-      ['Inventada', '2025-07-01'],
     ])('CP-16: periodicidad %s avanza la próxima fecha a %s', async (period, expected) => {
       mockFindManyDueSchedules.mockResolvedValueOnce([makeDue({ adjustmentPeriod: period })]);
 
@@ -482,6 +481,16 @@ describe('ContractAdjustmentService', () => {
 
       const next = mockTxAuditCreate.mock.calls[0][0].data.changes.nextAdjustmentDate;
       expect(next.slice(0, 10)).toBe(expected);
+    });
+
+    it('CP-16: una periodicidad desconocida no aplica el ajuste ni asume trimestral (DEF-10)', async () => {
+      mockFindManyDueSchedules.mockResolvedValueOnce([makeDue({ adjustmentPeriod: 'Inventada' })]);
+
+      const result = await service.applyDueAdjustments();
+
+      expect(result).toEqual([]);
+      expect(mockTxContractUpdate).not.toHaveBeenCalled();
+      expect(mockTxAuditCreate).not.toHaveBeenCalled();
     });
 
     it.each([

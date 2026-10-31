@@ -178,6 +178,7 @@ export enum LiquidacionStatus {
   Borrador = 'Borrador',
   Revision = 'Revision',
   Aprobada = 'Aprobada',
+  Pendiente = 'Pendiente',
   Enviada = 'Enviada',
   Pagada = 'Pagada',
   Vencida = 'Vencida',

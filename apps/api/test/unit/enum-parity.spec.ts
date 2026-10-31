@@ -23,10 +23,7 @@ const SOLO_EN_PRISMA = [
 ];
 
 /** Valores presentes en Prisma y ausentes en shared, por enum. */
-const VALORES_SOLO_EN_PRISMA: Record<string, string[]> = {
-  // Estado heredado: la maquina de estados de shared no lo conoce. Se corrige en B11.
-  LiquidacionStatus: ['Pendiente'],
-};
+const VALORES_SOLO_EN_PRISMA: Record<string, string[]> = {};
 
 /** Valores presentes en shared y ausentes en Prisma, por enum. */
 const VALORES_SOLO_EN_SHARED: Record<string, string[]> = {};

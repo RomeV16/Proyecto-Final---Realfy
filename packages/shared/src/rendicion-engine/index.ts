@@ -1,9 +1,7 @@
-import Decimal from 'decimal.js';
+import type Decimal from 'decimal.js';
+import { Money } from '../money';
 import { RendicionLineItemType } from '../enums';
 import { calculateCommission, CommissionConfig } from '../commission-engine';
-
-// Configure Decimal for financial calculations: 20 significant digits, ROUND_HALF_UP
-Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -43,6 +41,8 @@ export interface RendicionResult {
  *   3. AdminFee — admin fee (if > 0)
  *   4. Deduccion — one per deduction input
  *
+ * rentCollected y deductionTotal son la suma de las líneas ya redondeadas: el
+ * documento tiene que sumar lo que muestra.
  * netDeposit = rentCollected - commissionAmount - adminFeeAmount - deductionTotal
  * All arithmetic uses Decimal.js; outputs are rounded to 2 decimal places.
  */
@@ -52,20 +52,18 @@ export function buildRendicionFromPayments(
   deductions: RendicionDeductionInput[] = [],
 ): RendicionResult {
   const lineItems: RendicionLineItem[] = [];
-  let rentCollected = new Decimal(0);
+  let rentCollected = new Money(0);
 
   // 1. Alquiler line items (one per payment)
   for (const payment of payments) {
-    const amt = new Decimal(payment.amount);
+    const amt = new Money(payment.amount).toDecimalPlaces(2);
     rentCollected = rentCollected.plus(amt);
     lineItems.push({
       type: RendicionLineItemType.Alquiler,
       description: payment.description,
-      amount: amt.toDecimalPlaces(2),
+      amount: amt,
     });
   }
-
-  rentCollected = rentCollected.toDecimalPlaces(2);
 
   // 2. Commission calculation
   const commResult = calculateCommission(rentCollected, commissionConfig);
@@ -87,18 +85,16 @@ export function buildRendicionFromPayments(
   }
 
   // 5. Deduction line items
-  let deductionTotal = new Decimal(0);
+  let deductionTotal = new Money(0);
   for (const deduction of deductions) {
-    const amt = new Decimal(deduction.amount);
+    const amt = new Money(deduction.amount).toDecimalPlaces(2);
     deductionTotal = deductionTotal.plus(amt);
     lineItems.push({
       type: RendicionLineItemType.Deduccion,
       description: deduction.description,
-      amount: amt.toDecimalPlaces(2),
+      amount: amt,
     });
   }
-
-  deductionTotal = deductionTotal.toDecimalPlaces(2);
 
   // 6. Net deposit = rent - commission - adminFee - deductions
   const netDeposit = rentCollected

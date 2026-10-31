@@ -1,6 +1,6 @@
 # Catálogo de casos de prueba
 
-Versión 1.3 — 30 de octubre de 2026 (1.0: 19 de octubre; 1.1: 20 de octubre; 1.2: 28 de octubre). El resultado esperado de cada caso se
+Versión 1.4 — 31 de octubre de 2026 (1.0: 19 de octubre; 1.1: 20 de octubre; 1.2: 28 de octubre; 1.3: 30 de octubre). El resultado esperado de cada caso se
 fijó antes de ejecutar la prueba. La columna "prueba" apunta al archivo y
 al nombre del caso en la suite; "estado" se actualiza con cada ejecución.
 Los casos CP-01 a CP-04 y CP-40 a CP-49 ya existían en la tesis y se
@@ -162,6 +162,20 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | CP-60 | Despliegue nuevo: salud, registro, listado, carga manual, último valor, 401 sin token | 6 pasos en verde (`test/smoke/smoke.mjs`) | verde en local (API compilada en modo producción); en el pipeline sobre la imagen Docker |
 | CP-70 | Stress: 50 VU, 2 min, `GET /api/index-data` | p95 < 500 ms, errores < 1 % | pendiente |
 | CP-71 | Esfuerzo sostenido: 10 VU, 10 min | p95 estable (crecimiento < 20 %), errores < 1 % | pendiente |
+
+## Casos de fechas y dinero (ítem 35)
+
+Reservados CP-130 a CP-139. El resultado esperado se fijó antes de corregir cada defecto.
+
+| ID | Qué | Esperado (fijado antes) | Prueba | Estado |
+|---|---|---|---|---|
+| CP-130 | Cronograma de ajustes de un contrato que empieza el 31 de enero, período trimestral y mensual; período desconocido | 30 abr, 31 jul y 31 oct (mensual: 28 feb, 31 mar, 30 abr, 31 may); un período desconocido lanza en lugar de asumir trimestral. Regla: `inicio + k períodos` con recorte a fin de mes | `contracts/contract-schedule.spec.ts` (3 casos); `index-data/contract-adjustment.service.spec.ts::CP-16` | verde (DEF-10 corregido) |
+| CP-131 | Períodos y meses de documentos con el proceso en `America/Argentina/Buenos_Aires` | flujo de caja de un trimestre: 3 renglones; período de liquidación `2025-03-01T00:00:00.000Z` y vencimiento el 10 a medianoche UTC; filtros de mes y de año de liquidaciones y rendiciones en UTC; asunto "Liquidación 03/2025". Regla: las fechas sin hora son medianoche UTC | `reports/reports.service.spec.ts`, `liquidaciones/liquidaciones-periodos.spec.ts`, `renditions/renditions-periodos.spec.ts`, `liquidaciones/email.service.spec.ts` (7 casos); `pnpm --filter @realfy/api test:tz-ar` | verde (DEF-11 corregido) |
+| CP-132 | Rendición: totales contra líneas | tres pagos de 33,333: cobrado 99,99 y neto 96,49 (comisión 3,5 %); dos deducciones de 10,005: total 20,02 y neto 979,98; en todo caso el total es la suma de las líneas. Regla: un documento suma lo que muestra | `packages/shared/src/rendicion-engine/rendicion-engine.spec.ts` (3 casos) | verde (DEF-12 corregido) |
+| CP-133 | Liquidación: signo de los renglones y total | un renglón negativo de cualquier tipo lanza `INVALID_LINE_AMOUNT`; 20,005 de subtotal y 10,004 de descuentos dan total 10,01; 0,005 y 0,004 dan 0,01. Regla: total = subtotal redondeado menos descuentos redondeados | `packages/shared/src/liquidacion-engine/liquidacion-engine.spec.ts` (7 casos) | verde (DEF-13 corregido) |
+| CP-134 | Comisión: porcentaje y montos fuera de rango | porcentaje 150, 100,01, -1 o -0,01, cobrado, monto fijo o gastos negativos lanzan `INVALID_COMMISSION`; 0 y 100 son válidos; `POST /contracts/:id/commission` con 150,00 responde 400 `VALIDATION_ERROR`. Regla: el porcentaje está entre 0 y 100 | `packages/shared/src/commission-engine/commission-engine.spec.ts` (6 casos); `test/e2e/renditions.e2e-spec.ts::CP-134` | verde (DEF-14 corregido) |
+| CP-135 | Paridad de `LiquidacionStatus` con Prisma, incluido `Pendiente` | sin excepciones registradas; la máquina de estados cubre todos los valores del enum y `Pendiente` no tiene transiciones | `test/unit/enum-parity.spec.ts`; `liquidacion-state-machine.spec.ts` | verde (DEF-15 corregido) |
+| CP-136 | Utilidades compartidas de fechas (`addMonthsClamped`, `periodToMonths`, `monthStartUTC`, `periodFilter`, `periodKey`, `todayInAR`, `formatDateAR`) y de dinero (`Money`, `round2`, `toAmountString`, `sumMoney`, `allocateLargestRemainder`) | años bisiestos y fines de mes (31 ene + 1 = 28/29 feb; 29 feb + 12 = 28 feb), 02:00 UTC es el día anterior en Buenos Aires, el reparto de 100 en tres suma exactamente 100,00 y `Money` no cambia el `Decimal` global | `packages/shared/src/date-utils/date-utils.spec.ts`, `packages/shared/src/money/money.spec.ts`, `reports/compute-next-run-at.spec.ts` | verde (31 oct) |
 
 ## Casos de base de proceso
 

@@ -8,6 +8,7 @@ const STATUS_VARIANT: Record<string, 'neutral' | 'success' | 'warning' | 'danger
   [LiquidacionStatus.Borrador]: 'neutral',
   [LiquidacionStatus.Revision]: 'info',
   [LiquidacionStatus.Aprobada]: 'success',
+  [LiquidacionStatus.Pendiente]: 'warning',
   [LiquidacionStatus.Enviada]: 'brand',
   [LiquidacionStatus.Pagada]: 'success',
   [LiquidacionStatus.Vencida]: 'danger',

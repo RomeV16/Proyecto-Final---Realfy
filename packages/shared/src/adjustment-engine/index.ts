@@ -1,8 +1,6 @@
-import Decimal from 'decimal.js';
+import type Decimal from 'decimal.js';
+import { Money } from '../money';
 import { AdjustmentType } from '../enums';
-
-// Configure Decimal for financial calculations: 20 significant digits, ROUND_HALF_UP
-Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -28,13 +26,13 @@ export function calculateIPC(
   baseRent: Decimal,
 ): AdjustmentResult {
   if (monthlyValues.length === 0) {
-    return { newRent: baseRent, percentage: new Decimal(0) };
+    return { newRent: baseRent, percentage: new Money(0) };
   }
 
   // Build multiplicative chain: product = Π(1 + m_i/100)
-  let product = new Decimal(1);
+  let product = new Money(1);
   for (const m of monthlyValues) {
-    product = product.mul(new Decimal(1).plus(m.div(100)));
+    product = product.mul(new Money(1).plus(m.div(100)));
   }
 
   // percentage = (product - 1) * 100
@@ -77,15 +75,15 @@ export function calculateCCP(
   }
 
   if (cvsPcts.length === 0) {
-    return { newRent: baseRent, percentage: new Decimal(0) };
+    return { newRent: baseRent, percentage: new Money(0) };
   }
 
-  let product = new Decimal(1);
+  let product = new Money(1);
   for (let i = 0; i < cvsPcts.length; i++) {
-    const cvsComponent = new Decimal('0.9').mul(cvsPcts[i]);
+    const cvsComponent = new Money('0.9').mul(cvsPcts[i]);
     const cerComponent = cerPcts[i];
-    const factor = Decimal.min(cvsComponent, cerComponent);
-    product = product.mul(new Decimal(1).plus(factor.div(100)));
+    const factor = Money.min(cvsComponent, cerComponent);
+    product = product.mul(new Money(1).plus(factor.div(100)));
   }
 
   const percentage = product.minus(1).mul(100);
@@ -101,7 +99,7 @@ export function calculateFixedPercent(
   percentage: Decimal,
   baseRent: Decimal,
 ): AdjustmentResult {
-  const factor = new Decimal(1).plus(percentage.div(100));
+  const factor = new Money(1).plus(percentage.div(100));
   const newRent = baseRent.mul(factor).toDecimalPlaces(2);
 
   return { newRent, percentage };
