@@ -162,6 +162,33 @@ los datos fiscales y bancarios, que después alimentan la rendición, y los
 documentos adjuntos. Admin y Gerente ven además la sección de puntaje del
 inquilino.
 
+La ficha se divide en cuatro pestañas: *Datos* (tipo de persona, documento,
+domicilio, estado civil, nacionalidad, forma de cobro, datos fiscales, roles,
+documentos y puntaje), *Cuentas bancarias*, *Poderes* y *Contratos como locador*.
+Todos los datos de la parte son opcionales; vaciar uno al editar lo borra.
+
+**Cuentas bancarias.** Una persona puede tener varias cuentas, en pesos o en
+dólares. Con *Agregar cuenta* se carga la moneda, el banco, el CBU (22 dígitos),
+el alias y el titular. La primera cuenta de cada moneda queda como
+predeterminada, y siempre tiene que haber una por moneda: para dejar otra como
+predeterminada se usa *Hacer predeterminada*, y no se puede soltar ni eliminar la
+predeterminada mientras haya otras de la misma moneda (el sistema avisa con el
+motivo). La moneda de una cuenta no se cambia: se crea otra. Eliminar pide
+confirmación.
+
+**Poderes.** En *Poderes* se ven los poderes que la persona otorgó, que se
+editan o se revocan, y los que ejerce como apoderada, que son de solo lectura.
+*Otorgar poder* pide el apoderado (se busca por nombre o documento), los
+alcances (cobrar, firmar, administrar), el modo de firma (indistinta: firma uno;
+conjunta: firman todos los que comparten la misma clave de grupo), a qué aplica
+(general, un contrato o una propiedad), la vigencia y el enlace al documento del
+poder. Una persona no puede darse poder a sí misma. Un poder de cobro que un
+locador usa para que cobre su apoderado no se puede revocar mientras esté en uso.
+
+**Contratos como locador.** Lista los contratos en los que la persona alquila y
+cobra, con su porcentaje de cobro, quién cobra y la vigencia, con enlace a cada
+contrato.
+
 Desde el detalle de una persona con rol de inquilino se genera la invitación al
 portal, que es la operación que le habilita el acceso a la autogestión.
 
@@ -191,8 +218,9 @@ Gerente y Ventas —los mismos roles que pueden cargar un contrato—. Para que 
 contrato se pueda activar:
 
 - la propiedad tiene que existir y no estar dada de baja;
-- tiene que tener al menos un propietario y, salvo que sea de venta, al menos un
-  inquilino (un garante no reemplaza a ninguno de los dos);
+- tiene que tener locadores cuyos porcentajes de cobro sumen exactamente 100 % en
+  cada fecha del contrato y, salvo que sea de venta, al menos un inquilino (un
+  garante no reemplaza a ninguno de los dos);
 - la fecha de fin tiene que ser posterior a la de inicio;
 - si es un alquiler, la propiedad no puede tener otro contrato de alquiler activo
   cuyas fechas se superpongan con las de este. Que uno termine el mismo día en que
@@ -229,6 +257,56 @@ misma pantalla, y produce el resumen de cierre. Si el contrato rescindido era el
 *Disponible*; si queda otro contrato activo sobre la propiedad, o si alguien ya
 había movido la operación a otro estado, no se toca. Lo mismo pasa cuando un
 contrato activo se marca como vencido o renovado.
+
+### Cargar los locadores de un contrato y su porcentaje de cobro
+
+El locador es quien alquila y cobra, y es una relación del contrato: una persona
+no necesita tener un rol especial para serlo. En *Nuevo contrato*, el paso de
+personas pide los **locadores**: se busca a cada persona y se la agrega; el
+sistema reparte el 100 % en partes iguales y cada porcentaje se puede corregir
+(mientras se editó alguno, agregar o quitar locadores ya no reparte solo). El
+aviso debajo de la lista dice si el reparto suma 100 %. Con otra suma se puede
+guardar como borrador, pero no activar: *Guardar y activar* queda deshabilitado
+hasta que sumen 100 %.
+
+En el detalle del contrato, la sección **Locadores** muestra, para cada uno, la
+persona, el carácter (propietario, usufructuario, sublocador, acreedor u otro),
+el porcentaje de cobro, quién cobra, la cuenta y la vigencia. Admin, Gerente y
+Ventas ven *Editar locadores*, que abre el conjunto completo y lo guarda de una
+vez. Mientras se edita, el indicador muestra la suma de los locadores vigentes:
+el botón *Guardar locadores* solo se habilita con 100,0000 % exacto en cada fecha
+del contrato, y si falta o sobra, el aviso dice cuánto. Para cada locador se elige:
+
+- el **porcentaje de cobro**, con hasta 4 decimales (se acepta coma);
+- **quién cobra**: por defecto el propio locador, o un apoderado que tenga un poder
+  de cobro vigente de ese locador (la lista solo ofrece a esos);
+- la **cuenta** de cobro, entre las cuentas del locador;
+- la **vigencia** (desde y hasta). Una cesión se carga cerrando a un locador con
+  su fecha de fin y agregando al nuevo con esa misma fecha de inicio.
+
+Si el sistema rechaza el reparto, el aviso lo explica y, cuando las fechas no
+cierran, lista los días en que la suma no da 100 %.
+
+**Contratos migrados.** Los contratos que tenían varios propietarios se pasaron a
+locadores con partes iguales y quedaron marcados **A revisar**: ese reparto es
+una suposición. Hay que confirmar los porcentajes reales en *Editar locadores* y
+guardar; al cambiar el porcentaje de un locador la marca se baja. Un contrato
+que todavía muestra propietarios sueltos con la etiqueta **A migrar** se carga
+desde *Cargar locadores*, que parte de esos propietarios con reparto igual.
+
+La sección **Apoderados** del contrato lista los poderes vigentes que aplican: los
+propios del contrato y los generales de cada locador, con sus alcances, el modo
+de firma y un enlace a la ficha del poderdante. Se cargan desde la pestaña
+*Poderes* de la persona.
+
+### Titulares de una propiedad
+
+En el detalle de la propiedad, la sección **Titulares** registra quién figura
+como dueño del inmueble: persona, porcentaje (opcional), título y fechas. Es
+informativo: no decide pagos —el reparto del cobro se define en cada contrato— y
+no se exige que los porcentajes sumen 100. Si los porcentajes cargados no suman
+100 %, aparece un aviso que no impide guardar. Agregar y quitar titulares es de
+Admin, Gerente y Ventas; quitar pide confirmación.
 
 ### Generar la liquidación del mes
 
