@@ -137,7 +137,7 @@ const CASES: Case[] = [
     name: 'IPC sin valores (D2)',
     contract: { adjustmentType: AdjustmentType.IPC },
     manual: { error: 'MISSING_INDEX_DATA' },
-    preview: { rent: '100000.00' },
+    preview: { error: 'MISSING_INDEX_DATA' },
     auto: 'skipped',
   },
   {
@@ -152,7 +152,7 @@ const CASES: Case[] = [
     name: 'ICL sin valores (D4)',
     contract: { adjustmentType: AdjustmentType.ICL },
     manual: { error: 'MISSING_INDEX_DATA' },
-    preview: { rent: '100000.00' },
+    preview: { error: 'MISSING_INDEX_DATA' },
     auto: 'skipped',
   },
   {
@@ -160,8 +160,8 @@ const CASES: Case[] = [
     contract: { adjustmentType: AdjustmentType.ICL },
     series: { [IndexType.ICL]: ['100'] },
     manual: { error: 'MISSING_INDEX_DATA' },
-    preview: { rent: '100000.00' },
-    auto: { rent: '100000.00' },
+    preview: { error: 'MISSING_INDEX_DATA' },
+    auto: 'skipped',
   },
   {
     name: 'CCP con CVS 2,0 y CER 1,5 toma el CER (D6)',
@@ -192,7 +192,7 @@ const CASES: Case[] = [
     contract: { adjustmentType: AdjustmentType.CCP },
     series: { [IndexType.CVS]: ['2.0'] },
     manual: { error: 'MISSING_INDEX_DATA' },
-    preview: { rent: '100000.00' },
+    preview: { error: 'MISSING_INDEX_DATA' },
     auto: 'skipped',
   },
   {
@@ -206,8 +206,8 @@ const CASES: Case[] = [
     name: 'porcentaje fijo sin porcentaje declarado (D9)',
     contract: { adjustmentType: AdjustmentType.FixedPercent },
     manual: { error: 'MISSING_ADJUSTMENT_PCT' },
-    preview: { rent: '100000.00' },
-    auto: { rent: '100000.00' },
+    preview: { error: 'MISSING_ADJUSTMENT_PCT' },
+    auto: 'skipped',
   },
   {
     name: 'personalizado 7,5 % (D10)',
@@ -220,15 +220,15 @@ const CASES: Case[] = [
     name: 'personalizado sin porcentaje declarado',
     contract: { adjustmentType: AdjustmentType.Custom },
     manual: { error: 'MISSING_ADJUSTMENT_PCT' },
-    preview: { rent: '100000.00' },
-    auto: { rent: '100000.00' },
+    preview: { error: 'MISSING_ADJUSTMENT_PCT' },
+    auto: 'skipped',
   },
   {
     name: 'modalidad desconocida',
     contract: { adjustmentType: 'OTRA' },
     manual: { error: 'UNKNOWN_ADJUSTMENT_TYPE' },
-    preview: { rent: '100000.00' },
-    auto: { rent: '100000.00' },
+    preview: { error: 'UNKNOWN_ADJUSTMENT_TYPE' },
+    auto: 'skipped',
   },
 ];
 
@@ -283,6 +283,24 @@ describe('Caminos de cálculo del ajuste (caracterización)', () => {
       expect(preview).toHaveLength(1);
       expect(preview[0][2]).not.toHaveProperty('startExclusive');
       expect(manual[0].slice(0, 2)).toEqual(preview[0].slice(0, 2));
+    });
+  });
+
+  describe('previsualización sin datos de índice', () => {
+    it('responde 400 MISSING_INDEX_DATA con el índice y el período que faltan, como el cálculo manual', async () => {
+      const contract = baseContract({ adjustmentType: AdjustmentType.CCP });
+      const { adjustments, contracts } = build(contract, { [IndexType.CVS]: ['2.0'] });
+      const expected = {
+        error: 'MISSING_INDEX_DATA',
+        indexType: IndexType.CER,
+        periodStart: contract.startDate,
+        periodEnd: SCHEDULE_DATE,
+      };
+      const preview = await adjustments.preview('contract-1').catch((e) => e);
+      const manual = await contracts.calculateAdjustment('contract-1', 'schedule-1').catch((e) => e);
+      expect(preview.getStatus?.()).toBe(400);
+      expect(preview.getResponse?.()).toMatchObject(expected);
+      expect(manual.getResponse?.()).toMatchObject(expected);
     });
   });
 
