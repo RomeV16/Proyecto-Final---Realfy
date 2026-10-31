@@ -184,6 +184,8 @@ describe('Renditions (e2e)', () => {
             description: 'Alquiler 03/2026',
             amount: '150000.00',
             currency: 'ARS',
+            commissionable: true,
+            beneficiary: 'Locador',
           },
         },
       },
