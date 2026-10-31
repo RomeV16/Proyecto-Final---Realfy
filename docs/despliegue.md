@@ -26,6 +26,30 @@ eso se define en los ajustes del servicio, indicando la raíz del repositorio co
 directorio de trabajo y `apps/api/railway.json` o `apps/web/railway.json` como
 archivo de configuración.
 
+## Ambientes
+
+El proyecto de Railway tiene dos ambientes (`environment`), con los mismos
+servicios y configuración pero sin nada en común en datos ni en secretos:
+
+| Ambiente | Para qué | Datos |
+|---|---|---|
+| `production` | Demostración de la defensa | Solo sintéticos |
+| `piloto` | Uso real en la inmobiliaria piloto | Reales; base, almacenamiento, API y web aislados |
+
+El ambiente `piloto` tiene sus propios secretos: contraseña de la base,
+contraseña del almacenamiento, `JWT_SECRET` y `ARCA_MASTER_KEY`. Ninguno se
+comparte con `production`. Las URL del ambiente piloto se guardan en la
+configuración privada del equipo y no figuran en este repositorio.
+
+Las variables de este proyecto son valores literales, no referencias entre
+servicios. Por eso, cuando un ambiente se duplica, toda variable que apunte al
+dominio de otro ambiente (`CORS_ORIGINS`, `NEXT_PUBLIC_API_URL`,
+`API_PROXY_TARGET`, `S3_ENDPOINT`) sigue apuntando al ambiente de origen hasta
+que se la sobrescribe a mano. Es el error más fácil de cometer al crear un
+ambiente: el piloto parecería andar, pero hablaría con la API o el
+almacenamiento de la demostración. Después de duplicar hay que revisar una por
+una las variables de cada servicio.
+
 ## Requisitos previos
 
 Una cuenta en el proveedor, el repositorio conectado por GitHub, y una base
@@ -56,7 +80,8 @@ que evita llegar a producción con una migración inválida.
 
 Para volver a foja cero durante la etapa de demostración, lo más simple es borrar
 y recrear el servicio de base de datos, o correr `prisma migrate reset` contra
-`DATABASE_URL`.
+`DATABASE_URL`. Esto vale solo para `production`: en `piloto` está prohibido
+(ver «Reglas para el ambiente piloto»).
 
 ## Servicio de API
 
@@ -222,13 +247,98 @@ generan aleatoriamente; para `JWT_SECRET` y `ARCA_MASTER_KEY` alcanza con
 
 ## Operación cotidiana
 
-Un empuje a `main` redespliega los dos servicios, si la integración con GitHub
-está activa. Frente a cualquier problema, el primer paso son los registros del
-servicio.
+Los despliegues son manuales y por ambiente (ver «Despliegue controlado»): un
+empuje a `main` no redespliega nada. Frente a cualquier problema, el primer paso
+son los registros del servicio.
 
 Dos operaciones merecen cuidado: dar de baja el servicio de base de datos borra
 los datos de forma irreversible, y reiniciar el servicio web reutiliza la imagen
 ya construida, con lo cual no toma los cambios de `NEXT_PUBLIC_API_URL`.
+
+## Despliegue controlado
+
+Los despliegues no se disparan por un empuje al repositorio. Se hacen a mano con
+la línea de comandos de Railway, para cada servicio y cada ambiente:
+
+```bash
+railway up --service api --environment <ambiente> --detach
+railway up --service web --environment <ambiente> --detach
+```
+
+Reglas:
+
+- Solo se despliega desde `main`, y con la integración continua en verde.
+- Primero `production`. Se verifica allí (punto de salud, ingreso y una
+  pantalla) y recién después se despliega a `piloto`, con la misma verificación.
+- Una migración con relleno de datos (backfill) en `piloto` exige antes una copia
+  de la base y un ensayo de la migración sobre una restauración local de esa
+  copia (ver «Copias de seguridad y restauración»).
+
+El paso a paso está en `operacion-piloto.md`.
+
+## Almacenamiento (MinIO)
+
+La imagen `minio/minio` fue retirada de Docker Hub. Los dos ambientes corren
+ahora `bitnamilegacy/minio:2025.7.23-debian-12-r5`, con la variable
+`RAILWAY_RUN_UID=0` y el volumen montado en `/bitnami/minio/data`. La versión
+está fijada a propósito: una etiqueta móvil volvería a exponer el servicio a que
+otra imagen de terceros desaparezca o cambie sin aviso. El almacenamiento de
+`production` se cambió a esta imagen el 2026-10-31.
+
+Hay una trampa al cambiar la imagen. Un «redeploy» de un despliegue existente
+reutiliza la imagen de **ese** despliegue, así que el servicio sigue corriendo la
+imagen vieja aunque la configuración ya apunte a la nueva. Después de cambiar la
+imagen hay que desplegar la configuración vigente del servicio: en el panel,
+con «Deploy», o con `serviceInstanceDeployV2` en la API. «Redeploy» no sirve.
+
+## Copias de seguridad y restauración
+
+Hay dos capas, porque cada una cubre un fallo distinto.
+
+**Copias nativas de Railway.** Están activadas en el volumen de `db` y en el de
+`storage` del ambiente `piloto`, con frecuencia diaria y semanal. Activarlas
+reinició la base una vez. Cubren el borrado o la corrupción del volumen con una
+granularidad de un día.
+
+**Copia lógica fuera del proveedor.** Una vez por semana, los lunes a las 06:30
+UTC, se corre `pg_dump -Fc` a través de `railway ssh` y el archivo se guarda en
+el servidor del equipo con permisos 600. Cada copia se verifica con
+`pg_restore -l` y se le calcula un `sha256`. Se conservan las últimas 12. Cubre
+la pérdida de la cuenta o del proyecto en el proveedor.
+
+Objetivos declarados:
+
+| Objetivo | Valor |
+|---|---|
+| RPO con la copia nativa diaria | 24 horas |
+| RPO con la copia externa | 7 días |
+| RTO | A medir con datos reales; meta de 2 horas o menos |
+
+**Restauración**, de forma genérica:
+
+1. Crear una base PostgreSQL vacía (local para ensayar; nueva en el proveedor
+   para recuperar).
+2. Restaurar con `pg_restore --no-owner --no-privileges` sobre esa base.
+3. Verificar: conteo de filas de las tablas principales y migraciones aplicadas
+   iguales a las de la copia.
+4. Solo si se está recuperando: apuntar `DATABASE_URL` del servicio `api` a la
+   base restaurada y desplegar la configuración.
+
+La prueba de restauración se hizo el 2026-10-31, sobre un PostgreSQL local. La
+base del piloto todavía no tiene datos de negocio, solo las 21 migraciones
+aplicadas, así que la prueba demuestra el procedimiento y no el volumen ni el
+tiempo. Se repite después de cargar los datos reales y antes de cada cierre de
+ciclo.
+
+## Reglas para el ambiente piloto
+
+- Nunca `prisma migrate reset` en `piloto`.
+- Nunca correr scripts de prueba ni cargas iniciales (seeds) contra `piloto`.
+- Nunca borrar el servicio `db` de `piloto`.
+- Antes de una migración con relleno de datos: copia de la base y ensayo local
+  sobre su restauración.
+- Ningún dato, dominio, contraseña ni identificador de recursos del ambiente
+  piloto se escribe en el repositorio.
 
 ## Entorno local
 
