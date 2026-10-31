@@ -238,6 +238,10 @@
     "Admin",
     "Gerente"
   ],
+  "src/modules/index-data/index-data.controller.ts#IndexDataController.getEstimatesReplaced": [
+    "Admin",
+    "Gerente"
+  ],
   "src/modules/index-data/index-data.controller.ts#IndexDataController.refresh": [
     "Admin"
   ],

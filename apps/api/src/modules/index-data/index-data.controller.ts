@@ -76,6 +76,17 @@ export class IndexDataController {
   }
 
   /**
+   * GET /index-data/estimates-replaced?since= — Estimados que ya tienen valor
+   * oficial y los contratos con ajustes provisionales a corregir.
+   * Admin and Gerente.
+   */
+  @Roles(...MANAGEMENT_ROLES)
+  @Get('estimates-replaced')
+  async getEstimatesReplaced(@Query('since') since?: string) {
+    return this.indexDataService.findEstimatesReplaced(since);
+  }
+
+  /**
    * POST /index-data/refresh — Triggers an on-demand scrape of all index sources.
    * Admin only.  Returns per-source upserted row counts.
    */

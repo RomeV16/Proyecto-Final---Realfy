@@ -86,7 +86,7 @@ describe('IndexDataService', () => {
       const { text, values } = sqlCall(0);
       expect(text).toContain('DISTINCT ON ("indexType", "period")');
       expect(values).toEqual(expect.arrayContaining(['tenant-1', '__system__', 50, 0]));
-      expect(text).toContain('ORDER BY "indexType", "period", ("tenantId" = ');
+      expect(text).toContain('ORDER BY "indexType", "period", "isEstimate" ASC, ("tenantId" = ');
       expect(text).toContain('LIMIT');
       expect(sqlCall(1).text).toContain('COUNT(*)');
       expect(result).toMatchObject({ page: 1, limit: 50, total: 120, totalPages: 3 });
@@ -207,13 +207,15 @@ describe('IndexDataService', () => {
             period: new Date('2025-01-01T00:00:00.000Z'),
           },
         },
-        update: { value: '4.200000', source: 'indec' },
+        update: { value: '4.200000', source: 'indec', isEstimate: false, estimateSource: null },
         create: {
           tenantId: 'tenant-1',
           indexType: IndexType.IPC,
           period: new Date('2025-01-01T00:00:00.000Z'),
           value: '4.200000',
           source: 'indec',
+          isEstimate: false,
+          estimateSource: null,
         },
       });
       expect(record.id).toBe('row-1');
@@ -332,7 +334,12 @@ describe('IndexDataService', () => {
     const rows = await service.getForPeriod(IndexType.IPC, start, end);
 
     expect(mockFindMany).toHaveBeenCalledWith({
-      where: { ...visible, indexType: IndexType.IPC, period: { gte: start, lte: end } },
+      where: {
+        ...visible,
+        indexType: IndexType.IPC,
+        isEstimate: false,
+        period: { gte: start, lte: end },
+      },
       orderBy: { period: 'asc' },
     });
     expect(rows.map((r) => r.value)).toEqual(['1']);
@@ -421,6 +428,161 @@ describe('IndexDataService', () => {
       mockQueryRaw.mockResolvedValueOnce([]);
 
       await expect(service.findLatest()).resolves.toEqual([]);
+    });
+  });
+});
+
+describe('IndexDataService — estimados y oficiales', () => {
+  const auditCreate = jest.fn();
+  const auditFindMany = jest.fn();
+  const adjustmentFindMany = jest.fn();
+  const baseIndexFindMany = jest.fn();
+  const clientFindFirst = jest.fn();
+  const clientUpsert = jest.fn();
+  const prisma = {
+    client: { indexData: { findFirst: clientFindFirst, upsert: clientUpsert } },
+    baseClient: {
+      auditLog: { create: auditCreate, findMany: auditFindMany },
+      indexData: { findMany: baseIndexFindMany },
+      contractAdjustment: { findMany: adjustmentFindMany },
+    },
+  } as any;
+  const context = {
+    getTenantId: jest.fn().mockReturnValue('tenant-1'),
+    getUserId: jest.fn().mockReturnValue('user-1'),
+  } as any;
+  const input = { indexType: IndexType.IPC, period: '2026-09-01T00:00:00.000Z', value: '2.500000' };
+  let service: IndexDataService;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    context.getTenantId.mockReturnValue('tenant-1');
+    context.getUserId.mockReturnValue('user-1');
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    clientUpsert.mockImplementation(async ({ create }: any) => ({ id: 'row-1', ...create }));
+    service = new IndexDataService(prisma, context);
+  });
+
+  it('carga un estimado con su fuente', async () => {
+    clientFindFirst.mockResolvedValue(null);
+    await service.create({ ...input, isEstimate: true, estimateSource: 'REM' });
+
+    expect(clientUpsert.mock.calls[0][0].create).toMatchObject({ isEstimate: true, estimateSource: 'REM' });
+    expect(auditCreate).not.toHaveBeenCalled();
+  });
+
+  it('rechaza la fuente de estimado en un valor oficial', async () => {
+    await expect(service.create({ ...input, estimateSource: 'REM' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('un estimado no pisa a un oficial ya cargado (409 OFFICIAL_VALUE_EXISTS)', async () => {
+    clientFindFirst.mockResolvedValue({ id: 'row-1', isEstimate: false, value: '2.4' });
+
+    await expect(service.create({ ...input, isEstimate: true })).rejects.toMatchObject({
+      response: { error: 'OFFICIAL_VALUE_EXISTS' },
+    });
+    expect(clientUpsert).not.toHaveBeenCalled();
+  });
+
+  it('el oficial reemplaza al estimado bajo la misma clave y deja registro', async () => {
+    clientFindFirst.mockResolvedValue({
+      id: 'row-1',
+      isEstimate: true,
+      estimateSource: 'REM',
+      value: { toString: () => '2.300000' },
+    });
+
+    await service.create(input);
+
+    expect(clientUpsert.mock.calls[0][0].update).toMatchObject({ isEstimate: false, estimateSource: null });
+    expect(auditCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        entity: 'index_estimate_replaced',
+        changes: expect.objectContaining({
+          indexType: 'IPC',
+          estimateValue: '2.300000',
+          estimateSource: 'REM',
+          officialValue: '2.500000',
+        }),
+      }),
+    });
+  });
+
+  it('mergeVisibleRows: el oficial de sistema le gana al estimado propio', () => {
+    const own = row({ id: 'own', isEstimate: true });
+    const sys = row({ id: 'sys', tenantId: '__system__', isEstimate: false });
+    expect(mergeVisibleRows([own, sys], 'tenant-1').map((r) => r.id)).toEqual(['sys']);
+    expect(mergeVisibleRows([sys, own], 'tenant-1').map((r) => r.id)).toEqual(['sys']);
+  });
+
+  it('getForPeriod puede incluir estimados cuando se pide', async () => {
+    baseIndexFindMany.mockResolvedValue([]);
+    await service.getForPeriod(IndexType.IPC, new Date(0), new Date(1), { includeEstimates: true });
+    expect(baseIndexFindMany.mock.calls[0][0].where).not.toHaveProperty('isEstimate');
+  });
+
+  describe('estimates-replaced', () => {
+    it('reúne reemplazos manuales y publicados, con los contratos a corregir', async () => {
+      auditFindMany.mockResolvedValue([
+        {
+          createdAt: new Date('2026-10-02T10:00:00.000Z'),
+          changes: {
+            indexType: 'IPC',
+            period: '2026-08-01T00:00:00.000Z',
+            estimateValue: '2.1',
+            estimateSource: 'REM',
+            officialValue: '2.4',
+          },
+        },
+      ]);
+      const estimate = {
+        indexType: 'IPC',
+        period: new Date('2026-09-01T00:00:00.000Z'),
+        value: { toString: () => '2.2' },
+        estimateSource: 'REM',
+      };
+      baseIndexFindMany
+        .mockResolvedValueOnce([estimate])
+        .mockResolvedValueOnce([
+          {
+            indexType: 'IPC',
+            period: estimate.period,
+            value: { toString: () => '2.6' },
+            createdAt: new Date('2026-10-15T00:00:00.000Z'),
+          },
+        ]);
+      adjustmentFindMany.mockResolvedValue([{ contractId: 'c1' }, { contractId: 'c1' }, { contractId: 'c2' }]);
+
+      const result = await service.findEstimatesReplaced('2026-10-01');
+
+      expect(result.items).toHaveLength(2);
+      expect(result.items[0]).toMatchObject({ via: 'manual', estimateValue: '2.1', officialValue: '2.4' });
+      expect(result.items[1]).toMatchObject({ via: 'published', estimateValue: '2.2', officialValue: '2.6' });
+      expect(result.items[0].contractIds).toEqual(['c1', 'c2']);
+      expect(adjustmentFindMany.mock.calls[0][0].where).toMatchObject({
+        tenantId: 'tenant-1',
+        isProvisional: true,
+        trueUpOfId: null,
+      });
+    });
+
+    it('sin estimados ni reemplazos devuelve la lista vacía', async () => {
+      auditFindMany.mockResolvedValue([]);
+      baseIndexFindMany.mockResolvedValue([]);
+      await expect(service.findEstimatesReplaced()).resolves.toMatchObject({ items: [] });
+    });
+
+    it('rechaza una fecha inválida', async () => {
+      await expect(service.findEstimatesReplaced('ayer')).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('exige inmobiliaria en contexto', async () => {
+      context.getTenantId.mockReturnValue(undefined);
+      await expect(service.findEstimatesReplaced()).rejects.toBeInstanceOf(TenantIsolationError);
     });
   });
 });
