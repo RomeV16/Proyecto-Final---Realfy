@@ -9,6 +9,7 @@ import { Fragment, useState, useEffect, useCallback, useRef } from 'react';
 import { PersonForm, type PersonFormData } from '@/components/persons/person-form';
 import { PersonRoleBadge } from '@/components/persons/person-role-badge';
 import { EntityRow } from '@/components/ui/entity-card';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { Icon } from '@/components/ui/icon';
 import { formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
@@ -129,7 +130,7 @@ function RoleSection({
   const [propietarios, setPropietarios] = useState<PersonOption[]>([]);
   const [adding, setAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>(null);
 
   const assignedRoles = roles.map((r) => r.role);
   const availableRoles = Object.values(PersonRole).filter(
@@ -191,7 +192,7 @@ function RoleSection({
       return;
     }
     setAdding(true);
-    setError('');
+    setError(null);
     try {
       const payload: Record<string, unknown> = { role: newRole };
       if (needsProperty && propertyId) payload.propertyId = propertyId;
@@ -205,7 +206,7 @@ function RoleSection({
       setPropertyId('');
       setGuarantorForPersonId('');
     } catch (err) {
-      if (err instanceof ApiRequestError) setError(err.message);
+      if (err instanceof ApiRequestError) setError(err);
     } finally {
       setAdding(false);
     }
@@ -213,12 +214,12 @@ function RoleSection({
 
   async function handleRemoveRole(roleId: string) {
     setRemovingId(roleId);
-    setError('');
+    setError(null);
     try {
       await apiClient(`/persons/${personId}/roles/${roleId}`, { method: 'DELETE' });
       onRolesChange(roles.filter((r) => r.id !== roleId));
     } catch (err) {
-      if (err instanceof ApiRequestError) setError(err.message);
+      if (err instanceof ApiRequestError) setError(err);
     } finally {
       setRemovingId(null);
     }
@@ -230,11 +231,7 @@ function RoleSection({
         {tRoles('title')}
       </h3>
 
-      {error && (
-        <div className="p-2 mb-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">
-          {error}
-        </div>
-      )}
+      {error != null && <ErrorNotice error={error} className="mb-3" />}
 
       {roles.length === 0 ? (
         <p className="text-sm text-slate-400 mb-4">{tRoles('noRoles')}</p>
@@ -365,13 +362,13 @@ function DocumentsSection({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    setError('');
+    setError(null);
 
     try {
       const formData = new FormData();
@@ -393,7 +390,7 @@ function DocumentsSection({
       const res = await rawRes.json() as PersonDocument;
       onDocumentsChange([...documents, res]);
     } catch (err) {
-      if (err instanceof ApiRequestError) setError(err.message);
+      if (err instanceof ApiRequestError) setError(err);
       else setError(t('uploadError'));
     } finally {
       setUploading(false);
@@ -404,12 +401,12 @@ function DocumentsSection({
 
   async function handleDelete(docId: string) {
     setDeletingId(docId);
-    setError('');
+    setError(null);
     try {
       await apiClient(`/persons/${personId}/documents/${docId}`, { method: 'DELETE' });
       onDocumentsChange(documents.filter((d) => d.id !== docId));
     } catch (err) {
-      if (err instanceof ApiRequestError) setError(err.message);
+      if (err instanceof ApiRequestError) setError(err);
       else setError(t('deleteError'));
     } finally {
       setDeletingId(null);
@@ -422,11 +419,7 @@ function DocumentsSection({
         {t('title')}
       </h3>
 
-      {error && (
-        <div className="p-2 mb-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">
-          {error}
-        </div>
-      )}
+      {error != null && <ErrorNotice error={error} className="mb-3" />}
 
       {documents.length === 0 ? (
         <p className="text-sm text-slate-400 mb-4">{t('noDocuments')}</p>
@@ -545,7 +538,7 @@ function ScoringSection({ personId }: { personId: string }) {
   const [notScored, setNotScored] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>(null);
   const [formValues, setFormValues] = useState({
     guaranteeScore: 0,
     jobStabilityScore: 0,
@@ -572,7 +565,7 @@ function ScoringSection({ personId }: { personId: string }) {
       if (err instanceof ApiRequestError && err.statusCode === 404) {
         setNotScored(true);
       } else if (err instanceof ApiRequestError) {
-        setError(err.message);
+        setError(err);
       }
     } finally {
       setLoading(false);
@@ -585,7 +578,7 @@ function ScoringSection({ personId }: { personId: string }) {
 
   async function handleSave() {
     setSaving(true);
-    setError('');
+    setError(null);
     try {
       await apiClient(`/scoring/persons/${personId}`, {
         method: 'PUT',
@@ -602,7 +595,7 @@ function ScoringSection({ personId }: { personId: string }) {
       setLoading(true);
       await loadScore();
     } catch (err) {
-      if (err instanceof ApiRequestError) setError(err.message);
+      if (err instanceof ApiRequestError) setError(err);
       else setError(t('saveError'));
     } finally {
       setSaving(false);
@@ -651,11 +644,7 @@ function ScoringSection({ personId }: { personId: string }) {
         )}
       </div>
 
-      {error && (
-        <div className="p-2 mb-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs">
-          {error}
-        </div>
-      )}
+      {error != null && <ErrorNotice error={error} className="mb-3" />}
 
       {notScored && !editing ? (
         <div className="text-center py-4">

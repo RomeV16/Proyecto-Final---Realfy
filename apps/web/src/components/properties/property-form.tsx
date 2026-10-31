@@ -2,6 +2,12 @@
 
 import { useTranslations } from 'next-intl';
 import { FormShell } from '@/components/ui/form-shell';
+import { ErrorNotice } from '@/components/ui/error-notice';
+import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useSchemaMessages, useZodForm } from '@/hooks/use-zod-form';
 import {
   PropertyType,
   PropertyOperationType,
@@ -11,7 +17,7 @@ import {
   getValidTransitions,
 } from '@realfy/shared';
 import { propertyFormSchema } from '@realfy/shared/schemas';
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { PropertyStateBadge } from './property-state-badge';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { formatMoney, formatLocalDate } from '@/lib/format';
@@ -103,53 +109,7 @@ const AMENITY_OPTIONS = [
   'SUM', 'Terraza', 'Jardin', 'Laundry', 'AC', 'Calefaccion',
 ] as const;
 
-/* ──────────── Helpers ──────────── */
-
-
-function InputLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
-  return (
-    <label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700 mb-1.5">
-      {children}
-    </label>
-  );
-}
-
-function TextInput({
-  id,
-  value,
-  onChange,
-  placeholder,
-  type = 'text',
-  suffix,
-  required,
-}: {
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
-  suffix?: string;
-  required?: boolean;
-}) {
-  return (
-    <div className="relative">
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-      />
-      {suffix && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">
-          {suffix}
-        </span>
-      )}
-    </div>
-  );
-}
+type StringField = { [K in keyof PropertyData]-?: NonNullable<PropertyData[K]> extends string ? K : never }[keyof PropertyData];
 
 /* ──────────── Main Component ──────────── */
 
@@ -172,31 +132,25 @@ export function PropertyForm({
   const tForm = useTranslations('properties.form');
   const tCommon = useTranslations('common');
 
-  const [form, setForm] = useState<PropertyData>(initialData || EMPTY_PROPERTY);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const { values: form, set, setValues, errors, formError, setFormError, submitting, submit } = useZodForm({
+    schema: propertyFormSchema,
+    initialValues: initialData || EMPTY_PROPERTY,
+    translate: useSchemaMessages(),
+  });
   const [newOpType, setNewOpType] = useState('');
   const [addingOp, setAddingOp] = useState(false);
   const [transitionLoading, setTransitionLoading] = useState<string | null>(null);
 
-  function updateField(field: keyof PropertyData, value: string | string[]) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
-
   function toggleAmenity(amenity: string) {
-    setForm((prev) => {
-      const amenities = prev.amenities.includes(amenity)
-        ? prev.amenities.filter((a) => a !== amenity)
-        : [...prev.amenities, amenity];
-      return { ...prev, amenities };
-    });
+    set(
+      'amenities',
+      form.amenities.includes(amenity)
+        ? form.amenities.filter((a) => a !== amenity)
+        : [...form.amenities, amenity],
+    );
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setSubmitting(true);
-    setError('');
-
+  const handleSubmit = submit(async () => {
     const body: Record<string, unknown> = {
       title: form.title,
       description: form.description || undefined,
@@ -227,40 +181,30 @@ export function PropertyForm({
       if (body[k] === undefined) delete body[k];
     });
 
-    try {
-      if (mode === 'create') {
-        const res = await apiClient<{ id: string }>('/properties', {
+    if (mode === 'create') {
+      const res = await apiClient<{ id: string }>('/properties', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      // Create initial operation if selected
+      if (form.initialOpType) {
+        await apiClient(`/properties/${res.id}/operations`, {
           method: 'POST',
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            operationType: form.initialOpType,
+            state: form.initialOpState || 'Disponible',
+          }),
         });
-        // Create initial operation if selected
-        if (form.initialOpType) {
-          await apiClient(`/properties/${res.id}/operations`, {
-            method: 'POST',
-            body: JSON.stringify({
-              operationType: form.initialOpType,
-              state: form.initialOpState || 'Disponible',
-            }),
-          });
-        }
-        onSuccess?.(res.id);
-      } else {
-        await apiClient(`/properties/${propertyId}`, {
-          method: 'PATCH',
-          body: JSON.stringify(body),
-        });
-        onSuccess?.(propertyId!);
       }
-    } catch (err) {
-      if (err instanceof ApiRequestError) {
-        setError(err.message);
-      } else {
-        setError(tForm('error'));
-      }
-    } finally {
-      setSubmitting(false);
+      onSuccess?.(res.id);
+    } else {
+      await apiClient(`/properties/${propertyId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+      onSuccess?.(propertyId!);
     }
-  }
+  });
 
   async function handleAddOperation() {
     if (!newOpType || !propertyId) return;
@@ -270,13 +214,10 @@ export function PropertyForm({
         method: 'POST',
         body: JSON.stringify({ operationType: newOpType }),
       });
-      setForm((prev) => ({
-        ...prev,
-        operations: [...(prev.operations || []), res],
-      }));
+      setValues((prev) => ({ operations: [...(prev.operations || []), res] }));
       setNewOpType('');
     } catch (err) {
-      if (err instanceof ApiRequestError) setError(err.message);
+      if (err instanceof ApiRequestError) setFormError(err);
     } finally {
       setAddingOp(false);
     }
@@ -291,14 +232,13 @@ export function PropertyForm({
         body: JSON.stringify({ state: toState }),
       });
       // Update local state
-      setForm((prev) => ({
-        ...prev,
+      setValues((prev) => ({
         operations: prev.operations?.map((op) =>
           op.id === opId ? { ...op, state: toState } : op
         ),
       }));
     } catch (err) {
-      if (err instanceof ApiRequestError) setError(err.message);
+      if (err instanceof ApiRequestError) setFormError(err);
     } finally {
       setTransitionLoading(null);
     }
@@ -309,6 +249,27 @@ export function PropertyForm({
     (ot) => !existingOpTypes.includes(ot)
   );
 
+  /** Campo de texto del formulario: etiqueta, error y valor enlazados al estado. */
+  function textField(
+    field: StringField,
+    label: string,
+    options: { placeholder?: string; type?: string; required?: boolean; className?: string } = {},
+  ) {
+    return (
+      <FormField label={label} required={options.required} error={errors[field]} className={options.className}>
+        {(c) => (
+          <Input
+            {...c}
+            type={options.type}
+            value={String(form[field] ?? '')}
+            onChange={(e) => set(field, e.target.value)}
+            placeholder={options.placeholder}
+          />
+        )}
+      </FormField>
+    );
+  }
+
   return (
     <FormShell
       onSubmit={handleSubmit}
@@ -317,197 +278,83 @@ export function PropertyForm({
       secondaryAction={onCancel ? { label: tCommon('cancel'), onClick: onCancel } : undefined}
     >
       {/* Error banner */}
-      {error && (
-        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-          {error}
-        </div>
-      )}
+      {formError != null && <ErrorNotice error={formError} fallback={tForm('error')} />}
 
       {/* Basic Info */}
       <FormShell.Section title={tForm('basicInfo')} className="max-w-sm sm:max-w-none">
         <div className="space-y-4">
-          <div>
-            <InputLabel htmlFor="title">{tForm('titleField')}</InputLabel>
-            <TextInput
-              id="title"
-              value={form.title}
-              onChange={(v) => updateField('title', v)}
-              placeholder={tForm('titlePlaceholder')}
-              required
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="description">{tForm('description')}</InputLabel>
-            <textarea
-              id="description"
-              value={form.description}
-              onChange={(e) => updateField('description', e.target.value)}
-              placeholder={tForm('descriptionPlaceholder')}
-              rows={3}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="type">{tForm('type')}</InputLabel>
-            <select
-              id="type"
-              value={form.type}
-              onChange={(e) => updateField('type', e.target.value)}
-              required
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            >
-              <option value="">{tForm('typePlaceholder')}</option>
-              {Object.values(PropertyType).map((pt) => (
-                <option key={pt} value={pt}>{t(`types.${pt}`)}</option>
-              ))}
-            </select>
-          </div>
+          {textField('title', tForm('titleField'), { placeholder: tForm('titlePlaceholder'), required: true })}
+          <FormField label={tForm('description')} error={errors.description}>
+            {(c) => (
+              <Textarea
+                {...c}
+                value={form.description}
+                onChange={(e) => set('description', e.target.value)}
+                placeholder={tForm('descriptionPlaceholder')}
+              />
+            )}
+          </FormField>
+          <FormField label={tForm('type')} required error={errors.type}>
+            {(c) => (
+              <Select {...c} value={form.type} onChange={(e) => set('type', e.target.value)}>
+                <option value="">{tForm('typePlaceholder')}</option>
+                {Object.values(PropertyType).map((pt) => (
+                  <option key={pt} value={pt}>{t(`types.${pt}`)}</option>
+                ))}
+              </Select>
+            )}
+          </FormField>
         </div>
       </FormShell.Section>
 
       {/* Address */}
       <FormShell.Section title={tForm('address')} className="max-w-sm sm:max-w-none">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
-            <InputLabel htmlFor="street">{tForm('street')}</InputLabel>
-            <TextInput
-              id="street"
-              value={form.street}
-              onChange={(v) => updateField('street', v)}
-              placeholder={tForm('streetPlaceholder')}
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="number">{tForm('number')}</InputLabel>
-            <TextInput
-              id="number"
-              value={form.number}
-              onChange={(v) => updateField('number', v)}
-              placeholder={tForm('numberPlaceholder')}
-            />
-          </div>
+          {textField('street', tForm('street'), { placeholder: tForm('streetPlaceholder'), className: 'sm:col-span-2' })}
+          {textField('number', tForm('number'), { placeholder: tForm('numberPlaceholder') })}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <InputLabel htmlFor="floor">{tForm('floor')}</InputLabel>
-              <TextInput
-                id="floor"
-                value={form.floor}
-                onChange={(v) => updateField('floor', v)}
-                placeholder={tForm('floorPlaceholder')}
-              />
-            </div>
-            <div>
-              <InputLabel htmlFor="apartment">{tForm('apartment')}</InputLabel>
-              <TextInput
-                id="apartment"
-                value={form.apartment}
-                onChange={(v) => updateField('apartment', v)}
-                placeholder={tForm('apartmentPlaceholder')}
-              />
-            </div>
+            {textField('floor', tForm('floor'), { placeholder: tForm('floorPlaceholder') })}
+            {textField('apartment', tForm('apartment'), { placeholder: tForm('apartmentPlaceholder') })}
           </div>
-          <div>
-            <InputLabel htmlFor="city">{tForm('city')}</InputLabel>
-            <TextInput
-              id="city"
-              value={form.city}
-              onChange={(v) => updateField('city', v)}
-              placeholder={tForm('cityPlaceholder')}
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="province">{tForm('province')}</InputLabel>
-            <select
-              id="province"
-              value={form.province}
-              onChange={(e) => updateField('province', e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            >
-              <option value="">{tForm('provincePlaceholder')}</option>
-              {Object.values(Province).map((p) => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <InputLabel htmlFor="postalCode">{tForm('postalCode')}</InputLabel>
-            <TextInput
-              id="postalCode"
-              value={form.postalCode}
-              onChange={(v) => updateField('postalCode', v)}
-              placeholder={tForm('postalCodePlaceholder')}
-            />
-          </div>
+          {textField('city', tForm('city'), { placeholder: tForm('cityPlaceholder') })}
+          <FormField label={tForm('province')} error={errors.province}>
+            {(c) => (
+              <Select {...c} value={form.province} onChange={(e) => set('province', e.target.value)}>
+                <option value="">{tForm('provincePlaceholder')}</option>
+                {Object.values(Province).map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </Select>
+            )}
+          </FormField>
+          {textField('postalCode', tForm('postalCode'), { placeholder: tForm('postalCodePlaceholder') })}
         </div>
       </FormShell.Section>
 
       {/* Characteristics */}
       <FormShell.Section title={tForm('characteristics')} className="max-w-sm sm:max-w-none">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <div>
-            <InputLabel htmlFor="totalArea">{tForm('totalArea')}</InputLabel>
-            <TextInput
-              id="totalArea"
-              value={form.totalArea}
-              onChange={(v) => updateField('totalArea', v)}
-              type="number"
-              suffix="m²"
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="rooms">{tForm('rooms')}</InputLabel>
-            <TextInput
-              id="rooms"
-              value={form.rooms}
-              onChange={(v) => updateField('rooms', v)}
-              type="number"
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="bedrooms">{tForm('bedrooms')}</InputLabel>
-            <TextInput
-              id="bedrooms"
-              value={form.bedrooms}
-              onChange={(v) => updateField('bedrooms', v)}
-              type="number"
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="bathrooms">{tForm('bathrooms')}</InputLabel>
-            <TextInput
-              id="bathrooms"
-              value={form.bathrooms}
-              onChange={(v) => updateField('bathrooms', v)}
-              type="number"
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="garages">{tForm('garages')}</InputLabel>
-            <TextInput
-              id="garages"
-              value={form.garages}
-              onChange={(v) => updateField('garages', v)}
-              type="number"
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="age">{tForm('age')}</InputLabel>
-            <TextInput
-              id="age"
-              value={form.age}
-              onChange={(v) => updateField('age', v)}
-              type="number"
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="orientation">{tForm('orientation')}</InputLabel>
-            <TextInput
-              id="orientation"
-              value={form.orientation}
-              onChange={(v) => updateField('orientation', v)}
-              placeholder={tForm('orientationPlaceholder')}
-            />
-          </div>
+          <FormField label={tForm('totalArea')} error={errors.totalArea}>
+            {(c) => (
+              <div className="relative">
+                <Input
+                  {...c}
+                  type="number"
+                  value={form.totalArea}
+                  onChange={(e) => set('totalArea', e.target.value)}
+                />
+                <span className="pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 text-xs text-[var(--color-muted)]">
+                  m²
+                </span>
+              </div>
+            )}
+          </FormField>
+          {textField('rooms', tForm('rooms'), { type: 'number' })}
+          {textField('bedrooms', tForm('bedrooms'), { type: 'number' })}
+          {textField('bathrooms', tForm('bathrooms'), { type: 'number' })}
+          {textField('garages', tForm('garages'), { type: 'number' })}
+          {textField('age', tForm('age'), { type: 'number' })}
+          {textField('orientation', tForm('orientation'), { placeholder: tForm('orientationPlaceholder') })}
         </div>
       </FormShell.Section>
 
@@ -515,34 +362,30 @@ export function PropertyForm({
       {mode === 'create' && (
         <FormShell.Section title={tForm('operations')} className="max-w-sm sm:max-w-none">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <InputLabel htmlFor="initialOpType">{tForm('operationType')}</InputLabel>
-              <select
-                id="initialOpType"
-                value={form.initialOpType || ''}
-                onChange={(e) => updateField('initialOpType', e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-              >
-                <option value="">{tForm('operationTypePlaceholder')}</option>
-                {Object.values(PropertyOperationType).map((ot) => (
-                  <option key={ot} value={ot}>{t(`operationTypes.${ot}`)}</option>
-                ))}
-              </select>
-            </div>
-            {form.initialOpType && (
-              <div>
-                <InputLabel htmlFor="initialOpState">{tForm('state')}</InputLabel>
-                <select
-                  id="initialOpState"
-                  value={form.initialOpState || 'Disponible'}
-                  onChange={(e) => updateField('initialOpState', e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-                >
-                  {Object.values(PropertyState).map((s) => (
-                    <option key={s} value={s}>{t(`states.${s}`)}</option>
+            <FormField label={tForm('operationType')}>
+              {(c) => (
+                <Select {...c} value={form.initialOpType || ''} onChange={(e) => set('initialOpType', e.target.value)}>
+                  <option value="">{tForm('operationTypePlaceholder')}</option>
+                  {Object.values(PropertyOperationType).map((ot) => (
+                    <option key={ot} value={ot}>{t(`operationTypes.${ot}`)}</option>
                   ))}
-                </select>
-              </div>
+                </Select>
+              )}
+            </FormField>
+            {form.initialOpType && (
+              <FormField label={tForm('state')}>
+                {(c) => (
+                  <Select
+                    {...c}
+                    value={form.initialOpState || 'Disponible'}
+                    onChange={(e) => set('initialOpState', e.target.value)}
+                  >
+                    {Object.values(PropertyState).map((s) => (
+                      <option key={s} value={s}>{t(`states.${s}`)}</option>
+                    ))}
+                  </Select>
+                )}
+              </FormField>
             )}
           </div>
         </FormShell.Section>
@@ -599,20 +442,16 @@ export function PropertyForm({
           {/* Add operation */}
           {availableOpTypes.length > 0 && (
             <div className="flex items-end gap-3 pt-2 border-t border-slate-100">
-              <div className="flex-1">
-                <InputLabel htmlFor="newOpType">{tForm('operationType')}</InputLabel>
-                <select
-                  id="newOpType"
-                  value={newOpType}
-                  onChange={(e) => setNewOpType(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-                >
-                  <option value="">{tForm('operationTypePlaceholder')}</option>
-                  {availableOpTypes.map((ot) => (
-                    <option key={ot} value={ot}>{t(`operationTypes.${ot}`)}</option>
-                  ))}
-                </select>
-              </div>
+              <FormField label={tForm('operationType')} className="flex-1">
+                {(c) => (
+                  <Select {...c} value={newOpType} onChange={(e) => setNewOpType(e.target.value)}>
+                    <option value="">{tForm('operationTypePlaceholder')}</option>
+                    {availableOpTypes.map((ot) => (
+                      <option key={ot} value={ot}>{t(`operationTypes.${ot}`)}</option>
+                    ))}
+                  </Select>
+                )}
+              </FormField>
               <button
                 type="button"
                 disabled={!newOpType || addingOp}
@@ -629,29 +468,16 @@ export function PropertyForm({
       {/* Pricing */}
       <FormShell.Section title={tForm('pricing')} className="max-w-sm sm:max-w-none">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <InputLabel htmlFor="price">{tForm('price')}</InputLabel>
-            <TextInput
-              id="price"
-              value={form.price}
-              onChange={(v) => updateField('price', v)}
-              placeholder={tForm('pricePlaceholder')}
-              type="number"
-            />
-          </div>
-          <div>
-            <InputLabel htmlFor="currency">{tForm('currency')}</InputLabel>
-            <select
-              id="currency"
-              value={form.currency}
-              onChange={(e) => updateField('currency', e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            >
-              {Object.values(Currency).map((c) => (
-                <option key={c} value={c}>{c === 'USD' ? 'US$ (Dólar)' : '$ (Peso argentino)'}</option>
-              ))}
-            </select>
-          </div>
+          {textField('price', tForm('price'), { placeholder: tForm('pricePlaceholder'), type: 'number' })}
+          <FormField label={tForm('currency')} error={errors.currency}>
+            {(c) => (
+              <Select {...c} value={form.currency} onChange={(e) => set('currency', e.target.value)}>
+                {Object.values(Currency).map((cur) => (
+                  <option key={cur} value={cur}>{cur === 'USD' ? 'US$ (Dólar)' : '$ (Peso argentino)'}</option>
+                ))}
+              </Select>
+            )}
+          </FormField>
         </div>
       </FormShell.Section>
 
@@ -683,6 +509,7 @@ export function PropertyForm({
               <button
                 key={amenity}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => toggleAmenity(amenity)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                   isSelected

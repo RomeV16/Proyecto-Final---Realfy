@@ -66,6 +66,53 @@
   "pagos": "Pagos",
   "notifications": "Notificaciones"
  },
+ "dataTable": {
+  "pagination": {
+   "label": "Paginación",
+   "showing": "Mostrando {from}-{to} de {total}",
+   "prev": "Anterior",
+   "next": "Siguiente",
+   "page": "Página {page} de {totalPages}"
+  },
+  "sortBy": "Ordenar por {column}",
+  "grid": {
+   "addRow": "Agregar fila",
+   "removeRow": "Quitar la fila {row}",
+   "rowNumber": "Fila",
+   "newRow": "Nueva",
+   "changes": "{count, plural, one {# cambio sin guardar} other {# cambios sin guardar}}",
+   "noChanges": "Sin cambios",
+   "invalid": "{count, plural, one {# celda con error} other {# celdas con error}}",
+   "pasteHint": "Podés pegar filas copiadas desde una planilla (Excel, Sheets).",
+   "pasted": "{count, plural, one {Se pegó # fila} other {Se pegaron # filas}}",
+   "invalidOption": "Elegí una opción de la lista",
+   "empty": "No hay filas para editar"
+  }
+ },
+ "print": {
+  "action": "Imprimir"
+ },
+ "errors": {
+  "generic": "Ocurrió un error inesperado.",
+  "code": "Código",
+  "reference": "Referencia",
+  "copyReference": "Copiar referencia",
+  "copied": "Copiada",
+  "codes": {
+   "INTERNAL_ERROR": "El servidor tuvo un problema. Intentá de nuevo en unos minutos.",
+   "UNAUTHORIZED": "Tu sesión venció. Iniciá sesión de nuevo.",
+   "FORBIDDEN": "No tenés permiso para hacer esto."
+  },
+  "segment": {
+   "loading": "Cargando…",
+   "errorTitle": "No pudimos cargar esta sección",
+   "errorMessage": "Algo falló al mostrar la pantalla. Podés reintentar o volver al inicio.",
+   "retry": "Reintentar",
+   "home": "Ir al panel",
+   "notFoundTitle": "No encontramos lo que buscás",
+   "notFoundMessage": "El registro no existe o ya no está disponible."
+  }
+ },
  "common": {
   "loading": "Cargando…",
   "error": "Ocurrió un error",

@@ -15,6 +15,7 @@ import {
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Icon } from '@/components/ui/icon';
 import { EmptyState } from '@/components/ui/empty-state';
 import { RowList } from '@/components/ui/card-grid';
@@ -121,21 +122,6 @@ const INTERACTION_ICON: Record<string, 'phone' | 'mail' | 'calendar' | 'edit'> =
   WhatsApp: 'phone',
   Visita: 'calendar',
   Nota: 'edit',
-};
-
-const STATUS_VARIANT: Record<string, 'info' | 'warning' | 'success' | 'danger' | 'neutral'> = {
-  Nuevo: 'info',
-  Contactado: 'warning',
-  Calificado: 'success',
-  Convertido: 'success',
-  Perdido: 'danger',
-};
-
-const VISIT_STATUS_VARIANT: Record<string, 'info' | 'warning' | 'success' | 'danger' | 'neutral'> = {
-  Programada: 'info',
-  Completada: 'success',
-  Cancelada: 'danger',
-  NoShow: 'warning',
 };
 
 function formatRelativeTime(dateStr: string): string {
@@ -462,7 +448,7 @@ export default function LeadDetailPage() {
           <p className="eyebrow">{t('leadDetail.title')}</p>
           <h1 className="h2">{fullName}</h1>
           <div className="flex items-center gap-2 mt-1">
-            <Badge variant={STATUS_VARIANT[lead.status] || 'neutral'}>{tLeads(`statuses.${lead.status}`)}</Badge>
+            <StatusBadge domain="lead" status={lead.status} dot={false} />
             <span className="text-sm text-[var(--color-muted)]">
               {lead.pipeline.name} · {lead.currentStage.name}
             </span>
@@ -573,9 +559,7 @@ export default function LeadDetailPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <Badge variant="brand">{t('visits.title')}</Badge>
-                        <Badge variant={VISIT_STATUS_VARIANT[visit.status] || 'neutral'}>
-                          {t(`visits.statuses.${visit.status}`)}
-                        </Badge>
+                        <StatusBadge domain="visita" status={visit.status} dot={false} />
                         <span className="text-xs text-[var(--color-muted)]">{formatDateTime(visit.scheduledAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       {addr && (
@@ -635,7 +619,7 @@ export default function LeadDetailPage() {
                 title={
                   <span className="inline-flex flex-wrap items-center gap-2">
                     <span>{formatDateTime(v.scheduledAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                    <Badge variant={VISIT_STATUS_VARIANT[v.status] || 'neutral'}>{t(`visits.statuses.${v.status}`)}</Badge>
+                    <StatusBadge domain="visita" status={v.status} dot={false} />
                     {v.outcome && <Badge variant="brand">{t(`visits.outcomes.${v.outcome}`)}</Badge>}
                   </span>
                 }

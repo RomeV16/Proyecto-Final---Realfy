@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { Link, useRouter } from '@/i18n/navigation';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import {
   PropertyOperationType,
   PropertyState,
@@ -208,11 +209,11 @@ function DetailView({
   const [transitionLoading, setTransitionLoading] = useState<string | null>(null);
   const [operations, setOperations] = useState(property.operations || []);
   const [mediaItems, setMediaItems] = useState(property.media || []);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>(null);
 
   async function handleTransition(opId: string, toState: string) {
     setTransitionLoading(opId);
-    setError('');
+    setError(null);
     try {
       await apiClient(`/properties/${property.id}/operations/${opId}/state`, {
         method: 'PATCH',
@@ -223,7 +224,7 @@ function DetailView({
       );
     } catch (err) {
       if (err instanceof ApiRequestError) {
-        setError(err.message);
+        setError(err);
       } else {
         setError(t('detail.transitionError'));
       }
@@ -274,15 +275,7 @@ function DetailView({
 
   return (
     <div className="space-y-5">
-      {error && (
-        <div
-          role="alert"
-          className="flex items-center gap-2 rounded-[var(--radius-lg)] border border-[color-mix(in_oklab,var(--color-danger)_28%,var(--color-border))] bg-[color-mix(in_oklab,var(--color-danger)_10%,var(--color-surface))] px-3 py-2.5 text-sm text-[color-mix(in_oklab,var(--color-danger)_75%,var(--color-text))]"
-        >
-          <Icon name="alert" className="h-4 w-4 shrink-0" strokeWidth={2} />
-          <span className="min-w-0 [overflow-wrap:anywhere]">{error}</span>
-        </div>
-      )}
+      {error != null && <ErrorNotice error={error} />}
 
       {/*
         Doce columnas en xl: la ficha ocupa ocho y la columna lateral cuatro,

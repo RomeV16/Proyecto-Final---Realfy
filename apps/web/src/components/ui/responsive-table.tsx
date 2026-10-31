@@ -36,6 +36,13 @@ export interface Column<T> {
   className?: string;
   /** If true, right-align the cell and header */
   alignRight?: boolean;
+  /** El encabezado es un botón que ordena por esta columna (requiere `sort` y `onSortChange` en la tabla). */
+  sortable?: boolean;
+}
+
+export interface TableSort {
+  key: string;
+  direction: 'asc' | 'desc';
 }
 
 export interface ResponsiveTableProps<T> {
@@ -54,6 +61,10 @@ export interface ResponsiveTableProps<T> {
     action?: ReactNode;
     secondaryAction?: ReactNode;
   };
+  /** Orden actual; marca la columna con `aria-sort`. */
+  sort?: TableSort | null;
+  /** Se llama al pulsar el encabezado de una columna `sortable`. */
+  onSortChange?: (key: string) => void;
   className?: string;
   /** Applied to the table wrapper (md+) only */
   tableClassName?: string;
@@ -81,19 +92,48 @@ function SynthesizedCard<T>({ item, columns }: { item: T; columns: Column<T>[] }
 
 /* ──────────── Desktop table ──────────── */
 
-function TableHeader<T>({ columns }: { columns: Column<T>[] }) {
+function TableHeader<T>({
+  columns,
+  sort,
+  onSortChange,
+}: {
+  columns: Column<T>[];
+  sort?: TableSort | null;
+  onSortChange?: (key: string) => void;
+}) {
   return (
     <Thead className="sticky top-0 z-[1] border-b border-[var(--color-border)] bg-[color-mix(in_oklab,var(--color-surface)_92%,transparent)] backdrop-blur-sm">
       <tr>
-        {columns.map((col) => (
-          <Th
-            key={col.key}
-            scope="col"
-            className={cn('py-3', col.alignRight && 'text-right')}
-          >
-            {col.header}
-          </Th>
-        ))}
+        {columns.map((col) => {
+          const active = sort?.key === col.key;
+          const sortable = col.sortable && onSortChange;
+          return (
+            <Th
+              key={col.key}
+              scope="col"
+              aria-sort={sortable ? (active ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none') : undefined}
+              className={cn('py-3', col.alignRight && 'text-right')}
+            >
+              {sortable ? (
+                <button
+                  type="button"
+                  onClick={() => onSortChange(col.key)}
+                  className={cn(
+                    'inline-flex items-center gap-1 uppercase tracking-wider hover:text-[var(--color-text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500',
+                    col.alignRight && 'flex-row-reverse',
+                  )}
+                >
+                  {col.header}
+                  <span aria-hidden="true" className={cn('text-[10px]', !active && 'opacity-30')}>
+                    {active ? (sort.direction === 'asc' ? '▲' : '▼') : '↕'}
+                  </span>
+                </button>
+              ) : (
+                col.header
+              )}
+            </Th>
+          );
+        })}
       </tr>
     </Thead>
   );
@@ -182,6 +222,8 @@ export function ResponsiveTable<T>({
   loading = false,
   skeletonRows = 5,
   empty,
+  sort,
+  onSortChange,
   className,
   tableClassName,
   cardClassName,
@@ -218,7 +260,7 @@ export function ResponsiveTable<T>({
         {/* Table — md+ */}
         <div className={cn('hidden md:block rounded-[var(--radius-xl)] border border-[var(--color-border)]', tableClassName)}>
           <Table>
-            <TableHeader columns={columns} />
+            <TableHeader columns={columns} sort={sort} onSortChange={onSortChange} />
             <Tbody>
               {items.map((item, i) => (
                 <StaggerRow key={keyExtractor(item)} index={i} columns={columns} item={item} />

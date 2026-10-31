@@ -5,7 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { TicketStatus, TicketPriority } from '@realfy/shared';
-import { TicketStatusBadge } from '@/components/tickets/ticket-status-badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { TicketPriorityBadge } from '@/components/tickets/ticket-priority-badge';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
@@ -109,7 +109,7 @@ function TicketCard({
         {/* Wrapped so the pill hugs its label — Body is a flex column, and a
             bare badge would stretch to the full card width. */}
         <div className="flex flex-wrap items-center gap-1.5">
-          <TicketStatusBadge status={ticket.status} />
+          <StatusBadge domain="ticket" status={ticket.status} />
         </div>
 
         {alert && (

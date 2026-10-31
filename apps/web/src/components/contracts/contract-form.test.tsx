@@ -169,7 +169,7 @@ describe('ContractForm — guardar como borrador o activo', () => {
     postResult = () => Promise.reject(new Error('red caída'));
     await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
     expect(await screen.findByText('Error al crear el contrato')).toBeInTheDocument();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Error al crear el contrato');
   });
 
   it('no avanza si falta un dato obligatorio del paso actual', async () => {

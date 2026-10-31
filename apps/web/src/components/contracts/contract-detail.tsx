@@ -8,7 +8,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ContractStatusBadge } from './contract-status-badge';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { EntityCard, EntityRow } from '@/components/ui/entity-card';
 import { Avatar } from '@/components/ui/avatar';
 import { GuaranteeBadge } from './guarantee-badge';
@@ -404,7 +405,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
   const [contract, setContract] = useState<ContractDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState('');
-  const [actionError, setActionError] = useState('');
+  const [actionError, setActionError] = useState<unknown>(null);
   const [actionSuccess, setActionSuccess] = useState('');
   const [generateDocOpen, setGenerateDocOpen] = useState(false);
   const [confirming, setConfirming] = useState<'' | 'activate' | 'terminate'>('');
@@ -436,7 +437,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
     const nextSchedule = contract.schedules?.find((s) => s.status === 'Pending');
     if (!nextSchedule) return;
     setActionLoading('calculate');
-    setActionError('');
+    setActionError(null);
     setActionSuccess('');
     try {
       await apiClient(`/contracts/${contract.id}/adjustments/calculate`, {
@@ -446,9 +447,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
       setActionSuccess(t('calculateSuccess'));
       fetchContract();
     } catch (err) {
-      setActionError(
-        err instanceof ApiRequestError ? err.message : t('calculateError'),
-      );
+      setActionError(err instanceof ApiRequestError ? err : t('calculateError'));
     } finally {
       setActionLoading('');
     }
@@ -457,7 +456,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
   async function handleApplyAdjustment(adjId: string) {
     if (!contract) return;
     setActionLoading('apply');
-    setActionError('');
+    setActionError(null);
     setActionSuccess('');
     try {
       await apiClient(`/contracts/${contract.id}/adjustments/${adjId}/apply`, {
@@ -466,9 +465,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
       setActionSuccess(t('applySuccess'));
       fetchContract();
     } catch (err) {
-      setActionError(
-        err instanceof ApiRequestError ? err.message : t('applyError'),
-      );
+      setActionError(err instanceof ApiRequestError ? err : t('applyError'));
     } finally {
       setActionLoading('');
     }
@@ -477,7 +474,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
   async function handleActivate() {
     if (!contract) return;
     setActionLoading('activate');
-    setActionError('');
+    setActionError(null);
     setActionSuccess('');
     setActivationProblems(null);
     try {
@@ -489,9 +486,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
       if (problems) {
         setActivationProblems(problems);
       } else {
-        setActionError(
-          err instanceof ApiRequestError ? err.message : t('activateError'),
-        );
+        setActionError(err instanceof ApiRequestError ? err : t('activateError'));
       }
     } finally {
       setActionLoading('');
@@ -502,7 +497,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
   async function handleTerminate() {
     if (!contract) return;
     setActionLoading('terminate');
-    setActionError('');
+    setActionError(null);
     setActionSuccess('');
     setActivationProblems(null);
     try {
@@ -510,9 +505,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
       setActionSuccess(t('terminateSuccess'));
       fetchContract();
     } catch (err) {
-      setActionError(
-        err instanceof ApiRequestError ? err.message : t('terminateError'),
-      );
+      setActionError(err instanceof ApiRequestError ? err : t('terminateError'));
     } finally {
       setActionLoading('');
       setConfirming('');
@@ -577,7 +570,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <ContractStatusBadge status={contract.status} size="md" />
+              <StatusBadge domain="contrato" status={contract.status} size="md" />
               <span className="text-sm px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">
                 {tContracts(`types.${contract.contractType}`)}
               </span>
@@ -674,11 +667,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
             <ActivationProblems problems={activationProblems} />
           </div>
         )}
-        {actionError && (
-          <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-            <p className="text-sm text-red-700">{actionError}</p>
-          </div>
-        )}
+        {actionError != null && <ErrorNotice error={actionError} className="mt-3" />}
         {actionSuccess && (
           <div className="mt-3 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
             <p className="text-sm text-emerald-700">{actionSuccess}</p>

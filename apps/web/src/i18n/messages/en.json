@@ -66,6 +66,53 @@
   "pagos": "Pagos",
   "notifications": "Notificaciones"
  },
+ "dataTable": {
+  "pagination": {
+   "label": "Pagination",
+   "showing": "Showing {from}-{to} of {total}",
+   "prev": "Previous",
+   "next": "Next",
+   "page": "Page {page} of {totalPages}"
+  },
+  "sortBy": "Sort by {column}",
+  "grid": {
+   "addRow": "Add row",
+   "removeRow": "Remove row {row}",
+   "rowNumber": "Row",
+   "newRow": "New",
+   "changes": "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+   "noChanges": "No changes",
+   "invalid": "{count, plural, one {# cell with an error} other {# cells with errors}}",
+   "pasteHint": "You can paste rows copied from a spreadsheet (Excel, Sheets).",
+   "pasted": "{count, plural, one {# row pasted} other {# rows pasted}}",
+   "invalidOption": "Choose an option from the list",
+   "empty": "There are no rows to edit"
+  }
+ },
+ "print": {
+  "action": "Print"
+ },
+ "errors": {
+  "generic": "An unexpected error occurred.",
+  "code": "Code",
+  "reference": "Reference",
+  "copyReference": "Copy reference",
+  "copied": "Copied",
+  "codes": {
+   "INTERNAL_ERROR": "The server ran into a problem. Please try again in a few minutes.",
+   "UNAUTHORIZED": "Your session has expired. Please sign in again.",
+   "FORBIDDEN": "You do not have permission to do this."
+  },
+  "segment": {
+   "loading": "Loading…",
+   "errorTitle": "We could not load this section",
+   "errorMessage": "Something went wrong while showing this screen. You can retry or go back to the dashboard.",
+   "retry": "Retry",
+   "home": "Go to dashboard",
+   "notFoundTitle": "We could not find what you were looking for",
+   "notFoundMessage": "The record does not exist or is no longer available."
+  }
+ },
  "common": {
   "loading": "Cargando…",
   "error": "Ocurrió un error",
