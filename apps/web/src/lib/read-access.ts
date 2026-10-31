@@ -15,6 +15,8 @@ interface ReadAccessResponse {
 const DENIED = Object.fromEntries(READ_RESOURCES.map((r) => [r, false])) as ReadAccess;
 
 const cache = new Map<string, Promise<ReadAccess>>();
+/** Lo ya resuelto, para que un componente que se monta después lo lea sin esperar. */
+const resolved = new Map<string, ReadAccess>();
 const listeners = new Set<() => void>();
 
 function load(key: string): Promise<ReadAccess> {
@@ -25,6 +27,10 @@ function load(key: string): Promise<ReadAccess> {
         (res) =>
           Object.fromEntries(READ_RESOURCES.map((r) => [r, res.resources[r] === true])) as ReadAccess,
       )
+      .then((access) => {
+        if (cache.get(key) === pending) resolved.set(key, access);
+        return access;
+      })
       .catch(() => {
         // Si no se puede saber qué puede leer el rol, se oculta; el próximo
         // montaje vuelve a intentarlo.
@@ -39,6 +45,7 @@ function load(key: string): Promise<ReadAccess> {
 /** Descarta lo consultado (por ejemplo, tras guardar la política) y avisa a quienes lo usan. */
 export function invalidateReadAccess(): void {
   cache.clear();
+  resolved.clear();
   listeners.forEach((notify) => notify());
 }
 
@@ -76,5 +83,5 @@ export function useReadAccess(): ReadAccess | null {
   }, [key, version]);
 
   if (!key) return DENIED;
-  return state.key === key ? state.access : null;
+  return resolved.get(key) ?? (state.key === key ? state.access : null);
 }

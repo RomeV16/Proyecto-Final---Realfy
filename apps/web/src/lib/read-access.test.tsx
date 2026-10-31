@@ -58,6 +58,16 @@ describe('useReadAccess / useCanRead', () => {
     expect(apiClient).toHaveBeenCalledWith('/tenants/me/read-access');
   });
 
+  it('un componente que se monta después lee lo ya consultado sin esperar', async () => {
+    apiClient.mockResolvedValue(response({ 'persons.bankAccounts': false }));
+    const first = render(<Probe />);
+    await screen.findByText('bancos:false');
+    first.unmount();
+    render(<Probe />);
+    expect(screen.getByText('bancos:false')).toBeInTheDocument();
+    expect(apiClient).toHaveBeenCalledTimes(1);
+  });
+
   it('useCanRead asume que sí mientras consulta y oculta si el rol no puede leer', async () => {
     apiClient.mockResolvedValue(response({ 'persons.bankAccounts': false }));
     render(<CanProbe />);

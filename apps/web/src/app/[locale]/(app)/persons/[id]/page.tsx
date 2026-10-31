@@ -12,7 +12,8 @@ import { EntityRow } from '@/components/ui/entity-card';
 import { ErrorNotice } from '@/components/ui/error-notice';
 import { Icon } from '@/components/ui/icon';
 import { formatLocalDate } from '@/lib/format';
-import { useCan } from '@/lib/permissions';
+import { useCan, useCanRead } from '@/lib/permissions';
+import { ReadGate } from '@/components/ui/read-gate';
 import { PersonBankAccounts } from '@/components/parties/person-bank-accounts';
 import { PersonPowers } from '@/components/parties/person-powers';
 import { PersonLessorships } from '@/components/parties/person-lessorships';
@@ -811,6 +812,7 @@ export default function PersonDetailPage() {
 
   const canEdit = useCan('persons.manage');
   const canDelete = useCan('persons.delete');
+  const canReadDocument = useCanRead('persons.document');
   const canScore = useCan('persons.scoring');
 
   const loadPerson = useCallback(async () => {
@@ -931,8 +933,8 @@ export default function PersonDetailPage() {
                 </div>
                 <div className="space-y-1">
                   <h2 className="text-xl font-bold text-slate-900">{fullName}</h2>
-                  {person.cuit && (
-                    <p className="text-sm text-slate-500 tabular-nums">{person.cuit}</p>
+                  {(person.cuit || !canReadDocument) && (
+                    <p className="text-sm text-slate-500 tabular-nums">{person.cuit || '—'}</p>
                   )}
                   {person.email && (
                     <p className="text-sm text-slate-600">{person.email}</p>
@@ -983,7 +985,11 @@ export default function PersonDetailPage() {
           </div>
 
           <div role="tabpanel" id="person-tabpanel" aria-labelledby={`person-tab-${tab}`} className="space-y-6">
-            {tab === 'accounts' && <PersonBankAccounts personId={person.id} canEdit={canEdit} />}
+            {tab === 'accounts' && (
+              <ReadGate resource="persons.bankAccounts">
+                <PersonBankAccounts personId={person.id} canEdit={canEdit} />
+              </ReadGate>
+            )}
             {tab === 'powers' && <PersonPowers personId={person.id} canEdit={canEdit} />}
             {tab === 'lessorships' && <PersonLessorships personId={person.id} />}
             {tab === 'data' && (
@@ -997,7 +1003,7 @@ export default function PersonDetailPage() {
               <dl className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {([
                   ['personType', person.personType ? t(`personTypes.${person.personType}`) : null],
-                  ['dni', person.dni],
+                  ['dni', person.dni || (canReadDocument ? null : '—')],
                   ['address', person.address],
                   ['maritalStatus', person.maritalStatus],
                   ['nationality', person.nationality],
