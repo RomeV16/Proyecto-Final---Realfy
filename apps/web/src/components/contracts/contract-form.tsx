@@ -12,11 +12,13 @@ import {
   Currency,
   PersonRole,
 } from '@realfy/shared';
+import { FULL_SHARE_UNITS, pctToUnits, splitEqualPct } from '@realfy/shared';
 import { contractFormSchema } from '@realfy/shared/schemas';
 import { useState, type FormEvent } from 'react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { GuaranteeBadge } from './guarantee-badge';
 import { ErrorNotice } from '@/components/ui/error-notice';
+import { formatUnitsPct, normalizePct } from '@/components/parties/parties';
 import {
   ActivationProblems,
   activationProblemsOf,
@@ -57,6 +59,13 @@ interface SelectedPerson {
   person: PersonResult;
 }
 
+interface SelectedLessor {
+  personId: string;
+  person: PersonResult;
+  /** Porcentaje de cobro tal como se escribe (coma o punto). */
+  payoutPct: string;
+}
+
 interface FormData {
   propertyId: string;
   contractType: string;
@@ -64,6 +73,7 @@ interface FormData {
   endDate: string;
   notes: string;
   persons: SelectedPerson[];
+  lessors: SelectedLessor[];
   rentAmount: string;
   currency: string;
   depositAmount: string;
@@ -80,6 +90,7 @@ const INITIAL_FORM: FormData = {
   endDate: '',
   notes: '',
   persons: [],
+  lessors: [],
   rentAmount: '',
   currency: 'ARS',
   depositAmount: '',
@@ -117,6 +128,7 @@ export function ContractForm() {
   const t = useTranslations('contracts.wizard');
   const tContracts = useTranslations('contracts');
   const tCommon = useTranslations('common');
+  const tParties = useTranslations('parties.contractForm');
   const { user } = useAuth();
   const router = useRouter();
 
@@ -126,6 +138,8 @@ export function ContractForm() {
   const [error, setError] = useState<unknown>(null);
   const [activationProblems, setActivationProblems] = useState<ActivationProblem[] | null>(null);
   const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
+  // Mientras nadie edite un porcentaje, agregar o quitar un locador reparte en partes iguales.
+  const [sharesEdited, setSharesEdited] = useState(false);
 
   // Person search state
   const [personSearch, setPersonSearch] = useState('');
@@ -203,6 +217,36 @@ export function ContractForm() {
     update('persons', form.persons.filter((p) => !(p.personId === personId && p.role === role)));
   }
 
+  /* ── Locadores ── */
+  function withEqualShares(list: SelectedLessor[]): SelectedLessor[] {
+    if (sharesEdited || list.length === 0) return list;
+    const shares = splitEqualPct(list.length);
+    return list.map((l, i) => ({ ...l, payoutPct: shares[i] }));
+  }
+
+  function addLessor(person: PersonResult) {
+    if (form.lessors.some((l) => l.personId === person.id)) return;
+    update('lessors', withEqualShares([...form.lessors, { personId: person.id, person, payoutPct: '' }]));
+    setPersonSearch('');
+    setPersonResults([]);
+  }
+
+  function removeLessor(personId: string) {
+    update('lessors', withEqualShares(form.lessors.filter((l) => l.personId !== personId)));
+  }
+
+  function setLessorPct(personId: string, payoutPct: string) {
+    setSharesEdited(true);
+    update('lessors', form.lessors.map((l) => (l.personId === personId ? { ...l, payoutPct } : l)));
+  }
+
+  const lessorUnits = form.lessors.reduce((acc, l) => {
+    const pct = normalizePct(l.payoutPct);
+    return acc + (pct === null ? 0 : pctToUnits(pct));
+  }, 0);
+  const lessorsInvalid = form.lessors.some((l) => normalizePct(l.payoutPct) === null);
+  const lessorsSumOk = form.lessors.length > 0 && !lessorsInvalid && lessorUnits === FULL_SHARE_UNITS;
+
   /* ── Guarantees ── */
   function addGuarantee() {
     const entry: GuaranteeEntry = {
@@ -236,7 +280,7 @@ export function ContractForm() {
       if (!form.contractType) errors.contractType = tCommon('error');
       if (!form.startDate) errors.startDate = tCommon('error');
     } else if (s === 1) {
-      const hasPropietario = form.persons.some((p) => p.role === 'Propietario');
+      const hasPropietario = form.lessors.length > 0;
       const hasInquilino = form.persons.some((p) => p.role === 'Inquilino');
       if (!hasPropietario && form.contractType !== 'Venta') errors.propietario = t('step2.propietarioRequired');
       if (!hasInquilino && form.contractType !== 'Venta') errors.inquilino = t('step2.inquilinoRequired');
@@ -289,6 +333,11 @@ export function ContractForm() {
         adjustmentPeriod: form.adjustmentPeriod || undefined,
         customAdjustmentPct: form.customAdjustmentPct ? Number(form.customAdjustmentPct) : undefined,
         persons: form.persons.map((p) => ({ personId: p.personId, role: p.role })),
+        // Los locadores viajan con su porcentaje de cobro; los datos de partes iguales son solo el valor inicial.
+        lessors: form.lessors.map((l) => ({
+          personId: l.personId,
+          payoutPct: normalizePct(l.payoutPct) ?? l.payoutPct,
+        })),
         guarantees: form.guarantees
           .filter((g) => g.type)
           .map((g) => ({
@@ -473,11 +522,9 @@ export function ContractForm() {
                         </div>
                       </div>
                       <div className="flex gap-1 mt-1">
-                        {p.roles?.includes(PersonRole.Propietario) && (
-                          <button type="button" onClick={() => addPerson(p, 'Propietario')} className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100">
-                            + {t('step2.addPropietario')}
-                          </button>
-                        )}
+                        <button type="button" onClick={() => addLessor(p)} className="text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100">
+                          + {t('step2.addPropietario')}
+                        </button>
                         {p.roles?.includes(PersonRole.Inquilino) && (
                           <button type="button" onClick={() => addPerson(p, 'Inquilino')} className="text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100">
                             + {t('step2.addInquilino')}
@@ -501,24 +548,50 @@ export function ContractForm() {
 
             {/* Selected persons */}
             <div className="space-y-3">
-              {/* Propietario */}
+              {/* Locadores */}
               <div>
-                <h3 className="text-xs font-medium text-slate-500 mb-1">{tContracts('detail.propietario')}</h3>
-                {form.persons.filter((p) => p.role === 'Propietario').map((p) => (
-                  <div key={`${p.personId}-${p.role}`} className="flex items-center justify-between bg-blue-50 rounded-lg px-3 py-2">
+                <h3 className="text-xs font-medium text-slate-500 mb-1">{tParties('title')}</h3>
+                {form.lessors.map((l) => (
+                  <div key={l.personId} className="flex flex-wrap items-center justify-between gap-2 bg-blue-50 rounded-lg px-3 py-2 mb-1">
                     <div className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      <span className="text-sm text-slate-900">{p.person.firstName} {p.person.lastName}</span>
+                      <span className="text-sm text-slate-900">{l.person.firstName} {l.person.lastName}</span>
                     </div>
-                    <button type="button" onClick={() => removePerson(p.personId, p.role)} className="text-xs text-red-500 hover:text-red-700">
-                      {t('step2.removePerson')}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <label className="flex items-center gap-1 text-xs text-slate-600">
+                        <span>{tParties('payoutPct', { name: `${l.person.firstName} ${l.person.lastName}` })}</span>
+                        <input
+                          inputMode="decimal"
+                          value={l.payoutPct}
+                          onChange={(e) => setLessorPct(l.personId, e.target.value)}
+                          aria-invalid={normalizePct(l.payoutPct) === null}
+                          className="w-24 rounded border border-slate-200 bg-white px-2 py-1 text-right text-sm tabular-nums"
+                        />
+                        <span aria-hidden="true">%</span>
+                      </label>
+                      <button type="button" onClick={() => removeLessor(l.personId)} className="text-xs text-red-500 hover:text-red-700">
+                        {t('step2.removePerson')}
+                      </button>
+                    </div>
                   </div>
                 ))}
-                {!form.persons.some((p) => p.role === 'Propietario') && (
+                {form.lessors.length === 0 && (
                   <p className={`text-xs italic ${stepErrors.propietario ? 'text-red-500' : 'text-slate-400'}`}>
                     {t('step2.noPropietario')}
                   </p>
+                )}
+                {form.lessors.length > 0 && (
+                  <p
+                    role="status"
+                    className={`mt-1 text-xs ${lessorsSumOk ? 'text-emerald-700' : 'text-amber-700'}`}
+                  >
+                    {lessorsSumOk
+                      ? tParties('sumOk')
+                      : tParties('sumWarning', { sum: formatUnitsPct(lessorUnits) })}
+                  </p>
+                )}
+                {form.lessors.length > 0 && !lessorsSumOk && (
+                  <p className="text-xs text-slate-500">{tParties('draftAllowed')}</p>
                 )}
               </div>
 
@@ -831,7 +904,8 @@ export function ContractForm() {
               <button
                 type="button"
                 onClick={() => void save('activate')}
-                disabled={submitting !== ''}
+                disabled={submitting !== '' || (form.lessors.length > 0 && !lessorsSumOk)}
+                title={form.lessors.length > 0 && !lessorsSumOk ? tParties('activateNeedsHundred') : undefined}
                 className="px-6 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {submitting === 'activate' && <Spinner className="w-4 h-4 text-white" />}
