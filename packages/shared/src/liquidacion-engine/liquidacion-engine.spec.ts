@@ -81,25 +81,65 @@ describe('liquidacion-engine — total de ítems', () => {
       expect(totals([{ type: LineItemType.Alquiler, amount: '0.005' }]).subtotal).toBe('0.01');
     });
 
-    it('el total se calcula con los valores sin redondear: 0,005 - 0,004 da total 0,00 aunque se muestre 0,01 - 0,00', () => {
-      // subtotal 0,005 -> 0,01 ; descuentos 0,004 -> 0,00 ; total = 0,001 -> 0,00
+    it('el total es subtotal redondeado menos descuentos redondeados: 0,005 - 0,004 da 0,01 - 0,00 = 0,01 (DEF-13)', () => {
+      // subtotal 0,005 -> 0,01 ; descuentos 0,004 -> 0,00 ; total = 0,01 - 0,00 = 0,01
       expect(
         totals([
           { type: LineItemType.Alquiler, amount: '0.005' },
           { type: LineItemType.Descuento, amount: '0.004' },
         ]),
-      ).toEqual({ subtotal: '0.01', discounts: '0.00', total: '0.00' });
+      ).toEqual({ subtotal: '0.01', discounts: '0.00', total: '0.01' });
+    });
+
+    it('el total coincide con lo que se muestra: 20,005 - 10,004 muestra 20,01 - 10,00 y da 10,01 (DEF-13)', () => {
+      const r = totals([
+        { type: LineItemType.Alquiler, amount: '20.005' },
+        { type: LineItemType.Descuento, amount: '10.004' },
+      ]);
+      expect(r).toEqual({ subtotal: '20.01', discounts: '10.00', total: '10.01' });
     });
   });
 
-  it('un Descuento con monto negativo no se valida y termina sumando', () => {
-    // descuentos = -100 ; total = 1000 - (-100) = 1100
-    expect(
-      totals([
-        { type: LineItemType.Alquiler, amount: 1000 },
-        { type: LineItemType.Descuento, amount: -100 },
-      ]),
-    ).toEqual({ subtotal: '1000.00', discounts: '-100.00', total: '1100.00' });
+  describe('montos negativos (DEF-13)', () => {
+    const codeOf = (fn: () => unknown): unknown => {
+      try {
+        fn();
+      } catch (e) {
+        return (e as { code?: string }).code ?? 'sin código';
+      }
+      return 'no lanzó';
+    };
+
+    it('un Descuento negativo se rechaza con INVALID_LINE_AMOUNT en vez de sumar', () => {
+      expect(
+        codeOf(() =>
+          calculateLineItemsTotal([
+            { type: LineItemType.Alquiler, amount: 1000 },
+            { type: LineItemType.Descuento, amount: -100 },
+          ]),
+        ),
+      ).toBe('INVALID_LINE_AMOUNT');
+    });
+
+    it.each([
+      LineItemType.Alquiler,
+      LineItemType.Ajuste,
+      LineItemType.Extra,
+      LineItemType.Multa,
+    ])('un %s negativo también se rechaza', (type) => {
+      expect(codeOf(() => calculateLineItemsTotal([{ type, amount: '-0.01' }]))).toBe(
+        'INVALID_LINE_AMOUNT',
+      );
+    });
+
+    it('el monto cero es válido', () => {
+      expect(
+        totals([
+          { type: LineItemType.Alquiler, amount: 0 },
+          { type: LineItemType.Descuento, amount: 0 },
+        ]),
+      ).toEqual({ subtotal: '0.00', discounts: '0.00', total: '0.00' });
+    });
   });
 
   it('acepta string, number y Decimal', () => {
