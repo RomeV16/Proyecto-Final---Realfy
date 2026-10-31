@@ -510,4 +510,100 @@ describe('ContractAdjustmentService', () => {
       expect(next.slice(0, 10)).toBe(expected);
     });
   });
+
+  // ── Índices faltantes (CP-240, DEF-20) ────────────────────────────────────
+
+  describe('applyDueAdjustments sin datos de índice (DEF-20)', () => {
+    let warn: jest.SpyInstance;
+
+    beforeEach(() => {
+      warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    });
+
+    const expectUntouched = () => {
+      expect(mockTxContractUpdate).not.toHaveBeenCalled();
+      expect(mockTxScheduleUpdate).not.toHaveBeenCalled();
+      expect(mockTxAuditCreate).not.toHaveBeenCalled();
+    };
+
+    it('IPC sin datos: no toca el alquiler, deja el cronograma pendiente y lo informa', async () => {
+      mockFindManyDueSchedules.mockResolvedValueOnce([
+        makeDue({ adjustmentType: AdjustmentType.IPC, customAdjustmentPct: null }),
+      ]);
+      mockFindManyIndex.mockResolvedValue([]);
+
+      const result = await service.applyDueAdjustments();
+
+      expect(result).toEqual([]);
+      expectUntouched();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('MISSING_INDEX_DATA'),
+        expect.objectContaining({
+          contractId: 'contract-1',
+          scheduleId: 'schedule-1',
+          indexTypes: [IndexType.IPC],
+        }),
+      );
+    });
+
+    it('ICL sin datos: no aplica 1/1 como si el índice no hubiera cambiado', async () => {
+      mockFindManyDueSchedules.mockResolvedValueOnce([
+        makeDue({ adjustmentType: AdjustmentType.ICL, customAdjustmentPct: null }),
+      ]);
+      mockFindManyIndex.mockResolvedValue([]);
+
+      const result = await service.applyDueAdjustments();
+
+      expect(result).toEqual([]);
+      expectUntouched();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('MISSING_INDEX_DATA'),
+        expect.objectContaining({ indexTypes: [IndexType.ICL] }),
+      );
+    });
+
+    it('CCP con CVS pero sin CER: informa el índice que falta', async () => {
+      mockFindManyDueSchedules.mockResolvedValueOnce([
+        makeDue({ adjustmentType: AdjustmentType.CCP, customAdjustmentPct: null }),
+      ]);
+      mockFindManyIndex.mockImplementation(async (type: IndexType) =>
+        type === IndexType.CVS ? rows('1.5', '1.6') : [],
+      );
+
+      const result = await service.applyDueAdjustments();
+
+      expect(result).toEqual([]);
+      expectUntouched();
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining('MISSING_INDEX_DATA'),
+        expect.objectContaining({ indexTypes: [IndexType.CER] }),
+      );
+    });
+
+    it('un contrato sin índices no frena a los demás del barrido', async () => {
+      mockFindManyDueSchedules.mockResolvedValueOnce([
+        makeDue({ id: 'contract-A', adjustmentType: AdjustmentType.IPC }, { id: 'schedule-A' }),
+        makeDue({ id: 'contract-B' }, { id: 'schedule-B' }),
+      ]);
+      mockFindManyIndex.mockResolvedValue([]);
+
+      const result = await service.applyDueAdjustments();
+
+      expect(result.map((r) => r.contractId)).toEqual(['contract-B']);
+      expect(mockTxScheduleUpdate).toHaveBeenCalledTimes(1);
+      expect(mockTxScheduleUpdate.mock.calls[0][0].where).toEqual({ id: 'schedule-B' });
+    });
+
+    it('con datos del índice sigue aplicando el ajuste', async () => {
+      mockFindManyDueSchedules.mockResolvedValueOnce([
+        makeDue({ adjustmentType: AdjustmentType.IPC, rentAmount: '100000.00', customAdjustmentPct: null }),
+      ]);
+      mockFindManyIndex.mockResolvedValue(rows('2.000000', '3.000000'));
+
+      const result = await service.applyDueAdjustments();
+
+      expect(result).toHaveLength(1);
+      expect(warn).not.toHaveBeenCalled();
+    });
+  });
 });
