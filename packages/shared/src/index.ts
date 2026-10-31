@@ -35,8 +35,6 @@ export {
   RendicionStatus,
   RendicionLineItemType,
   ValuationMethod,
-  InventoryType,
-  InventoryItemStatus,
   TicketStatus,
   TicketPriority,
 } from './enums';
@@ -45,8 +43,6 @@ export {
 export {
   CreateUserSchema,
   InviteUserSchema,
-  LoginSchema,
-  RegisterSchema,
 } from './schemas/user.schema';
 
 // Schemas — inmobiliarias (tenants)
@@ -376,8 +372,6 @@ export {
 
 // Constants & utilities
 export {
-  DEFAULT_TIMEZONE,
-  DEFAULT_CURRENCY,
   DEFAULT_ALQUILER_STAGES,
   DEFAULT_VENTA_STAGES,
   DEFAULT_PIPELINE_STAGES,
@@ -655,8 +649,6 @@ export {
   ImportUploadResultSchema,
   PROPERTY_IMPORT_FIELDS,
   PERSON_IMPORT_FIELDS,
-  CONTRACT_IMPORT_FIELDS,
-  LIQUIDACION_IMPORT_FIELDS,
 } from './schemas/import.schema';
 import {
   ColumnMappingSchema as _ColumnMappingSchema,
@@ -680,8 +672,6 @@ export type ImportUploadResult = z.infer<typeof _ImportUploadResultSchema>;
 export {
   PropertyImportRowSchema,
   PersonImportRowSchema,
-  ContractImportRowSchema,
-  LiquidacionImportRowSchema,
 } from './schemas/import-row.schema';
 
 export {

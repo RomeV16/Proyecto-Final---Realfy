@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // ─── Import Entity Type ─────────────────────────────────
 
-export const ImportEntityType = z.enum(['property', 'person', 'contract', 'liquidacion']);
+export const ImportEntityType = z.enum(['property', 'person']);
 export type ImportEntityType = z.infer<typeof ImportEntityType>;
 
 // ─── Column Mapping ─────────────────────────────────────
@@ -95,16 +95,4 @@ export const PROPERTY_IMPORT_FIELDS = [
 export const PERSON_IMPORT_FIELDS = [
   'firstName', 'lastName', 'email', 'phone', 'phone2',
   'cuit', 'fiscalCondition', 'bankName', 'cbu', 'bankAlias', 'notes',
-] as const;
-
-export const CONTRACT_IMPORT_FIELDS = [
-  'propertyRef', 'contractType', 'startDate', 'endDate',
-  'rentAmount', 'rentCurrency', 'adjustmentType', 'adjustmentPeriod',
-  'ownerRef', 'tenantRef', 'guarantorRef',
-  'status', 'depositAmount', 'notes',
-] as const;
-
-export const LIQUIDACION_IMPORT_FIELDS = [
-  'contractRef', 'period', 'amount', 'status',
-  'dueDate', 'paymentDate', 'paymentMethod', 'paymentAmount',
 ] as const;

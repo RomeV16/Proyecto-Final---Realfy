@@ -13,7 +13,7 @@ import { join } from 'path';
  */
 
 /** Enums que existen en shared y no en Prisma (no son enum de base de datos). */
-const SOLO_EN_SHARED = ['Province', 'InventoryType', 'InventoryItemStatus'];
+const SOLO_EN_SHARED = ['Province'];
 
 /** Enums que existen en Prisma y no en shared. */
 const SOLO_EN_PRISMA = [
