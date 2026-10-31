@@ -2,8 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
-import { usePathname, useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { Link } from '@/i18n/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import {
@@ -178,10 +178,8 @@ export default function LeadDetailPage() {
   const t = useTranslations('interactions');
   const tLeads = useTranslations('leads');
   const tCommon = useTranslations('common');
-  const pathname = usePathname();
   const params = useParams();
   const { user } = useAuth();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const leadId = params.id as string;
 
   // ── Core state ──
@@ -422,7 +420,7 @@ export default function LeadDetailPage() {
           <Icon name="alert" className="w-8 h-8 text-slate-400" strokeWidth={1.5} />
         </div>
         <h2 className="h3">{t('leadDetail.notFound')}</h2>
-        <Link href={`${localePrefix}/leads`} className="mt-4">
+        <Link href={'/leads'} className="mt-4">
           <Button variant="secondary">{t('leadDetail.back')}</Button>
         </Link>
       </div>
@@ -452,7 +450,7 @@ export default function LeadDetailPage() {
       {/* ── Header ── */}
       <div className="flex items-center gap-4">
         <Link
-          href={`${localePrefix}/leads`}
+          href={'/leads'}
           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           aria-label={t('leadDetail.back')}
         >

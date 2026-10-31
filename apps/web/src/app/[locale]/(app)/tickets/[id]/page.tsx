@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname, useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { Link } from '@/i18n/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
@@ -128,10 +128,8 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 export default function TicketDetailPage() {
   const t = useTranslations('tickets');
-  const pathname = usePathname();
   const params = useParams();
   const { user } = useAuth();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const ticketId = params.id as string;
 
   const canManage = useCan('tickets.manage');
@@ -298,7 +296,7 @@ export default function TicketDetailPage() {
           </svg>
         </div>
         <h2 className="h3">{t('empty.detail')}</h2>
-        <Link href={`${localePrefix}/tickets`} className="mt-4">
+        <Link href={'/tickets'} className="mt-4">
           <Button variant="secondary">{t('backToList')}</Button>
         </Link>
       </div>
@@ -314,7 +312,7 @@ export default function TicketDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          href={`${localePrefix}/tickets`}
+          href={'/tickets'}
           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           aria-label={t('backToList')}
         >

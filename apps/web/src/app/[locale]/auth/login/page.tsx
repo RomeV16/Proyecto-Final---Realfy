@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { loginSchema } from '@realfy/shared/schemas';
 import { setStoredUser, ApiRequestError } from '@/lib/api-client';
 import type { AuthResponse } from '@realfy/shared';
@@ -17,8 +17,6 @@ const API_BASE_URL =
 export default function LoginPage() {
   const t = useTranslations();
   const router = useRouter();
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -64,7 +62,7 @@ export default function LoginPage() {
         lastName: res.user.lastName,
       });
       setExiting(true);
-      router.push(`${localePrefix}`);
+      router.push('/');
     } catch (err) {
       setServerError(err instanceof ApiRequestError ? t('auth.login.error') : t('common.error'));
       setLoading(false);
@@ -120,7 +118,7 @@ export default function LoginPage() {
 
       <p className="mt-8 text-sm text-[var(--color-muted)]">
         <a
-          href={`${localePrefix}/auth/register`}
+          href={'/auth/register'}
           className="link-underline font-medium text-[var(--color-text)]"
         >
           {t('auth.login.registerLink')}

@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname, useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import {
   PropertyOperationType,
@@ -204,9 +204,6 @@ function DetailView({
 }) {
   const t = useTranslations('properties');
   const tCommon = useTranslations('common');
-  const pathname = usePathname();
-  const localePrefix =
-    pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [transitionLoading, setTransitionLoading] = useState<string | null>(null);
   const [operations, setOperations] = useState(property.operations || []);
@@ -508,7 +505,7 @@ function DetailView({
               <div className="space-y-3">
                 {personRoles.map((pr) => {
                   const fullName = `${pr.person.firstName} ${pr.person.lastName}`;
-                  const href = `${localePrefix}/persons/${pr.person.id}`;
+                  const href = `/persons/${pr.person.id}`;
                   return (
                     <EntityRow
                       key={pr.id}
@@ -593,12 +590,10 @@ function DetailSkeleton() {
 export default function PropertyDetailPage() {
   const t = useTranslations('properties');
   const tCommon = useTranslations('common');
-  const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
-    const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const propertyId = params.id as string;
-  const listHref = `${localePrefix}/properties`;
+  const listHref = '/properties';
 
   const [property, setProperty] = useState<PropertyDetail | null>(null);
   const [loading, setLoading] = useState(true);

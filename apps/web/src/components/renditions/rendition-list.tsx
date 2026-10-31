@@ -7,7 +7,6 @@ import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
 import { RendicionStatus } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
@@ -91,11 +90,10 @@ function RenditionStatusBadge({ status, onCover }: { status: string; onCover?: b
 
 interface CardProps {
   item: RenditionItem;
-  localePrefix: string;
   onDownloadPdf: (id: string) => void;
 }
 
-function RenditionCard({ item, localePrefix, onDownloadPdf }: CardProps) {
+function RenditionCard({ item, onDownloadPdf }: CardProps) {
   const t = useTranslations('renditions');
   const tCard = useTranslations('renditions.card');
   const tMonths = useTranslations('renditions.months');
@@ -105,7 +103,7 @@ function RenditionCard({ item, localePrefix, onDownloadPdf }: CardProps) {
     ? `${item.owner.firstName} ${item.owner.lastName}`.trim()
     : item.ownerName || null;
   const propertyText = item.contract?.property?.title || tCard('noProperty');
-  const href = `${localePrefix}/renditions/${item.id}`;
+  const href = `/renditions/${item.id}`;
 
   const rentCollected = Number(item.rentCollected || 0);
   const netDeposit = Number(item.netDeposit || 0);
@@ -285,8 +283,6 @@ export function RenditionList() {
   const t = useTranslations('renditions');
   const tMonths = useTranslations('renditions.months');
   const tCommon = useTranslations('common');
-    const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const canManage = useCan('renditions.manage');
 
@@ -411,7 +407,7 @@ export function RenditionList() {
         skeletonCount={6}
         keyOf={(item) => item.id}
         renderItem={(item) => (
-          <RenditionCard item={item} localePrefix={localePrefix} onDownloadPdf={handleDownloadPdf} />
+          <RenditionCard item={item} onDownloadPdf={handleDownloadPdf} />
         )}
         empty={
           hasFilters ? (

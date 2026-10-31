@@ -2,8 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Province } from '@realfy/shared';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
@@ -31,8 +30,6 @@ export default function ConfiguracionPage() {
   const tScoring = useTranslations('scoring');
   const tIndices = useTranslations('indexData');
   const { user } = useAuth();
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +126,7 @@ export default function ConfiguracionPage() {
               <p className="text-sm text-slate-500 mt-0.5">{tPipeline('subtitle')}</p>
             </div>
           </div>
-          <Link href={`${localePrefix}/configuracion/pipeline`} className="shrink-0">
+          <Link href={'/configuracion/pipeline'} className="shrink-0">
             <Button variant="secondary" size="sm">
               {t('managePipeline')}
             </Button>
@@ -148,7 +145,7 @@ export default function ConfiguracionPage() {
               <p className="text-sm text-slate-500 mt-0.5">{tFiscal('subtitle')}</p>
             </div>
           </div>
-          <Link href={`${localePrefix}/configuracion/fiscal`} className="shrink-0">
+          <Link href={'/configuracion/fiscal'} className="shrink-0">
             <Button variant="secondary" size="sm">
               {t('manageFiscal')}
             </Button>
@@ -167,7 +164,7 @@ export default function ConfiguracionPage() {
               <p className="text-sm text-slate-500 mt-0.5">{tScoring('description')}</p>
             </div>
           </div>
-          <Link href={`${localePrefix}/configuracion/scoring`} className="shrink-0">
+          <Link href={'/configuracion/scoring'} className="shrink-0">
             <Button variant="secondary" size="sm">
               {t('manageScoring')}
             </Button>
@@ -186,7 +183,7 @@ export default function ConfiguracionPage() {
               <p className="text-sm text-slate-500 mt-0.5">{tIndices('cardSubtitle')}</p>
             </div>
           </div>
-          <Link href={`${localePrefix}/configuracion/indices`} className="shrink-0">
+          <Link href={'/configuracion/indices'} className="shrink-0">
             <Button variant="secondary" size="sm">
               {t('manageIndices')}
             </Button>

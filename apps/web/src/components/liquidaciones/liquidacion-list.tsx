@@ -7,7 +7,6 @@ import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
 import { LiquidacionStatus } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
@@ -92,13 +91,12 @@ const STATUS_ACCENT: Record<string, 'brand' | 'success' | 'warning' | 'danger' |
 
 interface CardProps {
   item: LiquidacionItem;
-  localePrefix: string;
   selected: boolean;
   onToggle: () => void;
   bulkMode: boolean;
 }
 
-function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: CardProps) {
+function LiquidacionCard({ item, selected, onToggle, bulkMode }: CardProps) {
   const t = useTranslations('liquidaciones');
   const tCard = useTranslations('liquidaciones.card');
   const tCommon = useTranslations('common');
@@ -121,7 +119,7 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
     ? [item.contract.property.title, item.contract.property.street, item.contract.property.city].filter(Boolean).join(' — ')
     : tCard('noProperty');
 
-  const href = `${localePrefix}/liquidaciones/${item.id}`;
+  const href = `/liquidaciones/${item.id}`;
 
   const metaItems: Array<{ icon?: IconName; label: string }> = [{ icon: 'mapPin', label: propertyText }];
   if (item.dueDate) {
@@ -319,8 +317,6 @@ export function LiquidacionList() {
   const tMonths = useTranslations('liquidaciones.months');
   const tErrors = useTranslations('liquidaciones.errors');
   const tCommon = useTranslations('common');
-    const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -563,7 +559,7 @@ export function LiquidacionList() {
           renderItem={(item) => (
             <LiquidacionCard
               item={item}
-              localePrefix={localePrefix}
+             
               selected={selectedIds.has(item.id)}
               onToggle={() => toggleSelected(item.id)}
               bulkMode={bulkMode}

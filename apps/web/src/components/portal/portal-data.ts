@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo } from 'react';
-import { usePathname } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { portalApiClient } from '@/lib/portal-api-client';
 import { toUtcDay } from '@/lib/format';
@@ -351,14 +350,16 @@ export interface PortalPaths {
   claims: string;
 }
 
-/** Locale-prefixed portal routes. The invoice route keeps its original name. */
-export function usePortalPaths(): PortalPaths {
-  const pathname = usePathname();
-  const prefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
+/**
+ * Portal routes, without locale: `Link` and `useRouter` from `@/i18n/navigation`
+ * add the prefix. The invoice route keeps its original name.
+ */
+export const PORTAL_PATHS: PortalPaths = {
+  home: '/portal',
+  invoices: '/portal/liquidaciones',
+  claims: '/portal/tickets',
+};
 
-  return {
-    home: `${prefix}/portal`,
-    invoices: `${prefix}/portal/liquidaciones`,
-    claims: `${prefix}/portal/tickets`,
-  };
+export function usePortalPaths(): PortalPaths {
+  return PORTAL_PATHS;
 }

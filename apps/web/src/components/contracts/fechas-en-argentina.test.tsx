@@ -26,7 +26,6 @@ describe('fechas de solo día en la zona horaria de Argentina', () => {
 
     renderEs(
       <ActivationProblems
-        localePrefix="/es"
         problems={[
           {
             code: 'OVERLAPPING_CONTRACT',

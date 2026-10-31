@@ -1,8 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { TicketStatus, TicketPriority } from '@realfy/shared';
@@ -52,15 +51,13 @@ const PRIORITY_ACCENT: Record<string, 'danger' | 'warning' | 'info' | 'none'> = 
 
 function TicketCard({
   ticket,
-  localePrefix,
   now,
 }: {
   ticket: TicketItem;
-  localePrefix: string;
   now: Date;
 }) {
   const t = useTranslations('tickets');
-  const href = `${localePrefix}/tickets/${ticket.id}`;
+  const href = `/tickets/${ticket.id}`;
   const sla = ticket.slaDeadline ? new Date(ticket.slaDeadline) : null;
   /* Un ticket cerrado ya no corre contra el SLA: avisar ahi solo suma ruido. */
   const isOpen = !CLOSED_STATUSES.includes(ticket.status);
@@ -144,8 +141,6 @@ function TicketCard({
 export default function TicketListPage() {
   const t = useTranslations('tickets');
   const tCommon = useTranslations('common');
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [items, setItems] = useState<TicketItem[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -199,7 +194,7 @@ export default function TicketListPage() {
           <h1 className="h1">{t('title')}</h1>
           <p className="mt-2 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
-        <Link href={`${localePrefix}/tickets/new`} className="shrink-0">
+        <Link href={'/tickets/new'} className="shrink-0">
           <Button variant="primary">
             <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
             {t('newTicket')}
@@ -254,7 +249,7 @@ export default function TicketListPage() {
         skeletonCount={6}
         keyOf={(ticket) => ticket.id}
         renderItem={(ticket) => (
-          <TicketCard ticket={ticket} localePrefix={localePrefix} now={now} />
+          <TicketCard ticket={ticket} now={now} />
         )}
         empty={
           hasFilters ? (
@@ -276,7 +271,7 @@ export default function TicketListPage() {
               subtitle={t('empty.subtitle')}
               steps={[t('empty.step1'), t('empty.step2'), t('empty.step3')]}
               action={
-                <Link href={`${localePrefix}/tickets/new`}>
+                <Link href={'/tickets/new'}>
                   <Button variant="primary">
                     <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
                     {t('newTicket')}

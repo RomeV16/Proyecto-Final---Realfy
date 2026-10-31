@@ -2,11 +2,8 @@
 
 import { Suspense, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import {
-  useRouter,
-  usePathname,
-  useSearchParams,
-} from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { localizedPath, useRouter } from '@/i18n/navigation';
 import { PortalSetPasswordRequestSchema } from '@realfy/shared';
 import type { PortalAuthResponse } from '@realfy/shared';
 import {
@@ -21,11 +18,8 @@ import { Spinner } from '@/components/ui/spinner';
 function SetPasswordForm() {
   const t = useTranslations();
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
-  const localePrefix =
-    pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -81,7 +75,7 @@ function SetPasswordForm() {
         );
       }
       // Full navigation so the auth provider rehydrates from storage.
-      window.location.href = `${localePrefix}/portal`;
+      window.location.href = localizedPath('/portal');
     } catch (err) {
       if (err instanceof PortalApiRequestError) {
         if (err.errorCode === 'INVITATION_EXPIRED') {
@@ -167,7 +161,7 @@ function SetPasswordForm() {
         <p className="mt-8 text-center text-sm text-[var(--color-muted)]">
           <button
             type="button"
-            onClick={() => router.push(`${localePrefix}/portal/auth/login`)}
+            onClick={() => router.push('/portal/auth/login')}
             className="link-underline font-medium text-[var(--color-text)]"
           >
             {t('portal.auth.setPassword.loginLink')}

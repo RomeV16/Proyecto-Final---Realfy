@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { ContractStatusBadge } from './contract-status-badge';
 import { EntityCard, EntityRow } from '@/components/ui/entity-card';
 import { Avatar } from '@/components/ui/avatar';
@@ -401,8 +400,6 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
   const tPropTypes = useTranslations('properties.types');
   const tCommon = useTranslations('common');
   const tAdjustments = useTranslations('contracts.adjustments');
-    const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [contract, setContract] = useState<ContractDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -535,7 +532,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <h2 className="text-lg font-semibold text-slate-900">{tCommon('error')}</h2>
         <Link
-          href={`${localePrefix}/contracts`}
+          href={'/contracts'}
           className="mt-4 text-sm text-brand-600 hover:text-brand-700"
         >
           ← {tCommon('back')}
@@ -569,7 +566,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Back link */}
       <Link
-        href={`${localePrefix}/contracts`}
+        href={'/contracts'}
         className="text-sm text-brand-600 hover:text-brand-700"
       >
         ← {tCommon('back')}
@@ -674,7 +671,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
         {/* Feedback messages */}
         {activationProblems && (
           <div className="mt-3">
-            <ActivationProblems problems={activationProblems} localePrefix={localePrefix} />
+            <ActivationProblems problems={activationProblems} />
           </div>
         )}
         {actionError && (
@@ -734,7 +731,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
                   )}
                 </div>
                 <Link
-                  href={`${localePrefix}/properties/${contract.property.id}`}
+                  href={`/properties/${contract.property.id}`}
                   className="text-sm text-brand-600 hover:text-brand-700"
                 >
                   {t('viewProperty')} →
@@ -759,7 +756,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
                   return (
                     <EntityRow
                       key={p.id}
-                      href={`${localePrefix}/persons/${p.person.id}`}
+                      href={`/persons/${p.person.id}`}
                       label={fullName}
                       accent={group.accent}
                       leading={<Avatar name={fullName} seed={p.person.id} size="sm" />}

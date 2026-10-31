@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { ApiRequestError } from '@/lib/api-client';
 import { formatDate } from '@/lib/format';
 
@@ -36,13 +36,7 @@ const KNOWN_CODES = new Set([
 
 
 /** Lista, en lenguaje llano, de lo que impide activar el contrato. */
-export function ActivationProblems({
-  problems,
-  localePrefix,
-}: {
-  problems: ActivationProblem[];
-  localePrefix: string;
-}) {
+export function ActivationProblems({ problems }: { problems: ActivationProblem[] }) {
   const t = useTranslations('contracts.activation');
 
   return (
@@ -67,7 +61,7 @@ export function ActivationProblems({
               <>
                 {' '}
                 <Link
-                  href={`${localePrefix}/contracts/${p.contractId}`}
+                  href={`/contracts/${p.contractId}`}
                   className="font-medium underline hover:text-red-900"
                 >
                   {t('viewContract')}

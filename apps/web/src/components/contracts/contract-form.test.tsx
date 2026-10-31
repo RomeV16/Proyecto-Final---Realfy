@@ -16,7 +16,8 @@ vi.mock('@/lib/api-client', async (importOriginal) => ({
 vi.mock('@/lib/auth-context', () => ({
   useAuth: () => ({ user: { id: 'u1', role: 'Admin' } }),
 }));
-vi.mock('next/navigation', () => ({
+vi.mock('next/navigation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/navigation')>()),
   usePathname: () => '/es/contracts/new',
   useRouter: () => router,
 }));

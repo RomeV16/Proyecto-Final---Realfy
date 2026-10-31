@@ -1,11 +1,10 @@
 'use client';
 
 import { useTranslations, useLocale } from 'next-intl';
-import { usePathname, useRouter } from 'next/navigation';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useState, useRef, useEffect } from 'react';
 import { Icon } from '@/components/ui/icon';
-import Link from 'next/link';
 import { SEGMENT_LABELS } from './segment-labels';
 
 interface HeaderProps {
@@ -19,19 +18,10 @@ function toTitleCase(segment: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/** Strip leading locale prefix and split into non-empty segments. */
-function parseSegments(pathname: string, locales: string[]): string[] {
-  let path = pathname;
-  for (const locale of locales) {
-    if (path.startsWith(`/${locale}/`) || path === `/${locale}`) {
-      path = path.slice(locale.length + 1) || '/';
-      break;
-    }
-  }
-  return path.split('/').filter(Boolean);
+/** Split a locale-less pathname into non-empty segments. */
+function parseSegments(pathname: string): string[] {
+  return pathname.split('/').filter(Boolean);
 }
-
-const LOCALES = ['es', 'en'];
 
 export function Header({ onMenuToggle }: HeaderProps) {
   const t = useTranslations();
@@ -66,23 +56,14 @@ export function Header({ onMenuToggle }: HeaderProps) {
   // raw UUID (e.g. /contracts/<uuid> shows just "Contratos").
   const isIdSegment = (s: string) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/i.test(s) || /^\d+$/.test(s);
-  const segments = parseSegments(pathname, LOCALES).filter(
+  const segments = parseSegments(pathname).filter(
     (s) => !isIdSegment(s),
   );
-  const localePrefix = (() => {
-    for (const l of LOCALES) {
-      if (pathname.startsWith(`/${l}/`) || pathname === `/${l}`) {
-        return `/${l}`;
-      }
-    }
-    return '';
-  })();
-
   // es-AR falls back to 'es' label map
   const labelMap = SEGMENT_LABELS[locale] ?? SEGMENT_LABELS['es'];
 
   const crumbs = segments.map((seg, i) => {
-    const href = `${localePrefix}/${segments.slice(0, i + 1).join('/')}`;
+    const href = `/${segments.slice(0, i + 1).join('/')}`;
     const label = labelMap[seg] ?? toTitleCase(seg);
     return { seg, href, label };
   });
@@ -91,7 +72,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const parentHref =
     crumbs.length > 1
       ? crumbs[crumbs.length - 2].href
-      : `${localePrefix}/dashboard`;
+      : '/dashboard';
 
   return (
     <header className="h-16 sticky top-0 z-30 bg-[color-mix(in_srgb,var(--color-surface)_85%,transparent)] backdrop-blur-[8px] border-b border-[var(--color-border)] flex items-center justify-between px-4 lg:px-6 shrink-0">
@@ -165,7 +146,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
       {/* Right: notifications + user menu */}
       <div className="flex items-center gap-2 shrink-0">
         <Link
-          href={`${localePrefix}/notifications`}
+          href="/notifications"
           aria-label={t('nav.notifications')}
           title={t('nav.notifications')}
           className="flex items-center justify-center w-9 h-9 rounded-lg text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-sunken)] transition-colors"
@@ -208,14 +189,14 @@ export function Header({ onMenuToggle }: HeaderProps) {
                 </p>
               </div>
               <Link
-                href={`${localePrefix}/perfil`}
+                href="/perfil"
                 onClick={() => setDropdownOpen(false)}
                 className="block px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg)] transition-colors"
               >
                 {t('common.profile')}
               </Link>
               <Link
-                href={`${localePrefix}/configuracion`}
+                href="/configuracion"
                 onClick={() => setDropdownOpen(false)}
                 className="block px-4 py-2 text-sm text-[var(--color-text)] hover:bg-[var(--color-bg)] transition-colors"
               >

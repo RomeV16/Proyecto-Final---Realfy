@@ -8,8 +8,7 @@ import {
   AdjustmentType,
 } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
@@ -120,7 +119,7 @@ function contractAccent(contract: ContractItem, expiringSoon: boolean): Accent {
 
 /* ──────────── Card ──────────── */
 
-function ContractCard({ contract, localePrefix }: { contract: ContractItem; localePrefix: string }) {
+function ContractCard({ contract }: { contract: ContractItem }) {
   const t = useTranslations('contracts');
 
   const inquilino = contract.persons?.find((p) => p.role === 'Inquilino');
@@ -159,7 +158,7 @@ function ContractCard({ contract, localePrefix }: { contract: ContractItem; loca
             : null;
 
   const address = [contract.property?.street, contract.property?.city].filter(Boolean).join(', ');
-  const href = `${localePrefix}/contracts/${contract.id}`;
+  const href = `/contracts/${contract.id}`;
 
   return (
     <EntityCard href={href} label={`${tenantName} · ${propertyTitle}`} accent={accent}>
@@ -231,8 +230,6 @@ export function ContractList() {
   const tFilters = useTranslations('contracts.filters');
   const tPagination = useTranslations('contracts.pagination');
   const tCommon = useTranslations('common');
-    const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -289,7 +286,7 @@ export function ContractList() {
         <div className="flex items-center gap-2">
           {canCreate && (
             <Link
-              href={`${localePrefix}/contracts/new`}
+              href={'/contracts/new'}
               className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 active:bg-brand-700 transition-colors shadow-sm flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -375,7 +372,7 @@ export function ContractList() {
           skeletonCount={6}
           keyOf={(c) => c.id}
           renderItem={(contract) => (
-            <ContractCard contract={contract} localePrefix={localePrefix} />
+            <ContractCard contract={contract} />
           )}
           empty={
             hasFilters ? (
@@ -402,7 +399,7 @@ export function ContractList() {
                 action={
                   canCreate && (
                     <Link
-                      href={`${localePrefix}/contracts/new`}
+                      href={'/contracts/new'}
                       className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-brand-500)] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-brand-600)]"
                     >
                       {t('newContract')}

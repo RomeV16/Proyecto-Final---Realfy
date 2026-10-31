@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import type { EmitResult } from '@/lib/schemas/invoices';
@@ -121,9 +121,7 @@ export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
         body: JSON.stringify(payload),
       });
 
-      const pathname = window.location.pathname;
-      const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
-      router.push(`${localePrefix}/invoices/${res.id}`);
+      router.push(`/invoices/${res.id}`);
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : t('emitError'));
     } finally {

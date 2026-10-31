@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { Reveal } from '@/components/ui/reveal';
@@ -134,8 +133,6 @@ function PriorityRowSkeleton() {
  */
 export function DailyPriorities() {
   const t = useTranslations('dashboard.priorities');
-  const pathname = usePathname();
-  const lp = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<DailyPrioritiesResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -175,13 +172,13 @@ export function DailyPriorities() {
   function hrefFor(priority: DailyPriority): string {
     switch (priority.kind) {
       case 'cobranza':
-        return `${lp}/liquidaciones`;
+        return '/liquidaciones';
       case 'reclamo':
-        return `${lp}/tickets/${priority.entityId}`;
+        return `/tickets/${priority.entityId}`;
       case 'contrato':
-        return `${lp}/contracts/${priority.entityId}`;
+        return `/contracts/${priority.entityId}`;
       case 'lead':
-        return `${lp}/leads/${priority.entityId}`;
+        return `/leads/${priority.entityId}`;
     }
   }
 

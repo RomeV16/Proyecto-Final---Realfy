@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname, useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { PersonRole } from '@realfy/shared';
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -779,10 +779,8 @@ function ScoringSection({ personId }: { personId: string }) {
 export default function PersonDetailPage() {
   const t = useTranslations('persons');
   const tCommon = useTranslations('common');
-  const pathname = usePathname();
   const router = useRouter();
   const params = useParams();
-    const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const personId = params.id as string;
 
   const [person, setPerson] = useState<PersonDetail | null>(null);
@@ -815,7 +813,7 @@ export default function PersonDetailPage() {
   async function handleDelete() {
     try {
       await apiClient(`/persons/${personId}`, { method: 'DELETE' });
-      router.push(`${localePrefix}/persons`);
+      router.push('/persons');
     } catch {
       // stay on page
     }
@@ -841,7 +839,7 @@ export default function PersonDetailPage() {
         </div>
         <h2 className="text-lg font-semibold text-slate-900">{t('empty.detail')}</h2>
         <Link
-          href={`${localePrefix}/persons`}
+          href={'/persons'}
           className="mt-4 px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
         >
           {t('backToList')}
@@ -857,7 +855,7 @@ export default function PersonDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          href={`${localePrefix}/persons`}
+          href={'/persons'}
           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           aria-label={t('backToList')}
         >

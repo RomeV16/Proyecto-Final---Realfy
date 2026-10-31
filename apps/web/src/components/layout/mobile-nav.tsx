@@ -1,8 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link, usePathname } from '@/i18n/navigation';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Icon } from '@/components/ui/icon';
@@ -19,11 +18,8 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
   const { user, logout } = useAuth();
   const items = useVisibleNavItems();
 
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
-
   const isActive = (href: string) => {
-    const fullPath = `${localePrefix}${href}`;
-    return pathname === fullPath || pathname.startsWith(`${fullPath}/`);
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   useEffect(() => {
@@ -79,7 +75,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
             return (
               <Link
                 key={item.key}
-                href={`${localePrefix}${item.href}`}
+                href={item.href}
                 onClick={onClose}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 ${
                   active

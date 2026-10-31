@@ -5,7 +5,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { LeadSource } from '@realfy/shared';
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { usePathname } from 'next/navigation';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
@@ -142,11 +141,9 @@ const STATUS_VARIANT: Record<string, 'info' | 'warning' | 'success' | 'danger' |
 
 function LeadCard({
   lead,
-  localePrefix,
   onAction,
 }: {
   lead: LeadItem;
-  localePrefix: string;
   onAction: (action: string, lead: LeadItem) => void;
 }) {
   const t = useTranslations('leads');
@@ -160,7 +157,7 @@ function LeadCard({
   const contactDays = daysAgo(lead.lastContactAt ?? lead.updatedAt);
   const isStale = !isTerminal && lead.currentStage.staleDays != null && contactDays > lead.currentStage.staleDays;
   const unassigned = !isTerminal && !lead.assignedToUser;
-  const href = `${localePrefix}/leads/${lead.id}`;
+  const href = `/leads/${lead.id}`;
 
   /* La tarjeta muestra lo que necesita atención ahora, así la grilla también
      sirve como lista de tareas. Sin contacto pesa más que sin asignar — es
@@ -635,8 +632,6 @@ export function LeadList() {
   const tFilters = useTranslations('leads.filters');
   const tPagination = useTranslations('leads.pagination');
   const tCommon = useTranslations('common');
-    const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<PaginatedLeads | null>(null);
   const [loading, setLoading] = useState(true);
@@ -849,7 +844,7 @@ export function LeadList() {
         skeletonMedia={false}
         keyOf={(lead) => lead.id}
         renderItem={(lead) => (
-          <LeadCard lead={lead} localePrefix={localePrefix} onAction={handleAction} />
+          <LeadCard lead={lead} onAction={handleAction} />
         )}
         empty={
           hasFilters ? (

@@ -1,21 +1,18 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/navigation';
 import { PropertyForm } from '@/components/properties/property-form';
 
 export default function NewPropertyPage() {
   const t = useTranslations('properties');
-  const pathname = usePathname();
   const router = useRouter();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link
-          href={`${localePrefix}/properties`}
+          href={'/properties'}
           className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           aria-label={t('backToList')}
         >
@@ -35,8 +32,8 @@ export default function NewPropertyPage() {
 
       <PropertyForm
         mode="create"
-        onSuccess={(id) => router.push(`${localePrefix}/properties/${id}`)}
-        onCancel={() => router.push(`${localePrefix}/properties`)}
+        onSuccess={(id) => router.push(`/properties/${id}`)}
+        onCancel={() => router.push('/properties')}
       />
     </div>
   );

@@ -6,8 +6,7 @@ import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
 import { ComprobanteType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { formatMoneyFixed, formatDate, formatLocalDate, formatCompNumber } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 
@@ -79,8 +78,6 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   const tCommon = useTranslations('common');
   const tErrors = useTranslations('invoices.errors');
   
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<ComprobanteData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -128,7 +125,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <h2 className="text-lg font-semibold text-slate-900">{tErrors('notFound')}</h2>
-        <Link href={`${localePrefix}/invoices`} className="mt-4 text-sm text-brand-600 hover:text-brand-700">
+        <Link href={'/invoices'} className="mt-4 text-sm text-brand-600 hover:text-brand-700">
           ← {t('back')}
         </Link>
       </div>
@@ -141,7 +138,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       {/* Back link */}
-      <Link href={`${localePrefix}/invoices`} className="text-sm text-brand-600 hover:text-brand-700">
+      <Link href={'/invoices'} className="text-sm text-brand-600 hover:text-brand-700">
         ← {t('back')}
       </Link>
 
@@ -177,7 +174,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
             </button>
             {/* Emit NC button for facturas */}
             {isFactura && canEmit && (
-              <Link href={`${localePrefix}/invoices/${invoiceId}?action=emit-nc`}
+              <Link href={`/invoices/${invoiceId}?action=emit-nc`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-xs font-medium text-red-700 hover:bg-red-100 transition-colors"
               >
                 {tInvoices('emitNC')}
@@ -263,7 +260,7 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
       {isNC && data.originalComprobante && (
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <p className="text-xs text-slate-500 mb-1">{t('originalComprobante')}</p>
-          <Link href={`${localePrefix}/invoices/${data.originalComprobante.id}`}
+          <Link href={`/invoices/${data.originalComprobante.id}`}
             className="text-sm text-brand-600 hover:text-brand-700 font-medium"
           >
             {tShortTypes(data.originalComprobante.type)} {formatCompNumber(data.originalComprobante.puntoDeVenta, data.originalComprobante.comprobanteNumber)} →

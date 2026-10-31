@@ -1,8 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
@@ -153,8 +152,6 @@ function AgendaGroup({
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
   const { user, isLoading } = useAuth();
-  const pathname = usePathname();
-  const lp = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -335,7 +332,7 @@ export default function DashboardPage() {
             progress={s.occupancyRate}
             tone="brand"
             hint={`${s.occupiedUnits} ocupadas · ${s.vacantUnits} libres`}
-            href={`${lp}/properties`}
+            href={'/properties'}
             className="min-h-[128px]"
           />
         </Reveal>
@@ -346,7 +343,7 @@ export default function DashboardPage() {
             icon="wallet"
             tone="success"
             hint={`${s.collections.rate}% de lo facturado`}
-            href={`${lp}/liquidaciones`}
+            href={'/liquidaciones'}
             className="min-h-[128px]"
           />
         </Reveal>
@@ -357,7 +354,7 @@ export default function DashboardPage() {
             icon="alert"
             tone={s.delinquency.overdueAmount > 0 ? 'danger' : 'success'}
             hint={`${s.delinquency.rate}% de la cartera`}
-            href={`${lp}/delinquency`}
+            href={'/delinquency'}
             className="min-h-[128px]"
           />
         </Reveal>
@@ -368,7 +365,7 @@ export default function DashboardPage() {
             icon="tickets"
             tone={s.tickets.urgent > 0 ? 'warning' : 'neutral'}
             hint={`${s.tickets.urgent} de prioridad alta`}
-            href={`${lp}/tickets`}
+            href={'/tickets'}
             className="min-h-[128px]"
           />
         </Reveal>
@@ -386,13 +383,13 @@ export default function DashboardPage() {
               <AgendaGroup
                 title="Vencimientos de contrato"
                 count={s.agenda.expiring.length}
-                href={`${lp}/contracts`}
+                href={'/contracts'}
                 emptyText="Sin contratos por vencer en los próximos 90 días."
               >
                 {s.agenda.expiring.slice(0, 3).map((c) => (
                   <EntityRow
                     key={c.id}
-                    href={`${lp}/contracts/${c.id}`}
+                    href={`/contracts/${c.id}`}
                     label={c.property}
                     accent={c.daysLeft <= 30 ? 'danger' : 'warning'}
                     leading={<RowIcon icon="contracts" tone={c.daysLeft <= 30 ? 'danger' : 'warning'} />}
@@ -407,7 +404,7 @@ export default function DashboardPage() {
                     }
                     actions={
                       <EntityRow.Action
-                        href={`${lp}/contracts/${c.id}`}
+                        href={`/contracts/${c.id}`}
                         icon="arrowRight"
                         variant="ghost"
                       >
@@ -421,7 +418,7 @@ export default function DashboardPage() {
               <AgendaGroup
                 title="Cobranzas pendientes"
                 count={s.agenda.collections.length}
-                href={`${lp}/liquidaciones`}
+                href={'/liquidaciones'}
                 emptyText="No hay cobranzas pendientes."
               >
                 {s.agenda.collections.slice(0, 3).map((c) => {
@@ -429,7 +426,7 @@ export default function DashboardPage() {
                   return (
                     <EntityRow
                       key={c.id}
-                      href={`${lp}/liquidaciones`}
+                      href={'/liquidaciones'}
                       label={c.property}
                       accent={overdue ? 'danger' : 'warning'}
                       leading={<RowIcon icon="liquidaciones" tone={overdue ? 'danger' : 'warning'} />}
@@ -444,7 +441,7 @@ export default function DashboardPage() {
                       }
                       actions={
                         <EntityRow.Action
-                          href={`${lp}/liquidaciones`}
+                          href={'/liquidaciones'}
                           icon="arrowRight"
                           variant="ghost"
                         >
@@ -459,13 +456,13 @@ export default function DashboardPage() {
               <AgendaGroup
                 title="Tickets prioritarios"
                 count={s.agenda.tickets.length}
-                href={`${lp}/tickets`}
+                href={'/tickets'}
                 emptyText="No hay tickets abiertos."
               >
                 {s.agenda.tickets.slice(0, 3).map((tk) => (
                   <EntityRow
                     key={tk.id}
-                    href={`${lp}/tickets/${tk.id}`}
+                    href={`/tickets/${tk.id}`}
                     label={tk.title}
                     accent={tk.priority === 'Urgente' ? 'danger' : 'brand'}
                     leading={
@@ -479,7 +476,7 @@ export default function DashboardPage() {
                       </div>
                     }
                     actions={
-                      <EntityRow.Action href={`${lp}/tickets/${tk.id}`} icon="arrowRight" variant="ghost">
+                      <EntityRow.Action href={`/tickets/${tk.id}`} icon="arrowRight" variant="ghost">
                         Atender
                       </EntityRow.Action>
                     }

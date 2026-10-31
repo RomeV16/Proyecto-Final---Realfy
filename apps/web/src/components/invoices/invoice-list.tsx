@@ -6,8 +6,7 @@ import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
 import { ComprobanteType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/navigation';
 import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Badge } from '@/components/ui/badge';
@@ -73,9 +72,7 @@ export function InvoiceList() {
   const tEmpty = useTranslations('invoices.empty');
   const tPag = useTranslations('invoices.pagination');
 
-  const pathname = usePathname();
   const router = useRouter();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [data, setData] = useState<PaginatedResponse | null>(null);
@@ -170,7 +167,7 @@ export function InvoiceList() {
       render: (item) => (
         <div className="flex items-center justify-end gap-1">
           <Link
-            href={`${localePrefix}/invoices/${item.id}`}
+            href={`/invoices/${item.id}`}
             className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
             title={tTable('view')}
           >
@@ -203,7 +200,7 @@ export function InvoiceList() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push(`${localePrefix}/invoices/new`)}
+            onClick={() => router.push('/invoices/new')}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -253,7 +250,7 @@ export function InvoiceList() {
           const isCredit = ncTypes.includes(item.type as ComprobanteType);
           const amountLabel = `${isCredit ? '- ' : ''}${formatMoneyFixed(item.impTotal ?? item.amount)}`;
           const displayTitle = item.receptorName || tTypes(item.type);
-          const href = `${localePrefix}/invoices/${item.id}`;
+          const href = `/invoices/${item.id}`;
 
           return (
             <EntityRow

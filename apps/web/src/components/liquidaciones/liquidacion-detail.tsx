@@ -12,8 +12,7 @@ import {
   getValidLiquidacionTransitions,
 } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { LiquidacionStatusBadge } from './liquidacion-status-badge';
 import { PaymentForm } from './payment-form';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
@@ -98,8 +97,6 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const tCommon = useTranslations('common');
   const confirm = useConfirm();
   const { user } = useAuth();
-  const pathname = usePathname();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [data, setData] = useState<LiquidacionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -235,7 +232,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <h2 className="text-lg font-semibold text-slate-900">{tErrors('notFound')}</h2>
-        <Link href={`${localePrefix}/liquidaciones`} className="mt-4 text-sm text-brand-600 hover:text-brand-700">
+        <Link href={'/liquidaciones'} className="mt-4 text-sm text-brand-600 hover:text-brand-700">
           {'\u2190'} {tCommon('back')}
         </Link>
       </div>
@@ -251,7 +248,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Back link */}
-      <Link href={`${localePrefix}/liquidaciones`} className="text-sm text-brand-600 hover:text-brand-700">
+      <Link href={'/liquidaciones'} className="text-sm text-brand-600 hover:text-brand-700">
         {'\u2190'} {tCommon('back')}
       </Link>
 
@@ -316,7 +313,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
                 <p className="text-sm text-slate-600">{data.contract.property.title}</p>
               )}
             </div>
-            <Link href={`${localePrefix}/contracts/${data.contract.id}`}
+            <Link href={`/contracts/${data.contract.id}`}
               className="text-sm text-brand-600 hover:text-brand-700"
             >
               {tDetail('viewContract')} {'\u2192'}

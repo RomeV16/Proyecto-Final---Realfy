@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { usePathname, useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { Link } from '@/i18n/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { Reveal } from '@/components/ui/reveal';
@@ -39,9 +39,7 @@ interface ProviderDetail {
 export default function ProviderDetailPage() {
   const t = useTranslations('providers');
   const tDetail = useTranslations('providers.detail');
-  const pathname = usePathname();
   const params = useParams();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
   const providerId = params.id as string;
 
   const [provider, setProvider] = useState<ProviderDetail | null>(null);
@@ -85,7 +83,7 @@ export default function ProviderDetailPage() {
         </div>
         <h2 className="h3">{t('empty.detail')}</h2>
         <Link
-          href={`${localePrefix}/providers`}
+          href={'/providers'}
           className="mt-4 px-4 py-2 rounded-lg border border-[var(--color-border)] text-sm text-[var(--color-text)] hover:bg-[var(--color-surface-sunken)] transition-colors"
         >
           {t('backToList')}
@@ -105,7 +103,7 @@ export default function ProviderDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
-          href={`${localePrefix}/providers`}
+          href={'/providers'}
           className="p-2 rounded-lg text-[var(--color-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-sunken)] transition-colors"
           aria-label={t('backToList')}
         >

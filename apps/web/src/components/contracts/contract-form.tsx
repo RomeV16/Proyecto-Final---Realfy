@@ -14,8 +14,7 @@ import {
 } from '@realfy/shared';
 import { contractFormSchema } from '@realfy/shared/schemas';
 import { useState, type FormEvent } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/navigation';
 import { ContractStatusBadge } from './contract-status-badge';
 import { GuaranteeBadge } from './guarantee-badge';
 import {
@@ -119,9 +118,7 @@ export function ContractForm() {
   const tContracts = useTranslations('contracts');
   const tCommon = useTranslations('common');
   const { user } = useAuth();
-  const pathname = usePathname();
   const router = useRouter();
-  const localePrefix = pathname.match(/^\/(?:[a-z]{2}-[A-Z]{2}|[a-z]{2})/)?.[0] || '/es';
 
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
@@ -312,8 +309,8 @@ export function ContractForm() {
 
       router.push(
         created?.id
-          ? `${localePrefix}/contracts/${created.id}`
-          : `${localePrefix}/contracts`,
+          ? `/contracts/${created.id}`
+          : '/contracts',
       );
     } catch (err) {
       const problems = activationProblemsOf(err);
@@ -334,7 +331,7 @@ export function ContractForm() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <Link href={`${localePrefix}/contracts`} className="text-sm text-brand-600 hover:text-brand-700">
+        <Link href={'/contracts'} className="text-sm text-brand-600 hover:text-brand-700">
           ← {tCommon('back')}
         </Link>
       </div>
@@ -799,7 +796,7 @@ export function ContractForm() {
           <p className="text-sm text-slate-500">{t('finishHint')}</p>
         )}
         {activationProblems && (
-          <ActivationProblems problems={activationProblems} localePrefix={localePrefix} />
+          <ActivationProblems problems={activationProblems} />
         )}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
