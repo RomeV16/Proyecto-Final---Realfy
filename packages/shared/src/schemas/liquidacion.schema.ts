@@ -3,6 +3,7 @@ import {
   LiquidacionStatus,
   PaymentMethod,
   LineItemType,
+  LineBeneficiary,
   Currency,
 } from '../enums';
 
@@ -28,6 +29,10 @@ export const CreateLiquidacionLineItemSchema = z.object({
   description: z.string().min(1).max(500),
   amount: decimalString,
   currency: z.nativeEnum(Currency).optional(),
+  /** Si no se indica, rige el valor por defecto del tipo (`defaultCommissionable`). */
+  commissionable: z.boolean().optional(),
+  /** Si no se indica, rige el destino por defecto del tipo (`defaultBeneficiary`). */
+  beneficiary: z.nativeEnum(LineBeneficiary).optional(),
 });
 
 export const UpdateLiquidacionLineItemSchema = CreateLiquidacionLineItemSchema.partial();
