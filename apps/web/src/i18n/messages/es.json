@@ -107,7 +107,8 @@
   "penalties": "Punitorios",
   "fiscal": "Configuración Fiscal",
   "pagos": "Pagos",
-  "notifications": "Notificaciones"
+  "notifications": "Notificaciones",
+  "permissions": "Permisos"
  },
  "dataTable": {
   "pagination": {
@@ -3778,7 +3779,8 @@
   "manageFiscal": "Configurar facturación",
   "manageScoring": "Configurar puntuación",
   "manageIndices": "Ver y cargar índices",
-  "manageUsers": "Gestionar usuarios"
+  "manageUsers": "Gestionar usuarios",
+  "managePermissions": "Gestionar permisos"
  },
  "portalPublico": {
   "footer": {
@@ -4077,5 +4079,63 @@
    "draftAllowed": "Podés guardar como borrador; para activar tienen que sumar 100 %.",
    "activateNeedsHundred": "Los porcentajes de los locadores tienen que sumar 100 % para activar"
   }
+ },
+ "permissions": {
+  "title": "Permisos de lectura",
+  "subtitle": "Elegí qué roles pueden leer los datos sensibles de la inmobiliaria. Por defecto todos los roles del equipo leen todo.",
+  "cardSubtitle": "Qué roles leen documentos, cuentas bancarias, comisiones y finanzas",
+  "readOnly": "Solo el administrador puede cambiar los permisos de lectura.",
+  "table": {
+   "resource": "Dato",
+   "adminLocked": "El administrador siempre puede leer"
+  },
+  "resources": {
+   "persons_bankAccounts": {
+    "label": "Cuentas bancarias (CBU y alias)",
+    "hint": "Las cuentas de personas y propietarios. Sin acceso, el rol recibe un error al pedirlas y las ve ocultas en la ficha."
+   },
+   "persons_document": {
+    "label": "Documento (DNI y CUIT)",
+    "hint": "Sin acceso, el rol ve la persona sin los números de documento."
+   },
+   "contracts_commission": {
+    "label": "Comisión de la inmobiliaria",
+    "hint": "La comisión pactada en cada contrato."
+   },
+   "renditions": {
+    "label": "Rendiciones a propietarios",
+    "hint": "Lo que se le paga a cada propietario."
+   },
+   "reports_financial": {
+    "label": "Reportes financieros",
+    "hint": "Estados de cuenta, flujo de caja, rentabilidad y morosidad."
+   },
+   "invoices": {
+    "label": "Facturas",
+    "hint": "Comprobantes emitidos y sus PDF."
+   },
+   "audit": {
+    "label": "Auditoría",
+    "hint": "El registro de quién cambió qué."
+   }
+  },
+  "save": "Guardar cambios",
+  "saving": "Guardando…",
+  "reset": "Abrir todo",
+  "dirty": "Hay cambios sin guardar",
+  "saved": "Permisos guardados",
+  "confirm": {
+   "title": "¿Guardar los permisos de lectura?",
+   "body": "El cambio rige desde el próximo pedido de cada persona del equipo. Los roles sin acceso dejarán de ver esos datos.",
+   "confirm": "Guardar",
+   "resetTitle": "¿Abrir todo el acceso de lectura?",
+   "resetBody": "Todos los roles volverán a leer todos los datos sensibles. Todavía tenés que guardar para aplicarlo.",
+   "resetConfirm": "Abrir todo"
+  },
+  "loadError": "No se pudieron cargar los permisos"
+ },
+ "readGate": {
+  "title": "Sin acceso",
+  "body": "Tu rol no tiene acceso a esta información. Pedile al administrador que lo habilite."
  }
 }

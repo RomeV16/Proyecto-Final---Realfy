@@ -107,7 +107,8 @@
   "penalties": "Penalties",
   "fiscal": "Fiscal Settings",
   "pagos": "Pagos",
-  "notifications": "Notificaciones"
+  "notifications": "Notificaciones",
+  "permissions": "Permissions"
  },
  "dataTable": {
   "pagination": {
@@ -3778,7 +3779,8 @@
   "manageFiscal": "Configure invoicing",
   "manageScoring": "Configurar puntuación",
   "manageIndices": "View and enter indices",
-  "manageUsers": "Manage users"
+  "manageUsers": "Manage users",
+  "managePermissions": "Manage permissions"
  },
  "portalPublico": {
   "footer": {
@@ -4077,5 +4079,63 @@
    "draftAllowed": "You can save as a draft; to activate they must add up to 100 %.",
    "activateNeedsHundred": "The lessor percentages must add up to 100 % to activate"
   }
+ },
+ "permissions": {
+  "title": "Read permissions",
+  "subtitle": "Choose which roles can read the agency's sensitive data. By default every team role reads everything.",
+  "cardSubtitle": "Which roles read documents, bank accounts, commissions and finances",
+  "readOnly": "Only the administrator can change read permissions.",
+  "table": {
+   "resource": "Data",
+   "adminLocked": "The administrator can always read"
+  },
+  "resources": {
+   "persons_bankAccounts": {
+    "label": "Bank accounts (CBU and alias)",
+    "hint": "Accounts of people and owners. Without access the role gets an error when requesting them and sees them hidden on the record."
+   },
+   "persons_document": {
+    "label": "Document (DNI and CUIT)",
+    "hint": "Without access the role sees the person without document numbers."
+   },
+   "contracts_commission": {
+    "label": "Agency commission",
+    "hint": "The commission agreed on each contract."
+   },
+   "renditions": {
+    "label": "Owner statements",
+    "hint": "What each owner is paid."
+   },
+   "reports_financial": {
+    "label": "Financial reports",
+    "hint": "Account statements, cash flow, profitability and delinquency."
+   },
+   "invoices": {
+    "label": "Invoices",
+    "hint": "Issued receipts and their PDFs."
+   },
+   "audit": {
+    "label": "Audit log",
+    "hint": "The record of who changed what."
+   }
+  },
+  "save": "Save changes",
+  "saving": "Saving…",
+  "reset": "Open everything",
+  "dirty": "There are unsaved changes",
+  "saved": "Permissions saved",
+  "confirm": {
+   "title": "Save the read permissions?",
+   "body": "The change applies from each team member's next request. Roles without access will stop seeing that data.",
+   "confirm": "Save",
+   "resetTitle": "Open all read access?",
+   "resetBody": "Every role will read all sensitive data again. You still have to save to apply it.",
+   "resetConfirm": "Open everything"
+  },
+  "loadError": "Could not load the permissions"
+ },
+ "readGate": {
+  "title": "No access",
+  "body": "Your role does not have access to this information. Ask the administrator to enable it."
  }
 }
