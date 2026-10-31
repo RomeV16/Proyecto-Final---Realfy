@@ -157,7 +157,13 @@
    "INVALID_CURRENT_PASSWORD": "The current password is not correct.",
    "PASSWORD_RESET_INVALID": "This link is not valid. Ask your administrator for a new one.",
    "PASSWORD_RESET_USED": "This link was already used. If you need another, ask your administrator.",
-   "PASSWORD_RESET_EXPIRED": "The link expired. Ask your administrator for a new one."
+   "PASSWORD_RESET_EXPIRED": "The link expired. Ask your administrator for a new one.",
+   "LESSOR_SHARES_INVALID": "The active lessors must add up to 100 % on every date.",
+   "PAYEE_WITHOUT_POWER": "The payee needs an active power of attorney to collect from the lessor.",
+   "BANK_ACCOUNT_NOT_OF_LESSOR": "The chosen account does not belong to the lessor.",
+   "BANK_ACCOUNT_DEFAULT_REQUIRED": "There must be one default account per currency: mark another one before removing this one.",
+   "POWER_SELF": "A person cannot grant a power of attorney to themselves.",
+   "POWER_IN_USE": "The power of attorney is in use: a lessor relies on it for their agent to collect."
   },
   "segment": {
    "loading": "Loading…",
@@ -574,7 +580,8 @@
    "noDescription": "No description yet",
    "noAmenities": "No amenities yet",
    "showMore": "Show more",
-   "showLess": "Show less"
+   "showLess": "Show less",
+   "ownerships": "Owners"
   },
   "empty": {
    "title": "No hay propiedades",
@@ -788,7 +795,20 @@
    "submit": "Guardar persona",
    "creating": "Creando persona…",
    "updating": "Actualizando persona…",
-   "error": "No se pudo guardar la persona. Intentá nuevamente."
+   "error": "No se pudo guardar la persona. Intentá nuevamente.",
+   "partyData": "Party details",
+   "personType": "Person type",
+   "personTypePlaceholder": "Select a type",
+   "dni": "Document (ID)",
+   "dniPlaceholder": "E.g. 12345678",
+   "address": "Address",
+   "addressPlaceholder": "Street, number, city",
+   "maritalStatus": "Marital status",
+   "maritalStatusPlaceholder": "E.g. Married",
+   "nationality": "Nationality",
+   "nationalityPlaceholder": "E.g. Argentine",
+   "payoutMethod": "Payout method",
+   "payoutMethodPlaceholder": "Select a method"
   },
   "roles": {
    "title": "Roles asignados",
@@ -808,7 +828,8 @@
    "guarantorFor": "Guarantor for owner",
    "guarantorForPlaceholder": "Select owner (optional)",
    "propertyRequired": "Select a property",
-   "guarantorRequired": "Select the guaranteed owner"
+   "guarantorRequired": "Select the guaranteed owner",
+   "Apoderado": "Attorney-in-fact"
   },
   "fiscalConditions": {
    "ResponsableInscripto": "Responsable Inscripto",
@@ -868,6 +889,15 @@
    "deleteError": "No se pudo eliminar la persona",
    "createdAt": "Creada el",
    "updatedAt": "Última modificación"
+  },
+  "personTypes": {
+   "Fisica": "Individual",
+   "Juridica": "Legal entity"
+  },
+  "payoutMethods": {
+   "Transferencia": "Bank transfer",
+   "Efectivo": "Cash",
+   "Custodia": "Held in custody"
   }
  },
  "contracts": {
@@ -978,13 +1008,13 @@
     "title": "Personas",
     "description": "Vinculá las personas al contrato",
     "searchPerson": "Buscar persona por nombre o CUIT…",
-    "addPropietario": "Agregar propietario",
+    "addPropietario": "Add lessor",
     "addInquilino": "Agregar inquilino",
     "addGarante": "Agregar garante",
-    "propietarioRequired": "Se requiere al menos un propietario",
+    "propietarioRequired": "At least one lessor is required",
     "inquilinoRequired": "Se requiere al menos un inquilino",
     "invalidRole": "La persona no tiene el rol requerido: {role}",
-    "noPropietario": "Sin propietario asignado",
+    "noPropietario": "No lessors assigned",
     "noInquilino": "Sin inquilino asignado",
     "noGarantes": "Sin garantes",
     "removePerson": "Quitar persona"
@@ -3806,6 +3836,246 @@
    "specsTitle": "Features",
    "amenitiesTitle": "Amenities",
    "noAmenities": "No amenities listed"
+  }
+ },
+ "parties": {
+  "picker": {
+   "change": "Change {name}",
+   "changeShort": "Change",
+   "hint": "Type at least 2 letters of the name or document",
+   "placeholder": "Search person…",
+   "searching": "Searching…",
+   "noResults": "No people match",
+   "results": "Search results"
+  },
+  "capacity": {
+   "Propietario": "Owner",
+   "Usufructuario": "Usufructuary",
+   "Sublocador": "Sublessor",
+   "Acreedor": "Creditor",
+   "Otro": "Other"
+  },
+  "scopes": {
+   "Cobrar": "Collect",
+   "Firmar": "Sign",
+   "Administrar": "Administer"
+  },
+  "signatureModes": {
+   "Indistinta": "Any one (one signs)",
+   "Conjunta": "Joint (all sign)"
+  },
+  "personTabs": {
+   "label": "Person sections",
+   "data": "Details",
+   "accounts": "Bank accounts",
+   "powers": "Powers of attorney",
+   "lessorships": "Contracts as lessor"
+  },
+  "errors": {
+   "invalid": "Invalid value",
+   "currency": "Choose a currency",
+   "bankName": "The bank name is too long",
+   "cbu": "The CBU must have 22 digits",
+   "alias": "The alias is too long",
+   "holder": "The holder is too long",
+   "agentId": "Choose the agent",
+   "scopes": "Choose at least one scope",
+   "signatureMode": "Choose the signature mode",
+   "groupKey": "The group key only applies to joint signature",
+   "contractId": "Choose the contract",
+   "propertyId": "Choose the property",
+   "validFrom": "The start date is not valid",
+   "validTo": "The end date must be after the start",
+   "documentUrl": "Enter a valid link (https://…)",
+   "personId": "Choose a person",
+   "sharePct": "Enter a percentage above 0 up to 100, with up to 4 decimals",
+   "title": "The title is too long",
+   "since": "The start date is not valid",
+   "until": "The end date must be after the start"
+  },
+  "lessors": {
+   "title": "Lessors",
+   "edit": "Edit lessors",
+   "load": "Add lessors",
+   "needsReview": "To review",
+   "needsReviewHint": "Some lessor shares were migrated as equal parts by assumption. Confirm the percentages and save.",
+   "legacyHint": "This contract still has owners recorded as contract parties. Add them as lessors to set their payout percentage.",
+   "toMigrate": "To migrate",
+   "empty": "This contract has no lessors yet",
+   "payeeSelf": "The lessor collects",
+   "noAccount": "No account",
+   "openEnded": "open-ended",
+   "columns": {
+    "person": "Person",
+    "capacity": "Capacity",
+    "payoutPct": "Payout %",
+    "payee": "Collected by",
+    "account": "Account",
+    "validity": "Validity"
+   },
+   "editorTitle": "Contract lessors",
+   "editorHint": "The whole set is saved at once. On every date, the active lessors must add up to exactly 100 %.",
+   "newLessor": "Lessor {n}",
+   "fields": {
+    "person": "Person",
+    "capacity": "Capacity",
+    "payoutPct": "Payout %",
+    "payee": "Collected by",
+    "bankAccount": "Payout account",
+    "validFrom": "Valid from",
+    "validTo": "Valid until"
+   },
+   "payeeHint": "Only agents with an active power to collect for this lessor",
+   "validFromHint": "Empty: from the contract start",
+   "remove": "Remove {name}",
+   "add": "Add lessor",
+   "splitEqually": "Split equally",
+   "sum": "Sum of the active lessors: {sum} %",
+   "sumOk": "The split adds up to 100 %.",
+   "sumIncomplete": "Fill in the person and percentage of every lessor.",
+   "sumMissing": "{diff} % missing to reach 100 %.",
+   "sumExtra": "{diff} % over 100 %.",
+   "sumDatesOnly": "The sum does not add up on every date.",
+   "invalidDate": "On {date} they add up to {sum} %",
+   "saved": "Lessors saved",
+   "saveError": "The lessors could not be saved",
+   "saving": "Saving…",
+   "save": "Save lessors",
+   "errors": {
+    "person": "Choose a person",
+    "payoutPct": "Enter a percentage above 0 up to 100, with up to 4 decimals",
+    "validTo": "The end date must be after the start"
+   }
+  },
+  "powers": {
+   "contractTitle": "Agents",
+   "contractEmpty": "No active powers of attorney apply to this contract",
+   "columns": {
+    "principal": "Principal",
+    "agent": "Agent",
+    "scopes": "Scopes",
+    "signature": "Signature",
+    "applies": "Applies to",
+    "validity": "Validity",
+    "document": "Document"
+   },
+   "group": "group {key}",
+   "appliesContract": "One contract",
+   "appliesProperty": "One property",
+   "appliesGeneral": "General",
+   "openEnded": "open-ended",
+   "on": "for {name}",
+   "editTitle": "Edit power of attorney",
+   "addTitle": "Grant power of attorney",
+   "saved": "Power of attorney saved",
+   "saveError": "The power of attorney could not be saved",
+   "saving": "Saving…",
+   "fields": {
+    "agent": "Agent",
+    "scopes": "Scopes",
+    "signatureMode": "Signature mode",
+    "groupKey": "Group key",
+    "applies": "Applies to",
+    "contract": "Contract",
+    "property": "Property",
+    "validFrom": "Valid from",
+    "validTo": "Valid until",
+    "documentUrl": "Link to the power of attorney document"
+   },
+   "groupKeyHint": "Agents with the same key sign together",
+   "chooseTarget": "Choose an option",
+   "revokeTitle": "Revoke power of attorney",
+   "revokeBody": "Revoke the power of attorney of {name}? It cannot be revoked while it is a lessor's payee.",
+   "revoke": "Revoke",
+   "revokeFor": "Revoke the power of attorney of {name}",
+   "edit": "Edit",
+   "editFor": "Edit the power of attorney of {name}",
+   "add": "Grant power of attorney",
+   "actions": "Actions",
+   "notCurrent": "Not current",
+   "viewDocument": "View document",
+   "grantedTitle": "Powers granted",
+   "grantedEmpty": "Has not granted any power of attorney",
+   "heldTitle": "Powers held as agent",
+   "heldEmpty": "Does not act as anyone's agent"
+  },
+  "bankAccounts": {
+   "title": "Bank accounts",
+   "add": "Add account",
+   "empty": "No bank accounts yet",
+   "actions": "Actions",
+   "default": "Default",
+   "addTitle": "Add bank account",
+   "editTitle": "Edit bank account",
+   "saved": "Account saved",
+   "saveError": "The account could not be saved",
+   "saving": "Saving…",
+   "fields": {
+    "currency": "Currency",
+    "bankName": "Bank",
+    "cbu": "CBU",
+    "alias": "Alias",
+    "holder": "Holder",
+    "isDefault": "Default account for the currency"
+   },
+   "currencyFixed": "The currency cannot be changed: create another account.",
+   "defaultHint": "The first account of each currency is the default; there must always be one.",
+   "edit": "Edit",
+   "editFor": "Edit account {name}",
+   "makeDefault": "Make default",
+   "makeDefaultFor": "Make account {name} the default",
+   "delete": "Delete",
+   "deleteFor": "Delete account {name}",
+   "deleteTitle": "Delete account",
+   "deleteBody": "Delete account {name}?"
+  },
+  "lessorships": {
+   "title": "Contracts as lessor",
+   "empty": "Not a lessor in any contract",
+   "columns": {
+    "contract": "Contract",
+    "capacity": "Capacity",
+    "payoutPct": "Payout %",
+    "payee": "Collected by",
+    "validity": "Validity"
+   }
+  },
+  "ownerships": {
+   "informative": "Informative: owners do not decide payments; the payout split is set in each contract.",
+   "add": "Add owner",
+   "empty": "No owners recorded",
+   "actions": "Actions",
+   "sumWarning": "The recorded ownership percentages add up to {sum}, not 100 %. This is informative only and does not prevent saving.",
+   "addTitle": "Add owner",
+   "saved": "Owner saved",
+   "saveError": "The owner could not be saved",
+   "saving": "Saving…",
+   "fields": {
+    "person": "Person",
+    "sharePct": "Percentage (optional)",
+    "title": "Title (optional)",
+    "since": "Since",
+    "until": "Until"
+   },
+   "sharePctHint": "You can leave it empty",
+   "removeTitle": "Remove owner",
+   "removeBody": "Remove {name} as owner?",
+   "remove": "Remove",
+   "removeFor": "Remove {name} as owner",
+   "columns": {
+    "person": "Person",
+    "share": "Percentage",
+    "title": "Title",
+    "period": "Period"
+   }
+  },
+  "contractForm": {
+   "title": "Lessors",
+   "payoutPct": "Payout % of {name}",
+   "sumOk": "The split adds up to 100 %.",
+   "sumWarning": "The percentages add up to {sum} %, not 100 %.",
+   "draftAllowed": "You can save as a draft; to activate they must add up to 100 %.",
+   "activateNeedsHundred": "The lessor percentages must add up to 100 % to activate"
   }
  }
 }

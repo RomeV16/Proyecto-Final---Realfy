@@ -25,6 +25,8 @@ import {
 } from './activation-problems';
 import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
+import { LessorsSection } from '@/components/parties/lessors-section';
+import type { ContractLessor } from '@/components/parties/parties';
 
 /* ──────────── Types ──────────── */
 
@@ -83,8 +85,9 @@ interface ContractDetail {
   updatedAt: string;
   property?: { id: string; title: string; street?: string; city?: string; type?: string };
   persons: ContractPerson[];
-  /** Locadores vigentes o futuros; reemplazan a las partes con rol Propietario. */
-  lessors?: Array<{ id: string; person: ContractPerson['person'] }>;
+  propertyId?: string;
+  /** Locadores del contrato: reemplazan a las partes con rol Propietario. */
+  lessors?: ContractLessor[];
   guarantees: ContractGuarantee[];
   adjustments: ContractAdjustment[];
   schedules: AdjustmentSchedule[];
@@ -538,14 +541,12 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
 
   const contractCurrency = contract.rentCurrency || contract.currency;
 
-  const propietarios: ContractPerson[] = [
-    ...(contract.persons || []).filter((p) => p.role === 'Propietario'),
-    ...(contract.lessors || []).map((l) => ({
-      id: l.id,
-      role: 'Propietario',
-      person: l.person,
-    })),
-  ];
+  const lessors = contract.lessors ?? [];
+  // Datos viejos: propietarios cargados como parte del contrato, que se migran a locadores.
+  const legacyOwners =
+    lessors.length === 0
+      ? (contract.persons || []).filter((p) => p.role === 'Propietario').map((p) => p.person)
+      : [];
   const inquilinos = (contract.persons || []).filter(
     (p) => p.role === 'Inquilino',
   );
@@ -743,7 +744,6 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
             </h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { people: propietarios, label: t('propietario'), accent: 'info' as const },
                 { people: inquilinos, label: t('inquilino'), accent: 'success' as const },
                 { people: garantes, label: tContracts('detail.garantes'), accent: 'warning' as const },
               ].flatMap((group) =>
@@ -764,6 +764,20 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
               )}
             </div>
           </div>
+
+          {/* Locadores */}
+          <LessorsSection
+            contract={{
+              id: contract.id,
+              propertyId: contract.propertyId ?? contract.property?.id,
+              startDate: contract.startDate,
+              endDate: contract.endDate,
+            }}
+            lessors={lessors}
+            legacyOwners={legacyOwners}
+            canEdit={canManage}
+            onSaved={fetchContract}
+          />
 
           {/* Pricing section */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
