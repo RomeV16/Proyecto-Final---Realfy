@@ -11,6 +11,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
 import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { statusAccent } from '@/lib/status-registry';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
 import { formatMoneyFixed, formatDate } from '@/lib/format';
@@ -58,30 +60,6 @@ interface Filters {
 
 const INITIAL_FILTERS: Filters = { status: '', month: '', year: '', page: 1 };
 const LIMIT = 12;
-
-/* ──────────── Status → card language ──────────── */
-
-const STATUS_VARIANT: Record<string, 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'brand'> = {
-  [LiquidacionStatus.Borrador]: 'neutral',
-  [LiquidacionStatus.Revision]: 'info',
-  [LiquidacionStatus.Aprobada]: 'brand',
-  [LiquidacionStatus.Pendiente]: 'warning',
-  [LiquidacionStatus.Enviada]: 'info',
-  [LiquidacionStatus.Pagada]: 'success',
-  [LiquidacionStatus.Vencida]: 'danger',
-  [LiquidacionStatus.Anulada]: 'neutral',
-};
-
-const STATUS_ACCENT: Record<string, 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'none'> = {
-  [LiquidacionStatus.Borrador]: 'none',
-  [LiquidacionStatus.Revision]: 'info',
-  [LiquidacionStatus.Aprobada]: 'brand',
-  [LiquidacionStatus.Pendiente]: 'warning',
-  [LiquidacionStatus.Enviada]: 'info',
-  [LiquidacionStatus.Pagada]: 'success',
-  [LiquidacionStatus.Vencida]: 'danger',
-  [LiquidacionStatus.Anulada]: 'none',
-};
 
 /* ──────────── Helpers ──────────── */
 
@@ -141,7 +119,7 @@ function LiquidacionCard({ item, selected, onToggle, bulkMode }: CardProps) {
     <EntityCard
       href={href}
       label={periodLabel}
-      accent={STATUS_ACCENT[item.status] || 'none'}
+      accent={statusAccent('liquidacion', item.status)}
       className={cn(selected && 'ring-2 ring-[var(--color-brand-500)]')}
     >
       <EntityCard.Cover
@@ -163,9 +141,7 @@ function LiquidacionCard({ item, selected, onToggle, bulkMode }: CardProps) {
           )
         }
         topRight={
-          <Badge variant={STATUS_VARIANT[item.status] || 'neutral'} dot onCover className={isVoided ? 'line-through' : undefined}>
-            {t(`statuses.${item.status}`)}
-          </Badge>
+          <StatusBadge domain="liquidacion" status={item.status} onCover />
         }
         bottomLeft={
           <h3 className={cn('text-sm font-semibold leading-snug text-white drop-shadow-sm', isVoided && 'line-through')}>

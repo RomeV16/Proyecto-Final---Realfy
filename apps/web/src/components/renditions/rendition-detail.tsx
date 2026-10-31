@@ -10,6 +10,7 @@ import { RendicionStatus, RendicionLineItemType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { formatMoneyFixed, formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 
@@ -48,25 +49,6 @@ interface RenditionDetail {
 
 interface RenditionDetailProps {
   renditionId: string;
-}
-
-/* ──────────── Status Badge ──────────── */
-
-const statusColors: Record<string, string> = {
-  Borrador: 'bg-slate-100 text-slate-600',
-  Aprobada: 'bg-blue-100 text-blue-700',
-  Enviada: 'bg-amber-100 text-amber-700',
-  Depositada: 'bg-emerald-100 text-emerald-700',
-};
-
-function RenditionStatusBadge({ status, size = 'sm' }: { status: string; size?: 'sm' | 'md' }) {
-  const t = useTranslations('renditions.statuses');
-  const sizeClasses = size === 'md' ? 'px-3 py-1 text-sm' : 'px-2.5 py-0.5 text-xs';
-  return (
-    <span className={`inline-flex items-center rounded-full font-medium ${sizeClasses} ${statusColors[status] || 'bg-slate-100 text-slate-600'}`}>
-      {t(status as keyof typeof statusColors)}
-    </span>
-  );
 }
 
 /* ──────────── Helpers ──────────── */
@@ -268,7 +250,7 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <RenditionStatusBadge status={rendition.status} size="md" />
+              <StatusBadge domain="rendicion" status={rendition.status} size="md" />
             </div>
             <h1 className="text-xl font-bold text-slate-900">
               {t('detail.title')} — {periodLabel}

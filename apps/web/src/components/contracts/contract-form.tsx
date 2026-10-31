@@ -15,7 +15,6 @@ import {
 import { contractFormSchema } from '@realfy/shared/schemas';
 import { useState, type FormEvent } from 'react';
 import { Link, useRouter } from '@/i18n/navigation';
-import { ContractStatusBadge } from './contract-status-badge';
 import { GuaranteeBadge } from './guarantee-badge';
 import {
   ActivationProblems,

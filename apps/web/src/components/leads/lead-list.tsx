@@ -10,6 +10,7 @@ import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { statusEntry } from '@/lib/status-registry';
 import { useCan, can } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
@@ -128,15 +129,6 @@ function daysAgo(dateStr: string): number {
   return Math.max(0, Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-/** Estado → tono de la chapa. Sigue la misma progresión del pipeline. */
-const STATUS_VARIANT: Record<string, 'info' | 'warning' | 'success' | 'danger' | 'neutral'> = {
-  Nuevo: 'info',
-  Contactado: 'warning',
-  Calificado: 'success',
-  Convertido: 'success',
-  Perdido: 'danger',
-};
-
 /* ──────────── Lead Card ──────────── */
 
 function LeadCard({
@@ -189,7 +181,7 @@ function LeadCard({
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant={STATUS_VARIANT[lead.status] || 'neutral'}>{lead.currentStage.name}</Badge>
+          <Badge variant={statusEntry('lead', lead.status)?.tone ?? 'neutral'}>{lead.currentStage.name}</Badge>
           <Badge variant="neutral">{tSources(lead.source as keyof typeof LeadSource)}</Badge>
         </div>
 

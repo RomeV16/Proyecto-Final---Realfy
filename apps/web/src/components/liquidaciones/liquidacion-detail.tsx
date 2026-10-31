@@ -13,7 +13,7 @@ import {
 } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
-import { LiquidacionStatusBadge } from './liquidacion-status-badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { PaymentForm } from './payment-form';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { Icon } from '@/components/ui/icon';
@@ -257,7 +257,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <LiquidacionStatusBadge status={data.status} size="md" />
+              <StatusBadge domain="liquidacion" status={data.status} size="md" />
             </div>
             <h1 className="text-xl font-bold text-slate-900">{periodLabel}</h1>
             {data.contract?.property && (

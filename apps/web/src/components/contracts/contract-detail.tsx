@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from '@/i18n/navigation';
-import { ContractStatusBadge } from './contract-status-badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { EntityCard, EntityRow } from '@/components/ui/entity-card';
 import { Avatar } from '@/components/ui/avatar';
 import { GuaranteeBadge } from './guarantee-badge';
@@ -577,7 +577,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <ContractStatusBadge status={contract.status} size="md" />
+              <StatusBadge domain="contrato" status={contract.status} size="md" />
               <span className="text-sm px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">
                 {tContracts(`types.${contract.contractType}`)}
               </span>

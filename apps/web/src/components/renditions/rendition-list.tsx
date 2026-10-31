@@ -10,7 +10,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityCard } from '@/components/ui/entity-card';
 import { CardGrid } from '@/components/ui/card-grid';
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { statusAccent } from '@/lib/status-registry';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { Avatar } from '@/components/ui/avatar';
 import { Meter } from '@/components/ui/micro-viz';
@@ -58,31 +59,6 @@ interface Filters {
 const INITIAL_FILTERS: Filters = { status: '', month: '', year: '', page: 1 };
 const LIMIT = 12;
 
-/* ──────────── Status → card language ──────────── */
-
-const STATUS_VARIANT: Record<string, 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'brand'> = {
-  [RendicionStatus.Borrador]: 'neutral',
-  [RendicionStatus.Aprobada]: 'info',
-  [RendicionStatus.Enviada]: 'warning',
-  [RendicionStatus.Depositada]: 'success',
-};
-
-const STATUS_ACCENT: Record<string, 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'none'> = {
-  [RendicionStatus.Borrador]: 'none',
-  [RendicionStatus.Aprobada]: 'info',
-  [RendicionStatus.Enviada]: 'warning',
-  [RendicionStatus.Depositada]: 'success',
-};
-
-function RenditionStatusBadge({ status, onCover }: { status: string; onCover?: boolean }) {
-  const t = useTranslations('renditions.statuses');
-  return (
-    <Badge variant={STATUS_VARIANT[status] || 'neutral'} dot onCover={onCover}>
-      {t(status as keyof typeof STATUS_VARIANT)}
-    </Badge>
-  );
-}
-
 /* ──────────── Helpers ──────────── */
 
 
@@ -121,13 +97,13 @@ function RenditionCard({ item, onDownloadPdf }: CardProps) {
       : null;
 
   return (
-    <EntityCard href={href} label={`${periodLabel} — ${propertyText}`} accent={STATUS_ACCENT[item.status] || 'none'}>
+    <EntityCard href={href} label={`${periodLabel} — ${propertyText}`} accent={statusAccent('rendicion', item.status)}>
       <EntityCard.Cover
         seed={item.id}
         icon="renditions"
         aspect="aspect-[3/1]"
         alt={periodLabel}
-        topRight={<RenditionStatusBadge status={item.status} onCover />}
+        topRight={<StatusBadge domain="rendicion" status={item.status} onCover />}
         bottomLeft={
           <h3 className="text-sm font-semibold leading-snug text-white drop-shadow-sm">{periodLabel}</h3>
         }
