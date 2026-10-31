@@ -1,7 +1,7 @@
 import type { ReadResource } from '@realfy/shared';
 
 /** Campos de la respuesta que protege cada recurso enmascarable. */
-export const MASKED_FIELDS: Partial<Record<ReadResource, readonly string[]>> = {
+const MASKED_FIELDS: Partial<Record<ReadResource, readonly string[]>> = {
   'persons.document': ['dni', 'cuit'],
   'persons.bankAccounts': ['cbu', 'bankAlias', 'bankName', 'bankAccounts'],
   'contracts.commission': ['commission'],
