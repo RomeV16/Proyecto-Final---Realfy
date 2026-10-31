@@ -110,8 +110,7 @@
    "retry": "Reintentar",
    "home": "Ir al panel",
    "notFoundTitle": "No encontramos lo que buscás",
-   "notFoundMessage": "El registro no existe o ya no está disponible.",
-   "back": "Volver"
+   "notFoundMessage": "El registro no existe o ya no está disponible."
   }
  },
  "common": {

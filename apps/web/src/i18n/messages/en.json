@@ -110,8 +110,7 @@
    "retry": "Retry",
    "home": "Go to dashboard",
    "notFoundTitle": "We could not find what you were looking for",
-   "notFoundMessage": "The record does not exist or is no longer available.",
-   "back": "Back"
+   "notFoundMessage": "The record does not exist or is no longer available."
   }
  },
  "common": {
