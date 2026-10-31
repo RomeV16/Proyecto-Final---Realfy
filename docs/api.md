@@ -277,13 +277,14 @@ de plantillas y el de comisiones.
 | Método | Ruta | Para qué | Acceso |
 |---|---|---|---|
 | GET | `/liquidaciones` | Listado paginado y filtrable por estado y período. | Autenticado |
-| GET | `/liquidaciones/:id` | Detalle con líneas y pagos. | Autenticado |
-| GET | `/liquidaciones/:id/pdf` | Comprobante en PDF. | Autenticado |
-| POST | `/liquidaciones/generate` | Genera las liquidaciones de todos los contratos activos del período. | Admin, Gerente, Liquidaciones |
+| GET | `/liquidaciones/:id` | Detalle con líneas (con `beneficiary` y `commissionable`), pagos, locadores y `receiptNumber` (nulo hasta aprobar). | Autenticado |
+| GET | `/liquidaciones/:id/pdf` | Recibo en PDF: número, monto en letras, "por cuenta y orden de" los locadores vigentes y renglones agrupados por destino. | Autenticado |
+| POST | `/liquidaciones/generate` | Genera las liquidaciones del período con las reglas y el alquiler vigentes en ese mes: respeta el inicio y el fin efectivo del contrato, el día de vencimiento y el prorrateo del primer y último mes. Devuelve `created`, `skipped`, `outOfRange`, `failed`, `total` y el resultado por contrato. | Admin, Gerente, Liquidaciones |
+| POST | `/liquidaciones/_run-now` | Corre ahora el proceso diario de generación para todas las inmobiliarias; `today` (`YYYY-MM-DD`) opcional fija el día. Solo con `NODE_ENV=test` o `E2E_TEST_MODE=1`, como `/penalties/_run-now`; fuera de ese modo responde 403. | Admin |
 | POST | `/liquidaciones/:id/transition` | Cambia el estado. Ante un estado inválido devuelve las transiciones posibles. | Admin, Gerente, Liquidaciones |
 | POST | `/liquidaciones/bulk-approve` | Aprueba en lote. | Admin, Gerente |
 | POST | `/liquidaciones/bulk-send` | Envía en lote. | Admin, Gerente |
-| POST | `/liquidaciones/:id/line-items` | Agrega una línea. | Admin, Gerente, Liquidaciones |
+| POST | `/liquidaciones/:id/line-items` | Agrega una línea; `beneficiary` y `commissionable` son opcionales y, si faltan, rigen los del tipo. | Admin, Gerente, Liquidaciones |
 | PATCH | `/liquidaciones/:id/line-items/:lineItemId` | Edita una línea. | Admin, Gerente, Liquidaciones |
 | DELETE | `/liquidaciones/:id/line-items/:lineItemId` | Quita una línea. | Admin, Gerente, Liquidaciones |
 | GET | `/liquidaciones/:id/payments` | Pagos imputados. | Autenticado |
