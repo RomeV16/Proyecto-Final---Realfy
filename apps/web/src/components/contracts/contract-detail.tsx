@@ -26,7 +26,8 @@ import {
 import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 import { LessorsSection } from '@/components/parties/lessors-section';
-import type { ContractLessor } from '@/components/parties/parties';
+import { ContractPowersSection } from '@/components/parties/contract-powers-section';
+import type { ContractLessor, PowerOfAttorney } from '@/components/parties/parties';
 
 /* ──────────── Types ──────────── */
 
@@ -88,6 +89,8 @@ interface ContractDetail {
   propertyId?: string;
   /** Locadores del contrato: reemplazan a las partes con rol Propietario. */
   lessors?: ContractLessor[];
+  /** Poderes vigentes que aplican al contrato (propios y generales de cada locador). */
+  apoderados?: PowerOfAttorney[];
   guarantees: ContractGuarantee[];
   adjustments: ContractAdjustment[];
   schedules: AdjustmentSchedule[];
@@ -765,7 +768,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
             </div>
           </div>
 
-          {/* Locadores */}
+          {/* Locadores y apoderados */}
           <LessorsSection
             contract={{
               id: contract.id,
@@ -778,6 +781,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
             canEdit={canManage}
             onSaved={fetchContract}
           />
+          <ContractPowersSection powers={contract.apoderados ?? []} />
 
           {/* Pricing section */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">
