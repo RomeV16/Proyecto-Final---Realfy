@@ -1,9 +1,6 @@
 import { PipelineType } from './enums';
 import { TicketPriority } from './enums';
 
-export const DEFAULT_TIMEZONE = 'America/Buenos_Aires';
-export const DEFAULT_CURRENCY = 'ARS';
-
 // ─── Default Pipeline Stage Definitions ─────────────────
 
 export interface DefaultStageDefinition {

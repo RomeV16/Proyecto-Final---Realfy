@@ -65,34 +65,6 @@ export function StaggerItem({ index = 0, children, className }: StaggerItemProps
   );
 }
 
-/** Simple one-shot reveal for section headers, toolbars, panels. */
-export function FadeIn({
-  children,
-  className,
-  delay = 0,
-  y = 10,
-}: {
-  children: ReactNode;
-  className?: string;
-  delay?: number;
-  y?: number;
-}) {
-  const reduce = useReducedMotion();
-
-  if (reduce) return <div className={className}>{children}</div>;
-
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: EASE_LUXE, delay }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 /* ──────────── Loading ⇄ content ⇄ empty ──────────── */
 
 export type ListState = 'loading' | 'empty' | 'ready';

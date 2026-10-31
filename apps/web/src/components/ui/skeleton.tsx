@@ -26,23 +26,6 @@ export function Skeleton({ className, width, height, style, ...props }: Skeleton
 }
 
 /**
- * Text-line placeholder. Last line is short so a block of them reads as a
- * paragraph instead of a rectangle.
- */
-export function SkeletonText({ lines = 3, className }: { lines?: number; className?: string }) {
-  return (
-    <div className={cn('space-y-2', className)} aria-hidden="true">
-      {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton
-          key={i}
-          className={cn('h-3', i === lines - 1 ? 'w-2/5' : i % 2 ? 'w-4/5' : 'w-full')}
-        />
-      ))}
-    </div>
-  );
-}
-
-/**
  * Skeleton shaped like an `EntityCard`, so the swap to real content doesn't
  * shift layout. `media` matches the cover variant; without it you get the
  * compact, coverless shape.

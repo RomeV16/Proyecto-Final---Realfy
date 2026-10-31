@@ -3,12 +3,6 @@ import {
   PropertyType,
   Currency,
   FiscalCondition,
-  ContractType,
-  ContractStatus,
-  AdjustmentType,
-  AdjustmentPeriod,
-  LiquidacionStatus,
-  PaymentMethod,
 } from '../enums';
 
 /**
@@ -84,41 +78,4 @@ export const PersonImportRowSchema = z.object({
   cbu: z.string().regex(/^\d{22}$/, 'CBU must be exactly 22 digits').optional().nullable(),
   bankAlias: z.string().max(200).optional().nullable(),
   notes: z.string().max(5000).optional().nullable(),
-});
-
-/**
- * Contract schema for import: propertyRef required as the linking reference,
- * everything else optional. Follows the same relaxed pattern as PropertyImportRowSchema.
- * Uses z.coerce.number() for decimal fields so CSV string values parse correctly.
- */
-export const ContractImportRowSchema = z.object({
-  propertyRef: z.string().min(1, 'Property reference is required').max(300),
-  contractType: z.nativeEnum(ContractType).optional().nullable(),
-  startDate: z.string().max(20).optional().nullable(),
-  endDate: z.string().max(20).optional().nullable(),
-  rentAmount: z.coerce.number().nonnegative().optional().nullable(),
-  rentCurrency: z.nativeEnum(Currency).optional().nullable(),
-  adjustmentType: z.nativeEnum(AdjustmentType).optional().nullable(),
-  adjustmentPeriod: z.nativeEnum(AdjustmentPeriod).optional().nullable(),
-  ownerRef: z.string().max(300).optional().nullable(),
-  tenantRef: z.string().max(300).optional().nullable(),
-  guarantorRef: z.string().max(300).optional().nullable(),
-  status: z.nativeEnum(ContractStatus).optional().nullable(),
-  depositAmount: z.coerce.number().nonnegative().optional().nullable(),
-  notes: z.string().max(5000).optional().nullable(),
-});
-
-/**
- * Liquidacion schema for import: contractRef required as the linking reference.
- * Includes inline payment data fields for migration convenience.
- */
-export const LiquidacionImportRowSchema = z.object({
-  contractRef: z.string().min(1, 'Contract reference is required').max(300),
-  period: z.string().max(20).optional().nullable(),
-  amount: z.coerce.number().nonnegative().optional().nullable(),
-  status: z.nativeEnum(LiquidacionStatus).optional().nullable(),
-  dueDate: z.string().max(20).optional().nullable(),
-  paymentDate: z.string().max(20).optional().nullable(),
-  paymentMethod: z.nativeEnum(PaymentMethod).optional().nullable(),
-  paymentAmount: z.coerce.number().nonnegative().optional().nullable(),
 });

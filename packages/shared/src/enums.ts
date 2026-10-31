@@ -331,20 +331,6 @@ export enum ValuationMethod {
   Mixto = 'Mixto',
 }
 
-// ─── Inventory Enums ────────────────────────────────────
-
-export enum InventoryType {
-  Ingreso = 'Ingreso',
-  Egreso = 'Egreso',
-}
-
-export enum InventoryItemStatus {
-  Bueno = 'Bueno',
-  Regular = 'Regular',
-  Malo = 'Malo',
-  Faltante = 'Faltante',
-}
-
 // ─── Ticket Enums ───────────────────────────────────────
 
 export enum TicketStatus {

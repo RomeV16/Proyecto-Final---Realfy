@@ -55,7 +55,7 @@ export interface FiscalQrParams {
  *
  * URL format: https://www.afip.gob.ar/fe/qr/?p={base64(JSON)}
  */
-export function buildFiscalQrUrl(params: FiscalQrParams): string {
+function buildFiscalQrUrl(params: FiscalQrParams): string {
   const payload = {
     ver: 1,
     fecha: params.fecha,
@@ -80,7 +80,7 @@ export function buildFiscalQrUrl(params: FiscalQrParams): string {
 /**
  * Strip dashes from a CUIT/DNI string and convert to number.
  */
-export function cuitToNumber(cuit: string): number {
+function cuitToNumber(cuit: string): number {
   return Number(cuit.replace(/-/g, ''));
 }
 
