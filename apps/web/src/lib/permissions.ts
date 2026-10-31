@@ -48,6 +48,9 @@ export const ACTION_ROLES = {
   // Soporte y configuración
   'tickets.manage': [Admin, Gerente, Soporte],
   'settings.manage': [Admin, Gerente],
+  /** Ver el equipo (solo lectura) y gestionarlo: invitar, cambiar roles, dar de baja. */
+  'users.view': [Admin, Gerente],
+  'users.manage': [Admin],
   'indexData.view': [Admin, Gerente],
   'indexData.manage': [Admin],
 } as const satisfies Record<string, readonly UserRole[]>;

@@ -65,8 +65,11 @@ describe('Cross-Tenant Isolation (e2e)', () => {
       .set('Authorization', `Bearer ${t1Admin.accessToken}`)
       .expect(200);
 
-    expect(t1UsersRes.body).toHaveLength(1);
-    expect(t1UsersRes.body[0].email).toBe('admin1@tenant1.com');
+    // El equipo incluye la invitación pendiente propia, nunca la de otra inmobiliaria.
+    expect(t1UsersRes.body.map((u: any) => u.email).sort()).toEqual([
+      'admin1@tenant1.com',
+      'invited@tenant1.com',
+    ]);
   });
 
   it('Tenant 2 admin cannot update Tenant 1 branding', async () => {

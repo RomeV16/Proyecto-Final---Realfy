@@ -66,7 +66,7 @@ Los FB-01 a FB-28 de esta versión son todos de relevamiento. Todavía no hay fe
 | FB-23 | 2026-10-29 | Relevamiento | Decenas de ajustes por mes calculados en planilla y tipeados dos veces | Aplicación masiva de ajustes con previsualización | 34 (#92) | ADR-0011 | CP-120–129 | Planificado |
 | FB-24 | 2026-10-29 | Relevamiento | El contrato creado desde la web queda en Borrador sin forma de activarlo y la propiedad no pasa a Alquilada | Activación validada desde la ficha (PR 0.2) | 34 (#92) | — | CP-80–84 | En curso |
 | FB-25 | 2026-10-29 | Relevamiento | La serie de IPC de la API del INDEC dejó de publicarse después de 2026-07 | IPC desde el CSV del INDEC con BCRA de respaldo y carga manual (PR 0.1) | 34 (#92) | ADR-0011 | CP-51, CP-52 | En curso |
-| FB-26 | 2026-10-29 | Relevamiento | No hay pantalla para invitar usuarios, aceptar la invitación ni cambiar o recuperar la contraseña | Gestión de usuarios en la web | 32 (#90) | — | CP-100–109 | Planificado |
+| FB-26 | 2026-10-29 | Relevamiento | No hay pantalla para invitar usuarios, aceptar la invitación ni cambiar o recuperar la contraseña | Gestión de usuarios en la web | 32 (#90) | — | CP-100–109 | Implementado (invitar, aceptar, roles, baja, contraseña) |
 | FB-27 | 2026-10-30 | Respuestas | Inventario sólo al ingreso, con fotos y texto; al egreso se coteja | Fuera del piloto: se mantiene como adjunto | — | — | — | Fuera del piloto |
 | FB-28 | 2026-10-30 | Respuestas | Custodia de moneda extranjera para algunos locadores | Cuenta de custodia con moneda | 36 (#94) | ADR-0012 | CP-140–149 | Planificado |
 

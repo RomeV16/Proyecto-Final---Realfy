@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
+import { PasswordResetService } from './password-reset.service';
 import { JwtStrategy } from '../../common/auth/jwt.strategy';
 import { PipelinesModule } from '../pipelines/pipelines.module';
 import { resolveJwtSecret } from '../../common/auth/jwt-secret';
@@ -24,7 +25,7 @@ import { resolveJwtSecret } from '../../common/auth/jwt-secret';
     PipelinesModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService, JwtModule],
+  providers: [AuthService, PasswordResetService, JwtStrategy],
+  exports: [AuthService, PasswordResetService, JwtModule],
 })
 export class AuthModule {}

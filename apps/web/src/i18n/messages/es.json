@@ -33,6 +33,49 @@
   },
   "password": {
    "tooShort": "La contraseña debe tener al menos 8 caracteres"
+  },
+  "forgot": {
+   "link": "¿Olvidaste tu contraseña?",
+   "title": "Recuperar contraseña",
+   "subtitle": "Ingresá tu correo y, si la cuenta existe y el envío de correos está activo, te mandamos las instrucciones.",
+   "email": "Correo electrónico",
+   "submit": "Enviar instrucciones",
+   "sending": "Enviando…",
+   "sent": "Si la cuenta existe, enviamos las instrucciones. Si no te llega nada, pedile a un administrador de tu inmobiliaria que te genere un enlace.",
+   "error": "No se pudo enviar el pedido. Intentá nuevamente.",
+   "backToLogin": "Volver a iniciar sesión"
+  },
+  "passwordRules": "Mínimo 8 caracteres.",
+  "passwordFields": {
+   "required": "Ingresá una contraseña",
+   "tooShort": "La contraseña debe tener al menos 8 caracteres",
+   "tooLong": "La contraseña no puede superar los 128 caracteres",
+   "mismatch": "Las contraseñas no coinciden"
+  },
+  "acceptInvitation": {
+   "title": "Sumate al equipo",
+   "subtitle": "Completá tus datos y elegí una contraseña para entrar a Realfy.",
+   "firstName": "Nombre",
+   "lastName": "Apellido",
+   "password": "Contraseña",
+   "confirmPassword": "Repetí la contraseña",
+   "submit": "Crear mi cuenta",
+   "submitting": "Creando cuenta…",
+   "missingToken": "Falta el enlace de invitación. Pedile a tu administrador que te lo vuelva a compartir.",
+   "error": "No se pudo crear la cuenta. Intentá nuevamente.",
+   "loginFailed": "Tu cuenta se creó, pero no pudimos iniciar sesión. Ingresá con tu correo y tu contraseña.",
+   "loginLink": "¿Ya tenés cuenta? Iniciar sesión"
+  },
+  "passwordReset": {
+   "title": "Elegí una contraseña nueva",
+   "subtitle": "El enlace sirve una sola vez.",
+   "password": "Contraseña nueva",
+   "confirmPassword": "Repetí la contraseña",
+   "submit": "Guardar contraseña",
+   "submitting": "Guardando…",
+   "success": "Listo, tu contraseña se actualizó. Ya podés iniciar sesión con la nueva.",
+   "loginLink": "Iniciar sesión",
+   "error": "No se pudo cambiar la contraseña. Intentá nuevamente."
   }
  },
  "nav": {
@@ -101,7 +144,20 @@
   "codes": {
    "INTERNAL_ERROR": "El servidor tuvo un problema. Intentá de nuevo en unos minutos.",
    "UNAUTHORIZED": "Tu sesión venció. Iniciá sesión de nuevo.",
-   "FORBIDDEN": "No tenés permiso para hacer esto."
+   "FORBIDDEN": "No tenés permiso para hacer esto.",
+   "LAST_ADMIN": "La inmobiliaria necesita al menos un administrador activo.",
+   "CANNOT_DEACTIVATE_SELF": "No podés desactivar tu propia cuenta.",
+   "USER_NOT_FOUND": "El usuario ya no existe en tu inmobiliaria.",
+   "INVITATION_NOT_FOUND": "Este enlace de invitación no es válido o ya no está pendiente. Pedí uno nuevo.",
+   "INVITATION_EXPIRED": "La invitación venció. Pedile a tu administrador que te la reenvíe.",
+   "INVITATION_ALREADY_ACCEPTED": "Esta invitación ya se usó. Si ya creaste tu cuenta, iniciá sesión.",
+   "INVITATION_ALREADY_PENDING": "Ya hay una invitación pendiente para este correo. Reenviala desde la lista.",
+   "USER_ALREADY_EXISTS": "Ya hay un usuario con este correo en tu inmobiliaria.",
+   "USER_INACTIVE": "El usuario está desactivado: reactivalo antes de generar un enlace.",
+   "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
+   "PASSWORD_RESET_INVALID": "Este enlace no es válido. Pedí uno nuevo a tu administrador.",
+   "PASSWORD_RESET_USED": "Este enlace ya se usó. Si necesitás otro, pedíselo a tu administrador.",
+   "PASSWORD_RESET_EXPIRED": "El enlace venció. Pedí uno nuevo a tu administrador."
   },
   "segment": {
    "loading": "Cargando…",
@@ -252,10 +308,11 @@
    "emailPlaceholder": "usuario@ejemplo.com",
    "role": "Rol",
    "rolePlaceholder": "Seleccioná un rol",
-   "submit": "Enviar invitación",
-   "submitting": "Enviando…",
-   "success": "Invitación enviada exitosamente",
-   "error": "No se pudo enviar la invitación"
+   "submit": "Crear invitación",
+   "submitting": "Creando…",
+   "success": "Invitación creada",
+   "error": "No se pudo crear la invitación",
+   "roleRequired": "Elegí un rol"
   },
   "table": {
    "name": "Nombre",
@@ -279,8 +336,51 @@
   "actions": {
    "changeRole": "Cambiar rol",
    "deactivate": "Desactivar",
-   "activate": "Activar"
-  }
+   "activate": "Activar",
+   "resendInvitation": "Reenviar invitación",
+   "resetLink": "Enlace para cambiar contraseña"
+  },
+  "readOnly": "Solo un administrador puede invitar o modificar usuarios.",
+  "status": {
+   "invited": "Invitado",
+   "active": "Activo",
+   "inactive": "Desactivado"
+  },
+  "invitationExpires": "Vence el {date}",
+  "invitationExpired": "Invitación vencida",
+  "neverLoggedIn": "Todavía no ingresó",
+  "pendingName": "Pendiente de aceptar",
+  "roleDialog": {
+   "title": "Cambiar rol",
+   "body": "Rol de {name}",
+   "submit": "Guardar rol",
+   "success": "Rol actualizado",
+   "error": "No se pudo cambiar el rol"
+  },
+  "confirm": {
+   "deactivateTitle": "Desactivar usuario",
+   "deactivateBody": "{name} no va a poder ingresar y se cierran sus sesiones abiertas. Podés reactivarlo cuando quieras.",
+   "deactivateConfirm": "Desactivar",
+   "deactivated": "Usuario desactivado",
+   "reactivateTitle": "Reactivar usuario",
+   "reactivateBody": "{name} va a poder volver a ingresar con su contraseña.",
+   "reactivateConfirm": "Reactivar",
+   "reactivated": "Usuario reactivado"
+  },
+  "share": {
+   "invitationTitle": "Enlace de invitación",
+   "resetTitle": "Enlace para cambiar la contraseña",
+   "intro": "Compartí este enlace con {email}.",
+   "emailSent": "También lo enviamos por correo.",
+   "noEmail": "Por ahora la plataforma no envía correos: copiá el enlace y mandáselo por WhatsApp o el medio que prefieras.",
+   "singleUse": "Sirve una sola vez y vence el {date}. Si se pierde, generá uno nuevo desde esta pantalla.",
+   "linkLabel": "Enlace",
+   "copy": "Copiar enlace",
+   "copied": "Enlace copiado",
+   "copyFailed": "No se pudo copiar: seleccioná el enlace y copialo a mano.",
+   "close": "Listo"
+  },
+  "cardSubtitle": "Invitá al equipo, cambiá roles y recuperá accesos"
  },
  "audit": {
   "title": "Registro de auditoría",
@@ -3615,7 +3715,18 @@
   "saving": "Guardando...",
   "saved": "Cambios guardados",
   "saveError": "No se pudieron guardar los cambios",
-  "nameRequired": "El nombre y el apellido son obligatorios"
+  "nameRequired": "El nombre y el apellido son obligatorios",
+  "password": {
+   "title": "Contraseña",
+   "subtitle": "Al cambiarla se cierran tus sesiones en otros dispositivos.",
+   "current": "Contraseña actual",
+   "new": "Contraseña nueva",
+   "confirm": "Repetí la contraseña nueva",
+   "submit": "Cambiar contraseña",
+   "saving": "Guardando…",
+   "saved": "Contraseña actualizada",
+   "error": "No se pudo cambiar la contraseña"
+  }
  },
  "configuracion": {
   "title": "Configuración",
@@ -3636,7 +3747,8 @@
   "managePipeline": "Configurar etapas",
   "manageFiscal": "Configurar facturación",
   "manageScoring": "Configurar puntuación",
-  "manageIndices": "Ver y cargar índices"
+  "manageIndices": "Ver y cargar índices",
+  "manageUsers": "Gestionar usuarios"
  },
  "portalPublico": {
   "footer": {

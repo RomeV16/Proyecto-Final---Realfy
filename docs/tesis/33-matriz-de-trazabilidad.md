@@ -39,7 +39,7 @@ La matriz une cada hallazgo del registro (`31-registro-de-feedback.md`) con el c
 | FB-23 | CU-08 (modificado) | 34 (#92) | ADR-0011 | Se completa en el PR | CP-120 a CP-129 |
 | FB-24 | CU-05 (modificado) | 34 (#92) | — | Se completa en el PR | CP-80 a CP-84 |
 | FB-25 | CU-07, CU-08 (modificados) | 34 (#92) | ADR-0011 | Se completa en el PR | CP-51, CP-52 |
-| FB-26 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 32 (#90) | — | Se completa en el PR | CP-100 a CP-109 |
+| FB-26 | CU-27, CU-28 (nuevos) | 32 (#90) | — | `/users`, `/users/invite`, `/users/accept-invitation`, `/users/:id`, `/users/:id/deactivate`, `/users/:id/reactivate`, `/users/:id/invitation/resend`, `/users/:id/password-reset-link`, `/auth/change-password`, `/auth/password-reset/request`, `/auth/password-reset/confirm` | CP-100 a CP-109 |
 | FB-27 | — (fuera del piloto: se mantiene como adjunto) | — | — | — | — |
 | FB-28 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 36 (#94) | ADR-0012 | Se completa en el PR | CP-140 a CP-149 |
 

@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { AuthController } from '../../src/modules/auth/auth.controller';
+import { UsersController } from '../../src/modules/users/users.controller';
 import { PortalAuthController } from '../../src/modules/portal-auth/portal-auth.controller';
 
 /**
@@ -24,6 +25,10 @@ describe('Límite de intentos en los endpoints con credenciales', () => {
   it.each([
     ['ingreso del staff', AuthController, 'login'],
     ['registro', AuthController, 'register'],
+    ['cambio de contraseña', AuthController, 'changePassword'],
+    ['pedido de recupero', AuthController, 'requestPasswordReset'],
+    ['confirmación de recupero', AuthController, 'confirmPasswordReset'],
+    ['aceptar invitación', UsersController, 'acceptInvitation'],
     ['ingreso del portal', PortalAuthController, 'login'],
   ])('%s: 5 intentos por minuto', (_label, controller, method) => {
     expect(throttleOf(controller, method)).toEqual({ limit: 5, ttl: 60000 });

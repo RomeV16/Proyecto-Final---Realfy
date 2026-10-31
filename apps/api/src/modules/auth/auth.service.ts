@@ -2,15 +2,17 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { parseOrThrow } from '../../common/validation/zod';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
-import { UserRole } from '@realfy/shared';
+import { ChangePasswordSchema, UserRole } from '@realfy/shared';
 import { JwtPayload } from '../../common/auth/jwt.strategy';
 import { PipelinesService } from '../pipelines/pipelines.service';
 
@@ -267,6 +269,52 @@ export class AuthService {
     });
 
     this.logger.log(`Logout: userId=${userId} — all tokens revoked`);
+  }
+
+  /**
+   * Cambio de contraseña de la propia cuenta. Pide la actual y revoca los
+   * refresh tokens de las demás sesiones; la sesión desde la que se cambia
+   * (`keepRefreshToken`) sigue abierta.
+   */
+  async changePassword(
+    userId: string,
+    data: unknown,
+    keepRefreshToken?: string,
+  ): Promise<void> {
+    const { currentPassword, newPassword } = parseOrThrow(
+      ChangePasswordSchema,
+      data,
+      'Invalid password data',
+    );
+
+    const user = await this.prisma.baseClient.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true },
+    });
+    const valid = user ? await bcrypt.compare(currentPassword, user.passwordHash) : false;
+    if (!user || !valid) {
+      throw new BadRequestException({
+        error: 'INVALID_CURRENT_PASSWORD',
+        message: 'The current password is not correct',
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, this.bcryptRounds);
+    await this.prisma.baseClient.$transaction([
+      this.prisma.baseClient.user.update({
+        where: { id: userId },
+        data: { passwordHash },
+      }),
+      this.prisma.baseClient.refreshToken.updateMany({
+        where: {
+          userId,
+          ...(keepRefreshToken ? { token: { not: keepRefreshToken } } : {}),
+        },
+        data: { isRevoked: true },
+      }),
+    ]);
+
+    this.logger.log(`Password changed: userId=${userId}`);
   }
 
   /**

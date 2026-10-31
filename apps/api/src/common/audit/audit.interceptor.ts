@@ -7,6 +7,8 @@ import {
 } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
 import type { Request } from 'express';
+import { Reflector } from '@nestjs/core';
+import { AUDIT_OPERATION_KEY } from './audit-operation.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { TenantContextService } from '../tenant/tenant-context.service';
 import { AuditAction } from '@realfy/shared';
@@ -29,6 +31,8 @@ const REDACTED_FIELDS = new Set([
   'passwordHash',
   'token',
   'refreshToken',
+  'currentPassword',
+  'newPassword',
   'secret',
 ]);
 
@@ -72,6 +76,7 @@ export class AuditInterceptor implements NestInterceptor {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
+    private readonly reflector: Reflector,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
@@ -85,7 +90,12 @@ export class AuditInterceptor implements NestInterceptor {
 
     const action = METHOD_TO_ACTION[method];
     const entity = deriveEntity(request.url);
-    const changes = sanitizeChanges(request.body);
+    const operation = this.reflector.get<string | undefined>(
+      AUDIT_OPERATION_KEY,
+      context.getHandler(),
+    );
+    const sanitized = sanitizeChanges(request.body);
+    const changes = operation ? { ...(sanitized ?? {}), operation } : sanitized;
     const ipAddress = this.tenantContext.getIpAddress();
     const userAgent = request.headers['user-agent'] || null;
 

@@ -7,6 +7,7 @@ import {
   LiquidacionStatus,
   RendicionStatus,
   TicketStatus,
+  USER_STATUSES,
   VisitStatus,
 } from '@realfy/shared';
 import es from '@/i18n/messages/es.json';
@@ -22,6 +23,7 @@ const ENUMS: Record<StatusDomain, object> = {
   ticket: TicketStatus,
   lead: LeadStatus,
   visita: VisitStatus,
+  usuario: USER_STATUSES,
 };
 
 function lookup(messages: unknown, path: string): unknown {

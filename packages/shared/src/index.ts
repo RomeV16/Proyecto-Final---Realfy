@@ -48,6 +48,23 @@ export {
 export {
   CreateUserSchema,
   InviteUserSchema,
+  UpdateUserSchema,
+  AcceptInvitationSchema,
+  ChangePasswordSchema,
+  PasswordResetRequestSchema,
+  PasswordResetConfirmSchema,
+  InviteUserFormSchema,
+  AcceptInvitationFormSchema,
+  ChangePasswordFormSchema,
+  PasswordResetFormSchema,
+  USER_STATUSES,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
+} from './schemas/user.schema';
+export type {
+  UserStatus,
+  TeamMember,
+  ShareableLink,
 } from './schemas/user.schema';
 
 // Schemas — inmobiliarias (tenants)

@@ -7,6 +7,7 @@ import {
   registerUser,
   loginUser,
 } from './helpers/test-utils';
+import { hashToken } from '../src/common/auth/one-time-token';
 import { PrismaService } from '../src/common/prisma/prisma.service';
 
 describe('Invitation Flow (e2e)', () => {
@@ -97,7 +98,7 @@ describe('Invitation Flow (e2e)', () => {
         role: 'Lectura',
         tenantId: admin.user.tenantId,
         invitedByUserId: admin.user.id,
-        token: 'expired-token-123',
+        token: hashToken('expired-token-123'),
         expiresAt: new Date('2020-01-01'), // expired
       },
     });

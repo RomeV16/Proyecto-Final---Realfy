@@ -9,6 +9,7 @@ const publicPaths = [
   '/auth/login',
   '/auth/register',
   '/auth/accept-invitation',
+  '/auth/password-reset',
   '/portal/auth/login',
   '/portal/auth/set-password',
   '/docs',

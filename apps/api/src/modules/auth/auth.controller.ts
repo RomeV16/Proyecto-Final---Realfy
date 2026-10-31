@@ -9,8 +9,10 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { PasswordResetService } from './password-reset.service';
 import { Public } from '../../common/auth/public.decorator';
 import { Throttle } from '@nestjs/throttler';
+import { CREDENTIALS_THROTTLE } from '../../common/auth/credentials-throttle';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 
 class RegisterDto {
@@ -53,17 +55,13 @@ const COOKIE_OPTS_REFRESH = {
   domain: COOKIE_DOMAIN,
 };
 
-/**
- * Límite propio para los endpoints con credenciales: 5 intentos por minuto.
- * El límite general del ThrottlerModule es mucho más alto porque el tráfico del
- * frontend llega por el proxy con una IP compartida, pero eso no es motivo para
- * regalarle 30 intentos por minuto a quien prueba contraseñas.
- */
-const CREDENTIALS_THROTTLE = { default: { ttl: 60000, limit: 5 } };
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly passwordReset: PasswordResetService,
+  ) {}
 
   @Public()
   @Throttle(CREDENTIALS_THROTTLE)
@@ -119,6 +117,41 @@ export class AuthController {
     res.cookie('access_token', result.accessToken, COOKIE_OPTS_ACCESS);
     res.cookie('refresh_token', result.refreshToken, COOKIE_OPTS_REFRESH);
     return { tokens: result };
+  }
+
+  @Post('change-password')
+  @Throttle(CREDENTIALS_THROTTLE)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async changePassword(
+    @Req() req: Request,
+    @Body() body: Record<string, unknown>,
+  ) {
+    const user = req.user as { userId: string };
+    const keep =
+      (req.cookies as Record<string, string> | undefined)?.refresh_token ||
+      (typeof req.body?.refreshToken === 'string' ? req.body.refreshToken : undefined);
+    await this.authService.changePassword(user.userId, body, keep);
+  }
+
+  /**
+   * Pedido de recupero por correo. Responde siempre 202, exista o no la
+   * cuenta, y si no hay servicio de correo no envía nada.
+   */
+  @Public()
+  @Throttle(CREDENTIALS_THROTTLE)
+  @Post('password-reset/request')
+  @HttpCode(HttpStatus.ACCEPTED)
+  async requestPasswordReset(@Body() body: Record<string, unknown>) {
+    await this.passwordReset.requestByEmail(body);
+    return { message: 'If the account exists, the instructions were sent' };
+  }
+
+  @Public()
+  @Throttle(CREDENTIALS_THROTTLE)
+  @Post('password-reset/confirm')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async confirmPasswordReset(@Body() body: Record<string, unknown>) {
+    await this.passwordReset.confirm(body);
   }
 
   @Post('logout')

@@ -6,6 +6,7 @@ import type { Request } from 'express';
 import { TenantContextService } from '../tenant/tenant-context.service';
 import { UserRole } from '@realfy/shared';
 import { resolveJwtSecret } from './jwt-secret';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface JwtPayload {
   sub: string;       // userId
@@ -32,6 +33,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
     private readonly tenantContext: TenantContextService,
+    private readonly prisma: PrismaService,
   ) {
     super({
       jwtFromRequest: extractJwt,
@@ -50,14 +52,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       return null;
     }
 
-    this.tenantContext.setTenantId(payload.tenantId);
+    // La baja y el cambio de rol rigen desde el siguiente pedido: se lee el
+    // estado vigente en lugar de confiar en lo que dice un token de hasta
+    // 15 minutos.
+    const current = await this.prisma.baseClient.user.findUnique({
+      where: { id: payload.sub },
+      select: { isActive: true, role: true, tenantId: true },
+    });
+    if (!current || !current.isActive || current.tenantId !== payload.tenantId) {
+      return null;
+    }
+
+    this.tenantContext.setTenantId(current.tenantId);
     this.tenantContext.setUserId(payload.sub);
-    this.tenantContext.setUserRole(payload.role as UserRole);
+    this.tenantContext.setUserRole(current.role as UserRole);
 
     return {
       userId: payload.sub,
-      tenantId: payload.tenantId,
-      role: payload.role,
+      tenantId: current.tenantId,
+      role: current.role,
     };
   }
 }

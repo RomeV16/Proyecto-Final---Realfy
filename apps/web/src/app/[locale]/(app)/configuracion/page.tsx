@@ -29,6 +29,7 @@ export default function ConfiguracionPage() {
   const tFiscal = useTranslations('invoices.fiscal');
   const tScoring = useTranslations('scoring');
   const tIndices = useTranslations('indexData');
+  const tUsers = useTranslations('users');
   const { user } = useAuth();
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
@@ -67,6 +68,7 @@ export default function ConfiguracionPage() {
   }, [user, t]);
 
   const canEdit = useCan('settings.manage');
+  const canViewUsers = useCan('users.view');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -186,6 +188,25 @@ export default function ConfiguracionPage() {
           <Link href={'/configuracion/indices'} className="shrink-0">
             <Button variant="secondary" size="sm">
               {t('manageIndices')}
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {canViewUsers && (
+        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+              <Icon name="team" className="h-5 w-5" strokeWidth={1.75} />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">{tUsers('title')}</p>
+              <p className="text-sm text-slate-500 mt-0.5">{tUsers('cardSubtitle')}</p>
+            </div>
+          </div>
+          <Link href={'/configuracion/usuarios'} className="shrink-0">
+            <Button variant="secondary" size="sm">
+              {t('manageUsers')}
             </Button>
           </Link>
         </div>

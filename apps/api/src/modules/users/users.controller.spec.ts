@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { PasswordResetService } from '../auth/password-reset.service';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -19,12 +20,17 @@ const MOCK_USER = {
 function buildMocks() {
   const usersService = {
     findAll: jest.fn().mockResolvedValue([MOCK_USER]),
-    invite: jest.fn().mockResolvedValue({ id: USER_ID, invitationToken: 'token-123' }),
+    invite: jest.fn().mockResolvedValue({ id: USER_ID, link: 'https://x/y' }),
     acceptInvitation: jest.fn().mockResolvedValue({ user: MOCK_USER, tokens: { accessToken: 'at', refreshToken: 'rt' } }),
     updateRole: jest.fn().mockResolvedValue({ ...MOCK_USER, role: 'Gerente' }),
     deactivate: jest.fn().mockResolvedValue({ ...MOCK_USER, isActive: false }),
+    reactivate: jest.fn().mockResolvedValue({ ...MOCK_USER, isActive: true }),
+    resendInvitation: jest.fn().mockResolvedValue({ id: 'inv-1', link: 'l' }),
   };
-  return { usersService };
+  const passwordReset = {
+    createLinkForUser: jest.fn().mockResolvedValue({ id: 'r', link: 'l' }),
+  };
+  return { usersService, passwordReset };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -38,7 +44,10 @@ describe('UsersController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UsersController],
-      providers: [{ provide: UsersService, useValue: mocks.usersService }],
+      providers: [
+        { provide: UsersService, useValue: mocks.usersService },
+        { provide: PasswordResetService, useValue: mocks.passwordReset },
+      ],
     })
       .overrideGuard(require('../../common/auth/jwt-auth.guard').JwtAuthGuard)
       .useValue({ canActivate: () => true })
@@ -71,7 +80,7 @@ describe('UsersController', () => {
 
     it('returns invitation token on happy path', async () => {
       const result = await controller.invite(INVITE_BODY);
-      expect(result).toHaveProperty('invitationToken');
+      expect(result).toHaveProperty('id');
       expect(mocks.usersService.invite).toHaveBeenCalledWith(INVITE_BODY);
     });
 
@@ -104,24 +113,24 @@ describe('UsersController', () => {
     });
   });
 
-  // ─── PATCH /users/:id/role ────────────────────────────────────────────────
+  // ─── PATCH /users/:id ─────────────────────────────────────────────────────
 
-  describe('PATCH /users/:id/role', () => {
+  describe('PATCH /users/:id', () => {
     it('updates user role and returns modified user', async () => {
-      const result = await controller.updateRole(USER_ID, 'Gerente');
+      const result = await controller.update(USER_ID, { role: 'Gerente' });
       expect(result).toMatchObject({ role: 'Gerente' });
-      expect(mocks.usersService.updateRole).toHaveBeenCalledWith(USER_ID, 'Gerente');
+      expect(mocks.usersService.updateRole).toHaveBeenCalledWith(USER_ID, { role: 'Gerente' });
     });
 
     it('propagates NotFoundException when user missing', async () => {
       mocks.usersService.updateRole.mockRejectedValueOnce(new NotFoundException());
-      await expect(controller.updateRole('bad-id', 'Admin')).rejects.toThrow(NotFoundException);
+      await expect(controller.update('bad-id', { role: 'Admin' })).rejects.toThrow(NotFoundException);
     });
   });
 
-  // ─── PATCH /users/:id/deactivate ─────────────────────────────────────────
+  // ─── POST /users/:id/deactivate | reactivate ─────────────────────────────
 
-  describe('PATCH /users/:id/deactivate', () => {
+  describe('deactivate / reactivate', () => {
     it('deactivates user', async () => {
       const result = await controller.deactivate(USER_ID);
       expect(result).toMatchObject({ isActive: false });
@@ -131,6 +140,27 @@ describe('UsersController', () => {
     it('propagates NotFoundException when user missing', async () => {
       mocks.usersService.deactivate.mockRejectedValueOnce(new NotFoundException());
       await expect(controller.deactivate('bad-id')).rejects.toThrow(NotFoundException);
+    });
+
+    it('reactivates user', async () => {
+      const result = await controller.reactivate(USER_ID);
+      expect(result).toMatchObject({ isActive: true });
+      expect(mocks.usersService.reactivate).toHaveBeenCalledWith(USER_ID);
+    });
+  });
+
+  // ─── invitation resend + reset link ──────────────────────────────────────
+
+  describe('enlaces para compartir', () => {
+    it('reenvía la invitación', async () => {
+      await controller.resendInvitation('inv-1');
+      expect(mocks.usersService.resendInvitation).toHaveBeenCalledWith('inv-1');
+    });
+
+    it('genera el enlace de recupero', async () => {
+      const result = await controller.passwordResetLink(USER_ID);
+      expect(mocks.passwordReset.createLinkForUser).toHaveBeenCalledWith(USER_ID);
+      expect(result).toHaveProperty('link');
     });
   });
 });
