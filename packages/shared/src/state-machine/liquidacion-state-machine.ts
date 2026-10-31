@@ -2,7 +2,7 @@ import { LiquidacionStatus } from '../enums';
 import { defineStateMachine } from './define';
 
 /**
- * Liquidación 7-state workflow machine.
+ * Liquidación 8-state workflow machine.
  *
  * States:
  *   Borrador → Revision | Anulada
@@ -12,12 +12,14 @@ import { defineStateMachine } from './define';
  *   Pagada   → (terminal)
  *   Vencida  → Pagada | Anulada
  *   Anulada  → (terminal)
+ *   Pendiente → (estado heredado de la base: ningún flujo entra ni sale)
  */
 
 const {
   Borrador,
   Revision,
   Aprobada,
+  Pendiente,
   Enviada,
   Pagada,
   Vencida,
@@ -28,6 +30,7 @@ export const liquidacionMachine = defineStateMachine<LiquidacionStatus>([
   [Borrador, [Revision, Anulada]],
   [Revision, [Aprobada, Borrador, Anulada]],
   [Aprobada, [Enviada, Anulada]],
+  [Pendiente, []], // heredado: sin transiciones definidas
   [Enviada, [Pagada, Vencida, Anulada]],
   [Pagada, []], // terminal
   [Vencida, [Pagada, Anulada]],
