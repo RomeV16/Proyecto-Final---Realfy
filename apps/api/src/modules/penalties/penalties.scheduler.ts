@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import Decimal from 'decimal.js';
-import { calculateRemainingBalance, todayInAR } from '@realfy/shared';
+import { OVERDUE_STATUSES, todayInAR } from '@realfy/shared';
+import { outstandingBalance } from '../liquidaciones/receivables';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CronBaseService } from '../../common/scheduler/cron.service';
 import { TenantsService } from '../tenants/tenants.service';
@@ -9,7 +10,6 @@ import {
   PenaltiesService,
   ComputePenaltyInput,
 } from './penalties.service';
-import { OVERDUE_LIQUIDACION_STATUSES } from './overdue';
 
 @Injectable()
 export class PenaltiesScheduler extends CronBaseService {
@@ -62,7 +62,7 @@ export class PenaltiesScheduler extends CronBaseService {
         const overdueLiquidaciones = await this.prisma.baseClient.liquidacion.findMany({
           where: {
             tenantId: tenant.id,
-            status: { in: OVERDUE_LIQUIDACION_STATUSES as any },
+            status: { in: [...OVERDUE_STATUSES] as any },
             dueDate: { lt: today },
           },
           select: {
@@ -105,10 +105,10 @@ export class PenaltiesScheduler extends CronBaseService {
             );
 
             // El punitorio corre sobre lo que falta cobrar, no sobre el total.
-            const outstanding = calculateRemainingBalance(
-              liq.total?.toString() ?? '0',
-              (liq.payments ?? []).map((p) => ({ amount: p.amount.toString() })),
-            );
+            const outstanding = outstandingBalance({
+              total: liq.total?.toString() ?? '0',
+              payments: liq.payments,
+            });
             if (outstanding.lte(0)) {
               this.logger.debug(`liquidacionId=${liq.id} has no outstanding balance — skipping`);
               continue;

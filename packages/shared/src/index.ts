@@ -362,6 +362,8 @@ export {
   liquidacionMachine,
   validateLiquidacionTransition,
   getValidLiquidacionTransitions,
+  RECEIVABLE_STATUSES,
+  OVERDUE_STATUSES,
 } from './state-machine/liquidacion-state-machine';
 
 export {

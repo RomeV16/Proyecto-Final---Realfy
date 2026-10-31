@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { isClosedStatus, type ContractClosureMetrics } from '@realfy/shared';
+import {
+  Money,
+  isClosedStatus,
+  round2 as roundMoney,
+  sumMoney,
+  type ContractClosureMetrics,
+} from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { daysBetween } from './daily-context';
 
@@ -20,10 +26,6 @@ const WAIVED_PENALTY_STATUS = 'waived';
 
 function toNumber(value: unknown): number {
   return Math.round(Number(value ?? 0) * 100) / 100;
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
 }
 
 function round1(value: number): number {
@@ -133,17 +135,14 @@ export class ContractClosureMetricsService {
     let unpaidCount = 0;
     let delayTotal = 0;
     let maxDelayDays = 0;
-    let billedAmount = 0;
-    let collectedAmount = 0;
+    let billedAmount = new Money(0);
+    let collectedAmount = new Money(0);
 
     for (const liquidacion of liquidaciones) {
-      billedAmount += Number(liquidacion.total);
-
-      const paidAmount = liquidacion.payments.reduce(
-        (sum, payment) => sum + Number(payment.amount),
-        0,
+      billedAmount = billedAmount.plus(liquidacion.total.toString());
+      collectedAmount = collectedAmount.plus(
+        sumMoney(liquidacion.payments.map((payment) => payment.amount.toString())),
       );
-      collectedAmount += paidAmount;
 
       const settledOn = this.settlementDate(liquidacion);
       if (!settledOn) {
@@ -170,10 +169,10 @@ export class ContractClosureMetricsService {
     let ticketsResolved = 0;
     let ticketsCancelled = 0;
     let resolutionDaysTotal = 0;
-    let ticketCostAmount = 0;
+    let ticketCostAmount = new Money(0);
 
     for (const ticket of tickets) {
-      ticketCostAmount += Number(ticket.costAmount ?? 0);
+      ticketCostAmount = ticketCostAmount.plus(ticket.costAmount?.toString() ?? '0');
 
       if (ticket.status === CANCELLED_TICKET_STATUS) {
         ticketsCancelled += 1;
@@ -222,14 +221,12 @@ export class ContractClosureMetricsService {
       onTimeRate: paidCount > 0 ? round1((onTimeCount / paidCount) * 100) : 0,
       averageDelayDays: lateCount > 0 ? round1(delayTotal / lateCount) : 0,
       maxDelayDays,
-      billedAmount: round2(billedAmount),
-      collectedAmount: round2(collectedAmount),
-      outstandingAmount: Math.max(0, round2(billedAmount - collectedAmount)),
+      billedAmount: roundMoney(billedAmount).toNumber(),
+      collectedAmount: roundMoney(collectedAmount).toNumber(),
+      outstandingAmount: Math.max(0, roundMoney(billedAmount.minus(collectedAmount)).toNumber()),
 
       penaltyCount: activePenalties.length,
-      penaltyAmount: round2(
-        activePenalties.reduce((sum, p) => sum + Number(p.amount), 0),
-      ),
+      penaltyAmount: roundMoney(sumMoney(activePenalties.map((p) => p.amount.toString()))).toNumber(),
       penaltyWaivedCount: penalties.length - activePenalties.length,
 
       ticketCount: tickets.length,
@@ -238,7 +235,7 @@ export class ContractClosureMetricsService {
       ticketsOpen: tickets.length - ticketsResolved - ticketsCancelled,
       averageResolutionDays:
         ticketsResolved > 0 ? round1(resolutionDaysTotal / ticketsResolved) : null,
-      ticketCostAmount: round2(ticketCostAmount),
+      ticketCostAmount: roundMoney(ticketCostAmount).toNumber(),
 
       adjustmentCount: adjustments.length,
       firstRent: toNumber(firstRent),
@@ -246,9 +243,9 @@ export class ContractClosureMetricsService {
       rentIncreasePct: firstRent > 0 ? round1(((lastRent - firstRent) / firstRent) * 100) : 0,
 
       rendicionCount: issuedRendiciones.length,
-      rendicionNetAmount: round2(
-        issuedRendiciones.reduce((sum, r) => sum + Number(r.netDeposit), 0),
-      ),
+      rendicionNetAmount: roundMoney(
+        sumMoney(issuedRendiciones.map((r) => r.netDeposit.toString())),
+      ).toNumber(),
     };
   }
 

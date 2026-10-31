@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import Decimal from 'decimal.js';
-import { monthStartUTC, periodKey, todayInAR } from '@realfy/shared';
+import { Money, monthStartUTC, periodKey, sumMoney, todayInAR } from '@realfy/shared';
+import {
+  isOverdue,
+  isReceivable,
+  outstandingBalance,
+  sumOutstanding,
+} from '../liquidaciones/receivables';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   buildMonthRange,
@@ -15,8 +21,6 @@ const MONTHS_ES = [
   'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
   'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
 ];
-
-const PENDING_STATUSES = ['Aprobada', 'Enviada', 'Pendiente'];
 
 export interface ProfitabilityRow {
   propertyId: string;
@@ -114,6 +118,7 @@ export class DashboardService {
           dueDate: true,
           total: true,
           status: true,
+          payments: { select: { amount: true } },
           contract: { select: { property: { select: { title: true } } } },
         },
       }),
@@ -162,10 +167,7 @@ export class DashboardService {
     }
 
     // ── Rent roll (monthly expected income from active leases) ──
-    const monthlyRentRoll = activeContracts.reduce(
-      (sum, c) => sum + Number(c.rentAmount ?? 0),
-      0,
-    );
+    const monthlyRentRoll = sumMoney(activeContracts.map((c) => c.rentAmount?.toString() ?? '0')).toNumber();
     const avgRent =
       activeContracts.length > 0
         ? Math.round(monthlyRentRoll / activeContracts.length)
@@ -199,53 +201,50 @@ export class DashboardService {
     // ── Collections (current cycle) + delinquency (all outstanding) ──
     const today = todayInAR(now);
     const curKey = periodKey(today);
-    let pagada = 0; // cobrado en el ciclo actual
-    let pendiente = 0; // facturado sin cobrar del ciclo actual
-    let vencida = 0; // deuda vencida acumulada (todos los ciclos)
-    for (const l of liquidaciones) {
-      const amount = Number(l.total);
-      const inCurrent = periodKey(l.period) === curKey;
-      if (l.status === 'Vencida') vencida += amount;
-      else if (l.status === 'Pagada') {
-        if (inCurrent) pagada += amount;
-      } else if (PENDING_STATUSES.includes(l.status as string)) {
-        if (inCurrent) pendiente += amount;
-      }
-    }
-    const collectionsTotal = pagada + pendiente + vencida;
+    // Por cobrar = saldo pendiente (total menos pagos) de las liquidaciones
+    // por cobrar; vencida = Vencida, o Enviada con el vencimiento pasado.
+    const receivables = liquidaciones.filter(
+      (l) => isReceivable(l.status as string) && outstandingBalance(l).gt(0),
+    );
+    const overdueList = receivables.filter((l) => isOverdue(l, today));
+    const pendingCurrent = receivables.filter(
+      (l) => !isOverdue(l, today) && periodKey(l.period) === curKey,
+    );
+    // pagada: cobrado en el ciclo actual (liquidaciones Pagada de este período)
+    const pagadaMoney = sumMoney(
+      liquidaciones
+        .filter((l) => l.status === 'Pagada' && periodKey(l.period) === curKey)
+        .map((l) => l.total.toString()),
+    );
+    const pagada = pagadaMoney.toNumber();
+    const pendiente = sumOutstanding(pendingCurrent).toNumber(); // facturado sin cobrar del ciclo actual
+    const vencida = sumOutstanding(overdueList).toNumber(); // deuda vencida acumulada (todos los ciclos)
+    const collectionsTotal = pagadaMoney.plus(pendiente).plus(vencida).toNumber();
     const collectionRate =
       collectionsTotal > 0 ? Math.round((pagada / collectionsTotal) * 100) : 0;
 
-    const pendingList = liquidaciones
-      .filter((l) => l.status === 'Vencida' || PENDING_STATUSES.includes(l.status as string))
-      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
-      .slice(0, 5)
-      .map((l) => ({
-        id: l.id,
-        property: l.contract?.property?.title ?? '—',
-        period: l.period.toISOString(),
-        amount: Math.round(Number(l.total)),
-        status: l.status,
-      }));
-    const pendingLiquidaciones = liquidaciones.filter(
-      (l) => l.status === 'Vencida' || PENDING_STATUSES.includes(l.status as string),
-    ).length;
+    const pendingRows = receivables
+      .slice()
+      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+    const pendingList = pendingRows.slice(0, 5).map((l) => ({
+      id: l.id,
+      property: l.contract?.property?.title ?? '—',
+      period: l.period.toISOString(),
+      amount: Math.round(outstandingBalance(l).toNumber()),
+      status: l.status,
+    }));
+    const pendingLiquidaciones = receivables.length;
 
     // ── Revenue trend — last 6 months (expected vs collected) ──
     const revenueTrend: { month: string; expected: number; collected: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = monthStartUTC(today.getUTCFullYear(), today.getUTCMonth() + 1 - i);
       const key = periodKey(d);
-      let expected = 0;
-      let collected = 0;
-      for (const l of liquidaciones) {
-        const lp = l.period;
-        if (periodKey(lp) === key) {
-          const amt = Number(l.total);
-          expected += amt;
-          if (l.status === 'Pagada') collected += amt;
-        }
-      }
+      const ofMonth = liquidaciones.filter((l) => periodKey(l.period) === key);
+      const expected = sumMoney(ofMonth.map((l) => l.total.toString())).toNumber();
+      const collected = sumMoney(
+        ofMonth.filter((l) => l.status === 'Pagada').map((l) => l.total.toString()),
+      ).toNumber();
       revenueTrend.push({
         month: MONTHS_ES[d.getUTCMonth()],
         expected: Math.round(expected),
@@ -454,7 +453,7 @@ export class DashboardService {
     // Collect liquidacion IDs for paid liquidaciones within range
     const liquidacionIds = new Set<string>();
     const propertyMap = new Map<string, { label: string }>();
-    const revenueMap = new Map<string, number>();
+    const revenueMap = new Map<string, Money>();
 
     for (const p of payments) {
       if (p.liquidacion?.status !== 'Pagada') continue;
@@ -470,11 +469,11 @@ export class DashboardService {
           label: parts.length > 0 ? parts.join(' ') : (prop?.title ?? propertyId),
         });
       }
-      revenueMap.set(propertyId, (revenueMap.get(propertyId) ?? 0) + Number(p.amount));
+      revenueMap.set(propertyId, (revenueMap.get(propertyId) ?? new Money(0)).plus(p.amount.toString()));
     }
 
     // Fetch expense line items for those liquidaciones
-    const expenseMap = new Map<string, number>();
+    const expenseMap = new Map<string, Money>();
     if (liquidacionIds.size > 0) {
       const lineItems = await (this.prisma.client as any).liquidacionLineItem.findMany({
         where: {
@@ -494,7 +493,7 @@ export class DashboardService {
       for (const li of lineItems) {
         const propertyId = li.liquidacion?.contract?.propertyId;
         if (!propertyId) continue;
-        expenseMap.set(propertyId, (expenseMap.get(propertyId) ?? 0) + Number(li.amount));
+        expenseMap.set(propertyId, (expenseMap.get(propertyId) ?? new Money(0)).plus(li.amount.toString()));
       }
     }
 
@@ -503,14 +502,14 @@ export class DashboardService {
     const rows: ProfitabilityRow[] = [];
 
     for (const propertyId of allPropertyIds) {
-      const revenue = revenueMap.get(propertyId) ?? 0;
-      const expenses = expenseMap.get(propertyId) ?? 0;
+      const revenue = revenueMap.get(propertyId) ?? new Money(0);
+      const expenses = expenseMap.get(propertyId) ?? new Money(0);
       rows.push({
         propertyId,
         label: propertyMap.get(propertyId)?.label ?? propertyId,
-        revenue,
-        expenses,
-        net: revenue - expenses,
+        revenue: revenue.toNumber(),
+        expenses: expenses.toNumber(),
+        net: revenue.minus(expenses).toNumber(),
       });
     }
 

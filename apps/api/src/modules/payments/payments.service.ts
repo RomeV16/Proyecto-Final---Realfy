@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { LiquidacionStatus } from '@realfy/shared';
-
-const PENDING = [LiquidacionStatus.Aprobada, LiquidacionStatus.Enviada];
+import { RECEIVABLE_STATUSES, todayInAR } from '@realfy/shared';
+import {
+  outstandingBalance,
+  splitReceivables,
+  sumOutstanding,
+} from '../liquidaciones/receivables';
 
 @Injectable()
 export class PaymentsService {
@@ -31,21 +34,29 @@ export class PaymentsService {
   }
 
   async debtSummary() {
-    const pendientes = await this.prisma.client.liquidacion.findMany({
-      where: { status: { in: PENDING } },
-      select: { id: true, period: true, total: true, status: true, contractId: true },
+    const receivables = await this.prisma.client.liquidacion.findMany({
+      where: { status: { in: [...RECEIVABLE_STATUSES] } },
+      select: {
+        id: true,
+        period: true,
+        dueDate: true,
+        total: true,
+        status: true,
+        contractId: true,
+        payments: { select: { amount: true } },
+      },
       orderBy: { period: 'asc' },
     });
-    const vencidas = await this.prisma.client.liquidacion.findMany({
-      where: { status: 'Vencida' },
-      select: { id: true, period: true, total: true, status: true, contractId: true },
-    });
-    const sum = (arr: { total: unknown }[]) =>
-      arr.reduce((a, l) => a + Number(l.total), 0);
+    const { overdue, pending } = splitReceivables(receivables, todayInAR());
+    const withBalance = (rows: typeof receivables) =>
+      rows.map(({ payments, ...liq }) => ({
+        ...liq,
+        saldo: outstandingBalance({ total: liq.total, payments }).toFixed(2),
+      }));
     return {
-      pendiente: { count: pendientes.length, monto: Math.round(sum(pendientes)) },
-      vencida: { count: vencidas.length, monto: Math.round(sum(vencidas)) },
-      items: [...vencidas, ...pendientes],
+      pendiente: { count: pending.length, monto: Math.round(sumOutstanding(pending).toNumber()) },
+      vencida: { count: overdue.length, monto: Math.round(sumOutstanding(overdue).toNumber()) },
+      items: [...withBalance(overdue), ...withBalance(pending)],
     };
   }
 }
