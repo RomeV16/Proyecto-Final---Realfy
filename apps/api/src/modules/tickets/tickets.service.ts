@@ -20,6 +20,7 @@ import {
   TICKET_SLA_HOURS,
   TicketStatus,
   TicketPriority,
+  normalizeTimeZone,
 } from '@realfy/shared';
 import { assertTransition } from '../../common/errors/assert-transition';
 import { parseOrThrow } from '../../common/validation/zod';
@@ -53,7 +54,7 @@ export class TicketsService {
       where: { id: tenantId },
       select: { timezone: true },
     });
-    const timezone = tenant?.timezone ?? 'America/Buenos_Aires';
+    const timezone = normalizeTimeZone(tenant?.timezone);
 
     // Get current time in tenant's timezone, add SLA hours, convert back to UTC
     const now = new Date();

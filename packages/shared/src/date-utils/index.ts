@@ -1,7 +1,20 @@
 import { AdjustmentPeriod } from '../enums';
 
 /** Zona horaria de negocio: los días calendario se cuentan en Buenos Aires. */
-const AR_TIME_ZONE = 'America/Argentina/Buenos_Aires';
+export const AR_TIME_ZONE = 'America/Argentina/Buenos_Aires';
+
+/**
+ * Nombres viejos de la zona de Buenos Aires que quedaron guardados en la
+ * configuración de algunas inmobiliarias. Se siguen leyendo, pero se
+ * normalizan al nombre canónico al escribir.
+ */
+const LEGACY_AR_TIME_ZONES = new Set(['America/Buenos_Aires', 'America/Argentina/Buenos_Aires']);
+
+/** Devuelve el nombre canónico de la zona; las zonas ajenas a Buenos Aires pasan tal cual. */
+export function normalizeTimeZone(timeZone: string | null | undefined): string {
+  if (!timeZone || LEGACY_AR_TIME_ZONES.has(timeZone)) return AR_TIME_ZONE;
+  return timeZone;
+}
 
 /**
  * Meses que dura cada período de ajuste. Lanza ante un valor desconocido en

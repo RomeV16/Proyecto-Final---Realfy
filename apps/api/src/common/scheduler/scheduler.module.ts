@@ -1,14 +1,18 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { CronBaseService } from './cron.service';
+import { TenantCron } from './tenant-cron';
 
 /**
- * SchedulerModule makes `CronBaseService` available for export.
- * Domain scheduler services extend `CronBaseService` directly —
- * they do not need to import this module. It exists solely as a
- * conventional NestJS home for the base class so it can be wired
- * into AppModule and referenced cleanly by path.
+ * Pieza común de los procesos programados: `TenantCron` recorre las
+ * inmobiliarias activas dentro de su contexto. Los servicios programados
+ * extienden `CronBaseService` directamente y reciben `TenantCron` por
+ * inyección, sin importar este módulo (es global).
  */
-@Module({})
+@Global()
+@Module({
+  providers: [TenantCron],
+  exports: [TenantCron],
+})
 export class SchedulerModule {}
 
 export { CronBaseService };

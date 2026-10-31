@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Currency, Province, TenantTier } from '../enums';
+import { AR_TIME_ZONE } from '../date-utils';
 
 export const CreateTenantSchema = z.object({
   name: z.string().min(2).max(200),
@@ -13,7 +14,7 @@ export const CreateTenantSchema = z.object({
     .string()
     .regex(/^\d{2}-\d{8}-\d$/, 'CUIT must be in format XX-XXXXXXXX-X'),
   province: z.nativeEnum(Province),
-  timezone: z.string().default('America/Buenos_Aires'),
+  timezone: z.string().default(AR_TIME_ZONE),
   currency: z.nativeEnum(Currency).default(Currency.ARS),
   tier: z.nativeEnum(TenantTier).default(TenantTier.Professional),
   brandPrimary: z
