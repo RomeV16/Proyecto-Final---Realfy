@@ -1,7 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "ignoreExportsUsedInFile": false,
-  "ignoreBinaries": ["k6"],
+  "ignoreBinaries": [
+    "k6"
+  ],
   "ignoreDependencies": [
     "ts-node",
     "ts-loader",
@@ -15,12 +17,17 @@
     "tailwindcss",
     "postcss",
     "@tailwindcss/postcss",
-    "jest-environment-node"
+    "jest-environment-node",
+    "jscpd"
   ],
   "workspaces": {
     ".": {
-      "entry": ["scripts/*.mjs"],
-      "project": ["scripts/*.mjs"]
+      "entry": [
+        "scripts/*.mjs"
+      ],
+      "project": [
+        "scripts/*.mjs"
+      ]
     },
     "apps/api": {
       "entry": [
@@ -35,7 +42,11 @@
         "webpack.config.js",
         "prisma/seed*.ts"
       ],
-      "project": ["src/**/*.ts", "test/**/*.{ts,js,mjs}", "prisma/**/*.ts"]
+      "project": [
+        "src/**/*.ts",
+        "test/**/*.{ts,js,mjs}",
+        "prisma/**/*.ts"
+      ]
     },
     "apps/web": {
       "entry": [
@@ -49,11 +60,22 @@
         "src/**/*.{test,spec}.{ts,tsx}",
         "test/**/*.{test,spec}.{ts,tsx}"
       ],
-      "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}"]
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "test/**/*.{ts,tsx}"
+      ]
     },
     "packages/shared": {
-      "entry": ["src/index.ts", "jest.config.js", "test-utc.js", "src/**/*.spec.ts"],
-      "project": ["src/**/*.ts", "*.js"]
+      "entry": [
+        "src/index.ts",
+        "jest.config.js",
+        "test-utc.js",
+        "src/**/*.spec.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "*.js"
+      ]
     }
   }
 }

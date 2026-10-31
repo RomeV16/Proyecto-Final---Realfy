@@ -159,7 +159,8 @@ Falsos positivos ya cubiertos en `knip.json`: `ts-node` (jest lee
 `jest.config.ts`), `ts-loader`, `tsconfig-paths`, `source-map-support` y
 `@nestjs/schematics` (CLI de Nest), `@types/*`, `eslint*` y `@typescript-eslint/*`
 (configuración de lint), `tailwindcss`, `postcss` y `@tailwindcss/postcss` (se
-usan desde el CSS) y el binario `k6` (herramienta del sistema).
+usan desde el CSS), `jscpd` (el gate lo invoca por su ruta en `node_modules/.bin`,
+que knip no sigue) y el binario `k6` (herramienta del sistema).
 
 Línea base actual (1 hallazgo):
 
