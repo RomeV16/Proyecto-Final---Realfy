@@ -17,13 +17,16 @@ cronograma y la columna "estado" registra si el riesgo se materializó.
 | R-09 | El stress en el despliegue efímero del pipeline no representa la capacidad real de Railway | 4 | 2 | 8 | Reportar los números como relativos al ambiente; medir también en local; comparar antes y después de la mejora en el mismo ambiente | `10-stress.md` | Abierto |
 | R-10 | Las versiones no fijadas de las acciones del pipeline cambian de comportamiento o introducen código no verificado | 3 | 3 | 9 | Fijar cada acción por SHA; SonarCloud lo verifica | Rating de seguridad | Abierto |
 | R-11 | El equipo no entiende una prueba generada con asistencia y no puede defenderla | 2 | 4 | 8 | Cada caso tiene nombre descriptivo, criterio esperado explicado y referencia al documento; revisión de los casos antes de la entrega | Revisión del día 7 | Abierto |
+| R-12 | Se pierden o corrompen los datos reales del piloto | 2 | 5 | 10 | Copias nativas diarias y semanales de la base y el almacenamiento; copia lógica semanal fuera del proveedor; restauración probada y repetida antes de cada cierre de ciclo | Prueba de restauración del 2026-10-31; `operacion-piloto.md` | Abierto |
+| R-13 | Un despliegue rompe el ciclo mensual en el piloto | 3 | 5 | 15 | Despliegue manual y controlado: solo desde `main` con CI en verde, primero `production` y verificación, después `piloto`; retroceso al despliegue anterior; ensayo local de migraciones con relleno | Verificación posterior al despliegue; `despliegue.md` | Abierto |
+| R-14 | Una imagen de terceros del almacenamiento es retirada y el servicio no puede volver a levantarse | 3 | 4 | 12 | Imagen fijada por versión (`bitnamilegacy/minio:2025.7.23-debian-12-r5`); copia nativa del volumen; evaluar otro almacenamiento compatible con S3 | `despliegue.md` | **Materializado** (`minio/minio` retirada de Docker Hub); mitigado el 2026-10-31 al cambiar los dos ambientes |
 
 ## Riesgos ordenados por prioridad
 
 1. R-03 (25) — ya materializado, es el primer defecto que se corrige.
-2. R-01 (15)
-3. R-02 (12)
-4. R-04, R-05 (10)
+2. R-01, R-13 (15)
+3. R-02, R-14 (12)
+4. R-04, R-05, R-12 (10)
 5. R-06, R-08, R-10 (9)
 6. R-07, R-09, R-11 (8)
 

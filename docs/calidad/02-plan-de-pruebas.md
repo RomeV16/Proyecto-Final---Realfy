@@ -88,7 +88,21 @@ stress no cuentan en la pirámide: miden capacidad, no corrección.
 | Local | PostgreSQL 16 (Docker o Homebrew) | Opcional | Desarrollo |
 | Integración continua | PostgreSQL 16 como servicio del trabajo, creado desde cero | Sí, en el trabajo `integration-real` | Cada PR y cada push a `main` |
 | Despliegue efímero | PostgreSQL 16 como servicio; API construida desde `Dockerfile.api` | No | Trabajo `smoke-deploy` y `stress` |
-| Demostración | Railway (PostgreSQL administrado) | Sí | Defensa |
+| Demostración (`production`) | Railway (PostgreSQL administrado), solo datos sintéticos | Sí | Defensa |
+| Piloto (`piloto`) | Railway, base y almacenamiento propios, datos reales | Sí | Inmobiliaria piloto |
+
+El ambiente piloto está aislado de la demostración y de la integración continua:
+ninguna prueba, script de prueba ni carga inicial se ejecuta contra él (ver
+`../despliegue.md`). Los cambios se verifican en los demás ambientes y llegan al
+piloto después de `production`.
+
+**Prueba de restauración como prueba de fiabilidad.** La copia de seguridad del
+piloto solo vale si se puede restaurar. Se prueba restaurándola en un
+PostgreSQL local y verificando migraciones aplicadas y conteo de filas. La
+primera se hizo el 2026-10-31 sobre una base sin datos de negocio, por lo que
+prueba el procedimiento; se repite después de cargar datos reales y antes de
+cada cierre de ciclo, midiendo el tiempo contra el RTO declarado (2 horas o
+menos).
 
 ## 6. Trazabilidad
 

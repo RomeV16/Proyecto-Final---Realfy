@@ -157,8 +157,10 @@ Antes de la importación al ambiente `piloto`, el procedimiento de carga se ensa
 - **Ambiente separado.** El piloto corre en un ambiente `piloto`, con su base de datos y su almacenamiento propios, distinto del de demostración. No se reinicia ni se recrea la base con datos reales.
 - **Nada real en el repositorio.** Ni datos, ni capturas, ni cifras derivadas. Los casos de prueba, los ejemplos y los documentos usan datos sintéticos. Las fuentes del relevamiento y los datos reales se guardan fuera del repositorio, con acceso restringido al equipo.
 - **Aislamiento entre inmobiliarias.** Se mantiene lo decidido en ADR-0006; todo modelo nuevo se registra en el filtro por inmobiliaria.
-- **Copias de respaldo.** Copia mensual de la base fuera del proveedor de alojamiento y prueba de restauración.
+- **Copias de respaldo.** Copias nativas diarias y semanales del proveedor y una copia semanal de la base fuera del proveedor de alojamiento, con prueba de restauración (ver `../despliegue.md`).
 - **Cifras en la tesis.** Los resultados del piloto se reportan agregados, con la fecha de medición, y solo con consentimiento de la inmobiliaria, que se decide más adelante y sigue pendiente.
+
+La decisión está registrada en `../adr/0014-ambiente-piloto-con-datos-reales.md`, y el procedimiento de despliegue, copias, restauración e incidentes en `../operacion-piloto.md`.
 
 El detalle de los datos personales que guarda el sistema, su base legal, los accesos y los derechos de los titulares está en `../privacidad-datos.md`.
 

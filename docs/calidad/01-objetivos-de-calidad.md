@@ -24,7 +24,7 @@ distinto y los tres se verifican con datos del propio proyecto.
 | OE-1 | Nadie mezcla código del módulo sin pruebas que lo cubran | Cobertura sobre código nuevo | ≥ 80 % | Quality gate de SonarCloud en cada PR |
 | OE-2 | El módulo deja de ser la parte menos probada de la API | Cobertura de líneas y de ramas del módulo | ≥ 80 % líneas, ≥ 70 % ramas | `jest --coverage` con umbral por módulo |
 | OE-3 | Cada defecto corregido queda cerrado por una prueba de regresión | Defectos registrados con prueba de regresión asociada | 100 % | `06-registro-de-defectos.md` |
-| OE-4 | Un cambio roto no llega a `main` | PRs que entran con el pipeline en rojo | 0 | Protección de rama + historial de Actions |
+| OE-4 | Un cambio roto no llega a `main` | PRs que entran con el pipeline en rojo | 0 | Protección de rama (configurada el 2026-10-30) + historial de Actions |
 
 ### Desde la organización (la cátedra y el futuro mantenedor)
 
@@ -38,13 +38,18 @@ distinto y los tres se verifican con datos del propio proyecto.
 
 | Práctica | Objetivo que sostiene | Cómo se aplica en este repositorio |
 |---|---|---|
-| Rama protegida y revisión por PR | OE-4 | `main` solo recibe pedidos de incorporación con el pipeline en verde |
+| Rama protegida y revisión por PR | OE-4 | Desde el 2026-10-30 `main` exige PR, 1 aprobación, rama al día y los chequeos Lint, Build, Unit Tests & Coverage, SonarCloud & Quality Gate, Migrations from scratch, API E2E Tests y Ephemeral deploy smoke & stress. El trabajo de contrato externo (BCRA / INDEC) no es obligatorio porque depende de la disponibilidad de terceros |
 | Criterio de aceptación antes de ejecutar | OU-2, OE-3 | Cada caso en `05-casos-de-prueba.md` declara el resultado esperado antes de escribir la prueba |
 | Prueba en rojo antes de corregir | OE-3 | Cada defecto tiene una prueba que falla contra el código viejo y pasa contra el nuevo |
 | Quality gate automático | OE-1, OO-2 | SonarCloud bloquea el PR; no hay excepción manual |
 | Umbral de cobertura como piso, no como meta | OE-2 | El piso del módulo sube solo cuando la cobertura real ya subió |
 | Dobles de prueba para lo externo, entorno real para el contrato | OU-1, OU-4 | Las unitarias usan respuestas grabadas; un trabajo aparte pega contra BCRA e INDEC |
 | Métrica de proceso y de proyecto | OO-1, OO-3 | Se registran por ejecución en `09-metricas.md` |
+
+**Desvío corregido.** Hasta el 2026-10-30 la protección de `main` estaba
+declarada en este documento pero no configurada en el repositorio: OE-4 se
+sostenía por disciplina del equipo, no por una regla que lo impidiera. Desde esa
+fecha la regla existe y OE-4 está respaldado por la plataforma.
 
 ## Plan de contingencia ante la caída de una dependencia crítica
 
