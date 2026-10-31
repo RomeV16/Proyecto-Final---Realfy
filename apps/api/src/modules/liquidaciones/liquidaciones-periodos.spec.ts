@@ -27,7 +27,18 @@ describe('LiquidacionesService: períodos independientes de la zona horaria', ()
     client = {
       contract: {
         findMany: jest.fn().mockResolvedValue([
-          { id: 'c-1', rentAmount: '100000', rentCurrency: 'ARS', property: {} },
+          {
+            id: 'c-1',
+            rentAmount: '100000',
+            rentCurrency: 'ARS',
+            status: 'Activo',
+            startDate: new Date('2024-01-01T00:00:00.000Z'),
+            endDate: new Date('2027-12-31T00:00:00.000Z'),
+            property: {},
+            termsVersions: [],
+            adjustments: [],
+            lessors: [],
+          },
         ]),
       },
       liquidacion: {
@@ -42,6 +53,8 @@ describe('LiquidacionesService: períodos independientes de la zona horaria', ()
       { client } as unknown as PrismaService,
       tenantContext as unknown as TenantContextService,
       {} as any,
+      {} as any,
+      { get: jest.fn().mockResolvedValue({ dueDay: 10, leadDays: 10 }) } as any,
       {} as any,
     );
   });

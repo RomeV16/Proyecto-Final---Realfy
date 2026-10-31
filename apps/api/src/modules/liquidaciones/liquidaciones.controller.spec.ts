@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { LiquidacionesController } from './liquidaciones.controller';
 import { LiquidacionesService } from './liquidaciones.service';
+import { LiquidacionesScheduler } from './liquidaciones.scheduler';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -31,7 +32,10 @@ function buildMocks() {
     findPayments: jest.fn().mockResolvedValue([{ id: 'pay-001', amount: '75000.00' }]),
     remove: jest.fn().mockResolvedValue({ ...MOCK_LIQ, isActive: false }),
   };
-  return { liquidacionesService };
+  const scheduler = {
+    generateForAllTenants: jest.fn().mockResolvedValue({ tenantsProcessed: 1, tenantsFailed: 0, created: 2 }),
+  };
+  return { liquidacionesService, scheduler };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -45,7 +49,10 @@ describe('LiquidacionesController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LiquidacionesController],
-      providers: [{ provide: LiquidacionesService, useValue: mocks.liquidacionesService }],
+      providers: [
+        { provide: LiquidacionesService, useValue: mocks.liquidacionesService },
+        { provide: LiquidacionesScheduler, useValue: mocks.scheduler },
+      ],
     })
       .overrideGuard(require('../../common/auth/jwt-auth.guard').JwtAuthGuard)
       .useValue({ canActivate: () => true })
@@ -79,6 +86,40 @@ describe('LiquidacionesController', () => {
       const result = await controller.generate({ month: 4, year: 2026 });
       expect(result).toMatchObject({ created: 3, skipped: 0 });
       expect(mocks.liquidacionesService.generate).toHaveBeenCalledWith({ month: 4, year: 2026 });
+    });
+  });
+
+  // ─── POST /liquidaciones/_run-now ─────────────────────────────────────────
+
+  describe('POST /liquidaciones/_run-now', () => {
+    it('corre el proceso diario con el día indicado', async () => {
+      const result = await controller.runNow({ today: '2026-11-20' });
+      expect(result).toMatchObject({ created: 2 });
+      expect(mocks.scheduler.generateForAllTenants).toHaveBeenCalledWith(
+        new Date('2026-11-20T00:00:00.000Z'),
+        'run-now',
+      );
+    });
+
+    it('sin día usa hoy', async () => {
+      await controller.runNow({});
+      expect(mocks.scheduler.generateForAllTenants).toHaveBeenCalledWith(undefined, 'run-now');
+    });
+
+    it('rechaza un día mal escrito', async () => {
+      await expect(controller.runNow({ today: '20/11/2026' })).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('fuera de modo de prueba responde 403', async () => {
+      const env = { node: process.env.NODE_ENV, e2e: process.env.E2E_TEST_MODE };
+      process.env.NODE_ENV = 'production';
+      delete process.env.E2E_TEST_MODE;
+      try {
+        await expect(controller.runNow({})).rejects.toMatchObject({ status: 403 });
+      } finally {
+        process.env.NODE_ENV = env.node;
+        if (env.e2e !== undefined) process.env.E2E_TEST_MODE = env.e2e;
+      }
     });
   });
 

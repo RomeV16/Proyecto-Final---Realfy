@@ -27,13 +27,47 @@ import {
   periodFilter,
   todayInAR,
   InvalidLineAmountError,
+  buildLiquidation,
+  defaultBeneficiary,
+  defaultCommissionable,
+  isLessorActiveAt,
+  personName,
+  formatReceiptNumber,
+  amountInWords,
+  onBehalfOfText,
 } from '@realfy/shared';
-import type { LineItemInput, PaymentInput } from '@realfy/shared';
+import type { LineItemInput, OperationalDefaults, PaymentInput } from '@realfy/shared';
 import { PdfService } from './pdf.service';
+import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
+import { AuditService } from '../../common/audit/audit.service';
+import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
+import { rentAtDate } from './rent-at';
+import { scheduledPeriod } from './generation-window';
 import { EmailService } from './email.service';
 import Decimal from 'decimal.js';
+import { randomUUID } from 'crypto';
 import { assertTransition } from '../../common/errors/assert-transition';
 import { parseOrThrow } from '../../common/validation/zod';
+
+/** Serie de numeración de los recibos de liquidación (una por inmobiliaria). */
+const RECEIPT_SERIES = 'RECIBO_LIQUIDACION';
+
+export interface GenerationResult {
+  contractId: string;
+  status: 'created' | 'skipped' | 'out_of_range' | 'failed';
+  reason?: string;
+  liquidacionId?: string;
+}
+
+export interface GenerationSummary {
+  created: number;
+  skipped: number;
+  /** Contratos que no rigen en el mes (antes del inicio o después del fin). */
+  outOfRange: number;
+  failed: number;
+  total: number;
+  results: GenerationResult[];
+}
 
 @Injectable()
 export class LiquidacionesService {
@@ -44,79 +78,73 @@ export class LiquidacionesService {
     private readonly tenantContext: TenantContextService,
     private readonly pdfService: PdfService,
     private readonly emailService: EmailService,
+    private readonly operationalDefaults: OperationalDefaultsService,
+    private readonly audit: AuditService,
   ) {}
 
   // ─── Auto-Generation ────────────────────────────────
 
+  /** POST /liquidaciones/generate: el mes lo elige quien lo pide. */
   async generate(data: unknown) {
     const validated: { month: number; year: number } = parseOrThrow(GenerateLiquidacionesSchema, data, 'Invalid generation parameters');
+    return this.generateForPeriod(validated.year, validated.month);
+  }
 
-    const { month, year } = validated;
+  /**
+   * Genera las liquidaciones de un mes para la inmobiliaria del contexto.
+   * Idempotente por contrato y período. Cada contrato se liquida con las
+   * reglas y el alquiler vigentes en ese mes (no con los de hoy), respetando
+   * su inicio, su fin efectivo y su día de vencimiento; ver `buildLiquidation`.
+   */
+  async generateForPeriod(year: number, month: number): Promise<GenerationSummary> {
     const tenantId = this.tenantContext.getTenantId()!;
 
-    // Period is the first day of the month
+    // Período: primer día del mes, a medianoche UTC.
     const period = monthStartUTC(year, month);
-    // Due date is the 10th of the month
-    const dueDate = new Date(Date.UTC(year, month - 1, 10));
+    const monthEnd = new Date(Date.UTC(year, month, 0));
 
-    // Query active contracts (status Activo, isActive true)
+    const defaults = await this.operationalDefaults.get(tenantId);
+
+    // Contratos que pueden regir en el mes. El generador decide cada caso (un
+    // contrato que ya no está Activo solo liquida hasta su fin real).
     const contracts = await this.prisma.client.contract.findMany({
       where: {
-        status: ContractStatus.Activo,
         isActive: true,
+        status: { not: ContractStatus.Borrador },
+        startDate: { lte: monthEnd },
+        OR: [{ status: ContractStatus.Activo }, { actualEndDate: { gte: period } }],
       },
       include: {
         property: true,
+        lessors: { include: { person: true } },
+        termsVersions: { orderBy: { validFrom: 'asc' } },
+        adjustments: { where: { appliedAt: { not: null } }, orderBy: { adjustmentDate: 'asc' } },
       },
     });
 
-    let created = 0;
-    let skipped = 0;
+    const results: GenerationResult[] = [];
 
     for (const contract of contracts) {
-      // Check if liquidación already exists for this contract+period
-      const existing = await this.prisma.client.liquidacion.findFirst({
-        where: {
+      try {
+        results.push(await this.generateForContract(tenantId, contract, period, defaults));
+      } catch (error) {
+        results.push({
           contractId: contract.id,
-          period,
-        },
-      });
-
-      if (existing) {
-        skipped++;
-        continue;
-      }
-
-      const rentAmount = new Decimal(contract.rentAmount.toString());
-      const total = rentAmount;
-
-      await this.prisma.client.liquidacion.create({
-        data: {
+          status: 'failed',
+          reason: (error as Error).message,
+        });
+        this.logger.error('Liquidación generation failed for contract', {
           tenantId,
           contractId: contract.id,
-          period,
-          dueDate,
-          status: LiquidacionStatus.Borrador,
-          subtotal: rentAmount.toFixed(2),
-          total: total.toFixed(2),
-          currency: contract.rentCurrency,
-          lineItems: {
-            create: [
-              {
-                tenantId,
-                type: LineItemType.Alquiler,
-                description: `Alquiler ${month.toString().padStart(2, '0')}/${year}`,
-                amount: rentAmount.toFixed(2),
-                currency: contract.rentCurrency,
-                sortOrder: 0,
-              },
-            ],
-          },
-        },
-      });
-
-      created++;
+          error: (error as Error).message,
+        });
+      }
     }
+
+    const created = results.filter((r) => r.status === 'created').length;
+    const skipped = results.filter((r) => r.status === 'skipped').length;
+    const outOfRange = results.filter((r) => r.status === 'out_of_range').length;
+    const failed = results.filter((r) => r.status === 'failed').length;
 
     this.logger.log('Liquidaciones generated', {
       tenantId,
@@ -125,9 +153,137 @@ export class LiquidacionesService {
       contractsFound: contracts.length,
       created,
       skipped,
+      outOfRange,
+      failed,
     });
 
-    return { created, skipped, total: contracts.length };
+    return { created, skipped, outOfRange, failed, total: contracts.length, results };
+  }
+
+  private async generateForContract(
+    tenantId: string,
+    contract: any,
+    period: Date,
+    defaults: OperationalDefaults,
+  ): Promise<GenerationResult> {
+    const existing = await this.prisma.client.liquidacion.findFirst({
+      where: { contractId: contract.id, period },
+    });
+    if (existing) {
+      return { contractId: contract.id, status: 'skipped', reason: 'EXISTS', liquidacionId: existing.id };
+    }
+
+    // Las reglas de ese mes: las del primer día del contrato si el mes es el de inicio.
+    const startDate: Date = contract.startDate;
+    const rulesDate = startDate.getTime() > period.getTime() ? startDate : period;
+    const terms = pickTermsAt<any>(contract.termsVersions ?? [], rulesDate);
+    const dueDay = resolveRule(defaults, terms, 'dueDay') as number;
+
+    const rent = rentAtDate({
+      contractRent: contract.rentAmount,
+      adjustments: contract.adjustments ?? [],
+      termsVersions: contract.termsVersions ?? [],
+      date: period,
+    });
+
+    const lessors = (contract.lessors ?? [])
+      .filter((l: any) => isLessorActiveAt(l, period.getTime() < startDate.getTime() ? startDate : period))
+      .map((l: any) => ({ name: personName(l.person) }));
+
+    const built = buildLiquidation({
+      period,
+      currency: contract.rentCurrency,
+      contract: {
+        startDate,
+        endDate: contract.endDate,
+        actualEndDate: contract.actualEndDate,
+        status: contract.status,
+      },
+      rent: { monthlyAmount: rent.amount, isProvisional: rent.isProvisional },
+      terms: {
+        dueDay,
+        discountPct: terms?.discountPct != null ? terms.discountPct.toString() : null,
+        discountAmount: terms?.discountAmount != null ? terms.discountAmount.toString() : null,
+      },
+      lessors,
+    });
+
+    if (built.skipped) {
+      return { contractId: contract.id, status: 'out_of_range', reason: built.skipped };
+    }
+
+    try {
+      const created = await this.prisma.client.liquidacion.create({
+        data: {
+          tenantId,
+          contractId: contract.id,
+          period,
+          dueDate: built.dueDate,
+          status: LiquidacionStatus.Borrador,
+          kind: built.kind,
+          isProvisional: built.isProvisional,
+          subtotal: built.subtotal,
+          total: built.total,
+          currency: contract.rentCurrency,
+          lineItems: {
+            create: built.lines.map((l) => ({
+              tenantId,
+              type: l.type,
+              description: l.description,
+              amount: l.amount,
+              currency: contract.rentCurrency,
+              sortOrder: l.sortOrder,
+              commissionable: l.commissionable,
+              beneficiary: l.beneficiary,
+              sourceType: l.sourceType,
+              sourceId: l.sourceId,
+            })),
+          },
+        },
+      });
+      return { contractId: contract.id, status: 'created', liquidacionId: created?.id };
+    } catch (error) {
+      // Dos generaciones simultáneas: la otra ganó el unique (contrato, período).
+      if ((error as { code?: string }).code === 'P2002') {
+        return { contractId: contract.id, status: 'skipped', reason: 'EXISTS' };
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Proceso diario de una inmobiliaria: si hoy está a `leadDays` días o menos
+   * del mes siguiente, genera sus liquidaciones. Lo llama el cron dentro del
+   * contexto de cada inmobiliaria. Deja una fila de auditoría si generó alguna.
+   */
+  async generateScheduled(
+    today: Date,
+    source: 'cron' | 'run-now' = 'cron',
+  ): Promise<GenerationSummary | null> {
+    const tenantId = this.tenantContext.getTenantId()!;
+    const defaults = await this.operationalDefaults.get(tenantId);
+    const target = scheduledPeriod(today, defaults.leadDays);
+    if (!target) return null;
+
+    const summary = await this.generateForPeriod(target.year, target.month);
+
+    if (summary.created > 0 || summary.failed > 0) {
+      await this.audit.record(this.prisma.client as any, {
+        action: 'CREATE',
+        entity: 'Liquidacion',
+        entityId: null,
+        userId: null,
+        after: {
+          period: `${target.year}-${String(target.month).padStart(2, '0')}`,
+          created: summary.created,
+          skipped: summary.skipped,
+          outOfRange: summary.outOfRange,
+          failed: summary.failed,
+        },
+        metadata: { source, job: 'liquidaciones-generate' },
+      });
+    }
+    return summary;
   }
 
   // ─── List ───────────────────────────────────────────
@@ -191,6 +347,7 @@ export class LiquidacionesService {
           include: {
             property: true,
             persons: { include: { person: true } },
+            lessors: { include: { person: true } },
           },
         },
       },
@@ -203,7 +360,10 @@ export class LiquidacionesService {
       });
     }
 
-    return liquidacion;
+    return {
+      ...liquidacion,
+      receiptNumber: liquidacion.receiptSeq != null ? formatReceiptNumber(liquidacion.receiptSeq) : null,
+    };
   }
 
   // ─── Line Item CRUD ─────────────────────────────────
@@ -229,6 +389,8 @@ export class LiquidacionesService {
         description: validated.description,
         amount: validated.amount,
         currency: validated.currency ?? liquidacion.currency,
+        commissionable: validated.commissionable ?? defaultCommissionable(validated.type),
+        beneficiary: validated.beneficiary ?? defaultBeneficiary(validated.type),
         sortOrder: (maxSort?.sortOrder ?? 0) + 1,
       },
     });
@@ -261,9 +423,16 @@ export class LiquidacionesService {
 
     await this.ensureEditable(lineItem.liquidacionId);
 
+    // Si cambia el tipo y no se indica el destino ni la comisión, rigen los del tipo nuevo.
+    const patch = { ...validated };
+    if (validated.type && validated.type !== lineItem.type) {
+      patch.commissionable ??= defaultCommissionable(validated.type);
+      patch.beneficiary ??= defaultBeneficiary(validated.type);
+    }
+
     await this.prisma.client.liquidacionLineItem.update({
       where: { id: lineItemId },
-      data: validated,
+      data: patch,
     });
 
     await this.recalculateTotals(lineItem.liquidacionId);
@@ -313,12 +482,6 @@ export class LiquidacionesService {
     const liquidacion = await this.prisma.client.liquidacion.findFirst({
       where: { id },
       include: {
-        contract: {
-          include: {
-            property: true,
-            persons: { include: { person: true } },
-          },
-        },
         lineItems: { orderBy: { sortOrder: 'asc' } },
         payments: true,
       },
@@ -343,24 +506,58 @@ export class LiquidacionesService {
       updateData.sentAt = new Date();
     }
 
-    await this.prisma.client.liquidacion.update({
-      where: { id },
-      data: updateData,
-    });
+    // El recibo se numera al aprobar (o al enviar, si se salteó ese paso): un
+    // borrador que se descarta no gasta número. El número no se reasigna.
+    const needsReceipt =
+      (toStatus === LiquidacionStatus.Aprobada || toStatus === LiquidacionStatus.Enviada) &&
+      liquidacion.receiptSeq == null;
+
+    if (needsReceipt) {
+      const tenantId = this.tenantContext.getTenantId()!;
+      await this.prisma.client.$transaction(async (tx: any) => {
+        updateData.receiptSeq = await this.nextReceiptSeq(tx, tenantId);
+        await tx.liquidacion.update({ where: { id }, data: updateData });
+      });
+    } else {
+      await this.prisma.client.liquidacion.update({
+        where: { id },
+        data: updateData,
+      });
+    }
 
     this.logger.log('Liquidación transitioned', {
       liquidacionId: id,
       fromStatus,
       toStatus,
+      receiptSeq: updateData.receiptSeq,
       userId: this.tenantContext.getUserId(),
     });
 
+    const updated = await this.findOne(id);
+
     // On transition to Enviada: generate PDF and send email
     if (toStatus === LiquidacionStatus.Enviada) {
-      await this.sendPdfEmail(liquidacion);
+      await this.sendPdfEmail(updated);
     }
 
-    return this.findOne(id);
+    return updated;
+  }
+
+  /**
+   * Próximo número de recibo de la inmobiliaria. Un solo INSERT ... ON CONFLICT
+   * incrementa el contador de la serie, así que dos aprobaciones simultáneas
+   * no repiten número. El SQL crudo no pasa por la extensión de inmobiliaria:
+   * filtra por tenantId a mano (ADR-0006).
+   */
+  private async nextReceiptSeq(tx: any, tenantId: string): Promise<number> {
+    const rows: { next: number }[] = await tx.$queryRaw(
+      Prisma.sql`INSERT INTO document_sequences ("id", "tenantId", "series", "next")
+        VALUES (${randomUUID()}, ${tenantId}, ${RECEIPT_SERIES}, 2)
+        ON CONFLICT ("tenantId", "series")
+        DO UPDATE SET "next" = document_sequences."next" + 1
+        RETURNING "next"`,
+    );
+    return rows[0].next - 1;
   }
 
   // ─── Payments ───────────────────────────────────────
@@ -508,26 +705,20 @@ export class LiquidacionesService {
   // ─── PDF Generation ─────────────────────────────────
 
   async generatePdf(id: string): Promise<Buffer> {
-    const liquidacion = await this.prisma.client.liquidacion.findFirst({
-      where: { id },
-      include: {
-        lineItems: { orderBy: { sortOrder: 'asc' } },
-        payments: { orderBy: { paidAt: 'asc' } },
-        contract: { include: { property: true } },
-      },
-    });
+    const liquidacion = await this.findOne(id);
+    return this.renderReceipt(liquidacion);
+  }
 
-    if (!liquidacion) {
-      throw new NotFoundException({
-        error: 'LIQUIDACION_NOT_FOUND',
-        message: 'Liquidación not found',
-      });
-    }
-
+  /** PDF del recibo: número, monto en letras, "por cuenta y orden" y renglones por destino. */
+  private async renderReceipt(liquidacion: any): Promise<Buffer> {
     const tenantId = this.tenantContext.getTenantId()!;
     const tenant = await this.prisma.client.tenant.findFirst({
       where: { id: tenantId },
     });
+
+    const lessorNames = (liquidacion.contract?.lessors ?? [])
+      .filter((l: any) => isLessorActiveAt(l, liquidacion.period))
+      .map((l: any) => personName(l.person));
 
     return this.pdfService.generateReceipt(
       {
@@ -537,6 +728,11 @@ export class LiquidacionesService {
         total: liquidacion.total.toString(),
         currency: liquidacion.currency,
         dueDate: liquidacion.dueDate,
+        kind: liquidacion.kind,
+        isProvisional: liquidacion.isProvisional,
+        receiptNumber: liquidacion.receiptNumber ?? null,
+        amountInWords: amountInWords(liquidacion.total.toString(), liquidacion.currency),
+        onBehalfOf: onBehalfOfText(lessorNames),
       },
       {
         name: tenant?.name ?? 'Inmobiliaria',
@@ -544,12 +740,14 @@ export class LiquidacionesService {
         logoUrl: (tenant as any)?.logoUrl ?? null,
       },
       { property: liquidacion.contract?.property ?? null },
-      liquidacion.lineItems.map((li: any) => ({
+      (liquidacion.lineItems ?? []).map((li: any) => ({
         type: li.type,
         description: li.description,
         amount: li.amount.toString(),
+        beneficiary: li.beneficiary,
+        commissionable: li.commissionable,
       })),
-      liquidacion.payments.map((p: any) => ({
+      (liquidacion.payments ?? []).map((p: any) => ({
         method: p.method,
         amount: p.amount.toString(),
         paidAt: p.paidAt,
@@ -697,34 +895,7 @@ export class LiquidacionesService {
       const tenant = await this.prisma.client.tenant.findFirst({
         where: { id: tenantId },
       });
-
-      const pdfBuffer = await this.pdfService.generateReceipt(
-        {
-          id: liquidacion.id,
-          period: liquidacion.period,
-          subtotal: liquidacion.subtotal.toString(),
-          total: liquidacion.total.toString(),
-          currency: liquidacion.currency,
-          dueDate: liquidacion.dueDate,
-        },
-        {
-          name: tenant?.name ?? 'Inmobiliaria',
-          cuit: (tenant as any)?.cuit ?? null,
-          logoUrl: (tenant as any)?.logoUrl ?? null,
-        },
-        { property: liquidacion.contract?.property ?? null },
-        (liquidacion.lineItems ?? []).map((li: any) => ({
-          type: li.type,
-          description: li.description,
-          amount: li.amount.toString(),
-        })),
-        (liquidacion.payments ?? []).map((p: any) => ({
-          method: p.method,
-          amount: p.amount.toString(),
-          paidAt: p.paidAt,
-          reference: p.reference,
-        })),
-      );
+      const pdfBuffer = await this.renderReceipt(liquidacion);
 
       // Find tenant (inquilino) email from contract persons
       const inquilino = liquidacion.contract
