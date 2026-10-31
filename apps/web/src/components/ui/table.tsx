@@ -53,21 +53,6 @@ export function Tbody({
   );
 }
 
-export function Tr({
-  className,
-  children,
-  ...props
-}: HTMLAttributes<HTMLTableRowElement>) {
-  return (
-    <tr
-      className={cn('hover:bg-[var(--color-bg)] transition-colors duration-100', className)}
-      {...props}
-    >
-      {children}
-    </tr>
-  );
-}
-
 export function Th({
   className,
   children,
