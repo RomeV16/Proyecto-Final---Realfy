@@ -1,4 +1,4 @@
-import { formatMoneyAR, formatPeriodAR, formatPeriodShortAR, personName, propertyLabel } from './format';
+import { formatMoneyAR, formatPeriodAR, formatPeriodShortAR, personName, propertyLabel, formatReceiptNumber } from './format';
 
 describe('formatMoneyAR', () => {
   it('separa miles y deja dos decimales', () => {
@@ -52,5 +52,13 @@ describe('personName', () => {
     expect(personName({ firstName: 'Ana', lastName: '' })).toBe('Ana');
     expect(personName({ firstName: null, lastName: null })).toBe('');
     expect(personName(null)).toBe('');
+  });
+});
+
+describe('formatReceiptNumber', () => {
+  it('completa con ceros a ocho dígitos', () => {
+    expect(formatReceiptNumber(1)).toBe('00000001');
+    expect(formatReceiptNumber(42)).toBe('00000042');
+    expect(formatReceiptNumber(123456789)).toBe('123456789');
   });
 });

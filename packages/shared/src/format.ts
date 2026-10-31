@@ -68,3 +68,8 @@ export function personName(person: PersonNameInput | null | undefined): string {
   if (!person) return '';
   return [clean(person.firstName), clean(person.lastName)].filter(Boolean).join(' ');
 }
+
+/** Número de recibo con ceros a la izquierda: 42 -> "00000042". */
+export function formatReceiptNumber(seq: number): string {
+  return String(seq).padStart(8, '0');
+}

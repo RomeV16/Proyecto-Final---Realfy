@@ -36,6 +36,8 @@ describe('LiquidacionesService.generatePdf: propiedad del contrato', () => {
       tenantContext as unknown as TenantContextService,
       new PdfService(new PdfRendererService()),
       {} as any,
+      {} as any,
+      {} as any,
     );
   };
 
