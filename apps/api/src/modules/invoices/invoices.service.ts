@@ -1,6 +1,5 @@
 import {
   Injectable,
-  Logger,
   BadRequestException,
   NotFoundException,
   UnprocessableEntityException,
@@ -8,23 +7,17 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
-  EmitComprobanteSchema,
-  EmitNotaCreditoSchema,
   ComprobanteFilterSchema,
   ComprobanteType,
   ComprobanteStatus,
   FiscalCondition,
-  PersonRole,
-  resolveComprobanteType,
 } from '@realfy/shared';
-import type { ComprobanteResolution } from '@realfy/shared';
 import { ArcaService } from './arca/arca.service';
 import type { ArcaEmitPayload } from './arca/arca.service';
 import type {
   EmitInvoiceDto,
   EmitNotaCreditoDto,
 } from '@realfy/shared';
-import Decimal from 'decimal.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -36,21 +29,6 @@ function isZodError(err: unknown): err is { errors: any[] } {
     (err as any).name === 'ZodError' &&
     'errors' in err
   );
-}
-
-function resolveDocTipo(fc: FiscalCondition): number {
-  switch (fc) {
-    case FiscalCondition.ResponsableInscripto:
-    case FiscalCondition.Monotributista:
-    case FiscalCondition.Exento:
-      return 80;
-    case FiscalCondition.ConsumidorFinal:
-      return 99;
-    case FiscalCondition.NoResponsable:
-      return 96;
-    default:
-      return 99;
-  }
 }
 
 function mapCbteTipoToEnum(cbteTipo: number): ComprobanteType {
@@ -68,60 +46,6 @@ function mapCbteTipoToEnum(cbteTipo: number): ComprobanteType {
   return map[cbteTipo] ?? ComprobanteType.FacturaB;
 }
 
-/**
- * Compute IVA breakdown (Decimal arithmetic, no Number() coercion).
- */
-function computeIva(
-  letra: string,
-  amount: Decimal,
-  ivaRate: Decimal,
-): { impNeto: Decimal; impIva: Decimal; ivaArray: Array<{ Id: number; BaseImp: number; Importe: number }> | undefined } {
-  if (letra === 'C') {
-    return {
-      impNeto: amount,
-      impIva: new Decimal(0),
-      ivaArray: undefined,
-    };
-  }
-
-  const ivaRateToId: Record<number, number> = {
-    0: 3,
-    2.5: 9,
-    5: 8,
-    10.5: 4,
-    21: 5,
-    27: 6,
-  };
-
-  const impNeto = amount.div(ivaRate.div(100).plus(1)).toDecimalPlaces(2);
-  const impIva = amount.minus(impNeto).toDecimalPlaces(2);
-  const ivaId = ivaRateToId[ivaRate.toNumber()] ?? 5;
-
-  return {
-    impNeto,
-    impIva,
-    ivaArray: [{ Id: ivaId, BaseImp: impNeto.toNumber(), Importe: impIva.toNumber() }],
-  };
-}
-
-// ─── Extended emit input (superset of the Zod schema) ────────────────────────
-
-export interface EmitComprobanteInput {
-  paymentId: string;
-  issuerId?: string;
-  clientRequestId?: string;
-  amount: string;
-  description: string;
-  ivaRate: number;
-  concepto?: number;
-  puntoDeVenta?: number;
-  monId?: string;
-  monCotiz?: number;
-  fchServDesde?: Date;
-  fchServHasta?: Date;
-  fchVtoPago?: Date;
-}
-
 // ─── Preview result ───────────────────────────────────────────────────────────
 
 export interface PreviewEmitResult {
@@ -134,8 +58,6 @@ export interface PreviewEmitResult {
 
 @Injectable()
 export class InvoicesService {
-  private readonly logger = new Logger(InvoicesService.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
@@ -190,398 +112,6 @@ export class InvoicesService {
       });
     }
     return pdv.number;
-  }
-
-  // ─── Emit Comprobante (Factura) ───────────────────────────────────────────
-
-  async emitComprobante(data: unknown) {
-    let validated: EmitComprobanteInput;
-    try {
-      validated = EmitComprobanteSchema.parse(data) as EmitComprobanteInput;
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid comprobante emission parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
-
-    const tenantId = this.tenantContext.getTenantId()!;
-
-    // ── Idempotency check ──────────────────────────────────────────────────
-    if (validated.clientRequestId) {
-      const existing = await this.prisma.client.comprobante.findFirst({
-        where: { tenantId, clientRequestId: validated.clientRequestId },
-        include: { payment: true, originalComprobante: true, creditNotes: true },
-      });
-      if (existing) {
-        this.logger.log('Idempotent: returning existing comprobante', {
-          tenantId,
-          clientRequestId: validated.clientRequestId,
-          comprobanteId: existing.id,
-        });
-        return existing;
-      }
-    }
-
-    // ── Load payment ──────────────────────────────────────────────────────
-    const payment = await this.prisma.client.payment.findFirst({
-      where: { id: validated.paymentId },
-      include: {
-        liquidacion: {
-          include: {
-            contract: {
-              include: {
-                persons: { include: { person: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!payment) {
-      throw new NotFoundException({ error: 'PAYMENT_NOT_FOUND', message: 'Payment not found' });
-    }
-
-    const contract = payment.liquidacion?.contract;
-    if (!contract) {
-      throw new BadRequestException({
-        error: 'NO_CONTRACT',
-        message: 'Payment has no associated contract via liquidación.',
-      });
-    }
-
-    const inquilinoCP = (contract.persons ?? []).find(
-      (cp: any) => cp.role === PersonRole.Inquilino,
-    );
-    if (!inquilinoCP?.person) {
-      throw new BadRequestException({
-        error: 'MISSING_INQUILINO',
-        message: 'Contract has no Inquilino person assigned.',
-      });
-    }
-
-    const receptor = inquilinoCP.person;
-    const receptorFC = (receptor.fiscalCondition as FiscalCondition) ?? FiscalCondition.ConsumidorFinal;
-
-    // ── Resolve issuer & PdV ──────────────────────────────────────────────
-    const issuer = await this.resolveIssuerContext(tenantId, validated.issuerId);
-    const puntoDeVenta = await this.resolvePuntoDeVenta(issuer.id, validated.puntoDeVenta);
-    const emisorFC = issuer.fiscalCondition as FiscalCondition;
-
-    let resolution: ComprobanteResolution;
-    try {
-      resolution = resolveComprobanteType(emisorFC, receptorFC);
-    } catch (err: any) {
-      throw new BadRequestException({ error: 'COMPROBANTE_RESOLUTION_ERROR', message: err.message });
-    }
-
-    // ── Compute amounts ───────────────────────────────────────────────────
-    const amount = new Decimal(validated.amount);
-    const ivaRate = new Decimal(validated.ivaRate);
-    const { impNeto, impIva, ivaArray } = computeIva(resolution.letra, amount, ivaRate);
-
-    const docTipo = resolveDocTipo(receptorFC);
-    const docNro = docTipo === 99 ? '0' : (receptor.cuit ?? '0').replace(/-/g, '');
-
-    // ── Build payload ─────────────────────────────────────────────────────
-    const emitPayload: ArcaEmitPayload = {
-      puntoDeVenta,
-      cbteTipo: resolution.cbteTipo,
-      letra: resolution.letra,
-      amount: validated.amount,
-      ivaRate: validated.ivaRate,
-      concepto: validated.concepto ?? 2,
-      docTipo,
-      docNro,
-      receptorFiscalCondition: receptorFC,
-      monId: validated.monId,
-      monCotiz: validated.monCotiz,
-      fchServDesde: validated.fchServDesde,
-      fchServHasta: validated.fchServHasta,
-      fchVtoPago: validated.fchVtoPago,
-      ivaArray,
-    };
-
-    // ── Call ARCA ─────────────────────────────────────────────────────────
-    const result = await this.arcaService.emit(tenantId, issuer.id, emitPayload);
-
-    // ── Persist Comprobante ───────────────────────────────────────────────
-    const comprobante = await this.prisma.client.comprobante.create({
-      data: {
-        tenantId,
-        paymentId: validated.paymentId,
-        issuerId: issuer.id,
-        clientRequestId: validated.clientRequestId ?? null,
-        type: mapCbteTipoToEnum(resolution.cbteTipo),
-        status: ComprobanteStatus.Emitido,
-        cbteTipo: resolution.cbteTipo,
-        puntoDeVenta,
-        numero: result.numero,
-        concepto: emitPayload.concepto,
-        docTipo,
-        docNro,
-        receptorName: `${receptor.firstName} ${receptor.lastName}`,
-        receptorFiscalCondition: receptorFC,
-        condicionIVAReceptorId: FISCAL_CONDITION_TO_ARCA[receptorFC] ?? null,
-        impTotal: amount.toFixed(2),
-        impNeto: impNeto.toFixed(2),
-        impIva: impIva.toFixed(2),
-        impExento: '0.00',
-        impTotConc: '0.00',
-        impOpEx: '0.00',
-        impTrib: '0.00',
-        monId: validated.monId ?? 'PES',
-        monCotiz: validated.monCotiz ?? 1,
-        currency: payment.currency as any,
-        cae: result.cae,
-        caeFchVto: new Date(result.caeFchVto),
-        emittedAt: new Date(),
-        fchServDesde: validated.fchServDesde ?? null,
-        fchServHasta: validated.fchServHasta ?? null,
-        fchVtoPago: validated.fchVtoPago ?? null,
-        ivaArray: ivaArray ? (ivaArray as any) : undefined,
-      },
-    });
-
-    this.logger.log('Comprobante emitted', {
-      tenantId,
-      comprobanteId: comprobante.id,
-      type: comprobante.type,
-      issuerId: issuer.id,
-      cae: result.cae,
-    });
-
-    return comprobante;
-  }
-
-  // ─── Emit Nota de Crédito ─────────────────────────────────────────────────
-
-  async emitNotaCredito(data: unknown) {
-    let validated: { comprobanteId: string; amount: string; description: string; issuerId?: string; clientRequestId?: string };
-    try {
-      validated = EmitNotaCreditoSchema.parse(data) as any;
-    } catch (err) {
-      if (isZodError(err)) {
-        throw new BadRequestException({
-          error: 'VALIDATION_ERROR',
-          message: 'Invalid nota de crédito parameters',
-          details: err.errors,
-        });
-      }
-      throw err;
-    }
-
-    const tenantId = this.tenantContext.getTenantId()!;
-
-    // ── Idempotency check ──────────────────────────────────────────────────
-    if (validated.clientRequestId) {
-      const existing = await this.prisma.client.comprobante.findFirst({
-        where: { tenantId, clientRequestId: validated.clientRequestId },
-        include: { payment: true, originalComprobante: true, creditNotes: true },
-      });
-      if (existing) return existing;
-    }
-
-    // ── Load original comprobante ─────────────────────────────────────────
-    const original = await this.prisma.client.comprobante.findFirst({
-      where: { id: validated.comprobanteId },
-      include: {
-        payment: {
-          include: {
-            liquidacion: {
-              include: {
-                contract: { include: { persons: { include: { person: true } } } },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!original) {
-      throw new NotFoundException({ error: 'COMPROBANTE_NOT_FOUND', message: 'Original comprobante not found' });
-    }
-
-    // ── Resolve issuer ────────────────────────────────────────────────────
-    const issuerId = validated.issuerId ?? original.issuerId ?? undefined;
-    const issuer = await this.resolveIssuerContext(tenantId, issuerId);
-    const puntoDeVenta = await this.resolvePuntoDeVenta(issuer.id, original.puntoDeVenta);
-    const emisorFC = issuer.fiscalCondition as FiscalCondition;
-    const receptorFC = original.receptorFiscalCondition as FiscalCondition;
-
-    let resolution: ComprobanteResolution;
-    try {
-      resolution = resolveComprobanteType(emisorFC, receptorFC);
-    } catch (err: any) {
-      throw new BadRequestException({ error: 'COMPROBANTE_RESOLUTION_ERROR', message: err.message });
-    }
-
-    // ── Compute amounts ───────────────────────────────────────────────────
-    const amount = new Decimal(validated.amount);
-    const ivaRate = new Decimal(21);
-    const { impNeto, impIva, ivaArray } = computeIva(resolution.letra, amount, ivaRate);
-
-    // ── Build NC payload ──────────────────────────────────────────────────
-    const emitPayload: ArcaEmitPayload = {
-      puntoDeVenta,
-      cbteTipo: resolution.ncTipo,
-      letra: resolution.letra,
-      amount: validated.amount,
-      ivaRate: 21,
-      concepto: 2,
-      docTipo: original.docTipo,
-      docNro: original.docNro,
-      receptorFiscalCondition: receptorFC,
-      ivaArray,
-      cbtesAsoc: [
-        { tipo: original.cbteTipo, ptoVta: original.puntoDeVenta, nro: original.numero },
-      ],
-    };
-
-    const result = await this.arcaService.emitNotaCredito(tenantId, issuer.id, emitPayload);
-
-    // ── Persist NC ────────────────────────────────────────────────────────
-    const comprobante = await this.prisma.client.comprobante.create({
-      data: {
-        tenantId,
-        paymentId: original.paymentId,
-        issuerId: issuer.id,
-        clientRequestId: validated.clientRequestId ?? null,
-        type: mapCbteTipoToEnum(resolution.ncTipo),
-        status: ComprobanteStatus.Emitido,
-        cbteTipo: resolution.ncTipo,
-        puntoDeVenta,
-        numero: result.numero,
-        concepto: 2,
-        docTipo: original.docTipo,
-        docNro: original.docNro,
-        receptorName: original.receptorName,
-        receptorFiscalCondition: receptorFC,
-        condicionIVAReceptorId: FISCAL_CONDITION_TO_ARCA[receptorFC] ?? null,
-        impTotal: amount.toFixed(2),
-        impNeto: impNeto.toFixed(2),
-        impIva: impIva.toFixed(2),
-        impExento: '0.00',
-        impTotConc: '0.00',
-        impOpEx: '0.00',
-        impTrib: '0.00',
-        monId: 'PES',
-        monCotiz: 1,
-        currency: original.currency as any,
-        cae: result.cae,
-        caeFchVto: new Date(result.caeFchVto),
-        emittedAt: new Date(),
-        originalComprobanteId: original.id,
-        cbtesAsoc: emitPayload.cbtesAsoc as any,
-        ivaArray: ivaArray ? (ivaArray as any) : undefined,
-      },
-    });
-
-    this.logger.log('Nota de Crédito emitted', {
-      tenantId,
-      comprobanteId: comprobante.id,
-      originalComprobanteId: original.id,
-      issuerId: issuer.id,
-      cae: result.cae,
-    });
-
-    return comprobante;
-  }
-
-  // ─── Preview Emit ─────────────────────────────────────────────────────────
-
-  /**
-   * Build the WSFE payload and get the next number WITHOUT calling AFIP for a CAE.
-   * Used by POST /invoices/preview.
-   */
-  async previewEmit(
-    tenantId: string,
-    issuerId: string,
-    input: {
-      paymentId: string;
-      amount: string;
-      ivaRate: number;
-      concepto?: number;
-      puntoDeVenta?: number;
-    },
-  ): Promise<PreviewEmitResult> {
-    const warnings: string[] = [];
-
-    const payment = await this.prisma.client.payment.findFirst({
-      where: { id: input.paymentId, tenantId },
-      include: {
-        liquidacion: {
-          include: {
-            contract: { include: { persons: { include: { person: true } } } },
-          },
-        },
-      },
-    });
-
-    if (!payment) {
-      throw new NotFoundException({ error: 'PAYMENT_NOT_FOUND', message: 'Payment not found' });
-    }
-
-    const contract = payment.liquidacion?.contract;
-    const inquilinoCP = (contract?.persons ?? []).find(
-      (cp: any) => cp.role === PersonRole.Inquilino,
-    );
-
-    if (!inquilinoCP?.person) {
-      warnings.push('No Inquilino found on contract — using ConsumidorFinal as default');
-    }
-
-    const receptorFC =
-      (inquilinoCP?.person?.fiscalCondition as FiscalCondition) ?? FiscalCondition.ConsumidorFinal;
-
-    const issuer = await this.resolveIssuerContext(tenantId, issuerId);
-    if (issuer.delegationStatus === 'Pending') {
-      warnings.push(`Issuer delegation is Pending — emission may fail`);
-    }
-
-    const emisorFC = issuer.fiscalCondition as FiscalCondition;
-    let resolution: ComprobanteResolution;
-    try {
-      resolution = resolveComprobanteType(emisorFC, receptorFC);
-    } catch (err: any) {
-      throw new BadRequestException({ error: 'COMPROBANTE_RESOLUTION_ERROR', message: err.message });
-    }
-
-    const puntoDeVenta = await this.resolvePuntoDeVenta(issuer.id, input.puntoDeVenta);
-    const nextNumero = await this.arcaService.getLastVoucher(
-      tenantId,
-      issuer.id,
-      puntoDeVenta,
-      resolution.cbteTipo,
-    ).then((n) => n + 1);
-
-    const amount = new Decimal(input.amount);
-    const ivaRate = new Decimal(input.ivaRate);
-    const { ivaArray } = computeIva(resolution.letra, amount, ivaRate);
-
-    const docTipo = resolveDocTipo(receptorFC);
-    const receptor = inquilinoCP?.person;
-    const docNro = docTipo === 99 ? '0' : (receptor?.cuit ?? '0').replace(/-/g, '');
-
-    const payload: ArcaEmitPayload = {
-      puntoDeVenta,
-      cbteTipo: resolution.cbteTipo,
-      letra: resolution.letra,
-      amount: input.amount,
-      ivaRate: input.ivaRate,
-      concepto: input.concepto ?? 2,
-      docTipo,
-      docNro,
-      receptorFiscalCondition: receptorFC,
-      ivaArray,
-    };
-
-    return { nextNumero, payload, warnings };
   }
 
   // ─── List ─────────────────────────────────────────────────────────────────
@@ -1001,13 +531,3 @@ export class InvoicesService {
   }
 
 }
-
-// ─── Constant re-used in invoices.service.ts ─────────────────────────────────
-
-const FISCAL_CONDITION_TO_ARCA: Record<FiscalCondition, number> = {
-  [FiscalCondition.ResponsableInscripto]: 1,
-  [FiscalCondition.Exento]: 4,
-  [FiscalCondition.ConsumidorFinal]: 5,
-  [FiscalCondition.Monotributista]: 6,
-  [FiscalCondition.NoResponsable]: 7,
-};
