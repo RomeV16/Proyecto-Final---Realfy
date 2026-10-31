@@ -1,9 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { PersonRole } from '@realfy/shared';
-import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
 import { PersonRoleBadge } from './person-role-badge';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -13,6 +11,9 @@ import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { ExportButtons } from '../import/export-buttons';
 import { useCan } from '@/lib/permissions';
+import { usePaginatedList } from '@/hooks/use-paginated-list';
+import { ErrorNotice } from '@/components/ui/error-notice';
+import { PaginationBar } from '@/components/ui/pagination';
 
 /* ──────────── Types ──────────── */
 
@@ -33,27 +34,9 @@ interface PersonItem {
   createdAt: string;
 }
 
-interface PaginatedResponse {
-  items: PersonItem[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
 /* ──────────── Filters ──────────── */
 
-interface Filters {
-  search: string;
-  role: string;
-  page: number;
-}
-
-const INITIAL_FILTERS: Filters = {
-  search: '',
-  role: '',
-  page: 1,
-};
+const INITIAL_FILTERS = { search: '', role: '' };
 
 const LIMIT = 12;
 
@@ -110,52 +93,17 @@ function PersonCard({ person }: { person: PersonItem }) {
 export function PersonList() {
   const t = useTranslations('persons');
   const tFilters = useTranslations('persons.filters');
-  const tPagination = useTranslations('persons.pagination');
   const tCommon = useTranslations('common');
 
-  const [data, setData] = useState<PaginatedResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
+  const list = usePaginatedList<PersonItem, typeof INITIAL_FILTERS>({
+    key: 'persons',
+    path: '/persons',
+    limit: LIMIT,
+    initialFilters: INITIAL_FILTERS,
+  });
+  const { filters, hasFilters, items } = list;
 
   const canCreate = useCan('persons.manage');
-
-  const fetchPersons = useCallback(async (f: Filters) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set('page', String(f.page));
-      params.set('limit', String(LIMIT));
-      if (f.search) params.set('search', f.search);
-      if (f.role) params.set('role', f.role);
-
-      const res = await apiClient<PaginatedResponse>(`/persons?${params.toString()}`);
-      setData(res);
-    } catch (err) {
-      if (err instanceof ApiRequestError) {
-        console.error(`[PersonList] fetch error: ${err.statusCode} ${err.errorCode}`);
-      }
-      setData({ items: [], total: 0, page: 1, limit: LIMIT, totalPages: 0 });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPersons(filters);
-  }, [filters, fetchPersons]);
-
-  function updateFilter(key: keyof Filters, value: string | number) {
-    setFilters((prev) => ({ ...prev, [key]: value, page: key === 'page' ? (value as number) : 1 }));
-  }
-
-  function clearFilters() {
-    setFilters(INITIAL_FILTERS);
-  }
-
-  const hasFilters = filters.search || filters.role;
-  const items = data?.items || [];
-  const total = data?.total || 0;
-  const totalPages = data?.totalPages || 0;
 
   return (
     <div className="space-y-6">
@@ -193,13 +141,13 @@ export function PersonList() {
                 id="filter-search"
                 type="text"
                 value={filters.search}
-                onChange={(e) => updateFilter('search', e.target.value)}
+                onChange={(e) => list.setFilter('search', e.target.value)}
                 placeholder={tFilters('searchPlaceholder')}
                 className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
               />
               {hasFilters && (
                 <button
-                  onClick={clearFilters}
+                  onClick={list.reset}
                   className="px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap"
                   title={tFilters('clear')}
                 >
@@ -216,7 +164,7 @@ export function PersonList() {
             <select
               id="filter-role"
               value={filters.role}
-              onChange={(e) => updateFilter('role', e.target.value)}
+              onChange={(e) => list.setFilter('role', e.target.value)}
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             >
               <option value="">{tFilters('rolePlaceholder')}</option>
@@ -230,12 +178,14 @@ export function PersonList() {
         </div>
       </div>
 
+      {list.error != null && <ErrorNotice error={list.error} />}
+
       {/* Grid — owns the loading → content → empty transition */}
-      <div>
+      <div className={list.error != null ? 'hidden' : undefined}>
         <CardGrid
           items={items}
-          loading={loading && !data}
-          busy={loading && !!data}
+          loading={list.isLoading}
+          busy={list.isFetching && !list.isLoading}
           columns={4}
           skeletonCount={8}
           skeletonMedia={false}
@@ -250,7 +200,7 @@ export function PersonList() {
                 subtitle={t('empty.filtered')}
                 action={
                   <button
-                    onClick={clearFilters}
+                    onClick={list.reset}
                     className="rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg)]"
                   >
                     {tFilters('clear')}
@@ -281,35 +231,14 @@ export function PersonList() {
       </div>
 
       {/* Pagination */}
-      {!loading && totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-          <p className="text-sm text-slate-500">
-            {tPagination('showing', {
-              from: (filters.page - 1) * LIMIT + 1,
-              to: Math.min(filters.page * LIMIT, total),
-              total,
-            })}
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => updateFilter('page', filters.page - 1)}
-              disabled={filters.page <= 1}
-              className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {tPagination('prev')}
-            </button>
-            <span className="text-sm text-slate-600 tabular-nums px-2">
-              {tCommon('page')} {filters.page} {tCommon('of')} {totalPages}
-            </span>
-            <button
-              onClick={() => updateFilter('page', filters.page + 1)}
-              disabled={filters.page >= totalPages}
-              className="px-3 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {tPagination('next')}
-            </button>
-          </div>
-        </div>
+      {!list.isLoading && (
+        <PaginationBar
+          page={list.page}
+          totalPages={list.totalPages}
+          total={list.total}
+          limit={LIMIT}
+          onPageChange={list.setPage}
+        />
       )}
     </div>
   );

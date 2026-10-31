@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderEs } from '../index-data/test-utils';
+import { renderEsWithQuery as renderEs } from '../index-data/test-utils';
 
 const { apiClient, auth } = vi.hoisted(() => ({
   apiClient: vi.fn(),
@@ -174,18 +174,34 @@ describe('PersonList', () => {
     await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith(expect.stringContaining('page=1')));
   });
 
-  it('un error de la API cae en el estado vacío', async () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    apiClient.mockRejectedValue(new ApiRequestError(500, 'BOOM', 'falló'));
+  it('un error de la API se avisa con código y referencia, no se disfraza de lista vacía', async () => {
+    apiClient.mockRejectedValue(new ApiRequestError(500, 'BOOM', 'falló', { correlationId: 'corr-1' }));
     renderEs(<PersonList />);
-    expect(await screen.findByText('No hay personas')).toBeInTheDocument();
-    expect(spy).toHaveBeenCalled();
-    spy.mockRestore();
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('falló');
+    expect(alert).toHaveTextContent('BOOM');
+    expect(alert).toHaveTextContent('corr-1');
+    expect(screen.queryByText('No hay personas')).not.toBeInTheDocument();
   });
 
-  it('un fallo genérico también cae en el estado vacío', async () => {
+  it('un fallo genérico también se avisa', async () => {
     apiClient.mockRejectedValue(new Error('red'));
     renderEs(<PersonList />);
-    expect(await screen.findByText('No hay personas')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('red');
+  });
+
+  it('conserva las tarjetas de la página anterior mientras llega la siguiente', async () => {
+    let release: (v: unknown) => void = () => {};
+    apiClient
+      .mockResolvedValueOnce(page({ total: 30, totalPages: 3 }))
+      .mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    renderEs(<PersonList />);
+    await screen.findByText('Luis Inventado');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await waitFor(() => expect(apiClient).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Luis Inventado')).toBeInTheDocument();
+    release(page({ items: [{ ...items[1], id: 'pe-3', firstName: 'Nora' }], page: 2, total: 30, totalPages: 3 }));
+    expect(await screen.findByText('Nora Ficticia')).toBeInTheDocument();
   });
 });
