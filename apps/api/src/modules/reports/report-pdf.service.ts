@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { ReportResult } from './reports.service';
 import { formatDateAR, formatMoneyAR, todayInAR } from '@realfy/shared';
+import { findReport } from './report-registry';
 import { PdfRendererService, moneyCell, pageFooter } from '../../common/pdf/pdf-renderer.service';
 
 @Injectable()
@@ -14,7 +15,7 @@ export class ReportPdfService {
    */
   async generatePdf(report: ReportResult<any>): Promise<Buffer> {
     const columns = report.columns;
-    const dataKeys = this.getDataKeys(report.type);
+    const dataKeys = findReport(report.type)?.pdf.keys ?? [];
 
     // Build table widths — first column auto, rest equal
     const widths = columns.map((_, i) => (i === 0 ? 'auto' : '*'));
@@ -114,26 +115,6 @@ export class ReportPdfService {
         error: (error as Error).message,
       });
       throw error;
-    }
-  }
-
-  /** Get ordered data keys for each report type */
-  private getDataKeys(type: string): string[] {
-    switch (type) {
-      case 'ownerStatement':
-        return ['periodo', 'propiedad', 'cobrado', 'comision', 'honorarios', 'deducciones', 'depositoNeto'];
-      case 'propertyProfitability':
-        return ['propiedad', 'cobrado', 'facturado', 'comisiones', 'ingresoNeto'];
-      case 'cashFlow':
-        return ['mes', 'ingresos', 'egresos', 'facturado', 'saldoNeto'];
-      case 'commissionSummary':
-        return ['propiedad', 'propietario', 'periodo', 'tipoComision', 'comision', 'honorarios', 'total'];
-      case 'pipelineAnalytics':
-        return ['etapa', 'leadsActuales', 'convertidos', 'perdidos', 'tasaConversion', 'promedioConversionDias'];
-      case 'morosidad':
-        return ['propiedad', 'inquilino', 'periodo', 'vencimiento', 'diasVencidos', 'monto', 'moneda'];
-      default:
-        return [];
     }
   }
 }

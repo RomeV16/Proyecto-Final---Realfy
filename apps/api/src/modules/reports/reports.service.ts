@@ -25,6 +25,7 @@ import {
   propertyLabel,
 } from '@realfy/shared';
 import Decimal from 'decimal.js';
+import { REPORT_REGISTRY } from './report-registry';
 import { outstandingBalance } from '../liquidaciones/receivables';
 import { parseOrThrow } from '../../common/validation/zod';
 
@@ -170,7 +171,7 @@ export class ReportsService {
 
     return {
       type: 'ownerStatement',
-      title: 'Estado de Cuenta del Propietario',
+      title: REPORT_REGISTRY.ownerStatement.title,
       columns: ['Período', 'Propiedad', 'Cobrado', 'Comisión', 'Honorarios', 'Deducciones', 'Depósito Neto'],
       rows,
       summary,
@@ -290,7 +291,7 @@ export class ReportsService {
 
     return {
       type: 'propertyProfitability',
-      title: 'Rentabilidad por Propiedad',
+      title: REPORT_REGISTRY.propertyProfitability.title,
       columns: ['Propiedad', 'Cobrado', 'Facturado', 'Comisiones', 'Ingreso Neto'],
       rows,
       summary,
@@ -408,7 +409,7 @@ export class ReportsService {
 
     return {
       type: 'cashFlow',
-      title: 'Flujo de Caja Mensual',
+      title: REPORT_REGISTRY.cashFlow.title,
       columns: ['Mes', 'Ingresos', 'Egresos', 'Facturado', 'Saldo Neto'],
       rows,
       summary,
@@ -487,7 +488,7 @@ export class ReportsService {
 
     return {
       type: 'commissionSummary',
-      title: 'Resumen de Comisiones',
+      title: REPORT_REGISTRY.commissionSummary.title,
       columns: ['Propiedad', 'Propietario', 'Período', 'Tipo Comisión', 'Comisión', 'Honorarios', 'Total'],
       rows,
       summary,
@@ -600,7 +601,7 @@ export class ReportsService {
 
     return {
       type: 'pipelineAnalytics',
-      title: 'Analítica de Pipeline',
+      title: REPORT_REGISTRY.pipelineAnalytics.title,
       columns: [
         'Etapa',
         'Leads Actuales',
@@ -708,7 +709,7 @@ export class ReportsService {
 
     return {
       type: 'morosidad',
-      title: 'Reporte de Morosidad',
+      title: REPORT_REGISTRY.morosidad.title,
       columns: [
         'Propiedad',
         'Inquilino',
