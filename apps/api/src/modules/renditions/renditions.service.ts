@@ -23,6 +23,7 @@ import {
   monthStartUTC,
   periodFilter,
   todayInAR,
+  InvalidCommissionError,
 } from '@realfy/shared';
 import type { CommissionConfig } from '@realfy/shared';
 import { RenditionPdfService } from './rendition-pdf.service';
@@ -234,11 +235,22 @@ export class RenditionsService {
       description: `Pago ${p.liquidacion?.period ? new Date(p.liquidacion.period).toLocaleDateString('es-AR', { month: '2-digit', year: 'numeric', timeZone: 'UTC' }) : p.id}`,
     }));
 
-    const result = buildRendicionFromPayments(
-      paymentInputs,
-      commissionConfig,
-      [], // deductions can be added as line items later
-    );
+    let result: ReturnType<typeof buildRendicionFromPayments>;
+    try {
+      result = buildRendicionFromPayments(
+        paymentInputs,
+        commissionConfig,
+        [], // deductions can be added as line items later
+      );
+    } catch (err) {
+      if (err instanceof InvalidCommissionError) {
+        throw new BadRequestException({
+          error: err.code,
+          message: err.message,
+        });
+      }
+      throw err;
+    }
 
     // 7. Create rendition + line items in transaction
     const rendicion = await this.prisma.client.$transaction(async (tx: any) => {

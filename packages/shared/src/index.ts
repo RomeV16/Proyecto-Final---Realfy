@@ -422,7 +422,7 @@ export {
 export type { LineItemInput, LineItemsTotalResult, PaymentInput } from './liquidacion-engine';
 
 // Commission engine
-export { calculateCommission } from './commission-engine';
+export { calculateCommission, InvalidCommissionError } from './commission-engine';
 export type { CommissionConfig, CommissionResult } from './commission-engine';
 
 // Rendicion engine
