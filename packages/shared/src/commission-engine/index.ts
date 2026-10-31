@@ -1,8 +1,6 @@
-import Decimal from 'decimal.js';
+import type Decimal from 'decimal.js';
+import { Money } from '../money';
 import { CommissionType } from '../enums';
-
-// Configure Decimal for financial calculations: 20 significant digits, ROUND_HALF_UP
-Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -39,10 +37,10 @@ export function calculateCommission(
   rentCollected: Decimal | string | number,
   config: CommissionConfig,
 ): CommissionResult {
-  const rent = new Decimal(rentCollected);
-  const pct = config.percentage != null ? new Decimal(config.percentage) : new Decimal(0);
-  const fixed = config.fixedAmount != null ? new Decimal(config.fixedAmount) : new Decimal(0);
-  const adminFee = config.adminFee != null ? new Decimal(config.adminFee) : new Decimal(0);
+  const rent = new Money(rentCollected);
+  const pct = config.percentage != null ? new Money(config.percentage) : new Money(0);
+  const fixed = config.fixedAmount != null ? new Money(config.fixedAmount) : new Money(0);
+  const adminFee = config.adminFee != null ? new Money(config.adminFee) : new Money(0);
 
   let commission: Decimal;
 

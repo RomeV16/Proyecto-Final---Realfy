@@ -1,8 +1,6 @@
-import Decimal from 'decimal.js';
+import type Decimal from 'decimal.js';
+import { Money } from '../money';
 import { LineItemType } from '../enums';
-
-// Configure Decimal for financial calculations: 20 significant digits, ROUND_HALF_UP
-Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -30,11 +28,11 @@ export interface PaymentInput {
  * - Total = subtotal - discounts (never negative, floored at 0)
  */
 export function calculateLineItemsTotal(items: LineItemInput[]): LineItemsTotalResult {
-  let subtotal = new Decimal(0);
-  let discounts = new Decimal(0);
+  let subtotal = new Money(0);
+  let discounts = new Money(0);
 
   for (const item of items) {
-    const amount = new Decimal(item.amount);
+    const amount = new Money(item.amount);
 
     if (item.type === LineItemType.Descuento) {
       discounts = discounts.plus(amount);
@@ -44,7 +42,7 @@ export function calculateLineItemsTotal(items: LineItemInput[]): LineItemsTotalR
   }
 
   // Total cannot go below 0
-  const total = Decimal.max(subtotal.minus(discounts), new Decimal(0));
+  const total = Money.max(subtotal.minus(discounts), new Money(0));
 
   return {
     subtotal: subtotal.toDecimalPlaces(2),
@@ -63,11 +61,11 @@ export function calculateRemainingBalance(
   total: Decimal | string | number,
   payments: PaymentInput[],
 ): Decimal {
-  const totalDecimal = new Decimal(total);
-  let paid = new Decimal(0);
+  const totalDecimal = new Money(total);
+  let paid = new Money(0);
 
   for (const payment of payments) {
-    paid = paid.plus(new Decimal(payment.amount));
+    paid = paid.plus(new Money(payment.amount));
   }
 
   return totalDecimal.minus(paid).toDecimalPlaces(2);

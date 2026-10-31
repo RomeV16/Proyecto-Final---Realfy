@@ -1,9 +1,7 @@
-import Decimal from 'decimal.js';
+import type Decimal from 'decimal.js';
+import { Money } from '../money';
 import { RendicionLineItemType } from '../enums';
 import { calculateCommission, CommissionConfig } from '../commission-engine';
-
-// Configure Decimal for financial calculations: 20 significant digits, ROUND_HALF_UP
-Decimal.set({ precision: 20, rounding: Decimal.ROUND_HALF_UP });
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -52,11 +50,11 @@ export function buildRendicionFromPayments(
   deductions: RendicionDeductionInput[] = [],
 ): RendicionResult {
   const lineItems: RendicionLineItem[] = [];
-  let rentCollected = new Decimal(0);
+  let rentCollected = new Money(0);
 
   // 1. Alquiler line items (one per payment)
   for (const payment of payments) {
-    const amt = new Decimal(payment.amount);
+    const amt = new Money(payment.amount);
     rentCollected = rentCollected.plus(amt);
     lineItems.push({
       type: RendicionLineItemType.Alquiler,
@@ -87,9 +85,9 @@ export function buildRendicionFromPayments(
   }
 
   // 5. Deduction line items
-  let deductionTotal = new Decimal(0);
+  let deductionTotal = new Money(0);
   for (const deduction of deductions) {
-    const amt = new Decimal(deduction.amount);
+    const amt = new Money(deduction.amount);
     deductionTotal = deductionTotal.plus(amt);
     lineItems.push({
       type: RendicionLineItemType.Deduccion,

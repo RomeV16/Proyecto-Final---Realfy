@@ -388,6 +388,19 @@ export {
   escapeHtml,
 } from './template-engine';
 
+// Fechas en UTC y dinero exacto
+export {
+  addMonthsClamped,
+  periodToMonths,
+  monthStartUTC,
+  periodFilter,
+  periodKey,
+  todayInAR,
+  formatDateAR,
+} from './date-utils';
+export { Money, round2, toAmountString, sumMoney, allocateLargestRemainder } from './money';
+export type { MoneyInput } from './money';
+
 // Adjustment engine
 export {
   calculateIPC,
