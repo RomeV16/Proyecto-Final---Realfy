@@ -30,6 +30,8 @@ export {
   LiquidacionStatus,
   PaymentMethod,
   LineItemType,
+  LineBeneficiary,
+  LiquidacionKind,
   ServiceType,
   NotificationType,
   PipelineType,
@@ -514,6 +516,8 @@ export {
   calculateRemainingBalance,
   isFullyPaid,
   InvalidLineAmountError,
+  defaultCommissionable,
+  defaultBeneficiary,
 } from './liquidacion-engine';
 export type { LineItemInput, LineItemsTotalResult, PaymentInput } from './liquidacion-engine';
 
@@ -870,3 +874,17 @@ import {
 export type ClosureSummarySource = z.infer<typeof _ClosureSummarySourceSchema>;
 export type ContractClosureMetrics = z.infer<typeof _ContractClosureMetricsSchema>;
 export type AiClosureSummaryResponse = z.infer<typeof _AiClosureSummaryResponseSchema>;
+
+// Liquidation builder
+export { buildLiquidation, onBehalfOfText } from './liquidation-builder';
+export type {
+  BuilderResult,
+  BuiltLine,
+  BuiltLiquidation,
+  LiquidationBuilderInput,
+  LiquidationExtraLine,
+  LiquidationSkipReason,
+} from './liquidation-builder';
+
+// Amount in words
+export { amountInWords } from './amount-in-words';
