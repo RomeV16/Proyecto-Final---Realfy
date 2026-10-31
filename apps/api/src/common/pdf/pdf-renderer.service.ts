@@ -16,7 +16,7 @@ const FONTS = {
 };
 
 /** Estilos base de todos los documentos; cada PDF puede pisar los que necesite. */
-export const PDF_BASE_STYLES = {
+const PDF_BASE_STYLES = {
   header: { fontSize: 18, bold: true },
   title: { fontSize: 14, bold: true },
   subheader: { fontSize: 12, bold: true },
