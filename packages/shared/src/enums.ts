@@ -163,6 +163,8 @@ export enum AdjustmentType {
   CCP = 'CCP',
   FixedPercent = 'FixedPercent',
   Custom = 'Custom',
+  UVA = 'UVA',
+  Escalonado = 'Escalonado',
 }
 
 export enum AdjustmentPeriod {
@@ -194,6 +196,7 @@ export enum IndexType {
   CVS = 'CVS',
   CER = 'CER',
   UVA = 'UVA',
+  TasaActivaBNA = 'TasaActivaBNA',
 }
 
 export enum ScheduleStatus {

@@ -197,6 +197,8 @@ enum AdjustmentType {
   CCP
   FixedPercent
   Custom
+  UVA
+  Escalonado
 }
 
 enum AdjustmentPeriod {
@@ -228,6 +230,7 @@ enum IndexType {
   CVS
   CER
   UVA
+  TasaActivaBNA
 }
 
 enum ScheduleStatus {
