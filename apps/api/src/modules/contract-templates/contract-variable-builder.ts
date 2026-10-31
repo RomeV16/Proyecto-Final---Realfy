@@ -5,7 +5,12 @@
  * Variable naming follows the Argentine real-estate domain:
  *   - contrato.* — contract-level fields
  *   - propiedad.* — property fields
- *   - propietario.* — owner person fields (PersonRole = Propietario)
+ *   - locadores.N.* (N desde 1) — cada locador vigente: nombre, documento,
+ *     domicilio, capacidad y porcentaje de cobro; locadores.cantidad,
+ *     locadores.lista (nombre y CUIT/CUIL de todos) y locadores.nombres
+ *   - locador.* y propietario.* — el primer locador (alias para plantillas viejas)
+ *   - apoderados.N.* / apoderados.cantidad / apoderados.lista — quienes actúan
+ *     por un locador, con alcances y modo de firma
  *   - inquilino.* — tenant person fields (PersonRole = Inquilino)
  *   - garante.* / garante2.* — guarantor person fields
  *   - garantia.* / garantia2.* — guarantee instrument fields
@@ -18,6 +23,21 @@ interface PersonData {
   email?: string | null;
   phone?: string | null;
   cuit?: string | null;
+  dni?: string | null;
+  address?: string | null;
+}
+
+interface LessorData {
+  capacity: string;
+  payoutPct: any;
+  person: PersonData;
+}
+
+interface PowerData {
+  scopes: string[];
+  signatureMode: string;
+  agent: PersonData;
+  principal: PersonData;
 }
 
 interface ContractPersonData {
@@ -65,6 +85,8 @@ interface ContractData {
   notes?: string | null;
   property?: PropertyData | null;
   persons?: ContractPersonData[];
+  lessors?: LessorData[];
+  apoderados?: PowerData[];
   guarantees?: GuaranteeData[];
 }
 
@@ -109,6 +131,56 @@ function addPersonVars(
   if (person.email) vars[`${prefix}.email`] = person.email;
   if (person.phone) vars[`${prefix}.telefono`] = person.phone;
   if (person.cuit) vars[`${prefix}.cuit`] = person.cuit;
+  if (person.dni) vars[`${prefix}.documento`] = person.dni;
+  if (person.address) vars[`${prefix}.domicilio`] = person.address;
+}
+
+function fullName(person: PersonData): string {
+  return `${person.firstName} ${person.lastName}`;
+}
+
+function formatPct(pct: any): string {
+  return `${Number(pct).toLocaleString('es-AR', { maximumFractionDigits: 4 })} %`;
+}
+
+/** Locadores y apoderados: variables indexadas y la lista corrida para el texto del contrato. */
+function addLessorVars(vars: Record<string, string>, contract: ContractData): void {
+  const lessors = contract.lessors ?? [];
+  vars['locadores.cantidad'] = String(lessors.length);
+  lessors.forEach((l, i) => {
+    const prefix = `locadores.${i + 1}`;
+    addPersonVars(vars, prefix, l.person);
+    vars[`${prefix}.capacidad`] = l.capacity;
+    vars[`${prefix}.porcentaje`] = formatPct(l.payoutPct);
+  });
+  if (lessors.length > 0) {
+    // El primero es el locador "principal": alias para las plantillas que
+    // hablaban de un solo propietario.
+    for (const prefix of ['locador', 'propietario']) {
+      addPersonVars(vars, prefix, lessors[0].person);
+    }
+    vars['locador.capacidad'] = lessors[0].capacity;
+    vars['locador.porcentaje'] = formatPct(lessors[0].payoutPct);
+    vars['locadores.nombres'] = lessors.map((l) => fullName(l.person)).join(' / ');
+    vars['locadores.lista'] = lessors
+      .map((l) => (l.person.cuit ? `${fullName(l.person)}, CUIT/CUIL ${l.person.cuit}` : fullName(l.person)))
+      .join(' y ');
+  }
+
+  const powers = contract.apoderados ?? [];
+  vars['apoderados.cantidad'] = String(powers.length);
+  powers.forEach((w, i) => {
+    const prefix = `apoderados.${i + 1}`;
+    addPersonVars(vars, prefix, w.agent);
+    vars[`${prefix}.poderdante`] = fullName(w.principal);
+    vars[`${prefix}.alcances`] = w.scopes.join(', ');
+    vars[`${prefix}.firma`] = w.signatureMode;
+  });
+  if (powers.length > 0) {
+    vars['apoderados.lista'] = powers
+      .map((w) => `${fullName(w.agent)}, apoderado/a de ${fullName(w.principal)}`)
+      .join('; ');
+  }
 }
 
 /**
@@ -161,14 +233,15 @@ export function buildContractVariables(
     vars['propiedad.direccionCompleta'] = parts.join(', ');
   }
 
+  // ─── Locadores y apoderados ─────────────────────────
+  addLessorVars(vars, contract);
+
   // ─── Person fields (by role) ────────────────────────
   if (contract.persons) {
     let garanteIdx = 0;
     for (const cp of contract.persons) {
       const role = cp.role;
-      if (role === 'Propietario') {
-        addPersonVars(vars, 'propietario', cp.person);
-      } else if (role === 'Inquilino') {
+      if (role === 'Inquilino') {
         addPersonVars(vars, 'inquilino', cp.person);
       } else if (role === 'Comprador') {
         addPersonVars(vars, 'comprador', cp.person);

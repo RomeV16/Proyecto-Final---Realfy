@@ -3,7 +3,7 @@
  * Used by seedDefaults() to create starter templates for new tenants.
  *
  * Variable naming follows contract-variable-builder.ts conventions:
- *   contrato.*, propiedad.*, propietario.*, inquilino.*, garante.*,
+ *   contrato.*, propiedad.*, locadores.*, apoderados.*, inquilino.*, garante.*,
  *   garantia.*, inmobiliaria.*, fecha.*, comprador.*
  */
 
@@ -22,7 +22,7 @@ export const DEFAULT_TEMPLATES: DefaultTemplateDefinition[] = [
 
 En la Ciudad de {{propiedad.ciudad}}, Provincia de {{propiedad.provincia}}, a los {{fecha.hoyLarga}}, entre:
 
-LOCADOR: {{propietario.nombreCompleto}}, CUIT/CUIL {{propietario.cuit}}, con domicilio en la Ciudad de {{propiedad.ciudad}}, en adelante "EL LOCADOR";
+LOCADOR: {{locadores.lista}}, con domicilio en la Ciudad de {{propiedad.ciudad}}, en adelante "EL LOCADOR";
 
 LOCATARIO: {{inquilino.nombreCompleto}}, CUIT/CUIL {{inquilino.cuit}}, con domicilio electrónico {{inquilino.email}}, en adelante "EL LOCATARIO";
 
@@ -55,7 +55,7 @@ En prueba de conformidad se firman tres (3) ejemplares de un mismo tenor y a un 
 
 ________________________          ________________________          ________________________
      EL LOCADOR                      EL LOCATARIO                     EL GARANTE
-{{propietario.nombreCompleto}}    {{inquilino.nombreCompleto}}       {{garante.nombreCompleto}}
+{{locadores.nombres}}    {{inquilino.nombreCompleto}}       {{garante.nombreCompleto}}
 
 Intermediario: {{inmobiliaria.nombre}} — CUIT {{inmobiliaria.cuit}}`,
   },
@@ -68,7 +68,7 @@ Intermediario: {{inmobiliaria.nombre}} — CUIT {{inmobiliaria.cuit}}`,
 
 En la Ciudad de {{propiedad.ciudad}}, Provincia de {{propiedad.provincia}}, a los {{fecha.hoyLarga}}, entre:
 
-LOCADOR: {{propietario.nombreCompleto}}, CUIT/CUIL {{propietario.cuit}}, en adelante "EL LOCADOR";
+LOCADOR: {{locadores.lista}}, en adelante "EL LOCADOR";
 
 LOCATARIO TEMPORARIO: {{inquilino.nombreCompleto}}, correo electrónico {{inquilino.email}}, teléfono {{inquilino.telefono}}, en adelante "EL LOCATARIO";
 
@@ -97,7 +97,7 @@ En prueba de conformidad se firman dos (2) ejemplares de un mismo tenor.
 
 ________________________          ________________________
      EL LOCADOR                      EL LOCATARIO
-{{propietario.nombreCompleto}}    {{inquilino.nombreCompleto}}
+{{locadores.nombres}}    {{inquilino.nombreCompleto}}
 
 Intermediario: {{inmobiliaria.nombre}}`,
   },
@@ -110,7 +110,7 @@ Intermediario: {{inmobiliaria.nombre}}`,
 
 En la Ciudad de {{propiedad.ciudad}}, Provincia de {{propiedad.provincia}}, a los {{fecha.hoyLarga}}, entre:
 
-VENDEDOR: {{propietario.nombreCompleto}}, CUIT/CUIL {{propietario.cuit}}, con domicilio en la Ciudad de {{propiedad.ciudad}}, en adelante "EL VENDEDOR";
+VENDEDOR: {{locadores.lista}}, con domicilio en la Ciudad de {{propiedad.ciudad}}, en adelante "EL VENDEDOR";
 
 COMPRADOR: {{comprador.nombreCompleto}}, CUIT/CUIL {{comprador.cuit}}, correo electrónico {{comprador.email}}, en adelante "EL COMPRADOR";
 
@@ -141,7 +141,7 @@ En prueba de conformidad se firman tres (3) ejemplares de un mismo tenor y a un 
 
 ________________________          ________________________
      EL VENDEDOR                     EL COMPRADOR
-{{propietario.nombreCompleto}}    {{comprador.nombreCompleto}}
+{{locadores.nombres}}    {{comprador.nombreCompleto}}
 
 Intermediario: {{inmobiliaria.nombre}} — CUIT {{inmobiliaria.cuit}}`,
   },
