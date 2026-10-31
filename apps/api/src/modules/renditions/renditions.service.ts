@@ -20,6 +20,9 @@ import {
   CommissionType,
   rendicionMachine,
   buildRendicionFromPayments,
+  monthStartUTC,
+  periodFilter,
+  todayInAR,
 } from '@realfy/shared';
 import type { CommissionConfig } from '@realfy/shared';
 import { RenditionPdfService } from './rendition-pdf.service';
@@ -134,7 +137,7 @@ export class RenditionsService {
 
     const { contractId, month, year } = validated;
     const tenantId = this.tenantContext.getTenantId()!;
-    const period = new Date(year, month - 1, 1);
+    const period = monthStartUTC(year, month);
 
     // 1. Verify contract exists and belongs to tenant
     const contract = await this.prisma.client.contract.findFirst({
@@ -228,7 +231,7 @@ export class RenditionsService {
 
     const paymentInputs = payments.map((p: any) => ({
       amount: p.amount.toString(),
-      description: `Pago ${p.liquidacion?.period ? new Date(p.liquidacion.period).toLocaleDateString('es-AR', { month: '2-digit', year: 'numeric' }) : p.id}`,
+      description: `Pago ${p.liquidacion?.period ? new Date(p.liquidacion.period).toLocaleDateString('es-AR', { month: '2-digit', year: 'numeric', timeZone: 'UTC' }) : p.id}`,
     }));
 
     const result = buildRendicionFromPayments(
@@ -302,15 +305,12 @@ export class RenditionsService {
     if (filters.contractId) where.contractId = filters.contractId;
     if (filters.ownerId) where.ownerId = filters.ownerId;
     if (filters.month && filters.year) {
-      where.period = new Date(filters.year, filters.month - 1, 1);
+      where.period = monthStartUTC(filters.year, filters.month);
     } else if (filters.year) {
-      where.period = {
-        gte: new Date(filters.year, 0, 1),
-        lt: new Date(filters.year + 1, 0, 1),
-      };
+      where.period = periodFilter(filters.year);
     } else if (filters.month) {
-      const currentYear = new Date().getFullYear();
-      where.period = new Date(currentYear, filters.month - 1, 1);
+      const currentYear = todayInAR().getUTCFullYear();
+      where.period = monthStartUTC(currentYear, filters.month);
     }
 
     const skip = (filters.page - 1) * filters.limit;

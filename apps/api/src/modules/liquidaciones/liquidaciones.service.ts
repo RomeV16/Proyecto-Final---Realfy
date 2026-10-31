@@ -21,6 +21,9 @@ import {
   calculateLineItemsTotal,
   calculateRemainingBalance,
   isFullyPaid,
+  monthStartUTC,
+  periodFilter,
+  todayInAR,
 } from '@realfy/shared';
 import type { LineItemInput, PaymentInput } from '@realfy/shared';
 import { PdfService } from './pdf.service';
@@ -49,9 +52,9 @@ export class LiquidacionesService {
     const tenantId = this.tenantContext.getTenantId()!;
 
     // Period is the first day of the month
-    const period = new Date(year, month - 1, 1);
+    const period = monthStartUTC(year, month);
     // Due date is the 10th of the month
-    const dueDate = new Date(year, month - 1, 10);
+    const dueDate = new Date(Date.UTC(year, month - 1, 10));
 
     // Query active contracts (status Activo, isActive true)
     const contracts = await this.prisma.client.contract.findMany({
@@ -135,16 +138,13 @@ export class LiquidacionesService {
     if (filters.month || filters.year) {
       // Filter by period month/year
       if (filters.month && filters.year) {
-        where.period = new Date(filters.year, filters.month - 1, 1);
+        where.period = monthStartUTC(filters.year, filters.month);
       } else if (filters.year) {
-        where.period = {
-          gte: new Date(filters.year, 0, 1),
-          lt: new Date(filters.year + 1, 0, 1),
-        };
+        where.period = periodFilter(filters.year);
       } else if (filters.month) {
         // Month without year — current year
-        const currentYear = new Date().getFullYear();
-        where.period = new Date(currentYear, filters.month - 1, 1);
+        const currentYear = todayInAR().getUTCFullYear();
+        where.period = monthStartUTC(currentYear, filters.month);
       }
     }
 

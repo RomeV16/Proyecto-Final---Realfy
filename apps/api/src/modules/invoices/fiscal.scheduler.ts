@@ -7,6 +7,7 @@ import { CronBaseService } from '../../common/scheduler/cron.service';
 import { ArcaService } from './arca/arca.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { S3Service } from '../../common/media/s3.service';
+import { monthStartUTC, periodKey, todayInAR } from '@realfy/shared';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,13 +33,6 @@ function daysUntil(target: Date): number {
 /** Pause execution for ms milliseconds. */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-/** Format a month as 'YYYY-MM' from a Date. */
-function monthKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  return `${y}-${m}`;
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -109,7 +103,7 @@ export class FiscalScheduler extends CronBaseService {
             operation: 'cert_expiry_warn',
             errorCode: warnLevel,
             // createdAt >= start of today (UTC date covers ART morning run)
-            createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+            createdAt: { gte: todayInAR() },
           },
         });
 
@@ -316,10 +310,12 @@ export class FiscalScheduler extends CronBaseService {
     this.logger.log('generateLibroIvaVentas started');
 
     // Previous month range
-    const now = new Date();
-    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    const periodLabel = monthKey(prevMonthStart); // e.g. "2026-03"
+    const today = todayInAR();
+    const prevMonthStart = monthStartUTC(today.getUTCFullYear(), today.getUTCMonth());
+    const prevMonthEnd = new Date(
+      monthStartUTC(today.getUTCFullYear(), today.getUTCMonth() + 1).getTime() - 1,
+    );
+    const periodLabel = periodKey(prevMonthStart); // e.g. "2026-03"
 
     const tenants = await this.prisma.baseClient.tenant.findMany({
       where: { isActive: true },

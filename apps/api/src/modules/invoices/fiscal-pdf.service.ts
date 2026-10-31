@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
-import { FiscalCondition } from '@realfy/shared';
+import { FiscalCondition, formatDateAR, monthStartUTC } from '@realfy/shared';
 
 // pdfmake Node.js usage: dynamic require for CommonJS module
 const PdfPrinter = require('pdfmake/src/printer');
@@ -348,7 +348,7 @@ export class FiscalPdfService {
           items: [
             {
               description: property
-                ? `Alquiler ${property.title || ''} - ${liquidacion?.period ? new Date(liquidacion.period).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }) : 'Período'}`
+                ? `Alquiler ${property.title || ''} - ${liquidacion?.period ? new Date(liquidacion.period).toLocaleDateString('es-AR', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : 'Período'}`
                 : 'Alquiler - Servicio',
               quantity: 1,
               unit_price: Number(comprobante.impTotal),
@@ -359,10 +359,10 @@ export class FiscalPdfService {
           tributes_amount: 0,
           total_amount: Number(comprobante.impTotal),
           billing_from: liquidacion?.period
-            ? formatDate(new Date(new Date(liquidacion.period).getFullYear(), new Date(liquidacion.period).getMonth(), 1))
+            ? formatDateAR(monthStartUTC(new Date(liquidacion.period).getUTCFullYear(), new Date(liquidacion.period).getUTCMonth() + 1))
             : formatDate(comprobante.emittedAt),
           billing_to: liquidacion?.period
-            ? formatDate(new Date(new Date(liquidacion.period).getFullYear(), new Date(liquidacion.period).getMonth() + 1, 0))
+            ? formatDateAR(new Date(Date.UTC(new Date(liquidacion.period).getUTCFullYear(), new Date(liquidacion.period).getUTCMonth() + 1, 0)))
             : formatDate(comprobante.emittedAt),
           payment_due_date: formatDate(comprobante.caeFchVto),
           net_amount_taxed: Number(comprobante.impNeto || comprobante.impTotal),
