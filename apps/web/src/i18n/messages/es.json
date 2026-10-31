@@ -1375,12 +1375,36 @@
    "amountPlaceholder": "0.00",
    "selectType": "Seleccionar tipo"
   },
+  "beneficiary": {
+   "Locador": "Locador",
+   "Inmobiliaria": "Inmobiliaria",
+   "Ente": "Ente o proveedor"
+  },
+  "kinds": {
+   "Mensual": "Mensual",
+   "PagoACuenta": "Pago a cuenta",
+   "Egreso": "Egreso"
+  },
+  "commissionable": "Comisionable",
+  "provisional": "Provisional",
+  "provisionalHint": "El alquiler usa un ajuste provisional; se corrige cuando se publique el índice oficial.",
+  "receipt": {
+   "number": "Recibo Nº {number}",
+   "print": "Imprimir recibo",
+   "pending": "Se numera al aprobar"
+  },
+  "outOfRangeCount": "{count} fuera del período del contrato (omitidas)",
   "lineItemTypes": {
    "Alquiler": "Alquiler",
    "Ajuste": "Ajuste",
    "Extra": "Extra",
    "Descuento": "Descuento",
-   "Multa": "Multa"
+   "Multa": "Multa",
+   "Impuesto": "Impuesto",
+   "Servicio": "Servicio",
+   "Cargo": "Cargo",
+   "Honorario": "Honorario",
+   "AjusteRetroactivo": "Ajuste retroactivo"
   },
   "totals": {
    "subtotal": "Subtotal",

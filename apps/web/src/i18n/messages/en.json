@@ -1375,12 +1375,36 @@
    "amountPlaceholder": "0.00",
    "selectType": "Seleccionar tipo"
   },
+  "beneficiary": {
+   "Locador": "Landlord",
+   "Inmobiliaria": "Agency",
+   "Ente": "Utility or supplier"
+  },
+  "kinds": {
+   "Mensual": "Monthly",
+   "PagoACuenta": "Payment on account",
+   "Egreso": "Outgoing"
+  },
+  "commissionable": "Commissionable",
+  "provisional": "Provisional",
+  "provisionalHint": "The rent uses a provisional adjustment; it is corrected when the official index is published.",
+  "receipt": {
+   "number": "Receipt No. {number}",
+   "print": "Print receipt",
+   "pending": "Numbered on approval"
+  },
+  "outOfRangeCount": "{count} outside the contract period (skipped)",
   "lineItemTypes": {
    "Alquiler": "Alquiler",
    "Ajuste": "Ajuste",
    "Extra": "Extra",
    "Descuento": "Descuento",
-   "Multa": "Fine"
+   "Multa": "Fine",
+   "Impuesto": "Tax",
+   "Servicio": "Service",
+   "Cargo": "Charge",
+   "Honorario": "Fee",
+   "AjusteRetroactivo": "Retroactive adjustment"
   },
   "totals": {
    "subtotal": "Subtotal",
