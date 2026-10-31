@@ -504,9 +504,29 @@ export {
   calculateCCP,
   calculateFixedPercent,
   calculateCustom,
+  calculateUVA,
+  calculateEscalonado,
   calculateAdjustment,
+  shiftWindowByLag,
+  expectedMonthlyPeriods,
+  monthsBetween,
+  isWithinFixedInitialPeriod,
+  resolveAdjustmentBasis,
+  assessCoverage,
+  calculateTrueUp,
+  monthsInRange,
 } from './adjustment-engine';
-export type { AdjustmentResult, AdjustmentParams } from './adjustment-engine';
+export type {
+  AdjustmentResult,
+  AdjustmentParams,
+  EscalonadoStep,
+  IndexWindow,
+  AdjustmentBasisInput,
+  IndexObservation,
+  Coverage,
+  TrueUpInput,
+  TrueUpResult,
+} from './adjustment-engine';
 
 // Liquidacion engine
 export {

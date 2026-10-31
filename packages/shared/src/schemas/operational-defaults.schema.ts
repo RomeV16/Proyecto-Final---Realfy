@@ -17,6 +17,12 @@ export const OperationalDefaultsSchema = z
     leadDays: z.number().int().min(0).max(60).default(10),
     /** Rezago en meses con que se toma el IPC al ajustar. */
     ipcLagMonths: z.number().int().min(0).max(12).default(2),
+    /**
+     * Pago a cuenta (FB-13): si el INDEC todavía no publicó el índice del ajuste,
+     * se aplica uno provisorio con el estimado y se corrige al publicarse el oficial.
+     * Apagado, un ajuste sin índice oficial queda pendiente.
+     */
+    allowProvisional: z.boolean().default(true),
     /** Comisión de administración, en porcentaje del alquiler cobrado. */
     commissionPct: pct.default(7),
     /** Honorarios por operación, en porcentaje. */

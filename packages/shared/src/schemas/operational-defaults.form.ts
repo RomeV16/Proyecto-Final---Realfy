@@ -22,6 +22,7 @@ export const operationalDefaultsFormSchema = z
     dueDay: numberText({ int: true, min: 1, max: 28 }),
     leadDays: numberText({ int: true, min: 0, max: 60 }),
     ipcLagMonths: numberText({ int: true, min: 0, max: 12 }),
+    allowProvisional: z.boolean(),
     commissionPct: numberText({ min: 0, max: 100 }),
     feeAlta: numberText({ min: 0, max: 100 }),
     feeRenovacion: numberText({ min: 0, max: 100 }),
@@ -49,6 +50,7 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     dueDay: String(d.dueDay),
     leadDays: String(d.leadDays),
     ipcLagMonths: String(d.ipcLagMonths),
+    allowProvisional: d.allowProvisional,
     commissionPct: String(d.commissionPct),
     feeAlta: String(d.fees.alta),
     feeRenovacion: String(d.fees.renovacion),
@@ -69,6 +71,7 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
     dueDay: num(f.dueDay),
     leadDays: num(f.leadDays),
     ipcLagMonths: num(f.ipcLagMonths),
+    allowProvisional: f.allowProvisional,
     commissionPct: num(f.commissionPct),
     fees: {
       alta: num(f.feeAlta),
