@@ -252,6 +252,7 @@ model Tenant {
   brandSecondary String?
   logoUrl        String?
   penaltyConfig  Json?
+  readPolicy     Json?
   isActive       Boolean    @default(true)
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt

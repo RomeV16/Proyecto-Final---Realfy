@@ -810,6 +810,13 @@
     "Gerente"
   ],
   "src/modules/tenants/tenants.controller.ts#TenantsController.findMine": null,
+  "src/modules/tenants/tenants.controller.ts#TenantsController.getReadPolicy": [
+    "Admin"
+  ],
+  "src/modules/tenants/tenants.controller.ts#TenantsController.updateReadPolicy": [
+    "Admin"
+  ],
+  "src/modules/tenants/tenants.controller.ts#TenantsController.getReadAccess": null,
   "src/modules/tickets/ticket-categories.controller.ts#TicketCategoriesController.create": [
     "Admin",
     "Gerente"

@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Patch,
+  Put,
   Get,
   Param,
   Body,
@@ -9,7 +10,7 @@ import {
 import { TenantsService } from './tenants.service';
 import { Public } from '../../common/auth/public.decorator';
 import { Roles } from '../../common/auth/roles.decorator';
-import { MANAGEMENT_ROLES } from '../../common/auth/role-groups';
+import { ADMIN_ONLY, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('tenants')
 export class TenantsController {
@@ -47,5 +48,33 @@ export class TenantsController {
   @Get('me')
   async findMine() {
     return this.tenantsService.findMine();
+  }
+
+  /**
+   * GET /tenants/me/read-policy — Política de lectura por rol (Admin).
+   * Sin configurar devuelve la política por defecto: todos leen todo.
+   */
+  @Roles(...ADMIN_ONLY)
+  @Get('me/read-policy')
+  async getReadPolicy() {
+    return this.tenantsService.getReadPolicy();
+  }
+
+  /**
+   * PUT /tenants/me/read-policy — Reemplaza la política de lectura (Admin).
+   */
+  @Roles(...ADMIN_ONLY)
+  @Put('me/read-policy')
+  async updateReadPolicy(@Body() body: unknown) {
+    return this.tenantsService.updateReadPolicy(body);
+  }
+
+  /**
+   * GET /tenants/me/read-access — Qué recursos sensibles puede leer el rol del
+   * usuario actual. Lo usa la web para ocultar secciones.
+   */
+  @Get('me/read-access')
+  async getReadAccess() {
+    return this.tenantsService.getReadAccess();
   }
 }

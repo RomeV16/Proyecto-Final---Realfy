@@ -17,6 +17,7 @@ import { PersonBankAccountsService } from './person-bank-accounts.service';
 import { PersonPowersService } from './person-powers.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { MANAGEMENT_ROLES, SALES_ROLES } from '../../common/auth/role-groups';
+import { MaskReads, ReadResource } from '../../common/read-policy/read-resource.decorator';
 
 @Controller('persons')
 export class PersonsController {
@@ -30,6 +31,7 @@ export class PersonsController {
    * GET /persons — List with filters + pagination.
    * Any authenticated user can read.
    */
+  @MaskReads('persons.document', 'persons.bankAccounts')
   @Get()
   async findAll(@Query() query: Record<string, any>) {
     const coerced = { ...query };
@@ -49,6 +51,7 @@ export class PersonsController {
    * GET /persons/:id — Full detail with roles + documents.
    * Any authenticated user can read.
    */
+  @MaskReads('persons.document', 'persons.bankAccounts')
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.personsService.findOne(id);
@@ -118,6 +121,7 @@ export class PersonsController {
   // ─── Bank accounts ─────────────────────────────────
 
   /** GET /persons/:id/bank-accounts — Any authenticated user can read. */
+  @ReadResource('persons.bankAccounts')
   @Get(':id/bank-accounts')
   async listBankAccounts(@Param('id') id: string) {
     return this.bankAccounts.list(id);

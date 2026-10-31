@@ -13,6 +13,7 @@ import type { Response } from 'express';
 import { RenditionsService } from './renditions.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
+import { ReadResource } from '../../common/read-policy/read-resource.decorator';
 
 @Controller('renditions')
 export class RenditionsController {
@@ -30,6 +31,7 @@ export class RenditionsController {
   /**
    * GET /renditions — List with filters + pagination.
    */
+  @ReadResource('renditions')
   @Get()
   async findAll(@Query() query: Record<string, any>) {
     const coerced = { ...query };
@@ -45,6 +47,7 @@ export class RenditionsController {
   /**
    * GET /renditions/:id — Detail with line items, contract, owner.
    */
+  @ReadResource('renditions')
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.renditionsService.findOne(id);
@@ -65,6 +68,7 @@ export class RenditionsController {
   /**
    * GET /renditions/:id/pdf — Download PDF.
    */
+  @ReadResource('renditions')
   @Get(':id/pdf')
   async getPdf(@Param('id') id: string, @Res() res: Response) {
     const pdfBuffer = await this.renditionsService.generatePdf(id);
@@ -144,6 +148,7 @@ export class CommissionsController {
   /**
    * GET /contracts/:contractId/commission — Get commission config.
    */
+  @ReadResource('contracts.commission')
   @Get(':contractId/commission')
   async getCommission(@Param('contractId') contractId: string) {
     return this.renditionsService.getCommission(contractId);

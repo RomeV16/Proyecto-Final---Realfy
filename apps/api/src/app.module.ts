@@ -45,6 +45,10 @@ import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
 import { AuditInterceptor } from './common/audit/audit.interceptor';
 
+import { ReadPolicyGuard } from './common/read-policy/read-policy.guard';
+import { ReadMaskInterceptor } from './common/read-policy/read-mask.interceptor';
+import { ReadPolicyModule } from './common/read-policy/read-policy.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -102,6 +106,7 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     ImportExportModule,
     ReportsModule,
     AiModule,
+    ReadPolicyModule,
   ],
   controllers: [HealthController],
   providers: [
@@ -126,6 +131,16 @@ import { AuditInterceptor } from './common/audit/audit.interceptor';
     {
       provide: APP_GUARD,
       useClass: RbacGuard,
+    },
+    // Guard de política de lectura — @ReadResource según la política de cada inmobiliaria
+    {
+      provide: APP_GUARD,
+      useClass: ReadPolicyGuard,
+    },
+    // Enmascara campos sensibles según la política de lectura (@MaskReads)
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ReadMaskInterceptor,
     },
     // Interceptor de auditoría global — registra todas las mutaciones
     {

@@ -31,6 +31,7 @@ import {
   IssuerUpdateDtoSchema,
   PuntoDeVentaCreateDtoSchema,
 } from '@realfy/shared';
+import { ReadResource } from '../../common/read-policy/read-resource.decorator';
 
 
 @Controller('invoices')
@@ -102,6 +103,7 @@ export class InvoicesController {
    * List comprobantes with optional filters + pagination.
    */
   @Roles(...BILLING_VIEW_ROLES)
+  @ReadResource('invoices')
   @Get()
   async findAll(@Query() query: Record<string, any>) {
     return this.invoicesService.findAll(query);
@@ -376,6 +378,7 @@ export class InvoicesController {
    * Streams fiscal PDF.
    */
   @Roles(...BILLING_VIEW_ROLES)
+  @ReadResource('invoices')
   @Get(':id/pdf')
   async getPdf(@Param('id') id: string, @Res() res: Response) {
     const { buffer, filename } = await this.fiscalPdfService.generatePdfForComprobante(id);
@@ -394,6 +397,7 @@ export class InvoicesController {
    * Comprobante detail including ArcaRequestLog tail.
    */
   @Roles(...BILLING_VIEW_ROLES)
+  @ReadResource('invoices')
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.invoicesService.findOneWithLogs(id);

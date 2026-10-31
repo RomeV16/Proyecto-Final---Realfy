@@ -15,6 +15,7 @@ import { ContractLessorsService } from './contract-lessors.service';
 import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { MANAGEMENT_ROLES, SALES_ROLES } from '../../common/auth/role-groups';
+import { MaskReads } from '../../common/read-policy/read-resource.decorator';
 
 @Controller('contracts')
 export class ContractsController {
@@ -30,6 +31,7 @@ export class ContractsController {
    * GET /contracts — List with filters + pagination.
    * Any authenticated user can read.
    */
+  @MaskReads('persons.document', 'persons.bankAccounts', 'contracts.commission')
   @Get()
   async findAll(@Query() query: Record<string, any>) {
     const coerced = { ...query };
@@ -46,6 +48,7 @@ export class ContractsController {
    * GET /contracts/:id — Full detail with persons, guarantees, adjustments.
    * Any authenticated user can read.
    */
+  @MaskReads('persons.document', 'persons.bankAccounts', 'contracts.commission')
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.contractsService.findOne(id);
@@ -169,6 +172,7 @@ export class ContractsController {
    * cobro. `?at=` limita a los vigentes en esa fecha.
    * Any authenticated user can read.
    */
+  @MaskReads('persons.document', 'persons.bankAccounts', 'contracts.commission')
   @Get(':id/lessors')
   async listLessors(@Param('id') id: string, @Query('at') at?: string) {
     return this.lessors.list(id, at);

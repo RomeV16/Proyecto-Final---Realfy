@@ -6,6 +6,7 @@ import {
 import { Roles } from '../../common/auth/roles.decorator';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { MANAGEMENT_ROLES } from '../../common/auth/role-groups';
+import { ReadResource } from '../../common/read-policy/read-resource.decorator';
 
 @Controller('audit-logs')
 export class AuditLogsController {
@@ -17,6 +18,7 @@ export class AuditLogsController {
    * Auto-filtered by tenant_id via Prisma Extension.
    */
   @Roles(...MANAGEMENT_ROLES)
+  @ReadResource('audit')
   @Get()
   async findAll(
     @Query('entity') entity?: string,
