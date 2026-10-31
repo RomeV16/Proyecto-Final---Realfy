@@ -71,6 +71,19 @@ export class ContractsController {
   }
 
   /**
+   * POST /contracts/:id/activate — Borrador → Activo.
+   * Valida propiedad, partes, fechas y superposición con otro alquiler activo,
+   * y deja la operación de alquiler de la propiedad en Alquilado.
+   * Ventas+ roles (Admin, Gerente, Ventas): los mismos que pueden crear un
+   * contrato, y crearlo ya activo pasa por las mismas reglas.
+   */
+  @Roles(UserRole.Admin, UserRole.Gerente, UserRole.Ventas)
+  @Post(':id/activate')
+  async activate(@Param('id') id: string) {
+    return this.contractsService.activate(id);
+  }
+
+  /**
    * POST /contracts/:id/terminate — Terminate contract (set Rescindido, isActive false).
    * Admin and Gerente only.
    */

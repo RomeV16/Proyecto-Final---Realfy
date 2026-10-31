@@ -1,8 +1,10 @@
-import type { ContractClosureMetrics } from '@realfy/shared';
 import {
   CLOSED_CONTRACT_STATUSES,
-  findUnknownFigure,
   isClosedStatus,
+  type ContractClosureMetrics,
+} from '@realfy/shared';
+import {
+  findUnknownFigure,
   toClosureFacts,
 } from './contract-closure';
 import { renderClosureSummary } from './closure-summary-template';

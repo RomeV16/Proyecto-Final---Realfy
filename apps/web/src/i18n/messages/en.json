@@ -942,7 +942,11 @@
    "creating": "Creando contrato…",
    "success": "Contrato creado exitosamente",
    "error": "Error al crear el contrato",
-   "step": "Paso {current} de {total}"
+   "step": "Paso {current} de {total}",
+   "saveDraft": "Save as draft",
+   "saveAndActivate": "Save and activate",
+   "activating": "Activating contract…",
+   "finishHint": "A draft can be reviewed and activated later. If you activate it now, it starts generating settlements and the property is marked as rented."
   },
   "detail": {
    "title": "Detalle del Contrato",
@@ -987,7 +991,16 @@
    "applySuccess": "Ajuste aplicado exitosamente",
    "applyError": "Error al aplicar el ajuste",
    "createdAt": "Creado el",
-   "updatedAt": "Última modificación"
+   "updatedAt": "Última modificación",
+   "activate": "Activate contract",
+   "activateConfirmTitle": "Activate contract",
+   "activateConfirmBody": "The contract moves from draft to active. From then on its settlements are generated and its adjustments are calculated.",
+   "activateConfirmBodyRental": "The contract moves from draft to active and the property is marked as rented. From then on its settlements are generated and its adjustments are calculated.",
+   "activateConfirm": "Yes, activate",
+   "activateSuccess": "Contract activated",
+   "activateError": "The contract could not be activated",
+   "draftHint": "This contract is a draft: it generates no settlements or adjustments until you activate it.",
+   "terminateConfirmTitle": "Terminate contract"
   },
   "timeline": {
    "title": "Línea de Ajustes",
@@ -1118,6 +1131,20 @@
     "rentChange": "Variación del alquiler",
     "rendiciones": "Rendiciones",
     "rendicionesValue": "{count} · {amount}"
+   }
+  },
+  "activation": {
+   "problemsTitle": "The contract cannot be activated:",
+   "viewContract": "View contract",
+   "problems": {
+    "PROPERTY_NOT_FOUND": "The contract property does not exist.",
+    "PROPERTY_INACTIVE": "The contract property has been deactivated.",
+    "MISSING_INQUILINO": "At least one tenant is required.",
+    "MISSING_PROPIETARIO": "At least one owner is required.",
+    "INVALID_DATES": "The end date must be after the start date.",
+    "OVERLAPPING_CONTRACT": "The property already has an active lease from {start} to {end} that overlaps these dates.",
+    "RENTAL_OPERATION_ARCHIVED": "The property rental operation is archived; reactivate it before activating the contract.",
+    "UNKNOWN": "The contract does not meet the conditions to be activated."
    }
   }
  },

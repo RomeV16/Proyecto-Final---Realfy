@@ -7,7 +7,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ContractStatusBadge } from './contract-status-badge';
@@ -18,6 +18,12 @@ import { AdjustmentTimeline } from './adjustment-timeline';
 import { GenerateDocumentModal } from './generate-document-modal';
 import { CommissionConfig } from './commission-config';
 import { ClosureSummary } from './closure-summary';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
+import {
+  ActivationProblems,
+  activationProblemsOf,
+  type ActivationProblem,
+} from './activation-problems';
 
 /* ──────────── Types ──────────── */
 
@@ -451,7 +457,10 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
   const [actionError, setActionError] = useState('');
   const [actionSuccess, setActionSuccess] = useState('');
   const [generateDocOpen, setGenerateDocOpen] = useState(false);
+  const [confirming, setConfirming] = useState<'' | 'activate' | 'terminate'>('');
+  const [activationProblems, setActivationProblems] = useState<ActivationProblem[] | null>(null);
   const [activeTab, setActiveTab] = useState<'resumen' | 'ajustes'>('resumen');
+  const cancelConfirmRef = useRef<HTMLButtonElement>(null);
 
   const isAdmin = ['Admin', 'Gerente'].includes(user?.role || '');
   const canManage = ['Admin', 'Gerente', 'Ventas'].includes(user?.role || '');
@@ -515,11 +524,37 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
     }
   }
 
+  async function handleActivate() {
+    if (!contract) return;
+    setActionLoading('activate');
+    setActionError('');
+    setActionSuccess('');
+    setActivationProblems(null);
+    try {
+      await apiClient(`/contracts/${contract.id}/activate`, { method: 'POST' });
+      setActionSuccess(t('activateSuccess'));
+      fetchContract();
+    } catch (err) {
+      const problems = activationProblemsOf(err);
+      if (problems) {
+        setActivationProblems(problems);
+      } else {
+        setActionError(
+          err instanceof ApiRequestError ? err.message : t('activateError'),
+        );
+      }
+    } finally {
+      setActionLoading('');
+      setConfirming('');
+    }
+  }
+
   async function handleTerminate() {
-    if (!contract || !confirm(t('terminateConfirm'))) return;
+    if (!contract) return;
     setActionLoading('terminate');
     setActionError('');
     setActionSuccess('');
+    setActivationProblems(null);
     try {
       await apiClient(`/contracts/${contract.id}/terminate`, { method: 'POST' });
       setActionSuccess(t('terminateSuccess'));
@@ -530,6 +565,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
       );
     } finally {
       setActionLoading('');
+      setConfirming('');
     }
   }
 
@@ -616,6 +652,16 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
         {/* Actions — one stable bar, design-system buttons */}
         {(canManage || (contract.status === 'Activo' && isAdmin)) && (
           <div className="mt-5 pt-5 border-t border-[var(--color-border)] flex flex-wrap items-center gap-2.5">
+            {contract.status === 'Borrador' && canManage && (
+              <Button
+                variant="primary"
+                onClick={() => setConfirming('activate')}
+                disabled={actionLoading === 'activate'}
+              >
+                {actionLoading === 'activate' && <Spinner className="w-4 h-4 text-white" />}
+                {t('activate')}
+              </Button>
+            )}
             {contract.status === 'Activo' && canManage && nextPendingSchedule && (
               <Button
                 variant="primary"
@@ -657,7 +703,7 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
             {contract.status === 'Activo' && isAdmin && (
               <Button
                 variant="danger"
-                onClick={handleTerminate}
+                onClick={() => setConfirming('terminate')}
                 disabled={actionLoading === 'terminate'}
                 className="sm:ml-auto"
               >
@@ -668,7 +714,16 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
           </div>
         )}
 
+        {contract.status === 'Borrador' && canManage && !activationProblems && (
+          <p className="mt-3 text-sm text-slate-500">{t('draftHint')}</p>
+        )}
+
         {/* Feedback messages */}
+        {activationProblems && (
+          <div className="mt-3">
+            <ActivationProblems problems={activationProblems} localePrefix={localePrefix} />
+          </div>
+        )}
         {actionError && (
           <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
             <p className="text-sm text-red-700">{actionError}</p>
@@ -897,6 +952,61 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
           currency={contractCurrency}
         />
       )}
+
+      {/* Confirmación de activar / rescindir, dentro de la página */}
+      <Dialog
+        open={confirming !== ''}
+        onClose={() => setConfirming('')}
+        size="sm"
+        busy={actionLoading === 'activate' || actionLoading === 'terminate'}
+        initialFocusRef={confirming === 'terminate' ? cancelConfirmRef : undefined}
+      >
+        <DialogHeader>
+          <h2 className="text-base font-semibold text-slate-900">
+            {confirming === 'activate' ? t('activateConfirmTitle') : t('terminateConfirmTitle')}
+          </h2>
+        </DialogHeader>
+        <DialogBody>
+          <p className="text-sm text-slate-600">
+            {confirming === 'activate'
+              ? t(
+                  contract.contractType === 'Alquiler'
+                    ? 'activateConfirmBodyRental'
+                    : 'activateConfirmBody',
+                )
+              : t('terminateConfirm')}
+          </p>
+        </DialogBody>
+        <DialogFooter>
+          <Button
+            ref={cancelConfirmRef}
+            variant="secondary"
+            onClick={() => setConfirming('')}
+            disabled={actionLoading !== ''}
+          >
+            {tCommon('cancel')}
+          </Button>
+          {confirming === 'activate' ? (
+            <Button
+              variant="primary"
+              onClick={handleActivate}
+              disabled={actionLoading === 'activate'}
+            >
+              {actionLoading === 'activate' && <Spinner className="w-4 h-4 text-white" />}
+              {t('activateConfirm')}
+            </Button>
+          ) : (
+            <Button
+              variant="danger"
+              onClick={handleTerminate}
+              disabled={actionLoading === 'terminate'}
+            >
+              {actionLoading === 'terminate' && <Spinner className="w-4 h-4 text-white" />}
+              {t('terminate')}
+            </Button>
+          )}
+        </DialogFooter>
+      </Dialog>
 
       {/* Generate Document Modal */}
       <GenerateDocumentModal

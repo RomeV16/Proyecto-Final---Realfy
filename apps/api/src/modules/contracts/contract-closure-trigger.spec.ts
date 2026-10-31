@@ -19,20 +19,21 @@ const ACTIVE_CONTRACT = {
 };
 
 function buildMocks() {
-  const prisma = {
-    client: {
-      contract: {
-        findFirst: jest.fn().mockResolvedValue(ACTIVE_CONTRACT),
-        update: jest.fn().mockResolvedValue(ACTIVE_CONTRACT),
-      },
-      adjustmentSchedule: {
-        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
-        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-        findFirst: jest.fn().mockResolvedValue(null),
-        create: jest.fn().mockResolvedValue({}),
-      },
+  const client: any = {
+    contract: {
+      findFirst: jest.fn().mockResolvedValue(ACTIVE_CONTRACT),
+      update: jest.fn().mockResolvedValue(ACTIVE_CONTRACT),
+    },
+    adjustmentSchedule: {
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({}),
     },
   };
+  // El cambio de estado corre en una transacción; el doble la ejecuta en línea.
+  client.$transaction = jest.fn((fn: (tx: any) => unknown) => fn(client));
+  const prisma = { client };
   const closureSummaries = { generateOnClosure: jest.fn().mockResolvedValue(undefined) };
   return { prisma, closureSummaries };
 }

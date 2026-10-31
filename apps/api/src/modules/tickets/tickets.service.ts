@@ -16,12 +16,13 @@ import {
   CreateTicketCommentSchema,
   AssignProviderSchema,
   UpdateTicketCostSchema,
-  validateTicketTransition,
+  ticketMachine,
   getValidTicketTransitions,
   TICKET_SLA_HOURS,
   TicketStatus,
   TicketPriority,
 } from '@realfy/shared';
+import { assertTransition } from '../../common/errors/assert-transition';
 
 /**
  * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
@@ -396,14 +397,7 @@ export class TicketsService {
     const currentStatus = ticket.status as TicketStatus;
     const targetStatus = validated.status as TicketStatus;
 
-    if (!validateTicketTransition(currentStatus, targetStatus)) {
-      const validTargets = getValidTicketTransitions(currentStatus);
-      throw new BadRequestException({
-        error: 'INVALID_TRANSITION',
-        message: `Cannot transition from ${currentStatus} to ${targetStatus}`,
-        validTransitions: validTargets,
-      });
-    }
+    assertTransition(ticketMachine, currentStatus, targetStatus);
 
     // Record timestamps for specific states
     const updateData: any = { status: targetStatus };
@@ -629,14 +623,7 @@ export class TicketsService {
     const currentStatus = ticket.status as TicketStatus;
     const targetStatus = TicketStatus.ProveedorAsignado;
 
-    if (!validateTicketTransition(currentStatus, targetStatus)) {
-      const validTargets = getValidTicketTransitions(currentStatus);
-      throw new BadRequestException({
-        error: 'INVALID_TRANSITION',
-        message: `Cannot transition from ${currentStatus} to ${targetStatus}`,
-        validTransitions: validTargets,
-      });
-    }
+    assertTransition(ticketMachine, currentStatus, targetStatus);
 
     // Update ticket: set provider, transition status, optionally set notes
     const updated = await this.prisma.client.ticket.update({

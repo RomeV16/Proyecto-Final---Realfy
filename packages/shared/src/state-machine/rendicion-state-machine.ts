@@ -1,4 +1,5 @@
 import { RendicionStatus } from '../enums';
+import { defineStateMachine } from './define';
 
 /**
  * Owner Rendición 4-state workflow machine.
@@ -12,7 +13,7 @@ import { RendicionStatus } from '../enums';
 
 const { Borrador, Aprobada, Enviada, Depositada } = RendicionStatus;
 
-const RENDICION_TRANSITIONS: Map<RendicionStatus, RendicionStatus[]> = new Map([
+export const rendicionMachine = defineStateMachine<RendicionStatus>([
   [Borrador, [Aprobada]],
   [Aprobada, [Enviada, Borrador]],
   [Enviada, [Depositada]],
@@ -26,9 +27,7 @@ export function validateRendicionTransition(
   from: RendicionStatus,
   to: RendicionStatus,
 ): boolean {
-  const validTargets = RENDICION_TRANSITIONS.get(from);
-  if (!validTargets) return false;
-  return validTargets.includes(to);
+  return rendicionMachine.canTransition(from, to);
 }
 
 /**
@@ -38,5 +37,5 @@ export function validateRendicionTransition(
 export function getValidRendicionTransitions(
   from: RendicionStatus,
 ): RendicionStatus[] {
-  return RENDICION_TRANSITIONS.get(from) ?? [];
+  return rendicionMachine.allowedFrom(from);
 }

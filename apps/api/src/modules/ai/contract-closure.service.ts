@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import {
   AiClosureSummaryResponseSchema,
   ContractClosureMetricsSchema,
+  isClosedStatus,
   type ClosureSummarySource,
   type ContractClosureMetrics,
 } from '@realfy/shared';
@@ -9,7 +10,6 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { ContractClosureMetricsService } from './contract-closure-metrics.service';
 import {
   findUnknownFigure,
-  isClosedStatus,
   toClosureFacts,
   type ContractClosureFacts,
 } from './contract-closure';

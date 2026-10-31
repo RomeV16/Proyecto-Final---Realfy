@@ -212,7 +212,7 @@ describe('RenditionsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('throws NO_OWNER when the contract has no Propietario', async () => {
+    it('throws MISSING_PROPIETARIO when the contract has no Propietario', async () => {
       (prisma.client.contract.findFirst as jest.Mock).mockResolvedValue({
         id: CONTRACT_ID,
         tenantId: 'tenant-1',

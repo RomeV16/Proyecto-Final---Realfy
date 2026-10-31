@@ -18,14 +18,14 @@ import {
   LiquidacionStatus,
   PersonRole,
   CommissionType,
-  validateRendicionTransition,
-  getValidRendicionTransitions,
+  rendicionMachine,
   buildRendicionFromPayments,
 } from '@realfy/shared';
 import type { CommissionConfig } from '@realfy/shared';
 import { RenditionPdfService } from './rendition-pdf.service';
 import { RenditionEmailService } from './rendition-email.service';
 import Decimal from 'decimal.js';
+import { assertTransition } from '../../common/errors/assert-transition';
 
 /**
  * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
@@ -227,7 +227,7 @@ export class RenditionsService {
 
     if (!ownerRelation) {
       throw new BadRequestException({
-        error: 'NO_OWNER',
+        error: 'MISSING_PROPIETARIO',
         message:
           'No Propietario found for this contract. Add a Propietario before generating a rendition.',
         contractId,
@@ -465,14 +465,7 @@ export class RenditionsService {
     const fromStatus = rendicion.status as RendicionStatus;
     const toStatus = validated.status;
 
-    if (!validateRendicionTransition(fromStatus, toStatus)) {
-      const validTargets = getValidRendicionTransitions(fromStatus);
-      throw new BadRequestException({
-        error: 'INVALID_TRANSITION',
-        message: `Cannot transition from ${fromStatus} to ${toStatus}`,
-        validTransitions: validTargets,
-      });
-    }
+    assertTransition(rendicionMachine, fromStatus, toStatus);
 
     const updateData: any = { status: toStatus };
 

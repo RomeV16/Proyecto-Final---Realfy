@@ -14,25 +14,6 @@ import type { ContractClosureMetrics } from '@realfy/shared';
  */
 
 /**
- * Estados en los que un contrato ya terminó su vida útil y corresponde
- * resumirlo. `Renovado` cuenta como cierre: la vigencia sigue en un contrato
- * nuevo, pero la gestión del que se renovó ya está completa y vale resumirla.
- */
-export const CLOSED_CONTRACT_STATUSES = [
-  'Vencido',
-  'Rescindido',
-  'Renovado',
-  'Archivado',
-] as const;
-
-export type ClosedContractStatus = (typeof CLOSED_CONTRACT_STATUSES)[number];
-
-/** El contrato está en un estado de cierre. */
-export function isClosedStatus(status: string): boolean {
-  return (CLOSED_CONTRACT_STATUSES as readonly string[]).includes(status);
-}
-
-/**
  * Vista seudonimizada de las métricas: exactamente los mismos números, con los
  * nombres de campo en castellano y sin un solo lugar donde pueda entrar un dato
  * de las personas involucradas.

@@ -17,7 +17,7 @@ import {
   LineItemType,
   ContractStatus,
   validateLiquidacionTransition,
-  getValidLiquidacionTransitions,
+  liquidacionMachine,
   calculateLineItemsTotal,
   calculateRemainingBalance,
   isFullyPaid,
@@ -26,6 +26,7 @@ import type { LineItemInput, PaymentInput } from '@realfy/shared';
 import { PdfService } from './pdf.service';
 import { EmailService } from './email.service';
 import Decimal from 'decimal.js';
+import { assertTransition } from '../../common/errors/assert-transition';
 
 /**
  * Checks if an error is a Zod validation error (K006 pattern — no direct zod import).
@@ -402,14 +403,7 @@ export class LiquidacionesService {
     const fromStatus = liquidacion.status as LiquidacionStatus;
     const toStatus = validated.status as LiquidacionStatus;
 
-    if (!validateLiquidacionTransition(fromStatus, toStatus)) {
-      const validTargets = getValidLiquidacionTransitions(fromStatus);
-      throw new BadRequestException({
-        error: 'INVALID_TRANSITION',
-        message: `Cannot transition from ${fromStatus} to ${toStatus}`,
-        validTransitions: validTargets,
-      });
-    }
+    assertTransition(liquidacionMachine, fromStatus, toStatus);
 
     const updateData: any = { status: toStatus };
 

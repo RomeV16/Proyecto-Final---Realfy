@@ -260,7 +260,7 @@ export class InvoicesService {
     );
     if (!inquilinoCP?.person) {
       throw new BadRequestException({
-        error: 'NO_INQUILINO',
+        error: 'MISSING_INQUILINO',
         message: 'Contract has no Inquilino person assigned.',
       });
     }
