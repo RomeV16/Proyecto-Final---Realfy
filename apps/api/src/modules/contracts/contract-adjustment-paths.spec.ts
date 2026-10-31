@@ -1,5 +1,8 @@
 import { ContractsService } from './contracts.service';
-import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
+import {
+  ContractAdjustmentService,
+  MISSING_INDEX_DATA,
+} from '../index-data/contract-adjustment.service';
 import {
   AdjustmentPeriod,
   AdjustmentType,
@@ -136,8 +139,8 @@ const CASES: Case[] = [
   {
     name: 'IPC sin valores (D2)',
     contract: { adjustmentType: AdjustmentType.IPC },
-    manual: { error: 'MISSING_INDEX_DATA' },
-    preview: { error: 'MISSING_INDEX_DATA' },
+    manual: { error: MISSING_INDEX_DATA },
+    preview: { error: MISSING_INDEX_DATA },
     auto: 'skipped',
   },
   {
@@ -151,16 +154,16 @@ const CASES: Case[] = [
   {
     name: 'ICL sin valores (D4)',
     contract: { adjustmentType: AdjustmentType.ICL },
-    manual: { error: 'MISSING_INDEX_DATA' },
-    preview: { error: 'MISSING_INDEX_DATA' },
+    manual: { error: MISSING_INDEX_DATA },
+    preview: { error: MISSING_INDEX_DATA },
     auto: 'skipped',
   },
   {
     name: 'ICL con un solo valor (D5)',
     contract: { adjustmentType: AdjustmentType.ICL },
     series: { [IndexType.ICL]: ['100'] },
-    manual: { error: 'MISSING_INDEX_DATA' },
-    preview: { error: 'MISSING_INDEX_DATA' },
+    manual: { error: MISSING_INDEX_DATA },
+    preview: { error: MISSING_INDEX_DATA },
     auto: 'skipped',
   },
   {
@@ -191,8 +194,8 @@ const CASES: Case[] = [
     name: 'CCP con CVS y sin CER (DEF-20)',
     contract: { adjustmentType: AdjustmentType.CCP },
     series: { [IndexType.CVS]: ['2.0'] },
-    manual: { error: 'MISSING_INDEX_DATA' },
-    preview: { error: 'MISSING_INDEX_DATA' },
+    manual: { error: MISSING_INDEX_DATA },
+    preview: { error: MISSING_INDEX_DATA },
     auto: 'skipped',
   },
   {
@@ -291,7 +294,7 @@ describe('Caminos de cálculo del ajuste (caracterización)', () => {
       const contract = baseContract({ adjustmentType: AdjustmentType.CCP });
       const { adjustments, contracts } = build(contract, { [IndexType.CVS]: ['2.0'] });
       const expected = {
-        error: 'MISSING_INDEX_DATA',
+        error: MISSING_INDEX_DATA,
         indexType: IndexType.CER,
         periodStart: contract.startDate,
         periodEnd: SCHEDULE_DATE,
