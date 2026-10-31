@@ -15,13 +15,17 @@ export interface IndexWindow {
 
 /**
  * Corre la ventana `lagMonths` meses hacia atrás: el ajuste del período P usa
- * los índices de los meses que terminan en P menos el rezago. Con rezago 0 la
- * ventana no cambia.
+ * los índices de los meses que terminan en P menos el rezago. El fin siempre se
+ * corre; el comienzo solo cuando es la fecha de un ajuste anterior (que a su vez
+ * usó índices hasta su propio rezago), así los ajustes consecutivos se reparten
+ * los meses sin superponerse. Si el comienzo es el inicio del contrato o del
+ * tramo no se corre: los meses anteriores al alquiler no cuentan. Con rezago 0
+ * la ventana no cambia.
  */
 export function shiftWindowByLag(window: IndexWindow, lagMonths: number): IndexWindow {
   if (lagMonths === 0) return window;
   return {
-    from: addMonthsClamped(window.from, -lagMonths),
+    from: window.startExclusive ? addMonthsClamped(window.from, -lagMonths) : window.from,
     until: addMonthsClamped(window.until, -lagMonths),
     startExclusive: window.startExclusive,
   };

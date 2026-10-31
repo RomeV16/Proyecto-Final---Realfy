@@ -32,11 +32,17 @@ describe('rezago del índice', () => {
     expect(expectedMonthlyPeriods(window)).toEqual(['2025-01', '2025-02', '2025-03', '2025-04']);
   });
 
-  it('con rezago 2 el ajuste de abril usa los meses que terminan en febrero', () => {
+  it('con rezago 2 el primer ajuste usa desde el inicio del contrato hasta febrero, no meses anteriores al alquiler', () => {
     const shifted = shiftWindowByLag(window, 2);
-    expect(shifted.from).toEqual(utc(2024, 11));
+    expect(shifted.from).toEqual(utc(2025, 1));
     expect(shifted.until).toEqual(utc(2025, 2));
-    expect(expectedMonthlyPeriods(shifted)).toEqual(['2024-11', '2024-12', '2025-01', '2025-02']);
+    expect(expectedMonthlyPeriods(shifted)).toEqual(['2025-01', '2025-02']);
+  });
+
+  it('los ajustes consecutivos con rezago se reparten los meses sin superponerse', () => {
+    // Abril usó hasta febrero; julio usa marzo, abril y mayo.
+    const july = { from: utc(2025, 4), until: utc(2025, 7), startExclusive: true };
+    expect(expectedMonthlyPeriods(shiftWindowByLag(july, 2))).toEqual(['2025-03', '2025-04', '2025-05']);
   });
 
   it('tras un ajuste previo el mes inicial queda afuera también con rezago', () => {
@@ -46,7 +52,7 @@ describe('rezago del índice', () => {
   });
 
   it('recorta el día al fin de mes del destino', () => {
-    const shifted = shiftWindowByLag({ from: utc(2025, 1, 31), until: utc(2025, 3, 31), startExclusive: false }, 1);
+    const shifted = shiftWindowByLag({ from: utc(2025, 1, 31), until: utc(2025, 3, 31), startExclusive: true }, 1);
     expect(shifted.until).toEqual(utc(2025, 2, 28));
     expect(shifted.from).toEqual(utc(2024, 12, 31));
   });
@@ -178,6 +184,11 @@ describe('cobertura de la ventana y ajuste provisorio', () => {
     const c = assessCoverage(expected, [obs('2025-02', '2'), obs('2025-03', '3'), obs('2025-04', '2.5', true)]);
     expect(c.estimatedPeriods).toEqual(['2025-04']);
     expect(c.missingPeriods).toEqual([]);
+    expect(c.used.map((u) => [u.period, u.isEstimate])).toEqual([
+      ['2025-02', false],
+      ['2025-03', false],
+      ['2025-04', true],
+    ]);
     // 1,02 × 1,03 × 1,025 = 1,076865
     expect(calculateIPC(c.values, base).newRent.toFixed(2)).toBe('107686.50');
   });

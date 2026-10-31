@@ -15,6 +15,8 @@ export interface Coverage {
   estimatedPeriods: string[];
   /** Meses sin oficial ni estimado: el ajuste no se puede calcular. */
   missingPeriods: string[];
+  /** Lo que se usó para cada mes cubierto, en orden. */
+  used: IndexObservation[];
 }
 
 /**
@@ -31,6 +33,7 @@ export function assessCoverage(expected: string[], observations: IndexObservatio
   const values: Decimal[] = [];
   const estimatedPeriods: string[] = [];
   const missingPeriods: string[] = [];
+  const used: IndexObservation[] = [];
   for (const period of expected) {
     const found = byPeriod.get(period);
     if (!found) {
@@ -38,9 +41,10 @@ export function assessCoverage(expected: string[], observations: IndexObservatio
       continue;
     }
     values.push(found.value);
+    used.push(found);
     if (found.isEstimate) estimatedPeriods.push(period);
   }
-  return { values, estimatedPeriods, missingPeriods };
+  return { values, estimatedPeriods, missingPeriods, used };
 }
 
 export interface TrueUpInput {
