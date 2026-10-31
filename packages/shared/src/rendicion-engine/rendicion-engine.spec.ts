@@ -285,7 +285,7 @@ describe('rendicion-engine — bordes', () => {
   });
 });
 
-describe('rendicion-engine — montos negativos (DEF-23)', () => {
+describe('rendicion-engine — montos negativos (CP-243, DEF-23)', () => {
   const capturar = (fn: () => unknown): { code?: string; message?: string } | undefined => {
     try {
       fn();

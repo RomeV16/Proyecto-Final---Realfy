@@ -169,7 +169,7 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 
 ## Casos de fechas y dinero (ítem 35)
 
-Reservados CP-130 a CP-139. El resultado esperado se fijó antes de corregir cada defecto.
+Reservados CP-130 a CP-139 (CP-137 a CP-139 se agregan con 0.4b). El resultado esperado se fijó antes de corregir cada defecto.
 
 | ID | Qué | Esperado (fijado antes) | Prueba | Estado |
 |---|---|---|---|---|
@@ -180,6 +180,20 @@ Reservados CP-130 a CP-139. El resultado esperado se fijó antes de corregir cad
 | CP-134 | Comisión: porcentaje y montos fuera de rango | porcentaje 150, 100,01, -1 o -0,01, cobrado, monto fijo o gastos negativos lanzan `INVALID_COMMISSION`; 0 y 100 son válidos; `POST /contracts/:id/commission` con 150,00 responde 400 `VALIDATION_ERROR`. Regla: el porcentaje está entre 0 y 100 | `packages/shared/src/commission-engine/commission-engine.spec.ts` (6 casos); `test/e2e/renditions.e2e-spec.ts::CP-134` | verde (DEF-14 corregido) |
 | CP-135 | Paridad de `LiquidacionStatus` con Prisma, incluido `Pendiente` | sin excepciones registradas; la máquina de estados cubre todos los valores del enum y `Pendiente` no tiene transiciones | `test/unit/enum-parity.spec.ts`; `liquidacion-state-machine.spec.ts` | verde (DEF-15 corregido) |
 | CP-136 | Utilidades compartidas de fechas (`addMonthsClamped`, `periodToMonths`, `monthStartUTC`, `periodFilter`, `periodKey`, `todayInAR`, `formatDateAR`) y de dinero (`Money`, `round2`, `toAmountString`, `sumMoney`, `allocateLargestRemainder`) | años bisiestos y fines de mes (31 ene + 1 = 28/29 feb; 29 feb + 12 = 28 feb), 02:00 UTC es el día anterior en Buenos Aires, el reparto de 100 en tres suma exactamente 100,00 y `Money` no cambia el `Decimal` global | `packages/shared/src/date-utils/date-utils.spec.ts`, `packages/shared/src/money/money.spec.ts`, `reports/compute-next-run-at.spec.ts` | verde (31 oct) |
+| CP-137 | PDF de liquidación: propiedad | título "Depto Palermo" imprime `Propiedad: Depto Palermo`; sin título, `Propiedad: Av. Santa Fe 1234, piso 3 B`; sin propiedad, `Propiedad: —`. Regla: título si existe, si no calle, número y unidad | `liquidaciones/liquidaciones-pdf.spec.ts` (3 casos); `packages/shared/src/format.spec.ts` (6 casos) | verde (DEF-17 corregido) |
+| CP-138 | Punitorio sobre saldo y en el día de Buenos Aires | total 1000 con pago de 600, 10 días de mora y 1 % diario: 40 sobre base 400; pagada por completo: no devenga; a las 22:30 AR del 10/03 aplica el 10/03 con 5 días de mora. Regla: la base es el saldo pendiente | `penalties/penalties.scheduler.spec.ts` (3 casos) | verde (DEF-18 corregido) |
+| CP-139 | Deuda: un solo criterio sobre el saldo pendiente | con L1 Vencida 250000 (pagó 100000), L2 Enviada 90000 a vencer, L3 Enviada 60000,50 vencida (pagó 10000,25) y L4 Pagada: pagos pendiente 1 por 90000 y vencida 2 por 200000; panel total 360000, pendiente 90000, vencida 200000, tasa 19 %, morosidad 56 %; contexto diario 200000 y 90000; morosidad 200000,25; morosos 200000,25. Regla: deuda = saldo (total menos pagos) de las liquidaciones por cobrar; vencida = Vencida, o Enviada con vencimiento anterior a hoy | `liquidaciones/deuda-lectores.spec.ts` (5 casos), `liquidaciones/receivables.spec.ts`, `liquidacion-state-machine.spec.ts` | verde (DEF-19 corregido) |
+
+## Casos de deuda, pagos y avisos (ítem 35, 0.4b)
+
+El resultado esperado se fijó antes de corregir cada defecto.
+
+| ID | Qué | Esperado (fijado antes) | Prueba | Estado |
+|---|---|---|---|---|
+| CP-240 | Ajuste automático sin datos de índice | IPC o ICL sin valores, o CCP con CVS y sin CER: el cronograma sigue pendiente, no se actualiza el alquiler ni se audita, y se registra `MISSING_INDEX_DATA` con contrato, cronograma e índices; un contrato sin datos no frena a los demás; con datos se aplica. Regla: sin dato no hay ajuste | `index-data/contract-adjustment.service.spec.ts` (5 casos) | verde (DEF-20 corregido) |
+| CP-241 | Pagos simultáneos | saldo 150000: dos pagos de 100000 en paralelo dan un 200 y un 400 `PAYMENT_EXCEEDS_BALANCE` y un solo pago registrado; cinco de 40000 dan tres 200 y dos 400, con 120000 pagados y saldo no negativo. Regla: la validación del saldo y el alta del pago son atómicas | `test/e2e/liquidaciones.e2e-spec.ts` (2 casos) | verde (DEF-21 corregido) |
+| CP-242 | Aviso de vencimiento de contrato | un contrato a 25 días y dos usuarios: dos corridas el mismo día dan 2 avisos y 2 mails; ocho días consecutivos dan 3 avisos por usuario (30, 15 y 7 días); un contrato que entra a 6 días recibe uno; a 44 días ninguno; los cuatro crons de avisos corren en `America/Argentina/Buenos_Aires`. Regla: un aviso por usuario, contrato y umbral | `notifications/notification-scheduler.service.spec.ts` (7 casos) | verde (DEF-22 corregido) |
+| CP-243 | Rendición: pagos y deducciones negativos | una deducción de -5000 o un pago de -20000 lanzan `INVALID_LINE_AMOUNT` con la descripción del renglón; el cero es válido. Regla: ningún renglón de la rendición es negativo | `packages/shared/src/rendicion-engine/rendicion-engine.spec.ts` (4 casos) | verde (DEF-23 corregido) |
 
 ## Casos de base de proceso
 
