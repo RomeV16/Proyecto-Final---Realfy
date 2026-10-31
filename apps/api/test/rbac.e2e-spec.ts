@@ -96,7 +96,7 @@ describe('RBAC Enforcement (e2e)', () => {
     expect(inviteRes.body.email).toBe('newuser@test.com');
   });
 
-  it('Gerente can invite users and list users', async () => {
+  it('Gerente can list users but cannot invite (403)', async () => {
     const admin = await registerUser(app, {
       email: 'admin@gerente-test.com',
       password: 'Password123!',
@@ -121,12 +121,12 @@ describe('RBAC Enforcement (e2e)', () => {
       .set('Authorization', `Bearer ${gerente.accessToken}`)
       .expect(200);
 
-    // Gerente can POST /users/invite
+    // Gerente is read-only on the team: POST /users/invite is Admin only
     await request(app.getHttpServer())
       .post('/api/users/invite')
       .set('Authorization', `Bearer ${gerente.accessToken}`)
       .send({ email: 'invited-by-gerente@test.com', role: 'Lectura' })
-      .expect(201);
+      .expect(403);
   });
 
   it('Unauthenticated request returns 401', async () => {
