@@ -1,8 +1,8 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { ClsService } from 'nestjs-cls';
-import { TenantCron } from '../../src/common/scheduler/tenant-cron';
-import { TenantContextService } from '../../src/common/tenant/tenant-context.service';
-import { RequestContextService } from '../../src/common/logger/request-context.service';
+import { TenantCron } from './tenant-cron';
+import { TenantContextService } from '../tenant/tenant-context.service';
+import { RequestContextService } from '../logger/request-context.service';
 
 /**
  * `TenantCron` real sobre un CLS real y las inmobiliarias dadas, para las

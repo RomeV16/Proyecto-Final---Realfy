@@ -5,7 +5,7 @@ import { ArcaService } from '../arca/arca.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { S3Service } from '../../../common/media/s3.service';
 import { TenantCron } from '../../../common/scheduler/tenant-cron';
-import { makeTenantCron } from '../../../../test/helpers/tenant-cron';
+import { makeTenantCron } from '../../../common/scheduler/tenant-cron.testing';
 
 // ─── Minimal mock factories ───────────────────────────────────────────────────
 

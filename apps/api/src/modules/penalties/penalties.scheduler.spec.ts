@@ -1,7 +1,7 @@
 import { PenaltiesScheduler } from './penalties.scheduler';
 import { PenaltiesService } from './penalties.service';
 import Decimal from 'decimal.js';
-import { makeTenantCron } from '../../../test/helpers/tenant-cron';
+import { makeTenantCron } from '../../common/scheduler/tenant-cron.testing';
 
 /**
  * Unit tests for PenaltiesScheduler.applyPenalties()

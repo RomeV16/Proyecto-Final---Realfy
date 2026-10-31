@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { makeTenantCron } from '../../../test/helpers/tenant-cron';
+import { makeTenantCron } from './tenant-cron.testing';
 
 describe('TenantCron.forEachActiveTenant', () => {
   const tenants = [

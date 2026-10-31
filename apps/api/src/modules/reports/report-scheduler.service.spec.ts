@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { ReportSchedulerService } from './report-scheduler.service';
-import { makeTenantCron } from '../../../test/helpers/tenant-cron';
+import { makeTenantCron } from '../../common/scheduler/tenant-cron.testing';
 import { REPORT_REGISTRY, REPORT_KEYS } from './report-registry';
 
 const definition = REPORT_REGISTRY[REPORT_KEYS[0]];

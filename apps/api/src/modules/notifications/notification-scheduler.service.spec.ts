@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { NotificationSchedulerService } from './notification-scheduler.service';
-import { makeTenantCron } from '../../../test/helpers/tenant-cron';
+import { makeTenantCron } from '../../common/scheduler/tenant-cron.testing';
 
 const mockCreateNotification = jest.fn();
 const mockSendNotificationEmail = jest.fn();
