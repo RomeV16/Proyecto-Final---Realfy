@@ -1,11 +1,10 @@
 import { NotFoundException } from '@nestjs/common';
-import { validate } from 'class-validator';
-import { plainToInstance } from 'class-transformer';
+import { PenaltyConfigSchema } from '@realfy/shared';
+import type { PenaltyConfig } from '@realfy/shared';
 import { TenantsService } from './tenants.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { DEFAULT_PENALTY_CONFIG } from './penalty-config.types';
-import { UpdatePenaltyConfigDto, PenaltyMode } from './dto/update-penalty-config.dto';
 
 function createMockPrismaService() {
   return {
@@ -114,8 +113,8 @@ describe('TenantsService — penalty config', () => {
   // ──────────────────────────────────────────────────────────
 
   describe('updatePenaltyConfig', () => {
-    const validDto: UpdatePenaltyConfigDto = {
-      mode: PenaltyMode.DailyPercent,
+    const validDto: PenaltyConfig = {
+      mode: 'daily_percent',
       value: '0.002',
       graceDays: 7,
       maxMultiplier: '3.0',
@@ -155,13 +154,13 @@ describe('TenantsService — penalty config', () => {
   });
 
   // ──────────────────────────────────────────────────────────
-  // UpdatePenaltyConfigDto — class-validator
+  // PenaltyConfigSchema
   // ──────────────────────────────────────────────────────────
 
-  describe('UpdatePenaltyConfigDto validation', () => {
+  describe('PenaltyConfigSchema validation', () => {
     async function validateDto(plain: object) {
-      const dto = plainToInstance(UpdatePenaltyConfigDto, plain);
-      return validate(dto);
+      const parsed = PenaltyConfigSchema.safeParse(plain);
+      return parsed.success ? [] : parsed.error.issues.map((i) => ({ property: String(i.path[0]) }));
     }
 
     it('passes for a fully valid payload', async () => {
