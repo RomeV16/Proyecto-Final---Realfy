@@ -344,6 +344,16 @@ describe('InvoicesService — edge cases', () => {
       );
     });
 
+    it('rechaza un monId desconocido antes de pedir el CAE', async () => {
+      const arca = buildArcaMock();
+      const service = await buildService(buildPrismaMock(), arca);
+
+      await expect(service.emitFromDto({ ...VALID_EMIT_DTO, monId: 'EUR' } as any)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(arca.emit).not.toHaveBeenCalled();
+    });
+
     it('reintenta el guardado y devuelve el comprobante si un reintento funciona', async () => {
       const prisma = buildPrismaMock();
       prisma.client.comprobante.create = jest

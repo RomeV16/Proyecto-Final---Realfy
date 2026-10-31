@@ -1503,7 +1503,7 @@ model ArcaRequestLog {
 model Comprobante {
   id                      String            @id @default(uuid())
   tenantId                String
-  paymentId               String
+  paymentId               String?
   issuerId                String
   clientRequestId         String?
   type                    ComprobanteType
@@ -1543,7 +1543,7 @@ model Comprobante {
   cbtesAsoc               Json?
   createdAt               DateTime          @default(now())
 
-  payment             Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  payment             Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   issuer              ArcaIssuer    @relation(fields: [issuerId], references: [id])
   originalComprobante Comprobante?  @relation("ComprobanteNC", fields: [originalComprobanteId], references: [id])
   creditNotes         Comprobante[] @relation("ComprobanteNC")
