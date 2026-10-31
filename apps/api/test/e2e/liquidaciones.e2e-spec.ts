@@ -870,6 +870,77 @@ describe('Liquidaciones (e2e)', () => {
       expect(detail.body.status).toBe(LiquidacionStatus.Enviada);
     });
 
+    // CP-241 (DEF-21): el saldo se valida y el pago se crea en una sola
+    // transacción; dos pagos simultáneos no pueden superar el saldo.
+    it('dos pagos simultáneos que superan el saldo: uno entra y el otro se rechaza', async () => {
+      const { user, liquidacion } = await setupFullLiquidacion('pay-race-2');
+
+      await transitionTo(user.accessToken, liquidacion.id, [
+        LiquidacionStatus.Revision,
+        LiquidacionStatus.Aprobada,
+        LiquidacionStatus.Enviada,
+      ]);
+
+      const pay = () =>
+        request(app.getHttpServer())
+          .post(`/api/liquidaciones/${liquidacion.id}/payments`)
+          .set('Authorization', `Bearer ${user.accessToken}`)
+          .send({
+            amount: '100000.00',
+            method: PaymentMethod.Transferencia,
+            paidAt: new Date().toISOString(),
+          });
+
+      // Saldo de 150.000: los dos pagos de 100.000 juntos lo superan.
+      const [a, b] = await Promise.all([pay(), pay()]);
+
+      expect([a.status, b.status].sort()).toEqual([200, 400]);
+      const rejected = a.status === 400 ? a : b;
+      expect(rejected.body.error).toBe('PAYMENT_EXCEEDS_BALANCE');
+
+      const detail = await request(app.getHttpServer())
+        .get(`/api/liquidaciones/${liquidacion.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+      expect(detail.body.payments).toHaveLength(1);
+      expect(detail.body.status).toBe(LiquidacionStatus.Enviada);
+    });
+
+    it('cinco pagos simultáneos: se acepta lo que cabe y el saldo nunca es negativo', async () => {
+      const { user, liquidacion } = await setupFullLiquidacion('pay-race-5');
+
+      await transitionTo(user.accessToken, liquidacion.id, [
+        LiquidacionStatus.Revision,
+        LiquidacionStatus.Aprobada,
+        LiquidacionStatus.Enviada,
+      ]);
+
+      const pay = () =>
+        request(app.getHttpServer())
+          .post(`/api/liquidaciones/${liquidacion.id}/payments`)
+          .set('Authorization', `Bearer ${user.accessToken}`)
+          .send({
+            amount: '40000.00',
+            method: PaymentMethod.Efectivo,
+            paidAt: new Date().toISOString(),
+          });
+
+      // Saldo de 150.000: caben tres pagos de 40.000 (120.000), el cuarto ya no.
+      const responses = await Promise.all([pay(), pay(), pay(), pay(), pay()]);
+
+      expect(responses.filter((r) => r.status === 200)).toHaveLength(3);
+      expect(responses.filter((r) => r.status === 400)).toHaveLength(2);
+
+      const detail = await request(app.getHttpServer())
+        .get(`/api/liquidaciones/${liquidacion.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+      const paid = detail.body.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+      expect(paid).toBe(120000);
+      expect(Number(detail.body.total) - paid).toBeGreaterThanOrEqual(0);
+      expect(detail.body.status).toBe(LiquidacionStatus.Enviada);
+    });
+
     it('Partial payment does NOT auto-transition (still Enviada)', async () => {
       const { user, liquidacion } = await setupFullLiquidacion('pay-partial');
 
