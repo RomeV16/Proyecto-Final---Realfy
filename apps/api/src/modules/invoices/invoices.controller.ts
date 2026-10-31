@@ -13,7 +13,6 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import type { z, ZodTypeAny } from 'zod';
 import { InvoicesService } from './invoices.service';
 import { IssuersService } from './issuers.service';
 import { CertificateService } from './certificate.service';
@@ -21,6 +20,7 @@ import { FiscalPdfService } from './fiscal-pdf.service';
 import { ArcaService } from './arca/arca.service';
 import { ArcaParamCacheService } from './arca/arca-param-cache.service';
 import type { ParamType } from './arca/arca-param-cache.service';
+import { parseOrThrow } from '../../common/validation/zod';
 import { Roles } from '../../common/auth/roles.decorator';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { UserRole } from '@realfy/shared';
@@ -49,22 +49,6 @@ export class InvoicesController {
     private readonly tenantContext: TenantContextService,
   ) {}
 
-  /**
-   * Validate a request body against its schema, surfacing Zod's own issue list
-   * so the client can point at the offending field.
-   */
-  private parse<T extends ZodTypeAny>(schema: T, body: unknown): z.infer<T> {
-    const parsed = schema.safeParse(body);
-    if (!parsed.success) {
-      throw new UnprocessableEntityException({
-        error: 'VALIDATION_ERROR',
-        message: 'Validation failed',
-        details: parsed.error.errors,
-      });
-    }
-    return parsed.data;
-  }
-
   // ─── Preview ───────────────────────────────────────────────────────────────
 
   /**
@@ -74,7 +58,7 @@ export class InvoicesController {
   @Roles(...MUTATE_ROLES)
   @Post('preview')
   async previewEmit(@Body() body: Record<string, unknown>) {
-    return this.invoicesService.previewEmitFromDto(this.parse(EmitInvoiceDtoSchema, body));
+    return this.invoicesService.previewEmitFromDto(parseOrThrow(EmitInvoiceDtoSchema, body, 'Validation failed'));
   }
 
   // ─── Emit ──────────────────────────────────────────────────────────────────
@@ -87,7 +71,7 @@ export class InvoicesController {
   @Post('emit')
   async emitInvoice(@Body() body: Record<string, unknown>, @Res({ passthrough: true }) res: Response) {
     const { comprobante, isIdempotentReplay } = await this.invoicesService.emitFromDto(
-      this.parse(EmitInvoiceDtoSchema, body),
+      parseOrThrow(EmitInvoiceDtoSchema, body, 'Validation failed'),
     );
 
     if (isIdempotentReplay) {
@@ -105,7 +89,7 @@ export class InvoicesController {
   @Post('emit-nc')
   async emitNotaCredito(@Body() body: Record<string, unknown>, @Res({ passthrough: true }) res: Response) {
     const { comprobante, isIdempotentReplay } = await this.invoicesService.emitNotaCreditoFromDto(
-      this.parse(EmitNotaCreditoDtoSchema, body),
+      parseOrThrow(EmitNotaCreditoDtoSchema, body, 'Validation failed'),
     );
 
     if (isIdempotentReplay) {
@@ -302,7 +286,7 @@ export class InvoicesController {
   @Roles(...MUTATE_ROLES)
   @Post('issuers')
   async createIssuer(@Body() body: Record<string, unknown>) {
-    return this.issuersService.createIssuer(this.parse(IssuerCreateDtoSchema, body));
+    return this.issuersService.createIssuer(parseOrThrow(IssuerCreateDtoSchema, body, 'Validation failed'));
   }
 
   /**
@@ -312,7 +296,7 @@ export class InvoicesController {
   @Roles(...MUTATE_ROLES)
   @Patch('issuers/:id')
   async updateIssuer(@Param('id') id: string, @Body() body: Record<string, unknown>) {
-    return this.issuersService.updateIssuer(id, this.parse(IssuerUpdateDtoSchema, body));
+    return this.issuersService.updateIssuer(id, parseOrThrow(IssuerUpdateDtoSchema, body, 'Validation failed'));
   }
 
   /**
@@ -364,7 +348,7 @@ export class InvoicesController {
   @Roles(...MUTATE_ROLES)
   @Post('issuers/:id/pdv')
   async createPdv(@Param('id') id: string, @Body() body: Record<string, unknown>) {
-    return this.issuersService.createPdv(id, this.parse(PuntoDeVentaCreateDtoSchema, body));
+    return this.issuersService.createPdv(id, parseOrThrow(PuntoDeVentaCreateDtoSchema, body, 'Validation failed'));
   }
 
   // ─── PdV standalone delete ─────────────────────────────────────────────────

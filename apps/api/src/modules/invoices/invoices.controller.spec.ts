@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnprocessableEntityException } from '@nestjs/common';
+import { BadRequestException, UnprocessableEntityException } from '@nestjs/common';
 import { InvoicesController } from './invoices.controller';
 import { InvoicesService } from './invoices.service';
 import { IssuersService } from './issuers.service';
@@ -183,16 +183,16 @@ describe('InvoicesController', () => {
       expect(mockRes.setHeader).toHaveBeenCalledWith('X-Idempotent-Replay', 'true');
     });
 
-    it('throws 422 when impTotal mismatches sum of parts', async () => {
+    it('throws 400 when impTotal mismatches sum of parts', async () => {
       const bad = { ...VALID_EMIT_DTO, impTotal: '9999.00' }; // intentionally wrong
       const mockRes = { setHeader: jest.fn() } as any;
-      await expect(controller.emitInvoice(bad, mockRes)).rejects.toThrow(UnprocessableEntityException);
+      await expect(controller.emitInvoice(bad, mockRes)).rejects.toThrow(BadRequestException);
     });
 
-    it('throws 422 when concepto=2 but service dates missing', async () => {
+    it('throws 400 when concepto=2 but service dates missing', async () => {
       const bad = { ...VALID_EMIT_DTO, concepto: 2 }; // no fchServDesde etc.
       const mockRes = { setHeader: jest.fn() } as any;
-      await expect(controller.emitInvoice(bad, mockRes)).rejects.toThrow(UnprocessableEntityException);
+      await expect(controller.emitInvoice(bad, mockRes)).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -205,16 +205,16 @@ describe('InvoicesController', () => {
       expect(result).toMatchObject({ id: 'cbte-001' });
     });
 
-    it('throws 422 when cbtesAsoc is empty', async () => {
+    it('throws 400 when cbtesAsoc is empty', async () => {
       const bad = { ...VALID_NC_DTO, cbtesAsoc: [] };
       const mockRes = { setHeader: jest.fn() } as any;
-      await expect(controller.emitNotaCredito(bad, mockRes)).rejects.toThrow(UnprocessableEntityException);
+      await expect(controller.emitNotaCredito(bad, mockRes)).rejects.toThrow(BadRequestException);
     });
 
-    it('throws 422 when cbtesAsoc is absent', async () => {
+    it('throws 400 when cbtesAsoc is absent', async () => {
       const bad = { ...VALID_EMIT_DTO }; // no cbtesAsoc
       const mockRes = { setHeader: jest.fn() } as any;
-      await expect(controller.emitNotaCredito(bad, mockRes)).rejects.toThrow(UnprocessableEntityException);
+      await expect(controller.emitNotaCredito(bad, mockRes)).rejects.toThrow(BadRequestException);
     });
 
     it('sets X-Idempotent-Replay header on NC duplicate', async () => {
@@ -298,8 +298,8 @@ describe('InvoicesController', () => {
       expect(mocks.issuersServiceMock.createIssuer).toHaveBeenCalled();
     });
 
-    it('POST /issuers throws 422 when body invalid', async () => {
-      await expect(controller.createIssuer({} as any)).rejects.toThrow(UnprocessableEntityException);
+    it('POST /issuers throws 400 when body invalid', async () => {
+      await expect(controller.createIssuer({} as any)).rejects.toThrow(BadRequestException);
     });
 
     it('PATCH /issuers/:id updates issuer', async () => {
@@ -326,8 +326,8 @@ describe('InvoicesController', () => {
       expect(result).toHaveProperty('number', 1);
     });
 
-    it('POST /issuers/:id/pdv throws 422 when number missing', async () => {
-      await expect(controller.createPdv(ISSUER_ID, {} as any)).rejects.toThrow(UnprocessableEntityException);
+    it('POST /issuers/:id/pdv throws 400 when number missing', async () => {
+      await expect(controller.createPdv(ISSUER_ID, {} as any)).rejects.toThrow(BadRequestException);
     });
 
     it('DELETE /pdv/:id removes pdv', async () => {
