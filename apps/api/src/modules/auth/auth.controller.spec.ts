@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException, ConflictException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { PasswordResetService } from './password-reset.service';
 
 // ─── Fixture helpers ──────────────────────────────────────────────────────────
 
@@ -41,8 +42,13 @@ function buildMocks() {
     login: jest.fn().mockResolvedValue({ user: MOCK_USER, tokens: MOCK_TOKENS }),
     refreshToken: jest.fn().mockResolvedValue(MOCK_TOKENS),
     logout: jest.fn().mockResolvedValue(undefined),
+    changePassword: jest.fn().mockResolvedValue(undefined),
   };
-  return { authService };
+  const passwordReset = {
+    requestByEmail: jest.fn().mockResolvedValue(undefined),
+    confirm: jest.fn().mockResolvedValue(undefined),
+  };
+  return { authService, passwordReset };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -56,7 +62,10 @@ describe('AuthController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: mocks.authService }],
+      providers: [
+        { provide: AuthService, useValue: mocks.authService },
+        { provide: PasswordResetService, useValue: mocks.passwordReset },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
@@ -161,6 +170,38 @@ describe('AuthController', () => {
       expect(res.clearCookie).toHaveBeenCalledWith('access_token', expect.anything());
       expect(res.clearCookie).toHaveBeenCalledWith('refresh_token', expect.anything());
       expect(result).toMatchObject({ message: 'Logged out successfully' });
+    });
+  });
+  // ─── Contraseña ───────────────────────────────────────────────────────────
+
+  describe('POST /auth/change-password', () => {
+    it('cambia la contraseña conservando la sesión actual', async () => {
+      const req = buildMockReq({ cookies: { refresh_token: 'keep-me' } });
+      await controller.changePassword(req, { currentPassword: 'a', newPassword: 'b' });
+      expect(mocks.authService.changePassword).toHaveBeenCalledWith(
+        MOCK_USER.id,
+        { currentPassword: 'a', newPassword: 'b' },
+        'keep-me',
+      );
+    });
+
+    it('sin cookie usa el refresh token del cuerpo si viene', async () => {
+      const req = buildMockReq({ body: { refreshToken: 'from-body' } });
+      await controller.changePassword(req, {});
+      expect(mocks.authService.changePassword).toHaveBeenCalledWith(MOCK_USER.id, {}, 'from-body');
+    });
+  });
+
+  describe('POST /auth/password-reset', () => {
+    it('el pedido responde un mensaje neutro', async () => {
+      const result = await controller.requestPasswordReset({ email: 'x@example.com' });
+      expect(mocks.passwordReset.requestByEmail).toHaveBeenCalledWith({ email: 'x@example.com' });
+      expect(result).toEqual({ message: expect.any(String) });
+    });
+
+    it('la confirmación delega en el servicio', async () => {
+      await controller.confirmPasswordReset({ token: 't', newPassword: 'p' });
+      expect(mocks.passwordReset.confirm).toHaveBeenCalledWith({ token: 't', newPassword: 'p' });
     });
   });
 });
