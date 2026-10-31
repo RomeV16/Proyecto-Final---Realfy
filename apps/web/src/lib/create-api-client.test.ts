@@ -14,6 +14,12 @@ function json(status: number, body: unknown, headers: Record<string, string> = {
   });
 }
 
+const rejected = async (p: Promise<unknown>) =>
+  (await p.then(
+    () => null,
+    (e) => e,
+  )) as ApiRequestError;
+
 let location: { href: string; pathname: string };
 
 beforeEach(() => {
@@ -83,7 +89,7 @@ describe('createApiClient.request', () => {
     fetchMock.mockResolvedValue(
       json(400, { error: 'BAD', message: 'No va', correlationId: 'c-1', problems: [1] }),
     );
-    const err = await make().request('/x').catch((e) => e);
+    const err = await rejected(make().request('/x'));
     expect(err).toBeInstanceOf(ApiRequestError);
     expect(err).toMatchObject({
       status: 400,
@@ -96,7 +102,7 @@ describe('createApiClient.request', () => {
 
   it('une los mensajes de validación en uno solo', async () => {
     fetchMock.mockResolvedValue(json(400, { message: ['a', 'b'] }));
-    const err = await make().request('/x').catch((e) => e);
+    const err = await rejected(make().request('/x'));
     expect(err.message).toBe('a, b');
     expect(err.errorCode).toBe('UNKNOWN_ERROR');
   });
@@ -105,7 +111,7 @@ describe('createApiClient.request', () => {
     fetchMock.mockResolvedValue(
       new Response('<html>', { status: 502, statusText: 'Bad Gateway', headers: { 'x-request-id': 'h-9' } }),
     );
-    const err = await make().request('/x').catch((e) => e);
+    const err = await rejected(make().request('/x'));
     expect(err).toMatchObject({
       status: 502,
       errorCode: 'UNKNOWN_ERROR',
@@ -127,7 +133,7 @@ describe('createApiClient.request', () => {
   it('si el reintento vuelve a fallar con 401 lanza el error normalizado', async () => {
     const refresh = vi.fn().mockResolvedValue(true);
     fetchMock.mockResolvedValue(json(401, { error: 'UNAUTHORIZED', message: 'no' }));
-    const err = await make({ refresh }).request('/x').catch((e) => e);
+    const err = await rejected(make({ refresh }).request('/x'));
     expect(err.status).toBe(401);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
@@ -135,9 +141,8 @@ describe('createApiClient.request', () => {
   it('si no se puede renovar limpia la sesión y redirige con el locale actual', async () => {
     const onUnauthorized = vi.fn();
     fetchMock.mockResolvedValue(json(401, {}));
-    const err = await make({ refresh: async () => false, onUnauthorized })
-      .request('/x')
-      .catch((e) => e);
+    const err = await rejected(make({ refresh: async () => false, onUnauthorized })
+      .request('/x'));
     expect(err).toMatchObject({ status: 401, errorCode: 'UNAUTHORIZED' });
     expect(onUnauthorized).toHaveBeenCalled();
     expect(location.href).toBe('/en/auth/login');
@@ -165,9 +170,8 @@ describe('createApiClient.request', () => {
 
   it('una renovación que lanza cuenta como fallida', async () => {
     fetchMock.mockResolvedValue(json(401, {}));
-    const err = await make({ refresh: () => Promise.reject(new Error('x')) })
-      .request('/x')
-      .catch((e) => e);
+    const err = await rejected(make({ refresh: () => Promise.reject(new Error('x')) })
+      .request('/x'));
     expect(err.errorCode).toBe('UNAUTHORIZED');
   });
 
@@ -175,7 +179,7 @@ describe('createApiClient.request', () => {
     vi.unstubAllGlobals();
     vi.stubGlobal('fetch', fetchMock);
     fetchMock.mockResolvedValue(json(401, {}));
-    const err = await make().request('/x').catch((e) => e);
+    const err = await rejected(make().request('/x'));
     expect(err.status).toBe(401);
   });
 });
@@ -197,7 +201,7 @@ describe('createApiClient.blob', () => {
 
   it('propaga el error normalizado', async () => {
     fetchMock.mockResolvedValue(json(404, { error: 'NOT_FOUND', message: 'nada', correlationId: 'z' }));
-    const err = await make().blob('/x').catch((e) => e);
+    const err = await rejected(make().blob('/x'));
     expect(err).toMatchObject({ status: 404, errorCode: 'NOT_FOUND', correlationId: 'z' });
   });
 });

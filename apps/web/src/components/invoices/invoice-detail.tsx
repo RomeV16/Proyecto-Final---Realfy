@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { ComprobanteType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
@@ -117,22 +119,12 @@ export function InvoiceDetail({ invoiceId }: InvoiceDetailProps) {
   async function handleDownloadPdf() {
     setPdfDownloading(true);
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/invoices/${invoiceId}/pdf`,
-        { credentials: 'include' as RequestCredentials },
+      await downloadFile(
+        `/invoices/${invoiceId}/pdf`,
+        `comprobante-${data?.type}-${data?.comprobanteNumber || invoiceId}.pdf`,
       );
-      if (!response.ok) throw new Error('PDF download failed');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `comprobante-${data?.type}-${data?.comprobanteNumber || invoiceId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     } catch {
-      // Could add error feedback
+      toast.error(tCommon('downloadFailed'));
     } finally {
       setPdfDownloading(false);
     }

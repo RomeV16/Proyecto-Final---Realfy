@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { downloadFile } from '@/lib/download';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
@@ -101,40 +102,13 @@ export function GenerateDocumentModal({ open, contractId, onClose }: GenerateDoc
     setGenerating(true);
     setError('');
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-      const response = await fetch(
-        `${apiBase}/contracts/${contractId}/generate-document`,
-        {
+      await downloadFile(`/contracts/${contractId}/generate-document`, `contrato.${format}`, {
+        init: {
           method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            templateId: selectedTemplateId,
-            format,
-          }),
+          body: JSON.stringify({ templateId: selectedTemplateId, format }),
         },
-      );
-
-      if (!response.ok) {
-        throw new Error('Document generation failed');
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-
-      // Extract filename from Content-Disposition or build a default
-      const disposition = response.headers.get('Content-Disposition');
-      const filenameMatch = disposition?.match(/filename="(.+)"/);
-      a.download = filenameMatch?.[1] || `contrato.${format}`;
-
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+        preferServerName: true,
+      });
 
       onClose();
     } catch {

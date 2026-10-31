@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { LiquidacionStatus } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
@@ -14,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 /* ──────────── Types ──────────── */
 
@@ -110,6 +111,7 @@ interface CardProps {
 function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: CardProps) {
   const t = useTranslations('liquidaciones');
   const tCard = useTranslations('liquidaciones.card');
+  const tCommon = useTranslations('common');
   const tMonths = useTranslations('liquidaciones.months');
 
   // Derive month/year from period date (API returns period as ISO date, not separate month/year)
@@ -213,11 +215,13 @@ function LiquidacionCard({ item, localePrefix, selected, onToggle, bulkMode }: C
           {/* El PDF se arma en el momento desde la API, no hay archivo guardado. */}
           {!isVoided && (
             <EntityCard.Action
-              href={`${API_BASE_URL}/liquidaciones/${item.id}/pdf`}
               icon="download"
               variant="quiet"
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() =>
+                downloadFile(`/liquidaciones/${item.id}/pdf`, `liquidacion-${item.id}.pdf`).catch(() =>
+                  toast.error(tCommon('downloadFailed')),
+                )
+              }
             >
               {tCard('downloadPdf')}
             </EntityCard.Action>

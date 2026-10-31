@@ -2,6 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api-client';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { ComprobanteType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -77,6 +79,7 @@ const LIMIT = 20;
 
 export function InvoiceList() {
   const t = useTranslations('invoices');
+  const tCommon = useTranslations('common');
   const tTable = useTranslations('invoices.table');
   const tTypes = useTranslations('invoices.types');
   const tFilters = useTranslations('invoices.filters');
@@ -115,22 +118,9 @@ export function InvoiceList() {
 
   async function handleDownloadPdf(id: string) {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/invoices/${id}/pdf`,
-        { credentials: 'include' as RequestCredentials },
-      );
-      if (!response.ok) throw new Error('PDF download failed');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `comprobante-${id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await downloadFile(`/invoices/${id}/pdf`, `comprobante-${id}.pdf`);
     } catch {
-      // Silent fail for now
+      toast.error(tCommon('downloadFailed'));
     }
   }
 

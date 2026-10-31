@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { Spinner } from '@/components/ui/spinner';
 import { RendicionStatus, RendicionLineItemType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
@@ -160,7 +162,9 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
     if (!rendition) return;
     setActionLoading('pdf');
     try {
-      window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/renditions/${rendition.id}/pdf`, '_blank');
+      await downloadFile(`/renditions/${rendition.id}/pdf`, `rendicion-${rendition.id}.pdf`);
+    } catch {
+      toast.error(tCommon('downloadFailed'));
     } finally {
       setActionLoading('');
     }

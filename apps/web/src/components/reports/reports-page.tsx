@@ -5,6 +5,7 @@ import { useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
+import { downloadFile } from '@/lib/download';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
@@ -192,29 +193,12 @@ export function ReportsPage() {
     setDownloading(true);
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-      const response = await fetch(
-        `${apiBase}/reports/${reportType}/${format}?${buildParams().toString()}`,
-        { credentials: 'include' },
-      );
-
-      if (!response.ok) throw new Error(`${format} download failed`);
-
-      const blob = await response.blob();
-      const disposition = response.headers.get('content-disposition') || '';
-      const match = disposition.match(/filename="?([^"]+)"?/);
       const ext = format === 'excel' ? 'xlsx' : 'pdf';
-      const fileName =
-        match?.[1] || `reporte-${reportType}-${new Date().toISOString().slice(0, 10)}.${ext}`;
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      await downloadFile(
+        `/reports/${reportType}/${format}?${buildParams().toString()}`,
+        `reporte-${reportType}-${new Date().toISOString().slice(0, 10)}.${ext}`,
+        { preferServerName: true },
+      );
     } catch {
       toast.error(t('errors.downloadFailed'));
     } finally {

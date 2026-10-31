@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { RendicionStatus } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
@@ -324,8 +326,12 @@ export function RenditionList() {
     setFilters((prev) => ({ ...prev, [key]: value, page: key === 'page' ? (value as number) : 1 }));
   }
 
-  function handleDownloadPdf(id: string) {
-    window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/renditions/${id}/pdf`, '_blank');
+  async function handleDownloadPdf(id: string) {
+    try {
+      await downloadFile(`/renditions/${id}/pdf`, `rendicion-${id}.pdf`);
+    } catch {
+      toast.error(tCommon('downloadFailed'));
+    }
   }
 
   const currentYear = new Date().getFullYear();
