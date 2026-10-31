@@ -12,7 +12,7 @@
 export type PriorityKind = 'cobranza' | 'reclamo' | 'contrato' | 'lead';
 
 /** Prefijo del identificador opaco de cada frente. */
-export const REF_PREFIX: Record<PriorityKind, string> = {
+const REF_PREFIX: Record<PriorityKind, string> = {
   cobranza: 'C',
   reclamo: 'R',
   contrato: 'V',

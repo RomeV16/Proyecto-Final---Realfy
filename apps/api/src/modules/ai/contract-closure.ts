@@ -147,7 +147,7 @@ function renderings(value: number): string[] {
  * que se pueda escribir "hasta diciembre de 2025" sin que cuente como una cifra
  * inventada.
  */
-export function knownFigures(facts: ContractClosureFacts): Set<string> {
+function knownFigures(facts: ContractClosureFacts): Set<string> {
   const allowed = new Set<string>();
 
   for (const value of Object.values(facts)) {

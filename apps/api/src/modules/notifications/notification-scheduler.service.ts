@@ -14,12 +14,12 @@ const DAILY_08_AR = { timeZone: 'America/Argentina/Buenos_Aires' } as const;
  * al entrar en los 30 días, a los 15 y a los 7. Un contrato que se carga ya
  * dentro de un umbral recibe solo el aviso del umbral que le corresponde.
  */
-export const CONTRACT_EXPIRY_THRESHOLDS_DAYS = [30, 15, 7] as const;
+const CONTRACT_EXPIRY_THRESHOLDS_DAYS = [30, 15, 7] as const;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Umbral vigente: el más chico que todavía alcanza (a 20 días, 30; a 10, 15; a 3, 7). */
-export function contractExpiryThreshold(daysLeft: number): number | null {
+function contractExpiryThreshold(daysLeft: number): number | null {
   const ascending = [...CONTRACT_EXPIRY_THRESHOLDS_DAYS].sort((a, b) => a - b);
   return ascending.find((threshold) => daysLeft <= threshold) ?? null;
 }
@@ -28,7 +28,7 @@ export function contractExpiryThreshold(daysLeft: number): number | null {
  * Título del aviso de un umbral. Es parte de la clave de deduplicación
  * (usuario, contrato, tipo, umbral): la tabla no tiene una columna de umbral.
  */
-export function contractExpiryTitle(threshold: number): string {
+function contractExpiryTitle(threshold: number): string {
   return `Contrato por vencer: faltan ${threshold} días o menos`;
 }
 
