@@ -151,10 +151,15 @@ describe('Renditions (e2e)', () => {
         isActive: true,
         persons: {
           createMany: {
-            data: [
-              { tenantId, personId: owner.id, role: PersonRole.Propietario },
-              { tenantId, personId: inquilino.id, role: PersonRole.Inquilino },
-            ],
+            data: [{ tenantId, personId: inquilino.id, role: PersonRole.Inquilino }],
+          },
+        },
+        lessors: {
+          create: {
+            tenantId,
+            personId: owner.id,
+            payoutPct: '100.0000',
+            validFrom: new Date('2026-01-01'),
           },
         },
       },
@@ -346,6 +351,78 @@ describe('Renditions (e2e)', () => {
       expect(Number(res.body.netDeposit)).toBe(137500);
       expect(res.body.lineItems).toBeDefined();
       expect(res.body.lineItems.length).toBeGreaterThanOrEqual(2); // Rent + Commission (+ AdminFee)
+    });
+
+    it('CP-245 — reparte el neto entre tres locadores 33.3334 / 33.3333 / 33.3333', async () => {
+      const chain = await setupFullChain();
+      const extra = await Promise.all(
+        ['Dos', 'Tres'].map((n) =>
+          prisma.baseClient.person.create({
+            data: { tenantId: chain.tenantId, firstName: 'Locador', lastName: n },
+          }),
+        ),
+      );
+      // Alquiler 150000.00, comisión 5 % (7500.00) y gastos 5000.00: neto 137500.00.
+      await prisma.baseClient.contractLessor.deleteMany({ where: { contractId: chain.contract.id } });
+      const weights = ['33.3334', '33.3333', '33.3333'];
+      for (const [i, person] of [chain.owner, ...extra].entries()) {
+        await prisma.baseClient.contractLessor.create({
+          data: {
+            tenantId: chain.tenantId,
+            contractId: chain.contract.id,
+            personId: person.id,
+            payoutPct: weights[i],
+            validFrom: new Date('2026-01-01'),
+          },
+        });
+      }
+
+      const res = await request(app.getHttpServer())
+        .post('/api/renditions/generate')
+        .set('Authorization', `Bearer ${chain.accessToken}`)
+        .send({ contractId: chain.contract.id, month: 3, year: 2026 })
+        .expect(201);
+
+      const parts = res.body.lessorRenditions as any[];
+      expect(parts).toHaveLength(3);
+      expect(res.body.ownerId).toBe(chain.owner.id);
+      const cents = (v: string) => Math.round(Number(v) * 100);
+      const sum = (key: string) => parts.reduce((acc, r) => acc + cents(r[key]), 0);
+      expect(sum('rentCollected')).toBe(15000000);
+      expect(sum('commissionAmount')).toBe(750000);
+      expect(sum('adminFeeAmount')).toBe(500000);
+      expect(sum('netDeposit')).toBe(13750000);
+      for (const r of parts) {
+        expect(cents(r.rentCollected) - cents(r.commissionAmount) - cents(r.adminFeeAmount)).toBe(
+          cents(r.netDeposit),
+        );
+      }
+
+      // Generar de nuevo devuelve las mismas tres y no crea más.
+      const again = await request(app.getHttpServer())
+        .post('/api/renditions/generate')
+        .set('Authorization', `Bearer ${chain.accessToken}`)
+        .send({ contractId: chain.contract.id, month: 3, year: 2026 })
+        .expect(201);
+      expect(again.body.lessorRenditions).toHaveLength(3);
+      expect(await prisma.baseClient.ownerRendicion.count({ where: { contractId: chain.contract.id } })).toBe(3);
+    });
+
+    it('CP-245 — sin locadores que sumen 100 no se genera la rendición', async () => {
+      const chain = await setupFullChain();
+      await prisma.baseClient.contractLessor.updateMany({
+        where: { contractId: chain.contract.id },
+        data: { payoutPct: '60.0000' },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/renditions/generate')
+        .set('Authorization', `Bearer ${chain.accessToken}`)
+        .send({ contractId: chain.contract.id, month: 3, year: 2026 })
+        .expect(400);
+
+      expect(res.body.error).toBe('LESSOR_SHARES_INVALID');
+      expect(await prisma.baseClient.ownerRendicion.count({ where: { contractId: chain.contract.id } })).toBe(0);
     });
 
     it('POST /renditions/generate — duplicate returns existing (idempotent)', async () => {

@@ -104,15 +104,17 @@ A continuación se listan los casos de uso considerados centrales para la operac
 
 - **CU-01 Alta de propiedad** — Ventas. Registra una propiedad con dirección, características, fotos y propietario asociado.
 - **CU-02 Cambio de estado de una operación** — Ventas. Transiciona el estado de la operación de venta o alquiler de la propiedad: borrador, disponible, reservada, alquilada, vendida, ocupada, suspendida o archivada. El estado vive en la operación, no en la propiedad, de modo que un mismo inmueble puede estar publicado en venta y alquilado a la vez.
-- **CU-03 Alta de persona** — Ventas. Carga una persona física o jurídica y asigna uno o más roles: propietario, inquilino, garante, comprador, proveedor o lead.
+- **CU-03 Alta de persona** — Ventas. Carga una persona física o jurídica y asigna uno o más roles: propietario, inquilino, garante, comprador, proveedor, lead o apoderado. El rol es una etiqueta de cliente: dice cómo se relaciona la persona con la inmobiliaria, no a qué contrato pertenece. Se pone solo cuando la persona se carga como locador, titular o apoderado, de modo que no hace falta asignarlo antes para poder firmar un contrato.
 - **CU-04 Vinculación de garantías** — Ventas. Asocia al contrato una garantía propietaria, bancaria, un seguro de caución o un depósito.
 
 ### Contratos
 
-- **CU-05 Alta de contrato** — Ventas. Genera un contrato a partir de una propiedad, un inquilino, sus garantías y su esquema de ajuste, y produce el documento a partir de una plantilla.
+- **CU-05 Alta de contrato** — Ventas. Genera un contrato a partir de una propiedad, sus locadores, un inquilino, sus garantías y su esquema de ajuste, y produce el documento a partir de una plantilla. Para activarlo, los locadores vigentes tienen que sumar exactamente 100 % del cobro; el documento incluye a los locadores y a los apoderados que firman por ellos.
 - **CU-06 Renovación de contrato** — Ventas. Da de alta un contrato nuevo tomando como base uno vencido y manteniendo las partes. No es una operación automática: el contrato anterior queda en estado Renovado y el nuevo se carga como cualquier otro.
 - **CU-07 Configurar ajuste** — Ventas o Gerente. Define la modalidad de ajuste —IPC, ICL, CCP, porcentaje fijo o personalizado— y su periodicidad, de mensual a anual.
 - **CU-08 Calcular y aplicar ajuste** — Ventas calcula, Admin o Gerente aplica. El cálculo toma el índice publicado para el período; la aplicación escribe el nuevo monto en el contrato.
+- **CU-25 Registrar locadores de un contrato** — Ventas, Gerente o Admin. Indica quién alquila (propietario, usufructuario, sublocador, acreedor u otro), qué porcentaje del cobro le corresponde, desde y hasta cuándo, qué cuenta recibe su parte y, si cobra otra persona, quién. Los locadores vigentes suman 100 % en cada fecha; una cesión se carga cerrando a uno y abriendo a otro en la misma fecha. Para cambiar el reparto de un contrato activo se reemplaza el conjunto de una vez. Los contratos migrados con varios propietarios quedan marcados para revisar el reparto.
+- **CU-26 Registrar un apoderado** — Ventas, Gerente o Admin. Registra que una persona actúa en nombre de otra, con los alcances cobrar, firmar o administrar; con firma indistinta (alcanza con uno) o conjunta (firman todos los del grupo); general o acotado a un contrato o una propiedad, con su vigencia y el documento del poder. Un apoderado con poder de cobro puede ser el cobrador de un locador; mientras lo sea, el poder no se puede revocar.
 
 ### Liquidaciones y pagos
 

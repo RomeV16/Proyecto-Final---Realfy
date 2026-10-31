@@ -3,6 +3,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { getParty } from '../contracts/contract-parties';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
   OwnerStatementFilterSchema,
@@ -679,10 +680,10 @@ export class ReportsService {
       const monto = new Decimal(outstandingBalance(liq).toString());
       totalVencido = totalVencido.plus(monto);
 
-      const inquilino =
-        liq.contract?.persons?.[0]?.person
-          ? `${liq.contract.persons[0].person.firstName} ${liq.contract.persons[0].person.lastName}`
-          : '—';
+      const inquilinoPerson = liq.contract ? getParty<any>(liq.contract, 'Inquilino')?.person : undefined;
+      const inquilino = inquilinoPerson
+        ? `${inquilinoPerson.firstName} ${inquilinoPerson.lastName}`
+        : '—';
 
       return {
         propiedad:

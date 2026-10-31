@@ -155,10 +155,15 @@ describe('Reports (e2e)', () => {
         isActive: true,
         persons: {
           createMany: {
-            data: [
-              { tenantId, personId: owner.id, role: PersonRole.Propietario },
-              { tenantId, personId: inquilino.id, role: PersonRole.Inquilino },
-            ],
+            data: [{ tenantId, personId: inquilino.id, role: PersonRole.Inquilino }],
+          },
+        },
+        lessors: {
+          create: {
+            tenantId,
+            personId: owner.id,
+            payoutPct: '100.0000',
+            validFrom: new Date('2026-01-01'),
           },
         },
       },

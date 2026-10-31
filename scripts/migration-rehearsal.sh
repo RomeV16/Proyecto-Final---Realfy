@@ -8,6 +8,10 @@
 # 3. Aplica TODAS las migraciones del árbol actual (prisma migrate deploy).
 # 4. Corre cada archivo de apps/api/test/migration-data/checks/*.sql. Cada uno
 #    devuelve filas SOLO si algo salió mal; cualquier fila hace fallar el ensayo.
+#    Una verificación cuya primera línea es `-- migracion: <carpeta>` solo corre
+#    si esa migración es nueva respecto de <base-ref>: el backfill de una
+#    migración ya aplicada en la base corrió sobre una base vacía y no tiene
+#    nada que verificar.
 #
 # Una migración con backfill puede aplicar sin error y aun así dejar los datos
 # mal; las bases vacías de "Migrations from scratch" no lo detectan.
@@ -63,6 +67,14 @@ if [ "${#CHECKS[@]}" -eq 0 ]; then
 fi
 for check in "${CHECKS[@]}"; do
   name=$(basename "$check")
+  target=$(sed -n '1s/^-- migracion: *//p' "$check")
+  if [ -n "$target" ] && [ ! -d "$TMP/apps/api/prisma/migrations/$target" ] \
+     && [ -d "$API/prisma/migrations/$target" ]; then
+    : # migración nueva: se verifica
+  elif [ -n "$target" ]; then
+    echo "omite $name (la migración $target no es nueva)"
+    continue
+  fi
   rows=$("${PSQL[@]}" -At -F ' | ' -f "$check")
   if [ -n "$rows" ]; then
     echo "FALLA $name"

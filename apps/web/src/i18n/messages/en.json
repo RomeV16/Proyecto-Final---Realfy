@@ -1134,7 +1134,7 @@
     "PROPERTY_NOT_FOUND": "The contract property does not exist.",
     "PROPERTY_INACTIVE": "The contract property has been deactivated.",
     "MISSING_INQUILINO": "At least one tenant is required.",
-    "MISSING_PROPIETARIO": "At least one owner is required.",
+    "LESSOR_SHARES_INVALID": "Lessors must add up to exactly 100% of the payout on every date of the contract.",
     "INVALID_DATES": "The end date must be after the start date.",
     "OVERLAPPING_CONTRACT": "The property already has an active lease from {start} to {end} that overlaps these dates.",
     "RENTAL_OPERATION_ARCHIVED": "The property rental operation is archived; reactivate it before activating the contract.",

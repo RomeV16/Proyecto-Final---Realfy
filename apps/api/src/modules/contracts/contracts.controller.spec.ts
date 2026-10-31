@@ -10,6 +10,7 @@ import { UserRole } from '@realfy/shared';
 import { RbacGuard } from '../../common/auth/rbac.guard';
 import { ContractsController } from './contracts.controller';
 import { ContractsService } from './contracts.service';
+import { ContractLessorsService } from './contract-lessors.service';
 import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -57,7 +58,15 @@ function buildMocks() {
     }),
   };
 
-  return { contractsService, contractAdjustmentService };
+  const lessors = {
+    list: jest.fn().mockResolvedValue([]),
+    create: jest.fn().mockResolvedValue([]),
+    replace: jest.fn().mockResolvedValue([]),
+    update: jest.fn().mockResolvedValue([]),
+    remove: jest.fn().mockResolvedValue({ deleted: true }),
+  };
+
+  return { contractsService, contractAdjustmentService, lessors };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -74,6 +83,7 @@ describe('ContractsController', () => {
       providers: [
         { provide: ContractsService, useValue: mocks.contractsService },
         { provide: ContractAdjustmentService, useValue: mocks.contractAdjustmentService },
+        { provide: ContractLessorsService, useValue: mocks.lessors },
       ],
     })
       .overrideGuard(require('../../common/auth/jwt-auth.guard').JwtAuthGuard)
@@ -282,6 +292,66 @@ describe('ContractsController', () => {
       expect(() => guard.canActivate(contextFor(terminate, UserRole.Ventas))).toThrow(
         ForbiddenException,
       );
+    });
+  });
+
+  // ─── Locadores ────────────────────────────────────────────────────────────
+
+  describe('locadores', () => {
+    it('GET /contracts/:id/lessors delega con la fecha pedida', async () => {
+      await controller.listLessors(CONTRACT_ID, '2026-06-01');
+
+      expect(mocks.lessors.list).toHaveBeenCalledWith(CONTRACT_ID, '2026-06-01');
+    });
+
+    it('POST, PUT, PATCH y DELETE delegan en el servicio de locadores', async () => {
+      await controller.addLessor(CONTRACT_ID, { personId: 'p' });
+      await controller.replaceLessors(CONTRACT_ID, { lessors: [] });
+      await controller.updateLessor(CONTRACT_ID, 'l1', { payoutPct: '50' });
+      await controller.removeLessor(CONTRACT_ID, 'l1');
+
+      expect(mocks.lessors.create).toHaveBeenCalledWith(CONTRACT_ID, { personId: 'p' });
+      expect(mocks.lessors.replace).toHaveBeenCalledWith(CONTRACT_ID, { lessors: [] });
+      expect(mocks.lessors.update).toHaveBeenCalledWith(CONTRACT_ID, 'l1', { payoutPct: '50' });
+      expect(mocks.lessors.remove).toHaveBeenCalledWith(CONTRACT_ID, 'l1');
+    });
+
+    describe('roles', () => {
+      const guard = new RbacGuard(new Reflector());
+      const contextFor = (handler: (...args: any[]) => unknown, role: UserRole) =>
+        ({
+          getHandler: () => handler,
+          getClass: () => ContractsController,
+          switchToHttp: () => ({ getRequest: () => ({ user: { role } }) }),
+        }) as unknown as ExecutionContext;
+      const writes = [
+        ContractsController.prototype.addLessor,
+        ContractsController.prototype.replaceLessors,
+        ContractsController.prototype.updateLessor,
+        ContractsController.prototype.removeLessor,
+      ];
+
+      it.each([UserRole.Admin, UserRole.Gerente, UserRole.Ventas])(
+        '%s puede cambiar los locadores',
+        (role) => {
+          for (const handler of writes) {
+            expect(guard.canActivate(contextFor(handler, role))).toBe(true);
+          }
+        },
+      );
+
+      it.each([UserRole.Liquidaciones, UserRole.Marketing, UserRole.Soporte, UserRole.Lectura])(
+        '%s no puede cambiar los locadores',
+        (role) => {
+          for (const handler of writes) {
+            expect(() => guard.canActivate(contextFor(handler, role))).toThrow(ForbiddenException);
+          }
+        },
+      );
+
+      it('leer los locadores no exige rol', () => {
+        expect(guard.canActivate(contextFor(ContractsController.prototype.listLessors, UserRole.Lectura))).toBe(true);
+      });
     });
   });
 });

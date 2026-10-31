@@ -29,14 +29,16 @@ describe('ActivationProblems', () => {
     renderEs(
       <ActivationProblems
         problems={[
-          { code: 'MISSING_PROPIETARIO' },
+          { code: 'LESSOR_SHARES_INVALID' },
           { code: 'MISSING_INQUILINO' },
           { code: 'INVALID_DATES' },
         ]}
       />,
     );
     expect(screen.getByRole('alert')).toHaveTextContent('No se puede activar el contrato:');
-    expect(screen.getByText('Falta cargar al menos un propietario.')).toBeInTheDocument();
+    expect(screen.getByText(
+        'Los locadores tienen que sumar exactamente 100 % del cobro en cada fecha del contrato.',
+      )).toBeInTheDocument();
     expect(screen.getByText('Falta cargar al menos un inquilino.')).toBeInTheDocument();
     expect(
       screen.getByText('La fecha de fin tiene que ser posterior a la de inicio.'),

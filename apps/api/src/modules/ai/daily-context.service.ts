@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { getParty } from '../contracts/contract-parties';
 import { RECEIVABLE_STATUSES, TICKET_SLA_HOURS, TicketPriority, todayInAR } from '@realfy/shared';
 import { isOverdue, isReceivable, outstandingBalance, sumOutstanding } from '../liquidaciones/receivables';
 import {
@@ -43,7 +44,7 @@ function personName(person?: { firstName: string; lastName: string } | null): st
 function counterparty(
   persons: Array<{ role: string; person: { firstName: string; lastName: string } | null }>,
 ): string | null {
-  const inquilino = persons.find((p) => p.role === 'Inquilino');
+  const inquilino = getParty({ persons }, 'Inquilino');
   return personName(inquilino?.person ?? persons[0]?.person);
 }
 

@@ -31,14 +31,19 @@ import {
   findTransitionPath,
   contractMachine,
   isClosedStatus,
+  splitEqualPct,
+  findInvalidShareDates,
 } from '@realfy/shared';
-import type { AdjustmentParams } from '@realfy/shared';
+import type { AdjustmentParams, InvalidShareDate } from '@realfy/shared';
 import Decimal from 'decimal.js';
 import { assertTransition } from '../../common/errors/assert-transition';
 import { applyOperationTransition } from '../properties/operation-state';
 import { ContractClosureService } from '../ai/contract-closure.service';
 import { parseOrThrow } from '../../common/validation/zod';
 import { rethrowExternalRefConflict } from '../../common/validation/external-ref';
+import { ensureRole } from '../persons/person-roles.service';
+import { getApoderadosAt } from './contract-parties';
+import { assertLessorRefs } from './lessor-rules';
 
 /**
  * Motivo por el que un contrato no se puede activar. `code` es estable y es lo
@@ -49,13 +54,15 @@ export interface ActivationProblem {
     | 'PROPERTY_NOT_FOUND'
     | 'PROPERTY_INACTIVE'
     | 'MISSING_INQUILINO'
-    | 'MISSING_PROPIETARIO'
+    | 'LESSOR_SHARES_INVALID'
     | 'INVALID_DATES'
     | 'OVERLAPPING_CONTRACT'
     | 'RENTAL_OPERATION_ARCHIVED';
   contractId?: string;
   startDate?: Date;
   endDate?: Date;
+  /** Para LESSOR_SHARES_INVALID: fechas en que los locadores vigentes no suman 100 %. */
+  invalidDates?: InvalidShareDate[];
 }
 
 /** Datos del contrato que intervienen en la activación. */
@@ -65,10 +72,11 @@ export interface ActivationCandidate {
   contractType: string;
   startDate: Date;
   endDate: Date;
+  /** Roles de las partes que no son locadores (inquilino, garante...). */
   roles: string[];
 }
 
-/** Los contratos que no son de venta necesitan inquilino además de propietario. */
+/** Los contratos que no son de venta necesitan inquilino además de locadores. */
 function requiresInquilino(contractType: string): boolean {
   return contractType !== ContractType.Venta;
 }
@@ -103,7 +111,10 @@ export class ContractsService {
 
     // Person filter: find contracts linked to this person
     if (filters.personId) {
-      where.persons = { some: { personId: filters.personId } };
+      where.OR = [
+        { persons: { some: { personId: filters.personId } } },
+        { lessors: { some: { personId: filters.personId } } },
+      ];
     }
 
     // Date range filters
@@ -163,6 +174,10 @@ export class ContractsService {
       where: { id },
       include: {
         persons: { include: { person: true } },
+        lessors: {
+          include: { person: true, payee: true, bankAccount: true },
+          orderBy: [{ validFrom: 'asc' }, { payoutPct: 'desc' }, { id: 'asc' }],
+        },
         guarantees: true,
         adjustments: { orderBy: { periodNumber: 'asc' } },
         schedules: { orderBy: { periodNumber: 'asc' } },
@@ -177,7 +192,8 @@ export class ContractsService {
       });
     }
 
-    return contract;
+    const apoderados = await getApoderadosAt(this.prisma.client, contract, new Date());
+    return { ...contract, apoderados };
   }
 
   // ─── Create ─────────────────────────────────────────
@@ -198,8 +214,59 @@ export class ContractsService {
       });
     }
 
+    // Los propietarios que vienen en `persons` son locadores: no hacen falta
+    // en `ContractPerson`, y no necesitan tener el rol para firmar (se les pone).
+    const ownerEntries = validated.persons.filter(
+      (cp: { role: string }) => cp.role === PersonRole.Propietario,
+    );
+    const otherEntries = validated.persons.filter(
+      (cp: { role: string }) => cp.role !== PersonRole.Propietario,
+    );
+    const startDate = new Date(validated.startDate);
+    const lessorRows: Array<{
+      personId: string;
+      capacity: string;
+      payoutPct: string;
+      payeePersonId: string | null;
+      bankAccountId: string | null;
+      validFrom: Date;
+      validTo: Date | null;
+      needsReview: boolean;
+    }> =
+      validated.lessors.length > 0
+        ? validated.lessors.map((l: any) => ({
+            personId: l.personId,
+            capacity: l.capacity,
+            payoutPct: l.payoutPct,
+            payeePersonId: l.payeePersonId ?? null,
+            bankAccountId: l.bankAccountId ?? null,
+            validFrom: l.validFrom ? new Date(l.validFrom) : startDate,
+            validTo: l.validTo ? new Date(l.validTo) : null,
+            needsReview: false,
+          }))
+        : (() => {
+            const shares = splitEqualPct(Math.max(ownerEntries.length, 1));
+            return ownerEntries.map((cp: { personId: string }, i: number) => ({
+              personId: cp.personId,
+              capacity: 'Propietario',
+              payoutPct: shares[i],
+              payeePersonId: null,
+              bankAccountId: null,
+              validFrom: startDate,
+              validTo: null,
+              needsReview: ownerEntries.length > 1,
+            }));
+          })();
+
+    for (const row of lessorRows) {
+      await assertLessorRefs(this.prisma.client, row, {
+        propertyId: validated.propertyId,
+        at: row.validFrom,
+      });
+    }
+
     // Validate persons exist and have correct roles
-    for (const cp of validated.persons) {
+    for (const cp of otherEntries) {
       const person = await this.prisma.client.person.findFirst({
         where: { id: cp.personId },
         include: { roles: true },
@@ -252,8 +319,8 @@ export class ContractsService {
         },
       });
 
-      // Create contract persons
-      for (const cp of validated.persons) {
+      // Create contract persons (inquilino, garante...) and lessors
+      for (const cp of otherEntries) {
         await tx.contractPerson.create({
           data: {
             tenantId,
@@ -262,6 +329,12 @@ export class ContractsService {
             role: cp.role,
           },
         });
+      }
+      for (const row of lessorRows) {
+        await tx.contractLessor.create({
+          data: { tenantId, contractId: created.id, ...row },
+        });
+        await ensureRole(tx, row.personId, PersonRole.Propietario);
       }
 
       // Create guarantees
@@ -305,7 +378,7 @@ export class ContractsService {
           contractType: validated.contractType,
           startDate: new Date(validated.startDate),
           endDate: new Date(validated.endDate),
-          roles: validated.persons.map((p: { role: string }) => p.role),
+          roles: otherEntries.map((p: { role: string }) => p.role),
         };
         await this.assertActivatable(tx, candidate);
         await this.occupyProperty(tx, tenantId, candidate);
@@ -322,6 +395,7 @@ export class ContractsService {
       tenantId,
       adjustmentType: validated.adjustmentType,
       personsCount: validated.persons.length,
+      lessorsCount: lessorRows.length,
       guaranteesCount: validated.guarantees.length,
       schedulesCount: scheduleEntries.length,
     });
@@ -594,8 +668,19 @@ export class ContractsService {
       problems.push({ code: 'PROPERTY_INACTIVE' });
     }
 
-    if (!candidate.roles.includes(PersonRole.Propietario)) {
-      problems.push({ code: 'MISSING_PROPIETARIO' });
+    // Los locadores vigentes tienen que sumar exactamente 100 % el día en que
+    // empieza el contrato y cada vez que alguien entra o sale.
+    const lessors = await tx.contractLessor.findMany({
+      where: { contractId: candidate.id },
+      select: { payoutPct: true, validFrom: true, validTo: true },
+    });
+    const invalidDates = findInvalidShareDates(
+      lessors,
+      candidate.startDate,
+      candidate.endDate,
+    );
+    if (invalidDates.length > 0) {
+      problems.push({ code: 'LESSOR_SHARES_INVALID', invalidDates });
     }
     if (
       requiresInquilino(candidate.contractType) &&

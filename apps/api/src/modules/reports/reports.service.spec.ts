@@ -431,7 +431,7 @@ describe('ReportsService', () => {
         contract: {
           property: { title: 'Belgrano 100', street: null },
           persons: opts.inquilino
-            ? [{ person: { firstName: 'Luis', lastName: 'Gomez' } }]
+            ? [{ role: 'Inquilino', person: { firstName: 'Luis', lastName: 'Gomez' } }]
             : [],
         },
       };

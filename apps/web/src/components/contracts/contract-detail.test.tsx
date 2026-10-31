@@ -166,7 +166,7 @@ describe('ContractDetailView — activación', () => {
       () =>
         Promise.reject(
           new ApiRequestError(400, 'CONTRACT_NOT_ACTIVATABLE', 'no activable', {
-            problems: [{ code: 'MISSING_INQUILINO' }, { code: 'MISSING_PROPIETARIO' }],
+            problems: [{ code: 'MISSING_INQUILINO' }, { code: 'LESSOR_SHARES_INVALID' }],
           }),
         ),
     );
@@ -177,7 +177,7 @@ describe('ContractDetailView — activación', () => {
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('No se puede activar el contrato:');
     expect(alert).toHaveTextContent('Falta cargar al menos un inquilino.');
-    expect(alert).toHaveTextContent('Falta cargar al menos un propietario.');
+    expect(alert).toHaveTextContent('Los locadores tienen que sumar exactamente 100 % del cobro');
     expect(screen.queryByText(/Este contrato es un borrador/)).not.toBeInTheDocument();
     expect(screen.queryByText('no activable')).not.toBeInTheDocument();
     expect(activateButton()).toBeInTheDocument();

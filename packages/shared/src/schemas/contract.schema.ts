@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { externalRefSchema } from './person.schema';
+import { CreateContractLessorSchema } from './party.schema';
 import {
   ContractStatus,
   ContractType,
@@ -65,8 +66,14 @@ export const CreateContractSchema = z
     customAdjustmentPct: decimalStringOptional,
     notes: z.string().max(2000).optional(),
     externalRef: externalRefSchema.optional().nullable(),
-    persons: z.array(ContractPersonSchema).min(1, 'At least one person is required'),
+    persons: z.array(ContractPersonSchema).optional().default([]),
+    /** Locadores con su porcentaje de cobro. Si se omite, los `persons` con rol Propietario se reparten el 100 % en partes iguales. */
+    lessors: z.array(CreateContractLessorSchema).optional().default([]),
     guarantees: z.array(CreateGuaranteeSchema).optional().default([]),
+  })
+  .refine((data) => data.persons.length + data.lessors.length > 0, {
+    message: 'At least one person is required',
+    path: ['persons'],
   })
   .refine((data) => new Date(data.endDate).getTime() > new Date(data.startDate).getTime(), {
     message: 'endDate must be after startDate',

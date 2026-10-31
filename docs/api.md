@@ -126,6 +126,9 @@ el registro del servidor, junto con el método, la ruta, el estado, el
 | POST | `/properties` | Alta. | Admin, Gerente, Ventas |
 | PATCH | `/properties/:id` | Edición. | Admin, Gerente, Ventas |
 | DELETE | `/properties/:id` | Baja. Responde 409 `PROPERTY_HAS_ACTIVE_CONTRACTS` si tiene contratos activos. | Admin, Gerente |
+| GET | `/properties/:id/ownerships` | Titulares de la propiedad. | Autenticado |
+| POST | `/properties/:id/ownerships` | Registra un titular (`personId`; `sharePct`, `title`, `since`, `until` opcionales). No se exige que los porcentajes sumen 100. Le agrega a la persona el rol `Propietario`. | Admin, Gerente, Ventas |
+| DELETE | `/properties/:id/ownerships/:ownershipId` | Quita un titular. 404 `OWNERSHIP_NOT_FOUND`. | Admin, Gerente, Ventas |
 | POST | `/properties/:id/operations` | Agrega una operación de alquiler, alquiler temporario o venta. | Admin, Gerente, Ventas |
 | PATCH | `/properties/:id/operations/:opId/state` | Transiciona el estado de la operación. | Admin, Gerente, Ventas |
 | POST | `/properties/:id/media` | Sube una imagen. Multipart, campo `file`, hasta 10 MB, solo imágenes. | Admin, Gerente, Ventas |
@@ -156,7 +159,7 @@ Cuelgan de la propiedad.
 | POST | `/persons` | Alta. | Admin, Gerente, Ventas |
 | PATCH | `/persons/:id` | Edición. | Admin, Gerente, Ventas |
 | DELETE | `/persons/:id` | Baja. | Admin, Gerente |
-| POST | `/persons/:id/roles` | Asigna un rol —propietario, inquilino, garante, proveedor, comprador— opcionalmente ligado a una propiedad o un contrato. | Admin, Gerente, Ventas |
+| POST | `/persons/:id/roles` | Asigna un rol (propietario, inquilino, garante, proveedor, comprador, apoderado). Con rol `Propietario` y `propertyId` crea la titularidad de esa propiedad; `propertyId` de la asignación ya no se guarda. | Admin, Gerente, Ventas |
 | DELETE | `/persons/:id/roles/:roleId` | Quita una asignación de rol. | Admin, Gerente, Ventas |
 | POST | `/persons/:id/documents` | Sube un documento. Multipart, campo `file`. | Admin, Gerente, Ventas |
 | DELETE | `/persons/:id/documents/:docId` | Borra un documento. | Admin, Gerente, Ventas |
@@ -164,6 +167,10 @@ Cuelgan de la propiedad.
 | POST | `/persons/:id/bank-accounts` | Alta de una cuenta (`currency` obligatoria; `bankName`, `cbu` de 22 dígitos, `alias`, `holder`, `isDefault`). La primera de cada moneda queda predeterminada; con `isDefault: true` reemplaza a la actual. | Admin, Gerente, Ventas |
 | PATCH | `/persons/:id/bank-accounts/:accountId` | Edición (la moneda no cambia). `isDefault: true` intercambia la predeterminada; `isDefault: false` sobre la predeterminada responde 409 `BANK_ACCOUNT_DEFAULT_REQUIRED`. 404 `BANK_ACCOUNT_NOT_FOUND`. | Admin, Gerente, Ventas |
 | DELETE | `/persons/:id/bank-accounts/:accountId` | Baja. Responde 409 `BANK_ACCOUNT_DEFAULT_REQUIRED` si es la predeterminada y quedan otras de la misma moneda. | Admin, Gerente, Ventas |
+| GET | `/persons/:id/powers` | Poderes que otorgó la persona; con `?as=agent`, los que ejerce como apoderada. `?activeOn=` limita a los vigentes ese día. | Autenticado |
+| POST | `/persons/:id/powers` | La persona otorga un poder: `agentId`, `scopes` (`Cobrar`, `Firmar`, `Administrar`), `signatureMode` (`Indistinta` o `Conjunta`), `contractId` o `propertyId` (sin ninguno es general), `validFrom`, `validTo`, `documentUrl`. Con firma conjunta, los apoderados del mismo alcance comparten `groupKey`. 400 `POWER_SELF` si se da poder a sí misma. Le agrega al apoderado el rol `Apoderado`. | Admin, Gerente, Ventas |
+| PATCH | `/persons/:id/powers/:powerId` | Cambia alcances, firma, vigencia o documento. 404 `POWER_NOT_FOUND`; 409 `POWER_IN_USE` si dejaría sin poder de cobro a un cobrador en uso. | Admin, Gerente, Ventas |
+| DELETE | `/persons/:id/powers/:powerId` | Revoca el poder (409 `POWER_IN_USE` si un locador lo usa para su cobrador). | Admin, Gerente, Ventas |
 | POST | `/persons/:id/portal-invite` | Genera la invitación al portal del inquilino. | Admin, Gerente |
 
 ## Proveedores
@@ -187,17 +194,22 @@ de plantillas y el de comisiones.
 | Método | Ruta | Para qué | Acceso |
 |---|---|---|---|
 | GET | `/contracts` | Listado filtrable. | Autenticado |
-| GET | `/contracts/:id` | Detalle con partes, garantías, ajustes y comisión. | Autenticado |
-| POST | `/contracts` | Alta, en `Borrador` por defecto. Con `status: Activo` se crea ya activado y pasa por las mismas validaciones que `/activate`. | Admin, Gerente, Ventas |
+| GET | `/contracts/:id` | Detalle con partes (inquilino, garante), locadores, apoderados vigentes, garantías, ajustes y comisión. | Autenticado |
+| POST | `/contracts` | Alta, en `Borrador` por defecto. Con `status: Activo` se crea ya activado y pasa por las mismas validaciones que `/activate`. Los locadores llegan en `lessors` (`personId`, `payoutPct`, `capacity`, `payeePersonId`, `bankAccountId`, `validFrom`, `validTo`); si se omiten, los `persons` con rol `Propietario` se reparten el 100 % en partes iguales. Un locador no necesita tener ya el rol de propietario: se le asigna. Inquilino y garante sí necesitan su rol (400 `INVALID_PERSON_ROLE`). | Admin, Gerente, Ventas |
 | PATCH | `/contracts/:id` | Edición. Los cambios de estado respetan la máquina de estados del contrato; pasar a `Activo` se hace con `/activate` (`ACTIVATION_REQUIRED`). | Admin, Gerente, Ventas |
-| POST | `/contracts/:id/activate` | `Borrador` → `Activo`. Valida propiedad, propietario e inquilino, fechas y que no haya otro alquiler activo de la propiedad con fechas superpuestas; si falla responde `CONTRACT_NOT_ACTIVATABLE` con la lista `problems`. Deja la operación de alquiler de la propiedad en `Alquilado`. | Admin, Gerente, Ventas |
+| POST | `/contracts/:id/activate` | `Borrador` → `Activo`. Valida propiedad, inquilino, fechas que los locadores vigentes sumen exactamente 100 % en cada fecha del contrato (`LESSOR_SHARES_INVALID`, con las fechas y sumas en `invalidDates`) y que no haya otro alquiler activo de la propiedad con fechas superpuestas; si falla responde `CONTRACT_NOT_ACTIVATABLE` con la lista `problems`. Deja la operación de alquiler de la propiedad en `Alquilado`. | Admin, Gerente, Ventas |
 | POST | `/contracts/:id/terminate` | Rescinde el contrato y produce el resumen de cierre. Si era el último alquiler activo, la operación de alquiler de la propiedad vuelve a `Disponible`. | Admin, Gerente |
+| GET | `/contracts/:id/lessors` | Locadores del contrato con persona, cobrador y cuenta, de menor a mayor fecha de inicio. `?at=` devuelve solo los vigentes en esa fecha. | Autenticado |
+| POST | `/contracts/:id/lessors` | Agrega un locador. En un contrato que ya salió de `Borrador`, el resultado tiene que sumar 100 % en cada fecha (400 `LESSOR_SHARES_INVALID`, con `details.invalidDates`). Valida la cuenta (400 `BANK_ACCOUNT_NOT_OF_LESSOR`) y el cobrador (400 `PAYEE_WITHOUT_POWER`). | Admin, Gerente, Ventas |
+| PUT | `/contracts/:id/lessors` | Reemplaza todo el conjunto en una transacción (`{ lessors: [{ id?, ... }] }`): las filas con `id` se actualizan, las nuevas se crean y las que faltan se borran. Siempre exige que sumen 100 %. Sirve para cambiar el reparto o hacer una cesión de un contrato activo. | Admin, Gerente, Ventas |
+| PATCH | `/contracts/:id/lessors/:lessorId` | Cambia capacidad, porcentaje, cuenta, cobrador o vigencia. Cambiar el porcentaje baja la marca `needsReview`. 404 `LESSOR_NOT_FOUND`. | Admin, Gerente, Ventas |
+| DELETE | `/contracts/:id/lessors/:lessorId` | Quita un locador (mismas reglas de suma que el alta). | Admin, Gerente, Ventas |
 | GET | `/contracts/:id/adjustments` | Cronograma de ajustes. | Autenticado |
 | POST | `/contracts/:id/adjustments/calculate` | Calcula el ajuste pendiente. | Admin, Gerente, Ventas |
 | POST | `/contracts/:id/adjustments/:adjId/apply` | Aplica un ajuste calculado. | Admin, Gerente |
 | POST | `/contracts/:id/preview-adjustment` | Simula un ajuste sin persistirlo. | Admin, Gerente |
 | GET | `/contracts/:id/available-templates` | Plantillas aplicables al contrato. | Admin, Gerente, Ventas |
-| GET | `/contracts/:id/template-variables` | Variables que la plantilla puede interpolar. | Admin, Gerente, Ventas |
+| GET | `/contracts/:id/template-variables` | Variables que la plantilla puede interpolar: `contrato.*`, `propiedad.*`, `locadores.N.*` y `locador.*` (nombre, documento, domicilio, capacidad, porcentaje; `propietario.*` es un alias del primero), `apoderados.N.*`, `inquilino.*`, `garante.*`. | Admin, Gerente, Ventas |
 | POST | `/contracts/:id/generate-document` | Renderiza el documento del contrato. | Admin, Gerente, Ventas |
 | GET | `/contracts/:contractId/commission` | Comisión pactada. | Autenticado |
 | POST | `/contracts/:contractId/commission` | Define la comisión. | Admin, Gerente |
@@ -289,7 +301,7 @@ para las pruebas de extremo a extremo, no un endpoint de operación.
 | GET | `/renditions` | Listado por propietario y período. | Autenticado |
 | GET | `/renditions/:id` | Detalle con los conceptos discriminados. | Autenticado |
 | GET | `/renditions/:id/pdf` | Rendición en PDF. | Autenticado |
-| POST | `/renditions/generate` | Genera la rendición de un contrato y período. | Admin, Gerente, Liquidaciones |
+| POST | `/renditions/generate` | Genera la rendición de un contrato y período: una por cada locador vigente al inicio del período, con su parte repartida según `payoutPct`. Responde la del primer locador (el de mayor porcentaje) con `lessorRenditions`, la lista completa. 400 `LESSOR_SHARES_INVALID` si los locadores no suman 100 %. | Admin, Gerente, Liquidaciones |
 | PATCH | `/renditions/:id/transition` | Cambia el estado. | Admin, Gerente, Liquidaciones |
 | POST | `/renditions/:id/send` | Envía la rendición por correo al propietario. | Admin, Gerente, Liquidaciones |
 | POST | `/renditions/:id/line-items` | Agrega un concepto. | Admin, Gerente, Liquidaciones |

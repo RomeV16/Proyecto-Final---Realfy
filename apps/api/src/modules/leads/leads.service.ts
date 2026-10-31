@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
+import { ensureRole } from '../persons/person-roles.service';
 import {
   CreateLeadSchema,
   UpdateLeadSchema,
@@ -351,19 +352,7 @@ export class LeadsService {
 
     // Create PersonRoleAssignment for the target role (Inquilino or Comprador)
     // Ignore if role already exists (idempotent)
-    const existingRole = await this.prisma.client.personRoleAssignment.findFirst({
-      where: { personId: lead.personId, role: validated.targetRole },
-    });
-
-    if (!existingRole) {
-      await this.prisma.client.personRoleAssignment.create({
-        data: {
-          personId: lead.personId,
-          role: validated.targetRole,
-          tenantId,
-        },
-      });
-    }
+    await ensureRole(this.prisma.client, lead.personId, validated.targetRole);
 
     this.logger.log(`Converted lead`, {
       leadId: id,
@@ -493,13 +482,7 @@ export class LeadsService {
     });
 
     // Assign Lead role
-    await this.prisma.client.personRoleAssignment.create({
-      data: {
-        personId: person.id,
-        role: PersonRole.Lead,
-        tenantId,
-      },
-    });
+    await ensureRole(this.prisma.client, person.id, PersonRole.Lead);
 
     this.logger.log(`Auto-created person for lead`, {
       personId: person.id,

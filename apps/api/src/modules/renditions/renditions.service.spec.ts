@@ -20,7 +20,7 @@ function createMockPrismaService() {
   return {
     client: {
       contract: { findFirst: jest.fn() },
-      contractPerson: { findFirst: jest.fn() },
+      contractLessor: { findMany: jest.fn() },
       contractCommission: { findFirst: jest.fn() },
       payment: { findMany: jest.fn() },
       ownerRendicion: {
@@ -76,13 +76,14 @@ describe('RenditionsService', () => {
     function stubHappyPath(overrides: {
       commission?: Partial<Record<string, any>>;
       payments?: Array<{ amount: string }>;
+      lessors?: Array<{ personId: string; payoutPct: string }>;
     } = {}) {
       (prisma.client.contract.findFirst as jest.Mock).mockResolvedValue({
         id: CONTRACT_ID,
         tenantId: 'tenant-1',
         property: { id: 'prop-1' },
       });
-      (prisma.client.ownerRendicion.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([]);
       (prisma.client.contractCommission.findFirst as jest.Mock).mockResolvedValue({
         type: CommissionType.FixedPercent,
         percentage: '10.00',
@@ -91,10 +92,9 @@ describe('RenditionsService', () => {
         currency: 'ARS',
         ...overrides.commission,
       });
-      (prisma.client.contractPerson.findFirst as jest.Mock).mockResolvedValue({
-        personId: OWNER_ID,
-        person: { id: OWNER_ID, firstName: 'Ana', lastName: 'Owner' },
-      });
+      (prisma.client.contractLessor.findMany as jest.Mock).mockResolvedValue(
+        overrides.lessors ?? [{ personId: OWNER_ID, payoutPct: '100.0000' }],
+      );
       (prisma.client.payment.findMany as jest.Mock).mockResolvedValue(
         (overrides.payments ?? [{ amount: '1000.00' }]).map((p, i) => ({
           id: `pay-${i}`,
@@ -103,17 +103,22 @@ describe('RenditionsService', () => {
         })),
       );
 
-      const created: any = { id: RENDICION_ID, lineItems: [] };
+      const createdById = new Map<string, any>();
+      let seq = 0;
       const txClient = {
         ownerRendicion: {
-          create: jest.fn().mockResolvedValue(created),
-          findFirst: jest.fn().mockImplementation(() =>
-            Promise.resolve({ ...created, lineItems: created.lineItems }),
+          create: jest.fn().mockImplementation(({ data }: any) => {
+            const row = { id: `${RENDICION_ID}-${seq++}`, ...data, lineItems: [] as any[] };
+            createdById.set(row.id, row);
+            return Promise.resolve(row);
+          }),
+          findFirst: jest.fn().mockImplementation(({ where }: any) =>
+            Promise.resolve(createdById.get(where.id)),
           ),
         },
         rendicionLineItem: {
           create: jest.fn().mockImplementation(({ data }: any) => {
-            created.lineItems.push(data);
+            createdById.get(data.rendicionId).lineItems.push(data);
             return Promise.resolve(data);
           }),
         },
@@ -189,11 +194,11 @@ describe('RenditionsService', () => {
         property: {},
       });
       const existing = { id: RENDICION_ID, lineItems: [] };
-      (prisma.client.ownerRendicion.findFirst as jest.Mock).mockResolvedValue(existing);
+      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([existing]);
 
       const result = await service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 });
 
-      expect(result).toBe(existing);
+      expect(result).toEqual({ ...existing, lessorRenditions: [existing] });
       expect(prisma.client.contractCommission.findFirst).not.toHaveBeenCalled();
       expect(prisma.client.$transaction).not.toHaveBeenCalled();
     });
@@ -204,7 +209,7 @@ describe('RenditionsService', () => {
         tenantId: 'tenant-1',
         property: {},
       });
-      (prisma.client.ownerRendicion.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([]);
       (prisma.client.contractCommission.findFirst as jest.Mock).mockResolvedValue(null);
 
       await expect(
@@ -212,25 +217,54 @@ describe('RenditionsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('throws MISSING_PROPIETARIO when the contract has no Propietario', async () => {
-      (prisma.client.contract.findFirst as jest.Mock).mockResolvedValue({
-        id: CONTRACT_ID,
-        tenantId: 'tenant-1',
-        property: {},
-      });
-      (prisma.client.ownerRendicion.findFirst as jest.Mock).mockResolvedValue(null);
-      (prisma.client.contractCommission.findFirst as jest.Mock).mockResolvedValue({
-        type: CommissionType.FixedAmount,
-        fixedAmount: '100.00',
-        percentage: null,
-        adminFee: null,
-        currency: 'ARS',
-      });
-      (prisma.client.contractPerson.findFirst as jest.Mock).mockResolvedValue(null);
+    it('throws LESSOR_SHARES_INVALID when the contract has no active lessors', async () => {
+      stubHappyPath({ lessors: [] });
 
       await expect(
         service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toMatchObject({ response: { error: 'LESSOR_SHARES_INVALID' } });
+      expect(prisma.client.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('throws LESSOR_SHARES_INVALID when the active lessors do not add up to 100', async () => {
+      stubHappyPath({
+        lessors: [
+          { personId: OWNER_ID, payoutPct: '60.0000' },
+          { personId: 'p-2', payoutPct: '30.0000' },
+        ],
+      });
+
+      await expect(
+        service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 }),
+      ).rejects.toMatchObject({
+        response: {
+          error: 'LESSOR_SHARES_INVALID',
+          details: { invalidDates: [{ date: '2026-05-01', sum: '90.0000' }] },
+        },
+      });
+    });
+
+    it('golden: splits the net among three lessors 33.3334 / 33.3333 / 33.3333', async () => {
+      const { txClient } = stubHappyPath({
+        commission: { type: CommissionType.FixedPercent, percentage: '5.00', adminFee: null },
+        payments: [{ amount: '100000.00' }],
+        lessors: [
+          { personId: 'p-1', payoutPct: '33.3334' },
+          { personId: 'p-2', payoutPct: '33.3333' },
+          { personId: 'p-3', payoutPct: '33.3333' },
+        ],
+      });
+
+      const result: any = await service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 });
+
+      const rows = (txClient.ownerRendicion.create as jest.Mock).mock.calls.map(([a]: any) => a.data);
+      expect(rows.map((r: any) => [r.ownerId, r.rentCollected, r.commissionAmount, r.netDeposit])).toEqual([
+        ['p-1', '33333.40', '1666.67', '31666.73'],
+        ['p-2', '33333.30', '1666.67', '31666.63'],
+        ['p-3', '33333.30', '1666.66', '31666.64'],
+      ]);
+      expect(result.lessorRenditions).toHaveLength(3);
+      expect(result.ownerId).toBe('p-1');
     });
 
     it('throws NotFoundException when the contract does not exist for the tenant', async () => {

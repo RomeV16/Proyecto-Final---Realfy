@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
+import { ensureRole } from '../persons/person-roles.service';
 import {
   CreateProviderProfileSchema,
   UpdateProviderProfileSchema,
@@ -58,13 +59,7 @@ export class ProvidersService {
       });
 
       // Assign Proveedor role
-      await tx.personRoleAssignment.create({
-        data: {
-          personId: person.id,
-          role: PersonRole.Proveedor,
-          tenantId,
-        },
-      });
+      await ensureRole(tx, person.id, PersonRole.Proveedor);
 
       // Validate and create provider profile
       const profileValidated: any = parseOrThrow(CreateProviderProfileSchema, {

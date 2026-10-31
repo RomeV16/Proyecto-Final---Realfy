@@ -87,6 +87,20 @@ enum PersonRole {
   Lead
   Comprador
   Proveedor
+  Apoderado
+}
+
+enum LessorCapacity {
+  Propietario
+  Usufructuario
+  Sublocador
+  Acreedor
+  Otro
+}
+
+enum SignatureMode {
+  Indistinta
+  Conjunta
 }
 
 enum PersonType {
@@ -406,6 +420,8 @@ model Property {
   priceHistory    PriceHistory[]
   contracts       Contract[]
   personRoles     PersonRoleAssignment[]
+  ownerships      PropertyOwnership[]
+  powers          PowerOfAttorney[]
   services        Service[]
   leads           Lead[]
   leadVisits      LeadVisit[]
@@ -512,6 +528,11 @@ model Person {
   bankAccounts    PersonBankAccount[]
   documents       PersonDocument[]
   contractPersons ContractPerson[]
+  lessorships     ContractLessor[]       @relation("LessorPerson")
+  paidAsPayee     ContractLessor[]       @relation("LessorPayee")
+  powersGranted   PowerOfAttorney[]      @relation("PowerPrincipal")
+  powersHeld      PowerOfAttorney[]      @relation("PowerAgent")
+  ownerships      PropertyOwnership[]
   providerProfile ProviderProfile?
   leads           Lead[]
   rendiciones     OwnerRendicion[]
@@ -545,7 +566,8 @@ model PersonBankAccount {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person  Person            @relation(fields: [personId], references: [id], onDelete: Cascade)
+  lessors ContractLessor[]
 
   @@index([tenantId])
   @@index([personId, currency])
@@ -755,6 +777,8 @@ model Contract {
 
   property      Property              @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   persons       ContractPerson[]
+  lessors       ContractLessor[]
+  powers        PowerOfAttorney[]
   guarantees    ContractGuarantee[]
   adjustments   ContractAdjustment[]
   schedules     AdjustmentSchedule[]
@@ -783,6 +807,87 @@ model ContractPerson {
   @@unique([contractId, personId, role])
   @@index([tenantId])
   @@map("contract_persons")
+}
+
+/// Quien alquila en un contrato y cuánto del cobro le corresponde. No es la
+/// titularidad de la propiedad: el porcentaje de cobro es un acuerdo del contrato.
+model ContractLessor {
+  id            String         @id @default(uuid())
+  tenantId      String
+  contractId    String
+  personId      String
+  capacity      LessorCapacity @default(Propietario)
+  payoutPct     Decimal        @db.Decimal(7, 4)
+  /// Apoderado que cobra en nombre del locador.
+  payeePersonId String?
+  bankAccountId String?
+  validFrom     DateTime
+  /// Fin exclusivo; null = sin fin.
+  validTo       DateTime?
+  /// Marca de datos migrados con reparto en partes iguales, a confirmar.
+  needsReview   Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  contract    Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  person      Person             @relation("LessorPerson", fields: [personId], references: [id], onDelete: Cascade)
+  payee       Person?            @relation("LessorPayee", fields: [payeePersonId], references: [id], onDelete: SetNull)
+  bankAccount PersonBankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+
+  @@index([contractId, validTo])
+  @@index([tenantId, personId])
+  @@map("contract_lessors")
+}
+
+/// Poder por el que `agent` actúa en nombre de `principal`. Sin contrato ni
+/// propiedad es un poder general.
+model PowerOfAttorney {
+  id            String        @id @default(uuid())
+  tenantId      String
+  principalId   String
+  agentId       String
+  scopes        String[]
+  signatureMode SignatureMode @default(Indistinta)
+  /// Apoderados con la misma clave firman juntos (firma conjunta).
+  groupKey      String?
+  contractId    String?
+  propertyId    String?
+  validFrom     DateTime
+  validTo       DateTime?
+  documentUrl   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  principal Person    @relation("PowerPrincipal", fields: [principalId], references: [id], onDelete: Cascade)
+  agent     Person    @relation("PowerAgent", fields: [agentId], references: [id], onDelete: Cascade)
+  contract  Contract? @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  property  Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, principalId])
+  @@index([tenantId, agentId])
+  @@index([contractId])
+  @@map("powers_of_attorney")
+}
+
+/// Quién es titular de una propiedad. Opcional y sin obligación de sumar 100.
+model PropertyOwnership {
+  id         String    @id @default(uuid())
+  tenantId   String
+  propertyId String
+  personId   String
+  sharePct   Decimal?  @db.Decimal(7, 4)
+  title      String?
+  since      DateTime?
+  until      DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  person   Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, propertyId])
+  @@index([tenantId, personId])
+  @@map("property_ownerships")
 }
 
 model ContractGuarantee {
@@ -1213,7 +1318,7 @@ model OwnerRendicion {
   owner     Person               @relation(fields: [ownerId], references: [id])
   lineItems RendicionLineItem[]
 
-  @@unique([contractId, period])
+  @@unique([contractId, period, ownerId])
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, ownerId])
