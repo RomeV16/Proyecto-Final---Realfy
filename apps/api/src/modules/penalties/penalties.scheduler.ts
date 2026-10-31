@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import Decimal from 'decimal.js';
+import { OVERDUE_STATUSES, todayInAR } from '@realfy/shared';
+import { outstandingBalance } from '../liquidaciones/receivables';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CronBaseService } from '../../common/scheduler/cron.service';
 import { TenantsService } from '../tenants/tenants.service';
@@ -8,7 +10,6 @@ import {
   PenaltiesService,
   ComputePenaltyInput,
 } from './penalties.service';
-import { OVERDUE_LIQUIDACION_STATUSES } from './overdue';
 
 @Injectable()
 export class PenaltiesScheduler extends CronBaseService {
@@ -40,8 +41,8 @@ export class PenaltiesScheduler extends CronBaseService {
     const start = Date.now();
     this.logger.log('Penalty scheduler started');
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Día calendario de Buenos Aires a medianoche UTC, igual que dueDate y appliedOn.
+    const today = todayInAR();
 
     let tenantsProcessed = 0;
     let penaltiesInserted = 0;
@@ -61,7 +62,7 @@ export class PenaltiesScheduler extends CronBaseService {
         const overdueLiquidaciones = await this.prisma.baseClient.liquidacion.findMany({
           where: {
             tenantId: tenant.id,
-            status: { in: OVERDUE_LIQUIDACION_STATUSES as any },
+            status: { in: [...OVERDUE_STATUSES] as any },
             dueDate: { lt: today },
           },
           select: {
@@ -69,6 +70,7 @@ export class PenaltiesScheduler extends CronBaseService {
             tenantId: true,
             total: true,
             dueDate: true,
+            payments: { select: { amount: true } },
           },
         });
 
@@ -102,10 +104,20 @@ export class PenaltiesScheduler extends CronBaseService {
               priorPenalties._sum.amount?.toString() ?? '0',
             );
 
+            // El punitorio corre sobre lo que falta cobrar, no sobre el total.
+            const outstanding = outstandingBalance({
+              total: liq.total?.toString() ?? '0',
+              payments: liq.payments,
+            });
+            if (outstanding.lte(0)) {
+              this.logger.debug(`liquidacionId=${liq.id} has no outstanding balance — skipping`);
+              continue;
+            }
+
             const input: ComputePenaltyInput = {
               liquidacion: {
                 id: liq.id,
-                totalAmount: new Decimal(liq.total?.toString() ?? '0'),
+                totalAmount: new Decimal(outstanding.toString()),
                 dueDate: liq.dueDate,
                 tenantId: liq.tenantId,
               },

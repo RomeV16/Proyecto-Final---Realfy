@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { TICKET_SLA_HOURS, TicketPriority } from '@realfy/shared';
+import { RECEIVABLE_STATUSES, TICKET_SLA_HOURS, TicketPriority, todayInAR } from '@realfy/shared';
+import { isOverdue, isReceivable, outstandingBalance, sumOutstanding } from '../liquidaciones/receivables';
 import {
   DailyContext,
   DailyContextItem,
@@ -20,9 +21,6 @@ const MAX_PER_KIND = 8;
 
 /** Cuánto se lee de cada tabla antes de filtrar y recortar en memoria. */
 const QUERY_LIMIT = 80;
-
-/** Liquidaciones que siguen esperando cobro. */
-const OUTSTANDING_STATUSES = ['Vencida', 'Enviada', 'Aprobada', 'Pendiente'];
 
 /** Reclamos que ya no pesan sobre el día. */
 const CLOSED_TICKET_STATUSES = ['Resuelto', 'Cerrado', 'Cancelado'];
@@ -81,7 +79,7 @@ export class DailyContextService {
 
     const [liquidaciones, contracts, tickets, leads] = await Promise.all([
       this.prisma.client.liquidacion.findMany({
-        where: { status: { in: OUTSTANDING_STATUSES as any } },
+        where: { status: { in: [...RECEIVABLE_STATUSES] as any } },
         select: {
           id: true,
           period: true,
@@ -89,6 +87,7 @@ export class DailyContextService {
           total: true,
           currency: true,
           status: true,
+          payments: { select: { amount: true } },
           contract: {
             select: {
               property: { select: { title: true } },
@@ -151,20 +150,25 @@ export class DailyContextService {
     ]);
 
     // ── Cobranzas ────────────────────────────────────────
-    const collections: DailyContextItem[] = liquidaciones
+    const today = todayInAR(now);
+    const receivables = liquidaciones.filter(
+      (l) => isReceivable(l.status as string) && outstandingBalance(l).gt(0),
+    );
+    const collections: DailyContextItem[] = receivables
       .map((l) => ({
         item: l,
         daysOverdue: Math.max(0, daysBetween(l.dueDate, now)),
+        balance: outstandingBalance(l),
       }))
-      .sort((a, b) => b.daysOverdue - a.daysOverdue || Number(b.item.total) - Number(a.item.total))
+      .sort((a, b) => b.daysOverdue - a.daysOverdue || b.balance.comparedTo(a.balance))
       .slice(0, MAX_PER_KIND)
-      .map(({ item, daysOverdue }, i) =>
+      .map(({ item, daysOverdue, balance }, i) =>
         this.emptyItem('cobranza', i + 1, item.id, {
           title: item.contract?.property?.title ?? 'Liquidación',
           subtitle: [counterparty(item.contract?.persons ?? []), periodLabel(item.period)]
             .filter(Boolean)
             .join(' · ') || null,
-          amount: Math.round(Number(item.total)),
+          amount: Math.round(balance.toNumber()),
           currency: item.currency as string,
           daysOverdue,
           status: item.status as string,
@@ -234,18 +238,11 @@ export class DailyContextService {
       );
 
     // ── Totales ──────────────────────────────────────────
-    let overdueAmount = 0;
-    let pendingAmount = 0;
-    let overdueCollections = 0;
-    for (const l of liquidaciones) {
-      const amount = Number(l.total);
-      if (l.status === 'Vencida') {
-        overdueAmount += amount;
-        overdueCollections += 1;
-      } else {
-        pendingAmount += amount;
-      }
-    }
+    const overdue = receivables.filter((l) => isOverdue(l, today));
+    const pending = receivables.filter((l) => !isOverdue(l, today));
+    const overdueAmount = sumOutstanding(overdue).toNumber();
+    const pendingAmount = sumOutstanding(pending).toNumber();
+    const overdueCollections = overdue.length;
 
     return {
       generatedAt: now.toISOString(),

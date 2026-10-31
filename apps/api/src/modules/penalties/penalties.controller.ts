@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { Roles } from '../../common/auth/roles.decorator';
-import { PenaltyConfigSchema, PreviewPenaltySchema, UserRole } from '@realfy/shared';
+import { PenaltyConfigSchema, PreviewPenaltySchema, UserRole, OVERDUE_STATUSES, todayInAR } from '@realfy/shared';
 import type { PenaltyConfig, PreviewPenaltyInput } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -20,7 +20,7 @@ import { PenaltiesService } from './penalties.service';
 import { PenaltiesScheduler } from './penalties.scheduler';
 import { WaivePenaltyDto } from './dto/waive-penalty.dto';
 import { ZodValidationPipe } from '../../common/validation/zod';
-import { OVERDUE_LIQUIDACION_STATUSES } from './overdue';
+import { outstandingBalance } from '../liquidaciones/receivables';
 
 @Controller()
 export class PenaltiesController {
@@ -78,17 +78,17 @@ export class PenaltiesController {
   @Get('penalties/delinquent-tenants')
   async getDelinquentTenants() {
     const tenantId = this.tenantContext.getTenantId();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = todayInAR();
 
     // Fetch overdue liquidaciones with their penalties
     const overdueLiquidaciones = await this.prisma.baseClient.liquidacion.findMany({
       where: {
         tenantId,
-        status: { in: OVERDUE_LIQUIDACION_STATUSES as any },
+        status: { in: [...OVERDUE_STATUSES] as any },
         dueDate: { lt: today },
       },
       include: {
+        payments: { select: { amount: true } },
         penalties: {
           where: { status: 'active' },
           select: { amount: true },
@@ -125,6 +125,10 @@ export class PenaltiesController {
     >();
 
     for (const liq of overdueLiquidaciones) {
+      // Deuda = saldo pendiente (total menos pagos); una saldada no es morosa.
+      const balance = outstandingBalance(liq as any);
+      if (balance.lte(0)) continue;
+
       const daysOverdue = Math.max(
         0,
         Math.floor((today.getTime() - liq.dueDate.getTime()) / 86_400_000),
@@ -148,7 +152,7 @@ export class PenaltiesController {
 
       if (grouped.has(key)) {
         const entry = grouped.get(key)!;
-        entry.totalDebt = entry.totalDebt.add(new Decimal((liq as any).total?.toString() ?? '0'));
+        entry.totalDebt = entry.totalDebt.add(new Decimal(balance.toString()));
         entry.totalPenalty = entry.totalPenalty.add(penaltySum);
         entry.daysOverdueMax = Math.max(entry.daysOverdueMax, daysOverdue);
       } else {
@@ -157,7 +161,7 @@ export class PenaltiesController {
           fullName,
           propertyId,
           propertyLabel,
-          totalDebt: new Decimal((liq as any).total?.toString() ?? '0'),
+          totalDebt: new Decimal(balance.toString()),
           totalPenalty: penaltySum,
           daysOverdueMax: daysOverdue,
         });
@@ -184,13 +188,12 @@ export class PenaltiesController {
   @Get('penalties/delinquent-tenants/count')
   async getDelinquentTenantsCount() {
     const tenantId = this.tenantContext.getTenantId();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = todayInAR();
 
     const count = await this.prisma.baseClient.liquidacion.count({
       where: {
         tenantId,
-        status: { in: OVERDUE_LIQUIDACION_STATUSES as any },
+        status: { in: [...OVERDUE_STATUSES] as any },
         dueDate: { lt: today },
       },
     });
@@ -266,12 +269,10 @@ export class PenaltiesController {
   @Roles(UserRole.Admin, UserRole.Gerente)
   @Post('penalties/preview')
   async previewPenalty(@Body(new ZodValidationPipe(PreviewPenaltySchema, 'Invalid penalty preview')) dto: PreviewPenaltyInput) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = todayInAR();
 
     // Build synthetic dueDate so that daysOverdue matches
-    const dueDate = new Date(today);
-    dueDate.setDate(dueDate.getDate() - dto.daysOverdue);
+    const dueDate = new Date(today.getTime() - dto.daysOverdue * 86_400_000);
 
     const result = this.penaltiesService.computePenalty({
       liquidacion: {

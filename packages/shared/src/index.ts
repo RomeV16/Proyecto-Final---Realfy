@@ -362,6 +362,8 @@ export {
   liquidacionMachine,
   validateLiquidacionTransition,
   getValidLiquidacionTransitions,
+  RECEIVABLE_STATUSES,
+  OVERDUE_STATUSES,
 } from './state-machine/liquidacion-state-machine';
 
 export {
@@ -401,6 +403,10 @@ export {
 export { Money, round2, toAmountString, sumMoney, allocateLargestRemainder } from './money';
 export type { MoneyInput } from './money';
 
+// Formato de datos para mostrar
+export { propertyLabel, personName } from './format';
+export type { PropertyLabelInput, PersonNameInput } from './format';
+
 // Adjustment engine
 export {
   calculateIPC,
@@ -426,7 +432,7 @@ export { calculateCommission, InvalidCommissionError } from './commission-engine
 export type { CommissionConfig, CommissionResult } from './commission-engine';
 
 // Rendicion engine
-export { buildRendicionFromPayments } from './rendicion-engine';
+export { buildRendicionFromPayments, InvalidRendicionLineError } from './rendicion-engine';
 export type {
   RendicionPaymentInput,
   RendicionDeductionInput,

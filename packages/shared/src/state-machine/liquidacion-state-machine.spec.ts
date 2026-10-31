@@ -1,5 +1,7 @@
 import { LiquidacionStatus as S } from '../enums';
 import {
+  OVERDUE_STATUSES,
+  RECEIVABLE_STATUSES,
   getValidLiquidacionTransitions,
   validateLiquidacionTransition,
 } from './liquidacion-state-machine';
@@ -82,5 +84,22 @@ describe('máquina de estados de liquidación', () => {
       expect(validateLiquidacionTransition(raro, S.Borrador)).toBe(false);
       expect(getValidLiquidacionTransitions(raro)).toEqual([]);
     });
+  });
+});
+
+describe('grupos de estados de deuda', () => {
+  it('por cobrar: aprobadas, enviadas, pendientes y vencidas', () => {
+    expect([...RECEIVABLE_STATUSES].sort()).toEqual([S.Aprobada, S.Enviada, S.Pendiente, S.Vencida].sort());
+  });
+
+  it('nunca incluye estados sin saldo ni sin emitir', () => {
+    for (const s of [S.Borrador, S.Revision, S.Pagada, S.Anulada]) {
+      expect(RECEIVABLE_STATUSES).not.toContain(s);
+    }
+  });
+
+  it('los vencibles son un subconjunto de los por cobrar', () => {
+    expect([...OVERDUE_STATUSES].sort()).toEqual([S.Enviada, S.Vencida].sort());
+    for (const s of OVERDUE_STATUSES) expect(RECEIVABLE_STATUSES).toContain(s);
   });
 });

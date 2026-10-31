@@ -24,6 +24,7 @@ import {
   periodFilter,
   todayInAR,
   InvalidCommissionError,
+  InvalidRendicionLineError,
 } from '@realfy/shared';
 import type { CommissionConfig } from '@realfy/shared';
 import { RenditionPdfService } from './rendition-pdf.service';
@@ -243,7 +244,7 @@ export class RenditionsService {
         [], // deductions can be added as line items later
       );
     } catch (err) {
-      if (err instanceof InvalidCommissionError) {
+      if (err instanceof InvalidCommissionError || err instanceof InvalidRendicionLineError) {
         throw new BadRequestException({
           error: err.code,
           message: err.message,

@@ -284,3 +284,62 @@ describe('rendicion-engine — bordes', () => {
     expect(r.rentCollected.toFixed(2)).toBe('60.00');
   });
 });
+
+describe('rendicion-engine — montos negativos (CP-243, DEF-23)', () => {
+  const capturar = (fn: () => unknown): { code?: string; message?: string } | undefined => {
+    try {
+      fn();
+    } catch (err) {
+      return err as { code?: string; message?: string };
+    }
+    return undefined;
+  };
+
+  it('una deducción negativa se rechaza en lugar de subir el neto', () => {
+    // sin validar: 100000 - 0 - (-5000) = 105000 de neto
+    const error = capturar(() =>
+      buildRendicionFromPayments(
+        [{ amount: 100000, description: 'Alquiler' }],
+        porcentaje(0),
+        [{ amount: -5000, description: 'Descuento falso' }],
+      ),
+    );
+
+    expect(error?.code).toBe('INVALID_LINE_AMOUNT');
+  });
+
+  it('un pago negativo se rechaza aunque el cobrado total siga siendo positivo', () => {
+    // 100000 + (-20000) = 80000: la comisión no lo detecta
+    const error = capturar(() =>
+      buildRendicionFromPayments(
+        [
+          { amount: 100000, description: 'Alquiler' },
+          { amount: -20000, description: 'Reverso' },
+        ],
+        porcentaje(5),
+      ),
+    );
+
+    expect(error?.code).toBe('INVALID_LINE_AMOUNT');
+  });
+
+  it('el mensaje indica qué renglón es inválido', () => {
+    const error = capturar(() =>
+      buildRendicionFromPayments([{ amount: 100, description: 'Alquiler' }], porcentaje(0), [
+        { amount: -1, description: 'Ajuste' },
+      ]),
+    );
+
+    expect(error?.message).toContain('Ajuste');
+  });
+
+  it('el cero es un monto válido', () => {
+    const r = buildRendicionFromPayments(
+      [{ amount: 0, description: 'Sin cobro' }],
+      porcentaje(0),
+      [{ amount: 0, description: 'Nada' }],
+    );
+
+    expect(r.netDeposit.toFixed(2)).toBe('0.00');
+  });
+});

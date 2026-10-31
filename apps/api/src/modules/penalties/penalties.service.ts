@@ -17,6 +17,7 @@ export interface PenaltyConfig {
 export interface ComputePenaltyInput {
   liquidacion: {
     id: string;
+    /** Saldo pendiente de la liquidación (total menos pagos), base del cálculo. */
     totalAmount: Decimal;
     dueDate: Date;
     tenantId: string;
@@ -38,12 +39,12 @@ export interface ComputePenaltyResult {
 
 /**
  * Returns the number of whole days between two dates using date-only arithmetic
- * (ignores time-of-day). Result is clamped at 0.
+ * on their UTC calendar day (ignores time-of-day; the stored dates are UTC midnight). Result is clamped at 0.
  */
 function daysBetween(from: Date, to: Date): number {
   const MS_PER_DAY = 86_400_000;
-  const fromDay = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
-  const toDay = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
+  const fromDay = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+  const toDay = Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), to.getUTCDate());
   return Math.max(0, Math.floor((toDay - fromDay) / MS_PER_DAY));
 }
 

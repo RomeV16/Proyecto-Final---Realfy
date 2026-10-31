@@ -1,9 +1,36 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { formatDateAR, todayInAR } from '@realfy/shared';
 import { CronBaseService } from '../../common/scheduler/cron.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
 import { NotificationEmailService } from './notification-email.service';
+
+/** Los avisos diarios salen a las 08:00 de Buenos Aires. */
+const DAILY_08_AR = { timeZone: 'America/Argentina/Buenos_Aires' } as const;
+
+/**
+ * Días antes del vencimiento de un contrato en que se avisa, uno por umbral:
+ * al entrar en los 30 días, a los 15 y a los 7. Un contrato que se carga ya
+ * dentro de un umbral recibe solo el aviso del umbral que le corresponde.
+ */
+export const CONTRACT_EXPIRY_THRESHOLDS_DAYS = [30, 15, 7] as const;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Umbral vigente: el más chico que todavía alcanza (a 20 días, 30; a 10, 15; a 3, 7). */
+export function contractExpiryThreshold(daysLeft: number): number | null {
+  const ascending = [...CONTRACT_EXPIRY_THRESHOLDS_DAYS].sort((a, b) => a - b);
+  return ascending.find((threshold) => daysLeft <= threshold) ?? null;
+}
+
+/**
+ * Título del aviso de un umbral. Es parte de la clave de deduplicación
+ * (usuario, contrato, tipo, umbral): la tabla no tiene una columna de umbral.
+ */
+export function contractExpiryTitle(threshold: number): string {
+  return `Contrato por vencer: faltan ${threshold} días o menos`;
+}
 
 @Injectable()
 export class NotificationSchedulerService extends CronBaseService {
@@ -18,10 +45,10 @@ export class NotificationSchedulerService extends CronBaseService {
   }
 
   /**
-   * Daily at 11:00 UTC (≈ 08:00 Argentina) — Service due reminders.
+   * Daily at 08:00 Argentina time — Service due reminders.
    * Notifies Admin/Gerente users when a service due day is within 5 days.
    */
-  @Cron('0 11 * * *', { name: 'service-due-reminders' })
+  @Cron('0 8 * * *', { name: 'service-due-reminders', ...DAILY_08_AR })
   async handleServiceDueReminders(): Promise<void> {
     await this.runGuarded(async () => {
       const start = Date.now();
@@ -96,10 +123,10 @@ export class NotificationSchedulerService extends CronBaseService {
   }
 
   /**
-   * Daily at 11:00 UTC — Contract expiry warnings.
-   * Notifies Admin/Gerente users when a contract expires within 30 days.
+   * Daily at 08:00 Argentina time — Contract expiry warnings.
+   * Notifies Admin/Gerente users once per contract and threshold (CONTRACT_EXPIRY_THRESHOLDS_DAYS).
    */
-  @Cron('0 11 * * *', { name: 'contract-expiry-warnings' })
+  @Cron('0 8 * * *', { name: 'contract-expiry-warnings', ...DAILY_08_AR })
   async handleContractExpiryWarnings(): Promise<void> {
     await this.runGuarded(async () => {
       const start = Date.now();
@@ -113,9 +140,9 @@ export class NotificationSchedulerService extends CronBaseService {
       });
       tenantsProcessed = tenants.length;
 
-      const today = new Date();
-      const thirtyDaysFromNow = new Date(today);
-      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      // Día calendario de Buenos Aires a medianoche UTC, como se guardan los vencimientos.
+      const today = todayInAR();
+      const horizon = new Date(today.getTime() + Math.max(...CONTRACT_EXPIRY_THRESHOLDS_DAYS) * DAY_MS);
 
       for (const tenant of tenants) {
         try {
@@ -123,7 +150,7 @@ export class NotificationSchedulerService extends CronBaseService {
             where: {
               tenantId: tenant.id,
               status: 'Activo',
-              endDate: { lte: thirtyDaysFromNow, gte: today },
+              endDate: { lte: horizon, gte: today },
             },
             include: { property: { select: { title: true } } },
           });
@@ -140,28 +167,44 @@ export class NotificationSchedulerService extends CronBaseService {
           });
 
           for (const contract of contracts) {
-            const daysLeft = Math.ceil(
-              (contract.endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-            );
+            const daysLeft = Math.ceil((contract.endDate.getTime() - today.getTime()) / DAY_MS);
+            const threshold = contractExpiryThreshold(daysLeft);
+            if (threshold === null) continue;
+            const title = contractExpiryTitle(threshold);
 
             for (const user of users) {
-              await this.notificationsService.createNotification({
+              // Un aviso por usuario, contrato y umbral: si ya salió, no se repite.
+              const alreadyNotified = await this.prisma.baseClient.notification.findFirst({
+                where: {
+                  tenantId: tenant.id,
+                  userId: user.id,
+                  type: 'ContractExpiring',
+                  entityType: 'Contract',
+                  entityId: contract.id,
+                  title,
+                },
+                select: { id: true },
+              });
+              if (alreadyNotified) continue;
+
+              const created = await this.notificationsService.createNotification({
                 tenantId: tenant.id,
                 userId: user.id,
                 type: 'ContractExpiring',
-                title: `Contrato por vencer en ${daysLeft} días`,
-                message: `El contrato de ${contract.property.title} vence el ${contract.endDate.toLocaleDateString('es-AR')}.`,
+                title,
+                message: `El contrato de ${contract.property.title} vence el ${formatDateAR(contract.endDate)} (faltan ${daysLeft} días).`,
                 entityType: 'Contract',
                 entityId: contract.id,
               });
+              if (!created) continue;
               notificationsCreated++;
 
               // Send email for critical contract expiry
               await this.emailService.sendNotificationEmail({
                 to: user.email,
                 subject: `Contrato por vencer — ${contract.property.title}`,
-                title: `Contrato por vencer en ${daysLeft} días`,
-                message: `El contrato de ${contract.property.title} vence el ${contract.endDate.toLocaleDateString('es-AR')}. Por favor revise las opciones de renovación.`,
+                title,
+                message: `El contrato de ${contract.property.title} vence el ${formatDateAR(contract.endDate)} (faltan ${daysLeft} días). Por favor revise las opciones de renovación.`,
                 tenantName: tenant.name,
               });
             }
@@ -181,10 +224,10 @@ export class NotificationSchedulerService extends CronBaseService {
   }
 
   /**
-   * Daily at 11:00 UTC — Overdue liquidación detection.
+   * Daily at 08:00 Argentina time — Overdue liquidación detection.
    * Notifies Admin/Gerente/Liquidaciones users when a liquidación is overdue.
    */
-  @Cron('0 11 * * *', { name: 'overdue-liquidaciones' })
+  @Cron('0 8 * * *', { name: 'overdue-liquidaciones', ...DAILY_08_AR })
   async handleOverdueLiquidaciones(): Promise<void> {
     await this.runGuarded(async () => {
       const start = Date.now();
@@ -269,11 +312,11 @@ export class NotificationSchedulerService extends CronBaseService {
   }
 
   /**
-   * Daily at 11:00 UTC — Stale lead alerts.
+   * Daily at 08:00 Argentina time — Stale lead alerts.
    * Notifies assigned user (or Admin/Gerente fallback) when a lead has been
    * inactive in a stage longer than that stage's staleDays threshold.
    */
-  @Cron('0 11 * * *', { name: 'stale-lead-alerts' })
+  @Cron('0 8 * * *', { name: 'stale-lead-alerts', ...DAILY_08_AR })
   async handleStaleLeadAlerts(): Promise<void> {
     await this.runGuarded(async () => {
       const start = Date.now();

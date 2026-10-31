@@ -12,6 +12,7 @@ import {
   PipelineAnalyticsFilterSchema,
   MorosidadFilterSchema,
   RendicionStatus,
+  OVERDUE_STATUSES,
   LiquidacionStatus,
   LeadStatus,
   PersonRole,
@@ -21,6 +22,7 @@ import {
   todayInAR,
 } from '@realfy/shared';
 import Decimal from 'decimal.js';
+import { outstandingBalance } from '../liquidaciones/receivables';
 import { parseOrThrow } from '../../common/validation/zod';
 
 // ─── Row types for each report ──────────────────────────
@@ -629,7 +631,7 @@ export class ReportsService {
 
     const where: any = {
       contract: { tenantId },
-      status: { in: [LiquidacionStatus.Enviada, LiquidacionStatus.Vencida] },
+      status: { in: [...OVERDUE_STATUSES] },
       dueDate: { lt: now },
     };
 
@@ -650,9 +652,10 @@ export class ReportsService {
       where.contractId = filters.contractId;
     }
 
-    const liquidaciones = await this.prisma.client.liquidacion.findMany({
+    const withPayments = await this.prisma.client.liquidacion.findMany({
       where,
       include: {
+        payments: { select: { amount: true } },
         contract: {
           include: {
             property: true,
@@ -665,13 +668,15 @@ export class ReportsService {
       },
       orderBy: { dueDate: 'asc' },
     });
+    // La deuda es el saldo pendiente; una liquidación saldada no es morosa.
+    const liquidaciones = withPayments.filter((liq: any) => outstandingBalance(liq).gt(0));
 
     let totalVencido = new Decimal(0);
     const rows: MorosidadRow[] = liquidaciones.map((liq: any) => {
       const diasVencidos = Math.floor(
         (now.getTime() - new Date(liq.dueDate).getTime()) / 86400000,
       );
-      const monto = new Decimal(liq.total.toString());
+      const monto = new Decimal(outstandingBalance(liq).toString());
       totalVencido = totalVencido.plus(monto);
 
       const inquilino =

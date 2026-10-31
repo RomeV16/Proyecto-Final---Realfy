@@ -24,6 +24,13 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-14 | La comisión acepta porcentajes mayores a 100 y montos negativos | Media | — | CP-134 | [#122](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/122) | Corregido (31 oct) |
 | DEF-15 | `LiquidacionStatus.Pendiente` existe en la base y no en el paquete compartido | Baja | — | CP-135 | [#123](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/123) | Corregido (31 oct) |
 | DEF-16 | Un comprobante sin pago no se puede guardar después de que el organismo ya autorizó el CAE | Alta | facturación (ítem 38) | CP-160 a CP-163 | [#124](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/124) | Corregido (31 oct) |
+| DEF-17 | El PDF de la liquidación imprime "Propiedad: —" | Media | — | CP-137 | [#126](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/126) | Corregido (31 oct) |
+| DEF-18 | El punitorio se calcula sobre el total de la liquidación y con el día local del servidor | Alta | — | CP-138 | [#127](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/127) | Corregido (31 oct) |
+| DEF-19 | Cinco criterios distintos de "deuda", todos sobre el total y con sumas en coma flotante | Alta | — | CP-139 | [#128](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/128) | Corregido (31 oct) |
+| DEF-20 | El ajuste automático sin datos de índice se aplica al 0 % y marca el cronograma como aplicado | Alta | RF-12 | CP-240 | [#129](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/129) | Corregido (31 oct) |
+| DEF-21 | Dos pagos simultáneos pueden superar el saldo de la liquidación | Alta | — | CP-241 | [#130](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/130) | Corregido (31 oct) |
+| DEF-22 | El aviso de vencimiento de contrato se repite cada día durante 30 días | Media | — | CP-242 | [#131](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/131) | Corregido (31 oct) |
+| DEF-23 | La rendición acepta pagos y deducciones negativos | Media | — | CP-243 | [#132](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/132) | Corregido (31 oct) |
 
 ---
 
@@ -255,3 +262,101 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el modelo y el esquema compartido no coincidían, y el guardado no tenía ninguna protección después de la autorización.
 - **Corrección:** migración `comprobante_pago_opcional` (`paymentId` nulo, clave foránea `ON DELETE SET NULL`); la moneda sale de `monId` (`PES` a ARS, `DOL` a USD, otro valor responde 400 antes de pedir el CAE); el guardado se reintenta tres veces y, si falla, deja el CAE, el número y los datos del comprobante en el registro de pedidos al organismo y devuelve 500 `COMPROBANTE_PERSIST_FAILED` con esos datos para recuperarlo. Limitación: el número lo asigna el organismo dentro de la emisión, por lo que no se puede reservar una fila pendiente antes de pedirlo sin volver nulos `numero` y `cae`; se eligió la variante mínima.
 - **Prueba de regresión:** CP-160 a CP-162 en `test/e2e/invoices.e2e-spec.ts` y CP-163 en `invoices.service.extra.spec.ts`.
+
+## DEF-17 — El PDF de la liquidación imprime "Propiedad: —"
+
+- **Requisito afectado:** ninguno funcional; el comprobante de cobro al inquilino.
+- **Origen:** revisión de código del backend (ítem 35).
+- **Caso que lo detecta:** CP-137.
+- **Severidad:** media. Todo PDF de liquidación sale sin la propiedad.
+- **Pasos para reproducir:** generar el PDF de una liquidación cuyo contrato tiene una propiedad con título y dirección.
+- **Resultado esperado:** `Propiedad: Depto Palermo` (título) o `Propiedad: Av. Santa Fe 1234, piso 3 B` (calle, número y unidad si no hay título).
+- **Resultado obtenido:** `Propiedad: —`.
+- **Causa raíz:** el servicio y el PDF leían `property.address` y `property.name`, campos que `Property` no tiene (tiene `title`, `street`, `number`, `floor` y `apartment`).
+- **Corrección:** `propertyLabel` y `personName` en `packages/shared/src/format.ts` (con pruebas) y el PDF usa la etiqueta de la propiedad completa que ya traía la consulta.
+- **Prueba de regresión:** CP-137 en `liquidaciones/liquidaciones-pdf.spec.ts` (verifica el contenido del `docDefinition` con el mock de pdfmake) y `packages/shared/src/format.spec.ts`.
+- **Evidencia rojo/verde:** commit de regresión `d75feaa` en rojo (2 casos de 3); corrección en `66cc1a6`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-18 — El punitorio se calcula sobre el total y con el día local
+
+- **Requisito afectado:** ninguno funcional; cálculo de mora (lo que debe un inquilino).
+- **Origen:** revisión de código del backend (ítem 35).
+- **Caso que lo detecta:** CP-138.
+- **Severidad:** alta. Se cobra mora sobre dinero que el inquilino ya pagó.
+- **Pasos para reproducir:** liquidación de 1000 con un pago de 600, vencida hace 10 días, modo porcentual diario de 1 %; o liquidación pagada por completo y todavía en Enviada/Vencida; o correr el cron a las 22:30 de Buenos Aires.
+- **Resultado esperado:** punitorio de 40 sobre un saldo de 400; ninguno si el saldo es 0; el día aplicado y los días de mora son los de Buenos Aires.
+- **Resultado obtenido:** 100 sobre el total; un punitorio nuevo en la liquidación pagada; día aplicado y días de mora de la hora local del servidor (un día de más pasadas las 21:00).
+- **Causa raíz:** el scheduler leía `total` y lo pasaba como deuda; el "hoy" salía de `setHours` local y los días de mora se contaban con getters locales sobre fechas guardadas en UTC.
+- **Corrección:** la base es el saldo pendiente (`calculateRemainingBalance`, vía `receivables.ts`), sin devengo si el saldo es 0; `todayInAR()` en el scheduler y en los endpoints del controlador; `daysBetween` cuenta días UTC.
+- **Prueba de regresión:** CP-138 en `penalties/penalties.scheduler.spec.ts` (3 casos).
+- **Evidencia rojo/verde:** commit de regresión `81be0d3` en rojo (3 casos); corrección en `39322e5`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-19 — Cinco criterios distintos de deuda, sobre el total y con sumas en coma flotante
+
+- **Requisito afectado:** ninguno funcional; cifras de morosidad que ve la inmobiliaria (panel, reportes, resumen de pagos, contexto diario).
+- **Origen:** deduplicación del backend (filas 4 y 15) y limpieza L10.
+- **Caso que lo detecta:** CP-139.
+- **Severidad:** alta. Las mismas liquidaciones dan montos de deuda distintos según la pantalla.
+- **Pasos para reproducir:** una liquidación Vencida de 250000 con un pago de 100000, una Enviada de 60000,50 con un pago de 10000,25 y ya vencida, y una Enviada de 90000 a vencer; consultar resumen de pagos, panel, contexto diario, reporte de morosidad y morosos de punitorios.
+- **Resultado esperado:** todos suman el saldo pendiente de las liquidaciones por cobrar: vencido 200000,25 (150000 + 50000,25) y pendiente 90000.
+- **Resultado obtenido:** vencido 250000 en el panel y los pagos, 310000,50 en la morosidad y los punitorios, y 150001 de "pendiente"; el pago parcial no se descuenta y cada lector cuenta otros estados.
+- **Causa raíz:** cada lector definía por su cuenta qué estados cuentan y sumaba `total`; varias sumas de dinero usaban `Number`.
+- **Corrección:** `RECEIVABLE_STATUSES` y `OVERDUE_STATUSES` en la máquina de estados compartida, `receivables.ts` (saldo por liquidación con el motor y suma con `sumMoney`) y los cinco lectores lo usan; las sumas con `Number` del panel, los pagos y las métricas de cierre pasan a `Money`.
+- **Prueba de regresión:** CP-139 en `liquidaciones/deuda-lectores.spec.ts` (caracterización de los valores anteriores primero, luego los valores esperados nuevos) y `liquidaciones/receivables.spec.ts`.
+- **Evidencia rojo/verde:** caracterización en verde `733a55c`; regresión `a34d64a` en rojo (5 de 5 casos); corrección en `f419a31`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-20 — El ajuste automático sin datos de índice se aplica al 0 %
+
+- **Requisito afectado:** RF-12.
+- **Origen:** revisión de código del backend (ítem 35), previa al cron real.
+- **Caso que lo detecta:** CP-240.
+- **Severidad:** alta. El cronograma queda como aplicado y el alquiler sin actualizar, sin ningún aviso.
+- **Pasos para reproducir:** `applyDueAdjustments` con un contrato IPC, ICL o CCP y ningún valor de índice en la ventana.
+- **Resultado esperado:** el cronograma sigue pendiente, el alquiler no cambia y se informa `MISSING_INDEX_DATA` con el contrato, el cronograma y el índice que falta.
+- **Resultado obtenido:** ajuste del 0 % (IPC vacío, ICL 1/1), cronograma marcado `Applied` y registro de auditoría con delta 0.
+- **Causa raíz:** `loadParams` reemplazaba la ausencia de datos por valores neutros.
+- **Corrección:** `loadParams` informa los índices faltantes y el barrido corta antes de escribir (la transacción no deja nada), registra `MISSING_INDEX_DATA` y sigue con los demás contratos.
+- **Prueba de regresión:** CP-240 en `index-data/contract-adjustment.service.spec.ts` (5 casos).
+- **Evidencia rojo/verde:** commit de regresión `dd4b78f` en rojo (4 casos); corrección en `e3850f7`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-21 — Dos pagos simultáneos pueden superar el saldo
+
+- **Requisito afectado:** ninguno funcional; integridad del saldo de la liquidación.
+- **Origen:** revisión de código del backend (ítem 35).
+- **Caso que lo detecta:** CP-241.
+- **Severidad:** alta. La liquidación queda con saldo negativo.
+- **Pasos para reproducir:** dos `POST /liquidaciones/:id/payments` de 100000 con `Promise.all` sobre una liquidación con saldo de 150000.
+- **Resultado esperado:** uno responde 200 y el otro 400 `PAYMENT_EXCEEDS_BALANCE`; el saldo nunca es negativo.
+- **Resultado obtenido:** los dos responden 200 y se registran 200000.
+- **Causa raíz:** el saldo se validaba, el pago se creaba y el estado se actualizaba en operaciones separadas, sin bloqueo.
+- **Corrección:** una transacción interactiva que bloquea la fila de la liquidación (`SELECT ... FOR UPDATE`, filtrando por `tenantId` a mano porque el SQL crudo no pasa por la extensión de inmobiliaria) y dentro valida el saldo, crea el pago y pasa a Pagada.
+- **Prueba de regresión:** CP-241 en `test/e2e/liquidaciones.e2e-spec.ts` (dos y cinco pagos simultáneos).
+- **Evidencia rojo/verde:** commit de regresión `b41a6e2` en rojo (1 caso e2e); corrección en `651ad75`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-22 — El aviso de vencimiento de contrato se repite cada día
+
+- **Requisito afectado:** ninguno funcional; avisos a la inmobiliaria.
+- **Origen:** revisión de código del backend (ítem 35).
+- **Caso que lo detecta:** CP-242.
+- **Severidad:** media. Cada usuario recibe un aviso y un mail por contrato todos los días durante 30 días.
+- **Pasos para reproducir:** contrato a 25 días de vencer y correr el barrido en días consecutivos o dos veces el mismo día.
+- **Resultado esperado:** un aviso por usuario, contrato y umbral (30, 15 y 7 días); ninguno repetido.
+- **Resultado obtenido:** 4 avisos en dos corridas del mismo día y 8 en ocho días seguidos para un solo contrato y dos usuarios.
+- **Causa raíz:** el barrido no consultaba avisos previos; la única protección de `createNotification` era una ventana de 24 horas. Además los crons no fijaban zona horaria.
+- **Corrección:** umbrales en `CONTRACT_EXPIRY_THRESHOLDS_DAYS`, deduplicación por (usuario, contrato, tipo, umbral) con el umbral en el título (la tabla no tiene columna de umbral), mail solo si se creó el aviso, y los cuatro crons de avisos a las 08:00 de `America/Argentina/Buenos_Aires`.
+- **Prueba de regresión:** CP-242 en `notifications/notification-scheduler.service.spec.ts` (7 casos).
+- **Evidencia rojo/verde:** commit de regresión `5be48e9` en rojo (7 casos); corrección en `add222d`. Ejecuciones del pipeline: se completan al abrir el PR.
+
+## DEF-23 — La rendición acepta pagos y deducciones negativos
+
+- **Requisito afectado:** ninguno funcional; lo que recibe el propietario.
+- **Origen:** revisión de código del backend (ítem 35).
+- **Caso que lo detecta:** CP-243.
+- **Severidad:** media. Una deducción negativa sube el neto a depositar.
+- **Pasos para reproducir:** `buildRendicionFromPayments` con un cobro de 100000 y una deducción de -5000, o con un pago de -20000 junto a otro positivo.
+- **Resultado esperado:** error `INVALID_LINE_AMOUNT` que nombra el renglón.
+- **Resultado obtenido:** neto 105000 con la deducción negativa; el pago negativo pasaba porque la comisión solo valida el cobrado total.
+- **Causa raíz:** el motor validaba la comisión pero no el signo de cada renglón.
+- **Corrección:** `InvalidRendicionLineError` (código `INVALID_LINE_AMOUNT`) ante un pago o deducción negativos, como el motor de liquidación; la generación de rendiciones lo devuelve como 400.
+- **Prueba de regresión:** CP-243 en `rendicion-engine.spec.ts` (4 casos).
+- **Evidencia rojo/verde:** commit de regresión `96a069b` en rojo (3 casos); corrección en `9d2b907`. Ejecuciones del pipeline: se completan al abrir el PR.
