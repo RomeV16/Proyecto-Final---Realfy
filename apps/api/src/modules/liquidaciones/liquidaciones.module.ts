@@ -5,9 +5,10 @@ import { PdfService } from './pdf.service';
 import { EmailService } from './email.service';
 import { LiquidacionesScheduler } from './liquidaciones.scheduler';
 import { TenantsModule } from '../tenants/tenants.module';
+import { IndexDataModule } from '../index-data/index-data.module';
 
 @Module({
-  imports: [TenantsModule],
+  imports: [TenantsModule, IndexDataModule],
   controllers: [LiquidacionesController],
   providers: [
     LiquidacionesService,

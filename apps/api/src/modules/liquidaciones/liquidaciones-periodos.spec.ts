@@ -48,6 +48,7 @@ describe('LiquidacionesService: períodos independientes de la zona horaria', ()
         count: jest.fn().mockResolvedValue(0),
       },
     };
+    client.$transaction = (fn: (tx: any) => unknown) => fn(client);
     const tenantContext = { getTenantId: jest.fn().mockReturnValue('tenant-1') };
     service = new LiquidacionesService(
       { client } as unknown as PrismaService,
@@ -56,6 +57,10 @@ describe('LiquidacionesService: períodos independientes de la zona horaria', ()
       {} as any,
       { get: jest.fn().mockResolvedValue({ dueDay: 10, leadDays: 10 }) } as any,
       {} as any,
+      {
+        getPendingTrueUps: jest.fn().mockResolvedValue([]),
+        markTrueUpBilled: jest.fn().mockResolvedValue(0),
+      } as any,
     );
   });
 

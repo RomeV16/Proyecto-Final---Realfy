@@ -369,6 +369,12 @@ son una regla del contrato (con un valor por defecto de la inmobiliaria):
 - **Descuento de monto fijo en un mes parcial.** *Se prorratea* como el alquiler (de
   fábrica) o *se descuenta completo*; nunca supera el alquiler del mes.
 
+Cuando un ajuste de alquiler se calculó con un índice estimado (REM) y después se
+publica el oficial, la primera liquidación posterior suma la diferencia de los meses
+ya facturados con el alquiler provisorio como un renglón *Ajuste retroactivo*
+(comisionable, a favor del locador); si el estimado se pasó, la diferencia sale como
+un descuento a favor del inquilino. Cada corrección se factura una sola vez.
+
 Se eligen al crear el contrato (paso *Precio y ajuste*, que arranca con los valores
 por defecto de la inmobiliaria), se corrigen mientras el contrato no tenga acuerdos
 y, después, cambian por acuerdo con fecha. Las liquidaciones ya generadas no se

@@ -625,6 +625,137 @@ describe('Generador de liquidaciones (e2e)', () => {
     });
   });
 
+  // ─── Correcciones de ajustes provisorios ────────────
+
+  describe('correcciones retroactivas (true-up)', () => {
+    /** Ajuste provisorio de agosto con su corrección oficial, sin facturar. */
+    async function provisionalWithOfficial(
+      tenantId: string,
+      contractId: string,
+      amounts: { provisional: string; official: string },
+    ) {
+      const common = {
+        tenantId,
+        contractId,
+        periodNumber: 1,
+        adjustmentDate: new Date('2026-08-01T00:00:00.000Z'),
+        previousAmount: '300000',
+        percentage: '10',
+        calculatedAt: new Date('2026-07-15T00:00:00.000Z'),
+        appliedAt: new Date('2026-08-01T00:00:00.000Z'),
+      };
+      const provisional = await prisma.baseClient.contractAdjustment.create({
+        data: { ...common, newAmount: amounts.provisional, isProvisional: true },
+      });
+      const official = await prisma.baseClient.contractAdjustment.create({
+        data: {
+          ...common,
+          newAmount: amounts.official,
+          isProvisional: false,
+          trueUpOfId: provisional.id,
+          calculatedAt: new Date('2026-10-20T00:00:00.000Z'),
+        },
+      });
+      await prisma.baseClient.contract.update({ where: { id: contractId }, data: { rentAmount: amounts.official } });
+      return { provisional, official };
+    }
+
+    it('CP-337 — la corrección entra como renglón retroactivo y se factura una sola vez', async () => {
+      const { tenantId, tokens } = await agency('tu-1');
+      const token = tokens[UserRole.Admin];
+      const contract = await createContract(token);
+      const { official } = await provisionalWithOfficial(tenantId, contract.id, {
+        provisional: '330000',
+        official: '342000',
+      });
+
+      const pending = await get(token, `/contracts/${contract.id}/adjustments?pendingTrueUp=true&upTo=2026-10`).expect(200);
+      expect(pending.body).toHaveLength(1);
+
+      await generate(token, 11, 2026);
+      const [nov] = await liquidaciones(token);
+      // Agosto, septiembre y octubre se facturaron con 330.000: 3 x 12.000 = 36.000. Noviembre ya sale con 342.000.
+      expect(nov.total).toBe('378000');
+      expect(nov.lineItems.map((li: any) => [li.type, li.amount, li.commissionable, li.beneficiary, li.sourceType])).toEqual([
+        ['Alquiler', '342000', true, 'Locador', null],
+        ['AjusteRetroactivo', '36000', true, 'Locador', 'ContractAdjustment'],
+      ]);
+      expect(nov.lineItems[1].sourceId).toBe(official.id);
+
+      const stored = await prisma.baseClient.contractAdjustment.findUnique({ where: { id: official.id } });
+      expect(stored?.trueUpBilledAt).not.toBeNull();
+      expect((await get(token, `/contracts/${contract.id}/adjustments?pendingTrueUp=true&upTo=2026-10`).expect(200)).body).toHaveLength(0);
+
+      // El mes siguiente no la vuelve a cobrar.
+      await generate(token, 12, 2026);
+      const dec = (await liquidaciones(token)).find((l) => l.period.startsWith('2026-12'));
+      expect(dec.total).toBe('342000');
+      expect(dec.lineItems).toHaveLength(1);
+    });
+
+    it('CP-338 — si el estimado se pasó, la corrección sale como descuento a favor del inquilino', async () => {
+      const { tenantId, tokens } = await agency('tu-2');
+      const token = tokens[UserRole.Admin];
+      const contract = await createContract(token);
+      await provisionalWithOfficial(tenantId, contract.id, { provisional: '360000', official: '342000' });
+
+      await generate(token, 11, 2026);
+      const [nov] = await liquidaciones(token);
+      // 3 x -18.000 = -54.000.
+      expect(nov.total).toBe('288000');
+      const credit = nov.lineItems.find((li: any) => li.sourceType === 'ContractAdjustment');
+      expect(credit).toMatchObject({ type: 'Descuento', amount: '54000', commissionable: true, beneficiary: 'Locador' });
+      expect(credit.description).toContain('a favor del inquilino');
+    });
+
+    it('CP-339 — dos generaciones simultáneas facturan la corrección en una sola liquidación', async () => {
+      const { tenantId, tokens } = await agency('tu-3');
+      const token = tokens[UserRole.Admin];
+      const contract = await createContract(token);
+      const { official } = await provisionalWithOfficial(tenantId, contract.id, {
+        provisional: '330000',
+        official: '342000',
+      });
+
+      await Promise.all([
+        post(token, '/liquidaciones/generate', { month: 11, year: 2026 }),
+        post(token, '/liquidaciones/generate', { month: 11, year: 2026 }),
+      ]);
+      const items = await liquidaciones(token);
+      expect(items).toHaveLength(1);
+      expect(items[0].lineItems.filter((li: any) => li.sourceId === official.id)).toHaveLength(1);
+      expect(items[0].total).toBe('378000');
+    });
+
+    it('CP-340 — una corrección de otro contrato o sin oficial no se cobra', async () => {
+      const { tenantId, tokens } = await agency('tu-4');
+      const token = tokens[UserRole.Admin];
+      const withTrueUp = await createContract(token);
+      const plain = await createContract(token);
+      await provisionalWithOfficial(tenantId, withTrueUp.id, { provisional: '330000', official: '342000' });
+      // Un provisorio sin su oficial todavía no genera corrección.
+      await prisma.baseClient.contractAdjustment.create({
+        data: {
+          tenantId,
+          contractId: plain.id,
+          periodNumber: 1,
+          adjustmentDate: new Date('2026-08-01T00:00:00.000Z'),
+          previousAmount: '300000',
+          newAmount: '330000',
+          percentage: '10',
+          calculatedAt: new Date('2026-07-15T00:00:00.000Z'),
+          appliedAt: new Date('2026-08-01T00:00:00.000Z'),
+          isProvisional: true,
+        },
+      });
+      await generate(token, 11, 2026);
+      const byContract = Object.fromEntries((await liquidaciones(token)).map((l) => [l.contractId, l]));
+      expect(byContract[withTrueUp.id].total).toBe('378000');
+      expect(byContract[plain.id].total).toBe('330000');
+      expect(byContract[plain.id].lineItems).toHaveLength(1);
+    });
+  });
+
   // ─── Recibo ─────────────────────────────────────────
 
   describe('recibo', () => {

@@ -281,7 +281,7 @@ Banda CP-120 a CP-129. Origen: FB-13 (rezago de 2 meses y pago a cuenta), FB-05 
 
 ## Casos del generador de liquidaciones (ítem 35, 2.3)
 
-Banda CP-303 a CP-322 (las convenciones pactables siguen en CP-323 a CP-336). Origen: FB-07 y FB-08 (liquidación unos diez días antes, recibo por cuenta y orden del locador) y RESPUESTAS del 30 de octubre (comisión sobre alquiler y punitorios, nunca sobre reparaciones, impuestos ni servicios). Los valores esperados se fijaron antes de implementar y se calcularon a mano: alquiler 300.000 en un mes de 30 días, 15 de 30 días = 150.000; 100.000 x 10 / 31 = 32.258,06; 1.000,05 x 1 / 30 = 33,335 que redondea a 33,34 (mitad hacia arriba).
+Banda CP-303 a CP-322 (las convenciones pactables y las correcciones retroactivas siguen en CP-323 a CP-340). Origen: FB-07 y FB-08 (liquidación unos diez días antes, recibo por cuenta y orden del locador) y RESPUESTAS del 30 de octubre (comisión sobre alquiler y punitorios, nunca sobre reparaciones, impuestos ni servicios). Los valores esperados se fijaron antes de implementar y se calcularon a mano: alquiler 300.000 en un mes de 30 días, 15 de 30 días = 150.000; 100.000 x 10 / 31 = 32.258,06; 1.000,05 x 1 / 30 = 33,335 que redondea a 33,34 (mitad hacia arriba).
 
 | ID | Qué | Esperado (fijado antes) | Prueba | Estado |
 |---|---|---|---|---|
@@ -308,7 +308,7 @@ Banda CP-303 a CP-322 (las convenciones pactables siguen en CP-323 a CP-336). Or
 
 ## Casos de convenciones de liquidación pactables (ítem 35, 2.3)
 
-Banda CP-323 a CP-336. Origen: decisión de Manuel del 1 de noviembre de 2026 («todo es pactable»): prorrateo, ajuste a mitad de mes, primer mes con inicio tardío y descuento fijo son reglas del contrato con valor por defecto de la inmobiliaria (ADR-0010). Valores esperados a mano: alquiler 300.000; 300.000 x 16 / 31 = 154.838,71; 15 de 30 = 150.000; ajuste de 300.000 a 330.000 el día 15 de un mes de 30 días: 140.000 + 176.000 = 316.000; el mes entero al nuevo, 330.000.
+Banda CP-323 a CP-340. Origen: decisión de Manuel del 1 de noviembre de 2026 («todo es pactable»): prorrateo, ajuste a mitad de mes, primer mes con inicio tardío y descuento fijo son reglas del contrato con valor por defecto de la inmobiliaria (ADR-0010). Valores esperados a mano: alquiler 300.000; 300.000 x 16 / 31 = 154.838,71; 15 de 30 = 150.000; ajuste de 300.000 a 330.000 el día 15 de un mes de 30 días: 140.000 + 176.000 = 316.000; el mes entero al nuevo, 330.000.
 
 | ID | Qué | Esperado (fijado antes) | Prueba | Estado |
 |---|---|---|---|---|
@@ -326,6 +326,10 @@ Banda CP-323 a CP-336. Origen: decisión de Manuel del 1 de noviembre de 2026 (�
 | CP-334 | Combinación | inicio el 16 con `Mes30`, ajuste el 20 `Prorrateado` y descuento fijo `Completo` de 5.000: 40.000 + 121.000 - 5.000 = 156.000, vence el 16 | `liquidation-builder.spec.ts` | verde (1 nov) |
 | CP-335 | Migración de las convenciones | el ensayo deja todas las versiones existentes con `DiasReales`, `DesdePeriodoSiguiente`, `DiaDeInicio` y `Proporcional` | `scripts/migration-rehearsal.sh`, `apps/api/test/migration-data/checks/08_convenciones.sql` | verde (1 nov) |
 | CP-336 | Pantallas | *Valores por defecto* muestra y guarda las cuatro con su valor de fábrica; el alta del contrato (paso de precio) las ofrece prellenadas con las de la inmobiliaria y no envía nada si no pudo leerlas; *Reglas vigentes* las muestra | `operational-defaults-form.test.tsx`, `contract-form.test.tsx`, `contract-rules.test.tsx` | verde (1 nov) |
+| CP-337 | Corrección retroactiva en la liquidación | un contrato con ajuste provisorio de agosto (330.000) y su valor oficial (342.000) sin facturar: la liquidación de noviembre pide las correcciones hasta octubre y suma un renglón `AjusteRetroactivo` de 36.000 (3 meses x 12.000), comisionable, al locador, con `sourceType` `ContractAdjustment` y el id del ajuste oficial; el alquiler de noviembre ya es 342.000 (total 378.000); el ajuste queda marcado facturado y diciembre no lo repite | `liquidaciones-generacion.spec.ts`; `generador-de-liquidaciones.e2e-spec.ts::CP-337` | verde (1 nov) |
+| CP-338 | Corrección a favor del inquilino | si el estimado se pasó (provisorio 360.000, oficial 342.000) la corrección es 3 x -18.000 = -54.000 y sale como descuento comisionable de 54.000 «a favor del inquilino» (total 288.000); una corrección en cero no agrega renglón pero se marca facturada | `liquidaciones-generacion.spec.ts`; `generador-de-liquidaciones.e2e-spec.ts::CP-338` | verde (1 nov) |
+| CP-339 | Exactamente una vez | dos generaciones simultáneas dejan una liquidación y un solo renglón por la corrección (el marcado y la liquidación van en la misma transacción); si la liquidación falla no se marca; un contrato que ya tiene su liquidación no consulta ni marca | `liquidaciones-generacion.spec.ts`; `generador-de-liquidaciones.e2e-spec.ts::CP-339` | verde (1 nov) |
+| CP-340 | Solo lo que corresponde | un provisorio sin su oficial no genera corrección, y la corrección de un contrato no entra en otro | `generador-de-liquidaciones.e2e-spec.ts::CP-340` | verde (1 nov) |
 
 ## Casos de un solo camino de ajuste (ítem 34, L3)
 

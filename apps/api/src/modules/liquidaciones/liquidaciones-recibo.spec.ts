@@ -68,6 +68,7 @@ function build(liq: any, nextSeq = 6) {
     { sendLiquidacionEmail: jest.fn().mockResolvedValue({ status: 'sent' }) } as any,
     {} as any,
     {} as any,
+    {} as any,
   );
   return { service, client, tx };
 }

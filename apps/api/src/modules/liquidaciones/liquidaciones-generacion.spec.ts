@@ -25,7 +25,10 @@ function contract(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function build(contracts: any[], opts: { existing?: any; defaults?: any; findFirst?: jest.Mock } = {}) {
+function build(
+  contracts: any[],
+  opts: { existing?: any; defaults?: any; findFirst?: jest.Mock; trueUps?: any[] } = {},
+) {
   const client: any = {
     contract: { findMany: jest.fn().mockResolvedValue(contracts) },
     liquidacion: {
@@ -33,6 +36,11 @@ function build(contracts: any[], opts: { existing?: any; defaults?: any; findFir
       create: jest.fn().mockResolvedValue({ id: 'liq-new' }),
     },
     auditLog: { create: jest.fn().mockResolvedValue({}) },
+  };
+  client.$transaction = jest.fn((fn: (tx: any) => unknown) => fn(client));
+  const adjustments = {
+    getPendingTrueUps: jest.fn().mockResolvedValue(opts.trueUps ?? []),
+    markTrueUpBilled: jest.fn().mockResolvedValue(0),
   };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const defaults = {
@@ -54,8 +62,9 @@ function build(contracts: any[], opts: { existing?: any; defaults?: any; findFir
     {} as any,
     defaults as any,
     audit as any,
+    adjustments as any,
   );
-  return { service, client, audit, defaults };
+  return { service, client, audit, defaults, adjustments };
 }
 
 const createdData = (client: any, n = 0) => client.liquidacion.create.mock.calls[n][0].data;
@@ -278,6 +287,78 @@ describe('LiquidacionesService.generate: convenciones pactadas', () => {
     const { service, client } = build([c]);
     await service.generate({ month: 11, year: 2026 });
     expect(createdData(client).total).toBe('130000.00');
+  });
+});
+
+describe('LiquidacionesService.generate: correcciones de ajustes provisorios', () => {
+  const trueUp = (overrides: Record<string, unknown> = {}) => ({
+    adjustmentId: 'adj-final-1',
+    provisionalAdjustmentId: 'adj-prov-1',
+    contractId: 'c-1',
+    periodNumber: 1,
+    effectiveFrom: '2026-08',
+    total: '60000.00',
+    months: [],
+    ...overrides,
+  });
+
+  it('suma la corrección como renglón retroactivo comisionable al locador y la marca facturada', async () => {
+    const { service, client, adjustments } = build([contract()], { trueUps: [trueUp()] });
+    await service.generate({ month: 11, year: 2026 });
+
+    // Se piden las correcciones hasta el mes anterior al período.
+    expect(adjustments.getPendingTrueUps).toHaveBeenCalledWith('c-1', '2026-10');
+    const data = createdData(client);
+    expect(data.lineItems.create.map((l: any) => [l.type, l.amount, l.commissionable, l.beneficiary, l.sourceType, l.sourceId])).toEqual([
+      ['Alquiler', '300000.00', true, 'Locador', null, null],
+      ['AjusteRetroactivo', '60000.00', true, 'Locador', 'ContractAdjustment', 'adj-final-1'],
+    ]);
+    expect(data.lineItems.create[1].description).toBe('Corrección de ajuste provisorio (2026-08 a 2026-10)');
+    expect(data.total).toBe('360000.00');
+    // Se marca en la misma transacción que crea la liquidación.
+    expect(client.$transaction).toHaveBeenCalledTimes(1);
+    expect(adjustments.markTrueUpBilled).toHaveBeenCalledWith(['adj-final-1'], client);
+  });
+
+  it('una corrección a favor del inquilino sale como descuento', async () => {
+    const { service, client } = build([contract()], { trueUps: [trueUp({ total: '-15000.50' })] });
+    await service.generate({ month: 11, year: 2026 });
+    const data = createdData(client);
+    expect(data.lineItems.create[1]).toMatchObject({
+      type: 'Descuento',
+      amount: '15000.50',
+      commissionable: true,
+      sourceId: 'adj-final-1',
+    });
+    expect(data.total).toBe('284999.50');
+  });
+
+  it('una corrección en cero no agrega renglón pero igual se marca facturada', async () => {
+    const { service, client, adjustments } = build([contract()], { trueUps: [trueUp({ total: '0.00' })] });
+    await service.generate({ month: 11, year: 2026 });
+    expect(createdData(client).lineItems.create).toHaveLength(1);
+    expect(adjustments.markTrueUpBilled).toHaveBeenCalledWith(['adj-final-1'], client);
+  });
+
+  it('si la liquidación no se crea, la corrección no se marca', async () => {
+    const { service, client, adjustments } = build([contract()], { trueUps: [trueUp()] });
+    client.liquidacion.create.mockRejectedValue(new Error('boom'));
+    const summary = await service.generate({ month: 11, year: 2026 });
+    expect(summary.failed).toBe(1);
+    expect(adjustments.markTrueUpBilled).not.toHaveBeenCalled();
+  });
+
+  it('un contrato que ya tiene su liquidación no consulta ni marca correcciones', async () => {
+    const { service, adjustments } = build([contract()], { existing: { id: 'liq-old' }, trueUps: [trueUp()] });
+    await service.generate({ month: 11, year: 2026 });
+    expect(adjustments.getPendingTrueUps).not.toHaveBeenCalled();
+    expect(adjustments.markTrueUpBilled).not.toHaveBeenCalled();
+  });
+
+  it('un contrato fuera de su período no marca nada', async () => {
+    const { service, adjustments } = build([contract({ startDate: d('2026-12-01') })], { trueUps: [trueUp()] });
+    await service.generate({ month: 11, year: 2026 });
+    expect(adjustments.markTrueUpBilled).not.toHaveBeenCalled();
   });
 });
 

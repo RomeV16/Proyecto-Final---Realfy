@@ -171,3 +171,12 @@ Decisiones de modelado:
 - Un cambio de convenio no toca las liquidaciones ya generadas.
 - Un contrato con convenios se cambia por convenio con fecha (`termsPatch`); sin
   convenios, se corrige en su versión inicial (`liquidationRules`).
+
+Correcciones retroactivas: al armar la liquidación de un período, el servicio pide
+a `ContractAdjustmentService.getPendingTrueUps(contractId, <mes anterior>)` las
+correcciones de ajustes provisorios sin facturar y las pasa al generador como
+renglones `AjusteRetroactivo` (comisionables, al locador; `sourceType`
+`ContractAdjustment`). Una corrección negativa sale como `Descuento` a favor del
+inquilino, porque los renglones no admiten importes negativos. La liquidación y
+`markTrueUpBilled` van en la misma transacción: si la liquidación no se crea no se
+marca, y dos generaciones simultáneas no la facturan dos veces.

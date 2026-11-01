@@ -34,13 +34,16 @@ import {
   isLessorActiveAt,
   personName,
   formatReceiptNumber,
+  addMonthsClamped,
   amountInWords,
+  periodKey,
   onBehalfOfText,
 } from '@realfy/shared';
 import type { LineItemInput, OperationalDefaults, PaymentInput } from '@realfy/shared';
 import { PdfService } from './pdf.service';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 import { AuditService } from '../../common/audit/audit.service';
+import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
 import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
 import { rentAtDate, rentChangeInMonth } from './rent-at';
 import { scheduledPeriod } from './generation-window';
@@ -84,6 +87,7 @@ export class LiquidacionesService {
     private readonly emailService: EmailService,
     private readonly operationalDefaults: OperationalDefaultsService,
     private readonly audit: AuditService,
+    private readonly adjustments: ContractAdjustmentService,
   ) {}
 
   // ─── Auto-Generation ────────────────────────────────
@@ -221,6 +225,28 @@ export class LiquidacionesService {
       .filter((l: any) => isLessorActiveAt(l, period.getTime() < startDate.getTime() ? startDate : period))
       .map((l: any) => ({ name: personName(l.person) }));
 
+    // Correcciones de ajustes provisorios todavía sin facturar: se piden hasta el mes anterior
+    // al período, porque el propio período ya sale con el alquiler corregido.
+    const pendingTrueUps = await this.adjustments.getPendingTrueUps(
+      contract.id,
+      periodKey(addMonthsClamped(period, -1)),
+    );
+    const trueUps = pendingTrueUps.flatMap((t) => {
+      const total = new Decimal(t.total);
+      if (total.isZero()) return [];
+      const label = `Corrección de ajuste provisorio (${t.effectiveFrom} a ${periodKey(addMonthsClamped(period, -1))})`;
+      return [
+        {
+          // Un crédito (el estimado se pasó) es un descuento a favor del inquilino.
+          type: total.isNegative() ? LineItemType.Descuento : LineItemType.AjusteRetroactivo,
+          description: total.isNegative() ? `${label}, a favor del inquilino` : label,
+          amount: total.abs().toFixed(2),
+          sourceType: 'ContractAdjustment',
+          sourceId: t.adjustmentId,
+        },
+      ];
+    });
+
     const built = buildLiquidation({
       period,
       currency: contract.rentCurrency,
@@ -243,6 +269,7 @@ export class LiquidacionesService {
         discountAmount: terms?.discountAmount != null ? terms.discountAmount.toString() : null,
       },
       lessors,
+      trueUps,
     });
 
     if (built.skipped) {
@@ -255,7 +282,8 @@ export class LiquidacionesService {
     }
 
     try {
-      const created = await this.prisma.client.liquidacion.create({
+      const created = await this.prisma.client.$transaction(async (tx: any) => {
+        const row = await tx.liquidacion.create({
         data: {
           tenantId,
           contractId: contract.id,
@@ -282,6 +310,14 @@ export class LiquidacionesService {
             })),
           },
         },
+        });
+        // Las correcciones se marcan facturadas en la misma transacción que crea la
+        // liquidación: una corrección entra en una sola liquidación.
+        await this.adjustments.markTrueUpBilled(
+          pendingTrueUps.map((t) => t.adjustmentId),
+          tx,
+        );
+        return row;
       });
       return { contractId: contract.id, status: 'created', liquidacionId: created?.id };
     } catch (error) {
