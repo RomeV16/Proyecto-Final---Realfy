@@ -264,7 +264,8 @@ En el detalle del contrato, *Reglas vigentes* muestra lo que rige hoy: modalidad
 período de ajuste, base del ajuste (sobre el alquiler original o sobre el vigente),
 rezago del índice, día de vencimiento, quién cobra (se reparte, todo la inmobiliaria
 o todo el locador) y los descuentos o el alquiler acordado, si los hay, con la fecha
-desde la que rigen y cuántas versiones tuvo. Debajo, *Acuerdos* lista los convenios
+desde la que rigen y cuántas versiones tuvo, y las cuatro convenciones de liquidación
+pactadas. Debajo, *Acuerdos* lista los convenios
 registrados (renegociación, rebaja, bonificación, cambio de reglas, de reparto o de
 cargo) con su vigencia, sus notas y un enlace al documento. Ambas secciones son de
 solo lectura: los acuerdos todavía se cargan por la API (`POST
@@ -337,7 +338,9 @@ repite.
 El botón hace lo mismo a pedido: **Liquidaciones** (`/liquidaciones`) → *Generar
 Mes*. Elegido el período, crea las liquidaciones de los contratos que rigen ese
 mes, informa cuántas generó, cuántas omitió porque ya existían y cuántos
-contratos quedaron fuera por no regir (todavía no empezaron o ya terminaron).
+contratos quedaron fuera por no regir (todavía no empezaron o ya terminaron)
+y cuántos primeros meses quedaron sin liquidar porque el contrato los cobra al firmar o
+con el mes siguiente.
 Está disponible para Admin, Gerente y Liquidaciones.
 
 Cada liquidación se arma con las reglas de ese mes y no con las de hoy: el
@@ -347,6 +350,29 @@ fin real cargado), el alquiler de ese mes se prorratea por días y se aclara en 
 descripción. Un contrato activo sigue liquidando aunque haya pasado su fin pactado
 hasta que se cargue el fin real. Las bonificaciones del contrato aparecen como un
 descuento.
+
+Cuatro detalles de ese cálculo se pactan con cada inquilino y propietario, y por eso
+son una regla del contrato (con un valor por defecto de la inmobiliaria):
+
+- **Prorrateo de un mes parcial.** *Días reales del mes* (el día de inicio cuenta),
+  *Mes comercial de 30 días* (el día 31 cuenta como 30) o *Mes completo, sin
+  prorrateo*.
+- **Ajuste a mitad de mes.** Si el alquiler nuevo rige un día 15, puede *regir desde
+  el período siguiente* (de fábrica), *regir todo el mes* o *dividir el mes por días*:
+  la liquidación muestra entonces dos renglones de alquiler, los días al alquiler
+  viejo y los días al nuevo, con el conteo de días del prorrateo.
+- **Primer mes con inicio tardío.** Si el contrato empieza después del día de
+  vencimiento: *vence el día de inicio* (de fábrica), *se cobra con el mes
+  siguiente* (el primer mes no se liquida solo: la liquidación del mes siguiente suma
+  su alquiler prorrateado como un renglón aparte) o *se cobra al firmar* (el primer
+  mes no se liquida; el sistema lo informa como «sin liquidar» al generar).
+- **Descuento de monto fijo en un mes parcial.** *Se prorratea* como el alquiler (de
+  fábrica) o *se descuenta completo*; nunca supera el alquiler del mes.
+
+Se eligen al crear el contrato (paso *Precio y ajuste*, que arranca con los valores
+por defecto de la inmobiliaria), se corrigen mientras el contrato no tenga acuerdos
+y, después, cambian por acuerdo con fecha. Las liquidaciones ya generadas no se
+tocan.
 
 Cada liquidación nace en Borrador y recorre En Revisión, Aprobada, Enviada y
 Pagada; puede quedar Vencida o Anulada. En el detalle (`/liquidaciones/[id]`) se
@@ -525,8 +551,10 @@ liquidación (10, es decir el día 20), el rezago del IPC (2 meses), la comisió
 administración (7 %), los honorarios por alta, renovación y venta (5 %, 5 %, 3 % si
 es construido y 5 % si es lote), la tasación (USD 100), el umbral de anticipo (2
 honorarios), la cadencia de cobranza (primer recordatorio a los 5 días y después
-cada 5) y el semáforo de vencimientos de contratos (rojo a los 0 días, amarillo a
-los 60). Cada campo muestra debajo el valor de fábrica. Cambiá lo que necesites y
+cada 5), el semáforo de vencimientos de contratos (rojo a los 0 días, amarillo a
+los 60) y las cuatro convenciones de liquidación (prorrateo de un mes parcial, ajuste a
+mitad de mes, primer mes con inicio tardío y descuento de monto fijo; de fábrica, días
+reales, desde el período siguiente, vence el día de inicio y proporcional). Cada campo muestra debajo el valor de fábrica. Cambiá lo que necesites y
 tocá *Guardar valores*; *Volver a los valores de fábrica* los restaura en el
 formulario (hay que guardar para aplicarlo).
 

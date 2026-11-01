@@ -104,7 +104,7 @@ describe('Generador de liquidaciones (e2e)', () => {
   // ─── Fechas del contrato, prorrateo y vencimiento ───
 
   describe('fechas del contrato', () => {
-    it('CP-280 — un contrato que empieza el 16 prorratea el primer mes y vence el día de inicio', async () => {
+    it('CP-303 — un contrato que empieza el 16 prorratea el primer mes y vence el día de inicio', async () => {
       const { tokens } = await agency('gen-1');
       const token = tokens[UserRole.Admin];
       await createContract(token, { startDate: '2026-11-16T00:00:00.000Z' });
@@ -126,7 +126,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect(dec.dueDate).toBe('2026-12-10T00:00:00.000Z');
     });
 
-    it('CP-281 — no hay liquidación antes del inicio ni después del fin real', async () => {
+    it('CP-304 — no hay liquidación antes del inicio ni después del fin real', async () => {
       const { tokens } = await agency('gen-2');
       const token = tokens[UserRole.Admin];
       const future = await createContract(token, { startDate: '2026-12-01T00:00:00.000Z' });
@@ -148,7 +148,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect(await liquidaciones(token)).toHaveLength(1);
     });
 
-    it('CP-282 — el último mes con fin real se prorratea', async () => {
+    it('CP-305 — el último mes con fin real se prorratea', async () => {
       const { tokens } = await agency('gen-3');
       const token = tokens[UserRole.Admin];
       const contract = await createContract(token);
@@ -162,7 +162,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect(liq.total).toBe('150000');
     });
 
-    it('CP-283 — pasado el fin pactado sin fin real, un contrato Activo sigue liquidando', async () => {
+    it('CP-306 — pasado el fin pactado sin fin real, un contrato Activo sigue liquidando', async () => {
       const { tokens } = await agency('gen-4');
       const token = tokens[UserRole.Admin];
       await createContract(token, { startDate: '2025-01-01T00:00:00.000Z', endDate: '2026-06-30T00:00:00.000Z' });
@@ -171,7 +171,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect((await liquidaciones(token))[0].total).toBe('300000');
     });
 
-    it('CP-284 — generar dos veces no duplica (idempotente)', async () => {
+    it('CP-307 — generar dos veces no duplica (idempotente)', async () => {
       const { tokens } = await agency('gen-5');
       const token = tokens[UserRole.Admin];
       await createContract(token);
@@ -183,7 +183,7 @@ describe('Generador de liquidaciones (e2e)', () => {
   });
 
   describe('reglas vigentes en el período', () => {
-    it('CP-285 — vencimiento y bonificación de la versión de reglas vigente en el mes', async () => {
+    it('CP-308 — vencimiento y bonificación de la versión de reglas vigente en el mes', async () => {
       const { tokens } = await agency('gen-6');
       const token = tokens[UserRole.Admin];
       const contract = await createContract(token);
@@ -208,7 +208,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect(discount).toMatchObject({ amount: '30000', commissionable: true, beneficiary: 'Locador' });
     });
 
-    it('CP-286 — un período pasado usa el alquiler de entonces, no el vigente hoy', async () => {
+    it('CP-309 — un período pasado usa el alquiler de entonces, no el vigente hoy', async () => {
       const { tenantId, tokens } = await agency('gen-7');
       const token = tokens[UserRole.Admin];
       const contract = await createContract(token);
@@ -234,7 +234,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect(items.find((l) => l.period.startsWith('2026-08')).total).toBe('360000');
     });
 
-    it('CP-287 — un alquiler con ajuste provisional da un pago a cuenta provisional', async () => {
+    it('CP-310 — un alquiler con ajuste provisional da un pago a cuenta provisional', async () => {
       const { tenantId, tokens } = await agency('gen-8');
       const token = tokens[UserRole.Admin];
       const contract = await createContract(token);
@@ -261,7 +261,7 @@ describe('Generador de liquidaciones (e2e)', () => {
   // ─── Renglones con destino ──────────────────────────
 
   describe('renglones con destino y comisionable', () => {
-    it('CP-288 — un renglón manual toma el destino y la comisión del tipo, o los indicados', async () => {
+    it('CP-311 — un renglón manual toma el destino y la comisión del tipo, o los indicados', async () => {
       const { tokens } = await agency('lines-1');
       const token = tokens[UserRole.Admin];
       await createContract(token);
@@ -289,7 +289,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect(res.body.total).toBe('313600');
     });
 
-    it('CP-289 — un tipo o destino inválido se rechaza con 400', async () => {
+    it('CP-312 — un tipo o destino inválido se rechaza con 400', async () => {
       const { tokens } = await agency('lines-2');
       const token = tokens[UserRole.Admin];
       await createContract(token);
@@ -307,7 +307,7 @@ describe('Generador de liquidaciones (e2e)', () => {
   // ─── Cron diario y _run-now ─────────────────────────
 
   describe('generación automática', () => {
-    it('CP-290 — el proceso diario genera el mes siguiente a diez días del mes, por inmobiliaria y con auditoría', async () => {
+    it('CP-313 — el proceso diario genera el mes siguiente a diez días del mes, por inmobiliaria y con auditoría', async () => {
       const a = await agency('cron-a');
       const b = await agency('cron-b');
       await createContract(a.tokens[UserRole.Admin]);
@@ -344,7 +344,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect(audits.map((x) => x.tenantId).sort()).toEqual([a.tenantId, b.tenantId].sort());
     });
 
-    it('CP-291 — la anticipación sale de los valores por defecto de la inmobiliaria', async () => {
+    it('CP-314 — la anticipación sale de los valores por defecto de la inmobiliaria', async () => {
       const { tokens } = await agency('cron-lead');
       const token = tokens[UserRole.Admin];
       await createContract(token);
@@ -358,7 +358,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect((await post(token, '/liquidaciones/_run-now', { today: '2026-10-12' }).expect(200)).body.created).toBe(1);
     });
 
-    it('CP-292 — _run-now es solo del Admin y valida la fecha', async () => {
+    it('CP-315 — _run-now es solo del Admin y valida la fecha', async () => {
       const { tokens } = await agency('cron-rbac');
       for (const role of ALL_ROLES.filter((r) => r !== UserRole.Admin)) {
         await post(tokens[role], '/liquidaciones/_run-now', {}).expect(403);
@@ -368,10 +368,260 @@ describe('Generador de liquidaciones (e2e)', () => {
       await http().post('/api/liquidaciones/_run-now').send({}).expect(401);
     });
 
-    it('CP-293 — generate sigue pidiendo rol de facturación', async () => {
+    it('CP-316 — generate sigue pidiendo rol de facturación', async () => {
       const { tokens } = await agency('gen-rbac');
       await post(tokens[UserRole.Lectura], '/liquidaciones/generate', { month: 11, year: 2026 }).expect(403);
       await post(tokens[UserRole.Liquidaciones], '/liquidaciones/generate', { month: 11, year: 2026 }).expect(201);
+    });
+  });
+
+  // ─── Convenciones pactables ─────────────────────────
+
+  describe('convenciones de liquidación pactables', () => {
+    const termsOf = async (token: string, contractId: string) =>
+      (await get(token, `/contracts/${contractId}/terms`).expect(200)).body.current;
+
+    const FACTORY = {
+      prorationMode: 'DiasReales',
+      midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+      firstDueMode: 'DiaDeInicio',
+      fixedDiscountProration: 'Proporcional',
+    };
+
+    it('CP-323 — el contrato nace con las convenciones de la inmobiliaria o con las pactadas en el alta', async () => {
+      const { tokens } = await agency('conv-1');
+      const token = tokens[UserRole.Admin];
+
+      const plain = await createContract(token);
+      expect(await termsOf(token, plain.id)).toMatchObject(FACTORY);
+
+      await http()
+        .put('/api/tenants/me/operational-defaults')
+        .set(auth(token))
+        .send({ prorationMode: 'Mes30', firstDueMode: 'AlFirmar' })
+        .expect(200);
+      const withDefaults = await createContract(token);
+      expect(await termsOf(token, withDefaults.id)).toMatchObject({
+        ...FACTORY,
+        prorationMode: 'Mes30',
+        firstDueMode: 'AlFirmar',
+      });
+      // El contrato anterior no cambia: el valor por defecto rige para los que se cargan después.
+      expect(await termsOf(token, plain.id)).toMatchObject(FACTORY);
+
+      const own = await createContract(token, {
+        liquidationRules: { prorationMode: 'SinProrrateo', fixedDiscountProration: 'Completo' },
+      });
+      expect(await termsOf(token, own.id)).toMatchObject({
+        prorationMode: 'SinProrrateo',
+        midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+        firstDueMode: 'AlFirmar',
+        fixedDiscountProration: 'Completo',
+      });
+    });
+
+    it('CP-324 — valores inválidos se rechazan con 400 y no se guarda nada', async () => {
+      const { tokens } = await agency('conv-2');
+      const token = tokens[UserRole.Admin];
+      const contract = await createContract(token);
+      await http()
+        .patch(`/api/contracts/${contract.id}`)
+        .set(auth(token))
+        .send({ liquidationRules: { prorationMode: 'Quincena' } })
+        .expect(400);
+      await http()
+        .put('/api/tenants/me/operational-defaults')
+        .set(auth(token))
+        .send({ firstDueMode: 'Nunca' })
+        .expect(400);
+      expect(await termsOf(token, contract.id)).toMatchObject(FACTORY);
+    });
+
+    it('CP-325 — se corrigen en la versión inicial y, con convenios, solo por convenio', async () => {
+      const { tokens } = await agency('conv-3');
+      const token = tokens[UserRole.Admin];
+      const contract = await createContract(token);
+
+      const patched = await http()
+        .patch(`/api/contracts/${contract.id}`)
+        .set(auth(token))
+        .send({ liquidationRules: { midMonthAdjustmentMode: 'Prorrateado' } })
+        .expect(200);
+      expect(patched.body.id).toBe(contract.id);
+      expect(await termsOf(token, contract.id)).toMatchObject({
+        ...FACTORY,
+        midMonthAdjustmentMode: 'Prorrateado',
+      });
+
+      await post(token, `/contracts/${contract.id}/agreements`, {
+        kind: 'CambioRegla',
+        effectiveFrom: '2026-06-01T00:00:00.000Z',
+        termsPatch: { prorationMode: 'Mes30' },
+      }).expect(201);
+      // La versión nueva copia las convenciones vigentes y cambia solo lo del convenio.
+      expect(await termsOf(token, contract.id)).toMatchObject({
+        prorationMode: 'Mes30',
+        midMonthAdjustmentMode: 'Prorrateado',
+      });
+      const blocked = await http()
+        .patch(`/api/contracts/${contract.id}`)
+        .set(auth(token))
+        .send({ liquidationRules: { firstDueMode: 'AlFirmar' } })
+        .expect(409);
+      expect(blocked.body.error).toBe('RULES_CHANGE_REQUIRES_AGREEMENT');
+    });
+
+    it('CP-326 — el prorrateo del primer mes sigue la convención pactada', async () => {
+      const { tokens } = await agency('conv-4');
+      const token = tokens[UserRole.Admin];
+      const dias = await createContract(token, { startDate: '2026-12-16T00:00:00.000Z' });
+      const mes30 = await createContract(token, {
+        startDate: '2026-12-16T00:00:00.000Z',
+        liquidationRules: { prorationMode: 'Mes30' },
+      });
+      const sin = await createContract(token, {
+        startDate: '2026-12-16T00:00:00.000Z',
+        liquidationRules: { prorationMode: 'SinProrrateo' },
+      });
+      await generate(token, 12, 2026);
+      const byContract = Object.fromEntries((await liquidaciones(token)).map((l) => [l.contractId, l]));
+      expect(byContract[dias.id].total).toBe('154838.71'); // 300000 x 16 / 31
+      expect(byContract[mes30.id].total).toBe('150000'); // 15 de 30
+      expect(byContract[sin.id].total).toBe('300000');
+    });
+
+    it('CP-327 — un convenio con fecha cambia la convención desde ese período', async () => {
+      const { tokens } = await agency('conv-5');
+      const token = tokens[UserRole.Admin];
+      const contract = await createContract(token, {
+        startDate: '2026-01-16T00:00:00.000Z',
+        liquidationRules: { prorationMode: 'SinProrrateo' },
+      });
+      await post(token, `/contracts/${contract.id}/agreements`, {
+        kind: 'CambioRegla',
+        effectiveFrom: '2026-12-01T00:00:00.000Z',
+        termsPatch: { prorationMode: 'DiasReales' },
+      }).expect(201);
+      await http()
+        .patch(`/api/contracts/${contract.id}`)
+        .set(auth(token))
+        .send({ actualEndDate: '2026-12-20T00:00:00.000Z' })
+        .expect(200);
+      await generate(token, 12, 2026);
+      // Diciembre rige la versión nueva: 20 de 31 días reales.
+      expect((await liquidaciones(token))[0].total).toBe('193548.39');
+    });
+
+    it('CP-328 — el ajuste a mitad de mes se ignora, se aplica al mes o se parte por días', async () => {
+      const { tenantId, tokens } = await agency('conv-6');
+      const token = tokens[UserRole.Admin];
+      const adjust = async (id: string) => {
+        await prisma.baseClient.contractAdjustment.create({
+          data: {
+            tenantId,
+            contractId: id,
+            periodNumber: 1,
+            adjustmentDate: new Date('2026-11-15T00:00:00.000Z'),
+            previousAmount: '300000',
+            newAmount: '330000',
+            percentage: '10',
+            calculatedAt: new Date('2026-10-20T00:00:00.000Z'),
+            appliedAt: new Date('2026-11-15T00:00:00.000Z'),
+          },
+        });
+        await prisma.baseClient.contract.update({ where: { id }, data: { rentAmount: '330000' } });
+      };
+      const siguiente = await createContract(token);
+      const mes = await createContract(token, { liquidationRules: { midMonthAdjustmentMode: 'DesdeEsePeriodo' } });
+      const partido = await createContract(token, { liquidationRules: { midMonthAdjustmentMode: 'Prorrateado' } });
+      for (const c of [siguiente, mes, partido]) await adjust(c.id);
+
+      await generate(token, 11, 2026);
+      const byContract = Object.fromEntries((await liquidaciones(token)).map((l) => [l.contractId, l]));
+      expect(byContract[siguiente.id].total).toBe('300000');
+      expect(byContract[mes.id].total).toBe('330000');
+      expect(byContract[partido.id].total).toBe('316000'); // 14 días a 300000 y 16 a 330000
+      expect(byContract[partido.id].lineItems.map((li: any) => li.amount)).toEqual(['140000', '176000']);
+      expect(byContract[partido.id].lineItems.every((li: any) => li.commissionable)).toBe(true);
+    });
+
+    it('CP-329 — al firmar: el primer mes no se liquida y se informa; el siguiente sí', async () => {
+      const { tokens } = await agency('conv-7');
+      const token = tokens[UserRole.Admin];
+      const contract = await createContract(token, {
+        startDate: '2026-11-16T00:00:00.000Z',
+        liquidationRules: { firstDueMode: 'AlFirmar' },
+      });
+      const nov = await generate(token, 11, 2026);
+      expect(nov.body).toMatchObject({ created: 0, outOfRange: 0, notBilled: 1 });
+      expect(nov.body.results[0]).toMatchObject({
+        contractId: contract.id,
+        status: 'not_billed',
+        reason: 'ChargedAtSigning',
+      });
+      expect(await liquidaciones(token)).toHaveLength(0);
+
+      const dec = await generate(token, 12, 2026);
+      expect(dec.body.created).toBe(1);
+      expect((await liquidaciones(token))[0].total).toBe('300000');
+    });
+
+    it('CP-330 — inicio tardío con cobro en el mes siguiente: un solo cobro, sin duplicar', async () => {
+      const { tokens } = await agency('conv-8');
+      const token = tokens[UserRole.Admin];
+      await createContract(token, {
+        startDate: '2026-11-16T00:00:00.000Z',
+        liquidationRules: { firstDueMode: 'VencimientoMesSiguiente' },
+      });
+      const nov = await generate(token, 11, 2026);
+      expect(nov.body.results[0]).toMatchObject({ status: 'not_billed', reason: 'DeferredToNextPeriod' });
+
+      await generate(token, 12, 2026);
+      const [dec] = await liquidaciones(token);
+      expect(dec.total).toBe('450000');
+      expect(dec.dueDate).toBe('2026-12-10T00:00:00.000Z');
+      const deferred = dec.lineItems.find((li: any) => li.sourceType === 'DeferredFirstMonth');
+      expect(deferred).toMatchObject({ type: 'Alquiler', amount: '150000', commissionable: true, beneficiary: 'Locador' });
+      expect(deferred.description).toContain('cobrado con este período');
+    });
+
+    it('CP-331 — por defecto (día de inicio) el primer mes vence el día de inicio, como siempre', async () => {
+      const { tokens } = await agency('conv-9');
+      const token = tokens[UserRole.Admin];
+      await createContract(token, { startDate: '2026-11-16T00:00:00.000Z' });
+      await generate(token, 11, 2026);
+      const [liq] = await liquidaciones(token);
+      expect(liq.total).toBe('150000');
+      expect(liq.dueDate).toBe('2026-11-16T00:00:00.000Z');
+    });
+
+    it('CP-332 — el descuento fijo se prorratea o se aplica completo según lo pactado', async () => {
+      const { tokens } = await agency('conv-10');
+      const token = tokens[UserRole.Admin];
+      const proporcional = await createContract(token, { startDate: '2026-11-16T00:00:00.000Z' });
+      const completo = await createContract(token, {
+        startDate: '2026-11-16T00:00:00.000Z',
+        liquidationRules: { fixedDiscountProration: 'Completo' },
+      });
+      // Un convenio no puede fecharse el día de inicio (ya hay una versión): se carga en la versión inicial.
+      await prisma.baseClient.contractTermsVersion.updateMany({
+        where: { contractId: { in: [proporcional.id, completo.id] } },
+        data: { discountAmount: '20000' },
+      });
+      await generate(token, 11, 2026);
+      const byContract = Object.fromEntries((await liquidaciones(token)).map((l) => [l.contractId, l]));
+      expect(byContract[proporcional.id].total).toBe('140000'); // 150000 - 10000
+      expect(byContract[completo.id].total).toBe('130000'); // 150000 - 20000
+    });
+
+    it('CP-333 — sin versión de reglas rigen los valores por defecto de la inmobiliaria', async () => {
+      const { tenantId, tokens } = await agency('conv-11');
+      const token = tokens[UserRole.Admin];
+      await http().put('/api/tenants/me/operational-defaults').set(auth(token)).send({ prorationMode: 'SinProrrateo' }).expect(200);
+      const contract = await createContract(token, { startDate: '2026-12-16T00:00:00.000Z' });
+      await prisma.baseClient.contractTermsVersion.deleteMany({ where: { contractId: contract.id, tenantId } });
+      await generate(token, 12, 2026);
+      expect((await liquidaciones(token))[0].total).toBe('300000');
     });
   });
 
@@ -383,7 +633,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       return (await post(token, `/liquidaciones/${id}/transition`, { status: 'Aprobada' }).expect(200)).body;
     }
 
-    it('CP-294 — el número se asigna al aprobar, correlativo por inmobiliaria y sin reasignarse', async () => {
+    it('CP-317 — el número se asigna al aprobar, correlativo por inmobiliaria y sin reasignarse', async () => {
       const a = await agency('rec-a');
       const b = await agency('rec-b');
       const ta = a.tokens[UserRole.Admin];
@@ -410,7 +660,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect(sent.body.receiptSeq).toBe(1);
     });
 
-    it('CP-295 — aprobaciones simultáneas no repiten número', async () => {
+    it('CP-318 — aprobaciones simultáneas no repiten número', async () => {
       const { tokens } = await agency('rec-race');
       const token = tokens[UserRole.Admin];
       for (let i = 0; i < 4; i++) await createContract(token);
@@ -424,7 +674,7 @@ describe('Generador de liquidaciones (e2e)', () => {
       expect(seqs).toEqual([1, 2, 3, 4]);
     });
 
-    it('CP-296 — el PDF lleva número, monto en letras, por cuenta y orden y renglones por destino', async () => {
+    it('CP-319 — el PDF lleva número, monto en letras, por cuenta y orden y renglones por destino', async () => {
       const { tokens } = await agency('rec-pdf');
       const token = tokens[UserRole.Admin];
       await createContract(token, {}, 'Marta');

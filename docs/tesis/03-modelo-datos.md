@@ -252,6 +252,10 @@ erDiagram
         int indexLagMonths
         int dueDay
         string paymentFlow
+        string prorationMode
+        string midMonthAdjustmentMode
+        string firstDueMode
+        string fixedDiscountProration
         json customSteps
     }
 ```
@@ -275,6 +279,7 @@ Convenio fechado que cambia las reglas del contrato.
 Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se modifica: un cambio crea otra.
 
 - `id`, `tenantId`, `contractId`, `validFrom`, `agreementId`, `adjustmentType`, `adjustmentPeriod`, `adjustmentBase` (`Original` o `Vigente`), `indexLagMonths` (por defecto 2), `fixedInitialMonths` (0), `customPct`, `customSteps` (JSON, lista de `{ fromMonth, pct }` para el escalonado), `rentOverride`, `discountPct`, `discountAmount`, `dueDay`, `paymentFlow` (`Partido`, `TodoInmobiliaria`, `TodoLocador`), `penaltyConfig` (JSON).
+- Cuatro convenciones de liquidación, pactables por contrato y con valor por defecto de la inmobiliaria (`Tenant.operationalDefaults`): `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`). Las columnas son obligatorias y su valor por defecto en la base es el comportamiento original (días reales, el ajuste rige desde el período siguiente, vence el día de inicio, descuento fijo proporcional), de modo que las versiones existentes liquidan igual que antes. Un contrato nuevo las toma de los valores por defecto de la inmobiliaria o de lo que se pacte en el alta; un convenio puede cambiarlas con `termsPatch`.
 - `@@unique([contractId, validFrom])`. La versión vigente a una fecha es la última con `validFrom` anterior o igual. La migración creó una por contrato con sus columnas de hoy: base `Vigente` (lo que hace el motor actual), rezago 0 (el motor anterior no lo aplicaba; los contratos nuevos toman el de los valores por defecto, 2), vencimiento el día 10 y flujo `Partido`.
 - Las tres tablas llevan `tenantId` y están registradas en `TENANT_SCOPED_MODELS`.
 

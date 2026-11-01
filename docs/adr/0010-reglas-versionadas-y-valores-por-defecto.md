@@ -137,3 +137,37 @@ reutiliza: una liquidación anulada conserva su número, y los borradores que nu
 llegan a aprobarse no gastan número. La numeración fiscal con punto de venta, si
 hace falta, es otra serie.
 
+## Addendum: convenciones de liquidación pactables (1 de noviembre de 2026)
+
+Cuatro criterios de la generación de liquidaciones no son una decisión técnica sino
+un acuerdo entre las partes, y Manuel decidió que todo es pactable: cada uno es una
+regla del contrato, versionada en `ContractTermsVersion`, con un valor por defecto
+en `Tenant.operationalDefaults` (defecto -> contrato -> acuerdo, igual que
+`dueDay`).
+
+| Regla | Opciones (la primera es la de fábrica) |
+|---|---|
+| `prorationMode` | `DiasReales` (días del mes, el día de inicio cuenta), `Mes30` (mes comercial; el día 31 cuenta como 30), `SinProrrateo` (mes completo) |
+| `midMonthAdjustmentMode` | `DesdePeriodoSiguiente`, `Prorrateado` (dos renglones de alquiler partidos por días, con el conteo de `prorationMode`; con `SinProrrateo` se cuentan días reales), `DesdeEsePeriodo` (todo el mes al alquiler nuevo) |
+| `firstDueMode` | `DiaDeInicio` (vence el día de inicio si es posterior al vencimiento), `VencimientoMesSiguiente`, `AlFirmar` |
+| `fixedDiscountProration` | `Proporcional`, `Completo` |
+
+Decisiones de modelado:
+
+- Las columnas son obligatorias y su valor por defecto en la base es el
+  comportamiento original, así que el backfill no cambia ninguna liquidación. Un
+  contrato nuevo copia los valores de la inmobiliaria (o los del alta) a su primera
+  versión; sin versión (datos viejos) rige el valor de la inmobiliaria.
+- El redondeo no se pacta: centavo, mitad hacia arriba, siempre.
+- `VencimientoMesSiguiente` aplica solo si el contrato empieza después del día de
+  vencimiento de su primer mes y no termina en él. Ese mes no se liquida
+  (`not_billed`, `DeferredToNextPeriod`) y la liquidación del mes siguiente suma su
+  alquiler prorrateado como un renglón comisionable (`sourceType`
+  `DeferredFirstMonth`); si el primer mes ya tenía liquidación (se generó antes de
+  pactarlo) no se repite. Los descuentos de las reglas no se aplican a ese renglón.
+- `AlFirmar` aplica al primer mes de cualquier contrato, empiece cuando empiece: el
+  sistema no lo liquida (`not_billed`, `ChargedAtSigning`) y lo informa al generar;
+  el cobro al firmar se registra fuera de la liquidación mensual.
+- Un cambio de convenio no toca las liquidaciones ya generadas.
+- Un contrato con convenios se cambia por convenio con fecha (`termsPatch`); sin
+  convenios, se corrige en su versión inicial (`liquidationRules`).
