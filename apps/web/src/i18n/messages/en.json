@@ -109,7 +109,8 @@
   "fiscal": "Fiscal Settings",
   "pagos": "Pagos",
   "notifications": "Notificaciones",
-  "permissions": "Permissions"
+  "permissions": "Permissions",
+  "serviceBills": "Monthly bills"
  },
  "dataTable": {
   "pagination": {
@@ -144,6 +145,20 @@
   "copyReference": "Copy reference",
   "copied": "Copied",
   "codes": {
+   "BILL_ALREADY_BILLED": "The bill is already included in a settlement and cannot be changed.",
+   "ALLOCATION_ALREADY_BILLED": "A part of the bill was already included in another settlement.",
+   "BILL_NOT_FOUND": "The bill no longer exists.",
+   "BILL_PAYMENT_DATA_REQUIRED": "Say who paid the bill and when.",
+   "CHARGE_RULE_REQUIRES_AGREEMENT": "The contract is in force: the change needs a charge-change agreement.",
+   "CHARGE_RULE_EXISTS": "There is already a rule for this service with that start date.",
+   "CHARGE_RULE_IN_USE": "The rule was already used in a settlement: create a new version.",
+   "CHARGE_RULE_BEFORE_START": "The rule cannot start before the contract start.",
+   "CHARGE_RULE_DATE_MISMATCH": "The rule date must be the agreement date.",
+   "CHARGE_RULE_NOT_FOUND": "The rule no longer exists.",
+   "SERVICE_NOT_APPLICABLE": "The service belongs to another property.",
+   "FIXED_AMOUNT_REQUIRED": "A fixed-amount rule needs the amount.",
+   "INVALID_SHARE_PCT": "The tenant's share goes from 0 to 100.",
+   "AGREEMENT_KIND_MISMATCH": "The agreement must be a charge-change agreement.",
    "INTERNAL_ERROR": "The server ran into a problem. Please try again in a few minutes.",
    "UNAUTHORIZED": "Your session has expired. Please sign in again.",
    "FORBIDDEN": "You do not have permission to do this.",
@@ -1623,6 +1638,7 @@
    "Internet": "Internet",
    "Expensas": "Expensas",
    "Municipal": "Municipal",
+   "ImpuestoInmobiliario": "Property tax",
    "Otro": "Otro"
   },
   "card": {
@@ -4486,5 +4502,139 @@
   "since": "since {date}",
   "range": "from {from} to {to}",
   "document": "View document"
+ },
+ "serviceBills": {
+  "title": "Monthly bills",
+  "subtitle": "Enter the month's tax and utility bills. Each row shows who pays according to the contract rules; the tenant's share goes into their next settlement.",
+  "period": "Month",
+  "forbidden": "You do not have permission to enter bills.",
+  "loadError": "The month's services could not be loaded",
+  "empty": "There are no active services. Add each property's services first.",
+  "gridLabel": "Monthly bills",
+  "datePlaceholder": "YYYY-MM-DD or D/M/YYYY",
+  "lateNote": "A bill entered after the month's settlement was generated goes into the next settlement that is generated. A bill already included in a settlement cannot be changed.",
+  "columns": {
+   "property": "Property",
+   "service": "Service",
+   "payer": "Who pays",
+   "installment": "Installment",
+   "amount": "Amount",
+   "dueDate": "Due date",
+   "consumption": "Consumption",
+   "status": "Status"
+  },
+  "payer": {
+   "none": "No rules",
+   "Inquilino": "Tenant (pays directly)",
+   "Inmobiliaria": "Agency",
+   "Propietario": "Owner",
+   "annual": "annual",
+   "modes": {
+    "Porcentaje": "{pct} % to the tenant",
+    "Consumo": "by consumption",
+    "Fijo": "{amount} fixed"
+   }
+  },
+  "status": {
+   "none": "Not entered",
+   "Pendiente": "Entered",
+   "Pagada": "Paid",
+   "Anulada": "Voided"
+  },
+  "validation": {
+   "amount": "Enter a valid amount (up to 2 decimals)",
+   "date": "Invalid date (YYYY-MM-DD or D/M/YYYY)",
+   "consumption": "Enter a valid consumption (up to 3 decimals)",
+   "installmentLocked": "The installment of an entered bill cannot be changed"
+  },
+  "save": {
+   "action": "{count, plural, =0 {Save bills} one {Save # bill} other {Save # bills}}",
+   "saving": "Saving…",
+   "done": "{count, plural, =0 {No new bills or changes} one {# bill saved} other {# bills saved}}{unchanged, plural, =0 {} other { ({unchanged} unchanged)}}",
+   "partial": "{failed, plural, one {# row with errors} other {# rows with errors}}; the rest were saved ({saved}).",
+   "error": "The bills could not be saved",
+   "failuresTitle": "These rows were not saved",
+   "retryHint": "Fix the rows and save again: the ones already saved are not duplicated."
+  }
+ },
+ "chargeRules": {
+  "title": "Taxes and utilities",
+  "loadError": "The tax and utility rules could not be loaded",
+  "none": "The contract has no tax and utility rules yet.",
+  "edit": "Add or change rule",
+  "since": "since {date}",
+  "range": "from {from} to {to}",
+  "byAgreement": "by agreement",
+  "history": "{count, plural, one {# earlier version} other {# earlier versions}}",
+  "payers": {
+   "Inquilino": "Tenant",
+   "Inmobiliaria": "Agency",
+   "Propietario": "Owner"
+  },
+  "payerHints": {
+   "Inquilino": "Pays the utility directly; it does not go through the agency.",
+   "Inmobiliaria": "The tenant pays the agency and the agency pays the utility.",
+   "Propietario": "The tenant pays it with the rent and all of it goes to the lessor."
+  },
+  "modes": {
+   "Porcentaje": "{pct} % to the tenant",
+   "Consumo": "by consumption",
+   "Fijo": "{amount} fixed"
+  },
+  "plans": {
+   "Mensual": "monthly payment",
+   "Anual": {
+    "Unico": "annual payment, charged at once",
+    "Prorrateado": "annual payment, in 12 installments"
+   }
+  },
+  "splitModes": {
+   "Porcentaje": "Percentage of the bill",
+   "Consumo": "By consumption",
+   "Fijo": "Fixed amount"
+  },
+  "planNames": {
+   "Mensual": "Monthly",
+   "Anual": "Annual"
+  },
+  "recoveries": {
+   "Unico": "Charge at once",
+   "Prorrateado": "Spread over 12 months"
+  },
+  "recoveryHints": {
+   "Unico": "The tenant pays their whole share in the settlement of the bill's month.",
+   "Prorrateado": "The tenant's share is split into 12 equal monthly installments."
+  },
+  "editorLabel": "Tax and utility rule",
+  "draftNotice": "The contract is a draft: the rule applies from the date entered.",
+  "agreementNotice": "The contract is in force: the change is recorded with a charge-change agreement and the new rule applies from its date. The previous rule stays in the history.",
+  "fields": {
+   "service": "Service",
+   "payer": "Who pays",
+   "splitMode": "How it is split",
+   "pct": "Share that goes to the tenant",
+   "fixed": "Fixed amount per bill",
+   "plan": "Payment plan",
+   "recovery": "Recovery of the annual bill",
+   "discountToTenant": "The annual payment discount goes to the tenant",
+   "validFrom": "Applies from",
+   "documentUrl": "Agreement document (link)",
+   "agreementNotes": "Agreement notes",
+   "notes": "Notes"
+  },
+  "validation": {
+   "service": "Choose the service",
+   "date": "Enter a valid date",
+   "pct": "The percentage goes from 0 to 100",
+   "fixed": "Enter an amount greater than zero",
+   "url": "Enter a link starting with http:// or https://"
+  },
+  "save": "Save rule",
+  "saveWithAgreement": "Record agreement and save rule",
+  "saving": "Saving…",
+  "cancel": "Cancel",
+  "saved": "Rule saved",
+  "saveError": "The rule could not be saved",
+  "agreementKept": "The agreement was recorded; fix the rule and save again."
  }
 }
