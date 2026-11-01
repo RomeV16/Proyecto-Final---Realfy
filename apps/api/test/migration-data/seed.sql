@@ -124,4 +124,10 @@ INSERT INTO "comprobantes" ("id", "tenantId", "issuerId", "paymentId", "type", "
 INSERT INTO "contract_adjustments" ("id", "tenantId", "contractId", "periodNumber", "adjustmentDate", "previousAmount", "newAmount", "percentage", "calculatedAt", "appliedAt") VALUES
   ('adj-1', 'tenant-a', 'con-2', 1, '2026-09-01', 120000.00, 150000.00, 25.0000, '2026-09-01', '2026-09-01');
 
+-- Servicios de las propiedades (antes de las boletas): dos de la inmobiliaria A y uno de la B.
+INSERT INTO "services" ("id", "tenantId", "propertyId", "serviceType", "providerName", "amount", "dueDay", "updatedAt") VALUES
+  ('svc-1',  'tenant-a', 'prop-1',  'Electricidad', 'Ente de prueba 1', 18000.00, 10, now()),
+  ('svc-2',  'tenant-a', 'prop-1',  'Municipal',    'Ente de prueba 2',  9000.00, 15, now()),
+  ('svc-b1', 'tenant-b', 'prop-b1', 'Gas',          'Ente de prueba 3',  7000.00, 12, now());
+
 COMMIT;

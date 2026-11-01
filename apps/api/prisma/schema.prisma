@@ -842,20 +842,22 @@ model Contract {
   previousContract Contract?  @relation("ContractRenewal", fields: [previousContractId], references: [id], onDelete: SetNull)
   renewals         Contract[] @relation("ContractRenewal")
 
-  property       Property                @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  persons        ContractPerson[]
-  lessors        ContractLessor[]
-  powers         PowerOfAttorney[]
-  guarantees     ContractGuarantee[]
-  adjustments    ContractAdjustment[]
-  schedules      AdjustmentSchedule[]
-  liquidaciones  Liquidacion[]
-  commission     ContractCommission?
-  rendiciones    OwnerRendicion[]
-  closureSummary ContractClosureSummary?
-  periods        ContractPeriod[]
-  agreements     ContractAgreement[]
-  termsVersions  ContractTermsVersion[]
+  property        Property                @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  persons         ContractPerson[]
+  lessors         ContractLessor[]
+  powers          PowerOfAttorney[]
+  guarantees      ContractGuarantee[]
+  adjustments     ContractAdjustment[]
+  schedules       AdjustmentSchedule[]
+  liquidaciones   Liquidacion[]
+  commission      ContractCommission?
+  rendiciones     OwnerRendicion[]
+  closureSummary  ContractClosureSummary?
+  periods         ContractPeriod[]
+  agreements      ContractAgreement[]
+  chargeRules     ContractChargeRule[]
+  billAllocations ServiceBillAllocation[]
+  termsVersions   ContractTermsVersion[]
 
   @@unique([tenantId, externalRef])
   @@index([previousContractId])
@@ -1061,8 +1063,9 @@ model ContractAgreement {
   createdById   String?
   createdAt     DateTime              @default(now())
 
-  contract Contract               @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  versions ContractTermsVersion[]
+  contract    Contract               @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  versions    ContractTermsVersion[]
+  chargeRules ContractChargeRule[]
 
   @@index([tenantId])
   @@index([contractId, effectiveFrom])
@@ -1266,9 +1269,10 @@ model Liquidacion {
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
-  contract  Contract              @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  lineItems LiquidacionLineItem[]
-  payments  Payment[]
+  contract        Contract                @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  lineItems       LiquidacionLineItem[]
+  billAllocations ServiceBillAllocation[]
+  payments        Payment[]
 
   penalties        Penalty[] @relation("PenaltyLiquidacion")
   settledPenalties Penalty[] @relation("PenaltySettledLiquidacion")
@@ -1346,28 +1350,79 @@ enum ServiceType {
   Internet
   Expensas
   Municipal
+  ImpuestoInmobiliario
   Otro
+}
+
+/// Cada cuánto llega la boleta de un servicio o impuesto.
+enum BillingFrequency {
+  Mensual
+  Bimestral
+  Trimestral
+  Anual
+}
+
+/// Quién paga un impuesto o servicio según el contrato.
+enum ChargePayer {
+  Inquilino
+  Inmobiliaria
+  Propietario
+}
+
+/// Cómo se calcula la parte del inquilino.
+enum ChargeSplitMode {
+  Porcentaje
+  Consumo
+  Fijo
+}
+
+enum ServicePaymentPlan {
+  Mensual
+  Anual
+}
+
+/// Cómo se recupera del inquilino una boleta anual.
+enum AnnualRecovery {
+  Unico
+  Prorrateado
+}
+
+enum ServiceBillStatus {
+  Pendiente
+  Pagada
+  Anulada
+}
+
+/// Quién pagó la boleta al ente.
+enum BillPaidBy {
+  Inquilino
+  Inmobiliaria
+  Propietario
 }
 
 // ─── Service Models ─────────────────────────────────────
 
 model Service {
-  id            String      @id @default(uuid())
-  tenantId      String
-  propertyId    String
-  serviceType   ServiceType
-  providerName  String?
-  accountNumber String?
-  amount        Decimal     @db.Decimal(15, 2)
-  currency      Currency    @default(ARS)
-  dueDay        Int
-  isActive      Boolean     @default(true)
-  notes         String?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id               String           @id @default(uuid())
+  tenantId         String
+  propertyId       String
+  serviceType      ServiceType
+  providerName     String?
+  accountNumber    String?
+  amount           Decimal          @db.Decimal(15, 2)
+  currency         Currency         @default(ARS)
+  dueDay           Int
+  isActive         Boolean          @default(true)
+  notes            String?
+  billingFrequency BillingFrequency @default(Mensual)
+  hasAnnualOption  Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  property Property         @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  property Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   payments ServicePayment[]
+  bills    ServiceBill[]
+  rules    ContractChargeRule[]
 
   @@index([tenantId])
   @@index([tenantId, propertyId])
@@ -1383,13 +1438,115 @@ model ServicePayment {
   paymentDate DateTime
   period      DateTime
   notes       String?
+  billId      String?
   createdAt   DateTime @default(now())
 
-  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  service Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  bill    ServiceBill? @relation(fields: [billId], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([serviceId])
+  @@index([billId])
   @@map("service_payments")
+}
+
+/// Regla de traslado de un impuesto o servicio a un contrato, vigente entre
+/// `validFrom` y `validTo`. Nunca se pisa: un cambio cierra la anterior y crea
+/// una versión nueva (con el convenio que lo respalda, si hay).
+model ContractChargeRule {
+  id                     String             @id @default(uuid())
+  tenantId               String
+  contractId             String
+  serviceId              String
+  payer                  ChargePayer
+  splitMode              ChargeSplitMode    @default(Porcentaje)
+  tenantSharePct         Decimal            @default(100) @db.Decimal(5, 2)
+  fixedAmount            Decimal?           @db.Decimal(15, 2)
+  paymentPlan            ServicePaymentPlan @default(Mensual)
+  annualRecovery         AnnualRecovery     @default(Prorrateado)
+  /// Si el descuento por pago anual es para el inquilino (cobra lo pagado) o
+  /// para quien pagó (cobra el importe sin descuento).
+  annualDiscountToTenant Boolean            @default(true)
+  validFrom              DateTime
+  validTo                DateTime?
+  agreementId            String?
+  notes                  String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  contract    Contract                @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  service     Service                 @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  agreement   ContractAgreement?      @relation(fields: [agreementId], references: [id], onDelete: SetNull)
+  allocations ServiceBillAllocation[]
+
+  @@unique([contractId, serviceId, validFrom])
+  @@index([tenantId])
+  @@index([serviceId, validFrom])
+  @@map("contract_charge_rules")
+}
+
+/// Boleta de un servicio o impuesto de una propiedad. Entidad propia: no es un
+/// `ServicePayment` (el pago registra lo que se pagó; la boleta, lo que se debe).
+model ServiceBill {
+  id               String            @id @default(uuid())
+  tenantId         String
+  serviceId        String
+  /// Primer día del mes de la boleta.
+  period           DateTime          @db.Date
+  installmentLabel String
+  amount           Decimal           @db.Decimal(15, 2)
+  /// Importe sin el descuento por pago anual.
+  nominalAmount    Decimal?          @db.Decimal(15, 2)
+  currency         Currency          @default(ARS)
+  dueDate          DateTime?         @db.Date
+  consumption      Decimal?          @db.Decimal(15, 3)
+  /// Consumo de cada unidad: lista de { propertyId, consumption }.
+  unitConsumptions Json?
+  status           ServiceBillStatus @default(Pendiente)
+  paidBy           BillPaidBy?
+  paidAt           DateTime?
+  receiptUrl       String?
+  notes            String?
+  createdById      String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  service     Service                 @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  allocations ServiceBillAllocation[]
+  payments    ServicePayment[]
+
+  @@unique([serviceId, period, installmentLabel])
+  @@index([tenantId, period])
+  @@map("service_bills")
+}
+
+/// Parte de una boleta que se cobra al inquilino de un contrato, en la
+/// liquidación del mes `chargePeriod`. Se factura una sola vez.
+model ServiceBillAllocation {
+  id                String      @id @default(uuid())
+  tenantId          String
+  billId            String
+  contractId        String
+  ruleId            String?
+  payer             ChargePayer
+  amount            Decimal     @db.Decimal(15, 2)
+  basis             String
+  /// Primer día del mes de la liquidación en que se cobra.
+  chargePeriod      DateTime    @db.Date
+  installmentNo     Int         @default(1)
+  installmentsTotal Int         @default(1)
+  liquidacionId     String?
+  billedAt          DateTime?
+  createdAt         DateTime    @default(now())
+
+  bill        ServiceBill         @relation(fields: [billId], references: [id], onDelete: Cascade)
+  liquidacion Liquidacion?        @relation(fields: [liquidacionId], references: [id], onDelete: SetNull)
+  contract    Contract            @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  rule        ContractChargeRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@unique([billId, contractId, chargePeriod])
+  @@index([tenantId, contractId, billedAt, chargePeriod])
+  @@map("service_bill_allocations")
 }
 
 enum PenaltyStatus {
