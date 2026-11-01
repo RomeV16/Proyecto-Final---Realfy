@@ -374,10 +374,65 @@ Punitorio calculado sobre una liquidación vencida.
 
 ### Service / ServicePayment
 
-Servicios asociados a una propiedad (gas, luz, ABL) y sus pagos.
+Servicios e impuestos asociados a una propiedad (gas, luz, tasa municipal, impuesto inmobiliario) y sus pagos.
 
-- `Service`: `id`, `tenantId`, `propertyId`, `serviceType`, `providerName`, `accountNumber`, `amount`, `currency`, `dueDay`, `isActive`, `notes`.
-- `ServicePayment`: `id`, `tenantId`, `serviceId`, `amount`, `paymentDate`, `period`, `notes`.
+- `Service`: `id`, `tenantId`, `propertyId`, `serviceType` (Electricidad, Gas, Agua, Internet, Expensas, Municipal, ImpuestoInmobiliario, Otro), `providerName`, `accountNumber`, `amount`, `currency`, `dueDay`, `billingFrequency` (Mensual por defecto, Bimestral, Trimestral, Anual), `hasAnnualOption` (falso por defecto), `isActive`, `notes`.
+- `ServicePayment`: `id`, `tenantId`, `serviceId`, `amount`, `paymentDate`, `period`, `notes`, `billId` (opcional: el pago de la boleta que lo originó; si se borra la boleta queda nulo).
+
+### Impuestos y servicios trasladables
+
+Quién paga cada impuesto o servicio de un contrato, las boletas y lo que se cobra al inquilino en cada liquidación (ADR-0008).
+
+```mermaid
+erDiagram
+    Contract ||--o{ ContractChargeRule : "reglas con vigencia"
+    Service ||--o{ ContractChargeRule : "se traslada segun"
+    ContractAgreement |o--o{ ContractChargeRule : "cambio de cargo"
+    Service ||--o{ ServiceBill : "boletas"
+    ServiceBill ||--o{ ServiceBillAllocation : "partes por contrato y mes"
+    Contract ||--o{ ServiceBillAllocation : "lo que paga el inquilino"
+    ContractChargeRule |o--o{ ServiceBillAllocation : "regla aplicada"
+    Liquidacion |o--o{ ServiceBillAllocation : "la incluye una vez"
+    ServiceBill |o--o{ ServicePayment : "pago registrado"
+    ContractChargeRule {
+        string payer
+        string splitMode
+        decimal tenantSharePct
+        decimal fixedAmount
+        string paymentPlan
+        string annualRecovery
+        boolean annualDiscountToTenant
+        date validFrom
+        date validTo
+    }
+    ServiceBill {
+        date period
+        string installmentLabel
+        decimal amount
+        decimal nominalAmount
+        date dueDate
+        decimal consumption
+        json unitConsumptions
+        string status
+        string paidBy
+        datetime paidAt
+        string receiptUrl
+    }
+    ServiceBillAllocation {
+        string payer
+        decimal amount
+        string basis
+        date chargePeriod
+        int installmentNo
+        int installmentsTotal
+        datetime billedAt
+    }
+```
+
+- `ContractChargeRule`: `id`, `tenantId`, `contractId`, `serviceId`, `payer` (`Inquilino`, `Inmobiliaria`, `Propietario`), `splitMode` (`Porcentaje`, `Consumo`, `Fijo`), `tenantSharePct` (100 por defecto), `fixedAmount`, `paymentPlan` (`Mensual`, `Anual`), `annualRecovery` (`Prorrateado` por defecto, `Unico`), `annualDiscountToTenant` (verdadero por defecto), `validFrom`, `validTo`, `agreementId`, `notes`. Única por `[contractId, serviceId, validFrom]`: un cambio cierra la regla vigente y crea otra, no la pisa.
+- `ServiceBill`: `id`, `tenantId`, `serviceId`, `period` (primer día del mes), `installmentLabel`, `amount`, `nominalAmount`, `currency`, `dueDate`, `consumption`, `unitConsumptions` (lista de propiedad y consumo), `status` (`Pendiente`, `Pagada`, `Anulada`), `paidBy` (`Inquilino`, `Inmobiliaria`, `Propietario`), `paidAt`, `receiptUrl`, `notes`, `createdById`. Única por `[serviceId, period, installmentLabel]`.
+- `ServiceBillAllocation`: `id`, `tenantId`, `billId`, `contractId`, `ruleId`, `payer`, `amount`, `basis` (texto con el cálculo), `chargePeriod` (mes de la liquidación en que se cobra), `installmentNo`, `installmentsTotal`, `liquidacionId`, `billedAt`. Única por `[billId, contractId, chargePeriod]`. Una parte con `billedAt` ya está en una liquidación y no se rehace.
+- Los tres modelos llevan `tenantId` y están registrados en `TENANT_SCOPED_MODELS`. El renglón de liquidación que sale de una parte lleva `sourceType` `ServiceBillAllocation` y el id de la parte como `sourceId`.
 
 ### OwnerRendicion / RendicionLineItem
 
