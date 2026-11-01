@@ -324,7 +324,58 @@ export enum ServiceType {
   Internet = 'Internet',
   Expensas = 'Expensas',
   Municipal = 'Municipal',
+  /** Impuesto inmobiliario provincial (Rentas). */
+  ImpuestoInmobiliario = 'ImpuestoInmobiliario',
   Otro = 'Otro',
+}
+
+/** Cada cuánto llega la boleta de un servicio o impuesto. */
+export enum BillingFrequency {
+  Mensual = 'Mensual',
+  Bimestral = 'Bimestral',
+  Trimestral = 'Trimestral',
+  Anual = 'Anual',
+}
+
+/** Quién paga un impuesto o servicio según lo pactado en el contrato. */
+export enum ChargePayer {
+  /** Paga directo al ente; no pasa por la inmobiliaria. */
+  Inquilino = 'Inquilino',
+  /** El inquilino le paga a la inmobiliaria y ésta paga al ente. */
+  Inmobiliaria = 'Inmobiliaria',
+  /** El inquilino paga con el alquiler y todo pasa al locador (por cuenta y orden). */
+  Propietario = 'Propietario',
+}
+
+/** Cómo se calcula la parte de la boleta que le toca al inquilino. */
+export enum ChargeSplitMode {
+  Porcentaje = 'Porcentaje',
+  Consumo = 'Consumo',
+  Fijo = 'Fijo',
+}
+
+export enum ServicePaymentPlan {
+  Mensual = 'Mensual',
+  Anual = 'Anual',
+}
+
+/** Cómo se recupera del inquilino una boleta anual. */
+export enum AnnualRecovery {
+  Unico = 'Unico',
+  Prorrateado = 'Prorrateado',
+}
+
+export enum ServiceBillStatus {
+  Pendiente = 'Pendiente',
+  Pagada = 'Pagada',
+  Anulada = 'Anulada',
+}
+
+/** Quién pagó la boleta al ente. */
+export enum BillPaidBy {
+  Inquilino = 'Inquilino',
+  Inmobiliaria = 'Inmobiliaria',
+  Propietario = 'Propietario',
 }
 
 // ─── Notification Enums ─────────────────────────────────
