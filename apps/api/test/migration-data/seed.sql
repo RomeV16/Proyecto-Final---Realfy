@@ -1,7 +1,9 @@
+-- esquema: 20261031120000_ajuste_corregido_pendiente
 -- Datos sintéticos con la forma de los reales, para ensayar migraciones.
 --
--- Se cargan sobre el esquema ANTERIOR a las migraciones nuevas (el que existe en
--- la rama base), por eso solo usan columnas de ese esquema. Todo es inventado:
+-- Se cargan sobre el esquema que declara la primera línea (el "ancla") y las
+-- migraciones posteriores se aplican sobre estos datos, por eso solo usan
+-- columnas de ese esquema. Todo es inventado:
 -- nombres, documentos, CUIT y CBU son valores obviamente falsos (ceros y
 -- secuencias), nada proviene de una persona o una inmobiliaria real.
 --
