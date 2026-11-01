@@ -6,9 +6,10 @@ import { EmailService } from './email.service';
 import { LiquidacionesScheduler } from './liquidaciones.scheduler';
 import { TenantsModule } from '../tenants/tenants.module';
 import { IndexDataModule } from '../index-data/index-data.module';
+import { ServicesModule } from '../services/services.module';
 
 @Module({
-  imports: [TenantsModule, IndexDataModule],
+  imports: [TenantsModule, IndexDataModule, ServicesModule],
   controllers: [LiquidacionesController],
   providers: [
     LiquidacionesService,

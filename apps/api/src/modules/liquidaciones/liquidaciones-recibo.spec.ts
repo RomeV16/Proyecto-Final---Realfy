@@ -69,6 +69,7 @@ function build(liq: any, nextSeq = 6) {
     {} as any,
     {} as any,
     {} as any,
+    {} as any,
   );
   return { service, client, tx };
 }

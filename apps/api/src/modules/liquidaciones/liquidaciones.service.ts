@@ -48,6 +48,7 @@ import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
 import { rentAtDate, rentChangeInMonth } from './rent-at';
 import { scheduledPeriod } from './generation-window';
 import { EmailService } from './email.service';
+import { ServiceBillsService } from '../services/service-bills.service';
 import Decimal from 'decimal.js';
 import { randomUUID } from 'crypto';
 import { assertTransition } from '../../common/errors/assert-transition';
@@ -88,6 +89,7 @@ export class LiquidacionesService {
     private readonly operationalDefaults: OperationalDefaultsService,
     private readonly audit: AuditService,
     private readonly adjustments: ContractAdjustmentService,
+    private readonly serviceBills: ServiceBillsService,
   ) {}
 
   // ─── Auto-Generation ────────────────────────────────
@@ -247,6 +249,15 @@ export class LiquidacionesService {
       ];
     });
 
+    // Boletas de servicios e impuestos que se cobran al inquilino: las partes sin facturar cuyo
+    // mes ya llegó. Una boleta cargada después de generada la liquidación del mes entra en la
+    // próxima que se genere.
+    const serviceAllocations = await this.serviceBills.pendingLines(
+      contract.id,
+      period,
+      contract.rentCurrency,
+    );
+
     const built = buildLiquidation({
       period,
       currency: contract.rentCurrency,
@@ -270,6 +281,7 @@ export class LiquidacionesService {
       },
       lessors,
       trueUps,
+      serviceAllocations,
     });
 
     if (built.skipped) {
@@ -316,6 +328,12 @@ export class LiquidacionesService {
         await this.adjustments.markTrueUpBilled(
           pendingTrueUps.map((t) => t.adjustmentId),
           tx,
+        );
+        // Lo mismo con las partes de boletas: cada una se factura una sola vez.
+        await this.serviceBills.markBilled(
+          tx,
+          serviceAllocations.flatMap((l) => (l.sourceId ? [l.sourceId] : [])),
+          row.id,
         );
         return row;
       });
@@ -539,8 +557,11 @@ export class LiquidacionesService {
 
     await this.ensureEditable(lineItem.liquidacionId);
 
-    await this.prisma.client.liquidacionLineItem.delete({
-      where: { id: lineItemId },
+    await this.prisma.client.$transaction(async (tx: any) => {
+      await tx.liquidacionLineItem.delete({ where: { id: lineItemId } });
+      if (lineItem.sourceType === 'ServiceBillAllocation' && lineItem.sourceId) {
+        await this.serviceBills.release(tx, { ids: [lineItem.sourceId] });
+      }
     });
 
     await this.recalculateTotals(lineItem.liquidacionId);
@@ -880,8 +901,10 @@ export class LiquidacionesService {
       status === LiquidacionStatus.Borrador ||
       status === LiquidacionStatus.Revision
     ) {
-      await this.prisma.client.liquidacion.delete({
-        where: { id },
+      // Las partes de boletas que traía vuelven a quedar pendientes para la próxima.
+      await this.prisma.client.$transaction(async (tx: any) => {
+        await this.serviceBills.release(tx, { liquidacionId: id });
+        await tx.liquidacion.delete({ where: { id } });
       });
       this.logger.log('Liquidación deleted', { liquidacionId: id, status });
       return { deleted: true, id };
