@@ -128,6 +128,10 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
   await prisma.baseClient.providerProfile.deleteMany();
   await prisma.baseClient.person.deleteMany();
 
+  // Import tables (log rows before batches)
+  await prisma.baseClient.importRowLog.deleteMany();
+  await prisma.baseClient.importBatch.deleteMany();
+
   // Pipeline tables (delete stages before pipelines)
   await prisma.baseClient.pipelineStage.deleteMany();
   await prisma.baseClient.pipeline.deleteMany();

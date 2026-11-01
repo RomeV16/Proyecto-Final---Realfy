@@ -468,3 +468,24 @@ export enum TicketPriority {
   Media = 'Media',
   Baja = 'Baja',
 }
+
+export enum ImportBatchStatus {
+  Validando = 'Validando',
+  Validado = 'Validado',
+  Ejecutando = 'Ejecutando',
+  Completado = 'Completado',
+  Fallido = 'Fallido',
+}
+
+export enum ImportEntity {
+  Persona = 'Persona',
+  Propiedad = 'Propiedad',
+  Contrato = 'Contrato',
+}
+
+export enum ImportRowAction {
+  Creado = 'Creado',
+  Actualizado = 'Actualizado',
+  SinCambios = 'SinCambios',
+  Error = 'Error',
+}
