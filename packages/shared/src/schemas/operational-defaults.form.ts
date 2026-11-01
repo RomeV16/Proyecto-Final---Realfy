@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode } from '../enums';
 import type { OperationalDefaults, OperationalDefaultsInput } from './operational-defaults.schema';
 
 // Esquema del formulario web de valores por defecto: todos los campos viajan
@@ -23,6 +24,10 @@ export const operationalDefaultsFormSchema = z
     leadDays: numberText({ int: true, min: 0, max: 60 }),
     ipcLagMonths: numberText({ int: true, min: 0, max: 12 }),
     allowProvisional: z.boolean(),
+    prorationMode: z.nativeEnum(ProrationMode),
+    midMonthAdjustmentMode: z.nativeEnum(MidMonthAdjustmentMode),
+    firstDueMode: z.nativeEnum(FirstDueMode),
+    fixedDiscountProration: z.nativeEnum(FixedDiscountProration),
     commissionPct: numberText({ min: 0, max: 100 }),
     feeAlta: numberText({ min: 0, max: 100 }),
     feeRenovacion: numberText({ min: 0, max: 100 }),
@@ -51,6 +56,10 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     leadDays: String(d.leadDays),
     ipcLagMonths: String(d.ipcLagMonths),
     allowProvisional: d.allowProvisional,
+    prorationMode: d.prorationMode,
+    midMonthAdjustmentMode: d.midMonthAdjustmentMode,
+    firstDueMode: d.firstDueMode,
+    fixedDiscountProration: d.fixedDiscountProration,
     commissionPct: String(d.commissionPct),
     feeAlta: String(d.fees.alta),
     feeRenovacion: String(d.fees.renovacion),
@@ -72,6 +81,10 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
     leadDays: num(f.leadDays),
     ipcLagMonths: num(f.ipcLagMonths),
     allowProvisional: f.allowProvisional,
+    prorationMode: f.prorationMode,
+    midMonthAdjustmentMode: f.midMonthAdjustmentMode,
+    firstDueMode: f.firstDueMode,
+    fixedDiscountProration: f.fixedDiscountProration,
     commissionPct: num(f.commissionPct),
     fees: {
       alta: num(f.feeAlta),

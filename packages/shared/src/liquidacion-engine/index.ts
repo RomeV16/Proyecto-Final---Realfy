@@ -1,6 +1,6 @@
 import type Decimal from 'decimal.js';
 import { Money } from '../money';
-import { LineItemType } from '../enums';
+import { LineBeneficiary, LineItemType } from '../enums';
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -102,4 +102,35 @@ export function isFullyPaid(
 ): boolean {
   const remaining = calculateRemainingBalance(total, payments);
   return remaining.lte(0);
+}
+
+// ─── Destino y comisión por defecto ─────────────────────
+
+const COMMISSIONABLE_TYPES: ReadonlySet<LineItemType> = new Set([
+  LineItemType.Alquiler,
+  LineItemType.Ajuste,
+  LineItemType.AjusteRetroactivo,
+  LineItemType.Multa,
+  LineItemType.Descuento,
+]);
+
+/**
+ * La comisión de la inmobiliaria corre sobre el alquiler, sus ajustes y los
+ * punitorios; nunca sobre reparaciones, impuestos ni servicios.
+ */
+export function defaultCommissionable(type: LineItemType): boolean {
+  return COMMISSIONABLE_TYPES.has(type);
+}
+
+/** Destino de un renglón cuando quien lo carga no lo indica. */
+export function defaultBeneficiary(type: LineItemType): LineBeneficiary {
+  switch (type) {
+    case LineItemType.Impuesto:
+    case LineItemType.Servicio:
+      return LineBeneficiary.Ente;
+    case LineItemType.Honorario:
+      return LineBeneficiary.Inmobiliaria;
+    default:
+      return LineBeneficiary.Locador;
+  }
 }

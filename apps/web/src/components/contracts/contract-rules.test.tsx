@@ -30,6 +30,10 @@ function version(overrides: Record<string, unknown> = {}) {
     discountAmount: null,
     dueDay: 10,
     paymentFlow: 'Partido',
+    prorationMode: 'DiasReales',
+    midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+    firstDueMode: 'DiaDeInicio',
+    fixedDiscountProration: 'Proporcional',
     ...overrides,
   };
 }
@@ -64,6 +68,38 @@ describe('ContractRules', () => {
     expect(text).toContain('2 versiones');
     expect(apiClient).toHaveBeenCalledWith('/contracts/c-1/terms');
     expect(apiClient).toHaveBeenCalledWith('/contracts/c-1/agreements');
+  });
+
+  it('muestra las convenciones de liquidación pactadas', async () => {
+    const current = version({
+      prorationMode: 'Mes30',
+      midMonthAdjustmentMode: 'Prorrateado',
+      firstDueMode: 'VencimientoMesSiguiente',
+      fixedDiscountProration: 'Completo',
+    });
+    serve({ at: '2026-10-31T00:00:00.000Z', current, versions: [current] });
+
+    renderEs(<ContractRules contractId="c-1" currency="ARS" />);
+
+    expect(await screen.findByText('Prorrateo de un mes parcial')).toBeInTheDocument();
+    const text = norm(document.body.textContent);
+    expect(text).toContain('Mes comercial de 30 días');
+    expect(text).toContain('Se divide el mes por días');
+    expect(text).toContain('Se cobra con el mes siguiente');
+    expect(text).toContain('Se descuenta completo');
+  });
+
+  it('una versión sin convenciones no muestra esos datos', async () => {
+    const current = version({
+      prorationMode: undefined,
+      midMonthAdjustmentMode: undefined,
+      firstDueMode: undefined,
+      fixedDiscountProration: undefined,
+    });
+    serve({ at: '2026-10-31T00:00:00.000Z', current, versions: [current] });
+    renderEs(<ContractRules contractId="c-1" currency="ARS" />);
+    expect(await screen.findByText('Alquiler vigente')).toBeInTheDocument();
+    expect(screen.queryByText('Prorrateo de un mes parcial')).not.toBeInTheDocument();
   });
 
   it('muestra descuentos, alquiler acordado y porcentaje solo cuando existen', async () => {

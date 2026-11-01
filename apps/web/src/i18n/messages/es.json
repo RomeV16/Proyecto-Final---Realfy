@@ -1376,12 +1376,36 @@
    "amountPlaceholder": "0.00",
    "selectType": "Seleccionar tipo"
   },
+  "beneficiary": {
+   "Locador": "Locador",
+   "Inmobiliaria": "Inmobiliaria",
+   "Ente": "Ente o proveedor"
+  },
+  "kinds": {
+   "Mensual": "Mensual",
+   "PagoACuenta": "Pago a cuenta",
+   "Egreso": "Egreso"
+  },
+  "commissionable": "Comisionable",
+  "provisional": "Provisional",
+  "provisionalHint": "El alquiler usa un ajuste provisional; se corrige cuando se publique el índice oficial.",
+  "receipt": {
+   "number": "Recibo Nº {number}",
+   "print": "Imprimir recibo",
+   "pending": "Se numera al aprobar"
+  },
+  "outOfRangeCount": "{count} fuera del período del contrato (omitidas)",
   "lineItemTypes": {
    "Alquiler": "Alquiler",
    "Ajuste": "Ajuste",
    "Extra": "Extra",
    "Descuento": "Descuento",
-   "Multa": "Multa"
+   "Multa": "Multa",
+   "Impuesto": "Impuesto",
+   "Servicio": "Servicio",
+   "Cargo": "Cargo",
+   "Honorario": "Honorario",
+   "AjusteRetroactivo": "Ajuste retroactivo"
   },
   "totals": {
    "subtotal": "Subtotal",
@@ -4250,6 +4274,10 @@
    "expiry": {
     "title": "Semáforo de vencimientos",
     "description": "Cuántos días antes del fin un contrato pasa a amarillo o rojo."
+   },
+   "liquidation": {
+    "title": "Convenciones de liquidación",
+    "description": "Prorrateo, ajustes a mitad de mes, primer mes y descuentos fijos. Cada contrato puede pactar las suyas."
    }
   },
   "fields": {
@@ -4312,6 +4340,46 @@
    "yellowDays": {
     "label": "Amarillo hasta (días al fin)",
     "hint": "De fábrica {value}."
+   }
+  }
+ },
+  "liquidationConventions": {
+  "useDefault": "Valor por defecto de la inmobiliaria",
+  "title": "Convenciones de liquidación",
+  "description": "Cómo se calcula y se cobra el mes cuando el contrato empieza, cambia de alquiler o termina a mitad de mes. Cada una se puede pactar por contrato; acá se muestra el valor por defecto de la inmobiliaria.",
+  "prorationMode": {
+   "label": "Prorrateo de un mes parcial",
+   "hint": "Cómo se cuentan los días del primer y el último mes (de fábrica: {value}).",
+   "options": {
+    "DiasReales": "Días reales del mes",
+    "Mes30": "Mes comercial de 30 días",
+    "SinProrrateo": "Mes completo, sin prorrateo"
+   }
+  },
+  "midMonthAdjustmentMode": {
+   "label": "Ajuste a mitad de mes",
+   "hint": "Cuándo rige un nuevo alquiler que cae en medio de un mes (de fábrica: {value}).",
+   "options": {
+    "DesdePeriodoSiguiente": "Rige desde el período siguiente",
+    "Prorrateado": "Se divide el mes por días",
+    "DesdeEsePeriodo": "Rige todo el mes"
+   }
+  },
+  "firstDueMode": {
+   "label": "Primer mes con inicio tardío",
+   "hint": "Qué pasa si el contrato empieza después del día de vencimiento, o si el primer mes se cobra al firmar (de fábrica: {value}).",
+   "options": {
+    "DiaDeInicio": "Vence el día de inicio",
+    "VencimientoMesSiguiente": "Se cobra con el mes siguiente",
+    "AlFirmar": "Se cobra al firmar (no se liquida)"
+   }
+  },
+  "fixedDiscountProration": {
+   "label": "Descuento de monto fijo en un mes parcial",
+   "hint": "Si el descuento fijo se prorratea como el alquiler (de fábrica: {value}).",
+   "options": {
+    "Proporcional": "Se prorratea",
+    "Completo": "Se descuenta completo"
    }
   }
  },

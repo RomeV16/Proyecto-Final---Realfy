@@ -26,10 +26,16 @@ export {
   ContractAgreementKind,
   AdjustmentBase,
   PaymentFlow,
+  ProrationMode,
+  MidMonthAdjustmentMode,
+  FirstDueMode,
+  FixedDiscountProration,
   ScheduleStatus,
   LiquidacionStatus,
   PaymentMethod,
   LineItemType,
+  LineBeneficiary,
+  LiquidacionKind,
   ServiceType,
   NotificationType,
   PipelineType,
@@ -127,6 +133,8 @@ export {
   CreateContractAgreementSchema,
   UpdateContractAgreementSchema,
 } from './schemas/contract-rules.schema';
+export { LiquidationConventionsSchema } from './schemas/contract-rules.schema';
+export type { LiquidationConventions } from './schemas/contract-rules.schema';
 export type { TermsPatch, CreateContractAgreementInput } from './schemas/contract-rules.schema';
 
 // Schemas — propiedades
@@ -511,7 +519,7 @@ export { Money, round2, toAmountString, sumMoney, allocateLargestRemainder } fro
 export type { MoneyInput } from './money';
 
 // Formato de datos para mostrar
-export { propertyLabel, personName, formatMoneyAR, formatPeriodAR, formatPeriodShortAR } from './format';
+export { propertyLabel, personName, formatMoneyAR, formatPeriodAR, formatPeriodShortAR, formatReceiptNumber } from './format';
 export type { PropertyLabelInput, PersonNameInput, MoneyLike } from './format';
 
 // Adjustment engine
@@ -551,6 +559,8 @@ export {
   calculateRemainingBalance,
   isFullyPaid,
   InvalidLineAmountError,
+  defaultCommissionable,
+  defaultBeneficiary,
 } from './liquidacion-engine';
 export type { LineItemInput, LineItemsTotalResult, PaymentInput } from './liquidacion-engine';
 
@@ -907,3 +917,18 @@ import {
 export type ClosureSummarySource = z.infer<typeof _ClosureSummarySourceSchema>;
 export type ContractClosureMetrics = z.infer<typeof _ContractClosureMetricsSchema>;
 export type AiClosureSummaryResponse = z.infer<typeof _AiClosureSummaryResponseSchema>;
+
+// Liquidation builder
+export { buildLiquidation, onBehalfOfText } from './liquidation-builder';
+export type {
+  BuilderResult,
+  BuiltLine,
+  BuiltLiquidation,
+  LiquidationBuilderInput,
+  LiquidationConventionsInput,
+  LiquidationExtraLine,
+  LiquidationSkipReason,
+} from './liquidation-builder';
+
+// Amount in words
+export { amountInWords } from './amount-in-words';

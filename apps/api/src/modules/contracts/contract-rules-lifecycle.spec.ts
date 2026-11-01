@@ -118,6 +118,34 @@ describe('ContractsService — fin real y reglas al editar', () => {
     expect(client.contract.update).not.toHaveBeenCalled();
   });
 
+  it('corregir las convenciones de liquidación actualiza la versión inicial y no toca el contrato', async () => {
+    const { service, client } = build();
+
+    await service.update(CONTRACT_ID, { liquidationRules: { prorationMode: 'Mes30', firstDueMode: 'AlFirmar' } });
+
+    expect(client.contractTermsVersion.updateMany).toHaveBeenCalledWith({
+      where: { contractId: CONTRACT_ID },
+      data: { prorationMode: 'Mes30', firstDueMode: 'AlFirmar' },
+    });
+    expect(client.contract.update.mock.calls[0][0].data).not.toHaveProperty('liquidationRules');
+  });
+
+  it('con varias versiones las convenciones solo cambian por convenio (409)', async () => {
+    const { service, client } = build(EXISTING, 2);
+    const err = await service
+      .update(CONTRACT_ID, { liquidationRules: { fixedDiscountProration: 'Completo' } })
+      .catch((e) => e);
+    expect(errorCode(err)).toBe('RULES_CHANGE_REQUIRES_AGREEMENT');
+    expect(client.contract.update).not.toHaveBeenCalled();
+  });
+
+  it('un liquidationRules vacío no es un cambio de reglas', async () => {
+    const { service, client } = build(EXISTING, 2);
+    await service.update(CONTRACT_ID, { liquidationRules: {}, notes: 'nota' });
+    expect(client.contract.update).toHaveBeenCalled();
+    expect(client.contractTermsVersion.updateMany).not.toHaveBeenCalled();
+  });
+
   it('repetir la modalidad vigente no es un cambio de reglas', async () => {
     const { service, client } = build(EXISTING, 2);
     await service.update(CONTRACT_ID, { adjustmentType: 'IPC', notes: 'nota' });

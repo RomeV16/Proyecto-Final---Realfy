@@ -88,6 +88,43 @@ describe('OperationalDefaultsManager', () => {
     expect(JSON.parse(put[1].body).allowProvisional).toBe(false);
   });
 
+  it('muestra las cuatro convenciones de liquidación con el valor de fábrica y su explicación', async () => {
+    renderEs(<OperationalDefaultsManager />);
+
+    const proration = await screen.findByLabelText(/Prorrateo de un mes parcial/);
+    expect(proration).toHaveValue('DiasReales');
+    expect(screen.getByLabelText(/Ajuste a mitad de mes/)).toHaveValue('DesdePeriodoSiguiente');
+    expect(screen.getByLabelText(/Primer mes con inicio tardío/)).toHaveValue('DiaDeInicio');
+    expect(screen.getByLabelText(/Descuento de monto fijo en un mes parcial/)).toHaveValue('Proporcional');
+    expect(screen.getByRole('option', { name: 'Mes comercial de 30 días' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Se cobra al firmar (no se liquida)' })).toBeInTheDocument();
+    expect(screen.getByText(/de fábrica: Días reales del mes/)).toBeInTheDocument();
+  });
+
+  it('guarda las convenciones elegidas y volver a fábrica las restaura', async () => {
+    const user = userEvent.setup();
+    renderEs(<OperationalDefaultsManager />);
+    await user.selectOptions(await screen.findByLabelText(/Prorrateo de un mes parcial/), 'Mes30');
+    await user.selectOptions(screen.getByLabelText(/Ajuste a mitad de mes/), 'Prorrateado');
+    await user.selectOptions(screen.getByLabelText(/Primer mes con inicio tardío/), 'AlFirmar');
+    await user.selectOptions(screen.getByLabelText(/Descuento de monto fijo en un mes parcial/), 'Completo');
+
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(put[1].body)).toMatchObject({
+      prorationMode: 'Mes30',
+      midMonthAdjustmentMode: 'Prorrateado',
+      firstDueMode: 'AlFirmar',
+      fixedDiscountProration: 'Completo',
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Volver a los valores de fábrica' }));
+    expect(screen.getByLabelText(/Prorrateo de un mes parcial/)).toHaveValue('DiasReales');
+    expect(screen.getByLabelText(/Descuento de monto fijo en un mes parcial/)).toHaveValue('Proporcional');
+  });
+
   it('un valor inválido se marca en el campo y no se envía', async () => {
     const user = userEvent.setup();
     renderEs(<OperationalDefaultsManager />);

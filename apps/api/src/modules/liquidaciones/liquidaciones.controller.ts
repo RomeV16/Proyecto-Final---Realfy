@@ -9,16 +9,20 @@ import {
   Query,
   Res,
   HttpCode,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { LiquidacionesService } from './liquidaciones.service';
+import { LiquidacionesScheduler } from './liquidaciones.scheduler';
 import { Roles } from '../../common/auth/roles.decorator';
-import { BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
+import { ADMIN_ONLY, BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
 @Controller('liquidaciones')
 export class LiquidacionesController {
   constructor(
     private readonly liquidacionesService: LiquidacionesService,
+    private readonly scheduler: LiquidacionesScheduler,
   ) {}
 
   /**
@@ -45,6 +49,33 @@ export class LiquidacionesController {
   @Post('generate')
   async generate(@Body() body: Record<string, any>) {
     return this.liquidacionesService.generate(body);
+  }
+
+  /**
+   * POST /liquidaciones/_run-now
+   * Corre ahora el proceso diario de generación (el del cron), con `today`
+   * opcional (YYYY-MM-DD) para fijar el día. Solo Admin, y solo con
+   * NODE_ENV=test o E2E_TEST_MODE=1, igual que `/penalties/_run-now`.
+   */
+  @Roles(...ADMIN_ONLY)
+  @Post('_run-now')
+  @HttpCode(200)
+  async runNow(@Body() body: { today?: string } = {}) {
+    const isTestMode = process.env.NODE_ENV === 'test' || process.env.E2E_TEST_MODE === '1';
+    if (!isTestMode) {
+      throw new ForbiddenException({
+        error: 'FORBIDDEN',
+        message: 'This endpoint is only available in test mode',
+      });
+    }
+    let today: Date | undefined;
+    if (body?.today !== undefined) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(body.today) || Number.isNaN(Date.parse(body.today))) {
+        throw new BadRequestException({ error: 'VALIDATION_ERROR', message: 'today must be YYYY-MM-DD' });
+      }
+      today = new Date(`${body.today}T00:00:00.000Z`);
+    }
+    return this.scheduler.generateForAllTenants(today, 'run-now');
   }
 
   /**

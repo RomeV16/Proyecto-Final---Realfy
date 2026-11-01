@@ -35,10 +35,12 @@ const PERSONS = [
 ];
 
 let postResult: () => Promise<unknown>;
+let tenantDefaults: () => Record<string, unknown> | Promise<never>;
 
 function mockApi() {
   apiClient.mockImplementation((path: string, init?: { method?: string }) => {
     if (init?.method === 'POST') return postResult();
+    if (path === '/tenants/me/operational-defaults') return Promise.resolve(tenantDefaults());
     if (path.startsWith('/properties')) return Promise.resolve({ items: [PROPERTY] });
     if (path.startsWith('/persons')) {
       const q = decodeURIComponent(path.split('search=')[1].split('&')[0]);
@@ -85,6 +87,7 @@ describe('ContractForm — guardar como borrador o activo', () => {
     apiClient.mockReset();
     router.push.mockReset();
     postResult = () => Promise.resolve({ id: 'c-77' });
+    tenantDefaults = () => ({});
     mockApi();
   });
 
@@ -177,7 +180,7 @@ describe('ContractForm — guardar como borrador o activo', () => {
     renderEs(<ContractForm />);
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(screen.getByText('Paso 1 de 4')).toBeInTheDocument();
-    expect(apiClient).not.toHaveBeenCalled();
+    expect(apiClient.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
   });
 });
 
@@ -275,5 +278,74 @@ describe('ContractForm — locadores con su porcentaje de cobro', () => {
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(screen.getByText('Paso 2 de 4')).toBeInTheDocument();
     expect(screen.getByText('Sin locadores asignados')).toHaveClass('text-red-500');
+  });
+});
+
+describe('ContractForm — convenciones de liquidación', () => {
+  beforeEach(() => {
+    apiClient.mockReset();
+    router.push.mockReset();
+    postResult = () => Promise.resolve({ id: 'c-77' });
+    tenantDefaults = () => ({
+      prorationMode: 'Mes30',
+      midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+      firstDueMode: 'DiaDeInicio',
+      fixedDiscountProration: 'Proporcional',
+    });
+    mockApi();
+  });
+
+  /** Llega al paso de precio con el resto ya cargado. */
+  async function toPriceStep() {
+    const user = userEvent.setup();
+    const { container } = renderEs(<ContractForm />);
+    await user.type(screen.getByPlaceholderText('Buscar propiedad…'), 'Depto');
+    await user.click(await screen.findByRole('button', { name: /Depto de prueba/ }));
+    await user.selectOptions(screen.getAllByRole('combobox')[0], 'Alquiler');
+    fireEvent.change(container.querySelector('input[type=date]')!, { target: { value: '2026-01-01' } });
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    const search = screen.getByPlaceholderText('Buscar persona por nombre o CUIT…');
+    await user.type(search, 'Propietaria');
+    await user.click(await screen.findByRole('button', { name: /Agregar locador/ }));
+    await user.type(search, 'Inquilino');
+    await user.click(await screen.findByRole('button', { name: /Agregar inquilino/ }));
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    return user;
+  }
+
+  it('arranca con los valores por defecto de la inmobiliaria y deja elegir cada una', async () => {
+    const user = await toPriceStep();
+    const proration = await screen.findByLabelText('Prorrateo de un mes parcial');
+    await waitFor(() => expect(proration).toHaveValue('Mes30'));
+    expect(screen.getByLabelText('Ajuste a mitad de mes')).toHaveValue('DesdePeriodoSiguiente');
+    expect(screen.getByLabelText('Primer mes con inicio tardío')).toHaveValue('DiaDeInicio');
+
+    await user.selectOptions(screen.getByLabelText('Primer mes con inicio tardío'), 'AlFirmar');
+    await user.selectOptions(screen.getByLabelText('Descuento de monto fijo en un mes parcial'), 'Completo');
+    await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
+
+    await waitFor(() => expect(router.push).toHaveBeenCalled());
+    expect(lastPost().body.liquidationRules).toEqual({
+      prorationMode: 'Mes30',
+      midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+      firstDueMode: 'AlFirmar',
+      fixedDiscountProration: 'Completo',
+    });
+  });
+
+  it('si no se pueden leer los valores por defecto, no envía convenciones y rige el de la inmobiliaria', async () => {
+    tenantDefaults = () => Promise.reject(new Error('sin permiso'));
+    const user = await toPriceStep();
+    expect(await screen.findByLabelText('Prorrateo de un mes parcial')).toHaveValue('');
+    expect(screen.getAllByRole('option', { name: 'Valor por defecto de la inmobiliaria' })).toHaveLength(4);
+
+    await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
+
+    await waitFor(() => expect(router.push).toHaveBeenCalled());
+    expect(lastPost().body.liquidationRules).toEqual({});
   });
 });

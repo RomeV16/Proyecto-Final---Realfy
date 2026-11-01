@@ -1069,26 +1069,31 @@ model ContractAgreement {
 /// Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se pisa:
 /// un cambio crea una versión nueva.
 model ContractTermsVersion {
-  id                 String           @id @default(uuid())
-  tenantId           String
-  contractId         String
-  validFrom          DateTime
-  agreementId        String?
-  adjustmentType     AdjustmentType
-  adjustmentPeriod   AdjustmentPeriod
-  adjustmentBase     AdjustmentBase   @default(Vigente)
-  indexLagMonths     Int              @default(2)
-  fixedInitialMonths Int              @default(0)
-  customPct          Decimal?         @db.Decimal(5, 2)
+  id                     String                 @id @default(uuid())
+  tenantId               String
+  contractId             String
+  validFrom              DateTime
+  agreementId            String?
+  adjustmentType         AdjustmentType
+  adjustmentPeriod       AdjustmentPeriod
+  adjustmentBase         AdjustmentBase         @default(Vigente)
+  indexLagMonths         Int                    @default(2)
+  fixedInitialMonths     Int                    @default(0)
+  customPct              Decimal?               @db.Decimal(5, 2)
   /// Escalonado: lista de { fromMonth, pct }.
-  customSteps        Json?
-  rentOverride       Decimal?         @db.Decimal(15, 2)
-  discountPct        Decimal?         @db.Decimal(5, 2)
-  discountAmount     Decimal?         @db.Decimal(15, 2)
-  dueDay             Int
-  paymentFlow        PaymentFlow      @default(Partido)
-  penaltyConfig      Json?
-  createdAt          DateTime         @default(now())
+  customSteps            Json?
+  rentOverride           Decimal?               @db.Decimal(15, 2)
+  discountPct            Decimal?               @db.Decimal(5, 2)
+  discountAmount         Decimal?               @db.Decimal(15, 2)
+  dueDay                 Int
+  paymentFlow            PaymentFlow            @default(Partido)
+  penaltyConfig          Json?
+  /// Convenciones de liquidación; el valor por defecto de la columna es el comportamiento original.
+  prorationMode          ProrationMode          @default(DiasReales)
+  midMonthAdjustmentMode MidMonthAdjustmentMode @default(DesdePeriodoSiguiente)
+  firstDueMode           FirstDueMode           @default(DiaDeInicio)
+  fixedDiscountProration FixedDiscountProration @default(Proporcional)
+  createdAt              DateTime               @default(now())
 
   contract  Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
   agreement ContractAgreement? @relation(fields: [agreementId], references: [id])
@@ -1190,26 +1195,73 @@ enum LineItemType {
   Extra
   Descuento
   Multa
+  Impuesto
+  Servicio
+  Cargo
+  Honorario
+  AjusteRetroactivo
+}
+
+/// A quién le corresponde el importe de un renglón de la liquidación.
+enum LineBeneficiary {
+  Locador
+  Inmobiliaria
+  Ente
+}
+
+/// Convenciones de liquidación pactables por contrato (ADR-0010).
+enum ProrationMode {
+  DiasReales
+  Mes30
+  SinProrrateo
+}
+
+enum MidMonthAdjustmentMode {
+  DesdePeriodoSiguiente
+  Prorrateado
+  DesdeEsePeriodo
+}
+
+enum FirstDueMode {
+  DiaDeInicio
+  VencimientoMesSiguiente
+  AlFirmar
+}
+
+enum FixedDiscountProration {
+  Proporcional
+  Completo
+}
+
+enum LiquidacionKind {
+  Mensual
+  PagoACuenta
+  Egreso
 }
 
 // ─── Liquidacion Models ─────────────────────────────────
 
 model Liquidacion {
-  id         String            @id @default(uuid())
-  tenantId   String
-  contractId String
-  period     DateTime
-  status     LiquidacionStatus @default(Borrador)
-  dueDate    DateTime
-  subtotal   Decimal           @db.Decimal(15, 2)
-  total      Decimal           @db.Decimal(15, 2)
-  currency   Currency          @default(ARS)
-  notes      String?
-  pdfUrl     String?
-  sentAt     DateTime?
-  paidAt     DateTime?
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  id            String            @id @default(uuid())
+  tenantId      String
+  contractId    String
+  period        DateTime
+  status        LiquidacionStatus @default(Borrador)
+  dueDate       DateTime
+  subtotal      Decimal           @db.Decimal(15, 2)
+  total         Decimal           @db.Decimal(15, 2)
+  currency      Currency          @default(ARS)
+  notes         String?
+  pdfUrl        String?
+  sentAt        DateTime?
+  paidAt        DateTime?
+  kind          LiquidacionKind   @default(Mensual)
+  /// El alquiler usó un ajuste provisional (índice estimado); se corrige después.
+  isProvisional Boolean           @default(false)
+  /// Número de recibo de la inmobiliaria; se asigna al aprobar.
+  receiptSeq    Int?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   contract  Contract              @relation(fields: [contractId], references: [id], onDelete: Cascade)
   lineItems LiquidacionLineItem[]
@@ -1219,6 +1271,7 @@ model Liquidacion {
   settledPenalties Penalty[] @relation("PenaltySettledLiquidacion")
 
   @@unique([contractId, period])
+  @@unique([tenantId, receiptSeq])
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, contractId, period])
@@ -1226,21 +1279,39 @@ model Liquidacion {
 }
 
 model LiquidacionLineItem {
-  id            String       @id @default(uuid())
-  tenantId      String
-  liquidacionId String
-  type          LineItemType
-  description   String
-  amount        Decimal      @db.Decimal(15, 2)
-  currency      Currency     @default(ARS)
-  sortOrder     Int          @default(0)
-  createdAt     DateTime     @default(now())
+  id             String          @id @default(uuid())
+  tenantId       String
+  liquidacionId  String
+  type           LineItemType
+  description    String
+  amount         Decimal         @db.Decimal(15, 2)
+  currency       Currency        @default(ARS)
+  sortOrder      Int             @default(0)
+  /// La comisión de la inmobiliaria se calcula solo sobre renglones comisionables.
+  commissionable Boolean
+  beneficiary    LineBeneficiary
+  /// Origen del renglón (boleta, cargo, punitorio, ajuste) para no duplicarlo.
+  sourceType     String?
+  sourceId       String?
+  createdAt      DateTime        @default(now())
 
   liquidacion Liquidacion @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([liquidacionId])
+  @@index([tenantId, sourceType, sourceId])
   @@map("liquidacion_line_items")
+}
+
+/// Contador por inmobiliaria y serie (numeración de recibos).
+model DocumentSequence {
+  id       String @id @default(uuid())
+  tenantId String
+  series   String
+  next     Int    @default(1)
+
+  @@unique([tenantId, series])
+  @@map("document_sequences")
 }
 
 model Payment {

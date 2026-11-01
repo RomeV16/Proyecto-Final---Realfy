@@ -1,5 +1,6 @@
 import {
   CreateContractAgreementSchema,
+  LiquidationConventionsSchema,
   TermsPatchSchema,
   UpdateContractAgreementSchema,
 } from './contract-rules.schema';
@@ -13,13 +14,17 @@ import {
   operationalDefaultsFromForm,
   operationalDefaultsToForm,
 } from './operational-defaults.form';
-import { CreateIndexDataSchema, UpdateContractSchema } from './contract.schema';
+import { CreateContractSchema, CreateIndexDataSchema, UpdateContractSchema } from './contract.schema';
 
 describe('OperationalDefaultsSchema', () => {
   it('un objeto vacío toma los valores por defecto (M1)', () => {
     expect(OperationalDefaultsSchema.parse({})).toEqual({
       dueDay: 10,
       leadDays: 10,
+      prorationMode: 'DiasReales',
+      midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+      firstDueMode: 'DiaDeInicio',
+      fixedDiscountProration: 'Proporcional',
       ipcLagMonths: 2,
       allowProvisional: true,
       commissionPct: 7,
@@ -199,5 +204,74 @@ describe('operationalDefaultsFormSchema', () => {
     const result = operationalDefaultsFormSchema.safeParse({ ...form, redDays: '90', yellowDays: '60' });
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error.issues[0].path[0]).toBe('yellowDays');
+  });
+});
+
+describe('convenciones de liquidación', () => {
+  it('los valores por defecto de la inmobiliaria reproducen el comportamiento original', () => {
+    expect(DEFAULT_OPERATIONAL_DEFAULTS).toMatchObject({
+      prorationMode: 'DiasReales',
+      midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+      firstDueMode: 'DiaDeInicio',
+      fixedDiscountProration: 'Proporcional',
+    });
+  });
+
+  it('cada valor por defecto acepta cualquiera de sus opciones y rechaza otras', () => {
+    const ok = OperationalDefaultsSchema.parse({
+      prorationMode: 'Mes30',
+      midMonthAdjustmentMode: 'Prorrateado',
+      firstDueMode: 'AlFirmar',
+      fixedDiscountProration: 'Completo',
+    });
+    expect(ok).toMatchObject({ prorationMode: 'Mes30', firstDueMode: 'AlFirmar' });
+    expect(() => OperationalDefaultsSchema.parse({ prorationMode: 'Quincena' })).toThrow();
+    expect(() => OperationalDefaultsSchema.parse({ firstDueMode: 'Nunca' })).toThrow();
+  });
+
+  it('el formulario ida y vuelta conserva las cuatro opciones', () => {
+    const saved = OperationalDefaultsSchema.parse({ prorationMode: 'SinProrrateo', fixedDiscountProration: 'Completo' });
+    const form = operationalDefaultsToForm(saved);
+    expect(form).toMatchObject({ prorationMode: 'SinProrrateo', fixedDiscountProration: 'Completo' });
+    expect(operationalDefaultsFormSchema.safeParse(form).success).toBe(true);
+    expect(operationalDefaultsFromForm(form)).toMatchObject({
+      prorationMode: 'SinProrrateo',
+      midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+      firstDueMode: 'DiaDeInicio',
+      fixedDiscountProration: 'Completo',
+    });
+    expect(operationalDefaultsFormSchema.safeParse({ ...form, prorationMode: 'x' }).success).toBe(false);
+  });
+
+  it('el convenio acepta las convenciones en termsPatch y rechaza valores inválidos', () => {
+    expect(TermsPatchSchema.parse({ prorationMode: 'Mes30', firstDueMode: 'VencimientoMesSiguiente' })).toEqual({
+      prorationMode: 'Mes30',
+      firstDueMode: 'VencimientoMesSiguiente',
+    });
+    expect(() => TermsPatchSchema.parse({ prorationMode: 'Quincena' })).toThrow();
+  });
+
+  it('el alta y la edición del contrato aceptan liquidationRules parcial y estricto', () => {
+    expect(LiquidationConventionsSchema.parse({})).toEqual({});
+    expect(LiquidationConventionsSchema.parse({ midMonthAdjustmentMode: 'DesdeEsePeriodo' })).toEqual({
+      midMonthAdjustmentMode: 'DesdeEsePeriodo',
+    });
+    expect(() => LiquidationConventionsSchema.parse({ dueDay: 5 })).toThrow();
+    expect(UpdateContractSchema.parse({ liquidationRules: { prorationMode: 'Mes30' } })).toEqual({
+      liquidationRules: { prorationMode: 'Mes30' },
+    });
+    expect(() => UpdateContractSchema.parse({ liquidationRules: { prorationMode: 'x' } })).toThrow();
+    const created = CreateContractSchema.parse({
+      propertyId: '00000000-0000-4000-8000-000000000001',
+      contractType: 'Alquiler',
+      startDate: '2026-11-16T00:00:00.000Z',
+      endDate: '2028-11-15T00:00:00.000Z',
+      rentAmount: '100000',
+      adjustmentType: 'IPC',
+      adjustmentPeriod: 'Trimestral',
+      persons: [{ personId: '00000000-0000-4000-8000-000000000002', role: 'Inquilino' }],
+      liquidationRules: { firstDueMode: 'AlFirmar' },
+    });
+    expect(created.liquidationRules).toEqual({ firstDueMode: 'AlFirmar' });
   });
 });

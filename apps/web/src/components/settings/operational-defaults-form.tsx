@@ -18,6 +18,8 @@ import { ErrorNotice } from '@/components/ui/error-notice';
 import { FormField } from '@/components/ui/form-field';
 import { FormShell } from '@/components/ui/form-shell';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
+import { CONVENTION_OPTIONS, isConventionField } from '@/lib/liquidation-conventions';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type FieldName = Exclude<keyof OperationalDefaultsFormInput, 'allowProvisional'>;
@@ -25,6 +27,10 @@ type FieldName = Exclude<keyof OperationalDefaultsFormInput, 'allowProvisional'>
 /** Campos de cada sección, en el orden en que se muestran. */
 const SECTIONS: { key: string; fields: FieldName[] }[] = [
   { key: 'rent', fields: ['dueDay', 'leadDays', 'ipcLagMonths'] },
+  {
+    key: 'liquidation',
+    fields: ['prorationMode', 'midMonthAdjustmentMode', 'firstDueMode', 'fixedDiscountProration'],
+  },
   { key: 'fees', fields: ['commissionPct', 'feeAlta', 'feeRenovacion', 'feeVentaConstruido', 'feeVentaLote'] },
   { key: 'valuation', fields: ['valuationUsd', 'upfrontThresholdFees'] },
   { key: 'collection', fields: ['firstReminderDays', 'everyDays'] },
@@ -41,6 +47,7 @@ function DefaultsForm({
   onSaved: (values: OperationalDefaults) => void;
 }) {
   const t = useTranslations('operationalDefaults');
+  const tConv = useTranslations('liquidationConventions');
   const { values, set, setValues, errors, formError, submitting, submit } = useZodForm({
     schema: operationalDefaultsFormSchema,
     initialValues: operationalDefaultsToForm(saved),
@@ -72,24 +79,44 @@ function DefaultsForm({
           description={t(`sections.${section.key}.description`)}
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {section.fields.map((field) => (
-              <FormField
-                key={field}
-                label={t(`fields.${field}.label`)}
-                hint={t(`fields.${field}.hint`, { value: DEFAULT_FORM[field] })}
-                error={errors[field]}
-                required
-              >
-                {(c) => (
-                  <Input
-                    {...c}
-                    inputMode="decimal"
-                    value={values[field]}
-                    onChange={(e) => set(field, e.target.value)}
-                  />
-                )}
-              </FormField>
-            ))}
+            {section.fields.map((field) =>
+              isConventionField(field) ? (
+                <FormField
+                  key={field}
+                  label={tConv(`${field}.label`)}
+                  hint={tConv(`${field}.hint`, { value: tConv(`${field}.options.${DEFAULT_FORM[field]}`) })}
+                  error={errors[field]}
+                  required
+                >
+                  {(c) => (
+                    <Select {...c} value={values[field]} onChange={(e) => set(field, e.target.value as never)}>
+                      {CONVENTION_OPTIONS[field].map((option) => (
+                        <option key={option} value={option}>
+                          {tConv(`${field}.options.${option}`)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </FormField>
+              ) : (
+                <FormField
+                  key={field}
+                  label={t(`fields.${field}.label`)}
+                  hint={t(`fields.${field}.hint`, { value: DEFAULT_FORM[field] })}
+                  error={errors[field]}
+                  required
+                >
+                  {(c) => (
+                    <Input
+                      {...c}
+                      inputMode="decimal"
+                      value={values[field]}
+                      onChange={(e) => set(field, e.target.value)}
+                    />
+                  )}
+                </FormField>
+              ),
+            )}
           </div>
           {section.key === 'rent' && (
             <label className="mt-4 flex items-start gap-3 text-sm">

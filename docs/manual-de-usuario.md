@@ -264,7 +264,8 @@ En el detalle del contrato, *Reglas vigentes* muestra lo que rige hoy: modalidad
 período de ajuste, base del ajuste (sobre el alquiler original o sobre el vigente),
 rezago del índice, día de vencimiento, quién cobra (se reparte, todo la inmobiliaria
 o todo el locador) y los descuentos o el alquiler acordado, si los hay, con la fecha
-desde la que rigen y cuántas versiones tuvo. Debajo, *Acuerdos* lista los convenios
+desde la que rigen y cuántas versiones tuvo, y las cuatro convenciones de liquidación
+pactadas. Debajo, *Acuerdos* lista los convenios
 registrados (renegociación, rebaja, bonificación, cambio de reglas, de reparto o de
 cargo) con su vigencia, sus notas y un enlace al documento. Ambas secciones son de
 solo lectura: los acuerdos todavía se cargan por la API (`POST
@@ -328,17 +329,73 @@ Admin, Gerente y Ventas; quitar pide confirmación.
 
 ### Generar la liquidación del mes
 
-**Liquidaciones** (`/liquidaciones`) → *Generar Mes*. La acción no trabaja
-contrato por contrato: elegido el período, crea las liquidaciones de todos los
-contratos activos de ese mes, informa cuántas generó y cuántas omitió porque ya
-existían. Es la operación que abre el mes. Está disponible para Admin, Gerente y
-Liquidaciones.
+La inmobiliaria no tiene que acordarse de abrir el mes: todos los días a las 6 de
+la mañana el sistema revisa cada inmobiliaria y, cuando faltan diez días o menos
+para el mes siguiente (los días de anticipación de *Valores por defecto*; de
+fábrica, el día 20), genera las liquidaciones de ese mes. Si ya existían no las
+repite.
+
+El botón hace lo mismo a pedido: **Liquidaciones** (`/liquidaciones`) → *Generar
+Mes*. Elegido el período, crea las liquidaciones de los contratos que rigen ese
+mes, informa cuántas generó, cuántas omitió porque ya existían y cuántos
+contratos quedaron fuera por no regir (todavía no empezaron o ya terminaron)
+y cuántos primeros meses quedaron sin liquidar porque el contrato los cobra al firmar o
+con el mes siguiente.
+Está disponible para Admin, Gerente y Liquidaciones.
+
+Cada liquidación se arma con las reglas de ese mes y no con las de hoy: el
+alquiler es el que regía entonces, vence el día de vencimiento del contrato, y si
+el contrato empieza después del día 1 o termina antes del último día del mes (con
+fin real cargado), el alquiler de ese mes se prorratea por días y se aclara en la
+descripción. Un contrato activo sigue liquidando aunque haya pasado su fin pactado
+hasta que se cargue el fin real. Las bonificaciones del contrato aparecen como un
+descuento.
+
+Cuatro detalles de ese cálculo se pactan con cada inquilino y propietario, y por eso
+son una regla del contrato (con un valor por defecto de la inmobiliaria):
+
+- **Prorrateo de un mes parcial.** *Días reales del mes* (el día de inicio cuenta),
+  *Mes comercial de 30 días* (el día 31 cuenta como 30) o *Mes completo, sin
+  prorrateo*.
+- **Ajuste a mitad de mes.** Si el alquiler nuevo rige un día 15, puede *regir desde
+  el período siguiente* (de fábrica), *regir todo el mes* o *dividir el mes por días*:
+  la liquidación muestra entonces dos renglones de alquiler, los días al alquiler
+  viejo y los días al nuevo, con el conteo de días del prorrateo.
+- **Primer mes con inicio tardío.** Si el contrato empieza después del día de
+  vencimiento: *vence el día de inicio* (de fábrica), *se cobra con el mes
+  siguiente* (el primer mes no se liquida solo: la liquidación del mes siguiente suma
+  su alquiler prorrateado como un renglón aparte) o *se cobra al firmar* (el primer
+  mes no se liquida; el sistema lo informa como «sin liquidar» al generar).
+- **Descuento de monto fijo en un mes parcial.** *Se prorratea* como el alquiler (de
+  fábrica) o *se descuenta completo*; nunca supera el alquiler del mes.
+
+Cuando un ajuste de alquiler se calculó con un índice estimado (REM) y después se
+publica el oficial, la primera liquidación posterior suma la diferencia de los meses
+ya facturados con el alquiler provisorio como un renglón *Ajuste retroactivo*
+(comisionable, a favor del locador); si el estimado se pasó, la diferencia sale como
+un descuento a favor del inquilino. Cada corrección se factura una sola vez.
+
+Se eligen al crear el contrato (paso *Precio y ajuste*, que arranca con los valores
+por defecto de la inmobiliaria), se corrigen mientras el contrato no tenga acuerdos
+y, después, cambian por acuerdo con fecha. Las liquidaciones ya generadas no se
+tocan.
 
 Cada liquidación nace en Borrador y recorre En Revisión, Aprobada, Enviada y
 Pagada; puede quedar Vencida o Anulada. En el detalle (`/liquidaciones/[id]`) se
 ven las líneas —alquiler, ajuste, extras, descuentos, multas— y se agregan,
 editan o quitan las que hagan falta antes de aprobar. Aprobar y enviar en lote
 desde el listado es una acción reservada a Admin y Gerente.
+
+Cada renglón muestra a quién le corresponde (locador, inmobiliaria o ente o
+proveedor) y si es comisionable: la comisión solo corre sobre el alquiler, sus
+ajustes y los punitorios, nunca sobre reparaciones, impuestos ni servicios. Cuando
+el alquiler usa un ajuste provisional, la liquidación se marca *Provisional* y sale
+como *Pago a cuenta*.
+
+Al aprobar la liquidación se le asigna un número de recibo, correlativo dentro de
+la inmobiliaria; no cambia al enviarla. *Imprimir recibo* descarga el PDF con el
+número, el monto en letras, la leyenda «Cobrado por cuenta y orden de» los
+locadores del contrato y los renglones agrupados según a quién corresponden.
 
 La liquidación tiene su comprobante en PDF, descargable desde el listado y desde
 el detalle. Es el documento que el inquilino ve en su portal. El archivo se baja
@@ -500,8 +557,10 @@ liquidación (10, es decir el día 20), el rezago del IPC (2 meses), la comisió
 administración (7 %), los honorarios por alta, renovación y venta (5 %, 5 %, 3 % si
 es construido y 5 % si es lote), la tasación (USD 100), el umbral de anticipo (2
 honorarios), la cadencia de cobranza (primer recordatorio a los 5 días y después
-cada 5) y el semáforo de vencimientos de contratos (rojo a los 0 días, amarillo a
-los 60). Cada campo muestra debajo el valor de fábrica. Cambiá lo que necesites y
+cada 5), el semáforo de vencimientos de contratos (rojo a los 0 días, amarillo a
+los 60) y las cuatro convenciones de liquidación (prorrateo de un mes parcial, ajuste a
+mitad de mes, primer mes con inicio tardío y descuento de monto fijo; de fábrica, días
+reales, desde el período siguiente, vence el día de inicio y proporcional). Cada campo muestra debajo el valor de fábrica. Cambiá lo que necesites y
 tocá *Guardar valores*; *Volver a los valores de fábrica* los restaura en el
 formulario (hay que guardar para aplicarlo).
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode } from '../enums';
 
 const pct = z.number().min(0).max(100);
 const days = z.number().int().min(0).max(365);
@@ -15,6 +16,18 @@ export const OperationalDefaultsSchema = z
     dueDay: z.number().int().min(1).max(28).default(10),
     /** Días antes del vencimiento en que se genera la liquidación (día 20 con vencimiento el 10 del mes siguiente). */
     leadDays: z.number().int().min(0).max(60).default(10),
+    /** Prorrateo de un mes parcial. */
+    prorationMode: z.nativeEnum(ProrationMode).default(ProrationMode.DiasReales),
+    /** Ajuste de alquiler que cae a mitad de mes. */
+    midMonthAdjustmentMode: z
+      .nativeEnum(MidMonthAdjustmentMode)
+      .default(MidMonthAdjustmentMode.DesdePeriodoSiguiente),
+    /** Primer mes de un contrato que empieza pasado el vencimiento (o al firmar). */
+    firstDueMode: z.nativeEnum(FirstDueMode).default(FirstDueMode.DiaDeInicio),
+    /** Descuento de monto fijo en un mes parcial. */
+    fixedDiscountProration: z
+      .nativeEnum(FixedDiscountProration)
+      .default(FixedDiscountProration.Proporcional),
     /** Rezago en meses con que se toma el IPC al ajustar. */
     ipcLagMonths: z.number().int().min(0).max(12).default(2),
     /**

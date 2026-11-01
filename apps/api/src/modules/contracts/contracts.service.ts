@@ -348,6 +348,13 @@ export class ContractsService {
           customPct: validated.customAdjustmentPct ?? null,
           dueDay: defaults.dueDay,
           paymentFlow: PaymentFlow.Partido,
+          // Convenciones de liquidación: las pactadas en el alta o, si no, las de la inmobiliaria.
+          prorationMode: validated.liquidationRules?.prorationMode ?? defaults.prorationMode,
+          midMonthAdjustmentMode:
+            validated.liquidationRules?.midMonthAdjustmentMode ?? defaults.midMonthAdjustmentMode,
+          firstDueMode: validated.liquidationRules?.firstDueMode ?? defaults.firstDueMode,
+          fixedDiscountProration:
+            validated.liquidationRules?.fixedDiscountProration ?? defaults.fixedDiscountProration,
         },
       });
 
@@ -438,7 +445,12 @@ export class ContractsService {
   // ─── Update ─────────────────────────────────────────
 
   async update(id: string, data: unknown) {
-    const validated: any = parseOrThrow(UpdateContractSchema, data, 'Invalid contract data');
+    const { liquidationRules, ...validated }: any = parseOrThrow(
+      UpdateContractSchema,
+      data,
+      'Invalid contract data',
+    );
+    const touchesConventions = !!liquidationRules && Object.keys(liquidationRules).length > 0;
 
     const existing = await this.prisma.client.contract.findFirst({
       where: { id },
@@ -472,7 +484,7 @@ export class ContractsService {
     // Las reglas de ajuste de un contrato con convenios cambian por convenio:
     // pisar las columnas dejaría la historia de versiones desactualizada.
     const touchesRules = this.touchesAdjustmentRules(validated, existing);
-    if (touchesRules) {
+    if (touchesRules || touchesConventions) {
       const versions = await this.prisma.client.contractTermsVersion.count({
         where: { contractId: id },
       });
@@ -559,6 +571,13 @@ export class ContractsService {
       }
 
       await this.syncRulesAfterUpdate(tx, existing, validated, touchesRules);
+      if (touchesConventions) {
+        // Las convenciones de liquidación de un contrato sin convenios se corrigen en su versión inicial.
+        await tx.contractTermsVersion.updateMany({
+          where: { contractId: existing.id },
+          data: liquidationRules,
+        });
+      }
     }).catch((err: unknown) => rethrowExternalRefConflict(err, 'contract'));
 
     if (datesChanged) {
@@ -568,7 +587,7 @@ export class ContractsService {
     this.logger.log('Updated contract', {
       contractId: id,
       tenantId,
-      fieldsUpdated: Object.keys(validated),
+      fieldsUpdated: [...Object.keys(validated), ...(touchesConventions ? ['liquidationRules'] : [])],
       schedulesRecalculated: datesChanged,
     });
 

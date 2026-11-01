@@ -252,6 +252,10 @@ erDiagram
         int indexLagMonths
         int dueDay
         string paymentFlow
+        string prorationMode
+        string midMonthAdjustmentMode
+        string firstDueMode
+        string fixedDiscountProration
         json customSteps
     }
 ```
@@ -275,6 +279,7 @@ Convenio fechado que cambia las reglas del contrato.
 Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se modifica: un cambio crea otra.
 
 - `id`, `tenantId`, `contractId`, `validFrom`, `agreementId`, `adjustmentType`, `adjustmentPeriod`, `adjustmentBase` (`Original` o `Vigente`), `indexLagMonths` (por defecto 2), `fixedInitialMonths` (0), `customPct`, `customSteps` (JSON, lista de `{ fromMonth, pct }` para el escalonado), `rentOverride`, `discountPct`, `discountAmount`, `dueDay`, `paymentFlow` (`Partido`, `TodoInmobiliaria`, `TodoLocador`), `penaltyConfig` (JSON).
+- Cuatro convenciones de liquidación, pactables por contrato y con valor por defecto de la inmobiliaria (`Tenant.operationalDefaults`): `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`). Las columnas son obligatorias y su valor por defecto en la base es el comportamiento original (días reales, el ajuste rige desde el período siguiente, vence el día de inicio, descuento fijo proporcional), de modo que las versiones existentes liquidan igual que antes. Un contrato nuevo las toma de los valores por defecto de la inmobiliaria o de lo que se pacte en el alta; un convenio puede cambiarlas con `termsPatch`.
 - `@@unique([contractId, validFrom])`. La versión vigente a una fecha es la última con `validFrom` anterior o igual. La migración creó una por contrato con sus columnas de hoy: base `Vigente` (lo que hace el motor actual), rezago 0 (el motor anterior no lo aplicaba; los contratos nuevos toman el de los valores por defecto, 2), vencimiento el día 10 y flujo `Partido`.
 - Las tres tablas llevan `tenantId` y están registradas en `TENANT_SCOPED_MODELS`.
 
@@ -333,15 +338,25 @@ Resumen de gestión producido al cerrar el contrato.
 
 Liquidación mensual al inquilino.
 
-- `id`, `tenantId`, `contractId`, `period`, `status`, `dueDate`, `subtotal`, `total`, `currency`, `notes`, `pdfUrl`, `sentAt`, `paidAt`.
+- `id`, `tenantId`, `contractId`, `period`, `status`, `dueDate`, `subtotal`, `total`, `currency`, `notes`, `pdfUrl`, `sentAt`, `paidAt`, `kind`, `isProvisional`, `receiptSeq`.
+- `kind` es mensual, pago a cuenta o egreso. `isProvisional` marca que el alquiler usó un ajuste provisional (índice estimado), y la liquidación sale como pago a cuenta hasta que se corrija. `receiptSeq` es el número de recibo, único por inmobiliaria (`@@unique([tenantId, receiptSeq])`; nulo hasta que se aprueba).
 - Relación 1-N con `LiquidacionLineItem`, `Payment` y `Penalty`.
 
 ### LiquidacionLineItem
 
 Línea de la liquidación.
 
-- `id`, `tenantId`, `liquidacionId`, `type`, `description`, `amount`, `currency`, `sortOrder`.
-- `type` toma alquiler, ajuste, extra, descuento o multa.
+- `id`, `tenantId`, `liquidacionId`, `type`, `description`, `amount`, `currency`, `sortOrder`, `commissionable`, `beneficiary`, `sourceType`, `sourceId`.
+- `type` toma alquiler, ajuste, extra, descuento, multa, impuesto, servicio, cargo, honorario o ajuste retroactivo.
+- `beneficiary` dice a quién le corresponde el importe: locador, inmobiliaria o ente (proveedor o servicio). `commissionable` indica si el renglón entra en la base de la comisión: alquiler, ajustes, punitorios y descuentos sí; reparaciones, impuestos y servicios nunca. Los renglones existentes se migraron con esa regla y todos al locador.
+- `sourceType` y `sourceId` apuntan al registro de origen (boleta, cargo, punitorio, ajuste) y tienen un índice por inmobiliaria.
+
+### DocumentSequence
+
+Contador por inmobiliaria y serie, hoy solo para los recibos de liquidación (`RECIBO_LIQUIDACION`).
+
+- `id`, `tenantId`, `series`, `next`, con `@@unique([tenantId, series])`.
+- Un solo `INSERT ... ON CONFLICT DO UPDATE` incrementa `next`, de modo que dos aprobaciones simultáneas no repiten número.
 
 ### Payment
 
