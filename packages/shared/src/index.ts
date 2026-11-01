@@ -87,6 +87,23 @@ export {
 } from './schemas/read-policy.schema';
 export type { ReadResource, ReadPolicy } from './schemas/read-policy.schema';
 
+// Schemas — ajustes del mes (previsualización y aplicación masiva)
+export {
+  PreviewAdjustmentBatchSchema,
+  ApplyAdjustmentBatchSchema,
+  ADJUSTMENT_ROW_STATUSES,
+} from './schemas/adjustment-batch.schema';
+export type {
+  PreviewAdjustmentBatchInput,
+  ApplyAdjustmentBatchInput,
+  AdjustmentRowStatus,
+  AdjustmentIndexValue,
+  AdjustmentPreviewRow,
+  AdjustmentPreviewBatch,
+  AdjustmentApplyResult,
+  AdjustmentApplyBatch,
+} from './schemas/adjustment-batch.schema';
+
 // Schemas — valores por defecto de la inmobiliaria
 export {
   OperationalDefaultsSchema,
@@ -504,9 +521,29 @@ export {
   calculateCCP,
   calculateFixedPercent,
   calculateCustom,
+  calculateUVA,
+  calculateEscalonado,
   calculateAdjustment,
+  shiftWindowByLag,
+  expectedMonthlyPeriods,
+  monthsBetween,
+  isWithinFixedInitialPeriod,
+  resolveAdjustmentBasis,
+  assessCoverage,
+  calculateTrueUp,
+  monthsInRange,
 } from './adjustment-engine';
-export type { AdjustmentResult, AdjustmentParams } from './adjustment-engine';
+export type {
+  AdjustmentResult,
+  AdjustmentParams,
+  EscalonadoStep,
+  IndexWindow,
+  AdjustmentBasisInput,
+  IndexObservation,
+  Coverage,
+  TrueUpInput,
+  TrueUpResult,
+} from './adjustment-engine';
 
 // Liquidacion engine
 export {

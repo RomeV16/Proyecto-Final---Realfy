@@ -536,6 +536,12 @@ describe('Contracts (e2e)', () => {
         adjustmentType: AdjustmentType.IPC,
         adjustmentPeriod: AdjustmentPeriod.Trimestral,
       });
+      // Un contrato nuevo toma el rezago de la inmobiliaria (2); este caso fija
+      // el criterio de los contratos que ya existían, sin rezago.
+      await prisma.baseClient.contractTermsVersion.updateMany({
+        where: { contractId: contract.id },
+        data: { indexLagMonths: 0 },
+      });
 
       const months = [
         { period: '2025-01-01T00:00:00.000Z', value: '2.000000' },

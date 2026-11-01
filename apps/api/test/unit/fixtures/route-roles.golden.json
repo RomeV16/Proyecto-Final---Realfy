@@ -225,6 +225,19 @@
     "Ventas"
   ],
   "src/modules/index-data/index-data.controller.ts#IndexDataController.findAll": null,
+  "src/modules/index-data/adjustments.controller.ts#AdjustmentsController.previewBatch": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/index-data/adjustments.controller.ts#AdjustmentsController.applyBatch": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/index-data/adjustments.controller.ts#AdjustmentsController.runNow": [
+    "Admin"
+  ],
   "src/modules/index-data/index-data.controller.ts#IndexDataController.create": [
     "Admin"
   ],

@@ -9,6 +9,7 @@ import {
   ContractStatus,
   IndexType,
   ScheduleStatus,
+  expectedMonthlyPeriods,
 } from '@realfy/shared';
 
 /**
@@ -31,6 +32,7 @@ interface Case {
 }
 
 const SCHEDULE_DATE = new Date('2025-04-01T12:00:00.000Z');
+const MONTHLY: IndexType[] = [IndexType.IPC, IndexType.CVS, IndexType.CER];
 
 const baseContract = (overrides: Record<string, unknown>) => ({
   id: 'contract-1',
@@ -40,7 +42,7 @@ const baseContract = (overrides: Record<string, unknown>) => ({
   adjustmentType: AdjustmentType.FixedPercent,
   adjustmentPeriod: AdjustmentPeriod.Trimestral,
   customAdjustmentPct: null,
-  startDate: new Date('2025-01-01T12:00:00.000Z'),
+  startDate: new Date('2025-03-01T12:00:00.000Z'),
   status: ContractStatus.Activo,
   isActive: true,
   adjustments: [],
@@ -56,18 +58,39 @@ const schedule = {
 };
 
 function build(contract: any, series: Series, previous: any = null) {
-  const getForPeriod = jest.fn(async (type: IndexType) =>
-    (series[type] ?? []).map((value) => ({ value })),
-  );
+  // Responde como IndexDataService.getForPeriod: las series mensuales con un
+  // valor por cada mes de la ventana pedida (empezando por el primero), las
+  // diarias con un valor por día desde el inicio de la ventana.
+  const getForPeriod = jest.fn(async (type: IndexType, from: Date, until: Date, opts: any = {}) => {
+    const values = series[type] ?? [];
+    if (MONTHLY.includes(type)) {
+      const months = expectedMonthlyPeriods({ from, until, startExclusive: Boolean(opts.startExclusive) });
+      return values.slice(0, months.length).map((value, i) => ({
+        value,
+        period: new Date(`${months[i]}-01T00:00:00.000Z`),
+        isEstimate: false,
+      }));
+    }
+    return values.map((value, i) => ({
+      value,
+      period: new Date(from.getTime() + i * 86_400_000),
+      isEstimate: false,
+    }));
+  });
   const findSchedule = jest.fn(async (args: any) =>
     args.where.status === ScheduleStatus.Applied ? previous : schedule,
   );
   const client = {
     contract: { findFirst: jest.fn(async () => contract) },
-    adjustmentSchedule: { findFirst: findSchedule, update: jest.fn() },
+    adjustmentSchedule: {
+      findFirst: findSchedule,
+      update: jest.fn(),
+      findMany: jest.fn(async () => [{ ...schedule, contract }]),
+    },
     contractAdjustment: {
       create: jest.fn(async ({ data }: any) => data),
     },
+    $transaction: jest.fn(async (cb: any) => cb(tx)),
   };
   const tx = {
     contract: { findUnique: jest.fn(async () => contract), update: jest.fn() },
@@ -75,21 +98,19 @@ function build(contract: any, series: Series, previous: any = null) {
       findFirst: jest.fn(async () => previous),
       update: jest.fn(),
     },
-    auditLog: { create: jest.fn() },
+    contractAdjustment: { create: jest.fn(async ({ data }: any) => ({ id: 'adj-1', ...data })) },
     contractTermsVersion: { findFirst: jest.fn(async () => null) },
   };
   const prisma: any = {
     client,
     baseClient: {
       contractTermsVersion: { findFirst: jest.fn(async () => null) },
-      adjustmentSchedule: {
-        findMany: jest.fn(async () => [{ ...schedule, contract }]),
-      },
-      $transaction: jest.fn(async (cb: any) => cb(tx)),
+      tenant: { findUnique: jest.fn(async () => null) },
     },
   };
   const indexData: any = { getForPeriod };
-  const adjustments = new ContractAdjustmentService(prisma, indexData);
+  const audit: any = { record: jest.fn() };
+  const adjustments = new ContractAdjustmentService(prisma, indexData, audit);
   const contracts = new ContractsService(
     prisma,
     { getTenantId: () => 'tenant-1' } as any,
@@ -124,7 +145,7 @@ async function runPreview(contract: any, series: Series): Promise<Outcome> {
 
 async function runAuto(contract: any, series: Series): Promise<Outcome | 'skipped'> {
   const { adjustments, tx } = build(contract, series);
-  await adjustments.applyDueAdjustments();
+  await adjustments.applyDueAdjustments('tenant-1');
   const update = tx.contract.update.mock.calls[0]?.[0];
   if (!update) return 'skipped';
   return { rent: Number(update.data.rentAmount).toFixed(2) };
@@ -133,7 +154,11 @@ async function runAuto(contract: any, series: Series): Promise<Outcome | 'skippe
 const CASES: Case[] = [
   {
     name: 'IPC 2 % y 3 % encadena a 105.060 e ignora el porcentaje declarado (D1, D11)',
-    contract: { adjustmentType: AdjustmentType.IPC, customAdjustmentPct: '10.00' },
+    contract: {
+      adjustmentType: AdjustmentType.IPC,
+      customAdjustmentPct: '10.00',
+      startDate: new Date('2025-02-01T12:00:00.000Z'),
+    },
     series: { [IndexType.IPC]: ['2.0', '3.0'] },
     manual: { rent: '105060.00' },
     preview: { rent: '105060.00' },
@@ -186,12 +211,12 @@ const CASES: Case[] = [
     auto: { rent: '100900.00' },
   },
   {
-    name: 'CCP con series de distinto largo usa el menor',
-    contract: { adjustmentType: AdjustmentType.CCP },
+    name: 'CCP con un mes sin CER ya no ajusta con el menor de los dos largos (DEF-27)',
+    contract: { adjustmentType: AdjustmentType.CCP, startDate: new Date('2025-02-01T12:00:00.000Z') },
     series: { [IndexType.CVS]: ['2.0', '2.0'], [IndexType.CER]: ['1.5'] },
-    manual: { rent: '101500.00' },
-    preview: { rent: '101500.00' },
-    auto: { rent: '101500.00' },
+    manual: { error: MISSING_INDEX_DATA },
+    preview: { error: MISSING_INDEX_DATA },
+    auto: 'skipped',
   },
   {
     name: 'CCP con CVS y sin CER (DEF-20)',
@@ -263,7 +288,7 @@ describe('Caminos de cálculo del ajuste (caracterización)', () => {
       const contract = baseContract({ adjustmentType: type });
       const { contracts, adjustments, getForPeriod } = build(
         contract,
-        { [index]: ['100', '120'] },
+        { [index]: ['100', '110', '120'] },
         previous,
       );
       await contracts.calculateAdjustment('contract-1', 'schedule-1');

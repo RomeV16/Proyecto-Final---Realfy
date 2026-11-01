@@ -139,10 +139,19 @@ export class ContractsController {
   /**
    * GET /contracts/:id/adjustments — List adjustment history for a contract.
    * Any authenticated user can read.
+   * `?pendingTrueUp=true[&upTo=YYYY-MM]` lista en cambio las correcciones de
+   * ajustes provisorios que todavía no se facturaron, con la diferencia por mes.
    */
   @Get(':id/adjustments')
-  async findAdjustments(@Param('id') id: string) {
-    return this.contractsService.findAdjustments(id);
+  async findAdjustments(
+    @Param('id') id: string,
+    @Query('pendingTrueUp') pendingTrueUp?: string,
+    @Query('upTo') upTo?: string,
+  ) {
+    return this.contractsService.findAdjustments(id, {
+      pendingTrueUp: pendingTrueUp === 'true',
+      upTo,
+    });
   }
 
   /**

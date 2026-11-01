@@ -1049,7 +1049,6 @@ export class ContractsService {
     }
 
     const tenantId = this.tenantContext.getTenantId()!;
-    const adjustmentType = contract.adjustmentType as AdjustmentType;
     // Índices desde el último ajuste aplicado o el inicio del contrato (DEF-07).
     // La modalidad se traduce a parámetros en un solo lugar: el servicio de ajustes.
     const window = await resolveAdjustmentWindow(
@@ -1057,9 +1056,18 @@ export class ContractsService {
       contract,
       schedule.nextAdjustmentDate,
     );
-    const { params } = await this.adjustments.loadParams(contract, window, { tenantId });
+    const loaded = await this.adjustments.loadParams(contract, window, { tenantId });
+    if (loaded.fixedInitial) {
+      // Dentro de los meses fijos iniciales no hay ajuste que calcular: el
+      // barrido diario saltea el cronograma.
+      throw new ConflictException({
+        error: 'FIXED_INITIAL_PERIOD',
+        message: 'The contract rent is fixed during its initial months; there is no adjustment to calculate',
+      });
+    }
+    const adjustmentType = loaded.adjustmentType;
 
-    const result = calculateAdjustment(params);
+    const result = calculateAdjustment(loaded.params);
 
     // Create adjustment record
     const adjustment = await this.prisma.client.contractAdjustment.create({
@@ -1073,8 +1081,10 @@ export class ContractsService {
         percentage: result.percentage.toDecimalPlaces(4).toString(),
         currency: contract.rentCurrency,
         indexType: adjustmentType,
-        indexValues: params as any,
+        indexValues: this.adjustments.buildIndexValues(loaded) as any,
+        notes: loaded.isProvisional ? 'PROVISIONAL' : null,
         calculatedAt: new Date(),
+        isProvisional: loaded.isProvisional,
       },
     });
 
@@ -1165,7 +1175,7 @@ export class ContractsService {
 
   // ─── List Adjustments ───────────────────────────────
 
-  async findAdjustments(contractId: string) {
+  async findAdjustments(contractId: string, options: { pendingTrueUp?: boolean; upTo?: string } = {}) {
     const contract = await this.prisma.client.contract.findFirst({
       where: { id: contractId },
     });
@@ -1175,6 +1185,17 @@ export class ContractsService {
         error: 'CONTRACT_NOT_FOUND',
         message: 'Contract not found',
       });
+    }
+
+    // Correcciones de ajustes provisorios sin facturar: lo que lee el armado de liquidaciones.
+    if (options.pendingTrueUp) {
+      if (options.upTo !== undefined && !/^\d{4}-(0[1-9]|1[0-2])$/.test(options.upTo)) {
+        throw new BadRequestException({
+          error: 'VALIDATION_ERROR',
+          message: 'upTo must be YYYY-MM',
+        });
+      }
+      return this.adjustments.getPendingTrueUps(contractId, options.upTo);
     }
 
     return this.prisma.client.contractAdjustment.findMany({

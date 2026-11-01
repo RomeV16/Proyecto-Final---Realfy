@@ -74,6 +74,20 @@ describe('OperationalDefaultsManager', () => {
     });
   });
 
+  it('el pago a cuenta viene activo y se puede apagar', async () => {
+    const user = userEvent.setup();
+    renderEs(<OperationalDefaultsManager />);
+    const toggle = await screen.findByLabelText(/Pago a cuenta si falta el índice/);
+    expect(toggle).toBeChecked();
+
+    await user.click(toggle);
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(put[1].body).allowProvisional).toBe(false);
+  });
+
   it('un valor inválido se marca en el campo y no se envía', async () => {
     const user = userEvent.setup();
     renderEs(<OperationalDefaultsManager />);

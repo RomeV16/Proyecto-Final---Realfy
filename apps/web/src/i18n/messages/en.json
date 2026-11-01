@@ -104,6 +104,7 @@
   "import": "Importar",
   "migration": "Migración",
   "delinquency": "Delinquents",
+  "adjustments": "Monthly adjustments",
   "penalties": "Penalties",
   "fiscal": "Fiscal Settings",
   "pagos": "Pagos",
@@ -3569,6 +3570,82 @@
   "severeHint": "Over 30 days overdue",
   "tenantCount": "{count, plural, =0 {No tenants overdue} one {# tenant} other {# tenants}}"
  },
+ "adjustments": {
+  "title": "Monthly adjustments",
+  "subtitle": "The rent adjustments due this month: review each contract's new rent, pick the ones to apply and apply them together.",
+  "forbidden": "You do not have permission to apply adjustments.",
+  "month": "Month",
+  "refresh": "Refresh",
+  "loadError": "The monthly adjustments could not be loaded.",
+  "applyError": "The adjustments could not be applied.",
+  "empty": {
+    "title": "No adjustments for this month",
+    "subtitle": "No active contract has a pending adjustment due by the end of the month."
+  },
+  "columns": {
+    "select": "Select",
+    "contract": "Contract",
+    "date": "Adjustment date",
+    "type": "Index",
+    "current": "Current rent",
+    "new": "New rent",
+    "percentage": "Change",
+    "months": "Index months",
+    "status": "Status",
+    "result": "Result"
+  },
+  "selectAll": "Select every applicable adjustment",
+  "selectRow": "Select the adjustment for {title}",
+  "overdue": "Overdue",
+  "noTitle": "Contract {id}",
+  "estimatedMonth": "{period} (estimated)",
+  "noIndexMonths": "—",
+  "statuses": {
+    "ready": "Ready",
+    "provisional": "On account",
+    "fixed_initial": "No change (fixed months)",
+    "missing_data": "Missing data",
+    "error": "Cannot be calculated"
+  },
+  "provisionalHint": "Calculated with estimated indices; it is corrected when the official value is published.",
+  "missing": {
+    "months": "Missing {indexes}: {periods}",
+    "estimatesOnly": "An estimate exists, but payment on account is turned off.",
+    "loadIndex": "Load the index"
+  },
+  "errors": {
+    "MISSING_ADJUSTMENT_PCT": "The contract percentage is not set.",
+    "MISSING_ADJUSTMENT_STEPS": "The contract steps are not set.",
+    "UNKNOWN_ADJUSTMENT_TYPE": "The adjustment type is not valid.",
+    "generic": "This adjustment cannot be calculated."
+  },
+  "summary": {
+    "selected": "{count, plural, =0 {No adjustment selected} one {# adjustment selected} other {# adjustments selected}}",
+    "provisional": "{count, plural, one {# on account} other {# on account}}"
+  },
+  "apply": {
+    "button": "Apply {count, plural, one {# adjustment} other {# adjustments}}",
+    "applying": "Applying…",
+    "confirmTitle": "Apply the selected adjustments",
+    "confirmBody": "The rent of {count, plural, one {# contract} other {# contracts}} will be updated.",
+    "confirmProvisional": "{count, plural, one {# is} other {# are}} applied on account with estimated indices and will be corrected when the official value is published.",
+    "confirmLabel": "Apply",
+    "done": "{applied, plural, =0 {No adjustment was applied} one {# adjustment was applied} other {# adjustments were applied}}.",
+    "doneSkipped": "{skipped, plural, one {# stayed pending} other {# stayed pending}}."
+  },
+  "result": {
+    "applied": "Applied",
+    "provisional": "Applied on account",
+    "fixed_initial": "No change",
+    "skipped": "Pending",
+    "reasons": {
+      "MISSING_INDEX_DATA": "Index data is missing",
+      "NO_DUE_ADJUSTMENT": "It no longer has an adjustment due",
+      "CONTRACT_NOT_FOUND": "The contract was not found",
+      "generic": "It could not be applied"
+    }
+  }
+ },
  "indexData": {
   "title": "Adjustment indices",
   "subtitle": "Latest CPI (IPC), ICL, UVA, CVS and CER values. The system fetches IPC, ICL and UVA daily from INDEC and BCRA; here you fill in what is missing or correct a value.",
@@ -4183,6 +4260,10 @@
    "leadDays": {
     "label": "Lead days",
     "hint": "Days before the due day the statement is generated (factory value {value}, that is the 20th)."
+   },
+   "allowProvisional": {
+    "label": "Payment on account when the index is missing",
+    "hint": "If the official index has not been published yet, a provisional adjustment is applied with the estimated value and corrected when the official one is published. Turned off, the adjustment stays pending."
    },
    "ipcLagMonths": {
     "label": "CPI lag (months)",

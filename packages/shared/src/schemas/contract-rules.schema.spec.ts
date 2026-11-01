@@ -21,6 +21,7 @@ describe('OperationalDefaultsSchema', () => {
       dueDay: 10,
       leadDays: 10,
       ipcLagMonths: 2,
+      allowProvisional: true,
       commissionPct: 7,
       fees: { alta: 5, renovacion: 5, ventaConstruido: 3, ventaLote: 5 },
       valuationUsd: 100,

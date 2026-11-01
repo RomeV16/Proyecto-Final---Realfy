@@ -9,6 +9,7 @@ import {
   TicketStatus,
   USER_STATUSES,
   VisitStatus,
+  ADJUSTMENT_ROW_STATUSES,
 } from '@realfy/shared';
 import es from '@/i18n/messages/es.json';
 import en from '@/i18n/messages/en.json';
@@ -24,6 +25,7 @@ const ENUMS: Record<StatusDomain, object> = {
   lead: LeadStatus,
   visita: VisitStatus,
   usuario: USER_STATUSES,
+  ajuste: ADJUSTMENT_ROW_STATUSES,
 };
 
 function lookup(messages: unknown, path: string): unknown {
