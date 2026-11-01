@@ -35,7 +35,6 @@ import {
 } from '@realfy/shared';
 import type { InvalidShareDate } from '@realfy/shared';
 import { assertTransition } from '../../common/errors/assert-transition';
-import { applyOperationTransition } from '../properties/operation-state';
 import { ContractClosureService } from '../ai/contract-closure.service';
 import { parseOrThrow } from '../../common/validation/zod';
 import { rethrowExternalRefConflict } from '../../common/validation/external-ref';
@@ -43,6 +42,11 @@ import { ensureRole } from '../persons/person-roles.service';
 import { getApoderadosAt } from './contract-parties';
 import { assertLessorRefs } from './lessor-rules';
 import { getEffectiveEndDate } from './contract-terms';
+import {
+  occupiesRentalOperation,
+  occupyRentalOperation,
+  releaseRentalOperation,
+} from './property-occupancy';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 
 /**
@@ -79,11 +83,6 @@ export interface ActivationCandidate {
 /** Los contratos que no son de venta necesitan inquilino además de locadores. */
 function requiresInquilino(contractType: string): boolean {
   return contractType !== ContractType.Venta;
-}
-
-/** Sólo el alquiler tradicional ocupa la operación de alquiler de la propiedad. */
-function occupiesRentalOperation(contractType: string): boolean {
-  return contractType === ContractType.Alquiler;
 }
 
 @Injectable()
@@ -926,94 +925,37 @@ export class ContractsService {
     if (problems.length > 0) this.throwNotActivatable(problems);
   }
 
-  /**
-   * Deja la operación de alquiler de la propiedad en Alquilado, recorriendo
-   * transiciones válidas de la máquina de estados de la propiedad. Si la
-   * propiedad no tenía operación de alquiler, la crea ya alquilada: es el
-   * mismo lugar al que llega un alta en Borrador que pasa por Disponible y
-   * Reservado.
-   */
+  /** Ocupa la operación de alquiler al activar (ver `occupyRentalOperation`). */
   private async occupyProperty(
     tx: any,
     tenantId: string,
     candidate: ActivationCandidate,
   ): Promise<void> {
     if (!occupiesRentalOperation(candidate.contractType)) return;
-
-    const operation = await tx.propertyOperation.findFirst({
-      where: {
-        propertyId: candidate.propertyId,
-        operationType: PropertyOperationType.Alquiler,
-      },
-    });
-
-    if (!operation) {
-      await tx.propertyOperation.create({
-        data: {
-          tenantId,
-          propertyId: candidate.propertyId,
-          operationType: PropertyOperationType.Alquiler,
-          state: PropertyState.Alquilado,
-        },
-      });
+    // `unreachable` ya se rechazó al validar la activación.
+    const result = await occupyRentalOperation(tx, tenantId, candidate.propertyId);
+    if (result.outcome === 'created') {
       this.logger.log(
         `Rental operation created as Alquilado: propertyId=${candidate.propertyId} contractId=${candidate.id}`,
       );
-      return;
+    } else if (result.outcome === 'moved') {
+      this.logger.log(
+        `State transition: operationId=${result.operationId} ${result.steps.join(' → ')} (contractId=${candidate.id})`,
+      );
     }
-
-    const from = operation.state as PropertyState;
-    const path = findTransitionPath(
-      PropertyOperationType.Alquiler,
-      from,
-      PropertyState.Alquilado,
-    );
-    // null ya se rechazó al validar; [] es que ya estaba alquilada.
-    if (!path || path.length === 0) return;
-
-    let current: PropertyState = from;
-    for (const step of path) {
-      await applyOperationTransition(tx, { ...operation, state: current }, step);
-      current = step;
-    }
-    this.logger.log(
-      `State transition: operationId=${operation.id} ${[from, ...path].join(' → ')} (contractId=${candidate.id})`,
-    );
   }
 
-  /**
-   * Devuelve la operación de alquiler a Disponible cuando el contrato que deja
-   * de estar activo era el último alquiler activo de la propiedad. Si alguien
-   * ya movió la operación a otro estado, se respeta.
-   */
+  /** Libera la operación de alquiler al dejar de estar activo (ver `releaseRentalOperation`). */
   private async releaseProperty(
     tx: any,
     contract: { id: string; propertyId: string; contractType: string },
   ): Promise<void> {
-    if (!occupiesRentalOperation(contract.contractType)) return;
-
-    const stillActive = await tx.contract.count({
-      where: {
-        propertyId: contract.propertyId,
-        contractType: ContractType.Alquiler,
-        status: ContractStatus.Activo,
-        id: { not: contract.id },
-      },
-    });
-    if (stillActive > 0) return;
-
-    const operation = await tx.propertyOperation.findFirst({
-      where: {
-        propertyId: contract.propertyId,
-        operationType: PropertyOperationType.Alquiler,
-      },
-    });
-    if (!operation || operation.state !== PropertyState.Alquilado) return;
-
-    await applyOperationTransition(tx, operation, PropertyState.Disponible);
-    this.logger.log(
-      `State transition: operationId=${operation.id} Alquilado → Disponible (contractId=${contract.id})`,
-    );
+    const released = await releaseRentalOperation(tx, contract);
+    if (released) {
+      this.logger.log(
+        `State transition: operationId=${released.operationId} Alquilado → Disponible (contractId=${contract.id})`,
+      );
+    }
   }
 
   /**
