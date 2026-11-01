@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { externalRefSchema } from './person.schema';
 import { CreateContractLessorSchema } from './party.schema';
+import { LiquidationConventionsSchema } from './contract-rules.schema';
 import {
   ContractStatus,
   ContractType,
@@ -66,6 +67,8 @@ export const CreateContractSchema = z
     customAdjustmentPct: decimalStringOptional,
     notes: z.string().max(2000).optional(),
     externalRef: externalRefSchema.optional().nullable(),
+    /** Convenciones de liquidación de este contrato; lo omitido toma el valor por defecto de la inmobiliaria. */
+    liquidationRules: LiquidationConventionsSchema.optional(),
     persons: z.array(ContractPersonSchema).optional().default([]),
     /** Locadores con su porcentaje de cobro. Si se omite, los `persons` con rol Propietario se reparten el 100 % en partes iguales. */
     lessors: z.array(CreateContractLessorSchema).optional().default([]),
@@ -120,6 +123,7 @@ export const UpdateContractSchema = z.object({
   customAdjustmentPct: decimalStringOptional,
   notes: z.string().max(2000).optional(),
   externalRef: externalRefSchema.optional().nullable(),
+  liquidationRules: LiquidationConventionsSchema.optional(),
 });
 
 // ─── Contract Filters ───────────────────────────────────

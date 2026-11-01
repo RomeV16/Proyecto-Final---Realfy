@@ -26,6 +26,10 @@ export {
   ContractAgreementKind,
   AdjustmentBase,
   PaymentFlow,
+  ProrationMode,
+  MidMonthAdjustmentMode,
+  FirstDueMode,
+  FixedDiscountProration,
   ScheduleStatus,
   LiquidacionStatus,
   PaymentMethod,
@@ -129,6 +133,8 @@ export {
   CreateContractAgreementSchema,
   UpdateContractAgreementSchema,
 } from './schemas/contract-rules.schema';
+export { LiquidationConventionsSchema } from './schemas/contract-rules.schema';
+export type { LiquidationConventions } from './schemas/contract-rules.schema';
 export type { TermsPatch, CreateContractAgreementInput } from './schemas/contract-rules.schema';
 
 // Schemas — propiedades
@@ -919,6 +925,7 @@ export type {
   BuiltLine,
   BuiltLiquidation,
   LiquidationBuilderInput,
+  LiquidationConventionsInput,
   LiquidationExtraLine,
   LiquidationSkipReason,
 } from './liquidation-builder';

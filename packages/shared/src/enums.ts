@@ -229,6 +229,39 @@ export enum PaymentFlow {
   TodoLocador = 'TodoLocador',
 }
 
+/**
+ * Convenciones de liquidación, pactables por contrato (con valor por defecto de
+ * la inmobiliaria). Cómo se prorratea un mes parcial.
+ */
+export enum ProrationMode {
+  /** Días reales del mes; el día de inicio cuenta. */
+  DiasReales = 'DiasReales',
+  /** Mes comercial de 30 días. */
+  Mes30 = 'Mes30',
+  /** Mes completo, sin prorrateo. */
+  SinProrrateo = 'SinProrrateo',
+}
+
+/** Cuándo rige un ajuste de alquiler que cae a mitad de mes. */
+export enum MidMonthAdjustmentMode {
+  DesdePeriodoSiguiente = 'DesdePeriodoSiguiente',
+  Prorrateado = 'Prorrateado',
+  DesdeEsePeriodo = 'DesdeEsePeriodo',
+}
+
+/** Cómo se cobra el primer mes cuando el contrato empieza pasado el día de vencimiento (o al firmar). */
+export enum FirstDueMode {
+  DiaDeInicio = 'DiaDeInicio',
+  VencimientoMesSiguiente = 'VencimientoMesSiguiente',
+  AlFirmar = 'AlFirmar',
+}
+
+/** Si un descuento de monto fijo se prorratea en un mes parcial. */
+export enum FixedDiscountProration {
+  Proporcional = 'Proporcional',
+  Completo = 'Completo',
+}
+
 export enum ScheduleStatus {
   Pending = 'Pending',
   Calculated = 'Calculated',

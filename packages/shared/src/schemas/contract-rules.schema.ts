@@ -4,7 +4,11 @@ import {
   AdjustmentPeriod,
   AdjustmentType,
   ContractAgreementKind,
+  FirstDueMode,
+  FixedDiscountProration,
+  MidMonthAdjustmentMode,
   PaymentFlow,
+  ProrationMode,
 } from '../enums';
 import { PenaltyConfigSchema } from './penalty-config.schema';
 
@@ -35,6 +39,18 @@ export const CustomStepsSchema = z
     message: 'fromMonth must be strictly increasing',
   });
 
+/** Convenciones de liquidación de un contrato (todas pactables). */
+const liquidationConventionFields = {
+  prorationMode: z.nativeEnum(ProrationMode),
+  midMonthAdjustmentMode: z.nativeEnum(MidMonthAdjustmentMode),
+  firstDueMode: z.nativeEnum(FirstDueMode),
+  fixedDiscountProration: z.nativeEnum(FixedDiscountProration),
+};
+
+/** Las cuatro convenciones al crear o corregir un contrato; lo omitido toma el valor por defecto de la inmobiliaria. */
+export const LiquidationConventionsSchema = z.object(liquidationConventionFields).partial().strict();
+export type LiquidationConventions = z.infer<typeof LiquidationConventionsSchema>;
+
 /** Campos de las reglas de un contrato que un acuerdo puede cambiar. */
 export const TermsPatchSchema = z
   .object({
@@ -51,6 +67,7 @@ export const TermsPatchSchema = z
     dueDay: z.number().int().min(1).max(28),
     paymentFlow: z.nativeEnum(PaymentFlow),
     penaltyConfig: PenaltyConfigSchema.nullable(),
+    ...liquidationConventionFields,
   })
   .partial()
   .strict();
