@@ -1,4 +1,4 @@
--- migracion: 20261031090100_lineas_con_destino
+-- migracion: 20261031130100_lineas_con_destino
 -- lineas_con_destino: backfill de renglones y liquidaciones existentes.
 -- Devuelve filas SOLO si algo salió mal.
 
