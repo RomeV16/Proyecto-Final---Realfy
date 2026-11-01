@@ -6,6 +6,7 @@ import { apiClient } from '@/lib/api-client';
 import { formatDate, formatMoneyFixed, formatPercent } from '@/lib/format';
 import { ErrorNotice } from '@/components/ui/error-notice';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CONVENTION_FIELDS } from '@/lib/liquidation-conventions';
 
 /* ──────────── Types ──────────── */
 
@@ -23,6 +24,10 @@ interface TermsVersion {
   discountAmount: string | null;
   dueDay: number;
   paymentFlow: string;
+  prorationMode?: string;
+  midMonthAdjustmentMode?: string;
+  firstDueMode?: string;
+  fixedDiscountProration?: string;
 }
 
 interface TermsResponse {
@@ -62,6 +67,7 @@ function Fact({ label, children }: { label: string; children: React.ReactNode })
 export function ContractRules({ contractId, currency }: { contractId: string; currency?: string }) {
   const t = useTranslations('contractRules');
   const tContracts = useTranslations('contracts');
+  const tConv = useTranslations('liquidationConventions');
   const [terms, setTerms] = useState<TermsResponse | null>(null);
   const [agreements, setAgreements] = useState<Agreement[] | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -109,6 +115,14 @@ export function ContractRules({ contractId, currency }: { contractId: string; cu
               {current.customPct != null && <Fact label={t('customPct')}>{formatPercent(current.customPct, { decimals: 2 })}</Fact>}
               <Fact label={t('dueDay')}>{current.dueDay}</Fact>
               <Fact label={t('paymentFlow')}>{t(`flows.${current.paymentFlow}`)}</Fact>
+              {CONVENTION_FIELDS.map((field) => {
+                const value = current[field];
+                return value ? (
+                  <Fact key={field} label={tConv(`${field}.label`)}>
+                    {tConv(`${field}.options.${value}`)}
+                  </Fact>
+                ) : null;
+              })}
               {current.rentOverride != null && (
                 <Fact label={t('rentOverride')}>{formatMoneyFixed(current.rentOverride, currency)}</Fact>
               )}

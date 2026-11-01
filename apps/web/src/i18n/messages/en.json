@@ -4274,6 +4274,10 @@
    "expiry": {
     "title": "Expiry light",
     "description": "How many days before the end a contract turns yellow or red."
+   },
+   "liquidation": {
+    "title": "Billing conventions",
+    "description": "Proration, mid-month adjustments, first month and fixed discounts. Each contract can agree its own."
    }
   },
   "fields": {
@@ -4336,6 +4340,46 @@
    "yellowDays": {
     "label": "Yellow up to (days to end)",
     "hint": "Factory value {value}."
+   }
+  }
+ },
+  "liquidationConventions": {
+  "useDefault": "Agency default",
+  "title": "Billing conventions",
+  "description": "How the month is calculated and billed when a contract starts, changes rent or ends mid-month. Each one can be agreed per contract; the agency default is shown here.",
+  "prorationMode": {
+   "label": "Partial month proration",
+   "hint": "How the days of the first and last month are counted (factory default: {value}).",
+   "options": {
+    "DiasReales": "Actual days in the month",
+    "Mes30": "Commercial 30-day month",
+    "SinProrrateo": "Full month, no proration"
+   }
+  },
+  "midMonthAdjustmentMode": {
+   "label": "Mid-month adjustment",
+   "hint": "When a new rent that falls in the middle of a month applies (factory default: {value}).",
+   "options": {
+    "DesdePeriodoSiguiente": "Applies from the next period",
+    "Prorrateado": "The month is split by days",
+    "DesdeEsePeriodo": "Applies to the whole month"
+   }
+  },
+  "firstDueMode": {
+   "label": "First month with a late start",
+   "hint": "What happens if the contract starts after the due day, or the first month is paid at signing (factory default: {value}).",
+   "options": {
+    "DiaDeInicio": "Due on the start date",
+    "VencimientoMesSiguiente": "Billed with the next month",
+    "AlFirmar": "Paid at signing (not billed)"
+   }
+  },
+  "fixedDiscountProration": {
+   "label": "Fixed discount in a partial month",
+   "hint": "Whether the fixed discount is prorated like the rent (factory default: {value}).",
+   "options": {
+    "Proporcional": "Prorated",
+    "Completo": "Applied in full"
    }
   }
  },

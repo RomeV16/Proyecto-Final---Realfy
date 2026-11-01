@@ -14,7 +14,12 @@ import {
 } from '@realfy/shared';
 import { FULL_SHARE_UNITS, pctToUnits, splitEqualPct } from '@realfy/shared';
 import { contractFormSchema } from '@realfy/shared/schemas';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import {
+  CONVENTION_FIELDS,
+  CONVENTION_OPTIONS,
+  type ConventionValues,
+} from '@/lib/liquidation-conventions';
 import { Link, useRouter } from '@/i18n/navigation';
 import { GuaranteeBadge } from './guarantee-badge';
 import { ErrorNotice } from '@/components/ui/error-notice';
@@ -80,6 +85,8 @@ interface FormData {
   adjustmentType: string;
   adjustmentPeriod: string;
   customAdjustmentPct: string;
+  /** Convenciones de liquidación pactadas; arrancan con las de la inmobiliaria. */
+  liquidationRules: ConventionValues;
   guarantees: GuaranteeEntry[];
 }
 
@@ -97,6 +104,7 @@ const INITIAL_FORM: FormData = {
   adjustmentType: '',
   adjustmentPeriod: '',
   customAdjustmentPct: '',
+  liquidationRules: { prorationMode: '', midMonthAdjustmentMode: '', firstDueMode: '', fixedDiscountProration: '' },
   guarantees: [],
 };
 
@@ -136,6 +144,27 @@ export function ContractForm() {
   const router = useRouter();
 
   const [step, setStep] = useState(0);
+  const tConv = useTranslations('liquidationConventions');
+
+  // Las convenciones arrancan con los valores por defecto de la inmobiliaria.
+  useEffect(() => {
+    let cancelled = false;
+    apiClient<Partial<ConventionValues>>('/tenants/me/operational-defaults')
+      .then((defaults) => {
+        if (cancelled || !defaults) return;
+        setForm((prev) => ({
+          ...prev,
+          liquidationRules: Object.fromEntries(
+            CONVENTION_FIELDS.map((field) => [field, prev.liquidationRules[field] || defaults[field] || '']),
+          ) as ConventionValues,
+        }));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState<'' | 'draft' | 'activate'>('');
   const [error, setError] = useState<unknown>(null);
@@ -335,6 +364,10 @@ export function ContractForm() {
         adjustmentType: form.adjustmentType || undefined,
         adjustmentPeriod: form.adjustmentPeriod || undefined,
         customAdjustmentPct: form.customAdjustmentPct ? Number(form.customAdjustmentPct) : undefined,
+        // Solo viaja lo que ya tiene valor: lo demás toma el valor por defecto de la inmobiliaria.
+        liquidationRules: Object.fromEntries(
+          Object.entries(form.liquidationRules).filter(([, value]) => value),
+        ),
         persons: form.persons.map((p) => ({ personId: p.personId, role: p.role })),
         // Los locadores viajan con su porcentaje de cobro; los datos de partes iguales son solo el valor inicial.
         lessors: form.lessors.map((l) => ({
@@ -729,6 +762,41 @@ export function ContractForm() {
                 />
               </div>
             )}
+
+            {/* Convenciones de liquidación pactables */}
+            <div className="space-y-3 border-t border-slate-100 pt-4">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">{tConv('title')}</h3>
+                <p className="text-xs text-slate-500">{tConv('description')}</p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {CONVENTION_FIELDS.map((field) => (
+                  <div key={field}>
+                    <label className="mb-1 block text-xs font-medium text-slate-500" htmlFor={`conv-${field}`}>
+                      {tConv(`${field}.label`)}
+                    </label>
+                    <select
+                      id={`conv-${field}`}
+                      value={form.liquidationRules[field]}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          liquidationRules: { ...prev.liquidationRules, [field]: e.target.value },
+                        }))
+                      }
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                    >
+                      <option value="">{tConv('useDefault')}</option>
+                      {CONVENTION_OPTIONS[field].map((option) => (
+                        <option key={option} value={option}>
+                          {tConv(`${field}.options.${option}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* Adjustment summary */}
             {form.adjustmentType && (
