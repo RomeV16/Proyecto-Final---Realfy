@@ -294,6 +294,8 @@ model Tenant {
   invitations         UserInvitation[]
   passwordResetTokens PasswordResetToken[]
   auditLogs           AuditLog[]
+  importBatches       ImportBatch[]
+  importRowLogs       ImportRowLog[]
   properties          Property[]
   persons             Person[]
   pipelines           Pipeline[]
@@ -330,6 +332,7 @@ model User {
   invitations         UserInvitation[]     @relation("InvitedByUser")
   passwordResetTokens PasswordResetToken[] @relation("PasswordResetUser")
   auditLogs           AuditLog[]
+  importBatches       ImportBatch[]        @relation("ImportBatchCreator")
   notifications       Notification[]
 
   ticketsCreated    Ticket[]           @relation("TicketCreator")
@@ -2055,4 +2058,70 @@ model ReportSchedule {
   @@index([tenantId])
   @@index([isActive, nextRunAt])
   @@map("report_schedules")
+}
+
+// ─── Importación desde el sistema anterior ──────────────
+
+enum ImportBatchStatus {
+  Validando
+  Validado
+  Ejecutando
+  Completado
+  Fallido
+}
+
+enum ImportEntity {
+  Persona
+  Propiedad
+  Contrato
+}
+
+enum ImportRowAction {
+  Creado
+  Actualizado
+  SinCambios
+  Error
+}
+
+/// Una corrida del importador (o su ensayo). El registro por fila queda en ImportRowLog.
+model ImportBatch {
+  id          String            @id @default(uuid())
+  tenantId    String
+  kind        String            @default("SistemaAnterior")
+  status      ImportBatchStatus
+  dryRun      Boolean
+  atomic      Boolean           @default(false)
+  createdById String?
+  /// Totales por entidad y acción: { total, errors, byEntity: { Persona: { Creado, ... } } }.
+  counts      Json?
+  startedAt   DateTime          @default(now())
+  finishedAt  DateTime?
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy User?          @relation("ImportBatchCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  rows      ImportRowLog[]
+
+  @@index([tenantId, startedAt])
+  @@map("import_batches")
+}
+
+/// Qué pasó con cada fila de un lote: creada, actualizada, sin cambios o con error.
+model ImportRowLog {
+  id          String          @id @default(uuid())
+  tenantId    String
+  batchId     String
+  entity      ImportEntity
+  externalRef String?
+  rowNumber   Int
+  action      ImportRowAction
+  entityId    String?
+  errors      Json?
+  createdAt   DateTime        @default(now())
+
+  tenant Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  batch  ImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([batchId, action])
+  @@map("import_row_logs")
 }

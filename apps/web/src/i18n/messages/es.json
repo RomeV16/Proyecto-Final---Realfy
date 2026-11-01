@@ -3863,6 +3863,69 @@
    "error": "No se pudo cambiar la contraseña"
   }
  },
+ "importBatches": {
+  "title": "Importaciones",
+  "cardSubtitle": "Lotes cargados desde el sistema anterior, con el registro de cada fila",
+  "subtitle": "Cada lote es una corrida (o un ensayo) del importador. Se cargan por la API desde los scripts de migración.",
+  "manage": "Ver importaciones",
+  "back": "Volver a importaciones",
+  "empty": {
+   "title": "Todavía no hay importaciones",
+   "subtitle": "Cuando un script de migración envíe un lote, va a aparecer acá."
+  },
+  "loadError": "No se pudieron cargar las importaciones",
+  "columns": {
+   "startedAt": "Inicio",
+   "kind": "Origen",
+   "mode": "Modo",
+   "status": "Estado",
+   "rows": "Filas",
+   "errors": "Errores",
+   "entity": "Entidad",
+   "row": "Fila",
+   "externalRef": "Referencia externa",
+   "action": "Acción",
+   "detail": "Detalle"
+  },
+  "mode": {
+   "dryRun": "Ensayo",
+   "execute": "Ejecución",
+   "atomic": "Todo o nada"
+  },
+  "statuses": {
+   "Validando": "Validando",
+   "Validado": "Validado",
+   "Ejecutando": "Ejecutando",
+   "Completado": "Completado",
+   "Fallido": "Fallido"
+  },
+  "actions": {
+   "Creado": "Creado",
+   "Actualizado": "Actualizado",
+   "SinCambios": "Sin cambios",
+   "Error": "Error"
+  },
+  "entities": {
+   "Persona": "Persona",
+   "Propiedad": "Propiedad",
+   "Contrato": "Contrato"
+  },
+  "detail": {
+   "title": "Importación",
+   "summary": "Resumen por entidad",
+   "filter": "Mostrar filas",
+   "allActions": "Todas",
+   "downloadErrors": "Descargar errores (CSV)",
+   "download": "Descargar (CSV)",
+   "downloadFailed": "No se pudo descargar el archivo",
+   "noRows": "No hay filas con ese filtro",
+   "noErrors": "Sin errores",
+   "rolledBack": "Ninguna fila se escribió: el lote era todo o nada y alguna falló.",
+   "dryRunNote": "Fue un ensayo: no se escribió nada.",
+   "showing": "Mostrando {shown} de {total} filas"
+  },
+  "adminOnly": "Solo el administrador puede ver las importaciones."
+ },
  "configuracion": {
   "title": "Configuración",
   "subtitle": "Datos y personalización de la inmobiliaria",
@@ -3885,7 +3948,8 @@
   "manageIndices": "Ver y cargar índices",
   "manageUsers": "Gestionar usuarios",
   "managePermissions": "Gestionar permisos",
-  "manageDefaults": "Configurar valores"
+  "manageDefaults": "Configurar valores",
+  "manageImports": "Ver importaciones"
  },
  "portalPublico": {
   "footer": {

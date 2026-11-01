@@ -9,6 +9,9 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  // Los lotes de importación llevan toda la cartera en un solo JSON.
+  app.useBodyParser('json', { limit: '25mb' });
+
   // Detrás del proxy de la plataforma: sin esto req.ip es el del proxy y el
   // límite de peticiones se aplicaría en conjunto a todos los visitantes.
   app.set('trust proxy', 1);

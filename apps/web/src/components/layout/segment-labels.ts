@@ -27,6 +27,7 @@ export const SEGMENT_LABELS: Record<string, Record<string, string>> = {
     renditions: 'Rendiciones',
     providers: 'Proveedores',
     usuarios: 'Usuarios',
+    importaciones: 'Importaciones',
     new: 'Nuevo',
   },
   en: {
@@ -52,6 +53,7 @@ export const SEGMENT_LABELS: Record<string, Record<string, string>> = {
     renditions: 'Renditions',
     providers: 'Providers',
     usuarios: 'Users',
+    importaciones: 'Imports',
     new: 'New',
   },
 };

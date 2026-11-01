@@ -3863,6 +3863,69 @@
    "error": "The password could not be changed"
   }
  },
+ "importBatches": {
+  "title": "Imports",
+  "cardSubtitle": "Batches loaded from the previous system, with a log of every row",
+  "subtitle": "Each batch is a run (or a rehearsal) of the importer. They are sent through the API by the migration scripts.",
+  "manage": "View imports",
+  "back": "Back to imports",
+  "empty": {
+   "title": "No imports yet",
+   "subtitle": "When a migration script sends a batch, it will show up here."
+  },
+  "loadError": "The imports could not be loaded",
+  "columns": {
+   "startedAt": "Started",
+   "kind": "Source",
+   "mode": "Mode",
+   "status": "Status",
+   "rows": "Rows",
+   "errors": "Errors",
+   "entity": "Entity",
+   "row": "Row",
+   "externalRef": "External reference",
+   "action": "Action",
+   "detail": "Detail"
+  },
+  "mode": {
+   "dryRun": "Rehearsal",
+   "execute": "Execution",
+   "atomic": "All or nothing"
+  },
+  "statuses": {
+   "Validando": "Validating",
+   "Validado": "Validated",
+   "Ejecutando": "Running",
+   "Completado": "Completed",
+   "Fallido": "Failed"
+  },
+  "actions": {
+   "Creado": "Created",
+   "Actualizado": "Updated",
+   "SinCambios": "Unchanged",
+   "Error": "Error"
+  },
+  "entities": {
+   "Persona": "Person",
+   "Propiedad": "Property",
+   "Contrato": "Contract"
+  },
+  "detail": {
+   "title": "Import",
+   "summary": "Summary by entity",
+   "filter": "Show rows",
+   "allActions": "All",
+   "downloadErrors": "Download errors (CSV)",
+   "download": "Download (CSV)",
+   "downloadFailed": "The file could not be downloaded",
+   "noRows": "No rows match that filter",
+   "noErrors": "No errors",
+   "rolledBack": "No row was written: the batch was all or nothing and one failed.",
+   "dryRunNote": "This was a rehearsal: nothing was written.",
+   "showing": "Showing {shown} of {total} rows"
+  },
+  "adminOnly": "Only the administrator can see the imports."
+ },
  "configuracion": {
   "title": "Settings",
   "subtitle": "Agency data and branding",
@@ -3885,7 +3948,8 @@
   "manageIndices": "View and enter indices",
   "manageUsers": "Manage users",
   "managePermissions": "Manage permissions",
-  "manageDefaults": "Configure values"
+  "manageDefaults": "Configure values",
+  "manageImports": "View imports"
  },
  "portalPublico": {
   "footer": {

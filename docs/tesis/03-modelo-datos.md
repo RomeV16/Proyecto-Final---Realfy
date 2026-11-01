@@ -1,6 +1,6 @@
 # Modelo de Datos
 
-El modelo está implementado con Prisma sobre PostgreSQL. A continuación se describen las entidades principales agrupadas por dominio, sus campos representativos y sus relaciones más relevantes. El detalle exhaustivo de columnas e índices vive en `apps/api/prisma/schema.prisma`, que hoy define cincuenta y cinco modelos.
+El modelo está implementado con Prisma sobre PostgreSQL. A continuación se describen las entidades principales agrupadas por dominio, sus campos representativos y sus relaciones más relevantes. El detalle exhaustivo de columnas e índices vive en `apps/api/prisma/schema.prisma`, que hoy define sesenta y cinco modelos.
 
 Una convención vale aclararla antes del detalle: **todas las tablas del dominio llevan una columna `tenantId`**, que es el ancla del aislamiento entre inmobiliarias. Sólo algunas declaran además la relación inversa hacia `Tenant`; el resto lleva la columna sin relación declarada, para no acumular medio centenar de campos de vuelta sobre la misma entidad. El filtro no se aplica a mano en cada consulta sino desde una extensión del cliente de Prisma, según se describe en el ADR 0006.
 
@@ -539,6 +539,28 @@ Plantillas reutilizables de correo.
 Envío periódico de un reporte.
 
 - `id`, `tenantId`, `reportType`, `frequency`, `filters`, `recipients`, `format`, `isActive`, `lastRunAt`, `nextRunAt`.
+
+## Importación desde el sistema anterior
+
+Las dos tablas que registran cada corrida del importador (ADR-0015). Ambas son por inmobiliaria y están en el filtro de aislamiento.
+
+### ImportBatch
+
+Una corrida del importador o su ensayo.
+
+- `id`, `tenantId`, `kind` (origen, por defecto `SistemaAnterior`), `status`, `dryRun`, `atomic`, `createdById`, `counts`, `startedAt`, `finishedAt`.
+- `status` recorre `Validando` o `Ejecutando` mientras corre y termina en `Validado` (ensayo), `Completado` o `Fallido` (un lote todo o nada con alguna fila con error, o un fallo del proceso).
+- `counts` guarda como JSON `{ total, errors, byEntity }`, con la cantidad de filas `Creado`, `Actualizado`, `SinCambios` y `Error` de cada entidad.
+- `createdById` apunta al usuario que lo envió y queda vacío si el usuario se borra.
+
+### ImportRowLog
+
+El resultado de cada fila de un lote.
+
+- `id`, `tenantId`, `batchId`, `entity` (`Persona`, `Propiedad` o `Contrato`), `externalRef`, `rowNumber`, `action`, `entityId`, `errors`, `createdAt`.
+- `action` es `Creado`, `Actualizado`, `SinCambios` o `Error`. `rowNumber` es la posición (desde 1) de la fila en su arreglo del pedido. `entityId` es el registro resultante y queda vacío si la fila falló.
+- `errors` guarda como JSON la lista de `{ code, message, field? }` de la fila.
+- Se borra en cascada con su lote; `@@index([batchId, action])` sirve a la consulta de errores.
 
 ## Relaciones críticas
 

@@ -192,6 +192,21 @@
     "Marketing",
     "Ventas"
   ],
+  "src/modules/import-export/batch/import-batch.controller.ts#ImportBatchController.run": [
+    "Admin"
+  ],
+  "src/modules/import-export/batch/import-batch.controller.ts#ImportBatchController.list": [
+    "Admin"
+  ],
+  "src/modules/import-export/batch/import-batch.controller.ts#ImportBatchController.findOne": [
+    "Admin"
+  ],
+  "src/modules/import-export/batch/import-batch.controller.ts#ImportBatchController.rows": [
+    "Admin"
+  ],
+  "src/modules/import-export/batch/import-batch.controller.ts#ImportBatchController.rowsCsv": [
+    "Admin"
+  ],
   "src/modules/import-export/import-export.controller.ts#ImportExportController.upload": [
     "Admin",
     "Gerente"
@@ -224,7 +239,6 @@
     "Gerente",
     "Ventas"
   ],
-  "src/modules/index-data/index-data.controller.ts#IndexDataController.findAll": null,
   "src/modules/index-data/adjustments.controller.ts#AdjustmentsController.previewBatch": [
     "Admin",
     "Gerente",
@@ -238,6 +252,7 @@
   "src/modules/index-data/adjustments.controller.ts#AdjustmentsController.runNow": [
     "Admin"
   ],
+  "src/modules/index-data/index-data.controller.ts#IndexDataController.findAll": null,
   "src/modules/index-data/index-data.controller.ts#IndexDataController.create": [
     "Admin"
   ],

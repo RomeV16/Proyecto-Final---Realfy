@@ -69,6 +69,8 @@ const TENANT_SCOPED_MODELS = new Set([
   'LibroIvaExport',
   'ReportSchedule',
   'Penalty',
+  'ImportBatch',
+  'ImportRowLog',
   // Note: RefreshToken and PipelineStage do NOT have tenantId — they're
   // isolated via parent relations (User and Pipeline respectively).
 ]);

@@ -1,5 +1,7 @@
 import {
   ContractStatus,
+  ImportBatchStatus,
+  ImportRowAction,
   LeadStatus,
   LiquidacionStatus,
   RendicionStatus,
@@ -34,7 +36,9 @@ export type StatusDomain =
   | 'lead'
   | 'visita'
   | 'usuario'
-  | 'ajuste';
+  | 'ajuste'
+  | 'importacion'
+  | 'importFila';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -122,6 +126,19 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
     [USER_STATUSES.Invited]: 'info',
     [USER_STATUSES.Active]: 'success',
     [USER_STATUSES.Inactive]: 'neutral',
+  }),
+  importacion: entries('importBatches.statuses', {
+    [ImportBatchStatus.Validando]: 'info',
+    [ImportBatchStatus.Validado]: 'brand',
+    [ImportBatchStatus.Ejecutando]: 'info',
+    [ImportBatchStatus.Completado]: 'success',
+    [ImportBatchStatus.Fallido]: 'danger',
+  }),
+  importFila: entries('importBatches.actions', {
+    [ImportRowAction.Creado]: 'success',
+    [ImportRowAction.Actualizado]: 'info',
+    [ImportRowAction.SinCambios]: 'neutral',
+    [ImportRowAction.Error]: 'danger',
   }),
 };
 

@@ -32,6 +32,9 @@ export {
   FixedDiscountProration,
   ScheduleStatus,
   LiquidacionStatus,
+  ImportBatchStatus,
+  ImportEntity,
+  ImportRowAction,
   PaymentMethod,
   LineItemType,
   LineBeneficiary,
@@ -932,3 +935,23 @@ export type {
 
 // Amount in words
 export { amountInWords } from './amount-in-words';
+
+// Importación desde el sistema anterior (lotes por referencia externa)
+export {
+  ImportBankAccountSchema,
+  ImportPersonSchema,
+  ImportPropertySchema,
+  ImportContractSchema,
+  ImportBatchRequestSchema,
+  ImportBatchRowsQuerySchema,
+  IMPORT_ERROR_CODES,
+} from './schemas/import-batch.schema';
+export type {
+  ImportPersonRow,
+  ImportPropertyRow,
+  ImportContractRow,
+  ImportBatchRequest,
+  ImportBatchCounts,
+  ImportRowErrorDetail,
+  ImportErrorCode,
+} from './schemas/import-batch.schema';
