@@ -259,10 +259,15 @@ lo que detecta eso antes de producción.
 
 **Migration over synthetic data.** Es un paso del trabajo anterior que corre
 `scripts/migration-rehearsal.sh` sobre una segunda base vacía del mismo servicio.
-El script aplica las migraciones que ya tenía la rama base (en un pull request,
-`origin/<rama base>`; en un push, `HEAD~1`), carga los datos sintéticos de
-`apps/api/test/migration-data/seed.sql`, aplica todas las migraciones del árbol
-actual y ejecuta cada archivo de `apps/api/test/migration-data/checks/`. Una
+El script aplica las migraciones hasta el esquema para el que está escrita la
+semilla (la primera línea de `apps/api/test/migration-data/seed.sql` lo declara:
+`-- esquema: <carpeta>`), carga esos datos sintéticos, aplica todas las
+migraciones posteriores del árbol actual y ejecuta cada archivo de
+`apps/api/test/migration-data/checks/`. La rama base (en un pull request,
+`origin/<rama base>`; en un push, `HEAD~1`) decide qué migraciones son nuevas:
+sólo se verifican las nuevas y posteriores al esquema de la semilla. Así una
+migración que agrega una columna obligatoria no obliga a reescribir la semilla:
+corre sobre los datos ya cargados, como en una base real. Una
 verificación es una consulta que devuelve filas solo cuando algo salió mal
 (una persona con datos bancarios viejos sin su cuenta, conteos que cambiaron,
 filas huérfanas); si alguna devuelve filas el paso falla y las imprime. Si el
