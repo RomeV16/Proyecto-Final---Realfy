@@ -25,17 +25,27 @@ function contract(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function build(contracts: any[], opts: { existing?: any; defaults?: any } = {}) {
+function build(contracts: any[], opts: { existing?: any; defaults?: any; findFirst?: jest.Mock } = {}) {
   const client: any = {
     contract: { findMany: jest.fn().mockResolvedValue(contracts) },
     liquidacion: {
-      findFirst: jest.fn().mockResolvedValue(opts.existing ?? null),
+      findFirst: opts.findFirst ?? jest.fn().mockResolvedValue(opts.existing ?? null),
       create: jest.fn().mockResolvedValue({ id: 'liq-new' }),
     },
     auditLog: { create: jest.fn().mockResolvedValue({}) },
   };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
-  const defaults = { get: jest.fn().mockResolvedValue({ dueDay: 10, leadDays: 10, ...opts.defaults }) };
+  const defaults = {
+    get: jest.fn().mockResolvedValue({
+      dueDay: 10,
+      leadDays: 10,
+      prorationMode: 'DiasReales',
+      midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+      firstDueMode: 'DiaDeInicio',
+      fixedDiscountProration: 'Proporcional',
+      ...opts.defaults,
+    }),
+  };
   const tenantContext = { getTenantId: jest.fn().mockReturnValue('tenant-1'), getUserId: jest.fn() };
   const service = new LiquidacionesService(
     { client } as unknown as PrismaService,
@@ -160,6 +170,114 @@ describe('LiquidacionesService.generate: reglas del contrato', () => {
     const { service, client } = build([provisional]);
     await service.generate({ month: 11, year: 2026 });
     expect(createdData(client)).toMatchObject({ kind: 'PagoACuenta', isProvisional: true, total: '330000.00' });
+  });
+});
+
+describe('LiquidacionesService.generate: convenciones pactadas', () => {
+  const version = (conventions: Record<string, string>, validFrom = d('2026-01-01')) => ({
+    validFrom,
+    dueDay: 10,
+    ...conventions,
+  });
+
+  it('rige la convención de la versión de reglas del contrato', async () => {
+    // Empieza el 16 de diciembre (31 días): Mes30 cubre 15 de 30 = 150000; DiasReales 16 de 31.
+    const mes30 = contract({
+      startDate: d('2026-12-16'),
+      termsVersions: [version({ prorationMode: 'Mes30' }, d('2026-12-16'))],
+    });
+    const { service, client } = build([mes30]);
+    await service.generate({ month: 12, year: 2026 });
+    expect(createdData(client).total).toBe('150000.00');
+  });
+
+  it('sin convención en la versión rige la de la inmobiliaria, y la del contrato la pisa', async () => {
+    const start = { startDate: d('2026-12-16') };
+    const legacy = build([contract({ ...start })], { defaults: { prorationMode: 'SinProrrateo' } });
+    await legacy.service.generate({ month: 12, year: 2026 });
+    expect(createdData(legacy.client).total).toBe('300000.00');
+
+    const own = build(
+      [contract({ ...start, termsVersions: [version({ prorationMode: 'DiasReales' }, d('2026-12-16'))] })],
+      { defaults: { prorationMode: 'SinProrrateo' } },
+    );
+    await own.service.generate({ month: 12, year: 2026 });
+    expect(createdData(own.client).total).toBe('154838.71');
+  });
+
+  it('un ajuste a mitad de mes se parte según la convención', async () => {
+    const adjusted = contract({
+      rentAmount: '330000',
+      adjustments: [
+        { adjustmentDate: d('2026-11-15'), previousAmount: '300000', newAmount: '330000', isProvisional: false },
+      ],
+      termsVersions: [version({ midMonthAdjustmentMode: 'Prorrateado' })],
+    });
+    const { service, client } = build([adjusted]);
+    await service.generate({ month: 11, year: 2026 });
+    const data = createdData(client);
+    expect(data.lineItems.create.map((l: any) => l.amount)).toEqual(['140000.00', '176000.00']);
+    expect(data.total).toBe('316000.00');
+
+    const next = build([{ ...adjusted, termsVersions: [version({ midMonthAdjustmentMode: 'DesdeEsePeriodo' })] }]);
+    await next.service.generate({ month: 11, year: 2026 });
+    expect(createdData(next.client).total).toBe('330000.00');
+
+    const ignored = build([{ ...adjusted, termsVersions: [version({})] }]);
+    await ignored.service.generate({ month: 11, year: 2026 });
+    expect(createdData(ignored.client).total).toBe('300000.00');
+  });
+
+  it('AlFirmar: el primer mes no se liquida y se informa como no liquidado', async () => {
+    const signing = contract({
+      startDate: d('2026-11-16'),
+      termsVersions: [version({ firstDueMode: 'AlFirmar' }, d('2026-11-16'))],
+    });
+    const { service, client } = build([signing]);
+    const summary = await service.generate({ month: 11, year: 2026 });
+    expect(summary).toMatchObject({ created: 0, outOfRange: 0, notBilled: 1 });
+    expect(summary.results[0]).toMatchObject({ status: 'not_billed', reason: 'ChargedAtSigning' });
+    expect(client.liquidacion.create).not.toHaveBeenCalled();
+  });
+
+  it('VencimientoMesSiguiente: el primer mes se difiere y el siguiente lo suma una sola vez', async () => {
+    const late = contract({
+      startDate: d('2026-11-16'),
+      termsVersions: [version({ firstDueMode: 'VencimientoMesSiguiente' }, d('2026-11-16'))],
+    });
+    const first = build([late]);
+    const nov = await first.service.generate({ month: 11, year: 2026 });
+    expect(nov.results[0]).toMatchObject({ status: 'not_billed', reason: 'DeferredToNextPeriod' });
+
+    const dec = build([late]);
+    await dec.service.generate({ month: 12, year: 2026 });
+    const data = createdData(dec.client);
+    expect(data.lineItems.create.map((l: any) => [l.amount, l.sourceType])).toEqual([
+      ['300000.00', null],
+      ['150000.00', 'DeferredFirstMonth'],
+    ]);
+    expect(data.total).toBe('450000.00');
+    expect(data.dueDate).toEqual(d('2026-12-10'));
+
+    // Si noviembre ya tenía su liquidación, diciembre no lo repite.
+    const billed = jest.fn().mockImplementation(async ({ where }: any) =>
+      where.period.getUTCMonth() === 10 ? { id: 'liq-nov' } : null,
+    );
+    const again = build([late], { findFirst: billed });
+    await again.service.generate({ month: 12, year: 2026 });
+    expect(createdData(again.client).lineItems.create).toHaveLength(1);
+  });
+
+  it('el descuento fijo completo no se prorratea', async () => {
+    const c = contract({
+      startDate: d('2026-11-16'),
+      termsVersions: [
+        { ...version({ fixedDiscountProration: 'Completo' }, d('2026-11-16')), discountAmount: '20000' },
+      ],
+    });
+    const { service, client } = build([c]);
+    await service.generate({ month: 11, year: 2026 });
+    expect(createdData(client).total).toBe('130000.00');
   });
 });
 

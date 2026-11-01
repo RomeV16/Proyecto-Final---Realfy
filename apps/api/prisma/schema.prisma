@@ -1069,26 +1069,31 @@ model ContractAgreement {
 /// Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se pisa:
 /// un cambio crea una versión nueva.
 model ContractTermsVersion {
-  id                 String           @id @default(uuid())
-  tenantId           String
-  contractId         String
-  validFrom          DateTime
-  agreementId        String?
-  adjustmentType     AdjustmentType
-  adjustmentPeriod   AdjustmentPeriod
-  adjustmentBase     AdjustmentBase   @default(Vigente)
-  indexLagMonths     Int              @default(2)
-  fixedInitialMonths Int              @default(0)
-  customPct          Decimal?         @db.Decimal(5, 2)
+  id                     String                 @id @default(uuid())
+  tenantId               String
+  contractId             String
+  validFrom              DateTime
+  agreementId            String?
+  adjustmentType         AdjustmentType
+  adjustmentPeriod       AdjustmentPeriod
+  adjustmentBase         AdjustmentBase         @default(Vigente)
+  indexLagMonths         Int                    @default(2)
+  fixedInitialMonths     Int                    @default(0)
+  customPct              Decimal?               @db.Decimal(5, 2)
   /// Escalonado: lista de { fromMonth, pct }.
-  customSteps        Json?
-  rentOverride       Decimal?         @db.Decimal(15, 2)
-  discountPct        Decimal?         @db.Decimal(5, 2)
-  discountAmount     Decimal?         @db.Decimal(15, 2)
-  dueDay             Int
-  paymentFlow        PaymentFlow      @default(Partido)
-  penaltyConfig      Json?
-  createdAt          DateTime         @default(now())
+  customSteps            Json?
+  rentOverride           Decimal?               @db.Decimal(15, 2)
+  discountPct            Decimal?               @db.Decimal(5, 2)
+  discountAmount         Decimal?               @db.Decimal(15, 2)
+  dueDay                 Int
+  paymentFlow            PaymentFlow            @default(Partido)
+  penaltyConfig          Json?
+  /// Convenciones de liquidación; el valor por defecto de la columna es el comportamiento original.
+  prorationMode          ProrationMode          @default(DiasReales)
+  midMonthAdjustmentMode MidMonthAdjustmentMode @default(DesdePeriodoSiguiente)
+  firstDueMode           FirstDueMode           @default(DiaDeInicio)
+  fixedDiscountProration FixedDiscountProration @default(Proporcional)
+  createdAt              DateTime               @default(now())
 
   contract  Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
   agreement ContractAgreement? @relation(fields: [agreementId], references: [id])
@@ -1202,6 +1207,30 @@ enum LineBeneficiary {
   Locador
   Inmobiliaria
   Ente
+}
+
+/// Convenciones de liquidación pactables por contrato (ADR-0010).
+enum ProrationMode {
+  DiasReales
+  Mes30
+  SinProrrateo
+}
+
+enum MidMonthAdjustmentMode {
+  DesdePeriodoSiguiente
+  Prorrateado
+  DesdeEsePeriodo
+}
+
+enum FirstDueMode {
+  DiaDeInicio
+  VencimientoMesSiguiente
+  AlFirmar
+}
+
+enum FixedDiscountProration {
+  Proporcional
+  Completo
 }
 
 enum LiquidacionKind {

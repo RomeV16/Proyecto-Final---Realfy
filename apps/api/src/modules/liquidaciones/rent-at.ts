@@ -27,6 +27,43 @@ export interface RentAtDate {
   isProvisional: boolean;
 }
 
+/** Hitos de alquiler (ajustes aplicados y alquileres fijados por las reglas). */
+function milestonesOf(input: {
+  adjustments: RentAdjustmentLike[];
+  termsVersions: RentTermsLike[];
+}): { at: Date; amount: string; isProvisional: boolean }[] {
+  const milestones: { at: Date; amount: string; isProvisional: boolean }[] = [];
+  for (const a of input.adjustments) {
+    milestones.push({ at: a.adjustmentDate, amount: String(a.newAmount), isProvisional: a.isProvisional });
+  }
+  for (const v of input.termsVersions) {
+    if (v.rentOverride != null) {
+      milestones.push({ at: v.validFrom, amount: String(v.rentOverride), isProvisional: false });
+    }
+  }
+  return milestones.sort(
+    (a, b) => a.at.getTime() - b.at.getTime() || Number(b.isProvisional) - Number(a.isProvisional),
+  );
+}
+
+/**
+ * Cambio de alquiler que cae dentro del mes, después de su primer día: el
+ * último hito en (periodStart, monthEnd]. Lo usa la convención de ajuste a
+ * mitad de mes; un cambio el día 1 ya está en `rentAtDate`.
+ */
+export function rentChangeInMonth(input: {
+  adjustments: RentAdjustmentLike[];
+  termsVersions: RentTermsLike[];
+  periodStart: Date;
+  monthEnd: Date;
+}): { effectiveDate: Date; newAmount: string; isProvisional: boolean } | null {
+  const inMonth = milestonesOf(input).filter(
+    (m) => m.at.getTime() > input.periodStart.getTime() && m.at.getTime() <= input.monthEnd.getTime(),
+  );
+  const last = inMonth[inMonth.length - 1];
+  return last ? { effectiveDate: last.at, newAmount: last.amount, isProvisional: last.isProvisional } : null;
+}
+
 export function rentAtDate(input: {
   contractRent: unknown;
   adjustments: RentAdjustmentLike[];

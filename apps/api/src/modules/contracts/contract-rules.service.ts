@@ -27,6 +27,10 @@ const TERMS_FIELDS = [
   'dueDay',
   'paymentFlow',
   'penaltyConfig',
+  'prorationMode',
+  'midMonthAdjustmentMode',
+  'firstDueMode',
+  'fixedDiscountProration',
 ] as const;
 
 const JSON_FIELDS = new Set(['customSteps', 'penaltyConfig']);

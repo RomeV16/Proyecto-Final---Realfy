@@ -1,4 +1,4 @@
-import { rentAtDate } from './rent-at';
+import { rentAtDate, rentChangeInMonth } from './rent-at';
 import { scheduledPeriod } from './generation-window';
 
 const d = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
@@ -75,5 +75,39 @@ describe('scheduledPeriod: mes que el proceso diario debe tener generado', () =>
   it('sin anticipación, el día 1 genera el mes que empieza', () => {
     expect(scheduledPeriod(d('2026-11-01'), 0)).toEqual({ year: 2026, month: 11 });
     expect(scheduledPeriod(d('2026-10-31'), 0)).toBeNull();
+  });
+});
+
+describe('rentChangeInMonth: cambio de alquiler dentro del mes', () => {
+  const adjustments = [
+    { adjustmentDate: d('2026-11-15'), previousAmount: '300000', newAmount: '330000', isProvisional: false },
+    { adjustmentDate: d('2026-12-01'), previousAmount: '330000', newAmount: '360000', isProvisional: false },
+  ];
+  const range = (start: string, end: string) => ({ periodStart: d(start), monthEnd: d(end) });
+
+  it('devuelve el cambio que cae después del día 1', () => {
+    expect(rentChangeInMonth({ adjustments, termsVersions: [], ...range('2026-11-01', '2026-11-30') })).toEqual({
+      effectiveDate: d('2026-11-15'),
+      newAmount: '330000',
+      isProvisional: false,
+    });
+  });
+
+  it('un cambio el día 1 no es de mitad de mes; un mes sin cambios devuelve null', () => {
+    expect(rentChangeInMonth({ adjustments, termsVersions: [], ...range('2026-12-01', '2026-12-31') })).toBeNull();
+    expect(rentChangeInMonth({ adjustments, termsVersions: [], ...range('2026-10-01', '2026-10-31') })).toBeNull();
+  });
+
+  it('también cuenta un alquiler fijado por las reglas y marca lo provisional', () => {
+    const terms = [{ validFrom: d('2026-11-20'), rentOverride: '310000' }];
+    expect(rentChangeInMonth({ adjustments: [], termsVersions: terms, ...range('2026-11-01', '2026-11-30') })).toEqual({
+      effectiveDate: d('2026-11-20'),
+      newAmount: '310000',
+      isProvisional: false,
+    });
+    const prov = [{ adjustmentDate: d('2026-11-10'), previousAmount: '1', newAmount: '2', isProvisional: true }];
+    expect(
+      rentChangeInMonth({ adjustments: prov, termsVersions: [], ...range('2026-11-01', '2026-11-30') })?.isProvisional,
+    ).toBe(true);
   });
 });

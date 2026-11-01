@@ -28,6 +28,7 @@ import {
   todayInAR,
   InvalidLineAmountError,
   buildLiquidation,
+  FirstDueMode,
   defaultBeneficiary,
   defaultCommissionable,
   isLessorActiveAt,
@@ -41,7 +42,7 @@ import { PdfService } from './pdf.service';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
-import { rentAtDate } from './rent-at';
+import { rentAtDate, rentChangeInMonth } from './rent-at';
 import { scheduledPeriod } from './generation-window';
 import { EmailService } from './email.service';
 import Decimal from 'decimal.js';
@@ -54,7 +55,8 @@ const RECEIPT_SERIES = 'RECIBO_LIQUIDACION';
 
 export interface GenerationResult {
   contractId: string;
-  status: 'created' | 'skipped' | 'out_of_range' | 'failed';
+  /** `not_billed`: el primer mes no se liquida por la convención pactada (AlFirmar o VencimientoMesSiguiente). */
+  status: 'created' | 'skipped' | 'out_of_range' | 'not_billed' | 'failed';
   reason?: string;
   liquidacionId?: string;
 }
@@ -64,6 +66,8 @@ export interface GenerationSummary {
   skipped: number;
   /** Contratos que no rigen en el mes (antes del inicio o después del fin). */
   outOfRange: number;
+  /** Primeros meses que no se liquidan por la convención del contrato (se cobran al firmar o con el mes siguiente). */
+  notBilled: number;
   failed: number;
   total: number;
   results: GenerationResult[];
@@ -144,6 +148,7 @@ export class LiquidacionesService {
     const created = results.filter((r) => r.status === 'created').length;
     const skipped = results.filter((r) => r.status === 'skipped').length;
     const outOfRange = results.filter((r) => r.status === 'out_of_range').length;
+    const notBilled = results.filter((r) => r.status === 'not_billed').length;
     const failed = results.filter((r) => r.status === 'failed').length;
 
     this.logger.log('Liquidaciones generated', {
@@ -154,10 +159,11 @@ export class LiquidacionesService {
       created,
       skipped,
       outOfRange,
+      notBilled,
       failed,
     });
 
-    return { created, skipped, outOfRange, failed, total: contracts.length, results };
+    return { created, skipped, outOfRange, notBilled, failed, total: contracts.length, results };
   }
 
   private async generateForContract(
@@ -179,12 +185,37 @@ export class LiquidacionesService {
     const terms = pickTermsAt<any>(contract.termsVersions ?? [], rulesDate);
     const dueDay = resolveRule(defaults, terms, 'dueDay') as number;
 
-    const rent = rentAtDate({
+    // Convenciones pactadas (versión vigente en el mes) o, si no hay, las de la inmobiliaria.
+    const conventions = {
+      prorationMode: resolveRule(defaults, terms, 'prorationMode') as any,
+      midMonthAdjustmentMode: resolveRule(defaults, terms, 'midMonthAdjustmentMode') as any,
+      firstDueMode: resolveRule(defaults, terms, 'firstDueMode') as any,
+      fixedDiscountProration: resolveRule(defaults, terms, 'fixedDiscountProration') as any,
+    };
+
+    const rentSource = {
       contractRent: contract.rentAmount,
       adjustments: contract.adjustments ?? [],
       termsVersions: contract.termsVersions ?? [],
-      date: period,
-    });
+    };
+    const rent = rentAtDate({ ...rentSource, date: period });
+    const monthEnd = new Date(Date.UTC(period.getUTCFullYear(), period.getUTCMonth() + 1, 0));
+    const midMonthChange = rentChangeInMonth({ ...rentSource, periodStart: period, monthEnd });
+
+    // Con VencimientoMesSiguiente, el mes siguiente al de inicio suma el primer mes: hace falta
+    // su alquiler y saber si ese mes ya tiene liquidación (para no cobrarlo dos veces).
+    let firstMonth: { monthlyAmount: string; alreadyBilled: boolean } | null = null;
+    const startMonthStart = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1));
+    const isMonthAfterStart =
+      period.getUTCFullYear() * 12 + period.getUTCMonth() ===
+      startDate.getUTCFullYear() * 12 + startDate.getUTCMonth() + 1;
+    if (conventions.firstDueMode === FirstDueMode.VencimientoMesSiguiente && isMonthAfterStart) {
+      const startRent = rentAtDate({ ...rentSource, date: startMonthStart });
+      const billed = await this.prisma.client.liquidacion.findFirst({
+        where: { contractId: contract.id, period: startMonthStart },
+      });
+      firstMonth = { monthlyAmount: startRent.amount, alreadyBilled: !!billed };
+    }
 
     const lessors = (contract.lessors ?? [])
       .filter((l: any) => isLessorActiveAt(l, period.getTime() < startDate.getTime() ? startDate : period))
@@ -199,7 +230,13 @@ export class LiquidacionesService {
         actualEndDate: contract.actualEndDate,
         status: contract.status,
       },
-      rent: { monthlyAmount: rent.amount, isProvisional: rent.isProvisional },
+      rent: {
+        monthlyAmount: rent.amount,
+        isProvisional: rent.isProvisional,
+        midMonthChange,
+      },
+      conventions,
+      firstMonth,
       terms: {
         dueDay,
         discountPct: terms?.discountPct != null ? terms.discountPct.toString() : null,
@@ -209,7 +246,12 @@ export class LiquidacionesService {
     });
 
     if (built.skipped) {
-      return { contractId: contract.id, status: 'out_of_range', reason: built.skipped };
+      const notBilled = built.skipped === 'ChargedAtSigning' || built.skipped === 'DeferredToNextPeriod';
+      return {
+        contractId: contract.id,
+        status: notBilled ? 'not_billed' : 'out_of_range',
+        reason: built.skipped,
+      };
     }
 
     try {
@@ -278,6 +320,7 @@ export class LiquidacionesService {
           created: summary.created,
           skipped: summary.skipped,
           outOfRange: summary.outOfRange,
+          notBilled: summary.notBilled,
           failed: summary.failed,
         },
         metadata: { source, job: 'liquidaciones-generate' },

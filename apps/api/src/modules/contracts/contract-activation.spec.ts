@@ -526,6 +526,30 @@ describe('ContractsService — activación del contrato', () => {
       });
     });
 
+    it('la primera versión toma las convenciones de liquidación de la inmobiliaria o las pactadas en el alta', async () => {
+      await service.create({ ...BODY, status: 'Borrador', customAdjustmentPct: undefined });
+      expect(mocks.client.contractTermsVersion.create.mock.calls[0][0].data).toMatchObject({
+        prorationMode: 'DiasReales',
+        midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+        firstDueMode: 'DiaDeInicio',
+        fixedDiscountProration: 'Proporcional',
+      });
+
+      mocks.client.contractTermsVersion.create.mockClear();
+      await service.create({
+        ...BODY,
+        status: 'Borrador',
+        customAdjustmentPct: undefined,
+        liquidationRules: { prorationMode: 'Mes30', firstDueMode: 'AlFirmar' },
+      });
+      expect(mocks.client.contractTermsVersion.create.mock.calls[0][0].data).toMatchObject({
+        prorationMode: 'Mes30',
+        midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+        firstDueMode: 'AlFirmar',
+        fixedDiscountProration: 'Proporcional',
+      });
+    });
+
     it('ocupa la propiedad al crearse', async () => {
       await service.create(BODY);
 

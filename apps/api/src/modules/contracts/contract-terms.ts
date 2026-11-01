@@ -1,4 +1,7 @@
-import { AdjustmentBase, PaymentFlow } from '@realfy/shared';
+import {
+  AdjustmentBase,
+  PaymentFlow,
+} from '@realfy/shared';
 import type { OperationalDefaults } from '@realfy/shared';
 
 /**
@@ -25,6 +28,10 @@ export interface TermsLike {
   dueDay: number;
   paymentFlow: string;
   penaltyConfig: unknown;
+  prorationMode: string;
+  midMonthAdjustmentMode: string;
+  firstDueMode: string;
+  fixedDiscountProration: string;
 }
 
 type TermsClient = {
@@ -72,6 +79,10 @@ const RULE_DEFAULTS = {
   adjustmentBase: () => AdjustmentBase.Vigente,
   paymentFlow: () => PaymentFlow.Partido,
   penaltyConfig: () => null,
+  prorationMode: (d: OperationalDefaults) => d.prorationMode,
+  midMonthAdjustmentMode: (d: OperationalDefaults) => d.midMonthAdjustmentMode,
+  firstDueMode: (d: OperationalDefaults) => d.firstDueMode,
+  fixedDiscountProration: (d: OperationalDefaults) => d.fixedDiscountProration,
 } as const;
 
 export type ResolvableRule = keyof typeof RULE_DEFAULTS;
