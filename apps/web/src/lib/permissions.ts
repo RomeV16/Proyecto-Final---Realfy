@@ -58,6 +58,8 @@ export const ACTION_ROLES = {
   'permissions.manage': [Admin],
   /** Cambiar los valores por defecto de la operación (vencimiento, rezago, honorarios...). */
   'operationalDefaults.manage': [Admin, Gerente],
+  /** Ver los lotes de importación desde el sistema anterior y su registro por fila. */
+  'imports.manage': [Admin],
   'indexData.view': [Admin, Gerente],
   'indexData.manage': [Admin],
 } as const satisfies Record<string, readonly UserRole[]>;
