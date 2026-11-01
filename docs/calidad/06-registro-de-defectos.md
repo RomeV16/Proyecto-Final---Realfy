@@ -34,7 +34,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-24 | Una rendición queda marcada como enviada aunque no se envió el mail | Alta | — | CP-266, CP-267 | [#144](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/144) | Corregido (31 oct) |
 | DEF-25 | El barrido y la previsualización aplican 0 % donde el cálculo manual se niega | Media | RF-12, RF-13 | CP-272 | [#146](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/146) | Corregido (31 oct) |
 | DEF-26 | La previsualización de un ajuste sin datos de índice muestra 0 % | Media | RF-12 | CP-270 | [#147](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/147) | Corregido (31 oct) |
-| DEF-27 | Con un mes de la ventana sin publicar el ajuste se calcula con los meses que hay y deja el alquiler corto | Media | RF-12 | CP-273 | [#92](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/92) | Corregido (31 oct) |
+| DEF-27 | Con un mes de la ventana sin publicar el ajuste se calcula con los meses que hay y deja el alquiler corto | Media | RF-12 | CP-273 | [#152](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/152) | Corregido (31 oct) |
 
 ---
 
@@ -420,4 +420,4 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** `loadParams` consideraba completa cualquier ventana con al menos un valor; en las series de CVS y CER, de distinto largo, además usaba el menor de los dos.
 - **Corrección:** cada mes de las series mensuales se exige por fecha; los faltantes se informan con el índice y los meses, y un mes se cubre con el estimado solo con `allowProvisional`. La caracterización cambia únicamente donde corrige una ventana parcial (el caso de CCP con series de distinto largo pasa a `MISSING_INDEX_DATA`).
 - **Prueba de regresión:** CP-273 en `index-data/contract-adjustment.service.spec.ts` y casos de `contracts/contract-adjustment-paths.spec.ts`.
-- **Evidencia rojo/verde:** regresión `68dc253` en rojo; corrección en `fc3f189`.
+- **Evidencia rojo/verde:** regresión `68dc253` en rojo; corrección en `fc3f189`. PR [#153](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/153).
