@@ -464,10 +464,38 @@ otro valor devuelve 400.
 | POST | `/import/upload` | Sube el archivo y devuelve las columnas detectadas. Multipart, campo `file`. | Admin, Gerente |
 | POST | `/import/validate` | Valida fila por fila con el mapeo de columnas elegido. | Admin, Gerente |
 | POST | `/import/execute` | Confirma la importación de las filas válidas. | Admin, Gerente |
+| POST | `/import/batches` | Importa o ensaya (`dryRun`) un lote JSON de `persons`, `properties` y `contracts` con upsert por `externalRef`. Devuelve el lote con el registro de cada fila. | Admin |
+| GET | `/import/batches` | Lotes de la inmobiliaria, del más reciente al más antiguo (`limit`, hasta 200). | Admin |
+| GET | `/import/batches/:id` | Un lote con su estado y sus totales por entidad. 404 si es de otra inmobiliaria. | Admin |
+| GET | `/import/batches/:id/rows` | Registro por fila. Filtros `action` (`Creado`, `Actualizado`, `SinCambios`, `Error`) y `entity`; `limit` (500 por defecto, hasta 5000) y `offset`. Responde `{ data, total }`. | Admin |
+| GET | `/import/batches/:id/rows/csv` | El mismo registro como CSV, una línea por error, con los mismos filtros. | Admin |
 | GET | `/properties/export/csv` | Exporta propiedades a CSV. | Admin, Gerente, Ventas |
 | GET | `/properties/export/excel` | Exporta propiedades a Excel. | Admin, Gerente, Ventas |
 | GET | `/persons/export/csv` | Exporta personas a CSV. | Admin, Gerente, Ventas |
 | GET | `/persons/export/excel` | Exporta personas a Excel. | Admin, Gerente, Ventas |
+
+### Lotes de importación desde el sistema anterior
+
+`POST /import/batches` es la API que usan los scripts de migración (ADR-0015; el procedimiento está en `tesis/32-migracion.md`). El cuerpo es JSON de hasta 25 MB:
+
+```json
+{ "dryRun": true, "atomic": false, "kind": "SistemaAnterior",
+  "persons": [], "properties": [], "contracts": [] }
+```
+
+- `dryRun` es obligatorio. Con `true` el lote corre entero y se deshace: las acciones devueltas son las que haría la ejecución. `atomic` (por defecto `false`) hace todo o nada: con una fila con error no se escribe nada y el lote queda `Fallido`. Sin `atomic`, cada fila va en su transacción y una con error no frena a las demás.
+- Un cuerpo mal formado (campo desconocido, `dryRun` ausente, un arreglo que no es arreglo) responde 400 `VALIDATION_ERROR`. Cada fila se valida por separado: su error queda en el registro de la fila y la respuesta es 201.
+- Se procesan en este orden: personas, propiedades (los edificios antes que sus unidades) y contratos. Las referencias entre filas (`personExternalRef`, `propertyExternalRef`, `parentExternalRef`...) se resuelven por `externalRef` dentro de la inmobiliaria, y pueden apuntar a filas del mismo lote o de uno anterior.
+- Idempotencia: la fila se busca por `[tenantId, externalRef]`. Los mismos datos dan `SinCambios`; un campo distinto, `Actualizado`. Lo que la fila no informa no se toca; los conjuntos hijos que informa (`owners`, `tenants`, `guarantors`, `lessors`) se reemplazan completos si difieren; `bankAccounts` y `adjustmentsHistory` se agregan y corrigen sin borrar.
+- Respuesta: `{ id, status, dryRun, atomic, counts: { total, errors, byEntity }, rows: [{ entity, rowNumber, externalRef, action, entityId, errors }] }`.
+
+**Persona** (`persons[]`). Obligatorio: `externalRef` y, según `personType` (`Fisica` por defecto), `firstName` o `businessName` (`Juridica`). Opcionales: `lastName`, `dni`, `cuit` (con dígito verificador), `fiscalCondition`, `email`, `phone`, `phone2`, `address`, `maritalStatus`, `nationality`, `payoutMethod`, `notes`, `roles[]` (se aseguran, no se quitan) y `bankAccounts[]` (`currency` por defecto `ARS`, `bank`, `cbu` de 22 dígitos, `alias`, `holder`, `isDefault`; se necesita `cbu` o `alias`). La cuenta se identifica por su CBU (o por su alias si no tiene).
+
+**Propiedad** (`properties[]`). Obligatorio: `externalRef` y `type`. Opcionales: `title` (si falta se arma con la dirección o, al crear, con la referencia), `street`, `number`, `floor`, `unit` (se guarda como departamento), `city`, `province`, `zipCode`, `cadastralId`, `parentExternalRef` (el edificio) y `owners[]` (`personExternalRef`, `sharePct` de 0 a 100) como titularidad.
+
+**Contrato** (`contracts[]`). Obligatorio: `externalRef`, `propertyExternalRef`, `status` (`Borrador`, `Activo`, `Vencido`, `Rescindido`, `Renovado`, `Archivado`), `startDate`, `endDate` (`YYYY-MM-DD` o ISO), `rentAmount` (el vigente) y `terms` con `adjustmentType` y `adjustmentPeriod`. Opcionales: `contractType` (`Alquiler`), `actualEndDate`, `currency` (`ARS`), `initialRent`, `depositAmount`, `notes`, `tenants[]` y `guarantors[]` (referencias de personas), `lessors[]` (`personExternalRef`, `payoutPct`, `capacity`, `payeeExternalRef`, `bankAccountCbu`, `needsReview`), `terms.adjustmentBase`, `terms.indexLagMonths` (al crear, el de la inmobiliaria; al actualizar, el guardado), `terms.fixedInitialMonths`, `terms.dueDay`, `terms.paymentFlow`, `terms.customPct`, `commission` (`type`, `percentage`, `fixedAmount`, `adminFee`), `adjustmentsHistory[]` (`periodNumber`, `appliedAt`, `previousAmount`, `newAmount`, `factor`) y `selfManaged` (cobra directo el locador, flujo `TodoLocador` y sólo la comisión inicial como importe fijo). Un contrato `Activo` exige locadores que sumen 100 %, un inquilino (si es de alquiler) y ningún otro activo superpuesto en la propiedad; al importarlo la operación de alquiler de la propiedad queda `Alquilado`, sin enviar avisos.
+
+Códigos de error por fila (`errors[].code`): `VALIDATION_ERROR`, `REFERENCE_NOT_FOUND`, `DUPLICATE_IN_BATCH`, `DUPLICATE_KEY`, `INVALID_DATES`, `LESSOR_SHARES_INVALID`, `MISSING_INQUILINO`, `OVERLAPPING_ACTIVE_CONTRACT`, `ADJUSTMENT_HISTORY_INVALID`, `RENT_MISMATCH`, `PROPERTY_STATE_CONFLICT` e `INTERNAL_ERROR`.
 
 ## Plantillas de correo
 

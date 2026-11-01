@@ -568,6 +568,10 @@ Cambiar un valor por defecto no toca los contratos que ya existen: rige para los
 que se carguen desde ese momento, y cada contrato o acuerdo puede después fijar
 el suyo.
 
+### Importaciones desde el sistema anterior
+
+`/configuracion/importaciones` (solo Admin) muestra los lotes que los scripts de migración enviaron a la API: cada uno con su fecha, su origen, el modo (*Ensayo*, *Ejecución* o *Todo o nada*), su estado y la cantidad de filas y de errores. Al abrir un lote se ve el resumen por entidad (personas, propiedades y contratos, con cuántas filas fueron creadas, actualizadas, sin cambios o con error) y el registro de cada fila, con el código y el mensaje de cada error. El selector *Mostrar filas* deja solo las que tuvieron error y *Descargar errores (CSV)* baja ese listado para corregir el origen. Un ensayo no escribe nada; un lote *Todo o nada* que quedó *Fallido* tampoco: no se cargó ninguna fila. El procedimiento completo está en `docs/tesis/32-migracion.md`.
+
 ### Permisos de lectura
 
 `/configuracion/permisos` (solo Admin) decide qué roles pueden leer los datos sensibles: cuentas bancarias, documento (DNI y CUIT), comisión de los contratos, rendiciones, reportes financieros, facturas y auditoría. La tabla tiene un recurso por fila y un rol por columna; la casilla del Admin está fija porque siempre lee todo. Marcá o desmarcá, tocá *Guardar cambios* y confirmá: rige desde el próximo pedido de cada persona del equipo. *Abrir todo* vuelve a dar lectura a todos los roles (y hay que guardar para aplicarlo). Mientras no se cambie nada, todos los roles leen todo. Un rol sin acceso ve un aviso de *Sin acceso* en esas pantallas, los documentos y cuentas ocultos en las fichas, y no ve esas opciones en el menú.
