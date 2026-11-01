@@ -143,8 +143,8 @@ async function syncParties(db: Db, ctx: ImportContext, contractId: string, row: 
 }
 
 async function syncLessors(db: Db, ctx: ImportContext, contractId: string, start: Date, lessors: ResolvedLessor[], existing: any[]) {
-  const current = existing.map((l) => lessorKey({ ...l, payoutPct: String(l.payoutPct), needsReview: l.needsReview })).sort();
-  const desired = lessors.map(lessorKey).sort();
+  const current = existing.map((l) => lessorKey({ ...l, payoutPct: String(l.payoutPct), needsReview: l.needsReview })).sort((a, b) => a.localeCompare(b));
+  const desired = lessors.map(lessorKey).sort((a, b) => a.localeCompare(b));
   if (current.length === desired.length && current.every((k, i) => k === desired[i])) return false;
 
   await db.contractLessor.deleteMany({ where: { contractId } });
