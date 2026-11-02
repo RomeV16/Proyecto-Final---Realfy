@@ -4,7 +4,7 @@
 
 El sistema define siete roles internos en el enum `UserRole`, compartido entre el backend y el frontend. Un usuario tiene exactamente un rol, y al crearse sin especificarlo queda en Lectura, que es el más restringido.
 
-El control de acceso se aplica endpoint por endpoint. Las operaciones que modifican datos se restringen por rol con `@Roles`, usando grupos de roles con nombre (`MANAGEMENT_ROLES`, `SALES_ROLES`, `BILLING_ROLES` y otros, en `apps/api/src/common/auth/role-groups.ts`) en lugar de listas escritas en cada ruta. La mayoría de las lecturas están disponibles para cualquier usuario autenticado de la inmobiliaria: lo que se restringe por rol es crear, editar, borrar, transicionar estados y configurar.
+El control de acceso se aplica endpoint por endpoint. Las operaciones que modifican datos se restringen por rol con `@Roles`, usando grupos de roles con nombre (`MANAGEMENT_ROLES`, `SALES_ROLES`, `BILLING_ROLES` y otros, en `apps/api/src/common/auth/role-groups.ts`) en lugar de listas escritas en cada ruta. Las lecturas sin `@Roles` están disponibles para cualquier usuario autenticado de la inmobiliaria, salvo los recursos sensibles que cubre la política de lectura de la sección siguiente: lo que se restringe por rol es crear, editar, borrar, transicionar estados y configurar. Algunas lecturas de gestión sí llevan rol propio, como los punitorios y el panel de calidad de datos (Admin y Gerente) o los lotes de importación (solo Admin).
 
 ### Matriz de lectura de datos sensibles
 
@@ -23,6 +23,33 @@ Además de `@Roles`, siete recursos sensibles tienen una política de lectura po
 El rol Admin siempre puede leer todo: la política que lo omite se rechaza al guardarla, para que la inmobiliaria no pierda el acceso a su propia información. La política se aplica sumada a `@Roles`: ambas deben permitir. Si la política no se puede cargar, la lectura se deniega (falla cerrado), en el espíritu del ADR-0006.
 
 Se configura desde Configuración → Permisos (Admin) o con `PUT /tenants/me/read-policy`. La web oculta las secciones y los ítems del menú que el rol no puede leer; la API es la que impone la política.
+
+### Matriz de acceso por rol en los módulos del piloto
+
+La tabla resume quién puede operar en lo que agregó el piloto, tal como lo imponen los grupos de roles de la API. Las lecturas siguen la regla general de esta sección; «Lectura» indica que el rol solo consulta. El portal del inquilino no aparece porque no tiene acceso a ninguno de estos módulos.
+
+| Operación | Admin | Gerente | Ventas | Liquidaciones | Soporte, Marketing y Lectura |
+|---|---|---|---|---|---|
+| Invitar usuarios, cambiar roles, dar de baja, generar enlaces de recupero | Sí | Lectura del equipo | No | No | No |
+| Configurar la política de lectura de datos sensibles | Sí | No | No | No | No |
+| Configurar los valores por defecto de la inmobiliaria | Sí | Sí | Lectura | Lectura | Lectura |
+| Activar un contrato y editar sus locadores | Sí | Sí | Sí | Lectura | Lectura |
+| Registrar, corregir y quitar acuerdos del contrato | Sí | Sí | Lectura | Lectura | Lectura |
+| Previsualizar y aplicar los ajustes del mes | Sí | Sí | No | Sí | No |
+| Cargar boletas y reglas de traslado; cargar cargos | Sí | Sí | Lectura | Sí | Lectura |
+| Generar liquidaciones y editar sus renglones | Sí | Sí | Lectura | Sí | Lectura |
+| Aprobar y enviar liquidaciones en lote | Sí | Sí | Lectura | Lectura | Lectura |
+| Registrar un cobro indicando quién recibió el dinero | Sí | Sí | No | Sí | No |
+| Ver cuentas, libro de caja, custodia, recibos de cobro y compensaciones | Sí | Sí | No | Sí | Solo Lectura |
+| Crear y editar las cuentas de la inmobiliaria | Sí | Sí | No | No | No |
+| Cargar movimientos y conversiones, entregar custodia, registrar compensaciones | Sí | Sí | No | Sí | No |
+| Ver y condonar punitorios | Sí | Sí | No | No | No |
+| Configurar los parámetros de punitorios de la inmobiliaria | Sí | Lectura | No | No | No |
+| Importar lotes del sistema anterior | Sí | No | No | No | No |
+| Consultar el panel de calidad de datos | Sí | Sí | No | No | No |
+| Unir personas repetidas | Sí | Previsualiza | No | No | No |
+
+En el piloto, la función de dirección usa el rol Admin. Las otras dos funciones de la inmobiliaria (atención y publicación, muestras e inventarios) todavía no tienen usuario propio: cuando lo tengan, la decisión de la dirección es que por ahora vean todo, así que la política de lectura queda en su valor por defecto. El mecanismo para cerrar lecturas existe y se prueba (CP-257 a CP-265), de modo que restringir a una función es una configuración y no un desarrollo.
 
 ### Admin
 
@@ -120,7 +147,7 @@ A continuación se listan los casos de uso considerados centrales para la operac
 
 ### Gestión de propiedades y personas
 
-- **CU-01 Alta de propiedad** — Ventas. Registra una propiedad con dirección, características, fotos y propietario asociado.
+- **CU-01 Alta de propiedad** — Ventas. Registra una propiedad con dirección, características, fotos, catastro y, si es una unidad, su edificio. Los dueños se registran como titulares, con porcentaje opcional y sin que tengan que sumar cien: la titularidad es independiente de quién alquila (ver CU-25). *Modificado por el piloto:* FB-01.
 - **CU-02 Cambio de estado de una operación** — Ventas. Transiciona el estado de la operación de venta o alquiler de la propiedad: borrador, disponible, reservada, alquilada, vendida, ocupada, suspendida o archivada. El estado vive en la operación, no en la propiedad, de modo que un mismo inmueble puede estar publicado en venta y alquilado a la vez.
 - **CU-03 Alta de persona** — Ventas. Carga una persona física o jurídica y asigna uno o más roles: propietario, inquilino, garante, comprador, proveedor, lead o apoderado. El rol es una etiqueta de cliente: dice cómo se relaciona la persona con la inmobiliaria, no a qué contrato pertenece. Se pone solo cuando la persona se carga como locador, titular o apoderado, de modo que no hace falta asignarlo antes para poder firmar un contrato.
 - **CU-04 Vinculación de garantías** — Ventas. Asocia al contrato una garantía propietaria, bancaria, un seguro de caución o un depósito.
@@ -128,19 +155,21 @@ A continuación se listan los casos de uso considerados centrales para la operac
 ### Contratos
 
 - **CU-05 Alta de contrato** — Ventas. Genera un contrato a partir de una propiedad, sus locadores, un inquilino, sus garantías y su esquema de ajuste, y produce el documento a partir de una plantilla. Para activarlo, los locadores vigentes tienen que sumar exactamente 100 % del cobro; el documento incluye a los locadores y a los apoderados que firman por ellos.
-- **CU-06 Renovación de contrato** — Ventas. Da de alta un contrato nuevo tomando como base uno vencido y manteniendo las partes. No es una operación automática: el contrato anterior queda en estado Renovado y el nuevo se carga como cualquier otro.
-- **CU-07 Configurar ajuste** — Ventas o Gerente. Define la modalidad de ajuste —IPC, ICL, CCP, porcentaje fijo o personalizado— y su periodicidad, de mensual a anual.
-- **CU-08 Calcular y aplicar ajuste** — Ventas calcula, Admin o Gerente aplica. El cálculo toma el índice publicado para el período; la aplicación escribe el nuevo monto en el contrato.
+- **CU-06 Renovación de contrato** — Ventas. Da de alta un contrato nuevo tomando como base uno vencido y manteniendo las partes. No es una operación automática: el contrato anterior queda en estado Renovado y el nuevo se carga como cualquier otro. Desde el piloto, si el inquilino sigue sin contrato nuevo (prórroga de palabra), se registra el fin real del contrato vigente y este sigue liquidándose hasta esa fecha; un contrato pasado de su fin pactado sin fin real sigue activo. *Planificado (ítem 40, FB-05 y FB-15):* la renovación como un período nuevo del mismo contrato, con precio, regla, fiadores y honorarios, y el seguimiento por semáforo con su lista de verificación.
+- **CU-07 Configurar ajuste** — Ventas o Gerente. Define la modalidad de ajuste —IPC, ICL, CCP, UVA, porcentaje fijo, escalonado o personalizado— y su periodicidad, de mensual a anual. Desde el piloto también fija el rezago del índice, la base del ajuste (alquiler original o vigente) y los meses iniciales sin ajuste; lo que el contrato no fija toma el valor por defecto de la inmobiliaria. En un contrato activo con más de una versión de reglas, cambiar la modalidad es un acuerdo (CU-32). *Modificado por el piloto:* FB-13 y FB-25.
+- **CU-08 Calcular y aplicar ajuste** — Ventas calcula, Admin o Gerente aplica. El cálculo toma el índice publicado para el período; la aplicación escribe el nuevo monto en el contrato. Desde el piloto el caso habitual es mensual y masivo: Admin, Gerente o Liquidaciones piden la previsualización de todos los ajustes que vencen en el mes (con el índice de dos meses antes por defecto), revisan contrato por contrato y aplican los elegidos; cada contrato se aplica en su propia transacción y la respuesta dice cuáles se aplicaron y por qué se salteó el resto. *Flujo alternativo:* si el índice del mes no está publicado y la inmobiliaria admite el pago a cuenta, el ajuste se aplica como provisorio con un índice estimado y se corrige solo cuando el índice se publica, con la diferencia como renglón de la liquidación siguiente; si no lo admite, el contrato queda con `MISSING_INDEX_DATA` y no se ajusta. Una tarea diaria aplica los vencidos y corrige los provisorios. *Modificado por el piloto:* FB-13 y FB-23.
 - **CU-25 Registrar locadores de un contrato** — Ventas, Gerente o Admin. Indica quién alquila (propietario, usufructuario, sublocador, acreedor u otro), qué porcentaje del cobro le corresponde, desde y hasta cuándo, qué cuenta recibe su parte y, si cobra otra persona, quién. Los locadores vigentes suman 100 % en cada fecha; una cesión se carga cerrando a uno y abriendo a otro en la misma fecha. Para cambiar el reparto de un contrato activo se reemplaza el conjunto de una vez. Los contratos migrados con varios propietarios quedan marcados para revisar el reparto.
+- **CU-32 Registrar un acuerdo** — Admin o Gerente. Registra un convenio fechado entre las partes —renegociación, rebaja, bonificación, cambio de reglas, de reparto o de cargo, prórroga o salida— con su documento. Si cambia reglas, crea una versión nueva desde su fecha sin tocar las anteriores, de modo que una liquidación de un mes pasado se sigue calculando con las reglas de ese mes. *Flujo alternativo:* no se acepta un acuerdo anterior al inicio del contrato ni dos versiones con la misma fecha; un acuerdo del que dependen versiones posteriores no se corrige ni se borra. *Origen:* FB-08 y FB-13 (todo es pactable).
 - **CU-26 Registrar un apoderado** — Ventas, Gerente o Admin. Registra que una persona actúa en nombre de otra, con los alcances cobrar, firmar o administrar; con firma indistinta (alcanza con uno) o conjunta (firman todos los del grupo); general o acotado a un contrato o una propiedad, con su vigencia y el documento del poder. Un apoderado con poder de cobro puede ser el cobrador de un locador; mientras lo sea, el poder no se puede revocar.
 
 ### Liquidaciones y pagos
 
-- **CU-09 Generar las liquidaciones del mes** — Liquidaciones. Recibe el período y produce las liquidaciones de todos los contratos activos, informando cuántas creó y cuántas omitió por ya existir. Cada liquidación se compone de líneas de tipo alquiler, ajuste, extra, descuento y multa.
+- **CU-09 Generar las liquidaciones del mes** — Liquidaciones. Recibe el período y produce las liquidaciones de todos los contratos activos, informando cuántas creó y cuántas omitió por ya existir. Desde el piloto la generación corre sola unos diez días antes del mes (y se puede pedir a mano), toma el alquiler y las reglas vigentes en ese mes, respeta el inicio y el fin efectivo del contrato, el día de vencimiento pactado y el prorrateo del primer y del último mes según las convenciones del contrato, y suma las partes de boletas sin facturar, los cargos pendientes, las correcciones de ajustes provisorios y los punitorios del mes anterior. Cada renglón —alquiler, ajuste, extra, descuento, multa, impuesto, servicio, cargo, honorario o ajuste retroactivo— lleva su destino y si es comisionable. Al aprobarla recibe un número de recibo y el documento muestra el total en letras. *Flujo alternativo:* un contrato fuera de fecha o un primer mes que la convención cobra al firmar se informa y no se liquida; si la liquidación se anula, los cargos, boletas, correcciones y punitorios que traía vuelven a pendiente. *Modificado por el piloto:* FB-07, FB-08 y FB-13.
 - **CU-10 Registrar pago** — Liquidaciones. Asocia un pago total o parcial a una liquidación e imputa el saldo. Si el pago completa el total, la liquidación pasa sola a Pagada. Indica quién recibió el dinero (la inmobiliaria, en una caja o un banco, o el locador; por defecto según el flujo de pago del contrato) y si la parte de los locadores queda en custodia; el sistema reparte el cobro entre la inmobiliaria, los entes y cada locador y, si cobró la inmobiliaria, deja el ingreso en su caja y emite el recibo numerado. *Origen:* FB-06.
-- **CU-11 Calcular punitorio** — Sistema. Aplica el recargo correspondiente al pasar la fecha de vencimiento sin pago, según los parámetros de la inmobiliaria.
-- **CU-12 Condonar punitorio** — Admin. Anula la multa acumulada de un caso, con motivo registrado.
-- **CU-13 Generar rendición al propietario** — Liquidaciones. Consolida lo cobrado en el período, descuenta la comisión pactada en el contrato y los conceptos deducidos, y emite el documento del propietario.
+- **CU-11 Calcular punitorio** — Sistema. Aplica el recargo correspondiente al pasar la fecha de vencimiento sin pago, según la regla pactada en el contrato o, si no la fija, los parámetros de la inmobiliaria (tasa diaria fija o porcentual, o la mayor entre el doble de la tasa activa del Banco Nación y un porcentaje diario). Desde el piloto el punitorio se calcula sobre el saldo impago, se informa al día en el monto a pagar de cada liquidación y se cobra como renglón «Multa», comisionable, al registrar el pago o en la liquidación siguiente. *Modificado por el piloto:* FB-07.
+- **CU-12 Condonar punitorio** — Admin o Gerente. Anula la multa acumulada de un caso, o todas las de un contrato hasta una fecha, con motivo obligatorio y fila de auditoría. No se condona un punitorio ya cobrado. *Modificado por el piloto:* FB-07.
+- **CU-13 Generar rendición al propietario** — Liquidaciones. Consolida lo cobrado en el período, descuenta la comisión pactada en el contrato y los conceptos deducidos, y emite el documento del propietario. Desde el piloto se emite una rendición por cada locador vigente, con su parte según el porcentaje de cobro, y no se genera si los locadores no suman cien. *Planificado (ítem 37, FB-10):* el estado de cuenta consolidado del locador, con todas sus unidades y el saldo arrastrado, que reemplaza a la rendición por contrato.
+- **CU-33 Cargar las boletas del período** — Admin, Gerente o Liquidaciones. Carga en una planilla las boletas de impuestos y servicios del mes —una por servicio y período, o por cuota—, con importe, vencimiento y consumo. Cada boleta se reparte según la regla de traslado vigente de cada contrato de la unidad: quién paga (inquilino, inmobiliaria o locador), en qué proporción (porcentaje, consumo o fijo) y con qué plan (mensual o anual en cuotas). La parte del inquilino entra en su próxima liquidación sin comisión. *Flujo alternativo:* volver a cargar la misma boleta la actualiza y no la duplica; una regla nueva en un contrato activo exige un acuerdo de cambio de cargo con esa fecha (CU-32); una boleta anulada quita las partes todavía no facturadas. *Origen:* FB-08.
 
 ### Facturación electrónica
 
@@ -164,6 +193,12 @@ A continuación se listan los casos de uso considerados centrales para la operac
 - **CU-22 Login del inquilino** — Inquilino. Accede al portal con credenciales propias.
 - **CU-23 Consultar saldo y liquidaciones** — Inquilino. Visualiza liquidaciones del contrato y descarga comprobantes.
 - **CU-24 Abrir reclamo desde el portal** — Inquilino. Genera un ticket que llega al backlog de la inmobiliaria.
+
+### Migración y calidad de datos
+
+- **CU-34 Importar desde el sistema anterior** — Admin. Envía un lote de personas, propiedades y contratos (con locadores, reglas, comisión e historial de ajustes) preparado por un script de migración, primero como ensayo sin escribir y después de verdad. Cada fila se identifica por su referencia externa, de modo que volver a enviar el mismo lote no cambia nada y una corrección actualiza solo lo que cambió. El resultado de cada fila queda registrado y se descarga para corregir el origen. *Flujo alternativo:* en el modo «todo o nada», que es el de la carga final, una fila con error impide escribir el lote entero; un contrato activo cuyos locadores no suman cien, sin inquilino o superpuesto con otro alquiler de la misma propiedad se rechaza como fila con error. *Origen:* FB-04.
+- **CU-36 Revisar la calidad de los datos** — Admin o Gerente revisan, Admin une. Consulta el panel con los controles de calidad (personas repetidas por documento, CUIT, CBU, teléfono, correo o nombre; locadores o titulares que no suman cien; propiedades sin titular; locadores sin documento o sin cuenta; contratos vencidos sin decisión y contratos activos incompletos), entra al detalle de cada uno y corrige en la ficha. Para dos personas repetidas, previsualiza qué se mueve y qué se descarta y las une en una sola: la unión mueve todas sus relaciones en una transacción y queda auditada con el antes y el después. *Origen:* FB-22.
+- **CU-37 Configurar los valores por defecto de la inmobiliaria** — Admin o Gerente. Fija los valores que rigen cuando un contrato no pacta otra cosa: día de vencimiento, anticipación de la liquidación, rezago del índice, pago a cuenta, comisión, honorarios, umbral de anticipo, cadencia de cobranza, umbrales del semáforo y convenciones de liquidación. Un cambio rige para los contratos que no fijan ese valor; lo pactado en un contrato no se toca. *Origen:* FB-13 y la decisión de diseño «todo es pactable» (`30-piloto.md`).
 
 ### Equipo y acceso
 
