@@ -112,7 +112,7 @@ el registro del servidor, junto con el método, la ruta, el estado, el
 | PATCH | `/tenants/:id` | Edita nombre, provincia, colores de marca y logo. | Admin, Gerente |
 | GET | `/tenants/me/read-policy` | Política de lectura por rol: un objeto con un arreglo de roles por recurso (`persons.bankAccounts`, `persons.document`, `contracts.commission`, `renditions`, `reports.financial`, `invoices`, `audit`). Sin configurar devuelve la de por defecto: todos los roles leen todo. | Admin |
 | PUT | `/tenants/me/read-policy` | Reemplaza la política completa. Debe traer los siete recursos, solo roles válidos y al Admin en cada uno; si no, 400 `VALIDATION_ERROR`. Rige desde el pedido siguiente. | Admin |
-| GET | `/tenants/me/operational-defaults` | Valores por defecto de la operación: `dueDay`, `leadDays`, `ipcLagMonths`, `allowProvisional` (pago a cuenta con índice estimado, activo de fábrica), `commissionPct`, `fees` (`alta`, `renovacion`, `ventaConstruido`, `ventaLote`), `valuationUsd`, `upfrontThresholdFees`, `collectionCadence` (`firstReminderDays`, `everyDays`), `expiryLight` (`redDays`, `yellowDays`) `upfrontBasis` (`ComisionPactada`, `PorcentajePorDefecto`: con qué comisión mensual se mide `upfrontThresholdFees`) y las cuatro convenciones de liquidación: `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`), y `cash` con las convenciones de caja y cobros (ADR-0012): `lessorDirectOwes` (`TodoLoAjeno`, `SoloInmobiliaria`), `partialAllocation` (`Proporcional`, `InmobiliariaPrimero`), `custodyInAgencyBalance` (`false`), `receiptSeries` (`Unica`, `PorMoneda`, `PorCuenta`), `receiptWhenLessorReceives` (`false`) y `compensationScope` (`CualquierLocador`, `MismoContrato`) (`lessorDirectOwes` se puede pactar por contrato), y `ownerAccounts` con las del estado de cuenta del locador (ADR-0009): `statementCloseDay` (`null` = fin de mes, o 1 a 28) y `lessorChargeTiming` (`AlGenerarEstado`, `AlEmitirEstado`). y `repairs` con `preauthLimit` (importe en pesos hasta el que la inmobiliaria actúa sin consultar al locador; de fábrica 0: siempre se consulta) y `managementFeePct` (porcentaje del honorario por gestión de una reparación que se propone al imputar; de fábrica 0). Sin configurar devuelve los del código (10, 10, 2, activo, 7, 5/5/3/5, 100, 2, 5/5, 30/60). | Autenticado |
+| GET | `/tenants/me/operational-defaults` | Valores por defecto de la operación: `dueDay`, `leadDays`, `ipcLagMonths`, `allowProvisional` (pago a cuenta con índice estimado, activo de fábrica), `commissionPct`, `fees` (`alta`, `renovacion`, `ventaConstruido`, `ventaLote`, y para los honorarios: `installments` 1, `adjustInstallments` activo, `payer` `Inquilino`/`Locador`/`Ambos`, `lessorSharePct` 50, `contractTotalMode` `ConAjustesConocidos`/`AlquilerInicial`, `vatMode` `NoAplica`, `vatPct` 21, `staffCommissionPct` 0 y `staffCommissionBase` `Neto`/`Bruto`), `valuationUsd`, `upfrontThresholdFees`, `collectionCadence` (`firstReminderDays`, `everyDays`), `expiryLight` (`redDays`, `yellowDays`) `upfrontBasis` (`ComisionPactada`, `PorcentajePorDefecto`: con qué comisión mensual se mide `upfrontThresholdFees`) y las cuatro convenciones de liquidación: `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`), y `cash` con las convenciones de caja y cobros (ADR-0012): `lessorDirectOwes` (`TodoLoAjeno`, `SoloInmobiliaria`), `partialAllocation` (`Proporcional`, `InmobiliariaPrimero`), `custodyInAgencyBalance` (`false`), `receiptSeries` (`Unica`, `PorMoneda`, `PorCuenta`), `receiptWhenLessorReceives` (`false`) y `compensationScope` (`CualquierLocador`, `MismoContrato`) (`lessorDirectOwes` se puede pactar por contrato), y `ownerAccounts` con las del estado de cuenta del locador (ADR-0009): `statementCloseDay` (`null` = fin de mes, o 1 a 28) y `lessorChargeTiming` (`AlGenerarEstado`, `AlEmitirEstado`). y `repairs` con `preauthLimit` (importe en pesos hasta el que la inmobiliaria actúa sin consultar al locador; de fábrica 0: siempre se consulta) y `managementFeePct` (porcentaje del honorario por gestión de una reparación que se propone al imputar; de fábrica 0). Sin configurar devuelve los del código (10, 10, 2, activo, 7, 5/5/3/5, 100, 2, 5/5, 30/60). | Autenticado |
 | PUT | `/tenants/me/operational-defaults` | Reemplaza los valores; lo que falte toma el del código. 400 `VALIDATION_ERROR` ante un valor fuera de rango, un campo desconocido o `yellowDays` menor que `redDays`. Un contrato nuevo nace con `dueDay`, `ipcLagMonths` y las cuatro convenciones de liquidación de acá (una opción desconocida responde 400 `VALIDATION_ERROR`). | Admin, Gerente |
 | GET | `/tenants/me/read-access` | Qué recursos puede leer el rol del usuario actual: `{ role, resources: { <recurso>: boolean } }`. Lo usa la web para ocultar secciones. | Autenticado |
 | GET | `/users` | El equipo: usuarios más invitaciones pendientes, cada uno con `status` (`invited`, `active` o `inactive`). En una invitación, `id` es el de la invitación y vienen `invitationExpiresAt` e `invitationExpired`. | Admin, Gerente |
@@ -389,7 +389,7 @@ hay conversión implícita.
 | POST | `/custody/:accountId/deliver` | Entrega al locador el efectivo en custodia: `date`, `amount` (sin él, todo el saldo) y `note`. Bloquea la cuenta hasta el commit y deja una `EntregaEfectivo` en la cuenta corriente del locador. Devuelve `{ movement, balance }`. | Admin, Gerente, Liquidaciones |
 | GET | `/compensations` | Compensaciones de un cobro (`paymentId`) o de una persona (`personId`). | Admin, Gerente, Liquidaciones, Lectura |
 | POST | `/compensations` | Registra que `fromLessorId` recibió un cobro (`paymentId`, recibido por un locador) que le correspondía a `toLessorId` (locador del contrato). `amount` opcional (por defecto, la parte de `to` en el reparto menos lo ya compensado); `fromCustody: true` lo paga con la custodia de `from` y lo ingresa en `toAccountId` (por defecto, la caja de la moneda). En la cuenta corriente resta a `from` y suma a `to` (`Compensacion`). | Admin, Gerente, Liquidaciones |
-| GET | `/receipts` | Recibos de cobro paginados (`from`, `to`, `contractId`) con número, fecha, importe, inquilino, propiedad, medio y quién recibió. | Admin, Gerente, Liquidaciones, Lectura |
+| GET | `/receipts` | Recibos de cobro paginados (`from`, `to`, `contractId`) con número, fecha, importe, inquilino, propiedad, medio y quién recibió; los de una cuota de honorarios traen `concept` y quien paga. | Admin, Gerente, Liquidaciones, Lectura |
 | GET | `/receipts/:id/pdf` | PDF del recibo con su número, el monto en letras y "por cuenta y orden" de los locadores. | Admin, Gerente, Liquidaciones, Lectura |
 
 - **Categorías** del libro: `AlquilerCobrado` (cobros), `Custodia` (entradas y entregas de custodia), `Compensacion`, `Conversion`, `PagoLocador` (las escribe el sistema) y las manuales de la tabla. Una cuenta de custodia no admite movimientos manuales ni conversiones (`CUSTODY_ACCOUNT_RESERVED`).
@@ -450,6 +450,55 @@ locador ya imputado no se libera (`POST /charges/:id/release`, 409
 `statementCloseDay` (`null` = fin de mes, o 1 a 28) y `lessorChargeTiming`
 (`AlGenerarEstado` o `AlEmitirEstado`).
 
+## Honorarios
+
+Honorarios por operación (D10): alta de alquiler, renovación, venta, tasación y
+gestión de reparación. Un honorario es de **una** persona que paga; cuando pagan dos
+(inquilino y locador, o comprador y vendedor) se crea uno por cada una con el mismo
+`groupId`. Los importes salen del motor `fee-engine` de `packages/shared`: `netAmount`
+(honorario sin IVA, lo que se reparte con el coorretaje y el personal), `vatAmount` y
+`total` (lo que paga quien paga). Las cuotas son mensuales desde `firstDueDate` y
+reparten el total por mayor residuo. Con `adjustInstallments`, el importe a cobrar de
+cada cuota pendiente (`dueAmount`) sigue los ajustes aplicados al alquiler del
+contrato: importe × alquiler a su vencimiento ÷ alquiler al inicio del tramo; al
+cobrarla se guarda en `adjustedAmount`.
+
+| Método | Ruta | Para qué | Acceso |
+|---|---|---|---|
+| GET | `/fees/preview` | Propuesta con los valores por defecto de la inmobiliaria, sin guardar: `kind` y, según el caso, `contractId` o `contractPeriodId` (alta y renovación: base = total del contrato o del período según `fees.contractTotalMode`, porcentaje `fees.alta` o `fees.renovacion`, quién paga según `fees.payer` y `fees.lessorSharePct`), `propertyId`, `saleAsset` (`Construido`, `Lote`), `baseAmount` y `currency` (venta: `fees.ventaConstruido` o `fees.ventaLote` por parte, en dólares por defecto) o `valuationId` (tasación: `valuationUsd` dólares al titular de la propiedad). Devuelve base, porcentaje, moneda, quienes pagan con su parte, cuotas, ajuste, IVA, comisión del personal por defecto, `contractTotal` (meses, si proyectó ajustes, si la regla es por índice) y `estimate` (total por persona). | Admin, Gerente |
+| POST | `/fees` | Alta: `kind`, `basis` (`TotalContrato`, `ValorOperacion`, `MontoFijo`), `baseAmount`, `pct` (salvo monto fijo), `currency`, `payers` (`role`: `Inquilino`, `Locador`, `Comprador`, `Vendedor`, `Otro`; `personId`; `sharePct`), `payerMode` (`Reparto`: el honorario se reparte y las partes suman 100; `CadaParte`: cada uno paga el porcentaje completo), `vatMode` (`NoAplica`, `Incluido`, `Adicional`) y `vatPct`, `installments` (1 a 60), `firstDueDate`, `adjustInstallments` (solo con contrato), `shares` (coorretaje: `counterparty`, `pct`) y `staff` (`userId` o `personId`, `pct`), y opcionales `contractId`, `contractPeriodId` (toma su contrato), `propertyId`, `valuationId`, `notes`. Un honorario de alquiler necesita contrato (400 `CONTRACT_REQUIRED`). Un total en cero queda `SinCargo` y sin cuotas. Devuelve `{ items }`. | Admin, Gerente |
+| GET | `/fees` | Honorarios paginados con cuotas (`dueAmount`), coorretaje y comisiones; filtros `kind`, `status` (`Pendiente`, `Parcial`, `Pagado`, `SinCargo`, `Anulado`), `payerRole`, `payerPersonId`, `contractId`, `propertyId` y `period` (`YYYY-MM`: con alguna cuota que vence en el mes). | Admin, Gerente, Liquidaciones, Lectura, Ventas, Soporte |
+| GET | `/fees/installments` | Cuotas paginadas por vencimiento con su `dueAmount` y su honorario; filtros `kind`, `status` (`Pendiente`, `Pagada`, `Anulada`), `payerRole`, `contractId` y `period`. | Admin, Gerente, Liquidaciones, Lectura, Ventas, Soporte |
+| GET | `/fees/:id` | Un honorario. 404 `FEE_NOT_FOUND`. | Admin, Gerente, Liquidaciones, Lectura, Ventas, Soporte |
+| PATCH | `/fees/:id` | Cambia `notes`. | Admin, Gerente |
+| POST | `/fees/:id/cancel` | Anula con `reason` un honorario sin cuotas cobradas (409 `FEE_HAS_PAYMENTS`) ni comisiones pagadas (409 `FEE_HAS_PAID_COMMISSIONS`); las cuotas pendientes quedan `Anulada`. | Admin, Gerente |
+| POST | `/fees/:id/installments/:n/pay` | Cobra la cuota `n`: `settlement` `Caja` (por defecto: entra a `accountId` o a la caja o el banco de la moneda según `method`, como movimiento `In` `Honorario` con origen `FeeInstallment`, y emite un recibo de la serie de cobros) o `CuentaLocador` (solo si paga un locador del contrato, 400 `FEE_PAYER_NOT_LESSOR`: asiento `Honorario` negativo en su cuenta corriente, sin caja ni recibo), `date`, y opcionales `amount` (por defecto el `dueAmount`) y `note`. Deja el honorario `Parcial` o `Pagado`. 409 `FEE_INSTALLMENT_NOT_PENDING` o `FEE_CANCELLED`. | Admin, Gerente, Liquidaciones |
+| POST | `/fees/:id/shares` | Coorretaje: `counterparty`, `pct` (del honorario sin IVA). Recalcula las comisiones sin pagar. | Admin, Gerente |
+| DELETE | `/fees/:id/shares/:shareId` | Quita un coorretaje y recalcula las comisiones sin pagar. | Admin, Gerente |
+| POST | `/fees/:id/staff-commissions` | Comisión de una persona del personal: `userId` o `personId` (uno solo), `pct`. | Admin, Gerente |
+| DELETE | `/fees/:id/staff-commissions/:commissionId` | Quita una comisión sin pagar (409 `STAFF_COMMISSION_PAID`). | Admin, Gerente |
+| GET | `/staff-commissions` | Comisiones del personal de honorarios no anulados con su beneficiario y su honorario; filtros `paid` (`true`/`false`), `userId`, `personId`, `feeId`. | Admin, Gerente |
+| POST | `/staff-commissions/:id/pay` | Paga la comisión desde `accountId` (caja o banco de la misma moneda, 400 `CURRENCY_MISMATCH`) en `date`: movimiento `Out` `ComisionEmpleado` con origen `StaffCommission`. 409 `STAFF_COMMISSION_PAID`. | Admin, Gerente |
+
+- **Coorretaje y comisión del personal.** Cada parte de coorretaje es su porcentaje
+  del honorario sin IVA. La comisión del personal es un porcentaje del neto de la
+  inmobiliaria (honorario sin IVA menos coorretaje) o del honorario sin IVA, según
+  `fees.staffCommissionBase` (`Neto` por defecto). Una comisión pagada no se
+  recalcula.
+- **Recibos y facturas.** Los recibos de honorarios comparten la serie de los cobros
+  y aparecen en `GET /receipts` (con `concept`, quien paga y la propiedad; el filtro
+  `contractId` los incluye) y en su PDF. `POST /invoices/emit` acepta
+  `feeInstallmentId` para indicar la cuota que factura (404 `FEE_INSTALLMENT_NOT_FOUND`)
+  y `GET /invoices` filtra por `feeInstallmentId`.
+
+Códigos de error: `FEE_NOT_FOUND`, `FEE_INSTALLMENT_NOT_FOUND`, `FEE_SHARE_NOT_FOUND`,
+`STAFF_COMMISSION_NOT_FOUND`, `CONTRACT_PERIOD_NOT_FOUND`, `VALUATION_NOT_FOUND`,
+`USER_NOT_FOUND` (404); `CONTRACT_REQUIRED`, `PERIOD_CONTRACT_MISMATCH`,
+`FEE_PAYER_NOT_LESSOR`, `PAYER_SHARES_NOT_100`, `INVALID_SHARES`,
+`INVALID_STAFF_COMMISSION`, `INVALID_INSTALLMENTS`, `INVALID_TERM` (400);
+`FEE_CANCELLED`, `FEE_HAS_PAYMENTS`, `FEE_HAS_PAID_COMMISSIONS`,
+`FEE_INSTALLMENT_NOT_PENDING`, `STAFF_COMMISSION_PAID` (409).
+
 ## Rendiciones al propietario (histórico)
 
 Las rendiciones por contrato quedan como histórico de solo lectura (ADR-0009): ya no
@@ -478,7 +527,7 @@ Admin. En la tabla, esos seis roles de lectura figuran como **lectura**.
 | GET | `/invoices/:id` | Detalle con CAE y su vencimiento. | Lectura |
 | GET | `/invoices/:id/pdf` | Comprobante en PDF. | Lectura |
 | POST | `/invoices/preview` | Simula la emisión sin enviarla al organismo. | Admin, Gerente, Liquidaciones |
-| POST | `/invoices/emit` | Emite una factura A, B o C. `paymentId` es opcional; la moneda sale de `monId` (`PES` o `DOL`). | Admin, Gerente, Liquidaciones |
+| POST | `/invoices/emit` | Emite una factura A, B o C. `paymentId` y `feeInstallmentId` (cuota de honorario que factura) son opcionales; la moneda sale de `monId` (`PES` o `DOL`). | Admin, Gerente, Liquidaciones |
 | POST | `/invoices/emit-nc` | Emite una nota de crédito. | Admin, Gerente, Liquidaciones |
 | POST | `/invoices/:id/void` | Anula un comprobante por nota de crédito. | Admin, Gerente, Liquidaciones |
 | GET | `/invoices/healthcheck` | Estado de la conexión con los servicios del organismo. | Lectura |

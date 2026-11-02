@@ -144,7 +144,7 @@ Contrato entre locadores e inquilino, o de venta.
 - `actualEndDate` es el fin real o la prórroga de palabra; el fin efectivo es `coalesce(actualEndDate, endDate)`. Un contrato pasado de su fin pactado sin fin real sigue liquidándose mientras esté `Activo`. `previousContractId` encadena las renovaciones.
 - `externalRef` identifica el contrato en el sistema anterior y es único por inmobiliaria (`@@unique([tenantId, externalRef])`, 409 `EXTERNAL_REF_TAKEN`).
 - **Las columnas de ajuste son la vista vigente.** `adjustmentType` toma IPC, ICL, CCP, porcentaje fijo, personalizado, UVA o escalonado (las dos últimas todavía no tienen cálculo), `adjustmentPeriod` va de mensual a anual, y `customAdjustmentPct` guarda el porcentaje cuando la modalidad es de porcentaje fijo. La fuente de las reglas de cada fecha es `ContractTermsVersion`; estas columnas se mantienen en sincronía con la versión vigente hoy (ADR-0010).
-- Relación 1-N con `ContractPerson`, `ContractLessor`, `PowerOfAttorney`, `ContractGuarantee`, `ContractAdjustment`, `AdjustmentSchedule`, `Liquidacion`, `OwnerRendicion` (histórico), `OwnerLedgerEntry`, `ContractPeriod`, `ContractAgreement`, `ContractTermsVersion`; 1-1 con `ContractCommission` y `ContractClosureSummary`.
+- Relación 1-N con `ContractPerson`, `ContractLessor`, `PowerOfAttorney`, `ContractGuarantee`, `ContractAdjustment`, `AdjustmentSchedule`, `Liquidacion`, `OwnerRendicion` (histórico), `OwnerLedgerEntry`, `ContractPeriod`, `ContractAgreement`, `ContractTermsVersion`, `Fee`; 1-1 con `ContractCommission` y `ContractClosureSummary`.
 
 ### ContractPerson
 
@@ -613,6 +613,75 @@ foránea.
 - Los dos modelos están en `TENANT_SCOPED_MODELS` y en la limpieza de las pruebas de integración. En la unión de personas los asientos y los estados pasan a la persona conservada; si las dos tienen un asiento del mismo origen y concepto, o un estado del mismo mes y moneda, la unión se rechaza (`conflict`).
 - Sin backfill: las tablas nacieron vacías. Cada locador arranca con un `SaldoInicial` por moneda, que carga la gerencia o la importación.
 
+### Honorarios
+
+Honorarios por operación, sus cuotas, el coorretaje y las comisiones del personal
+(ítem 41, D10). Un honorario es de una persona que paga; cuando pagan dos se crean dos
+con el mismo `groupId`.
+
+```mermaid
+erDiagram
+    Contract |o--o{ Fee : "alta, renovación"
+    ContractPeriod |o--o{ Fee : "período renovado"
+    Property |o--o{ Fee : "venta, tasación"
+    PropertyValuation |o--o{ Fee : "tasación"
+    Person ||--o{ Fee : "paga"
+    Fee ||--o{ FeeInstallment : "cuotas"
+    Fee ||--o{ FeeShare : "coorretaje"
+    Fee ||--o{ StaffCommission : "comisiones"
+    User |o--o{ StaffCommission : "personal"
+    Person |o--o{ StaffCommission : "vendedor externo"
+    FeeInstallment |o--o| Receipt : "recibo"
+    FeeInstallment |o--o{ Comprobante : "factura"
+    FeeInstallment ||..o| CashMovement : "origen FeeInstallment"
+    FeeInstallment ||..o| OwnerLedgerEntry : "origen FeeInstallment"
+    StaffCommission ||..o| CashMovement : "origen StaffCommission"
+    Fee {
+        string kind
+        string status
+        string payerRole
+        string basis
+        decimal pct
+        decimal baseAmount
+        decimal netAmount
+        decimal vatAmount
+        decimal total
+        string currency
+        int installments
+        boolean adjustInstallments
+    }
+    FeeInstallment {
+        int n
+        date dueDate
+        decimal amount
+        decimal adjustedAmount
+        string status
+        date paidAt
+        decimal paidAmount
+        string settlement
+    }
+    FeeShare {
+        string counterparty
+        decimal pct
+        decimal amount
+    }
+    StaffCommission {
+        decimal pct
+        decimal baseAmount
+        decimal amount
+        date paidAt
+    }
+```
+
+- `Fee`: `id`, `tenantId`, `groupId` (los honorarios creados juntos), `kind` (`AltaAlquiler`, `Renovacion`, `Venta`, `Tasacion`, `GestionReparacion`), `status` (`Pendiente`, `Parcial`, `Pagado`, `SinCargo`, `Anulado`), `contractId`, `contractPeriodId`, `propertyId`, `valuationId` (opcionales), `payerPersonId`, `payerRole` (`Inquilino`, `Locador`, `Comprador`, `Vendedor`, `Otro`), `basis` (`TotalContrato`, `ValorOperacion`, `MontoFijo`), `pct` (7,4; nulo en un monto fijo), `baseAmount`, `vatMode` (`NoAplica`, `Incluido`, `Adicional`), `vatPct`, `netAmount` (sin IVA: lo que se reparte), `vatAmount`, `total` (lo que paga), `currency`, `installments`, `adjustInstallments`, `notes`, `createdById`, `cancelledAt`, `cancelReason`. Contrato, período, propiedad y persona son `Restrict`: un honorario no se pierde al borrar su origen; la tasación es `SetNull`. Índices `[tenantId, kind, status]`, `[tenantId, payerPersonId]` y uno por cada referencia.
+- `FeeInstallment`: `id`, `tenantId`, `feeId` (`Cascade`), `n` (desde 1), `dueDate`, `amount` (no negativo), `adjustedAmount` (el importe ajustado con el que se cobró, si difiere), `status` (`Pendiente`, `Pagada`, `Anulada`), `paidAt`, `paidAmount`, `settlement` (`Caja` o `CuentaLocador`), `receiptId` (único, `SetNull`). `@@unique([feeId, n])`. El importe a cobrar de una cuota pendiente con ajuste no se guarda: se calcula al leer con los ajustes aplicados del contrato (la corrección reemplaza al provisorio del mismo período).
+- `StaffCommission`: `id`, `tenantId`, `feeId` (`Cascade`), `userId` o `personId` (exactamente uno: restricción `CHECK`), `pct`, `baseAmount` (sobre qué se calculó), `amount`, `currency`, `paidAt`, `notes`. Se paga con un `CashMovement` `ComisionEmpleado` con origen `StaffCommission`.
+- `FeeShare`: `id`, `tenantId`, `feeId` (`Cascade`), `counterparty` (la otra inmobiliaria, como texto), `pct`, `amount`, `currency`, `notes`.
+- `Comprobante.feeInstallmentId` (opcional, `SetNull`, D0): la cuota de honorario que factura el comprobante. No hay `FeeInstallment.comprobanteId`: una cuota puede tener factura y nota de crédito, así que la referencia vive en el comprobante.
+- Cobro de una cuota: en `Caja`, un `CashMovement` `In` `Honorario` con origen `FeeInstallment` y un `Receipt` de la serie de cobros; en `CuentaLocador`, un `OwnerLedgerEntry` `Honorario` negativo del locador que paga, con el mismo origen, sin movimiento ni recibo.
+- Los cuatro modelos están en `TENANT_SCOPED_MODELS` y en la limpieza de las pruebas de integración. En la unión de personas, `Fee.payerPersonId` y `StaffCommission.personId` pasan a la persona conservada.
+- Sin backfill: las tablas nacieron vacías y ningún comprobante existente apunta a una cuota. Los honorarios cobrados antes (planillas, movimientos manuales `Honorario`) no se reconstruyen; los que tienen cuotas pendientes se cargan a mano.
+
 ### OwnerRendicion / RendicionLineItem
 
 Rendición mensual al propietario y sus conceptos. **Histórico de solo lectura** desde
@@ -666,7 +735,7 @@ Comprobante electrónico autorizado por ARCA (factura, nota de crédito o nota d
 
 - `id`, `tenantId`, `paymentId?`, `issuerId?`, `type` (`ComprobanteType`), `status` (Emitido, Anulado), `cbteTipo`, `puntoDeVenta`, `numero`, `docTipo`, `docNro`, `receptorName`, `receptorFiscalCondition`, `impTotal`, `impNeto`, `impIva`, `cae`, `caeFchVto`, `emittedAt`.
 - La combinación `(tenantId, issuerId, puntoDeVenta, cbteTipo, numero)` es única: AFIP numera por CUIT, punto de venta y tipo, sin huecos ni repeticiones, así que dos emisores de la misma inmobiliaria pueden tener el mismo número.
-- Relación N-1 opcional con `Payment` (si se borra el pago, `paymentId` queda en nulo: `ON DELETE SET NULL`) y N-1 con `ArcaIssuer`. Una nota de crédito referencia al comprobante que anula a través de `originalComprobanteId` (relación `ComprobanteNC`).
+- Relación N-1 opcional con `Payment` (si se borra el pago, `paymentId` queda en nulo: `ON DELETE SET NULL`) y N-1 con `ArcaIssuer`. `feeInstallmentId?` indica la cuota de honorario que factura (también `SET NULL`). Una nota de crédito referencia al comprobante que anula a través de `originalComprobanteId` (relación `ComprobanteNC`).
 
 ### LibroIvaExport
 
