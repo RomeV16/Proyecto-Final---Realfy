@@ -119,7 +119,7 @@ export function PaymentForm({
   if (receipt) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onSuccess} />
+        <div aria-hidden="true" className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onSuccess} />
         <div
           role="dialog"
           aria-modal="true"
@@ -154,7 +154,7 @@ export function PaymentForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div aria-hidden="true" className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-zoom-in">
