@@ -7,7 +7,7 @@ import {
   ServiceBillRowSchema,
   ServiceBillStatus,
   UpdateServiceBillSchema,
-  chargeAllocationLine,
+  chargeAllocationLines,
   splitBill,
 } from '@realfy/shared';
 import type { ChargeRuleInput, ChargeSplitResult, LiquidationExtraLine, ServiceBillRowInput } from '@realfy/shared';
@@ -358,7 +358,9 @@ export class ServiceBillsService {
         fixedAmount: rule.fixedAmount?.toString() ?? null,
         paymentPlan: rule.paymentPlan,
         annualRecovery: rule.annualRecovery,
-        annualDiscountToTenant: rule.annualDiscountToTenant,
+        annualInstallments: rule.annualInstallments,
+        annualDiscountBeneficiary: rule.annualDiscountBeneficiary,
+        remainingInstallmentsOnEnd: rule.remainingInstallmentsOnEnd,
         consumption: units.get(contract.propertyId) ?? null,
         lastBillableMonth: end ? monthStart(end) : null,
       });
@@ -406,6 +408,8 @@ export class ServiceBillsService {
         payer: a.payer,
         amount: a.amount,
         basis: a.basis,
+        surplus: a.surplus,
+        surplusBeneficiary: a.surplusBeneficiary,
         chargePeriod: a.chargePeriod,
         installmentNo: a.installmentNo,
         installmentsTotal: a.installmentsTotal,
@@ -462,18 +466,20 @@ export class ServiceBillsService {
       include: { bill: { include: { service: { select: { serviceType: true, providerName: true } } } } },
       orderBy: [{ chargePeriod: 'asc' }, { createdAt: 'asc' }],
     });
-    return rows.map((a: any) => ({
-      ...chargeAllocationLine({
+    return rows.flatMap((a: any) =>
+      chargeAllocationLines({
         allocationId: a.id,
         payer: a.payer,
         amount: a.amount.toString(),
+        surplus: a.surplus.toString(),
+        surplusBeneficiary: a.surplusBeneficiary,
         serviceType: a.bill.service.serviceType,
         providerName: a.bill.service.providerName,
         installmentLabel: a.bill.installmentLabel,
         installmentNo: a.installmentNo,
         installmentsTotal: a.installmentsTotal,
       }),
-    }));
+    );
   }
 
   /**

@@ -22,7 +22,9 @@ function rule(over: Record<string, unknown> = {}) {
     fixedAmount: null,
     paymentPlan: 'Mensual',
     annualRecovery: 'Prorrateado',
-    annualDiscountToTenant: true,
+    annualInstallments: 12,
+    annualDiscountBeneficiary: 'Inquilino',
+    remainingInstallmentsOnEnd: 'CobrarEnLiquidacionFinal',
     validFrom: d('2026-01-01'),
     validTo: null,
     contract: {
@@ -406,6 +408,38 @@ describe('ServiceBillsService: lecturas', () => {
 });
 
 describe('ServiceBillsService: liquidación', () => {
+  it('pendingLines separa la diferencia por descuento anual en su propio renglón', async () => {
+    const { service, client } = build();
+    client.serviceBillAllocation.findMany.mockResolvedValue([
+      {
+        id: 'alloc-9',
+        payer: 'Inmobiliaria',
+        amount: { toString: () => '5000.00' },
+        surplus: { toString: () => '500.00' },
+        surplusBeneficiary: 'Locador',
+        installmentNo: 1,
+        installmentsTotal: 1,
+        bill: { installmentLabel: '2026', service: { serviceType: 'ImpuestoInmobiliario', providerName: null } },
+      },
+    ]);
+    const lines = await service.pendingLines('con-1', d('2026-11-01'), 'ARS');
+    expect(lines.map((l) => [l.type, l.amount.toString(), l.beneficiary, l.sourceType])).toEqual([
+      ['Impuesto', '4500', 'Ente', 'ServiceBillAllocation'],
+      ['Cargo', '500.00', 'Locador', 'ServiceBillAllocationSurplus'],
+    ]);
+  });
+
+  it('un descuento anual del locador cobra el nominal y guarda la diferencia en la parte', async () => {
+    const annualRule = rule({ paymentPlan: 'Anual', annualRecovery: 'Unico', annualDiscountBeneficiary: 'Locador' });
+    const { service, client } = build({ rules: [annualRule] });
+    await service.bulk([row({ amount: '9000.00', nominalAmount: '10000.00' })]);
+    expect(client.serviceBillAllocation.createMany.mock.calls[0][0].data[0]).toMatchObject({
+      amount: '5000.00',
+      surplus: '500.00',
+      surplusBeneficiary: 'Locador',
+    });
+  });
+
   it('pendingLines pide solo lo sin facturar hasta el mes y lo vuelve renglón con destino', async () => {
     const { service, client } = build();
     client.serviceBillAllocation.findMany.mockResolvedValue([
@@ -413,6 +447,8 @@ describe('ServiceBillsService: liquidación', () => {
         id: 'alloc-1',
         payer: 'Propietario',
         amount: { toString: () => '5000.00' },
+        surplus: { toString: () => '0' },
+        surplusBeneficiary: null,
         installmentNo: 1,
         installmentsTotal: 1,
         bill: { installmentLabel: '10/2026', service: { serviceType: 'Gas', providerName: null } },

@@ -17,7 +17,9 @@ function stored(over: Record<string, unknown> = {}) {
     fixedAmount: null,
     paymentPlan: 'Mensual',
     annualRecovery: 'Prorrateado',
-    annualDiscountToTenant: true,
+    annualInstallments: 12,
+    annualDiscountBeneficiary: 'Inquilino',
+    remainingInstallmentsOnEnd: 'CobrarEnLiquidacionFinal',
     validFrom: d('2026-01-01'),
     validTo: null,
     agreementId: null,
@@ -79,7 +81,9 @@ describe('ChargeRulesService.create', () => {
       tenantSharePct: '100',
       paymentPlan: 'Mensual',
       annualRecovery: 'Prorrateado',
-      annualDiscountToTenant: true,
+      annualInstallments: 12,
+      annualDiscountBeneficiary: 'Inquilino',
+      remainingInstallmentsOnEnd: 'CobrarEnLiquidacionFinal',
       validFrom: d('2026-01-01'),
       validTo: null,
       agreementId: null,
@@ -181,6 +185,29 @@ describe('ChargeRulesService.create', () => {
     expect(client.contractChargeRule.create.mock.calls[1][0].data.fixedAmount).toBeNull();
   });
 
+  it('las cuotas anuales, el beneficiario del descuento y las cuotas restantes se eligen por regla', async () => {
+    const { service, client } = build();
+    await service.create(
+      'con-1',
+      body({
+        paymentPlan: 'Anual',
+        annualInstallments: 6,
+        annualDiscountBeneficiary: 'Locador',
+        remainingInstallmentsOnEnd: 'Descartar',
+      }),
+    );
+    expect(client.contractChargeRule.create.mock.calls[0][0].data).toMatchObject({
+      annualInstallments: 6,
+      annualDiscountBeneficiary: 'Locador',
+      remainingInstallmentsOnEnd: 'Descartar',
+    });
+    for (const bad of [{ annualInstallments: 0 }, { annualInstallments: 13 }, { annualDiscountBeneficiary: 'Ente' }]) {
+      await expect(service.create('con-1', body(bad))).rejects.toMatchObject({
+        response: { error: 'VALIDATION_ERROR' },
+      });
+    }
+  });
+
   it('servicio inexistente es 404', async () => {
     const { service, client } = build();
     client.service.findFirst.mockResolvedValue(null);
@@ -191,11 +218,20 @@ describe('ChargeRulesService.create', () => {
 describe('ChargeRulesService.update', () => {
   it('corrige una regla de un contrato borrador y rehace el reparto', async () => {
     const { service, client, bills } = build({ rule: stored() });
-    await service.update('con-1', 'rule-1', { tenantSharePct: '50', notes: 'por escrito' });
+    await service.update('con-1', 'rule-1', {
+      tenantSharePct: '50',
+      notes: 'por escrito',
+      annualInstallments: 10,
+      annualDiscountBeneficiary: 'Inmobiliaria',
+      remainingInstallmentsOnEnd: 'Descartar',
+    });
     expect(client.contractChargeRule.update.mock.calls[0][0].data).toMatchObject({
       splitMode: 'Porcentaje',
       tenantSharePct: '50',
       notes: 'por escrito',
+      annualInstallments: 10,
+      annualDiscountBeneficiary: 'Inmobiliaria',
+      remainingInstallmentsOnEnd: 'Descartar',
     });
     expect(bills.reallocateService).toHaveBeenCalledWith(client, SERVICE_ID, d('2026-01-01'));
   });

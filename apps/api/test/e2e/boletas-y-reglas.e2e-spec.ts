@@ -364,6 +364,106 @@ describe('Boletas de servicios y reglas de traslado (e2e)', () => {
     ]);
   });
 
+  it('CP-356 — las cuotas del plan anual se eligen por regla (1 a 12)', async () => {
+    const { tokens } = await agency('bol-13');
+    const token = tokens[UserRole.Admin];
+    const contract = await createContract(token);
+    const tax = await createService(token, contract.propertyId, { serviceType: 'Municipal', hasAnnualOption: true });
+    const rule = await addRule(token, contract, tax.id, { paymentPlan: 'Anual', annualInstallments: 6 });
+    expect(rule.annualInstallments).toBe(6);
+    const bill = (
+      await bulk(token, [{ serviceId: tax.id, period: '2026-01', amount: '1000.00', installmentLabel: '2026' }]).expect(200)
+    ).body.results[0].billId;
+    const alloc = (await get(token, `/service-bills/${bill}/allocations`).expect(200)).body.stored;
+    expect(alloc.map((a: any) => a.amount)).toEqual(['166.67', '166.67', '166.67', '166.67', '166.66', '166.66']);
+    expect(alloc.every((a: any) => a.installmentsTotal === 6)).toBe(true);
+
+    const agreement = await post(token, `/contracts/${contract.id}/agreements`, {
+      kind: 'CambioCargo',
+      effectiveFrom: '2026-06-01T00:00:00.000Z',
+    }).expect(201);
+    for (const bad of [0, 13]) {
+      await post(token, `/contracts/${contract.id}/charge-rules`, {
+        serviceId: tax.id,
+        payer: 'Inmobiliaria',
+        validFrom: '2026-06-01',
+        agreementId: agreement.body.id,
+        annualInstallments: bad,
+      }).expect(400);
+    }
+  });
+
+  it('CP-357 — el descuento por pago anual va al inquilino, al locador o a la inmobiliaria', async () => {
+    const { tokens } = await agency('bol-14');
+    const token = tokens[UserRole.Admin];
+    const run = async (beneficiary: string) => {
+      const contract = await createContract(token);
+      const tax = await createService(token, contract.propertyId, { serviceType: 'ImpuestoInmobiliario' });
+      await addRule(token, contract, tax.id, {
+        paymentPlan: 'Anual',
+        annualRecovery: 'Unico',
+        tenantSharePct: '50',
+        annualDiscountBeneficiary: beneficiary,
+      });
+      await bulk(token, [
+        { serviceId: tax.id, period: '2026-11', amount: '9000.00', nominalAmount: '10000.00', installmentLabel: '2026' },
+      ]).expect(200);
+      return contract.id as string;
+    };
+    const ids = {
+      Inquilino: await run('Inquilino'),
+      Locador: await run('Locador'),
+      Inmobiliaria: await run('Inmobiliaria'),
+    };
+    await generate(token, 11, 2026);
+    const items = await liquidaciones(token);
+    const lines = (id: string) =>
+      items
+        .find((l) => l.contractId === id)
+        .lineItems.filter((l: any) => l.type !== 'Alquiler')
+        .map((l: any) => [l.type, l.amount, l.beneficiary, l.commissionable]);
+
+    // Inquilino: 50 % de lo pagado (9000) = 4500. Los otros cobran 50 % de 10000 = 5000: 4500 al ente y 500 de diferencia.
+    expect(lines(ids.Inquilino)).toEqual([['Impuesto', '4500', 'Ente', false]]);
+    expect(lines(ids.Locador)).toEqual([
+      ['Impuesto', '4500', 'Ente', false],
+      ['Cargo', '500', 'Locador', false],
+    ]);
+    expect(lines(ids.Inmobiliaria)).toEqual([
+      ['Impuesto', '4500', 'Ente', false],
+      ['Cargo', '500', 'Inmobiliaria', false],
+    ]);
+    expect(items.find((l) => l.contractId === ids.Locador).total).toBe('305000');
+    expect(await prisma.baseClient.serviceBillAllocation.count({ where: { billedAt: { not: null } } })).toBe(3);
+  });
+
+  it('CP-358 — las cuotas que quedan al terminar el contrato se cobran en la liquidación final o se descartan', async () => {
+    const { tokens } = await agency('bol-15');
+    const token = tokens[UserRole.Admin];
+    const run = async (onEnd?: string) => {
+      const contract = await createContract(token);
+      await patch(token, `/contracts/${contract.id}`, { actualEndDate: '2026-03-31T00:00:00.000Z' }).expect(200);
+      const tax = await createService(token, contract.propertyId, { serviceType: 'Municipal', hasAnnualOption: true });
+      await addRule(token, contract, tax.id, {
+        paymentPlan: 'Anual',
+        ...(onEnd && { remainingInstallmentsOnEnd: onEnd }),
+      });
+      const bill = (
+        await bulk(token, [{ serviceId: tax.id, period: '2026-01', amount: '1200.00', installmentLabel: '2026' }]).expect(200)
+      ).body.results[0].billId;
+      const res = (await get(token, `/service-bills/${bill}/allocations`).expect(200)).body;
+      return { amounts: res.stored.map((a: any) => a.amount), warnings: res.preview.warnings };
+    };
+
+    const collect = await run();
+    expect(collect.amounts).toEqual(['100', '100', '1000']);
+    expect(collect.warnings[0]).toMatchObject({ code: 'CollectedInFinalLiquidation', collectedInstallments: 9 });
+
+    const discard = await run('Descartar');
+    expect(discard.amounts).toEqual(['100', '100', '100']);
+    expect(discard.warnings[0]).toMatchObject({ code: 'AfterContractEnd', droppedInstallments: 9 });
+  });
+
   // ─── Liquidación ───
 
   it('CP-347 — la liquidación suma una línea por regla de cada contrato, con su destino y sin comisión', async () => {

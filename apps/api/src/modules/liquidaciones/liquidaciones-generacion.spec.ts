@@ -408,6 +408,17 @@ describe('LiquidacionesService.generate: impuestos y servicios', () => {
     expect(serviceBills.markBilled).toHaveBeenCalledWith(client, ['alloc-1', 'alloc-2'], 'liq-new');
   });
 
+  it('una parte con dos renglones (diferencia por descuento) se marca una sola vez', async () => {
+    const { service, serviceBills } = build([contract()], {
+      serviceLines: [
+        line({ amount: '4500.00' }),
+        line({ type: 'Cargo', amount: '500.00', beneficiary: 'Locador', sourceType: 'ServiceBillAllocationSurplus' }),
+      ],
+    });
+    await service.generate({ month: 11, year: 2026 });
+    expect(serviceBills.markBilled.mock.calls[0][1]).toEqual(['alloc-1']);
+  });
+
   it('si la liquidación no se crea, las partes no se marcan', async () => {
     const { service, client, serviceBills } = build([contract()], { serviceLines: [line()] });
     client.liquidacion.create.mockRejectedValue(new Error('boom'));

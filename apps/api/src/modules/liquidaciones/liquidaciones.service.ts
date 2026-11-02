@@ -332,7 +332,8 @@ export class LiquidacionesService {
         // Lo mismo con las partes de boletas: cada una se factura una sola vez.
         await this.serviceBills.markBilled(
           tx,
-          serviceAllocations.flatMap((l) => (l.sourceId ? [l.sourceId] : [])),
+          // Una parte con diferencia por descuento tiene dos renglones con el mismo id.
+          [...new Set(serviceAllocations.flatMap((l) => (l.sourceId ? [l.sourceId] : [])))],
           row.id,
         );
         return row;
@@ -561,6 +562,14 @@ export class LiquidacionesService {
       await tx.liquidacionLineItem.delete({ where: { id: lineItemId } });
       if (lineItem.sourceType === 'ServiceBillAllocation' && lineItem.sourceId) {
         await this.serviceBills.release(tx, { ids: [lineItem.sourceId] });
+        // El renglón de la diferencia por descuento anual de esa parte sale junto con el principal.
+        await tx.liquidacionLineItem.deleteMany({
+          where: {
+            liquidacionId: lineItem.liquidacionId,
+            sourceType: 'ServiceBillAllocationSurplus',
+            sourceId: lineItem.sourceId,
+          },
+        });
       }
     });
 

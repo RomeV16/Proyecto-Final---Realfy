@@ -12,7 +12,8 @@
 -- índice y clave); DROP TABLE "service_bill_allocations", "service_bills",
 -- "contract_charge_rules"; ALTER TABLE "services" DROP COLUMN
 -- "billingFrequency", DROP COLUMN "hasAnnualOption". La versión anterior ignora
--- las columnas y tablas nuevas.
+-- las columnas y tablas nuevas. Las columnas de la regla (cuotas anuales, beneficiario
+-- del descuento y qué hacer con las cuotas restantes) nacen con sus valores por defecto.
 
 -- AlterTable
 ALTER TABLE "services" ADD COLUMN     "billingFrequency" "BillingFrequency" NOT NULL DEFAULT 'Mensual',
@@ -33,7 +34,9 @@ CREATE TABLE "contract_charge_rules" (
     "fixedAmount" DECIMAL(15,2),
     "paymentPlan" "ServicePaymentPlan" NOT NULL DEFAULT 'Mensual',
     "annualRecovery" "AnnualRecovery" NOT NULL DEFAULT 'Prorrateado',
-    "annualDiscountToTenant" BOOLEAN NOT NULL DEFAULT true,
+    "annualInstallments" INTEGER NOT NULL DEFAULT 12,
+    "annualDiscountBeneficiary" "AnnualDiscountBeneficiary" NOT NULL DEFAULT 'Inquilino',
+    "remainingInstallmentsOnEnd" "RemainingInstallmentsOnEnd" NOT NULL DEFAULT 'CobrarEnLiquidacionFinal',
     "validFrom" TIMESTAMP(3) NOT NULL,
     "validTo" TIMESTAMP(3),
     "agreementId" TEXT,
@@ -79,6 +82,8 @@ CREATE TABLE "service_bill_allocations" (
     "payer" "ChargePayer" NOT NULL,
     "amount" DECIMAL(15,2) NOT NULL,
     "basis" TEXT NOT NULL,
+    "surplus" DECIMAL(15,2) NOT NULL DEFAULT 0,
+    "surplusBeneficiary" "AnnualDiscountBeneficiary",
     "chargePeriod" DATE NOT NULL,
     "installmentNo" INTEGER NOT NULL DEFAULT 1,
     "installmentsTotal" INTEGER NOT NULL DEFAULT 1,
@@ -88,6 +93,10 @@ CREATE TABLE "service_bill_allocations" (
 
     CONSTRAINT "service_bill_allocations_pkey" PRIMARY KEY ("id")
 );
+
+-- Las cuotas de una boleta anual van de 1 a 12.
+ALTER TABLE "contract_charge_rules" ADD CONSTRAINT "contract_charge_rules_annualInstallments_check"
+  CHECK ("annualInstallments" BETWEEN 1 AND 12);
 
 -- CreateIndex
 CREATE INDEX "contract_charge_rules_tenantId_idx" ON "contract_charge_rules"("tenantId");
