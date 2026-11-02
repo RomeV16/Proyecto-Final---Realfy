@@ -41,7 +41,7 @@ export interface PaymentCashContext {
 }
 
 /** Reparto guardado en `payments.settlement` (importes como texto con 2 decimales). */
-export function serializeSettlement(r: SettlementResult) {
+function serializeSettlement(r: SettlementResult) {
   const s = (v: Decimal.Value) => new Decimal(v).toFixed(2);
   return {
     flow: r.flow,
