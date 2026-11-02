@@ -4,31 +4,47 @@
 
 Realfy se implementa como un monorepo TypeScript gestionado con Turborepo y workspaces de pnpm. El monorepo agrupa dos aplicaciones desplegables (`apps/api` y `apps/web`) y al menos un paquete compartido (`packages/shared`) donde viven tipos, enums y utilidades que ambas aplicaciones consumen.
 
+El diagrama de contexto muestra quién usa el sistema, las piezas del monorepo y los servicios externos con los que habla la API. Sigue la convención del ADR-0016: es un bloque `mermaid` dentro del documento y reemplaza al dibujo de caracteres de la versión anterior, que nombraba un servidor SMTP que el sistema no usa (el correo sale por Resend) y no mostraba el almacenamiento de objetos. Las flechas punteadas son integraciones planificadas que todavía no existen.
+
+```mermaid
+flowchart LR
+    subgraph usuarios["Usuarios"]
+        staff["Personal de la inmobiliaria"]
+        inq["Inquilino en el portal"]
+        pub["Visitante del micrositio"]
+    end
+
+    subgraph monorepo["Monorepo Turborepo y pnpm"]
+        web["apps/web<br/>Next.js 15, App Router, next-intl"]
+        api["apps/api<br/>NestJS 11, prefijo /api"]
+        shared["packages/shared<br/>tipos, enums, esquemas Zod<br/>y motores de cálculo"]
+    end
+
+    db[("PostgreSQL 16<br/>Prisma 6")]
+    s3[("Almacenamiento de objetos<br/>compatible con S3")]
+    arca["ARCA<br/>WSAA y WSFEv1"]
+    idx["BCRA e INDEC<br/>índices de ajuste"]
+    resend["Resend<br/>correo saliente"]
+    llm["Proveedor del modelo de lenguaje"]
+    wa["WhatsApp Cloud API<br/>planificado, ítem 43"]
+
+    staff --> web
+    inq --> web
+    pub --> web
+    web -- "HTTP y JSON" --> api
+    web --> shared
+    api --> shared
+    api --> db
+    api --> s3
+    api --> arca
+    api --> idx
+    api --> resend
+    api --> llm
+    api -.->|planificado| wa
 ```
-+---------------------------------------------------------------+
-|                         Realfy Monorepo                       |
-|                                                               |
-|   +-----------------+        +-------------------------+      |
-|   |   apps/web      |        |   apps/api              |      |
-|   |   Next.js 15    | <----> |   NestJS 10             |      |
-|   |   App Router    |  HTTP  |   Controllers/Services  |      |
-|   |   next-intl     |  JSON  |   Prisma Client         |      |
-|   +-----------------+        +-------------------------+      |
-|                                       |                       |
-|                                       v                       |
-|                              +------------------+             |
-|                              |   PostgreSQL     |             |
-|                              |   (Railway)      |             |
-|                              +------------------+             |
-|                                                               |
-|   +----------------------+      +------------------------+    |
-|   | packages/shared      |      | Servicios externos     |    |
-|   |  - tipos             |      |  - ARCA (WSAA/WSFEv1)  |    |
-|   |  - enums             |      |  - SMTP notificaciones |    |
-|   |  - validadores zod   |      |  - Index INDEC/BCRA    |    |
-|   +----------------------+      +------------------------+    |
-+---------------------------------------------------------------+
-```
+
+La web y la API importan `packages/shared` en tiempo de compilación: no es un servicio sino código compartido, y es donde viven los motores puros de dinero (ajuste, liquidación, punitorios, rendición) que las dos aplicaciones usan con los mismos resultados. La API es la única que habla con la base, el almacenamiento y los servicios externos.
+
 
 ## Capas dentro del backend
 
@@ -98,10 +114,47 @@ La internacionalización se resuelve con `next-intl`. Las claves de traducción 
 
 ## Despliegue y CI
 
-- Despliegue en Railway. Cada aplicación corre como servicio independiente con su propia URL pública, construida desde su propio `Dockerfile`.
-- Base de datos PostgreSQL administrada también por Railway. Las fotos y los adjuntos van a un almacenamiento de objetos compatible con S3.
+- Despliegue en Railway, en un proyecto con dos ambientes que tienen los mismos servicios y nada en común en datos ni en secretos: `production`, el ambiente de demostración de la defensa, con datos sintéticos, y `piloto`, el que usa la inmobiliaria piloto con datos reales (ADR-0014). Cada ambiente tiene cuatro servicios: `web` y `api`, construidos cada uno desde su propio `Dockerfile` y con su propia URL pública, la base PostgreSQL administrada y el almacenamiento de objetos compatible con S3, donde van las fotos y los adjuntos.
+- Los despliegues son manuales y controlados; un empuje a `main` no despliega nada. Se despliega solo un commit ya integrado en `main` con la integración continua en verde, primero a `production` y, después de verificarlo, a `piloto`. Lo que se sube es una copia limpia de ese commit, obtenida con `git archive`, de modo que al ambiente no llega nada que no esté versionado. Antes de cada despliegue a `piloto` se toma una copia de la base, y una migración que reescribe datos se ensaya antes sobre una restauración de esa copia. El procedimiento está en `docs/despliegue.md` y en `docs/operacion-piloto.md`.
 - Migraciones de Prisma versionadas en `apps/api/prisma/migrations`, y aplicadas en el arranque de cada despliegue de la API.
-- CI en GitHub Actions, con cinco trabajos sobre cada cambio hacia `main`: estilo, compilación de los tres paquetes del monorepo, pruebas unitarias con piso de cobertura, aplicación de todas las migraciones sobre una base vacía, y pruebas de extremo a extremo de la API contra una PostgreSQL real. Ninguno es de navegador: las pruebas de extremo a extremo son de nivel HTTP contra la aplicación NestJS completa. El detalle está en `docs/pruebas.md`.
+- CI en GitHub Actions sobre cada cambio hacia `main`: estilo, compilación de los tres paquetes del monorepo, pruebas unitarias con piso de cobertura, análisis estático en SonarCloud con su umbral de calidad, aplicación de todas las migraciones sobre una base vacía junto con el ensayo de las migraciones nuevas sobre una base con datos sintéticos de forma real, pruebas de extremo a extremo de la API contra una PostgreSQL real, despliegue efímero con prueba de humo, controles de código muerto y de duplicación, y la prueba de contrato con las fuentes externas de índices. La protección de `main` exige todos menos el último, que depende de la disponibilidad de servicios de terceros. Ninguno es de navegador: las pruebas de extremo a extremo son de nivel HTTP contra la aplicación NestJS completa. El detalle está en `docs/pruebas.md`.
+
+El diagrama de despliegue muestra los dos ambientes y el camino de un cambio hasta el piloto. Las flechas punteadas son el circuito de copias que precede a cada despliegue en `piloto`.
+
+```mermaid
+flowchart TB
+    main["Rama main protegida<br/>PR revisado y CI en verde"]
+    copia["Copia limpia del commit integrado<br/>git archive"]
+
+    subgraph railway["Proyecto en Railway"]
+        subgraph prod["production: demostración, datos sintéticos"]
+            pweb["web"] --> papi["api"]
+            papi --> pdb[("db PostgreSQL")]
+            papi --> pst[("storage S3")]
+        end
+        subgraph pil["piloto: inmobiliaria piloto, datos reales"]
+            lweb["web"] --> lapi["api"]
+            lapi --> ldb[("db PostgreSQL")]
+            lapi --> lst[("storage S3")]
+        end
+    end
+
+    bk[("Copias lógicas fuera del proveedor<br/>semanales y previas a cada despliegue")]
+    ensayo["Ensayo de las migraciones<br/>sobre una copia restaurada"]
+
+    main --> copia
+    copia -->|"primero: railway up y verificación"| prod
+    copia -->|"después: railway up"| pil
+    ldb -.->|"pg_dump"| bk
+    bk -.-> ensayo
+    ensayo -.->|"habilita el despliegue"| pil
+```
+
+Las copias nativas diarias y semanales del proveedor cubren los volúmenes de la base y del almacenamiento de `piloto`; la copia lógica fuera del proveedor cubre la pérdida de la cuenta o del proyecto. Los objetivos de recuperación y el tiempo de restauración medido están en `docs/despliegue.md`.
+
+## Mensajería saliente
+
+Hoy el único canal saliente es el correo, a través de Resend y del transporte común de mail. Sin `RESEND_API_KEY` el sistema no envía nada y cada llamador decide qué hacer: la rendición, por ejemplo, no se marca como enviada. En el ambiente `piloto` la credencial todavía no está configurada, porque depende del dominio propio y de su configuración de correo, que siguen pendientes; mientras tanto, los enlaces de invitación y de recupero de contraseña los comparte el Admin a mano. La mensajería instantánea por WhatsApp y la cola de salida (outbox) con clave de idempotencia, por la que pasarán el correo y los mensajes para que un envío fallido no rompa la operación de negocio, están planificadas en el ítem 43 y en el ADR-0013, que todavía no existe.
 
 ## Decisiones técnicas clave
 
@@ -113,5 +166,6 @@ La internacionalización se resuelve con `next-intl`. Las claves de traducción 
 - **Sistema de tarjetas compartido** para las pantallas que listan registros, dueño de la transición carga → contenido → vacío (ADR 0004).
 - **next-intl** en lugar de soluciones manuales: integración nativa con App Router y soporte para mensajes con interpolación.
 - **JWT con rotación de refresh**: prevención de reuso de tokens robados sin requerir base de sesiones server-side compleja.
+- **Decisiones del piloto**: locadores por contrato con porcentaje de cobro, apoderados y titularidad separada (ADR 0007); impuestos y servicios trasladables con tres pagadores y reglas con vigencia (ADR 0008); reglas versionadas del contrato con valores por defecto de la inmobiliaria (ADR 0010); ajuste con rezago, estimación y corrección (ADR 0011); flujos de cobro, caja y custodia (ADR 0012); ambiente piloto con datos reales (ADR 0014); importación idempotente desde el sistema anterior (ADR 0015), y diagramas como código (ADR 0016). El índice con su estado está en `docs/adr/README.md`.
 
 <!-- Cierre item 03 — listo para Hito 1 (2026-05-15) -->
