@@ -4482,6 +4482,33 @@
   "bnaMultiplier": "Veces la tasa activa del BNA",
   "yearDays": "Días del año",
   "bnaHint": "Se toma la tasa activa del BNA cargada en Índices (en TNA) y se pasa a diaria dividiéndola por los días del año. Sin tasa cargada rige el piso diario.",
+  "options": {
+   "partialPaymentAllocation": {
+    "label": "Pago parcial con punitorios",
+    "hint": "Con qué se cubre primero un pago parcial que cobra punitorios.",
+    "values": {"RentaPrimero": "Primero el alquiler", "PunitorioPrimero": "Primero el punitorio"}
+   },
+   "roundingMode": {
+    "label": "Redondeo",
+    "hint": "Una sola vez sobre el total, o cada día antes de sumar.",
+    "values": {"Total": "Sobre el total", "Diario": "Cada día"}
+   },
+   "capBase": {
+    "label": "Base del tope",
+    "hint": "El tope se calcula sobre el saldo del primer día con punitorio o sobre el total original.",
+    "values": {"SaldoInicioMora": "Saldo al empezar la mora", "TotalOriginal": "Total original"}
+   },
+   "bnaRateKind": {
+    "label": "Tasa del BNA cargada",
+    "hint": "Nominal: se divide por los días del año. Efectiva: se convierte a diaria compuesta.",
+    "values": {"Nominal": "Nominal anual (TNA)", "Efectiva": "Efectiva anual (TEA)"}
+   },
+   "missingRateBehavior": {
+    "label": "Días sin tasa cargada",
+    "hint": "Aplicar el piso diario, o no devengar esos días y avisarlo.",
+    "values": {"AplicarPiso": "Aplicar el piso", "Bloquear": "No devengar"}
+   }
+  },
   "fixedHint": "Se cobra este monto por cada día de mora con saldo.",
   "errors": {
    "invalid": "Revisá este valor"

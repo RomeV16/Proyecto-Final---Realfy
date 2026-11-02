@@ -21,16 +21,49 @@ describe('penalty-rule', () => {
     const result = formToRule({ ...ruleToForm(null), graceDays: '5' });
     expect(result).toEqual({
       ok: true,
-      value: { mode: 'max_bna_or_daily', value: '0.003', graceDays: 5, maxMultiplier: '2', bnaMultiplier: '2', yearDays: 365 },
+      value: {
+        mode: 'max_bna_or_daily',
+        value: '0.003',
+        graceDays: 5,
+        maxMultiplier: '2',
+        bnaMultiplier: '2',
+        yearDays: 365,
+        partialPaymentAllocation: 'RentaPrimero',
+        roundingMode: 'Total',
+        capBase: 'SaldoInicioMora',
+        bnaRateKind: 'Nominal',
+        missingRateBehavior: 'AplicarPiso',
+      },
     });
-    const fixed = formToRule({ mode: 'daily_fixed', value: '25', graceDays: '0', maxMultiplier: '2', bnaMultiplier: '', yearDays: '' });
-    expect(fixed).toEqual({ ok: true, value: { mode: 'daily_fixed', value: '25', graceDays: 0, maxMultiplier: '2' } });
+    const fixed = formToRule({ ...ruleToForm(null), mode: 'daily_fixed', value: '25', graceDays: '0', bnaMultiplier: '', yearDays: '' });
+    // las opciones de la tasa BNA no viajan en los demás modos
+    expect(fixed).toEqual({
+      ok: true,
+      value: { mode: 'daily_fixed', value: '25', graceDays: 0, maxMultiplier: '2', partialPaymentAllocation: 'RentaPrimero', roundingMode: 'Total', capBase: 'SaldoInicioMora' },
+    });
   });
 
   it('marca los campos inválidos', () => {
     const result = formToRule({ ...ruleToForm(null), value: 'abc', graceDays: '', yearDays: '12' });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(Object.keys(result.errors).sort()).toEqual(['graceDays', 'value', 'yearDays']);
+  });
+
+  it('lleva las opciones elegidas de ida y vuelta', () => {
+    const rule = {
+      mode: 'max_bna_or_daily' as const,
+      value: '0.003',
+      graceDays: 1,
+      maxMultiplier: '2',
+      bnaMultiplier: '2',
+      yearDays: 360 as const,
+      bnaRateKind: 'Efectiva' as const,
+      partialPaymentAllocation: 'PunitorioPrimero' as const,
+      roundingMode: 'Diario' as const,
+      capBase: 'TotalOriginal' as const,
+      missingRateBehavior: 'Bloquear' as const,
+    };
+    expect(formToRule(ruleToForm(rule))).toEqual({ ok: true, value: rule });
   });
 
   it('un valor que no es número se deja tal cual', () => {

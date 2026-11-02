@@ -6,8 +6,11 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import {
+  BNA_OPTION_FIELDS,
   PENALTY_RULE_MODES,
+  PENALTY_RULE_OPTIONS,
   isPercentMode,
+  type PenaltyOptionField,
   type PenaltyRuleForm,
 } from '@/lib/penalty-rule';
 
@@ -92,17 +95,29 @@ export function PenaltyRuleFields({ values, onChange, errors = {}, disabled }: P
           </FormField>
           <FormField label={t('yearDays')} hint={t('bnaHint')} error={error('yearDays')} required>
             {(c) => (
-              <Input
-                {...c}
-                inputMode="numeric"
-                value={values.yearDays}
-                disabled={disabled}
-                onChange={(e) => set('yearDays', e.target.value)}
-              />
+              <Select {...c} value={values.yearDays} disabled={disabled} onChange={(e) => set('yearDays', e.target.value)}>
+                <option value="365">365</option>
+                <option value="360">360</option>
+              </Select>
             )}
           </FormField>
         </>
       )}
+      {(Object.keys(PENALTY_RULE_OPTIONS) as PenaltyOptionField[])
+        .filter((field) => values.mode === 'max_bna_or_daily' || !BNA_OPTION_FIELDS.includes(field))
+        .map((field) => (
+          <FormField key={field} label={t(`options.${field}.label`)} hint={t(`options.${field}.hint`)} error={error(field)}>
+            {(c) => (
+              <Select {...c} value={values[field]} disabled={disabled} onChange={(e) => set(field, e.target.value)}>
+                {PENALTY_RULE_OPTIONS[field].map((option) => (
+                  <option key={option} value={option}>
+                    {t(`options.${field}.values.${option}`)}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </FormField>
+        ))}
       {!percent && <p className="text-xs text-[var(--color-muted)] sm:col-span-2">{t('fixedHint')}</p>}
     </div>
   );

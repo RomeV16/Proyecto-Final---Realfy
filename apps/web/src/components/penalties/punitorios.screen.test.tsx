@@ -185,11 +185,21 @@ describe('PenaltyConfigForm', () => {
     const value = screen.getByLabelText(/Monto por día/);
     await user.clear(value);
     await user.type(value, '50');
+    await user.selectOptions(screen.getByLabelText(/Pago parcial con punitorios/), 'PunitorioPrimero');
+    expect(screen.queryByLabelText(/Días sin tasa cargada/)).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Guardar regla' }));
     await waitFor(() =>
       expect(apiClient).toHaveBeenCalledWith('/tenants/me/penalty-config', {
         method: 'PUT',
-        body: JSON.stringify({ mode: 'daily_fixed', value: '50', graceDays: 0, maxMultiplier: '2.0' }),
+        body: JSON.stringify({
+          mode: 'daily_fixed',
+          value: '50',
+          graceDays: 0,
+          maxMultiplier: '2.0',
+          partialPaymentAllocation: 'PunitorioPrimero',
+          roundingMode: 'Total',
+          capBase: 'SaldoInicioMora',
+        }),
       }),
     );
   });
@@ -230,6 +240,33 @@ describe('PenaltyConfigForm', () => {
   });
 });
 
+describe('PenaltyConfigForm con tasa BNA', () => {
+  it('ofrece las opciones de la tasa solo con ese modo y las guarda', async () => {
+    apiClient.mockImplementation((path: string, init?: { method?: string; body?: string }) =>
+      init?.method === 'PUT' ? Promise.resolve(JSON.parse(init.body!)) : Promise.resolve(TENANT_RULE),
+    );
+    render(wrap(<PenaltyConfigForm />));
+    const user = userEvent.setup();
+    await user.selectOptions(await screen.findByLabelText(/Tasa del BNA cargada/), 'Efectiva');
+    await user.selectOptions(screen.getByLabelText(/Días sin tasa cargada/), 'Bloquear');
+    await user.selectOptions(screen.getByLabelText(/Días del año/), '360');
+    await user.selectOptions(screen.getByLabelText(/Redondeo/), 'Diario');
+    await user.selectOptions(screen.getByLabelText(/Base del tope/), 'TotalOriginal');
+    await user.click(screen.getByRole('button', { name: 'Guardar regla' }));
+    await waitFor(() => {
+      const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+      expect(JSON.parse(put[1].body)).toMatchObject({
+        mode: 'max_bna_or_daily',
+        bnaRateKind: 'Efectiva',
+        missingRateBehavior: 'Bloquear',
+        yearDays: 360,
+        roundingMode: 'Diario',
+        capBase: 'TotalOriginal',
+      });
+    });
+  });
+});
+
 describe('ContractPenaltyRule', () => {
   it('muestra la regla propia del contrato o la de la inmobiliaria', async () => {
     apiClient.mockResolvedValue(TENANT_RULE);
@@ -267,7 +304,7 @@ describe('ContractPenaltyRule', () => {
     expect(call[0]).toBe('/contracts/c-1/agreements');
     const body = JSON.parse(call[1].body);
     expect(body.kind).toBe('CambioRegla');
-    expect(body.termsPatch.penaltyConfig).toEqual({ mode: 'daily_percent', value: '0.005', graceDays: 0, maxMultiplier: '2.0' });
+    expect(body.termsPatch.penaltyConfig).toMatchObject({ mode: 'daily_percent', value: '0.005', graceDays: 0, maxMultiplier: '2.0', roundingMode: 'Total', capBase: 'SaldoInicioMora' });
   });
 
   it('volver a la regla de la inmobiliaria manda penaltyConfig nulo; valida fecha y regla; informa el error', async () => {

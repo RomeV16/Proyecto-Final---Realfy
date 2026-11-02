@@ -4482,6 +4482,33 @@
   "bnaMultiplier": "Times the BNA active rate",
   "yearDays": "Days in the year",
   "bnaHint": "The BNA active rate loaded in Indices (as an annual nominal rate) is converted to a daily rate by dividing by the days in the year. With no rate loaded, the daily floor applies.",
+  "options": {
+   "partialPaymentAllocation": {
+    "label": "Partial payment with late fees",
+    "hint": "What a partial payment that charges late fees covers first.",
+    "values": {"RentaPrimero": "Rent first", "PunitorioPrimero": "Late fee first"}
+   },
+   "roundingMode": {
+    "label": "Rounding",
+    "hint": "Once on the total, or each day before adding up.",
+    "values": {"Total": "On the total", "Diario": "Each day"}
+   },
+   "capBase": {
+    "label": "Cap base",
+    "hint": "The cap is computed on the balance of the first day with a late fee or on the original total.",
+    "values": {"SaldoInicioMora": "Balance when the delay starts", "TotalOriginal": "Original total"}
+   },
+   "bnaRateKind": {
+    "label": "BNA rate loaded",
+    "hint": "Nominal: divided by the days in the year. Effective: converted to a compound daily rate.",
+    "values": {"Nominal": "Annual nominal (TNA)", "Efectiva": "Annual effective (TEA)"}
+   },
+   "missingRateBehavior": {
+    "label": "Days with no rate loaded",
+    "hint": "Apply the daily floor, or do not accrue those days and flag it.",
+    "values": {"AplicarPiso": "Apply the floor", "Bloquear": "Do not accrue"}
+   }
+  },
   "fixedHint": "This amount is charged for each day overdue with a balance.",
   "errors": {
    "invalid": "Check this value"

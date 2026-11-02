@@ -1,4 +1,26 @@
-import { PENALTY_MODES, PenaltyConfigSchema, type PenaltyConfig, type PenaltyMode } from '@realfy/shared';
+import {
+  BNA_RATE_KINDS,
+  CAP_BASES,
+  MISSING_RATE_BEHAVIORS,
+  PARTIAL_PAYMENT_ALLOCATIONS,
+  PENALTY_MODES,
+  PenaltyConfigSchema,
+  ROUNDING_MODES,
+  type PenaltyConfig,
+  type PenaltyMode,
+} from '@realfy/shared';
+
+/** Opciones pactables de la regla y sus valores, el primero es el por defecto. */
+export const PENALTY_RULE_OPTIONS = {
+  partialPaymentAllocation: PARTIAL_PAYMENT_ALLOCATIONS,
+  roundingMode: ROUNDING_MODES,
+  capBase: CAP_BASES,
+  bnaRateKind: BNA_RATE_KINDS,
+  missingRateBehavior: MISSING_RATE_BEHAVIORS,
+} as const;
+export type PenaltyOptionField = keyof typeof PENALTY_RULE_OPTIONS;
+/** Las que solo valen con la tasa BNA. */
+export const BNA_OPTION_FIELDS: readonly PenaltyOptionField[] = ['bnaRateKind', 'missingRateBehavior'];
 
 /** Modos de punitorio en el orden en que se ofrecen. */
 export const PENALTY_RULE_MODES: readonly PenaltyMode[] = PENALTY_MODES;
@@ -16,6 +38,11 @@ export interface PenaltyRuleForm {
   maxMultiplier: string;
   bnaMultiplier: string;
   yearDays: string;
+  partialPaymentAllocation: string;
+  roundingMode: string;
+  capBase: string;
+  bnaRateKind: string;
+  missingRateBehavior: string;
 }
 
 const DEFAULT_PENALTY_RULE_FORM: PenaltyRuleForm = {
@@ -25,6 +52,11 @@ const DEFAULT_PENALTY_RULE_FORM: PenaltyRuleForm = {
   maxMultiplier: '2',
   bnaMultiplier: '2',
   yearDays: '365',
+  partialPaymentAllocation: 'RentaPrimero',
+  roundingMode: 'Total',
+  capBase: 'SaldoInicioMora',
+  bnaRateKind: 'Nominal',
+  missingRateBehavior: 'AplicarPiso',
 };
 
 /** Pasa un decimal de texto a otro de texto multiplicado por 100 (o dividido), sin ruido de coma flotante. */
@@ -43,6 +75,11 @@ export function ruleToForm(config: PenaltyConfig | null | undefined): PenaltyRul
     maxMultiplier: config.maxMultiplier,
     bnaMultiplier: config.bnaMultiplier ?? DEFAULT_PENALTY_RULE_FORM.bnaMultiplier,
     yearDays: String(config.yearDays ?? 365),
+    partialPaymentAllocation: config.partialPaymentAllocation ?? 'RentaPrimero',
+    roundingMode: config.roundingMode ?? 'Total',
+    capBase: config.capBase ?? 'SaldoInicioMora',
+    bnaRateKind: config.bnaRateKind ?? 'Nominal',
+    missingRateBehavior: config.missingRateBehavior ?? 'AplicarPiso',
   };
 }
 
@@ -57,10 +94,15 @@ export function formToRule(form: PenaltyRuleForm): RuleFormResult {
     value: isPercentMode(form.mode) ? scale(form.value.trim(), 0.01) : form.value.trim(),
     graceDays: form.graceDays.trim() === '' ? NaN : Number(form.graceDays),
     maxMultiplier: form.maxMultiplier.trim(),
+    partialPaymentAllocation: form.partialPaymentAllocation,
+    roundingMode: form.roundingMode,
+    capBase: form.capBase,
   };
   if (form.mode === 'max_bna_or_daily') {
     candidate.bnaMultiplier = form.bnaMultiplier.trim();
     candidate.yearDays = Number(form.yearDays);
+    candidate.bnaRateKind = form.bnaRateKind;
+    candidate.missingRateBehavior = form.missingRateBehavior;
   }
   const parsed = PenaltyConfigSchema.safeParse(candidate);
   if (parsed.success) return { ok: true, value: parsed.data };
