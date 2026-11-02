@@ -90,7 +90,10 @@ export class OwnerStatementsService {
 
     return this.prisma.client.$transaction(
       async (tx: Db) => {
-        const charges = await pendingLessorCharges(tx, { period, closeDay: ctx.closeDay });
+        // Con un solo locador, solo los cargos que él soporta (con todos sus locadores).
+        const charges = (await pendingLessorCharges(tx, { period, closeDay: ctx.closeDay })).filter(
+          (c) => !input.personId || c.personIds.includes(input.personId),
+        );
         if (atGeneration) await postLessorCharges(tx, ctx, charges);
         const preview = atGeneration ? [] : charges;
 

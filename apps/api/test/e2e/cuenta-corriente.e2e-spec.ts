@@ -264,11 +264,12 @@ describe('Cuenta corriente del locador (e2e)', () => {
     const gen = (await post(tokens[UserRole.Liquidaciones], '/owner-statements/generate?period=2026-01').expect(200)).body;
     expect(gen).toMatchObject({ period: '2026-01', created: 2, updated: 0, chargesPosted: 1 });
     const list = (await get(tokens[UserRole.Lectura], '/owner-statements?period=2026-01').expect(200)).body;
+    // Ordenados por apellido: "Locador" antes que "Locadora".
     expect(list.items.map((s: any) => [s.person.name, s.status, s.closing])).toEqual([
-      ['Ana Locadora', 'Borrador', '81000.00'],
       ['Beto Locador', 'Borrador', '93000.00'],
+      ['Ana Locadora', 'Borrador', '81000.00'],
     ]);
-    const stA = list.items[0];
+    const stA = list.items.find((s: any) => s.personId === first.a);
     const detail = (await get(token, `/owner-statements/${stA.id}`).expect(200)).body;
     expect(detail.groups.map((g: any) => [g.label, g.net])).toEqual([
       ['Arenales 200', '46500.00'],
@@ -284,7 +285,8 @@ describe('Cuenta corriente del locador (e2e)', () => {
 
     const issued = (await post(tokens[UserRole.Liquidaciones], `/owner-statements/${stA.id}/issue`).expect(200)).body;
     expect(issued).toMatchObject({ status: 'Emitido', closing: '81000.00' });
-    expect(await prisma.baseClient.ownerLedgerEntry.count({ where: { statementId: stA.id } })).toBe(6);
+    // Dos alquileres y dos comisiones (una por unidad) y el cargo.
+    expect(await prisma.baseClient.ownerLedgerEntry.count({ where: { statementId: stA.id } })).toBe(5);
     expect((await post(token, `/owner-statements/${stA.id}/issue`)).body.error).toBe('STATEMENT_NOT_DRAFT');
 
     // Febrero arrastra el saldo de enero.
