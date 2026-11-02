@@ -69,7 +69,7 @@ describe('Centro de carga (e2e)', () => {
     return { tenantId: admin.user.tenantId as string, tokens };
   }
 
-  async function createContract(token: string) {
+  async function createContract(token: string, extra: Record<string, unknown> = {}) {
     const owner = (await post(token, '/persons', { firstName: 'Ana', lastName: 'Sintética' }).expect(201)).body.id;
     const tenantPerson = (await post(token, '/persons', { firstName: 'Ines', lastName: 'Sintética' }).expect(201)).body.id;
     await post(token, `/persons/${tenantPerson}/roles`, { role: PersonRole.Inquilino }).expect(201);
@@ -91,6 +91,7 @@ describe('Centro de carga (e2e)', () => {
         { personId: owner, role: PersonRole.Propietario },
         { personId: tenantPerson, role: PersonRole.Inquilino },
       ],
+      ...extra,
     }).expect(201);
     return { ...(res.body as any), ownerId: owner as string };
   }
@@ -115,7 +116,7 @@ describe('Centro de carga (e2e)', () => {
   const liquidacionOf = async (token: string, period: string) =>
     (await liquidaciones(token)).find((l) => l.period.startsWith(period));
 
-  it('CP-360 — una reparación al inquilino entra una sola vez en su próxima liquidación, sin comisión', async () => {
+  it('CP-380 — una reparación al inquilino entra una sola vez en su próxima liquidación, sin comisión', async () => {
     const { tokens } = await agency('cargo-1');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
@@ -146,7 +147,7 @@ describe('Centro de carga (e2e)', () => {
     expect(dec.total).toBe('300000');
   });
 
-  it('CP-361 — una devolución resta en la liquidación como descuento a favor del inquilino', async () => {
+  it('CP-381 — una devolución resta en la liquidación como descuento a favor del inquilino', async () => {
     const { tokens } = await agency('cargo-2');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
@@ -161,7 +162,7 @@ describe('Centro de carga (e2e)', () => {
     expect(nov.total).toBe('297000');
   });
 
-  it('CP-362 — un importe sobre el umbral de anticipo no entra solo; se fuerza o se cobra por adelantado', async () => {
+  it('CP-382 — un importe sobre el umbral de anticipo no entra solo; se fuerza o se cobra por adelantado', async () => {
     const { tokens } = await agency('cargo-3');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
@@ -191,7 +192,7 @@ describe('Centro de carga (e2e)', () => {
     await post(token, `/charges/${prepaid.id}/mark-paid-upfront`).expect(409);
   });
 
-  it('CP-363 — un cargo al locador o a la inmobiliaria no es un renglón de la liquidación del inquilino', async () => {
+  it('CP-383 — un cargo al locador o a la inmobiliaria no es un renglón de la liquidación del inquilino', async () => {
     const { tokens } = await agency('cargo-4');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
@@ -227,7 +228,7 @@ describe('Centro de carga (e2e)', () => {
     }).expect(400);
   });
 
-  it('CP-364 — un cargo en cuotas se parte por mayor resto y entra una cuota por mes', async () => {
+  it('CP-384 — un cargo en cuotas se parte por mayor resto y entra una cuota por mes', async () => {
     const { tokens } = await agency('cargo-5');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
@@ -251,7 +252,7 @@ describe('Centro de carga (e2e)', () => {
     expect(left[0].installmentNo).toBe(3);
   });
 
-  it('CP-365 — borrar una liquidación en borrador devuelve sus cargos a Pendiente y quitar el renglón también', async () => {
+  it('CP-385 — borrar una liquidación en borrador devuelve sus cargos a Pendiente y quitar el renglón también', async () => {
     const { tokens } = await agency('cargo-6');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
@@ -278,8 +279,8 @@ describe('Centro de carga (e2e)', () => {
     expect(await prisma.baseClient.pendingCharge.count({ where: { status: 'Imputado' } })).toBe(2);
   });
 
-  it('CP-366 — un cargo de una liquidación anulada se libera a mano; con la liquidación vigente no', async () => {
-    const { tokens } = await agency('cargo-7');
+  it('CP-386 — al anular la liquidación sus cargos vuelven solos a Pendiente; con la liquidación vigente no se liberan', async () => {
+    const { tokens, tenantId } = await agency('cargo-7');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
     const [row] = await created(token, contract);
@@ -295,9 +296,17 @@ describe('Centro de carga (e2e)', () => {
     for (const status of ['Revision', 'Aprobada', 'Anulada']) {
       await post(token, `/liquidaciones/${nov.id}/transition`, { status }).expect(200);
     }
-    const released = (await post(token, `/charges/${row.id}/release`).expect(200)).body;
-    expect(released).toMatchObject({ status: 'Pendiente', imputedLiquidacionId: null });
+    // Anular la liquidación libera el cargo en la misma transacción.
+    expect((await get(token, `/charges/${row.id}`).expect(200)).body).toMatchObject({
+      status: 'Pendiente',
+      imputedLiquidacionId: null,
+    });
     expect((await post(token, `/charges/${row.id}/release`).expect(409)).body.error).toBe('CHARGE_NOT_IMPUTED');
+    const audit = await prisma.baseClient.auditLog.findFirst({
+      where: { tenantId, entity: 'Liquidacion', entityId: nov.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(audit?.changes).toMatchObject({ operation: 'release-on-annulled', released: { charges: 1 } });
 
     // Y entra en la liquidación del mes siguiente.
     await generate(token, 12, 2026);
@@ -305,7 +314,7 @@ describe('Centro de carga (e2e)', () => {
     expect(dec.lineItems.filter((l: any) => l.sourceId === row.id)).toHaveLength(1);
   });
 
-  it('CP-367 — anular un cargo lo deja en el historial, fuera de la liquidación y auditado', async () => {
+  it('CP-387 — anular un cargo lo deja en el historial, fuera de la liquidación y auditado', async () => {
     const { tokens, tenantId } = await agency('cargo-8');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
@@ -327,7 +336,7 @@ describe('Centro de carga (e2e)', () => {
     expect(audits.some((a) => a.action === 'CREATE')).toBe(true);
   });
 
-  it('CP-368 — la carga masiva guarda cada fila por separado e informa las que fallan', async () => {
+  it('CP-388 — la carga masiva guarda cada fila por separado e informa las que fallan', async () => {
     const { tokens } = await agency('cargo-9');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
@@ -348,7 +357,7 @@ describe('Centro de carga (e2e)', () => {
     expect(fee).toMatchObject({ amount: '2500', beneficiary: 'Inmobiliaria', commissionable: false });
   });
 
-  it('CP-369 — solo la facturación escribe cargos; todos los roles leen', async () => {
+  it('CP-389 — solo la facturación escribe cargos; todos los roles leen', async () => {
     const { tokens } = await agency('cargo-10');
     const admin = tokens[UserRole.Admin];
     const contract = await createContract(admin);
@@ -367,7 +376,7 @@ describe('Centro de carga (e2e)', () => {
     }
   });
 
-  it('CP-370 — una inmobiliaria no ve ni toca los cargos de otra', async () => {
+  it('CP-390 — una inmobiliaria no ve ni toca los cargos de otra', async () => {
     const a = await agency('cargo-11a');
     const b = await agency('cargo-11b');
     const tokenA = a.tokens[UserRole.Admin];
@@ -382,7 +391,7 @@ describe('Centro de carga (e2e)', () => {
     await charge(tokenB, contract).expect(404);
   });
 
-  it('CP-371 — los filtros por contrato, estado y mes devuelven lo pedido', async () => {
+  it('CP-391 — los filtros por contrato, estado y mes devuelven lo pedido', async () => {
     const { tokens } = await agency('cargo-12');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
@@ -400,5 +409,76 @@ describe('Centro de carga (e2e)', () => {
     await generate(token, 11, 2026);
     const nov = await liquidacionOf(token, '2026-11');
     expect(nov.lineItems.filter((l: any) => l.sourceType === 'PendingCharge').map((l: any) => l.sourceId)).toEqual([oct.id]);
+  });
+
+  it('CP-395 — anular una liquidación libera cargos y partes de boletas por igual', async () => {
+    const { tokens } = await agency('cargo-13');
+    const token = tokens[UserRole.Admin];
+    const contract = await createContract(token);
+    const [row] = await created(token, contract, { amount: '1000' });
+    const service = (
+      await post(token, '/services', {
+        propertyId: contract.propertyId,
+        serviceType: 'Electricidad',
+        providerName: 'Ente de prueba',
+        amount: 10000,
+        dueDay: 10,
+      }).expect(201)
+    ).body;
+    await post(token, `/contracts/${contract.id}/charge-rules`, {
+      serviceId: service.id,
+      payer: 'Inmobiliaria',
+      validFrom: '2026-01-01',
+      agreementId: (
+        await post(token, `/contracts/${contract.id}/agreements`, {
+          kind: 'CambioCargo',
+          effectiveFrom: '2026-01-01T00:00:00.000Z',
+          notes: 'Acuerdo escrito de prueba',
+        }).expect(201)
+      ).body.id,
+    }).expect(201);
+    await post(token, '/service-bills/bulk', [{ serviceId: service.id, period: '2026-11', amount: '7000.00' }]).expect(200);
+
+    await generate(token, 11, 2026);
+    const nov = await liquidacionOf(token, '2026-11');
+    expect(await prisma.baseClient.serviceBillAllocation.count({ where: { billedAt: { not: null } } })).toBe(1);
+    expect((await get(token, `/charges/${row.id}`).expect(200)).body.status).toBe('Imputado');
+
+    for (const status of ['Revision', 'Aprobada', 'Anulada']) {
+      await post(token, `/liquidaciones/${nov.id}/transition`, { status }).expect(200);
+    }
+    expect(await prisma.baseClient.serviceBillAllocation.count({ where: { billedAt: null, liquidacionId: null } })).toBe(1);
+    expect((await get(token, `/charges/${row.id}`).expect(200)).body.status).toBe('Pendiente');
+  });
+
+  it('CP-396 — el umbral y la base del anticipo se pactan por contrato y rigen a la fecha del gasto', async () => {
+    const { tokens } = await agency('cargo-14');
+    const token = tokens[UserRole.Admin];
+    // Sin pactar: 2 comisiones de 21000 = 42000.
+    const plain = await createContract(token);
+    expect((await created(token, plain, { amount: '50000' }))[0].requiresUpfront).toBe(true);
+
+    // Pactado al crear: umbral propio de 5 comisiones = 105000.
+    const own = await createContract(token, { liquidationRules: { upfrontThresholdFees: 5 } });
+    expect((await created(token, own, { amount: '100000' }))[0].requiresUpfront).toBe(false);
+    expect((await created(token, own, { amount: '105000.01' }))[0].requiresUpfront).toBe(true);
+
+    // Un convenio desde diciembre baja el umbral a 1 comisión (21000); el gasto de octubre no lo siente.
+    await post(token, `/contracts/${plain.id}/agreements`, {
+      kind: 'CambioRegla',
+      effectiveFrom: '2026-12-01T00:00:00.000Z',
+      termsPatch: { upfrontThresholdFees: 1, upfrontBasis: 'PorcentajePorDefecto' },
+    }).expect(201);
+    const terms = (await get(token, `/contracts/${plain.id}/terms`).expect(200)).body;
+    expect(terms.current).toMatchObject({ upfrontThresholdFees: null, upfrontBasis: 'ComisionPactada' });
+    expect((await created(token, plain, { amount: '30000', incurredAt: '2026-10-05' }))[0].requiresUpfront).toBe(false);
+    expect((await created(token, plain, { amount: '30000', incurredAt: '2026-12-05' }))[0].requiresUpfront).toBe(true);
+
+    // El patch rechaza un umbral fuera de rango.
+    await post(token, `/contracts/${plain.id}/agreements`, {
+      kind: 'CambioRegla',
+      effectiveFrom: '2027-01-01T00:00:00.000Z',
+      termsPatch: { upfrontThresholdFees: 99 },
+    }).expect(400);
   });
 });

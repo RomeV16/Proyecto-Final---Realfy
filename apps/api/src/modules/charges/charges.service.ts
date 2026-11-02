@@ -10,6 +10,7 @@ import {
   PendingChargeKind,
   PendingChargeStatus,
   UpdatePendingChargeSchema,
+  UpfrontBasis,
   calculateCommission,
   pendingChargeLine,
   requiresUpfront,
@@ -23,6 +24,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { parseOrThrow } from '../../common/validation/zod';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
+import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
 
 type Db = any;
 
@@ -131,7 +133,9 @@ export class ChargesService {
     const beneficiary =
       kind === PendingChargeKind.HonorarioGestion ? LineBeneficiary.Inmobiliaria : input.beneficiary;
     const upfront =
-      input.chargedTo === ChargeTarget.Inquilino ? await this.upfrontEvaluator(tenantId, contract, input.currency) : null;
+      input.chargedTo === ChargeTarget.Inquilino
+        ? await this.upfrontEvaluator(tenantId, contract, input.currency, incurredAt)
+        : null;
 
     const items = await this.prisma.client.$transaction(async (tx: Db) => {
       const created: any[] = [];
@@ -227,9 +231,9 @@ export class ChargesService {
     } else if (input.amount !== undefined && current.chargedTo === ChargeTarget.Inquilino) {
       const contract = await this.prisma.client.contract.findFirst({
         where: { id: current.contractId ?? undefined },
-        include: { commission: true },
+        include: { commission: true, termsVersions: true },
       });
-      const evaluate = await this.upfrontEvaluator(tenantId, contract, current.currency);
+      const evaluate = await this.upfrontEvaluator(tenantId, contract, current.currency, current.incurredAt);
       patch.requiresUpfront = evaluate(patch.amount as string);
     }
 
@@ -397,7 +401,7 @@ export class ChargesService {
     if (input.contractId) {
       contract = await this.prisma.client.contract.findFirst({
         where: { id: input.contractId },
-        include: { commission: true },
+        include: { commission: true, termsVersions: true },
       });
       if (!contract) throw notFound('CONTRACT_NOT_FOUND', 'Contract not found');
       if (input.propertyId && input.propertyId !== contract.propertyId) {
@@ -413,16 +417,27 @@ export class ChargesService {
   }
 
   /**
-   * Función que dice si un importe supera el umbral de anticipo del contrato:
-   * `upfrontThresholdFees` comisiones mensuales (valor por defecto de la
-   * inmobiliaria). La comisión mensual sale del acuerdo del contrato, o del
-   * porcentaje por defecto sobre el alquiler vigente. En otra moneda que la del
-   * alquiler no se compara.
+   * Función que dice si un importe supera el umbral de anticipo del contrato.
+   * Las reglas rigen a la fecha del gasto: el umbral es el de la versión vigente
+   * del contrato (`upfrontThresholdFees`, en comisiones mensuales) o, si no lo
+   * fija, el de la inmobiliaria. La comisión mensual depende de `upfrontBasis`:
+   * `ComisionPactada` usa la del contrato (o, sin ella, el porcentaje por
+   * defecto) y `PorcentajePorDefecto` siempre ese porcentaje sobre el alquiler
+   * vigente. En otra moneda que la del alquiler no se compara.
    */
-  private async upfrontEvaluator(tenantId: string, contract: any, currency: string): Promise<(amount: string) => boolean> {
+  private async upfrontEvaluator(
+    tenantId: string,
+    contract: any,
+    currency: string,
+    at: Date,
+  ): Promise<(amount: string) => boolean> {
     if (!contract || contract.rentCurrency !== currency) return () => false;
     const defaults = await this.operationalDefaults.get(tenantId);
-    const agreed = contract.commission;
+    const versions: any[] = contract.termsVersions ?? [];
+    const terms = pickTermsAt(versions, at) ?? [...versions].sort((a, b) => a.validFrom - b.validFrom)[0] ?? null;
+    const thresholdFees = Number(resolveRule(defaults, terms, 'upfrontThresholdFees'));
+    const basis = resolveRule(defaults, terms, 'upfrontBasis');
+    const agreed = basis === UpfrontBasis.PorcentajePorDefecto ? null : contract.commission;
     if (agreed && agreed.currency !== contract.rentCurrency && agreed.type !== CommissionType.FixedPercent) {
       return () => false;
     }
@@ -431,8 +446,7 @@ export class ChargesService {
       percentage: agreed ? (agreed.percentage?.toString() ?? null) : String(defaults.commissionPct),
       fixedAmount: agreed?.fixedAmount?.toString() ?? null,
     }).commissionAmount;
-    return (amount) =>
-      requiresUpfront({ amount, monthlyCommission: monthlyCommission.toString(), thresholdFees: defaults.upfrontThresholdFees });
+    return (amount) => requiresUpfront({ amount, monthlyCommission: monthlyCommission.toString(), thresholdFees });
   }
 }
 

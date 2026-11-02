@@ -589,6 +589,9 @@ export class LiquidacionesService {
       if (lineItem.sourceType === 'PendingCharge' && lineItem.sourceId) {
         await this.charges.releaseFromLiquidation(tx, { ids: [lineItem.sourceId] });
       }
+      if (lineItem.sourceType === 'ContractAdjustment' && lineItem.sourceId) {
+        await this.adjustments.releaseTrueUps([lineItem.sourceId], tx);
+      }
       if (lineItem.sourceType === 'ServiceBillAllocation' && lineItem.sourceId) {
         await this.serviceBills.release(tx, { ids: [lineItem.sourceId] });
         // El renglón de la diferencia por descuento anual de esa parte sale junto con el principal.
@@ -657,10 +660,10 @@ export class LiquidacionesService {
         await tx.liquidacion.update({ where: { id }, data: updateData });
       });
     } else if (toStatus === LiquidacionStatus.Anulada) {
+      // Anular libera lo que la liquidación había tomado, en la misma transacción.
       await this.prisma.client.$transaction(async (tx: any) => {
         await tx.liquidacion.update({ where: { id }, data: updateData });
-        // Una liquidación anulada no cobra: sus punitorios vuelven a quedar pendientes.
-        await this.penalties.release(tx, id);
+        await this.releaseSources(tx, id, 'annulled', fromStatus);
       });
     } else {
       await this.prisma.client.liquidacion.update({
@@ -1016,9 +1019,7 @@ export class LiquidacionesService {
     ) {
       // Las partes de boletas que traía vuelven a quedar pendientes para la próxima.
       await this.prisma.client.$transaction(async (tx: any) => {
-        await this.serviceBills.release(tx, { liquidacionId: id });
-        await this.penalties.release(tx, id);
-        await this.charges.releaseFromLiquidation(tx, { liquidacionId: id });
+        await this.releaseSources(tx, id, 'deleted', status);
         await tx.liquidacion.delete({ where: { id } });
       });
       this.logger.log('Liquidación deleted', { liquidacionId: id, status });
@@ -1035,8 +1036,7 @@ export class LiquidacionesService {
 
     await this.prisma.client.$transaction(async (tx: any) => {
       await tx.liquidacion.update({ where: { id }, data: { status: LiquidacionStatus.Anulada } });
-      // Una liquidación anulada no cobra: sus punitorios vuelven a quedar pendientes.
-      await this.penalties.release(tx, id);
+      await this.releaseSources(tx, id, 'annulled', status);
     });
 
     this.logger.log('Liquidación annulled', {
@@ -1048,6 +1048,32 @@ export class LiquidacionesService {
   }
 
   // ─── Private Helpers ────────────────────────────────
+
+  /**
+   * Devuelve a pendiente lo que la liquidación había tomado: las partes de boletas,
+   * los cargos del centro de carga, los punitorios y las correcciones de ajustes provisorios.
+   * Corre en la transacción de quien anula o borra, y deja una fila de auditoría.
+   */
+  private async releaseSources(tx: any, liquidacionId: string, reason: 'annulled' | 'deleted', fromStatus: string) {
+    const trueUpLines = await tx.liquidacionLineItem.findMany({
+      where: { liquidacionId, sourceType: 'ContractAdjustment' },
+      select: { sourceId: true },
+    });
+    const trueUps = await this.adjustments.releaseTrueUps(
+      trueUpLines.flatMap((l: { sourceId: string | null }) => (l.sourceId ? [l.sourceId] : [])),
+      tx,
+    );
+    const billParts = await this.serviceBills.release(tx, { liquidacionId });
+    const charges = await this.charges.releaseFromLiquidation(tx, { liquidacionId });
+    // Una liquidación anulada o borrada no cobra: sus punitorios vuelven a quedar pendientes.
+    const penalties = await this.penalties.release(tx, liquidacionId);
+    await this.audit.record(tx, {
+      action: 'UPDATE',
+      entity: 'Liquidacion',
+      entityId: liquidacionId,
+      metadata: { operation: `release-on-${reason}`, fromStatus, released: { trueUps, billParts, charges, penalties } },
+    });
+  }
 
   private async ensureEditable(liquidacionId: string) {
     const liquidacion = await this.prisma.client.liquidacion.findFirst({

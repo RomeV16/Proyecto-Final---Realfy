@@ -17,6 +17,7 @@ function contract(over: Record<string, unknown> = {}) {
     rentAmount: money('200000'),
     rentCurrency: 'ARS',
     commission: null,
+    termsVersions: [{ validFrom: d('2026-01-01'), upfrontThresholdFees: null, upfrontBasis: 'ComisionPactada' }],
     ...over,
   };
 }
@@ -42,7 +43,7 @@ function build(opts: { contract?: any; charge?: any; liquidacion?: any; updated?
   };
   client.$transaction = jest.fn((fn: (tx: any) => unknown) => fn(client));
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
-  const defaults = { get: jest.fn().mockResolvedValue({ commissionPct: 7, upfrontThresholdFees: 2 }) };
+  const defaults = { get: jest.fn().mockResolvedValue({ commissionPct: 7, upfrontThresholdFees: 2, upfrontBasis: 'ComisionPactada' }) };
   const tenantContext = { getTenantId: jest.fn().mockReturnValue('tenant-1'), getUserId: jest.fn().mockReturnValue('user-1') };
   const service = new ChargesService(
     { client } as unknown as PrismaService,
@@ -73,6 +74,7 @@ const pending = (over: Record<string, unknown> = {}) => ({
   contractId: CONTRACT_ID,
   propertyId: PROPERTY_ID,
   requiresUpfront: false,
+  incurredAt: d('2026-10-20'),
   imputedLiquidacionId: null,
   imputedStatementId: null,
   ...over,
@@ -116,6 +118,47 @@ describe('ChargesService.create', () => {
     expect(over.items[0].requiresUpfront).toBe(true);
     const under = await build({ contract: agreed }).service.create(input({ amount: '10000' }));
     expect(under.items[0].requiresUpfront).toBe(false);
+  });
+
+  it('el umbral del contrato manda sobre el de la inmobiliaria: 3 comisiones = 42000', async () => {
+    const own = contract({ termsVersions: [{ validFrom: d('2026-01-01'), upfrontThresholdFees: 3, upfrontBasis: 'ComisionPactada' }] });
+    const over = await build({ contract: own }).service.create(input({ amount: '42000.01' }));
+    expect(over.items[0].requiresUpfront).toBe(true);
+    const under = await build({ contract: own }).service.create(input({ amount: '42000' }));
+    expect(under.items[0].requiresUpfront).toBe(false);
+  });
+
+  it('con la base PorcentajePorDefecto ignora la comisión pactada (fijo 5000): umbral 28000', async () => {
+    const own = contract({
+      commission: { type: 'FixedAmount', percentage: null, fixedAmount: money('5000'), currency: 'ARS' },
+      termsVersions: [{ validFrom: d('2026-01-01'), upfrontThresholdFees: null, upfrontBasis: 'PorcentajePorDefecto' }],
+    });
+    const mid = await build({ contract: own }).service.create(input({ amount: '20000' }));
+    expect(mid.items[0].requiresUpfront).toBe(false);
+    const over = await build({ contract: own }).service.create(input({ amount: '28000.01' }));
+    expect(over.items[0].requiresUpfront).toBe(true);
+  });
+
+  it('rigen las reglas a la fecha del gasto: una versión posterior no cuenta', async () => {
+    const own = contract({
+      termsVersions: [
+        { validFrom: d('2026-01-01'), upfrontThresholdFees: 3, upfrontBasis: 'ComisionPactada' },
+        { validFrom: d('2026-11-01'), upfrontThresholdFees: 1, upfrontBasis: 'ComisionPactada' },
+      ],
+    });
+    // Gasto de octubre: umbral 3 x 14000 = 42000, no 14000 de la versión de noviembre.
+    const october = await build({ contract: own }).service.create(input({ amount: '30000', incurredAt: '2026-10-20' }));
+    expect(october.items[0].requiresUpfront).toBe(false);
+    const november = await build({ contract: own }).service.create(input({ amount: '30000', incurredAt: '2026-11-20' }));
+    expect(november.items[0].requiresUpfront).toBe(true);
+  });
+
+  it('sin versiones de reglas anteriores a la fecha usa la primera, y sin versiones los valores de la inmobiliaria', async () => {
+    const early = contract({ termsVersions: [{ validFrom: d('2026-06-01'), upfrontThresholdFees: 1, upfrontBasis: 'ComisionPactada' }] });
+    const first = await build({ contract: early }).service.create(input({ amount: '30000', incurredAt: '2026-03-01' }));
+    expect(first.items[0].requiresUpfront).toBe(true);
+    const none = await build({ contract: contract({ termsVersions: undefined }) }).service.create(input({ amount: '20000' }));
+    expect(none.items[0].requiresUpfront).toBe(false);
   });
 
   it('una comisión fija en otra moneda que el alquiler no se compara', async () => {

@@ -31,6 +31,8 @@ const TERMS_FIELDS = [
   'midMonthAdjustmentMode',
   'firstDueMode',
   'fixedDiscountProration',
+  'upfrontThresholdFees',
+  'upfrontBasis',
 ] as const;
 
 const JSON_FIELDS = new Set(['customSteps', 'penaltyConfig']);
