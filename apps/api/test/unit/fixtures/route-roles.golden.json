@@ -318,6 +318,15 @@
     "Admin",
     "Gerente"
   ],
+  "src/modules/follow-ups/follow-ups.controller.ts#ContractExpirationsController.renew": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/follow-ups/follow-ups.controller.ts#ContractExpirationsController.addendumPdf": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
   "src/modules/import-export/batch/import-batch.controller.ts#ImportBatchController.run": [
     "Admin"
   ],

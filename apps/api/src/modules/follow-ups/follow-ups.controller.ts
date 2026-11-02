@@ -1,8 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { Roles } from '../../common/auth/roles.decorator';
 import { MANAGEMENT_ROLES, SALES_ROLES } from '../../common/auth/role-groups';
 import { FollowUpsService } from './follow-ups.service';
+import { ContractRenewalService } from './contract-renewal.service';
 import { OralExtensionService } from './oral-extension.service';
+import { RenewalAddendumPdfService } from './renewal-addendum-pdf.service';
 
 /** Seguimiento de los vencimientos de contratos: semáforo y checklist. */
 @Controller('follow-ups')
@@ -43,7 +46,11 @@ export class FollowUpsController {
 /** Acciones de vencimiento sobre un contrato. */
 @Controller('contracts')
 export class ContractExpirationsController {
-  constructor(private readonly oralExtension: OralExtensionService) {}
+  constructor(
+    private readonly oralExtension: OralExtensionService,
+    private readonly renewal: ContractRenewalService,
+    private readonly addendum: RenewalAddendumPdfService,
+  ) {}
 
   /**
    * POST /contracts/:id/oral-extension — prórroga de palabra: mueve el fin real
@@ -53,5 +60,28 @@ export class ContractExpirationsController {
   @Post(':id/oral-extension')
   async extend(@Param('id') id: string, @Body() body: Record<string, unknown>) {
     return this.oralExtension.extend(id, body);
+  }
+
+  /**
+   * POST /contracts/:id/renew — renovación como período del mismo contrato:
+   * alquiler nuevo, regla de ajuste, garantes y honorarios. Admin y Gerente.
+   */
+  @Roles(...MANAGEMENT_ROLES)
+  @Post(':id/renew')
+  async renew(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+    return this.renewal.renew(id, body);
+  }
+
+  /** GET /contracts/:id/periods/:seq/addendum — PDF de la adenda corta de una renovación. */
+  @Roles(...SALES_ROLES)
+  @Get(':id/periods/:seq/addendum')
+  async addendumPdf(@Param('id') id: string, @Param('seq', ParseIntPipe) seq: number, @Res() res: Response) {
+    const { buffer, filename } = await this.addendum.pdf(id, seq);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
   }
 }

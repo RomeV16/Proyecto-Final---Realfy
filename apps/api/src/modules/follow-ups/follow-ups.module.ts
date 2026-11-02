@@ -5,12 +5,20 @@ import { ContractExpirationsController, FollowUpsController } from './follow-ups
 import { FollowUpsScheduler } from './follow-ups.scheduler';
 import { FollowUpsService } from './follow-ups.service';
 import { OralExtensionService } from './oral-extension.service';
+import { RenewalAddendumPdfService } from './renewal-addendum-pdf.service';
+import { ContractRenewalService } from './contract-renewal.service';
 
-/** Vencimientos: semáforo, seguimientos con checklist y prórroga de palabra. */
+/** Vencimientos: semáforo, seguimientos con checklist y prórroga de palabra y renovación. */
 @Module({
   imports: [ContractsModule, TenantsModule],
   controllers: [FollowUpsController, ContractExpirationsController],
-  providers: [FollowUpsService, FollowUpsScheduler, OralExtensionService],
+  providers: [
+    FollowUpsService,
+    FollowUpsScheduler,
+    OralExtensionService,
+    ContractRenewalService,
+    RenewalAddendumPdfService,
+  ],
   exports: [FollowUpsService],
 })
 export class FollowUpsModule {}

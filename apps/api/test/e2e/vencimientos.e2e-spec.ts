@@ -24,7 +24,7 @@ const DAY_MS = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const inDays = (n: number) => new Date(todayInAR().getTime() + n * DAY_MS);
 
-/** CP-470 a CP-479: vencimientos (semáforo, seguimientos, checklist) y prórroga de palabra. */
+/** CP-470 a CP-479: vencimientos (semáforo, seguimientos, checklist) y prórroga de palabra; CP-480 a CP-485: renovación como período. */
 describe('Vencimientos (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -76,7 +76,12 @@ describe('Vencimientos (e2e)', () => {
   }
 
   /** Contrato de alquiler activo que termina dentro de `endInDays` días. */
-  async function activeContract(token: string, prefix: string, endInDays: number) {
+  async function activeContract(
+    token: string,
+    prefix: string,
+    endInDays: number,
+    extraParties: Array<{ personId: string; role: PersonRole }> = [],
+  ) {
     const prop = await http()
       .post('/api/properties')
       .set(auth(token))
@@ -112,6 +117,7 @@ describe('Vencimientos (e2e)', () => {
         persons: [
           { personId: owner, role: PersonRole.Propietario },
           { personId: tenant, role: PersonRole.Inquilino },
+          ...extraParties,
         ],
         guarantees: [],
       })
@@ -359,6 +365,131 @@ describe('Vencimientos (e2e)', () => {
         .set(auth(token))
         .send({ kind: 'Prorroga', effectiveFrom: iso(inDays(30)) })
         .expect(400);
+    });
+  });
+
+  describe('renovación como período', () => {
+    const renew = (token: string, id: string, body: object) =>
+      http().post(`/api/contracts/${id}/renew`).set(auth(token)).send(body);
+    const periods = async (token: string, id: string) =>
+      (await http().get(`/api/contracts/${id}/periods`).set(auth(token)).expect(200)).body as any[];
+
+    it('CP-480: agrega un período, fija el alquiler y la regla nuevos, mueve el fin y cierra el seguimiento', async () => {
+      const { token } = await agency('ren');
+      const contractId = await activeContract(token, 'ren', 20);
+      await scheduler.openForAllTenants();
+      const start = iso(inDays(21));
+      const end = iso(inDays(21 + 730));
+
+      const res = await renew(token, contractId, {
+        start,
+        end,
+        rent: '180000.50',
+        adjustment: { adjustmentType: 'FixedPercent', adjustmentPeriod: 'Semestral', customPct: '12' },
+        notes: 'Renovación por 24 meses',
+      }).expect(201);
+      expect(res.body.period).toMatchObject({ seq: 2, kind: 'Renovacion', initialRent: '180000.5' });
+      expect(iso(new Date(res.body.contract.endDate))).toBe(end);
+      expect(res.body.contract.actualEndDate).toBeNull();
+
+      expect((await periods(token, contractId)).map((p) => [p.seq, p.kind])).toEqual([
+        [1, 'Original'],
+        [2, 'Renovacion'],
+      ]);
+      const terms = (await http().get(`/api/contracts/${contractId}/terms`).set(auth(token)).expect(200)).body;
+      const version = terms.versions.find((v: any) => iso(new Date(v.validFrom)) === start);
+      expect(version).toMatchObject({ rentOverride: '180000.5', adjustmentType: 'FixedPercent', adjustmentPeriod: 'Semestral' });
+      const agreements = (await http().get(`/api/contracts/${contractId}/agreements`).set(auth(token)).expect(200)).body;
+      expect(agreements.map((a: any) => a.kind)).toContain('Renovacion');
+
+      const followUp = (await list(token, `?contractId=${contractId}`)).body.items[0];
+      expect(followUp).toMatchObject({ status: 'Cerrado', outcome: 'Renovado' });
+      const audit = await prisma.baseClient.auditLog.findMany({ where: { entityId: contractId } });
+      expect(audit.some((a: any) => a.changes?.operation === 'renewal')).toBe(true);
+      // El nuevo fin queda lejos: el proceso diario no abre otro seguimiento.
+      expect((await scheduler.openForAllTenants()).opened).toBe(0);
+    });
+
+    it('CP-481: una renovación que ya rige actualiza el alquiler vigente y absorbe la prórroga de palabra', async () => {
+      const { token } = await agency('abs');
+      const contractId = await activeContract(token, 'abs', 5);
+      await http()
+        .post(`/api/contracts/${contractId}/oral-extension`)
+        .set(auth(token))
+        .send({ until: iso(inDays(60)), note: 'De palabra' })
+        .expect(201);
+
+      const res = await renew(token, contractId, { start: iso(inDays(6)), end: iso(inDays(6 + 365)), rent: '150000' }).expect(201);
+      expect(res.body.contract.actualEndDate).toBeNull();
+      expect(iso(new Date(res.body.contract.endDate))).toBe(iso(inDays(6 + 365)));
+      // Todavía no rige (empieza en 6 días): el alquiler vigente es el de hoy.
+      expect(res.body.contract.rentAmount).toBe('100000');
+
+      const past = await activeContract(token, 'past', -20);
+      const now = await renew(token, past, { start: iso(inDays(-19)), end: iso(inDays(-19 + 365)), rent: '150000' }).expect(201);
+      expect(now.body.contract.rentAmount).toBe('150000');
+    });
+
+    it('CP-482: anota garantes y honorarios, y exige que sean garantes del contrato', async () => {
+      const { token } = await agency('gar');
+      const guarantor = await person(token, PersonRole.Garante, 'gar-g@venc.test');
+      const stranger = await person(token, PersonRole.Garante, 'gar-x@venc.test');
+      const contractId = await activeContract(token, 'gar', 10, [{ personId: guarantor, role: PersonRole.Garante }]);
+      const base = { start: iso(inDays(11)), end: iso(inDays(11 + 365)), rent: '120000' };
+
+      await renew(token, contractId, { ...base, guarantorPersonIds: [stranger] }).expect(400);
+      const res = await renew(token, contractId, {
+        ...base,
+        guarantorPersonIds: [guarantor],
+        fee: { amount: '96000', currency: 'ARS' },
+        signedAt: iso(inDays(1)),
+      }).expect(201);
+      expect(res.body.period).toMatchObject({ guarantorPersonIds: [guarantor], feeAmount: '96000', feeCurrency: 'ARS' });
+      expect(iso(new Date(res.body.period.signedAt))).toBe(iso(inDays(1)));
+    });
+
+    it('CP-483: rechaza fechas incoherentes, otra renovación sobre la misma fecha, roles y contratos inactivos', async () => {
+      const { token, tokens } = await agency('val');
+      const contractId = await activeContract(token, 'val', 10);
+      const ok = { start: iso(inDays(11)), end: iso(inDays(11 + 365)), rent: '120000' };
+
+      await renew(token, contractId, { ...ok, end: ok.start }).expect(400);
+      await renew(token, contractId, { ...ok, rent: '0' }).expect(400);
+      await renew(token, contractId, { ...ok, start: iso(inDays(-800)) }).expect(400);
+      await renew(tokens[UserRole.Ventas], contractId, ok).expect(403);
+      await renew(token, '00000000-0000-4000-8000-000000000000', ok).expect(404);
+      await renew(token, contractId, ok).expect(201);
+      // Una segunda renovación debe empezar después del inicio de la anterior.
+      await renew(token, contractId, { ...ok, start: ok.start, end: iso(inDays(11 + 800)) }).expect(400);
+      await http().post(`/api/contracts/${contractId}/terminate`).set(auth(token)).expect(201);
+      await renew(token, contractId, { start: iso(inDays(400)), end: iso(inDays(900)), rent: '1' }).expect(409);
+    });
+
+    it('CP-484: genera la adenda corta en PDF solo de un período de renovación', async () => {
+      const { token } = await agency('pdf');
+      const contractId = await activeContract(token, 'pdf', 10);
+      await renew(token, contractId, {
+        start: iso(inDays(11)),
+        end: iso(inDays(11 + 365)),
+        rent: '120000',
+        fee: { amount: '60000', currency: 'ARS' },
+      }).expect(201);
+
+      const pdf = await http()
+        .get(`/api/contracts/${contractId}/periods/2/addendum`)
+        .set(auth(token))
+        .buffer(true)
+        .parse((res, cb) => {
+          const chunks: Buffer[] = [];
+          res.on('data', (c: Buffer) => chunks.push(c));
+          res.on('end', () => cb(null, Buffer.concat(chunks)));
+        })
+        .expect(200);
+      expect(pdf.headers['content-type']).toContain('application/pdf');
+      expect((pdf.body as Buffer).subarray(0, 4).toString()).toBe('%PDF');
+
+      await http().get(`/api/contracts/${contractId}/periods/1/addendum`).set(auth(token)).expect(400);
+      await http().get(`/api/contracts/${contractId}/periods/9/addendum`).set(auth(token)).expect(404);
     });
   });
 });
