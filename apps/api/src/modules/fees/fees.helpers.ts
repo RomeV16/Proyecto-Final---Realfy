@@ -3,6 +3,7 @@ import { FeeEngineError, FeeInstallmentStatus, adjustInstallments, personName } 
 import type { RentChange } from '@realfy/shared';
 import Decimal from 'decimal.js';
 import { badRequest } from '../cash/cash.errors';
+import { receiptLabel } from '../cash/receipts.service';
 
 type Db = any;
 
@@ -96,29 +97,21 @@ export function dueAmounts(
   return out;
 }
 
+/** Cuota con la etiqueta impresa de su recibo (`receipt.label`), igual que los cobros. */
+export function withLabel<I extends { receipt?: { series: string; number: number } | null }>(installment: I): I {
+  if (!installment.receipt) return installment;
+  return { ...installment, receipt: { ...installment.receipt, label: receiptLabel(installment.receipt.series, installment.receipt.number) } };
+}
+
 /** Honorario listo para la respuesta: cada cuota con `dueAmount` y el nombre de quien paga. */
 export function presentFee(fee: any, due: Map<number, string>) {
   return {
     ...fee,
     payerName: fee.payer ? personName(fee.payer) : null,
-    installmentRows: (fee.installmentRows ?? []).map((i: any) => ({ ...i, dueAmount: due.get(i.n) ?? null })),
+    installmentRows: (fee.installmentRows ?? []).map((i: any) => ({ ...withLabel(i), dueAmount: due.get(i.n) ?? null })),
     staffCommissions: (fee.staffCommissions ?? []).map((c: any) => ({
       ...c,
       beneficiaryName: c.user ? personName(c.user) : c.person ? personName(c.person) : null,
     })),
   };
-}
-
-const KIND_LABEL: Record<string, string> = {
-  AltaAlquiler: 'alta de alquiler',
-  Renovacion: 'renovación',
-  Venta: 'venta',
-  Tasacion: 'tasación',
-  GestionReparacion: 'gestión de reparación',
-};
-
-/** Texto de una cuota: "Honorarios de renovación, cuota 2/3". */
-export function installmentLabel(fee: { kind: string; installments: number }, n: number): string {
-  const suffix = fee.installments > 1 ? `, cuota ${n}/${fee.installments}` : '';
-  return `Honorarios de ${KIND_LABEL[fee.kind] ?? fee.kind}${suffix}`;
 }

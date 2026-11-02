@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { installmentLabel } from './fees.helpers';
+import { installmentLabel } from './fee-labels';
+import { withLabel } from './fees.helpers';
 import { ACCOUNT_ID, CONTRACT_ID, LESSOR_PERSON, TENANT_PERSON, USER_ID, altaInput, buildFees, d } from './fees.testing';
 
 async function withFee(input: Record<string, unknown> = {}, world: Record<string, unknown> = {}) {
@@ -31,6 +32,8 @@ describe('FeePaymentsService: cobro de cuotas', () => {
     });
     expect(client.fee.rows[0].status).toBe('Parcial');
     expect(res.payment).toEqual({ receiptId: 'rec-1', movementId: 'mov-1' });
+    expect(withLabel({ receipt: { series: 'RECIBO_COBRO_USD', number: 7 } }).receipt).toMatchObject({ label: 'USD-00000007' });
+    expect(withLabel({ receipt: null })).toEqual({ receipt: null });
     expect(audit.record.mock.calls.at(-1)[1].metadata).toEqual({ operation: 'fee-installment-pay', feeId: fee.id, n: 1 });
   });
 

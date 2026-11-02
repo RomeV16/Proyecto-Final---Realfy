@@ -24,7 +24,8 @@ import { CashService } from '../cash/cash.service';
 import { auditJson, badRequest, conflict, dayStart, notFound } from '../cash/cash.errors';
 import { writeEntries } from '../owner-accounts/ledger-posting';
 import { FeesService } from './fees.service';
-import { PERSON_SELECT, installmentLabel } from './fees.helpers';
+import { PERSON_SELECT } from './fees.helpers';
+import { installmentLabel } from './fee-labels';
 
 type Db = any;
 

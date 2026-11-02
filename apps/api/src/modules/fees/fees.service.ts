@@ -36,6 +36,7 @@ import {
   monthRange,
   presentFee,
   rethrowFeeEngine,
+  withLabel,
 } from './fees.helpers';
 import { suggestRentalPayers } from './fee-proposal.service';
 
@@ -119,7 +120,7 @@ export class FeesService {
     const items = rows.map((row: any) => {
       const { fee, ...installment } = row;
       return {
-        ...installment,
+        ...withLabel(installment),
         dueAmount: due.get(row.feeId)?.get(row.n) ?? null,
         fee: presentFee({ ...fee, installmentRows: [], staffCommissions: [] }, new Map()),
       };

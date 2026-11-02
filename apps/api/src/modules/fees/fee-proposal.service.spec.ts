@@ -62,6 +62,16 @@ describe('FeeProposalService', () => {
     expect(p).toMatchObject({ contractPeriodId: PERIOD_ID, baseAmount: '10800000.00', pct: '5', firstDueDate: '2028-03-01', estimate: ['540000.00'] });
   });
 
+  it('renovación sin período elegido: la última renovación del contrato', async () => {
+    const original = { id: 'p1', contractId: CONTRACT_ID, seq: 1, kind: 'Original', startDate: d('2026-03-01'), endDate: d('2028-02-29'), initialRent: '500000' };
+    const renewal = { id: PERIOD_ID, contractId: CONTRACT_ID, seq: 2, kind: 'Renovacion', startDate: d('2028-03-01'), endDate: d('2029-02-28'), initialRent: '900000' };
+    const { proposal } = buildFees({ periods: [original, renewal] });
+    const p: any = await proposal.preview({ kind: 'Renovacion', contractId: CONTRACT_ID });
+    expect(p).toMatchObject({ contractPeriodId: PERIOD_ID, baseAmount: '10800000.00' });
+    const alta: any = await proposal.preview({ kind: 'AltaAlquiler', contractId: CONTRACT_ID });
+    expect(alta).toMatchObject({ contractPeriodId: null, baseAmount: '12000000.00' });
+  });
+
   it('venta: cada parte, porcentaje según construido o lote', async () => {
     const built = await buildFees().proposal.preview({ kind: 'Venta', propertyId: PROPERTY_ID, baseAmount: '120000' });
     expect(built).toMatchObject({ basis: 'ValorOperacion', saleAsset: 'Construido', pct: '3', currency: 'USD', payerMode: 'CadaParte', estimate: ['3600.00'] });

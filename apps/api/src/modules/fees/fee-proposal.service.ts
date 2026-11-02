@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   AdjustmentType,
+  ContractPeriodKind,
   Currency,
   FeeBasis,
   FeeKind,
@@ -117,7 +118,9 @@ export class FeeProposalService {
       },
     });
     if (!contract) throw notFound('CONTRACT_NOT_FOUND', 'Contract not found');
-    const tramo = period ?? contract.periods[0] ?? null;
+    // Sin período elegido: el alta toma el original y la renovación, la última renovación.
+    const renewals = contract.periods.filter((p: any) => p.kind === ContractPeriodKind.Renovacion);
+    const tramo = period ?? (input.kind === FeeKind.Renovacion ? renewals.at(-1) : contract.periods[0]) ?? contract.periods[0] ?? null;
     const start: Date = tramo ? new Date(tramo.startDate) : new Date(contract.startDate);
     const end: Date = tramo ? new Date(tramo.endDate) : new Date(contract.endDate);
     const initialRent = String(tramo ? tramo.initialRent : contract.rentAmount);
@@ -143,7 +146,7 @@ export class FeeProposalService {
     return {
       basis: FeeBasis.TotalContrato,
       contractId: contract.id,
-      contractPeriodId: period?.id ?? null,
+      contractPeriodId: period?.id ?? (input.kind === FeeKind.Renovacion ? (tramo?.id ?? null) : null),
       baseAmount: total.total.toFixed(2),
       pct: String(pct),
       currency: contract.rentCurrency,

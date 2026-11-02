@@ -19,7 +19,7 @@ import { TenantContextService } from '../../common/tenant/tenant-context.service
 import { parseOrThrow } from '../../common/validation/zod';
 import { getParty } from '../contracts/contract-parties';
 import { dayStart, notFound } from './cash.errors';
-import { installmentLabel } from '../fees/fees.helpers';
+import { installmentLabel } from '../fees/fee-labels';
 
 const PERSON = { select: { id: true, firstName: true, lastName: true } } as const;
 
