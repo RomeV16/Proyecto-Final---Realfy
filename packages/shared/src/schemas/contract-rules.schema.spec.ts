@@ -42,6 +42,7 @@ describe('OperationalDefaultsSchema', () => {
         receiptWhenLessorReceives: false,
         compensationScope: 'CualquierLocador',
       },
+      ownerAccounts: { statementCloseDay: null, lessorChargeTiming: 'AlGenerarEstado' },
     });
   });
 
@@ -303,5 +304,13 @@ describe('convenciones de liquidación', () => {
       upfrontThresholdFees: 1,
       upfrontBasis: 'PorcentajePorDefecto',
     });
+  });
+
+  it('lo que debe el locador que cobró directamente se pacta por contrato o por convenio; null vuelve al de la inmobiliaria', () => {
+    expect(LiquidationConventionsSchema.parse({ lessorDirectOwes: 'SoloInmobiliaria' })).toEqual({
+      lessorDirectOwes: 'SoloInmobiliaria',
+    });
+    expect(TermsPatchSchema.parse({ lessorDirectOwes: null })).toEqual({ lessorDirectOwes: null });
+    expect(() => TermsPatchSchema.parse({ lessorDirectOwes: 'Todo' })).toThrow();
   });
 });

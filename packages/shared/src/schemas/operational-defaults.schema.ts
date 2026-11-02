@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
 import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
 import { ReceiptSeriesMode } from '../cash';
+import { LessorChargeTiming } from '../owner-ledger';
 
 const pct = z.number().min(0).max(100);
 const days = z.number().int().min(0).max(365);
@@ -82,6 +83,19 @@ export const OperationalDefaultsSchema = z
         receiptWhenLessorReceives: z.boolean().default(false),
         /** Entre quiénes se admite una compensación. */
         compensationScope: z.nativeEnum(CompensationScope).default(CompensationScope.CualquierLocador),
+      })
+      .strict()
+      .default({}),
+    /**
+     * Cuenta corriente y estado de cuenta del locador (ADR-0009). Convenciones que
+     * la inmobiliaria no fijó, con su valor de fábrica.
+     */
+    ownerAccounts: z
+      .object({
+        /** Día en que cierra el estado mensual; null = fin de mes (calendario). */
+        statementCloseDay: z.number().int().min(1).max(28).nullable().default(null),
+        /** Cuándo se descuentan del estado los cargos al locador del centro de carga. */
+        lessorChargeTiming: z.nativeEnum(LessorChargeTiming).default(LessorChargeTiming.AlGenerarEstado),
       })
       .strict()
       .default({}),

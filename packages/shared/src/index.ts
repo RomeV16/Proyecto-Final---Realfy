@@ -57,6 +57,8 @@ export {
   CashDirection,
   CashCategory,
   PaymentReceiver,
+  OwnerLedgerEntryType,
+  OwnerStatementStatus,
   NotificationType,
   PipelineType,
   LeadSource,
@@ -661,6 +663,39 @@ export type {
   CreateConversionInput,
   CreateCompensationInput,
 } from './schemas/cash.schema';
+
+// Cuenta corriente y estado de cuenta del locador (ADR-0009)
+export {
+  LessorChargeTiming,
+  PAYOUT_ENTRY_TYPES,
+  ledgerTypeForLine,
+  paymentPostings,
+  splitByShare,
+  repairManagementFee,
+  statementPeriodFor,
+  statementPeriodRange,
+  computeStatement,
+  statementsByCurrency,
+} from './owner-ledger';
+export type {
+  LedgerPosting,
+  PaymentPostingInput,
+  PostingLine,
+  PostingPosition,
+  StatementEntry,
+  StatementGroup,
+  StatementResult,
+} from './owner-ledger';
+export {
+  OwnerLedgerFilterSchema,
+  OpeningBalanceSchema,
+  OWNER_PAYOUT_METHODS,
+  OwnerPayoutSchema,
+  GenerateOwnerStatementsSchema,
+  OwnerStatementListSchema,
+  AnnulOwnerStatementSchema,
+} from './schemas/owner-account.schema';
+export type { OpeningBalanceInput, OwnerPayoutInput } from './schemas/owner-account.schema';
 
 // Rendicion engine (histórico: lo usa solo la rendición vieja; el reparto de cobros es settlement-engine)
 export {

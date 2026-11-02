@@ -29,6 +29,7 @@ describe('cash — movimientos manuales', () => {
       CashCategory.Custodia,
       CashCategory.Compensacion,
       CashCategory.Conversion,
+      CashCategory.PagoLocador,
     ]) {
       expect(MANUAL_CASH_CATEGORIES).not.toContain(category);
     }

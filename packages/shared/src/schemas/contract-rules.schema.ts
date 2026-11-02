@@ -11,6 +11,7 @@ import {
   ProrationMode,
   UpfrontBasis,
 } from '../enums';
+import { LessorDirectOwes } from '../settlement-engine';
 import { PenaltyConfigSchema } from './penalty-config.schema';
 
 const decimal = (digits: number) =>
@@ -52,9 +53,15 @@ const liquidationConventionFields = {
 /** Umbral de anticipo del centro de carga, en comisiones mensuales; null vuelve al valor por defecto de la inmobiliaria. */
 const upfrontThresholdField = { upfrontThresholdFees: z.number().int().min(0).max(24).nullable() };
 
+/**
+ * Qué le debe el locador a la inmobiliaria cuando el inquilino le paga
+ * directamente; null vuelve al valor por defecto de la inmobiliaria.
+ */
+const lessorDirectOwesField = { lessorDirectOwes: z.nativeEnum(LessorDirectOwes).nullable() };
+
 /** Las cuatro convenciones al crear o corregir un contrato; lo omitido toma el valor por defecto de la inmobiliaria. */
 export const LiquidationConventionsSchema = z
-  .object({ ...liquidationConventionFields, ...upfrontThresholdField })
+  .object({ ...liquidationConventionFields, ...upfrontThresholdField, ...lessorDirectOwesField })
   .partial()
   .strict();
 export type LiquidationConventions = z.infer<typeof LiquidationConventionsSchema>;
@@ -77,6 +84,7 @@ export const TermsPatchSchema = z
     penaltyConfig: PenaltyConfigSchema.nullable(),
     ...liquidationConventionFields,
     ...upfrontThresholdField,
+    ...lessorDirectOwesField,
   })
   .partial()
   .strict();

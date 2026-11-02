@@ -3,6 +3,7 @@ import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, Proration
 import type { OperationalDefaults, OperationalDefaultsInput } from './operational-defaults.schema';
 import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
 import { ReceiptSeriesMode } from '../cash';
+import { LessorChargeTiming } from '../owner-ledger';
 
 // Esquema del formulario web de valores por defecto: todos los campos viajan
 // como texto (lo que escribe la persona) y se convierten con
@@ -48,6 +49,14 @@ export const operationalDefaultsFormSchema = z
     cashReceiptSeries: z.nativeEnum(ReceiptSeriesMode),
     cashReceiptWhenLessorReceives: z.boolean(),
     cashCompensationScope: z.nativeEnum(CompensationScope),
+    /** Vacío = fin de mes. */
+    ownerStatementCloseDay: z
+      .string()
+      .trim()
+      .refine((v) => v === '' || (/^\d+$/.test(v) && Number(v) >= 1 && Number(v) <= 28), {
+        message: 'validation.outOfRange',
+      }),
+    ownerLessorChargeTiming: z.nativeEnum(LessorChargeTiming),
   })
   .refine((v) => Number(v.yellowDays) >= Number(v.redDays) || !/^\d+$/.test(v.yellowDays), {
     message: 'validation.outOfRange',
@@ -87,6 +96,8 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     cashReceiptSeries: d.cash.receiptSeries,
     cashReceiptWhenLessorReceives: d.cash.receiptWhenLessorReceives,
     cashCompensationScope: d.cash.compensationScope,
+    ownerStatementCloseDay: d.ownerAccounts.statementCloseDay === null ? '' : String(d.ownerAccounts.statementCloseDay),
+    ownerLessorChargeTiming: d.ownerAccounts.lessorChargeTiming,
   };
 }
 
@@ -120,6 +131,10 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
       receiptSeries: f.cashReceiptSeries,
       receiptWhenLessorReceives: f.cashReceiptWhenLessorReceives,
       compensationScope: f.cashCompensationScope,
+    },
+    ownerAccounts: {
+      statementCloseDay: f.ownerStatementCloseDay.trim() === '' ? null : num(f.ownerStatementCloseDay),
+      lessorChargeTiming: f.ownerLessorChargeTiming,
     },
   };
 }

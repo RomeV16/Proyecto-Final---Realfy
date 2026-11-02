@@ -28,11 +28,11 @@ export function receiptSeriesFor(
 
 /**
  * Categorías que se cargan a mano en el libro. Las demás las escribe el
- * sistema: cobros (AlquilerCobrado), custodia, compensaciones y conversiones,
- * cada una desde su propia acción.
+ * sistema: cobros (AlquilerCobrado), custodia, compensaciones, conversiones y
+ * pagos a locadores (PagoLocador, desde su cuenta corriente), cada una desde su
+ * propia acción.
  */
 export const MANUAL_CASH_CATEGORIES: readonly CashCategory[] = [
-  CashCategory.PagoLocador,
   CashCategory.PagoEnte,
   CashCategory.PagoProveedor,
   CashCategory.Honorario,
