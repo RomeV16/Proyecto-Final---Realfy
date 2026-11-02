@@ -451,7 +451,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** la etiqueta impresa se armaba en el servicio de recibos y la respuesta del cobro no la incluía; la web duplicaba la regla para mostrarla.
 - **Corrección:** `withReceiptLabel` arma la etiqueta en un solo lugar: el detalle de la liquidación, la lista de cobros y el cobro recién registrado devuelven `receipt.label`. La web muestra esa etiqueta y se quita su copia de la regla.
 - **Prueba de regresión:** CP-450 en `apps/api/src/modules/liquidaciones/liquidaciones-cobros.def29.spec.ts`.
-- **Evidencia rojo/verde:** regresión `edee14c` en rojo (2 pruebas fallan: la etiqueta llega vacía en los tres cobros con recibo); corrección en `ad72ea9`.
+- **Evidencia rojo/verde:** regresión `70d0f97` en rojo (2 pruebas fallan: la etiqueta llega vacía en los tres cobros con recibo); corrección en `d8226ef`.
 
 ## DEF-30 — La comisión del contrato no se guarda desde la pantalla y una guardada aparece sin tipo
 
@@ -465,4 +465,4 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el formulario mandaba `commissionType` y el porcentaje como número, y leía `commissionType` de la respuesta; la API usa `type` y el porcentaje como texto decimal.
 - **Corrección:** el formulario usa `type` al leer y al guardar y manda el porcentaje como texto decimal.
 - **Prueba de regresión:** CP-480 en `apps/web/src/components/contracts/commission-config.def30.test.tsx`.
-- **Evidencia rojo/verde:** regresión `d645979` en rojo (1 prueba falla: el tipo llega vacío); corrección en `5b1cda4`.
+- **Evidencia rojo/verde:** regresión `445d03c` en rojo (1 prueba falla: el tipo llega vacío); corrección en `ea04f78`.
