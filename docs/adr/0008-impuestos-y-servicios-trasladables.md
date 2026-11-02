@@ -76,11 +76,20 @@ motor puro y se guarda antes de liquidar.**
     unidades vacías) no se traslada. Una unidad que paga directo ocupa su parte.
   - `Fijo`: `fixedAmount`, sin superar el importe de la boleta.
 - **Plan anual.** Con `paymentPlan = Anual` el importe de la boleta es el anual.
-  `annualRecovery = Prorrateado` lo reparte en 12 cuotas mensuales iguales (mayor
+  `annualRecovery = Prorrateado` (de fábrica, lo habitual) lo reparte en
+  `annualInstallments` cuotas mensuales iguales (de 1 a 12, de fábrica 12; mayor
   resto) a partir del mes de la boleta; `Unico` lo cobra entero en el mes de la
-  boleta. El descuento por pago anual va al inquilino por defecto (se reparte lo
-  efectivamente pagado); `annualDiscountToTenant = false` reparte el importe sin
-  descuento y el descuento queda del lado de quien pagó.
+  boleta. Es libre elegir cada uno por regla.
+- **Descuento por pago anual** (`annualDiscountBeneficiary`): con `Inquilino` (de
+  fábrica) se reparte lo efectivamente pagado. Con `Locador` o `Inmobiliaria` se
+  cobra el importe sin descuento (`nominalAmount`) y la diferencia con lo que habría
+  correspondido sobre lo pagado se guarda en la parte (`surplus`) y sale como un
+  renglón `Cargo` aparte a nombre de ese beneficiario, sin comisión; el renglón del
+  servicio o impuesto sale por lo pagado.
+- **Cuotas que quedan al terminar el contrato** (`remainingInstallmentsOnEnd`): con
+  `CobrarEnLiquidacionFinal` (de fábrica) las cuotas posteriores al último mes del
+  contrato se suman a la cuota de ese último mes (con su diferencia por descuento);
+  con `Descartar` no se cobran. En los dos casos el cálculo lo informa.
 - **Reparto guardado.** Al cargar o corregir una boleta, y al cambiar una regla,
   el reparto se guarda en `ServiceBillAllocation`: contrato, regla, pagador, importe,
   base de cálculo, mes de liquidación (`chargePeriod`), número de cuota y, una vez
@@ -155,23 +164,25 @@ Negativas:
   una boleta rehace las partes sin facturar. Lo ya facturado queda como estaba, y
   una corrección posterior se hace con una versión nueva de la regla o con un
   ajuste manual en la liquidación.
-- Las cuotas de un plan anual que quedan después del fin del contrato no se
-  trasladan (la API lo informa al calcular). Reclamar lo pendiente al cierre del
-  contrato es un paso manual.
+- Con `Descartar`, las cuotas de un plan anual posteriores al fin del contrato no se
+  trasladan; con `CobrarEnLiquidacionFinal` se cobran todas juntas en la última
+  liquidación, que puede ser un monto alto para el inquilino.
 - Un servicio de un edificio repartido por consumo necesita el consumo de cada
   unidad (`unitConsumptions`, por la API); la pantalla de carga mensual todavía
   carga el consumo total de la boleta.
 - Se asume la moneda de la boleta igual a la de la liquidación; las partes de
   otra moneda quedan pendientes.
 
-## Convenciones de monto sin respaldo escrito
+## Decidido por Manuel el 2026-11-02
 
-Dos reglas de dinero no estaban en lo relevado y se implementaron con la opción
-más conservadora, como campo de la regla con su valor por defecto:
+Cuatro reglas de dinero no estaban en lo relevado; se consultaron y quedaron así:
 
-- `annualRecovery` por defecto `Prorrateado` (12 cuotas): el inquilino no paga de
-  una vez lo que la inmobiliaria adelantó.
-- `annualDiscountToTenant` por defecto verdadero: se traslada lo efectivamente
-  pagado, nunca más que el importe de la boleta.
-
-Quedan registradas como preguntas abiertas para la inmobiliaria.
+- **Recupero anual:** se elige libremente por regla; lo típico es en cuotas, y la
+  cantidad de cuotas (1 a 12) también se elige.
+- **Descuento por pago anual:** configurable por regla: lo recibe el inquilino, el
+  locador o la inmobiliaria.
+- **Cuotas restantes al terminar el contrato:** configurable por regla: cobrarlas en
+  la liquidación final o descartarlas.
+- **Importe fijo** nunca supera la boleta, y un cambio de regla rige para las
+  boletas de los meses siguientes a su fecha (la regla de un mes es la vigente el
+  día 1), igual que el alquiler.

@@ -401,7 +401,9 @@ erDiagram
         decimal fixedAmount
         string paymentPlan
         string annualRecovery
-        boolean annualDiscountToTenant
+        int annualInstallments
+        string annualDiscountBeneficiary
+        string remainingInstallmentsOnEnd
         date validFrom
         date validTo
     }
@@ -422,6 +424,8 @@ erDiagram
         string payer
         decimal amount
         string basis
+        decimal surplus
+        string surplusBeneficiary
         date chargePeriod
         int installmentNo
         int installmentsTotal
@@ -429,9 +433,9 @@ erDiagram
     }
 ```
 
-- `ContractChargeRule`: `id`, `tenantId`, `contractId`, `serviceId`, `payer` (`Inquilino`, `Inmobiliaria`, `Propietario`), `splitMode` (`Porcentaje`, `Consumo`, `Fijo`), `tenantSharePct` (100 por defecto), `fixedAmount`, `paymentPlan` (`Mensual`, `Anual`), `annualRecovery` (`Prorrateado` por defecto, `Unico`), `annualDiscountToTenant` (verdadero por defecto), `validFrom`, `validTo`, `agreementId`, `notes`. Única por `[contractId, serviceId, validFrom]`: un cambio cierra la regla vigente y crea otra, no la pisa.
+- `ContractChargeRule`: `id`, `tenantId`, `contractId`, `serviceId`, `payer` (`Inquilino`, `Inmobiliaria`, `Propietario`), `splitMode` (`Porcentaje`, `Consumo`, `Fijo`), `tenantSharePct` (100 por defecto), `fixedAmount`, `paymentPlan` (`Mensual`, `Anual`), `annualRecovery` (`Prorrateado` por defecto, `Unico`), `annualInstallments` (1 a 12, 12 por defecto), `annualDiscountBeneficiary` (`Inquilino` por defecto, `Locador`, `Inmobiliaria`), `remainingInstallmentsOnEnd` (`CobrarEnLiquidacionFinal` por defecto, `Descartar`), `validFrom`, `validTo`, `agreementId`, `notes`. Única por `[contractId, serviceId, validFrom]`: un cambio cierra la regla vigente y crea otra, no la pisa.
 - `ServiceBill`: `id`, `tenantId`, `serviceId`, `period` (primer día del mes), `installmentLabel`, `amount`, `nominalAmount`, `currency`, `dueDate`, `consumption`, `unitConsumptions` (lista de propiedad y consumo), `status` (`Pendiente`, `Pagada`, `Anulada`), `paidBy` (`Inquilino`, `Inmobiliaria`, `Propietario`), `paidAt`, `receiptUrl`, `notes`, `createdById`. Única por `[serviceId, period, installmentLabel]`.
-- `ServiceBillAllocation`: `id`, `tenantId`, `billId`, `contractId`, `ruleId`, `payer`, `amount`, `basis` (texto con el cálculo), `chargePeriod` (mes de la liquidación en que se cobra), `installmentNo`, `installmentsTotal`, `liquidacionId`, `billedAt`. Única por `[billId, contractId, chargePeriod]`. Una parte con `billedAt` ya está en una liquidación y no se rehace.
+- `ServiceBillAllocation`: `id`, `tenantId`, `billId`, `contractId`, `ruleId`, `payer`, `amount`, `basis` (texto con el cálculo), `surplus` y `surplusBeneficiary` (parte de `amount` que es la diferencia por el descuento anual y a quién va), `chargePeriod` (mes de la liquidación en que se cobra), `installmentNo`, `installmentsTotal`, `liquidacionId`, `billedAt`. Única por `[billId, contractId, chargePeriod]`. Una parte con `billedAt` ya está en una liquidación y no se rehace.
 - Los tres modelos llevan `tenantId` y están registrados en `TENANT_SCOPED_MODELS`. El renglón de liquidación que sale de una parte lleva `sourceType` `ServiceBillAllocation` y el id de la parte como `sourceId`.
 
 ### OwnerRendicion / RendicionLineItem

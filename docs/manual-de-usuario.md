@@ -295,9 +295,14 @@ El reparto es un **porcentaje** de la boleta (el que le toca al inquilino), **po
 consumo** (la parte del consumo de la unidad sobre el total de la boleta, por
 ejemplo el agua de un edificio) o un **importe fijo** (nunca más que la boleta). Un
 servicio con opción anual (tasa municipal, impuesto inmobiliario) puede cobrarse
-**mensual** o **anual**; en el plan anual la parte del inquilino se **prorratea en
-12 cuotas** mensuales (de fábrica) o se cobra **de una vez** en el mes de la boleta,
-y el descuento por pago anual es para el inquilino (de fábrica) o para quien pagó.
+**mensual** o **anual**. En el plan anual se elige cómo se recupera la boleta: **en
+cuotas** mensuales iguales (lo habitual; de 1 a 12, de fábrica 12) o **de una vez** en
+el mes de la boleta. También se elige **a quién va el descuento por pago anual**: al
+inquilino (se le cobra lo que efectivamente se pagó), o al locador o a la
+inmobiliaria (se le cobra el importe sin descuento y la diferencia sale como un
+renglón aparte a nombre de ese beneficiario, sin comisión). Y qué pasa si el contrato
+termina antes de la última cuota: **cobrar lo que queda en la liquidación final** (se
+suma a la cuota del último mes) o **descartar** las cuotas restantes.
 
 Quien administra la facturación (Admin, Gerente y Liquidaciones) usa *Agregar o
 cambiar regla*: elige el servicio, quién paga, el reparto, el plan y desde qué fecha
