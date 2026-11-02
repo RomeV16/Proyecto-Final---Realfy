@@ -320,6 +320,13 @@ más grande y un asistente de emisión con un paso más —elegir el emisor—; 
 beneficio es que la numeración por punto de venta y por emisor queda consistente
 sin trabajo manual.
 
+Ese modelo se extendió para facturar por cuenta del locador (ADR-0017): un emisor
+delegado es un emisor con la persona del locador, y la inmobiliaria factura el
+alquiler con su delegación en ARCA, nunca a nombre propio. Qué se factura, cuándo
+y con qué IVA es configuración con valores conservadores, y la emisión pasa por una
+cola idempotente por origen y locador, de modo que un fallo de ARCA no rompe el
+cobro y repetir una emisión no factura dos veces.
+
 La clave privada del certificado no se guarda en claro. Se cifra con un esquema de
 sobre: cada certificado se cifra con una clave de datos propia, generada al azar
 en el momento, y esa clave se envuelve con una clave maestra que vive en la

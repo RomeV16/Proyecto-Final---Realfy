@@ -563,6 +563,24 @@ Admin. En la tabla, esos seis roles de lectura figuran como **lectura**.
 | DELETE | `/invoices/issuers/:id` | Baja de un emisor. | Admin, Gerente, Liquidaciones |
 | POST | `/invoices/issuers/:id/verify-delegation` | Verifica la delegación del emisor. | Admin, Gerente, Liquidaciones |
 | POST | `/invoices/issuers/:id/sync-pdv` | Sincroniza los puntos de venta con el organismo. | Admin, Gerente, Liquidaciones |
+
+### Facturación por cuenta del locador (ADR-0017)
+
+La inmobiliaria factura el alquiler con la delegación de ARCA del locador (un emisor con `personId`), nunca a nombre propio. Qué se factura, cuándo y con qué IVA es configuración (`operationalDefaults.invoicing` y, por locador, `invoicingSettings`). Una cola por origen, locador y tipo evita que un fallo de ARCA rompa el cobro y que se facture dos veces. Los GET son de Admin, Gerente, Liquidaciones y Lectura.
+
+| Método | Ruta | Para qué | Acceso |
+|---|---|---|---|
+| GET | `/persons/:id/invoicing-settings` | Emisor delegado del locador (con su delegación y puntos de venta), lo que definió (`override`), los valores de la inmobiliaria (`agencyDefaults`), lo que rige (`effective`) y desde cuándo factura solo (`autoSince`). | Lectura |
+| PUT | `/persons/:id/invoicing-settings` | Define `scope` (`Alquiler`, `AlquilerPunitorios`, `TodoLocador`), `when` (`Manual`, `AlPagar`, `AlEmitirEstado`) y `vatPct` (0, 2.5, 5, 10.5, 21 o 27, IVA incluido); `null` vuelve a lo de la inmobiliaria. 409 `LESSOR_ISSUER_REQUIRED` sin emisor. | Admin, Gerente |
+| POST | `/persons/:id/invoicing-issuer` | Da de alta (o reactiva) el emisor delegado con el CUIT, el nombre y la condición de la persona; admite `ingresosBrutos`, `activityStartDate` y `businessAddress`. 400 `PERSON_CUIT_REQUIRED`, `PERSON_FISCAL_CONDITION_REQUIRED` o `FISCAL_CONDITION_CANNOT_INVOICE`; 409 `LESSOR_ISSUER_EXISTS`. La delegación se verifica y los puntos de venta se traen con las rutas de emisores. | Admin, Gerente |
+| GET | `/payments/:id/invoices` | Comprobantes y trabajos de facturación de un cobro. | Lectura |
+| POST | `/payments/:id/invoices` | Factura el cobro por cuenta de cada locador con emisor delegado (o del `personId` indicado): una factura por contrato, al inquilino, por la parte del locador. Idempotente. 409 `INVOICING_TRIGGER_MISMATCH` si el locador factura al emitir el estado; 422 `LESSOR_INVOICE_FAILED` con el motivo si falla (el cobro no cambia y el trabajo queda `Fallido`). | Admin, Gerente, Liquidaciones |
+| GET | `/owner-statements/:id/invoices` | Comprobantes y trabajos de un estado de cuenta. | Lectura |
+| POST | `/owner-statements/:id/invoices` | Factura un estado emitido por cuenta de su locador. 409 `STATEMENT_NOT_ISSUED` o `INVOICING_TRIGGER_MISMATCH`; 422 si falla. | Admin, Gerente, Liquidaciones |
+| GET | `/invoices/pending` | Cola de emisión: `status` (`Pendiente`, `Fallido`, `Emitido`, `Omitido`; por defecto pendientes y fallidos), `personId`, `page`, `limit`. | Lectura |
+| POST | `/invoices/pending/run` | Pone en cola lo que la configuración manda facturar solo (cobros o estados nuevos de locadores con delegación activa, desde que se activó y hasta 60 días atrás) y emite lo pendiente. `retryAll: true` reintenta también los que agotaron los 5 intentos automáticos; `personId` limita a un locador. Responde `enqueued`, `processed`, `emitted`, `skipped`, `failed` y `results`. Un proceso lo corre solo cada 30 minutos. | Admin, Gerente, Liquidaciones |
+
+El listado `GET /invoices` admite `personId` (locador por cuyo emisor se emitió), `source` (`Payment`, `OwnerStatement` o `FeeInstallment`) y `ownerStatementId`. Anular un estado de cuenta deja en cola la nota de crédito de sus facturas (`creditNotes` en la respuesta de `annul`), que se emite con la cola.
 | GET | `/invoices/issuers/:id/pdv` | Puntos de venta del emisor. | Lectura |
 | POST | `/invoices/issuers/:id/pdv` | Agrega un punto de venta. | Admin, Gerente, Liquidaciones |
 | DELETE | `/invoices/pdv/:id` | Quita un punto de venta. | Admin, Gerente, Liquidaciones |

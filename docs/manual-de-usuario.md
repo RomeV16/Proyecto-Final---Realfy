@@ -823,6 +823,46 @@ anterior.
 Si un estado no cuadra, lo primero a revisar es la comisión del contrato y el saldo
 inicial del locador.
 
+### Facturar por cuenta del locador
+
+El alquiler lo factura el locador, no la inmobiliaria: la inmobiliaria emite la
+factura **por su cuenta**, con la delegación que el locador le dio en ARCA. Los
+honorarios y comisiones de la inmobiliaria se siguen facturando con su emisor propio.
+
+**Configurar la delegación** (Admin y Gerente), en la ficha del locador
+(`/locadores/…`, solapa *Facturación*):
+
+1. En ARCA, el locador delega en la inmobiliaria el servicio de facturación
+   electrónica (WSFE) y habilita un punto de venta para ella.
+2. En la solapa, *Crear emisor delegado*: toma el CUIT y la condición frente al IVA
+   de la persona (hay que cargarlos antes en su ficha; un consumidor final no puede
+   facturar).
+3. *Verificar delegación* confirma en ARCA que quedó activa y *Traer puntos de
+   venta* los carga. Sin un punto de venta no se puede emitir.
+4. Definir **qué se factura** (solo el alquiler, alquiler y punitorios, o todo lo que
+   es del locador), **cuándo** (a pedido, al registrar cada cobro o al emitir el
+   estado de cuenta) y el **IVA incluido**. Lo que no se define sale de los valores
+   de la inmobiliaria (*Configuración → Valores por defecto → Facturación por cuenta
+   del locador*). De fábrica: solo el alquiler, a pedido y sin IVA discriminado.
+   Estos criterios los define el contador: confirmarlos antes de activar la
+   facturación automática.
+
+**Facturar** (Admin, Gerente y Liquidaciones):
+
+- Desde un cobro (*Pagos*, botón *Facturación*) o desde un estado de cuenta emitido,
+  *Facturar por cuenta del locador* emite una factura por contrato, al inquilino, por
+  la parte del locador. El tipo (A, B o C) sale de la condición del locador y la del
+  inquilino. Repetir la acción no emite otra factura.
+- Con la facturación automática (al pagar o al emitir el estado), el sistema pone en
+  cola lo nuevo y lo emite cada 30 minutos; solo factura lo posterior a la
+  activación. Con una de las dos vías automáticas, la otra no factura a mano.
+- Si ARCA falla, el cobro y el estado quedan como estaban y la factura queda en
+  *Facturas → Pendientes por cuenta del locador*, con el motivo. *Emitir pendientes*
+  reintenta todo.
+- Al **anular un estado de cuenta**, sus facturas quedan en cola para la nota de
+  crédito, que se emite sola o con *Emitir pendientes*. Un alquiler en dólares todavía
+  no se factura.
+
 ### Honorarios
 
 **Honorarios** (`/honorarios`) reúne los honorarios de cada operación —alta de un
