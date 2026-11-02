@@ -92,6 +92,9 @@ interface FormData {
   upfrontThresholdFees: string;
   /** Lo que debe el locador que cobra directamente; vacío = el de la inmobiliaria. */
   lessorDirectOwes: string;
+  /** Límite de reparaciones sin consultar al locador (importe y moneda); vacío = el de la inmobiliaria. */
+  repairPreauthLimit: string;
+  repairPreauthCurrency: string;
   guarantees: GuaranteeEntry[];
 }
 
@@ -112,6 +115,8 @@ const INITIAL_FORM: FormData = {
   liquidationRules: { prorationMode: '', midMonthAdjustmentMode: '', firstDueMode: '', fixedDiscountProration: '', upfrontBasis: '' },
   upfrontThresholdFees: '',
   lessorDirectOwes: '',
+  repairPreauthLimit: '',
+  repairPreauthCurrency: 'ARS',
   guarantees: [],
 };
 
@@ -154,13 +159,15 @@ export function ContractForm() {
   const tConv = useTranslations('liquidationConventions');
 
   const [defaultUpfront, setDefaultUpfront] = useState<number | null>(null);
+  const [defaultRepairLimit, setDefaultRepairLimit] = useState<number | null>(null);
   // Las convenciones arrancan con los valores por defecto de la inmobiliaria.
   useEffect(() => {
     let cancelled = false;
-    apiClient<Partial<ConventionValues> & { upfrontThresholdFees?: number }>('/tenants/me/operational-defaults')
+    apiClient<Partial<ConventionValues> & { upfrontThresholdFees?: number; repairs?: { preauthLimit?: number } }>('/tenants/me/operational-defaults')
       .then((defaults) => {
         if (cancelled || !defaults) return;
         setDefaultUpfront(defaults.upfrontThresholdFees ?? null);
+        setDefaultRepairLimit(defaults.repairs?.preauthLimit ?? null);
         setForm((prev) => ({
           ...prev,
           liquidationRules: Object.fromEntries(
@@ -358,6 +365,9 @@ export function ContractForm() {
     setSubmitting(mode);
     setError(null);
     setActivationProblems(null);
+    // Importe con coma o punto, hasta dos decimales; lo demás no viaja (rige el de la inmobiliaria).
+    const repairLimitText = form.repairPreauthLimit.trim().replace(',', '.');
+    const repairLimit = /^\d+(\.\d{1,2})?$/.test(repairLimitText) && Number(repairLimitText) > 0 ? repairLimitText : '';
 
     try {
       const payload: Record<string, unknown> = {
@@ -378,6 +388,7 @@ export function ContractForm() {
           ...Object.fromEntries(Object.entries(form.liquidationRules).filter(([, value]) => value)),
           ...(form.upfrontThresholdFees.trim() !== '' ? { upfrontThresholdFees: Number(form.upfrontThresholdFees) } : {}),
           ...(form.lessorDirectOwes ? { lessorDirectOwes: form.lessorDirectOwes } : {}),
+          ...(repairLimit ? { repairPreauthLimitAmount: repairLimit, repairPreauthLimitCurrency: form.repairPreauthCurrency } : {}),
         },
         persons: form.persons.map((p) => ({ personId: p.personId, role: p.role })),
         // Los locadores viajan con su porcentaje de cobro; los datos de partes iguales son solo el valor inicial.
@@ -838,6 +849,31 @@ export function ContractForm() {
                     ))}
                   </select>
                   <p className="mt-1 text-xs text-slate-400">{tConv('lessorDirectOwes.hint')}</p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-500" htmlFor="repair-preauth-limit">
+                    {tConv('repairPreauthLimit.label')}
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      aria-label={tConv('repairPreauthLimit.currency')}
+                      value={form.repairPreauthCurrency}
+                      onChange={(e) => setForm((prev) => ({ ...prev, repairPreauthCurrency: e.target.value }))}
+                      className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm text-slate-900"
+                    >
+                      <option value="ARS">ARS</option>
+                      <option value="USD">USD</option>
+                    </select>
+                    <input
+                      id="repair-preauth-limit"
+                      inputMode="decimal"
+                      value={form.repairPreauthLimit}
+                      onChange={(e) => setForm((prev) => ({ ...prev, repairPreauthLimit: e.target.value }))}
+                      placeholder={defaultRepairLimit !== null ? tConv('repairPreauthLimit.placeholder', { value: defaultRepairLimit }) : ''}
+                      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400">{tConv('repairPreauthLimit.hint')}</p>
                 </div>
               </div>
             </div>

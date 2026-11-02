@@ -3234,7 +3234,7 @@
       "Fixed": "Fixed amount"
      },
      "pct": "Percentage",
-     "pctHint": "Empty uses the agency default.",
+     "pctHint": "Empty uses the contract's and, without one, the agency default.",
      "amount": "Fee amount"
     },
     "submit": "Charge expense",
@@ -4991,6 +4991,12 @@
     "TodoLoAjeno": "Everything that isn't theirs (commission, agency and utilities)",
     "SoloInmobiliaria": "Only commission and agency (they pay the utilities)"
    }
+  },
+  "repairPreauthLimit": {
+   "label": "Own repair limit",
+   "placeholder": "Default: {value}",
+   "hint": "Up to which amount a repair is handled without asking the lessor. Empty uses the agency default.",
+   "currency": "Limit currency"
   }
  },
  "penaltyRule": {

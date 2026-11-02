@@ -3234,7 +3234,7 @@
       "Fixed": "Importe fijo"
      },
      "pct": "Porcentaje",
-     "pctHint": "Vacío usa el de la inmobiliaria.",
+     "pctHint": "Vacío usa el del contrato y, sin él, el de la inmobiliaria.",
      "amount": "Importe del honorario"
     },
     "submit": "Imputar gasto",
@@ -4991,6 +4991,12 @@
     "TodoLoAjeno": "Todo lo que no es suyo (comisión, inmobiliaria y entes)",
     "SoloInmobiliaria": "Solo comisión e inmobiliaria (los entes los paga él)"
    }
+  },
+  "repairPreauthLimit": {
+   "label": "Límite de reparaciones propio",
+   "placeholder": "Por defecto: {value}",
+   "hint": "Hasta qué importe se resuelve una reparación sin consultar al locador. Vacío usa el de la inmobiliaria.",
+   "currency": "Moneda del límite"
   }
  },
  "penaltyRule": {
