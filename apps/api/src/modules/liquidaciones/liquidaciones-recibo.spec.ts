@@ -71,6 +71,7 @@ function build(liq: any, nextSeq = 6) {
     {} as any,
     {} as any,
     { pendingLines: jest.fn().mockResolvedValue({ lines: [], rowIds: [] }), markSettled: jest.fn().mockResolvedValue(0), release: jest.fn().mockResolvedValue(0) } as any,
+    { pendingLines: jest.fn().mockResolvedValue([]), markImputed: jest.fn().mockResolvedValue(0), releaseFromLiquidation: jest.fn() } as any,
   );
   return { service, client, tx };
 }

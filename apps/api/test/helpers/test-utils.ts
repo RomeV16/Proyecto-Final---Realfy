@@ -53,6 +53,7 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
 
   // S06 tables (Notification → ServicePayment → Service, before other FK targets)
   await prisma.baseClient.notification.deleteMany();
+  await prisma.baseClient.pendingCharge.deleteMany();
   await prisma.baseClient.serviceBillAllocation.deleteMany();
   await prisma.baseClient.contractChargeRule.deleteMany();
   await prisma.baseClient.servicePayment.deleteMany();

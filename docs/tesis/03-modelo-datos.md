@@ -256,6 +256,8 @@ erDiagram
         string midMonthAdjustmentMode
         string firstDueMode
         string fixedDiscountProration
+        int upfrontThresholdFees
+        string upfrontBasis
         json customSteps
     }
 ```
@@ -279,7 +281,7 @@ Convenio fechado que cambia las reglas del contrato.
 Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se modifica: un cambio crea otra.
 
 - `id`, `tenantId`, `contractId`, `validFrom`, `agreementId`, `adjustmentType`, `adjustmentPeriod`, `adjustmentBase` (`Original` o `Vigente`), `indexLagMonths` (por defecto 2), `fixedInitialMonths` (0), `customPct`, `customSteps` (JSON, lista de `{ fromMonth, pct }` para el escalonado), `rentOverride`, `discountPct`, `discountAmount`, `dueDay`, `paymentFlow` (`Partido`, `TodoInmobiliaria`, `TodoLocador`), `penaltyConfig` (JSON).
-- Cuatro convenciones de liquidación, pactables por contrato y con valor por defecto de la inmobiliaria (`Tenant.operationalDefaults`): `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`). Las columnas son obligatorias y su valor por defecto en la base es el comportamiento original (días reales, el ajuste rige desde el período siguiente, vence el día de inicio, descuento fijo proporcional), de modo que las versiones existentes liquidan igual que antes. Un contrato nuevo las toma de los valores por defecto de la inmobiliaria o de lo que se pacte en el alta; un convenio puede cambiarlas con `termsPatch`.
+- Cuatro convenciones de liquidación, pactables por contrato y con valor por defecto de la inmobiliaria (`Tenant.operationalDefaults`): `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`). Las columnas son obligatorias y su valor por defecto en la base es el comportamiento original (días reales, el ajuste rige desde el período siguiente, vence el día de inicio, descuento fijo proporcional), de modo que las versiones existentes liquidan igual que antes. Un contrato nuevo las toma de los valores por defecto de la inmobiliaria o de lo que se pacte en el alta; un convenio puede cambiarlas con `termsPatch`. Además pacta el anticipo del centro de carga: `upfrontThresholdFees` (entero, en comisiones mensuales; `null` = el de la inmobiliaria) y `upfrontBasis` (`ComisionPactada` por defecto, o `PorcentajePorDefecto`); las versiones existentes quedan con `null` y `ComisionPactada`, el comportamiento anterior.
 - `@@unique([contractId, validFrom])`. La versión vigente a una fecha es la última con `validFrom` anterior o igual. La migración creó una por contrato con sus columnas de hoy: base `Vigente` (lo que hace el motor actual), rezago 0 (el motor anterior no lo aplicaba; los contratos nuevos toman el de los valores por defecto, 2), vencimiento el día 10 y flujo `Partido`.
 - Las tres tablas llevan `tenantId` y están registradas en `TENANT_SCOPED_MODELS`.
 
@@ -437,6 +439,38 @@ erDiagram
 - `ServiceBill`: `id`, `tenantId`, `serviceId`, `period` (primer día del mes), `installmentLabel`, `amount`, `nominalAmount`, `currency`, `dueDate`, `consumption`, `unitConsumptions` (lista de propiedad y consumo), `status` (`Pendiente`, `Pagada`, `Anulada`), `paidBy` (`Inquilino`, `Inmobiliaria`, `Propietario`), `paidAt`, `receiptUrl`, `notes`, `createdById`. Única por `[serviceId, period, installmentLabel]`.
 - `ServiceBillAllocation`: `id`, `tenantId`, `billId`, `contractId`, `ruleId`, `payer`, `amount`, `basis` (texto con el cálculo), `surplus` y `surplusBeneficiary` (parte de `amount` que es la diferencia por el descuento anual y a quién va), `chargePeriod` (mes de la liquidación en que se cobra), `installmentNo`, `installmentsTotal`, `liquidacionId`, `billedAt`. Única por `[billId, contractId, chargePeriod]`. Una parte con `billedAt` ya está en una liquidación y no se rehace.
 - Los tres modelos llevan `tenantId` y están registrados en `TENANT_SCOPED_MODELS`. El renglón de liquidación que sale de una parte lleva `sourceType` `ServiceBillAllocation` y el id de la parte como `sourceId`.
+
+### Centro de carga
+
+Gastos y cargos puntuales del mes que se imputan una sola vez, al inquilino en su liquidación o al locador en su estado (ítem 35).
+
+```mermaid
+erDiagram
+    Property ||--o{ PendingCharge : "gastos de la unidad"
+    Contract |o--o{ PendingCharge : "cargos del contrato"
+    Person |o--o{ PendingCharge : "locador que lo soporta"
+    Liquidacion |o--o{ PendingCharge : "la incluye una vez"
+    PendingCharge {
+        string chargedTo
+        string kind
+        decimal amount
+        string currency
+        string beneficiary
+        date incurredAt
+        date targetPeriod
+        string status
+        boolean requiresUpfront
+        int installmentNo
+        int installmentOf
+        datetime imputedAt
+    }
+```
+
+- `PendingCharge`: `id`, `tenantId`, `propertyId`, `contractId` (opcional: un gasto de una unidad vacía no tiene contrato), `chargedTo` (`Inquilino`, `Locador`, `Inmobiliaria`), `lessorPersonId`, `kind` (`Reparacion`, `ExpensaExtra`, `Devolucion`, `HonorarioGestion`, `AjusteRetroactivo`, `Otro`), `description`, `amount` (con signo), `currency`, `beneficiary` (`Locador` o `Inmobiliaria`: quién recibe el dinero), `incurredAt`, `targetPeriod` (primer mes en que se imputa; sin mes, en la próxima liquidación), `status` (`Pendiente`, `Imputado`, `CobradoAnticipado`, `Anulado`), `requiresUpfront`, `installmentNo`, `installmentOf`, `installmentGroupId` (las cuotas de un cargo lo comparten), `imputedLiquidacionId`, `imputedStatementId` (sin clave foránea: lo completa el estado de cuenta del locador), `imputedAt`, `sourceType`, `sourceId`, `notes`, `createdById`. Índices `[tenantId, contractId, status]` y `[tenantId, propertyId, status]`.
+- Registrado en `TENANT_SCOPED_MODELS` y en la limpieza de las pruebas de integración. Sin backfill: la tabla nace vacía.
+- Un cargo `chargedTo = Inmobiliaria` queda `Pendiente` y no se imputa a nadie; la caja de la inmobiliaria (ítem 36) lo cerrará como gasto propio.
+- Anular o borrar la liquidación que lo tomó devuelve el cargo a `Pendiente` (`imputedLiquidacionId` nulo) en la misma transacción, igual que las partes de boletas y las correcciones de ajustes.
+- **Contrato con el estado del locador (3.2).** Los cargos `chargedTo = Locador` quedan `Pendiente` sin `imputedStatementId`; el estado de cuenta del locador toma los de su propiedad (y `lessorPersonId`, o todos los locadores si es nulo), los descuenta y los pasa a `Imputado` con el id del estado, en la misma transacción que lo crea.
 
 ### OwnerRendicion / RendicionLineItem
 

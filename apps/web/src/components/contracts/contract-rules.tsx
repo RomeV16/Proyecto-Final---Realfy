@@ -30,6 +30,8 @@ interface TermsVersion {
   firstDueMode?: string;
   fixedDiscountProration?: string;
   penaltyConfig?: unknown;
+  upfrontBasis?: string;
+  upfrontThresholdFees?: number | null;
 }
 
 interface TermsResponse {
@@ -126,6 +128,9 @@ export function ContractRules({ contractId, currency }: { contractId: string; cu
                   </Fact>
                 ) : null;
               })}
+              {current.upfrontThresholdFees != null && (
+                <Fact label={tConv('upfrontThreshold.label')}>{t('feesCount', { count: current.upfrontThresholdFees })}</Fact>
+              )}
               {current.rentOverride != null && (
                 <Fact label={t('rentOverride')}>{formatMoneyFixed(current.rentOverride, currency)}</Fact>
               )}

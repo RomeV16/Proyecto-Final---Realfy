@@ -354,6 +354,9 @@ export class ContractsService {
           firstDueMode: validated.liquidationRules?.firstDueMode ?? defaults.firstDueMode,
           fixedDiscountProration:
             validated.liquidationRules?.fixedDiscountProration ?? defaults.fixedDiscountProration,
+          // Anticipo del centro de carga: umbral propio (null = el de la inmobiliaria) y su base.
+          upfrontThresholdFees: validated.liquidationRules?.upfrontThresholdFees ?? null,
+          upfrontBasis: validated.liquidationRules?.upfrontBasis ?? defaults.upfrontBasis,
         },
       });
 

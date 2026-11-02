@@ -729,6 +729,19 @@ export class ContractAdjustmentService {
     return result.count;
   }
 
+  /**
+   * Deshace `markTrueUpBilled`: las correcciones vuelven a quedar pendientes cuando la
+   * liquidación que las traía se anula o se borra, o se quita su renglón.
+   */
+  async releaseTrueUps(adjustmentIds: string[], tx: any = this.prisma.client): Promise<number> {
+    if (adjustmentIds.length === 0) return 0;
+    const result = await tx.contractAdjustment.updateMany({
+      where: { id: { in: adjustmentIds }, trueUpOfId: { not: null }, trueUpBilledAt: { not: null } },
+      data: { trueUpBilledAt: null },
+    });
+    return result.count;
+  }
+
   // ─── Barrido de ajustes vencidos ───────────────────────────────────────────
 
   /**

@@ -32,6 +32,8 @@ export interface TermsLike {
   midMonthAdjustmentMode: string;
   firstDueMode: string;
   fixedDiscountProration: string;
+  upfrontThresholdFees: number | null;
+  upfrontBasis: string;
 }
 
 type TermsClient = {
@@ -83,6 +85,8 @@ const RULE_DEFAULTS = {
   midMonthAdjustmentMode: (d: OperationalDefaults) => d.midMonthAdjustmentMode,
   firstDueMode: (d: OperationalDefaults) => d.firstDueMode,
   fixedDiscountProration: (d: OperationalDefaults) => d.fixedDiscountProration,
+  upfrontThresholdFees: (d: OperationalDefaults) => d.upfrontThresholdFees,
+  upfrontBasis: (d: OperationalDefaults) => d.upfrontBasis,
 } as const;
 
 export type ResolvableRule = keyof typeof RULE_DEFAULTS;

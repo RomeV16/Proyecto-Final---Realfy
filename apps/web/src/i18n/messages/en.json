@@ -110,7 +110,8 @@
   "pagos": "Pagos",
   "notifications": "Notificaciones",
   "permissions": "Permissions",
-  "serviceBills": "Monthly bills"
+  "serviceBills": "Monthly bills",
+  "charges": "Charge center"
  },
  "dataTable": {
   "pagination": {
@@ -145,6 +146,18 @@
   "copyReference": "Copy reference",
   "copied": "Copied",
   "codes": {
+   "CONTRACT_NOT_FOUND": "The contract does not exist.",
+   "PROPERTY_NOT_FOUND": "The property does not exist.",
+   "CHARGE_NOT_FOUND": "The charge no longer exists.",
+   "CHARGE_NOT_EDITABLE": "The charge is no longer pending and cannot be edited.",
+   "CHARGE_NOT_CANCELLABLE": "Only a pending charge can be cancelled.",
+   "CHARGE_NOT_PENDING": "The charge is no longer pending.",
+   "CHARGE_NOT_IMPUTED": "Only an imputed charge can be released.",
+   "CHARGE_IN_STATEMENT": "The charge was already deducted in a lessor statement.",
+   "CHARGE_LIQUIDATION_ACTIVE": "The settlement that includes the charge is still active: cancel it or remove the line before releasing it.",
+   "CHARGE_ALREADY_IMPUTED": "A charge was already included in another settlement.",
+   "UPFRONT_NOT_APPLICABLE": "An advance only applies to a charge to the tenant.",
+   "PROPERTY_MISMATCH": "The contract belongs to another property.",
    "BILL_ALREADY_BILLED": "The bill is already included in a settlement and cannot be changed.",
    "ALLOCATION_ALREADY_BILLED": "A part of the bill was already included in another settlement.",
    "BILL_NOT_FOUND": "The bill no longer exists.",
@@ -4463,6 +4476,19 @@
     "Proporcional": "Prorated",
     "Completo": "Applied in full"
    }
+  },
+  "upfrontBasis": {
+   "label": "Commission for the advance threshold",
+   "hint": "Which monthly commission an expense's advance threshold is measured against (factory: {value}).",
+   "options": {
+    "ComisionPactada": "The contract's agreed commission",
+    "PorcentajePorDefecto": "The agency's default percentage"
+   }
+  },
+  "upfrontThreshold": {
+   "label": "Own advance threshold",
+   "placeholder": "Default: {value}",
+   "hint": "In monthly commissions. Empty uses the agency default."
   }
  },
  "penaltyRule": {
@@ -4602,6 +4628,7 @@
   "adjustmentPeriod": "Adjustment period",
   "adjustmentBase": "Adjustment base",
   "indexLagMonths": "Index lag",
+  "feesCount": "{count, plural, one {# monthly commission} other {# monthly commissions}}",
   "months": "{count, plural, one {# month} other {# months}}",
   "customPct": "Percentage",
   "dueDay": "Due day",
@@ -4688,6 +4715,169 @@
    "retryHint": "Fix the rows and save again: the ones already saved are not duplicated."
   }
  },
+  "charges": {
+   "title": "Charge center",
+   "subtitle": "Load the month's expenses (repairs, extraordinary fees, refunds, management fees). What the tenant owes goes into the next settlement; what the lessor owes goes into the lessor statement. A large expense is flagged to request an advance payment.",
+   "forbidden": "You do not have permission to load expenses.",
+   "loadError": "The charges could not be loaded",
+   "targetsError": "The contracts and properties could not be loaded",
+   "add": "Load an expense",
+   "installment": "installment {no}/{of}",
+   "lateNote": "A charge loaded after the month's settlement was generated goes into the next settlement generated. A charge already included in a settlement cannot be edited or cancelled: remove its line, or cancel the settlement and release the charge.",
+   "actionError": "The action could not be completed",
+   "filters": {
+    "status": "Status",
+    "all": "All",
+    "period": "Month",
+    "upfrontOnly": "Only those that require an advance"
+   },
+   "columns": {
+    "month": "Month",
+    "property": "Property",
+    "concept": "Item",
+    "chargedTo": "Charged to",
+    "amount": "Amount",
+    "status": "Status",
+    "actions": "Actions"
+   },
+   "empty": {
+    "title": "No charges",
+    "subtitle": "When you load an expense for the month it appears here with its status."
+   },
+   "kinds": {
+    "Reparacion": "Repair",
+    "ExpensaExtra": "Extraordinary fee",
+    "Devolucion": "Refund",
+    "HonorarioGestion": "Management fee",
+    "AjusteRetroactivo": "Retroactive adjustment",
+    "Otro": "Other"
+   },
+   "targets": {
+    "Inquilino": "Tenant",
+    "Locador": "Lessor",
+    "Inmobiliaria": "Agency"
+   },
+   "beneficiaries": {
+    "Locador": "The lessor (paid the provider)",
+    "Inmobiliaria": "The agency (advanced the expense)"
+   },
+   "statuses": {
+    "Pendiente": "Pending",
+    "Imputado": "Imputed",
+    "CobradoAnticipado": "Paid in advance",
+    "Anulado": "Cancelled"
+   },
+   "upfront": {
+    "badge": "Advance required",
+    "hint": "It exceeds the agency's advance threshold: it does not go into the settlement on its own."
+   },
+   "actions": {
+    "forceImpute": "Impute in the settlement",
+    "markPaidUpfront": "Paid in advance",
+    "cancel": "Cancel",
+    "release": "Release"
+   },
+   "confirm": {
+    "cancel": {
+     "title": "Cancel the charge?",
+     "body": "“{description}” will not be charged to anyone. It stays in the history."
+    },
+    "markPaidUpfront": {
+     "title": "Paid in advance?",
+     "body": "The tenant already paid “{description}” outside the settlement: it will not be charged again."
+    }
+   },
+   "done": {
+    "forceImpute": "The charge goes into the next settlement",
+    "markPaidUpfront": "Charge marked as paid in advance",
+    "cancel": "Charge cancelled",
+    "release": "The charge is pending again"
+   },
+   "form": {
+    "title": "Load an expense",
+    "saving": "Saving…",
+    "saveError": "The charge could not be saved",
+    "saved": "{count, plural, one {# charge loaded} other {# installments loaded}}",
+    "upfrontNotice": "{count, plural, one {# charge exceeds} other {# installments exceed}} the advance threshold: flagged to request an advance payment.",
+    "lessorHint": "The lessors in force for the contract, or the property's owners.",
+    "allLessors": "All lessors (according to their share)",
+    "noContract": "No contract (empty property)",
+    "chooseProperty": "Choose a property",
+    "contractRequired": "A charge to the tenant needs a contract.",
+    "amountHint": "With comma or dot. A refund is saved as a credit.",
+    "beneficiaryHint": "Who receives the money from the charge.",
+    "targetPeriodHint": "No month: in the next settlement.",
+    "installmentsHint": "From 1 to 36: one installment per month.",
+    "hints": {
+     "Inquilino": "It goes as a line of their settlement.",
+     "Locador": "It is deducted in the lessor statement; it is not a settlement line.",
+     "Inmobiliaria": "The agency absorbs it: it is only recorded."
+    },
+    "fields": {
+     "lessor": "Lessor",
+     "chargedTo": "Charged to",
+     "kind": "Kind of expense",
+     "contract": "Contract",
+     "property": "Property",
+     "description": "Description",
+     "amount": "Amount",
+     "incurredAt": "Expense date",
+     "beneficiary": "In favor of",
+     "targetPeriod": "Impute from month",
+     "installments": "Installments",
+     "notes": "Notes"
+    }
+   },
+   "errors": {
+    "lessorPersonId": "Choose a valid lessor",
+    "propertyId": "Choose the contract or the property",
+    "contractId": "A charge to the tenant needs a contract",
+    "chargedTo": "Choose who it is charged to",
+    "kind": "Choose the kind of expense",
+    "description": "Write a description",
+    "amount": "Enter a valid non-zero amount (up to 2 decimals)",
+    "incurredAt": "Enter a valid date",
+    "targetPeriod": "Choose a valid month",
+    "installments": "Installments go from 1 to 36",
+    "beneficiary": "Choose in favor of whom",
+    "notes": "The notes are too long"
+   },
+   "bulk": {
+    "show": "Spreadsheet entry",
+    "hide": "Hide the spreadsheet",
+    "title": "Spreadsheet entry",
+    "hint": "Type or paste rows from a spreadsheet. Each row is a charge to a contract; with no kind it is a repair charged to the tenant and with no date, today's. Saved rows leave the sheet and the ones that fail stay to be fixed.",
+    "gridLabel": "Charges to load",
+    "datePlaceholder": "YYYY-MM-DD or D/M/YYYY",
+    "columns": {
+     "contract": "Contract",
+     "chargedTo": "Charged to",
+     "kind": "Kind",
+     "description": "Description",
+     "amount": "Amount",
+     "incurredAt": "Date",
+     "installments": "Installments"
+    },
+    "validation": {
+     "amount": "Enter a valid non-zero amount (up to 2 decimals)",
+     "date": "Invalid date (YYYY-MM-DD or D/M/YYYY)",
+     "installments": "From 1 to 36"
+    },
+    "save": {
+     "action": "{count, plural, =0 {Save charges} one {Save # charge} other {Save # charges}}",
+     "saving": "Saving…",
+     "done": "{count, plural, one {# charge saved} other {# charges saved}}",
+     "partial": "{failed, plural, one {# row with an error} other {# rows with errors}}; the others were saved ({saved}).",
+     "error": "The charges could not be saved",
+     "failuresTitle": "These rows were not saved",
+     "retryHint": "Fix the rows and save again: the ones already saved left the sheet."
+    }
+   },
+   "contract": {
+    "title": "Pending charges",
+    "viewAll": "See the charge center"
+   }
+  },
  "chargeRules": {
   "title": "Taxes and utilities",
   "loadError": "The tax and utility rules could not be loaded",

@@ -22,6 +22,38 @@
   "src/modules/auth/auth.controller.ts#AuthController.requestPasswordReset": null,
   "src/modules/auth/auth.controller.ts#AuthController.confirmPasswordReset": null,
   "src/modules/auth/auth.controller.ts#AuthController.logout": null,
+  "src/modules/charges/charges.controller.ts#ChargesController.findAll": null,
+  "src/modules/charges/charges.controller.ts#ChargesController.findOne": null,
+  "src/modules/charges/charges.controller.ts#ChargesController.create": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/charges/charges.controller.ts#ChargesController.bulk": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/charges/charges.controller.ts#ChargesController.update": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/charges/charges.controller.ts#ChargesController.cancel": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/charges/charges.controller.ts#ChargesController.markPaidUpfront": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/charges/charges.controller.ts#ChargesController.release": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
   "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.findAll": [
     "Admin",
     "Gerente"

@@ -110,7 +110,8 @@
   "pagos": "Pagos",
   "notifications": "Notificaciones",
   "permissions": "Permisos",
-  "serviceBills": "Boletas del mes"
+  "serviceBills": "Boletas del mes",
+  "charges": "Centro de carga"
  },
  "dataTable": {
   "pagination": {
@@ -145,6 +146,18 @@
   "copyReference": "Copiar referencia",
   "copied": "Copiada",
   "codes": {
+   "CONTRACT_NOT_FOUND": "El contrato no existe.",
+   "PROPERTY_NOT_FOUND": "La propiedad no existe.",
+   "CHARGE_NOT_FOUND": "El cargo ya no existe.",
+   "CHARGE_NOT_EDITABLE": "El cargo ya no está pendiente y no se puede editar.",
+   "CHARGE_NOT_CANCELLABLE": "Solo se anula un cargo pendiente.",
+   "CHARGE_NOT_PENDING": "El cargo ya no está pendiente.",
+   "CHARGE_NOT_IMPUTED": "Solo se libera un cargo imputado.",
+   "CHARGE_IN_STATEMENT": "El cargo ya se descontó en un estado del locador.",
+   "CHARGE_LIQUIDATION_ACTIVE": "La liquidación que incluye el cargo sigue vigente: anulala o quitá el renglón antes de liberarlo.",
+   "CHARGE_ALREADY_IMPUTED": "Un cargo ya se incluyó en otra liquidación.",
+   "UPFRONT_NOT_APPLICABLE": "El anticipo solo corresponde a un cargo al inquilino.",
+   "PROPERTY_MISMATCH": "El contrato es de otra propiedad.",
    "BILL_ALREADY_BILLED": "La boleta ya está incluida en una liquidación y no se puede cambiar.",
    "ALLOCATION_ALREADY_BILLED": "Una parte de la boleta ya se incluyó en otra liquidación.",
    "BILL_NOT_FOUND": "La boleta ya no existe.",
@@ -4463,6 +4476,19 @@
     "Proporcional": "Se prorratea",
     "Completo": "Se descuenta completo"
    }
+  },
+  "upfrontBasis": {
+   "label": "Comisión para el umbral de anticipo",
+   "hint": "Con qué comisión mensual se mide el umbral de anticipo de un gasto (de fábrica: {value}).",
+   "options": {
+    "ComisionPactada": "La comisión pactada del contrato",
+    "PorcentajePorDefecto": "El porcentaje por defecto de la inmobiliaria"
+   }
+  },
+  "upfrontThreshold": {
+   "label": "Umbral de anticipo propio",
+   "placeholder": "Por defecto: {value}",
+   "hint": "En comisiones mensuales. Vacío usa el de la inmobiliaria."
   }
  },
  "penaltyRule": {
@@ -4602,6 +4628,7 @@
   "adjustmentPeriod": "Período de ajuste",
   "adjustmentBase": "Base del ajuste",
   "indexLagMonths": "Rezago del índice",
+  "feesCount": "{count, plural, one {# comisión mensual} other {# comisiones mensuales}}",
   "months": "{count, plural, one {# mes} other {# meses}}",
   "customPct": "Porcentaje",
   "dueDay": "Día de vencimiento",
@@ -4688,6 +4715,169 @@
    "retryHint": "Corregí las filas y volvé a guardar: las que ya se guardaron no se duplican."
   }
  },
+  "charges": {
+   "title": "Centro de carga",
+   "subtitle": "Cargá los gastos del mes (reparaciones, expensas extraordinarias, devoluciones, honorarios por gestión). Lo que le toca al inquilino entra en su próxima liquidación; lo del locador, en su estado. Un gasto grande se marca para pedir el pago por adelantado.",
+   "forbidden": "No tenés permiso para cargar gastos.",
+   "loadError": "No se pudieron cargar los cargos",
+   "targetsError": "No se pudieron cargar los contratos y las propiedades",
+   "add": "Cargar un gasto",
+   "installment": "cuota {no}/{of}",
+   "lateNote": "Un cargo cargado después de generada la liquidación del mes entra en la próxima liquidación que se genere. Un cargo ya incluido en una liquidación no se edita ni se anula: quitá su renglón o anulá la liquidación y liberalo.",
+   "actionError": "No se pudo completar la acción",
+   "filters": {
+    "status": "Estado",
+    "all": "Todos",
+    "period": "Mes",
+    "upfrontOnly": "Solo los que piden anticipo"
+   },
+   "columns": {
+    "month": "Mes",
+    "property": "Propiedad",
+    "concept": "Concepto",
+    "chargedTo": "A cargo de",
+    "amount": "Importe",
+    "status": "Estado",
+    "actions": "Acciones"
+   },
+   "empty": {
+    "title": "No hay cargos",
+    "subtitle": "Cuando cargues un gasto del mes aparece acá con su estado."
+   },
+   "kinds": {
+    "Reparacion": "Reparación",
+    "ExpensaExtra": "Expensa extraordinaria",
+    "Devolucion": "Devolución",
+    "HonorarioGestion": "Honorario por gestión",
+    "AjusteRetroactivo": "Ajuste retroactivo",
+    "Otro": "Otro"
+   },
+   "targets": {
+    "Inquilino": "Inquilino",
+    "Locador": "Locador",
+    "Inmobiliaria": "Inmobiliaria"
+   },
+   "beneficiaries": {
+    "Locador": "El locador (pagó al proveedor)",
+    "Inmobiliaria": "La inmobiliaria (adelantó el gasto)"
+   },
+   "statuses": {
+    "Pendiente": "Pendiente",
+    "Imputado": "Imputado",
+    "CobradoAnticipado": "Cobrado por adelantado",
+    "Anulado": "Anulado"
+   },
+   "upfront": {
+    "badge": "Pide anticipo",
+    "hint": "Supera el umbral de anticipo de la inmobiliaria: no entra solo en la liquidación."
+   },
+   "actions": {
+    "forceImpute": "Imputar en la liquidación",
+    "markPaidUpfront": "Cobrado por adelantado",
+    "cancel": "Anular",
+    "release": "Liberar"
+   },
+   "confirm": {
+    "cancel": {
+     "title": "¿Anular el cargo?",
+     "body": "«{description}» no se va a imputar a nadie. Queda en el historial."
+    },
+    "markPaidUpfront": {
+     "title": "¿Cobrado por adelantado?",
+     "body": "El inquilino ya pagó «{description}» por fuera de la liquidación: no se va a cobrar de nuevo."
+    }
+   },
+   "done": {
+    "forceImpute": "El cargo entra en la próxima liquidación",
+    "markPaidUpfront": "Cargo marcado como cobrado por adelantado",
+    "cancel": "Cargo anulado",
+    "release": "El cargo volvió a pendiente"
+   },
+   "form": {
+    "title": "Cargar un gasto",
+    "saving": "Guardando…",
+    "saveError": "No se pudo guardar el cargo",
+    "saved": "{count, plural, one {Se cargó # cargo} other {Se cargaron # cuotas}}",
+    "upfrontNotice": "{count, plural, one {# cargo supera} other {# cuotas superan}} el umbral de anticipo: quedó marcado para pedir el pago por adelantado.",
+    "lessorHint": "Los locadores vigentes del contrato o titulares de la propiedad.",
+    "allLessors": "Todos los locadores (según su porcentaje)",
+    "noContract": "Sin contrato (propiedad vacía)",
+    "chooseProperty": "Elegí una propiedad",
+    "contractRequired": "Un cargo al inquilino necesita contrato.",
+    "amountHint": "Con coma o punto. Una devolución se guarda como crédito.",
+    "beneficiaryHint": "Quién recibe el dinero del cargo.",
+    "targetPeriodHint": "Sin mes: en la próxima liquidación.",
+    "installmentsHint": "De 1 a 36: una cuota por mes.",
+    "hints": {
+     "Inquilino": "Va como renglón de su liquidación.",
+     "Locador": "Se descuenta en el estado del locador; no es un renglón de la liquidación.",
+     "Inmobiliaria": "La absorbe la inmobiliaria: solo queda registrado."
+    },
+    "fields": {
+     "lessor": "Locador",
+     "chargedTo": "A cargo de",
+     "kind": "Clase de gasto",
+     "contract": "Contrato",
+     "property": "Propiedad",
+     "description": "Descripción",
+     "amount": "Importe",
+     "incurredAt": "Fecha del gasto",
+     "beneficiary": "A favor de",
+     "targetPeriod": "Imputar desde el mes",
+     "installments": "Cuotas",
+     "notes": "Notas"
+    }
+   },
+   "errors": {
+    "lessorPersonId": "Elegí un locador válido",
+    "propertyId": "Elegí el contrato o la propiedad",
+    "contractId": "Un cargo al inquilino necesita un contrato",
+    "chargedTo": "Elegí a cargo de quién va",
+    "kind": "Elegí la clase de gasto",
+    "description": "Escribí una descripción",
+    "amount": "Ingresá un importe válido distinto de cero (hasta 2 decimales)",
+    "incurredAt": "Ingresá una fecha válida",
+    "targetPeriod": "Elegí un mes válido",
+    "installments": "Las cuotas van de 1 a 36",
+    "beneficiary": "Elegí a favor de quién",
+    "notes": "Las notas son demasiado largas"
+   },
+   "bulk": {
+    "show": "Carga por planilla",
+    "hide": "Ocultar la planilla",
+    "title": "Carga por planilla",
+    "hint": "Escribí o pegá filas desde una planilla. Cada fila es un cargo a un contrato; sin clase es una reparación al inquilino y sin fecha, la de hoy. Las filas guardadas salen de la planilla y las que fallan quedan para corregir.",
+    "gridLabel": "Cargos a cargar",
+    "datePlaceholder": "AAAA-MM-DD o D/M/AAAA",
+    "columns": {
+     "contract": "Contrato",
+     "chargedTo": "A cargo de",
+     "kind": "Clase",
+     "description": "Descripción",
+     "amount": "Importe",
+     "incurredAt": "Fecha",
+     "installments": "Cuotas"
+    },
+    "validation": {
+     "amount": "Ingresá un importe válido distinto de cero (hasta 2 decimales)",
+     "date": "Fecha inválida (AAAA-MM-DD o D/M/AAAA)",
+     "installments": "De 1 a 36"
+    },
+    "save": {
+     "action": "{count, plural, =0 {Guardar cargos} one {Guardar # cargo} other {Guardar # cargos}}",
+     "saving": "Guardando…",
+     "done": "{count, plural, one {Se guardó # cargo} other {Se guardaron # cargos}}",
+     "partial": "{failed, plural, one {# fila con error} other {# filas con error}}; se guardaron las demás ({saved}).",
+     "error": "No se pudieron guardar los cargos",
+     "failuresTitle": "Estas filas no se guardaron",
+     "retryHint": "Corregí las filas y volvé a guardar: las que ya se guardaron salieron de la planilla."
+    }
+   },
+   "contract": {
+    "title": "Cargos pendientes",
+    "viewAll": "Ver el centro de carga"
+   }
+  },
  "chargeRules": {
   "title": "Impuestos y servicios",
   "loadError": "No se pudieron cargar las reglas de impuestos y servicios",

@@ -448,4 +448,15 @@ describe('ContractAdjustmentService: correcciones pendientes', () => {
       trueUpBilledAt: null,
     });
   });
+
+  it('libera la corrección facturada cuando la liquidación se anula o se borra', async () => {
+    const { service, updateMany } = build([], []);
+    expect(await service.releaseTrueUps([])).toBe(0);
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(await service.releaseTrueUps(['adj-f'])).toBe(1);
+    expect(updateMany.mock.calls[0][0]).toEqual({
+      where: { id: { in: ['adj-f'] }, trueUpOfId: { not: null }, trueUpBilledAt: { not: null } },
+      data: { trueUpBilledAt: null },
+    });
+  });
 });

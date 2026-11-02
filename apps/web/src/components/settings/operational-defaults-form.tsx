@@ -33,7 +33,7 @@ const SECTIONS: { key: string; fields: FieldName[] }[] = [
     fields: ['prorationMode', 'midMonthAdjustmentMode', 'firstDueMode', 'fixedDiscountProration'],
   },
   { key: 'fees', fields: ['commissionPct', 'feeAlta', 'feeRenovacion', 'feeVentaConstruido', 'feeVentaLote'] },
-  { key: 'valuation', fields: ['valuationUsd', 'upfrontThresholdFees'] },
+  { key: 'valuation', fields: ['valuationUsd', 'upfrontThresholdFees', 'upfrontBasis'] },
   { key: 'collection', fields: ['firstReminderDays', 'everyDays'] },
   { key: 'expiry', fields: ['redDays', 'yellowDays'] },
 ];

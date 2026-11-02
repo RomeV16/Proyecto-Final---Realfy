@@ -7,6 +7,7 @@ import {
   ImportRowAction,
   LeadStatus,
   LiquidacionStatus,
+  PendingChargeStatus,
   RendicionStatus,
   TicketStatus,
   USER_STATUSES,
@@ -30,6 +31,7 @@ const ENUMS: Record<StatusDomain, object> = {
   ajuste: ADJUSTMENT_ROW_STATUSES,
   importacion: ImportBatchStatus,
   importFila: ImportRowAction,
+  cargo: PendingChargeStatus,
 };
 
 function lookup(messages: unknown, path: string): unknown {

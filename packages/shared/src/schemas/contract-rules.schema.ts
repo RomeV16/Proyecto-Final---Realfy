@@ -9,6 +9,7 @@ import {
   MidMonthAdjustmentMode,
   PaymentFlow,
   ProrationMode,
+  UpfrontBasis,
 } from '../enums';
 import { PenaltyConfigSchema } from './penalty-config.schema';
 
@@ -45,10 +46,17 @@ const liquidationConventionFields = {
   midMonthAdjustmentMode: z.nativeEnum(MidMonthAdjustmentMode),
   firstDueMode: z.nativeEnum(FirstDueMode),
   fixedDiscountProration: z.nativeEnum(FixedDiscountProration),
+  upfrontBasis: z.nativeEnum(UpfrontBasis),
 };
 
+/** Umbral de anticipo del centro de carga, en comisiones mensuales; null vuelve al valor por defecto de la inmobiliaria. */
+const upfrontThresholdField = { upfrontThresholdFees: z.number().int().min(0).max(24).nullable() };
+
 /** Las cuatro convenciones al crear o corregir un contrato; lo omitido toma el valor por defecto de la inmobiliaria. */
-export const LiquidationConventionsSchema = z.object(liquidationConventionFields).partial().strict();
+export const LiquidationConventionsSchema = z
+  .object({ ...liquidationConventionFields, ...upfrontThresholdField })
+  .partial()
+  .strict();
 export type LiquidationConventions = z.infer<typeof LiquidationConventionsSchema>;
 
 /** Campos de las reglas de un contrato que un acuerdo puede cambiar. */
@@ -68,6 +76,7 @@ export const TermsPatchSchema = z
     paymentFlow: z.nativeEnum(PaymentFlow),
     penaltyConfig: PenaltyConfigSchema.nullable(),
     ...liquidationConventionFields,
+    ...upfrontThresholdField,
   })
   .partial()
   .strict();

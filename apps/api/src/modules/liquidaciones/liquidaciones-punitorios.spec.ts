@@ -64,6 +64,7 @@ function buildPayment(opts: { total?: string; payments?: any[]; penalties?: any[
     {} as any,
     {} as any,
     db.service,
+    {} as any,
   );
   jest.spyOn(service, 'findOne').mockResolvedValue({ id: 'liq-1', lineItems: lines } as any);
   return { ...db, service, lines, created, liquidacion };
@@ -187,10 +188,11 @@ describe('liberación de los punitorios cobrados', () => {
       {} as any,
       {} as any,
       {} as any,
-      {} as any,
-      {} as any,
+      { record: jest.fn() } as any,
+      { releaseTrueUps: jest.fn().mockResolvedValue(0) } as any,
       serviceBills as any,
       penalties as any,
+      { releaseFromLiquidation: jest.fn().mockResolvedValue(0) } as any,
     );
     jest.spyOn(service, 'findOne').mockResolvedValue({} as any);
     return { service, penalties, tx, client };

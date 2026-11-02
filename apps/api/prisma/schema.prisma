@@ -486,8 +486,9 @@ model Property {
   leads        Lead[]
   leadVisits   LeadVisit[]
 
-  tickets    Ticket[]
-  valuations PropertyValuation[]
+  tickets        Ticket[]
+  valuations     PropertyValuation[]
+  pendingCharges PendingCharge[]
 
   @@unique([tenantId, externalRef])
   @@index([tenantId])
@@ -604,6 +605,7 @@ model Person {
   portalRefreshTokens    PortalRefreshToken[]
   portalInvitations      PortalInvitation[]
   tenantScores           TenantScore[]
+  pendingCharges         PendingCharge[]
 
   @@unique([tenantId, cuit])
   @@unique([tenantId, externalRef])
@@ -858,6 +860,7 @@ model Contract {
   chargeRules     ContractChargeRule[]
   billAllocations ServiceBillAllocation[]
   termsVersions   ContractTermsVersion[]
+  pendingCharges  PendingCharge[]
 
   @@unique([tenantId, externalRef])
   @@index([previousContractId])
@@ -1099,6 +1102,10 @@ model ContractTermsVersion {
   midMonthAdjustmentMode MidMonthAdjustmentMode @default(DesdePeriodoSiguiente)
   firstDueMode           FirstDueMode           @default(DiaDeInicio)
   fixedDiscountProration FixedDiscountProration @default(Proporcional)
+  /// Umbral de anticipo del centro de carga, en comisiones mensuales; null = el de la inmobiliaria.
+  upfrontThresholdFees   Int?
+  /// Sobre qué comisión mensual se mide el umbral de anticipo.
+  upfrontBasis           UpfrontBasis           @default(ComisionPactada)
   createdAt              DateTime               @default(now())
 
   contract  Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
@@ -1274,8 +1281,9 @@ model Liquidacion {
   billAllocations ServiceBillAllocation[]
   payments        Payment[]
 
-  penalties        Penalty[] @relation("PenaltyLiquidacion")
-  settledPenalties Penalty[] @relation("PenaltySettledLiquidacion")
+  penalties        Penalty[]       @relation("PenaltyLiquidacion")
+  settledPenalties Penalty[]       @relation("PenaltySettledLiquidacion")
+  pendingCharges   PendingCharge[]
 
   @@unique([contractId, period])
   @@unique([tenantId, receiptSeq])
@@ -1567,6 +1575,86 @@ model ServiceBillAllocation {
   @@unique([billId, contractId, chargePeriod])
   @@index([tenantId, contractId, billedAt, chargePeriod])
   @@map("service_bill_allocations")
+}
+
+/// Comisión mensual con la que se mide el umbral de anticipo.
+enum UpfrontBasis {
+  /// La comisión pactada en el contrato (o, sin ella, el porcentaje por defecto).
+  ComisionPactada
+  /// Siempre el porcentaje por defecto de la inmobiliaria sobre el alquiler.
+  PorcentajePorDefecto
+}
+
+/// Quién soporta un cargo puntual cargado en el centro de carga.
+enum ChargeTarget {
+  Inquilino
+  Locador
+  Inmobiliaria
+}
+
+enum PendingChargeKind {
+  Reparacion
+  ExpensaExtra
+  Devolucion
+  HonorarioGestion
+  AjusteRetroactivo
+  Otro
+}
+
+enum PendingChargeStatus {
+  Pendiente
+  Imputado
+  CobradoAnticipado
+  Anulado
+}
+
+/// Gasto o cargo puntual del mes (reparación, expensa extraordinaria, devolución,
+/// honorario por gestión) que se imputa una sola vez: al inquilino en su próxima
+/// liquidación o al locador en su próximo estado. `amount` lleva signo: un
+/// negativo es un crédito a favor de quien lo soporta.
+model PendingCharge {
+  id                   String              @id @default(uuid())
+  tenantId             String
+  propertyId           String
+  contractId           String?
+  chargedTo            ChargeTarget
+  lessorPersonId       String?
+  kind                 PendingChargeKind
+  description          String
+  amount               Decimal             @db.Decimal(15, 2)
+  currency             Currency            @default(ARS)
+  /// A quién llega el dinero: quien pagó al proveedor (locador o inmobiliaria).
+  beneficiary          LineBeneficiary     @default(Locador)
+  incurredAt           DateTime            @db.Date
+  /// Primer día del mes desde el cual se imputa; sin fecha, en la próxima liquidación.
+  targetPeriod         DateTime?           @db.Date
+  status               PendingChargeStatus @default(Pendiente)
+  /// El importe supera el umbral de anticipo: no se imputa solo.
+  requiresUpfront      Boolean             @default(false)
+  installmentNo        Int                 @default(1)
+  installmentOf        Int                 @default(1)
+  /// Las cuotas de un mismo cargo comparten el grupo.
+  installmentGroupId   String?
+  imputedLiquidacionId String?
+  /// Estado del locador en que se descontó (lo completa el estado de cuenta del locador).
+  imputedStatementId   String?
+  imputedAt            DateTime?
+  sourceType           String?
+  sourceId             String?
+  notes                String?
+  createdById          String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  property    Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  contract    Contract?    @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  lessor      Person?      @relation(fields: [lessorPersonId], references: [id], onDelete: SetNull)
+  liquidacion Liquidacion? @relation(fields: [imputedLiquidacionId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, contractId, status])
+  @@index([tenantId, propertyId, status])
+  @@index([imputedLiquidacionId])
+  @@map("pending_charges")
 }
 
 enum PenaltyStatus {

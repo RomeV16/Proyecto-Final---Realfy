@@ -31,6 +31,7 @@ describe('OperationalDefaultsSchema', () => {
       fees: { alta: 5, renovacion: 5, ventaConstruido: 3, ventaLote: 5 },
       valuationUsd: 100,
       upfrontThresholdFees: 2,
+      upfrontBasis: 'ComisionPactada',
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
       expiryLight: { redDays: 0, yellowDays: 60 },
     });
@@ -273,5 +274,26 @@ describe('convenciones de liquidación', () => {
       liquidationRules: { firstDueMode: 'AlFirmar' },
     });
     expect(created.liquidationRules).toEqual({ firstDueMode: 'AlFirmar' });
+  });
+
+  it('el anticipo por contrato: base elegible, umbral entero de 0 a 24 o null', () => {
+    expect(OperationalDefaultsSchema.parse({ upfrontBasis: 'PorcentajePorDefecto' }).upfrontBasis).toBe('PorcentajePorDefecto');
+    expect(() => OperationalDefaultsSchema.parse({ upfrontBasis: 'Otra' })).toThrow();
+    const form = operationalDefaultsToForm(OperationalDefaultsSchema.parse({ upfrontBasis: 'PorcentajePorDefecto' }));
+    expect(form.upfrontBasis).toBe('PorcentajePorDefecto');
+    expect(operationalDefaultsFromForm(form).upfrontBasis).toBe('PorcentajePorDefecto');
+
+    expect(LiquidationConventionsSchema.parse({ upfrontBasis: 'ComisionPactada', upfrontThresholdFees: 3 })).toEqual({
+      upfrontBasis: 'ComisionPactada',
+      upfrontThresholdFees: 3,
+    });
+    expect(LiquidationConventionsSchema.parse({ upfrontThresholdFees: null })).toEqual({ upfrontThresholdFees: null });
+    for (const bad of [-1, 25, 1.5]) {
+      expect(() => LiquidationConventionsSchema.parse({ upfrontThresholdFees: bad })).toThrow();
+    }
+    expect(TermsPatchSchema.parse({ upfrontThresholdFees: 1, upfrontBasis: 'PorcentajePorDefecto' })).toEqual({
+      upfrontThresholdFees: 1,
+      upfrontBasis: 'PorcentajePorDefecto',
+    });
   });
 });
