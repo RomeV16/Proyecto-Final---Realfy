@@ -42,7 +42,7 @@ contrato se versionan en lugar de pisarse.**
   (7 %), honorarios (5 % alta, 5 % renovación, 3 % venta de construido, 5 % venta
   de lote), tasación (USD 100), umbral de anticipo (2 honorarios), cadencia de
   cobranza (primer recordatorio a los 5 días y luego cada 5) y umbrales del
-  semáforo de vencimientos (rojo 0, amarillo 60). Si es nulo rigen los del
+  semáforo de vencimientos (rojo 30, amarillo 60). Si es nulo rigen los del
   código. Cada campo tiene su valor por defecto en el esquema, de modo que un
   JSON parcial es válido.
 - **Contrato.** `ContractTermsVersion` es una foto de las reglas del contrato

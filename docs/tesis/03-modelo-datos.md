@@ -292,7 +292,7 @@ Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se modifica: u
 Seguimiento del fin de un contrato y los pasos de su checklist.
 
 - `ContractFollowUp`: `id`, `tenantId`, `contractId`, `kind` (`Renovacion` o `Devolucion`), `status` (`Abierto` o `Cerrado`), `dueDate` (el fin efectivo del contrato cuando se abrió), `assigneeId`, `outcome` (`Pendiente`, `Renovado`, `Devuelto`, `Prorrogado`), `notes`, `closedAt`.
-- `@@unique([contractId, kind, dueDate])`: el proceso diario es idempotente y un contrato no repite el seguimiento de un mismo fin efectivo. Una prórroga de palabra o una renovación cierran el abierto; el nuevo fin efectivo abre otro cuando entra en la ventana.
+- `@@unique([contractId, kind, dueDate])`: el proceso diario es idempotente y un contrato no repite el seguimiento de un mismo fin efectivo. El proceso diario también sigue a los contratos `Vencido` sin decisión. Una prórroga de palabra o una renovación cierran el abierto (y devuelven un contrato `Vencido` a `Activo`); el nuevo fin efectivo abre otro cuando entra en la ventana.
 - `FollowUpTask`: `id`, `tenantId`, `followUpId`, `code`, `label`, `position`, `done`, `doneAt`, `doneById`, `dueDate`; `@@unique([followUpId, code])`. Las plantillas de checklist son constantes del paquete compartido (`FOLLOW_UP_CHECKLISTS`); al cambiar el tipo se arma el checklist del tipo nuevo y se conserva lo ya hecho en los pasos que se repiten.
 - El semáforo (`expirationLight`) no se guarda: sale del fin efectivo del contrato y de `Tenant.operationalDefaults.expiryLight`. Ambas tablas llevan `tenantId` y están en `TENANT_SCOPED_MODELS`. La migración no crea seguimientos.
 
