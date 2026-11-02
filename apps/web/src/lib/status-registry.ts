@@ -1,5 +1,6 @@
 import {
   ContractStatus,
+  PendingChargeStatus,
   ImportBatchStatus,
   ImportRowAction,
   LeadStatus,
@@ -38,7 +39,8 @@ export type StatusDomain =
   | 'usuario'
   | 'ajuste'
   | 'importacion'
-  | 'importFila';
+  | 'importFila'
+  | 'cargo';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -75,6 +77,16 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
       [LiquidacionStatus.Anulada]: 'neutral',
     },
     [LiquidacionStatus.Anulada],
+  ),
+  cargo: entries(
+    'charges.statuses',
+    {
+      [PendingChargeStatus.Pendiente]: 'warning',
+      [PendingChargeStatus.Imputado]: 'success',
+      [PendingChargeStatus.CobradoAnticipado]: 'info',
+      [PendingChargeStatus.Anulado]: 'neutral',
+    },
+    [PendingChargeStatus.Anulado],
   ),
   ajuste: entries('adjustments.statuses', {
     ready: 'success',

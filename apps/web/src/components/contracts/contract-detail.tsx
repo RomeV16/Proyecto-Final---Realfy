@@ -17,6 +17,7 @@ import { AdjustmentTimeline } from './adjustment-timeline';
 import { ContractRules } from './contract-rules';
 import { ContractChargeRules } from './contract-charge-rules';
 import { ContractPenalties } from './contract-penalties';
+import { ContractPendingCharges } from '@/components/charges/contract-pending-charges';
 import { GenerateDocumentModal } from './generate-document-modal';
 import { CommissionConfig } from './commission-config';
 import { ClosureSummary } from './closure-summary';
@@ -858,6 +859,9 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
               currency={contractCurrency}
             />
           )}
+
+          {/* Cargos pendientes del centro de carga */}
+          <ContractPendingCharges contractId={contract.id} />
 
           {/* Guarantees section */}
           <div className="bg-white rounded-xl border border-slate-200 p-6">

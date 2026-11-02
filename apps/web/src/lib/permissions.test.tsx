@@ -38,6 +38,7 @@ const EXPECTED: Record<Action, string[]> = {
   'delinquency.view': ['Admin', 'Gerente'],
   'adjustments.manage': ['Admin', 'Gerente', 'Liquidaciones'],
   'serviceBills.manage': ['Admin', 'Gerente', 'Liquidaciones'],
+  'charges.manage': ['Admin', 'Gerente', 'Liquidaciones'],
   'dashboard.analytics': ['Admin', 'Gerente'],
   'tickets.manage': ['Admin', 'Gerente', 'Soporte'],
   'settings.manage': ['Admin', 'Gerente'],

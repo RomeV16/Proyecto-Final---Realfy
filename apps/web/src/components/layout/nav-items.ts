@@ -35,6 +35,7 @@ export const navItems: NavItem[] = [
   { key: 'liquidaciones', href: '/liquidaciones', icon: 'liquidaciones' },
   { key: 'adjustments', href: '/ajustes', icon: 'percent', action: 'adjustments.manage' },
   { key: 'serviceBills', href: '/boletas', icon: 'invoices', action: 'serviceBills.manage' },
+  { key: 'charges', href: '/cargos', icon: 'liquidaciones', action: 'charges.manage' },
   { key: 'pagos', href: '/pagos', icon: 'liquidaciones' },
   { key: 'renditions', href: '/renditions', icon: 'renditions', readResource: 'renditions' },
   { key: 'invoices', href: '/invoices', icon: 'invoices', readResource: 'invoices' },
