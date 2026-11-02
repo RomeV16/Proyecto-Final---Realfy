@@ -102,6 +102,7 @@
   "providers": "Proveedores",
   "ticketCategories": "Categorías de Tickets",
   "import": "Importar",
+  "dataQuality": "Calidad de datos",
   "migration": "Migración",
   "delinquency": "Morosos",
   "adjustments": "Ajustes del mes",
@@ -3624,6 +3625,154 @@
   "severeCount": "Casos graves",
   "severeHint": "Más de 30 días de mora",
   "tenantCount": "{count, plural, =0 {Sin inquilinos en mora} one {# inquilino} other {# inquilinos}}"
+ },
+ "dataQuality": {
+  "title": "Calidad de datos",
+  "subtitle": "Datos que conviene revisar después de una migración o de una carga manual: personas repetidas, repartos que no suman 100 %, titularidades incompletas y contratos sin decisión.",
+  "forbidden": "No tenés permiso para ver la calidad de los datos.",
+  "refresh": "Actualizar",
+  "loadError": "No se pudo cargar el panel de calidad de datos.",
+  "total": "{count, plural, =0 {Sin hallazgos} one {# hallazgo para revisar} other {# hallazgos para revisar}}",
+  "allClear": "No hay nada para revisar en este control.",
+  "groups": {
+    "duplicates": "Personas repetidas",
+    "lessors": "Locadores",
+    "ownerships": "Titularidades",
+    "contracts": "Contratos"
+  },
+  "checks": {
+    "duplicate-cuit": {
+      "title": "CUIT repetido",
+      "description": "Personas con el mismo CUIT o CUIL, aunque esté escrito distinto."
+    },
+    "duplicate-dni": {
+      "title": "DNI repetido",
+      "description": "Personas con el mismo DNI, también el que lleva el CUIL de una persona física."
+    },
+    "duplicate-cbu": {
+      "title": "CBU repetido",
+      "description": "Personas distintas con la misma cuenta bancaria."
+    },
+    "duplicate-phone": {
+      "title": "Teléfono repetido",
+      "description": "Mismo teléfono sin importar el +54, el 9, el 0 ni el 15. Puede ser de la misma familia."
+    },
+    "duplicate-email": {
+      "title": "Correo repetido",
+      "description": "Mismo correo sin importar mayúsculas ni espacios."
+    },
+    "duplicate-name": {
+      "title": "Nombre repetido",
+      "description": "Mismo nombre sin importar tildes, mayúsculas ni orden; se descartan los que tienen documentos distintos."
+    },
+    "lessors-sum": {
+      "title": "Locadores que no suman 100 %",
+      "description": "Contratos activos cuyos locadores vigentes no se reparten el 100 % del cobro."
+    },
+    "ownership-sum": {
+      "title": "Titulares que no suman 100 %",
+      "description": "Propiedades cuyos titulares vigentes no suman 100 % o tienen partes sin cargar."
+    },
+    "property-no-owner": {
+      "title": "Propiedades sin titular",
+      "description": "Propiedades activas sin ningún titular vigente."
+    },
+    "owner-no-bank-account": {
+      "title": "Cobran por transferencia sin cuenta",
+      "description": "Locadores y titulares con cobro por transferencia que no tienen una cuenta con CBU o alias."
+    },
+    "lessor-no-tax-id": {
+      "title": "Locadores sin CUIT ni DNI",
+      "description": "Locadores y titulares sin ningún documento cargado."
+    },
+    "contract-expired-undecided": {
+      "title": "Vencidos sin decisión",
+      "description": "Contratos vencidos cuyo fin ya pasó y no tienen renovación ni cierre."
+    },
+    "contract-essentials": {
+      "title": "Contratos activos incompletos",
+      "description": "Contratos activos sin inquilino, sin alquiler o sin el porcentaje de ajuste que su tipo pide."
+    }
+  },
+  "severity": {
+    "error": "Corregir",
+    "warning": "Revisar"
+  },
+  "columns": {
+    "finding": "Hallazgo",
+    "fields": "Datos",
+    "detail": "Detalle",
+    "severity": "Prioridad",
+    "actions": "Acciones"
+  },
+  "fields": {
+    "cuit": "CUIT",
+    "dni": "DNI",
+    "bankAccounts": "Cuentas",
+    "phone": "Teléfono",
+    "email": "Correo",
+    "name": "Nombre",
+    "lessors": "Locadores",
+    "ownerships": "Titulares",
+    "payoutMethod": "Forma de cobro",
+    "status": "Estado",
+    "endDate": "Fin",
+    "tenant": "Inquilino",
+    "rentAmount": "Alquiler",
+    "adjustment": "Ajuste"
+  },
+  "details": {
+    "lessorsSum": "Suman {sum} % entre {lessors, plural, =0 {ningún locador} one {# locador} other {# locadores}}",
+    "ownershipSum": "Suman {sum} % entre {owners, plural, one {# titular} other {# titulares}}",
+    "withoutShare": "{count, plural, one {# sin parte} other {# sin parte}}",
+    "expired": "Venció el {date}",
+    "duplicate": "{count} personas"
+  },
+  "open": "Abrir",
+  "openFinding": "Abrir {label}",
+  "empty": {
+    "title": "Nada para revisar",
+    "subtitle": "Este control no encontró hallazgos."
+  },
+  "merge": {
+    "button": "Unir",
+    "title": "Unir personas repetidas",
+    "intro": "Elegí la persona que se conserva. Todo lo que apunta a las otras (contratos, titularidades, cuentas, roles) pasa a ella y las otras quedan dadas de baja.",
+    "keep": "Conservar",
+    "cancel": "Cancelar",
+    "continue": "Revisar qué se mueve",
+    "loadingPlan": "Calculando…",
+    "confirmTitle": "Confirmar la unión",
+    "confirmBody": "Se conserva a {keep}. {count, plural, one {Se da de baja a # persona} other {Se da de baja a # personas}}.",
+    "moves": "Pasa a la persona que se conserva",
+    "discards": "Se descarta porque ya existe en la persona que se conserva",
+    "nothing": "Ninguna otra información apunta a las personas que se unen.",
+    "undo": "La unión queda en la auditoría con el antes y el después, pero no se deshace sola.",
+    "confirmLabel": "Unir personas",
+    "done": "Personas unidas.",
+    "error": "No se pudo unir a las personas.",
+    "conflict": "No se pueden unir: hay datos que no se pueden combinar ({entities}). Resolvelos antes."
+  },
+  "plan": {
+    "personBankAccount": "Cuentas bancarias",
+    "personDocument": "Documentos",
+    "lead": "Consultas",
+    "contractLessor": "Locadores de contratos",
+    "powerOfAttorney": "Poderes",
+    "propertyOwnership": "Titularidades",
+    "pendingCharge": "Cargos pendientes",
+    "ticket": "Reclamos",
+    "ticketComment": "Comentarios de reclamos",
+    "portalRefreshToken": "Sesiones del portal",
+    "portalInvitation": "Invitaciones del portal",
+    "personRoleAssignment": "Roles",
+    "contractPerson": "Partes de contratos",
+    "ownerRendicion": "Rendiciones",
+    "tenantScore": "Puntaje de inquilino",
+    "providerProfile": "Perfil de proveedor",
+    "inquilinoCredential": "Acceso al portal",
+    "other": "Otros datos"
+  }
  },
  "adjustments": {
   "title": "Ajustes del mes",

@@ -39,6 +39,7 @@ import { PublicModule } from './modules/public/public.module';
 import { ScoringModule } from './modules/scoring/scoring.module';
 import { ValuationsModule } from './modules/valuations/valuations.module';
 import { ImportExportModule } from './modules/import-export/import-export.module';
+import { DataQualityModule } from './modules/data-quality/data-quality.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AiModule } from './modules/ai/ai.module';
 import { CommonEmailModule } from './common/email/common-email.module';
@@ -112,6 +113,7 @@ import { ReadPolicyModule } from './common/read-policy/read-policy.module';
     ScoringModule,
     ValuationsModule,
     ImportExportModule,
+    DataQualityModule,
     ReportsModule,
     AiModule,
     ReadPolicyModule,

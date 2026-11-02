@@ -78,6 +78,20 @@ La aceptación del piloto es que el ciclo del mes en paralelo coincida con el de
 
 La diferencia tiene que ser cero o estar explicada y registrada como hallazgo o defecto. Como la importación es repetible, una corrección de datos descubierta en la reconciliación se arregla en el origen y se vuelve a enviar el lote: las filas que cambian dan `Actualizado` y las demás `SinCambios`, y el registro de cada corrida queda como evidencia.
 
+## Cerrar la reconciliación dentro de la aplicación
+
+La lista de diferencias que queda después de la carga (documentos faltantes, personas cargadas dos veces, repartos que no suman 100 %, contratos vencidos sin resolver) se trabaja en `/calidad-de-datos` (manual de usuario, *Calidad de datos*), sin salir de Realfy y sin volver a enviar el lote:
+
+| Qué deja la migración | Dónde se ve | Cómo se cierra |
+|---|---|---|
+| Personas cargadas dos veces con el CUIT, el DNI, la cuenta, el teléfono, el correo o el nombre escritos distinto | *Personas repetidas* | *Unir* (Admin): los contratos, titularidades y cuentas pasan a una sola persona y la otra queda dada de baja, con auditoría |
+| Reparto en partes iguales marcado `needsReview` que no suma 100 % | *Locadores que no suman 100 %* | corregir los locadores del contrato |
+| Propiedades sin titular o con partes que no suman, locadores sin CUIT ni DNI, cobros por transferencia sin cuenta | *Titularidades* | completar la ficha de la persona o de la propiedad |
+| Contratos que el sistema anterior dejó vencidos sin renovación ni cierre | *Vencidos sin decisión* | renovar o cerrar el contrato |
+| Contratos activos sin inquilino, alquiler o porcentaje de ajuste | *Contratos activos incompletos* | completar el contrato |
+
+Cada corrección hace desaparecer el hallazgo en la consulta siguiente, así que el recuento de arriba es el avance de la reconciliación: se llega a cero, o lo que queda se explica como dato legítimo (un teléfono compartido por una familia). Una persona unida conserva su `externalRef`: si el origen se vuelve a enviar, la fila se aplica sobre la persona dada de baja y no la reactiva, por lo que las uniones se hacen una vez que el lote es el definitivo. El panel no guarda nada propio: no hay "resuelto" ni "ignorado", sólo el estado actual de los datos.
+
 ## Qué no cubre
 
 - Lo que el lote no informa no se modifica, y lo que desaparece del origen no se borra: una cuenta bancaria o un ajuste que se quita debe quitarse a mano en Realfy.

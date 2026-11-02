@@ -69,6 +69,10 @@ export const ACTION_ROLES = {
   'penalties.waive': [Admin, Gerente],
   /** Ver los lotes de importación desde el sistema anterior y su registro por fila. */
   'imports.manage': [Admin],
+  /** Panel de calidad de datos: hallazgos de duplicados, repartos y contratos (expone datos personales agregados). */
+  'dataQuality.view': [Admin, Gerente],
+  /** Unir personas repetidas (mueve contratos, titularidades y cuentas a una sola). */
+  'dataQuality.merge': [Admin],
   'indexData.view': [Admin, Gerente],
   'indexData.manage': [Admin],
 } as const satisfies Record<string, readonly UserRole[]>;

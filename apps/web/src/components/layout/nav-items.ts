@@ -45,6 +45,7 @@ export const navItems: NavItem[] = [
   { key: 'providers', href: '/providers', icon: 'providers' },
   { key: 'notifications', href: '/notifications', icon: 'bell' },
   { key: 'import', href: '/import', icon: 'import', action: 'settings.manage' },
+  { key: 'dataQuality', href: '/calidad-de-datos', icon: 'search', action: 'dataQuality.view' },
   { key: 'users', href: '/configuracion/usuarios', icon: 'team', action: 'users.view' },
   { key: 'permissions', href: '/configuracion/permisos', icon: 'settings', action: 'permissions.manage' },
 ];

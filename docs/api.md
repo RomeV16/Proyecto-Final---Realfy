@@ -548,6 +548,25 @@ otro valor devuelve 400.
 
 Códigos de error por fila (`errors[].code`): `VALIDATION_ERROR`, `REFERENCE_NOT_FOUND`, `DUPLICATE_IN_BATCH`, `DUPLICATE_KEY`, `INVALID_DATES`, `LESSOR_SHARES_INVALID`, `MISSING_INQUILINO`, `OVERLAPPING_ACTIVE_CONTRACT`, `ADJUSTMENT_HISTORY_INVALID`, `RENT_MISMATCH`, `PROPERTY_STATE_CONFLICT` e `INTERNAL_ERROR`.
 
+### Calidad de datos
+
+Detecta lo que conviene corregir después de una migración (`tesis/32-migracion.md`). Cada control es una función pura sobre filas leídas por inmobiliaria; nada se guarda ni se marca como resuelto.
+
+| Método | Ruta | Descripción | Roles |
+|---|---|---|---|
+| GET | `/data-quality` | Cantidad de hallazgos por control: `{ generatedAt, total, checks: [{ check, group, severity, count }] }`. | Admin, Gerente |
+| GET | `/data-quality/:check` | Hallazgos de un control, paginados (`page`, `limit` hasta 200, por defecto 25). 400 `UNKNOWN_CHECK` si el control no existe. | Admin, Gerente |
+| POST | `/data-quality/persons/merge/preview` | Qué se movería y qué se descartaría al unir `{ keepId, mergeIds }`, con las mismas reglas que la unión y sin cambiar nada. | Admin, Gerente |
+| POST | `/data-quality/persons/merge` | Une personas repetidas en `keepId`. Transaccional y auditada (antes y después de cada persona). | Admin |
+
+Controles (`check`): `duplicate-cuit`, `duplicate-dni`, `duplicate-cbu`, `duplicate-phone`, `duplicate-email`, `duplicate-name`, `lessors-sum`, `ownership-sum`, `property-no-owner`, `owner-no-bank-account`, `lessor-no-tax-id`, `contract-expired-undecided`, `contract-essentials`.
+
+Cada hallazgo es `{ id, check, severity: 'error' | 'warning', entityType, entityId, label, fields, link, members?, details? }`. `link` es la ruta de la web donde se corrige; en los duplicados, `members` trae todas las personas del grupo y `details` el valor repetido normalizado.
+
+Normalización para comparar (la clave no se guarda): CUIT y CBU, sólo dígitos (11 y 22); DNI sin puntos ni ceros a la izquierda, o el que lleva el CUIL de una persona física (prefijo 20, 23, 24 o 27); correo en minúsculas y sin espacios; nombre sin tildes, signos ni mayúsculas y con las palabras ordenadas (coincidencia exacta del normalizado: no hay búsqueda por parecido porque la base no tiene `pg_trgm`); teléfono a sus 10 dígitos nacionales: se sacan el `00`, el `54` del país, el `0` de discado, el `9` de celular que sigue al `54` y el `15` que sigue al código de área (2, 3 o 4 dígitos). Dos personas con el mismo nombre pero CUIT o DNI distintos no se agrupan. Un número sin área no se compara con uno que la tiene.
+
+Unión de personas: `{ keepId, mergeIds[1..10] }` (UUID, sin repetir ni incluir a `keepId`). Las referencias a la persona (contratos, locadores y apoderados de cobro, titularidades, cuentas, documentos, roles, poderes, consultas, cargos pendientes, reclamos y sus comentarios, sesiones e invitaciones del portal, rendiciones) pasan a `keepId`; las filas con clave única que ya existen en la conservada (un rol, una parte del mismo contrato y rol, una cuenta con el mismo CBU) se descartan. Las unidas quedan con `isActive` falso, sin CUIT y con una nota. Respuestas: 201 con `{ keepId, mergeIds, items, discarded, merged }`; 404 `PERSON_NOT_FOUND`; 409 `MERGE_CONFLICT` con `conflicts: [{ entity, field, count }]` si una persona está dada de baja, si las dos tienen una fila que no se puede combinar (perfil de proveedor, acceso al portal, puntaje de inquilino, rendición del mismo contrato y período) o si hay un poder entre ellas.
+
 ## Plantillas de correo
 
 | Método | Ruta | Para qué | Acceso |

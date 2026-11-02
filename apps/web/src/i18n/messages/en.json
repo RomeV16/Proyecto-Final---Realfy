@@ -102,6 +102,7 @@
   "providers": "Proveedores",
   "ticketCategories": "Categorías de Tickets",
   "import": "Importar",
+  "dataQuality": "Data quality",
   "migration": "Migración",
   "delinquency": "Delinquents",
   "adjustments": "Monthly adjustments",
@@ -3624,6 +3625,154 @@
   "severeCount": "Severe cases",
   "severeHint": "Over 30 days overdue",
   "tenantCount": "{count, plural, =0 {No tenants overdue} one {# tenant} other {# tenants}}"
+ },
+ "dataQuality": {
+  "title": "Data quality",
+  "subtitle": "Data worth reviewing after a migration or manual entry: duplicate people, splits that do not add up to 100 %, incomplete ownerships and contracts with no decision.",
+  "forbidden": "You do not have permission to view data quality.",
+  "refresh": "Refresh",
+  "loadError": "Could not load the data quality panel.",
+  "total": "{count, plural, =0 {No findings} one {# finding to review} other {# findings to review}}",
+  "allClear": "Nothing to review in this check.",
+  "groups": {
+    "duplicates": "Duplicate people",
+    "lessors": "Lessors",
+    "ownerships": "Ownerships",
+    "contracts": "Contracts"
+  },
+  "checks": {
+    "duplicate-cuit": {
+      "title": "Duplicate CUIT",
+      "description": "People with the same CUIT or CUIL, even when written differently."
+    },
+    "duplicate-dni": {
+      "title": "Duplicate DNI",
+      "description": "People with the same DNI, including the one inside an individual's CUIL."
+    },
+    "duplicate-cbu": {
+      "title": "Duplicate CBU",
+      "description": "Different people with the same bank account."
+    },
+    "duplicate-phone": {
+      "title": "Duplicate phone",
+      "description": "Same phone regardless of +54, 9, 0 or 15. It may belong to the same family."
+    },
+    "duplicate-email": {
+      "title": "Duplicate email",
+      "description": "Same email regardless of case or spaces."
+    },
+    "duplicate-name": {
+      "title": "Duplicate name",
+      "description": "Same name regardless of accents, case or order; people with different documents are left out."
+    },
+    "lessors-sum": {
+      "title": "Lessors not adding up to 100 %",
+      "description": "Active contracts whose lessors in force do not share 100 % of the payout."
+    },
+    "ownership-sum": {
+      "title": "Owners not adding up to 100 %",
+      "description": "Properties whose owners in force do not add up to 100 % or have blank shares."
+    },
+    "property-no-owner": {
+      "title": "Properties without an owner",
+      "description": "Active properties with no owner in force."
+    },
+    "owner-no-bank-account": {
+      "title": "Paid by transfer without an account",
+      "description": "Lessors and owners paid by transfer who have no account with a CBU or alias."
+    },
+    "lessor-no-tax-id": {
+      "title": "Lessors without CUIT or DNI",
+      "description": "Lessors and owners with no document on file."
+    },
+    "contract-expired-undecided": {
+      "title": "Expired with no decision",
+      "description": "Expired contracts past their end date with no renewal or closure."
+    },
+    "contract-essentials": {
+      "title": "Incomplete active contracts",
+      "description": "Active contracts with no tenant, no rent or no adjustment percentage when their type requires one."
+    }
+  },
+  "severity": {
+    "error": "Fix",
+    "warning": "Review"
+  },
+  "columns": {
+    "finding": "Finding",
+    "fields": "Data",
+    "detail": "Detail",
+    "severity": "Priority",
+    "actions": "Actions"
+  },
+  "fields": {
+    "cuit": "CUIT",
+    "dni": "DNI",
+    "bankAccounts": "Accounts",
+    "phone": "Phone",
+    "email": "Email",
+    "name": "Name",
+    "lessors": "Lessors",
+    "ownerships": "Owners",
+    "payoutMethod": "Payout method",
+    "status": "Status",
+    "endDate": "End",
+    "tenant": "Tenant",
+    "rentAmount": "Rent",
+    "adjustment": "Adjustment"
+  },
+  "details": {
+    "lessorsSum": "Add up to {sum} % across {lessors, plural, =0 {no lessors} one {# lessor} other {# lessors}}",
+    "ownershipSum": "Add up to {sum} % across {owners, plural, one {# owner} other {# owners}}",
+    "withoutShare": "{count} without a share",
+    "expired": "Expired on {date}",
+    "duplicate": "{count} people"
+  },
+  "open": "Open",
+  "openFinding": "Open {label}",
+  "empty": {
+    "title": "Nothing to review",
+    "subtitle": "This check found nothing."
+  },
+  "merge": {
+    "button": "Merge",
+    "title": "Merge duplicate people",
+    "intro": "Choose the person to keep. Everything that points to the others (contracts, ownerships, accounts, roles) moves to them and the others are deactivated.",
+    "keep": "Keep",
+    "cancel": "Cancel",
+    "continue": "Review what moves",
+    "loadingPlan": "Calculating…",
+    "confirmTitle": "Confirm the merge",
+    "confirmBody": "{keep} is kept. {count, plural, one {# person is deactivated} other {# people are deactivated}}.",
+    "moves": "Moves to the person kept",
+    "discards": "Discarded because the person kept already has it",
+    "nothing": "Nothing else points to the people being merged.",
+    "undo": "The merge is recorded in the audit log with before and after, but it does not undo itself.",
+    "confirmLabel": "Merge people",
+    "done": "People merged.",
+    "error": "Could not merge the people.",
+    "conflict": "They cannot be merged: some records cannot be combined ({entities}). Resolve them first."
+  },
+  "plan": {
+    "personBankAccount": "Bank accounts",
+    "personDocument": "Documents",
+    "lead": "Leads",
+    "contractLessor": "Contract lessors",
+    "powerOfAttorney": "Powers of attorney",
+    "propertyOwnership": "Ownerships",
+    "pendingCharge": "Pending charges",
+    "ticket": "Tickets",
+    "ticketComment": "Ticket comments",
+    "portalRefreshToken": "Portal sessions",
+    "portalInvitation": "Portal invitations",
+    "personRoleAssignment": "Roles",
+    "contractPerson": "Contract parties",
+    "ownerRendicion": "Owner statements",
+    "tenantScore": "Tenant score",
+    "providerProfile": "Provider profile",
+    "inquilinoCredential": "Portal access",
+    "other": "Other data"
+  }
  },
  "adjustments": {
   "title": "Monthly adjustments",
