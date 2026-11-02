@@ -119,7 +119,7 @@ describe('Reglas versionadas, acuerdos y valores por defecto (e2e)', () => {
       }
       const saved = await put(tokens[UserRole.Gerente], { dueDay: 5, fees: { alta: 6 } }).expect(200);
       expect(saved.body.dueDay).toBe(5);
-      expect(saved.body.fees).toEqual({ alta: 6, renovacion: 5, ventaConstruido: 3, ventaLote: 5 });
+      expect(saved.body.fees).toMatchObject({ alta: 6, renovacion: 5, ventaConstruido: 3, ventaLote: 5, installments: 1, payer: 'Inquilino' });
       expect(saved.body.ipcLagMonths).toBe(2);
 
       const read = await get(tokens[UserRole.Lectura], '/tenants/me/operational-defaults').expect(200);
