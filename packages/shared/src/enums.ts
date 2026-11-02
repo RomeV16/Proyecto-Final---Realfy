@@ -215,6 +215,29 @@ export enum ContractAgreementKind {
   CambioRegla = 'CambioRegla',
   CambioReparto = 'CambioReparto',
   CambioCargo = 'CambioCargo',
+  /** Prórroga de palabra: mueve el fin real sin cambiar el fin pactado. */
+  Prorroga = 'Prorroga',
+  /** Renovación como período del mismo contrato. */
+  Renovacion = 'Renovacion',
+}
+
+/** Qué se prepara cuando se acerca el fin de un contrato. */
+export enum FollowUpKind {
+  Devolucion = 'Devolucion',
+  Renovacion = 'Renovacion',
+}
+
+export enum FollowUpStatus {
+  Abierto = 'Abierto',
+  Cerrado = 'Cerrado',
+}
+
+/** Cómo terminó el seguimiento de un vencimiento. */
+export enum FollowUpOutcome {
+  Pendiente = 'Pendiente',
+  Renovado = 'Renovado',
+  Devuelto = 'Devuelto',
+  Prorrogado = 'Prorrogado',
 }
 
 /** Sobre qué alquiler se aplica un ajuste: el original del período o el vigente. */

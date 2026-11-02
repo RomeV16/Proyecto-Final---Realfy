@@ -24,6 +24,9 @@ export {
   IndexType,
   ContractPeriodKind,
   ContractAgreementKind,
+  FollowUpKind,
+  FollowUpStatus,
+  FollowUpOutcome,
   AdjustmentBase,
   PaymentFlow,
   ProrationMode,
@@ -696,6 +699,32 @@ export {
   AnnulOwnerStatementSchema,
 } from './schemas/owner-account.schema';
 export type { OpeningBalanceInput, OwnerPayoutInput } from './schemas/owner-account.schema';
+
+// Vencimientos: checklists y semáforo
+export {
+  FOLLOW_UP_CHECKLISTS,
+  checklistFor,
+  ExpirationLight,
+  daysUntil,
+  expirationLight,
+} from './follow-up';
+export type { FollowUpTaskTemplate, ExpirationThresholds } from './follow-up';
+
+// Schemas — vencimientos, prórroga de palabra y renovación
+export {
+  FollowUpFilterSchema,
+  UpdateFollowUpSchema,
+  ToggleFollowUpTaskSchema,
+  OralExtensionSchema,
+  RenewalRuleSchema,
+  RenewContractSchema,
+} from './schemas/follow-up.schema';
+export type {
+  FollowUpFilterInput,
+  UpdateFollowUpInput,
+  OralExtensionInput,
+  RenewContractInput,
+} from './schemas/follow-up.schema';
 
 // Rendicion engine (histórico: lo usa solo la rendición vieja; el reparto de cobros es settlement-engine)
 export {

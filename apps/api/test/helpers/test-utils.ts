@@ -84,6 +84,8 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
   await prisma.baseClient.liquidacion.deleteMany();
 
   // Contract tables (delete before persons/properties because of FK references)
+  await prisma.baseClient.followUpTask.deleteMany();
+  await prisma.baseClient.contractFollowUp.deleteMany();
   await prisma.baseClient.contractClosureSummary.deleteMany();
   await prisma.baseClient.adjustmentSchedule.deleteMany();
   await prisma.baseClient.contractAdjustment.deleteMany();
