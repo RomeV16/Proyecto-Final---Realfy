@@ -34,6 +34,7 @@ describe('OperationalDefaultsSchema', () => {
       upfrontBasis: 'ComisionPactada',
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
       expiryLight: { redDays: 30, yellowDays: 60 },
+      repairs: { preauthLimit: 0, managementFeePct: 0 },
       cash: {
         lessorDirectOwes: 'TodoLoAjeno',
         partialAllocation: 'Proporcional',

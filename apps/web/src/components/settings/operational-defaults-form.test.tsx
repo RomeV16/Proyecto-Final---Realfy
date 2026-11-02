@@ -74,6 +74,7 @@ describe('OperationalDefaultsManager', () => {
       fees: { alta: 5, renovacion: 5, ventaConstruido: 3, ventaLote: 5 },
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
       expiryLight: { redDays: 30, yellowDays: 60 },
+      repairs: { preauthLimit: 0, managementFeePct: 0 },
     });
   });
 

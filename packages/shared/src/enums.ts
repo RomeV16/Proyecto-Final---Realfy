@@ -657,6 +657,23 @@ export enum TicketStatus {
   Cerrado = 'Cerrado',
   Cancelado = 'Cancelado',
   Reabierto = 'Reabierto',
+  PendienteAutorizacion = 'PendienteAutorizacion',
+  Presupuestado = 'Presupuestado',
+  PresupuestoAprobado = 'PresupuestoAprobado',
+}
+
+export enum TicketQuoteStatus {
+  Pendiente = 'Pendiente',
+  Aprobado = 'Aprobado',
+  Rechazado = 'Rechazado',
+}
+
+/** Por dónde se registró una aprobación (de un presupuesto o la preautorización). */
+export enum ApprovalChannel {
+  WhatsApp = 'WhatsApp',
+  Telefono = 'Telefono',
+  Mail = 'Mail',
+  Presencial = 'Presencial',
 }
 
 export enum TicketPriority {

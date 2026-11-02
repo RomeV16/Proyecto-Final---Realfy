@@ -5,16 +5,19 @@ import {
 } from './ticket-state-machine';
 
 const permitidas: Array<[S, S[]]> = [
-  [S.Abierto, [S.Asignado, S.Cancelado, S.ProveedorAsignado]],
-  [S.Asignado, [S.EnProgreso, S.Abierto, S.Cancelado, S.ProveedorAsignado]],
+  [S.Abierto, [S.Asignado, S.Cancelado, S.ProveedorAsignado, S.PendienteAutorizacion, S.Presupuestado]],
+  [S.Asignado, [S.EnProgreso, S.Abierto, S.Cancelado, S.ProveedorAsignado, S.PendienteAutorizacion, S.Presupuestado]],
   [S.EnProgreso, [S.Resuelto, S.Cancelado, S.ProveedorAsignado]],
   [S.Resuelto, [S.Cerrado, S.Reabierto]],
   [S.Cerrado, [S.Reabierto]],
   [S.Cancelado, []],
-  [S.Reabierto, [S.Asignado, S.Cancelado, S.ProveedorAsignado]],
+  [S.Reabierto, [S.Asignado, S.Cancelado, S.ProveedorAsignado, S.PendienteAutorizacion, S.Presupuestado]],
   [S.ProveedorAsignado, [S.ProveedorEnCamino, S.EnProgreso, S.Cancelado]],
   [S.ProveedorEnCamino, [S.TrabajoRealizado, S.ProveedorAsignado]],
   [S.TrabajoRealizado, [S.Resuelto, S.EnProgreso]],
+  [S.PendienteAutorizacion, [S.Presupuestado, S.Cancelado]],
+  [S.Presupuestado, [S.PresupuestoAprobado, S.Cancelado]],
+  [S.PresupuestoAprobado, [S.ProveedorAsignado, S.EnProgreso, S.Cancelado]],
 ];
 const todos = Object.values(S);
 
@@ -49,6 +52,10 @@ describe('máquina de estados de ticket', () => {
       [S.Cerrado, S.Abierto],
       [S.ProveedorEnCamino, S.Resuelto],
       [S.TrabajoRealizado, S.Cerrado],
+      [S.Abierto, S.PresupuestoAprobado],
+      [S.PendienteAutorizacion, S.PresupuestoAprobado],
+      [S.Presupuestado, S.EnProgreso],
+      [S.Resuelto, S.Cancelado],
     ])('%s no puede pasar a %s', (from, to) => {
       expect(validateTicketTransition(from, to)).toBe(false);
     });

@@ -99,6 +99,19 @@ export const OperationalDefaultsSchema = z
       })
       .strict()
       .default({}),
+    /**
+     * Incidencias y reparaciones. `preauthLimit`: hasta qué importe, en pesos, la
+     * inmobiliaria actúa sin consultar al locador (0 = siempre se consulta).
+     * `managementFeePct`: porcentaje del honorario por gestión de una reparación que se
+     * propone al imputar (0 = no se propone; el honorario es siempre opcional).
+     */
+    repairs: z
+      .object({
+        preauthLimit: z.number().min(0).default(0),
+        managementFeePct: pct.default(0),
+      })
+      .strict()
+      .default({}),
     /** Semáforo de vencimiento de contratos: rojo a los N días o menos del fin, amarillo hasta los M días. */
     expiryLight: z
       .object({
