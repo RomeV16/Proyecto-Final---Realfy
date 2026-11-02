@@ -103,7 +103,7 @@ Cuelgan de la propiedad.
 - `PATCH /api/contracts/:id` — Edición.
 - `POST /api/contracts/:id/terminate` — Rescinde el contrato y produce el resumen de cierre.
 - `GET /api/contracts/:contractId/commission` — Comisión pactada.
-- `POST /api/contracts/:contractId/commission` — Define la comisión, que es la que determina la rendición al propietario.
+- `POST /api/contracts/:contractId/commission` — Define la comisión, que es la que determina lo que se le descuenta al locador en su cuenta corriente, y el honorario por gestión de reparaciones.
 
 No hay un endpoint de renovación ni de alta de garantías por separado: la
 renovación se resuelve dando de alta un contrato nuevo, y las garantías se cargan
@@ -175,15 +175,26 @@ es de consulta agregada.
 - `GET /api/tenants/me/penalty-config` — Parámetros de punitorios de la inmobiliaria.
 - `PUT /api/tenants/me/penalty-config` — Actualiza esos parámetros.
 
-## Rendiciones al propietario
+## Cuenta corriente y estado de cuenta del locador
+
+- `GET /api/owners/balances` — Saldo de cada locador por moneda, custodia y lo que falta pagarle.
+- `GET /api/owners/:personId/ledger` — Movimientos de una moneda con el saldo corrido.
+- `POST /api/owners/:personId/opening-balance` — Saldo inicial por moneda, con motivo y auditado (Admin, Gerente).
+- `POST /api/owners/:personId/payouts` — Pago al locador desde una cuenta de la inmobiliaria.
+- `POST /api/owner-statements/generate` — Borradores del mes para todos los locadores con movimientos o saldo.
+- `GET /api/owner-statements` y `GET /api/owner-statements/:id` — Estados y detalle agrupado por unidad.
+- `GET /api/owner-statements/:id/pdf` — Estado en PDF para imprimir o compartir.
+- `POST /api/owner-statements/:id/issue` — Emite y bloquea los movimientos del mes.
+- `POST /api/owner-statements/:id/annul` — Anula el último emitido y libera sus movimientos (Admin, Gerente).
+
+## Rendiciones al propietario (histórico)
+
+Solo lectura desde la cuenta corriente (ADR-0009): ya no se generan, no cambian de
+estado, no se editan ni se envían.
 
 - `GET /api/renditions` — Listado por propietario y período.
-- `POST /api/renditions/generate` — Genera la rendición de un contrato y período.
 - `GET /api/renditions/:id` — Detalle con los conceptos discriminados.
 - `GET /api/renditions/:id/pdf` — Rendición en PDF.
-- `PATCH /api/renditions/:id/transition` — Cambia el estado.
-- `POST /api/renditions/:id/send` — Envía la rendición por correo al propietario.
-- `POST /api/renditions/:id/line-items` — Agrega un concepto.
 
 ## Comprobantes electrónicos
 

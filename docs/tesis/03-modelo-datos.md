@@ -61,7 +61,7 @@ Persona física o jurídica genérica. Una misma persona puede tener varios role
 
 ### PersonBankAccount
 
-Cuenta bancaria de una persona, en una moneda. Es lo que alimenta la rendición al propietario.
+Cuenta bancaria de una persona, en una moneda. Es lo que alimenta el pago al locador.
 
 - `id`, `tenantId`, `personId`, `currency`, `bankName`, `cbu`, `alias`, `holder`, `isDefault`, `createdAt`, `updatedAt`.
 - Una persona puede tener varias cuentas, también varias en la misma moneda. Por cada moneda con cuentas hay exactamente una predeterminada: la primera que se carga lo es, promover otra intercambia la predeterminada y el servicio rechaza soltar o borrar la predeterminada mientras queden otras de esa moneda (409 `BANK_ACCOUNT_DEFAULT_REQUIRED`). La moneda no se edita: se crea otra cuenta.
@@ -144,7 +144,7 @@ Contrato entre locadores e inquilino, o de venta.
 - `actualEndDate` es el fin real o la prórroga de palabra; el fin efectivo es `coalesce(actualEndDate, endDate)`. Un contrato pasado de su fin pactado sin fin real sigue liquidándose mientras esté `Activo`. `previousContractId` encadena las renovaciones.
 - `externalRef` identifica el contrato en el sistema anterior y es único por inmobiliaria (`@@unique([tenantId, externalRef])`, 409 `EXTERNAL_REF_TAKEN`).
 - **Las columnas de ajuste son la vista vigente.** `adjustmentType` toma IPC, ICL, CCP, porcentaje fijo, personalizado, UVA o escalonado (las dos últimas todavía no tienen cálculo), `adjustmentPeriod` va de mensual a anual, y `customAdjustmentPct` guarda el porcentaje cuando la modalidad es de porcentaje fijo. La fuente de las reglas de cada fecha es `ContractTermsVersion`; estas columnas se mantienen en sincronía con la versión vigente hoy (ADR-0010).
-- Relación 1-N con `ContractPerson`, `ContractLessor`, `PowerOfAttorney`, `ContractGuarantee`, `ContractAdjustment`, `AdjustmentSchedule`, `Liquidacion`, `OwnerRendicion`, `ContractPeriod`, `ContractAgreement`, `ContractTermsVersion`; 1-1 con `ContractCommission` y `ContractClosureSummary`.
+- Relación 1-N con `ContractPerson`, `ContractLessor`, `PowerOfAttorney`, `ContractGuarantee`, `ContractAdjustment`, `AdjustmentSchedule`, `Liquidacion`, `OwnerRendicion` (histórico), `OwnerLedgerEntry`, `ContractPeriod`, `ContractAgreement`, `ContractTermsVersion`; 1-1 con `ContractCommission` y `ContractClosureSummary`.
 
 ### ContractPerson
 
@@ -217,7 +217,7 @@ erDiagram
     }
 ```
 
-La titularidad (`PropertyOwnership`) no se conecta con el cobro: quien recibe dinero lo define `ContractLessor`, y la rendición se reparte entre los locadores vigentes.
+La titularidad (`PropertyOwnership`) no se conecta con el cobro: quien recibe dinero lo define `ContractLessor`, y cada cobro se reparte entre los locadores vigentes y se asienta en su cuenta corriente (la rendición por contrato queda como histórico). Los titulares solo soportan un gasto de una unidad sin contrato.
 
 ### Reglas versionadas, acuerdos y períodos
 
@@ -258,6 +258,7 @@ erDiagram
         string fixedDiscountProration
         int upfrontThresholdFees
         string upfrontBasis
+        string lessorDirectOwes
         json customSteps
     }
 ```
@@ -281,7 +282,7 @@ Convenio fechado que cambia las reglas del contrato.
 Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se modifica: un cambio crea otra.
 
 - `id`, `tenantId`, `contractId`, `validFrom`, `agreementId`, `adjustmentType`, `adjustmentPeriod`, `adjustmentBase` (`Original` o `Vigente`), `indexLagMonths` (por defecto 2), `fixedInitialMonths` (0), `customPct`, `customSteps` (JSON, lista de `{ fromMonth, pct }` para el escalonado), `rentOverride`, `discountPct`, `discountAmount`, `dueDay`, `paymentFlow` (`Partido`, `TodoInmobiliaria`, `TodoLocador`), `penaltyConfig` (JSON).
-- Cuatro convenciones de liquidación, pactables por contrato y con valor por defecto de la inmobiliaria (`Tenant.operationalDefaults`): `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`). Las columnas son obligatorias y su valor por defecto en la base es el comportamiento original (días reales, el ajuste rige desde el período siguiente, vence el día de inicio, descuento fijo proporcional), de modo que las versiones existentes liquidan igual que antes. Un contrato nuevo las toma de los valores por defecto de la inmobiliaria o de lo que se pacte en el alta; un convenio puede cambiarlas con `termsPatch`. Además pacta el anticipo del centro de carga: `upfrontThresholdFees` (entero, en comisiones mensuales; `null` = el de la inmobiliaria) y `upfrontBasis` (`ComisionPactada` por defecto, o `PorcentajePorDefecto`); las versiones existentes quedan con `null` y `ComisionPactada`, el comportamiento anterior.
+- Cuatro convenciones de liquidación, pactables por contrato y con valor por defecto de la inmobiliaria (`Tenant.operationalDefaults`): `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`). Las columnas son obligatorias y su valor por defecto en la base es el comportamiento original (días reales, el ajuste rige desde el período siguiente, vence el día de inicio, descuento fijo proporcional), de modo que las versiones existentes liquidan igual que antes. Un contrato nuevo las toma de los valores por defecto de la inmobiliaria o de lo que se pacte en el alta; un convenio puede cambiarlas con `termsPatch`. Además pacta el anticipo del centro de carga: `upfrontThresholdFees` (entero, en comisiones mensuales; `null` = el de la inmobiliaria) y `upfrontBasis` (`ComisionPactada` por defecto, o `PorcentajePorDefecto`); las versiones existentes quedan con `null` y `ComisionPactada`, el comportamiento anterior. Y pacta `lessorDirectOwes` (`TodoLoAjeno` o `SoloInmobiliaria`: qué le debe a la inmobiliaria el locador que cobra directamente; `null` = el de la inmobiliaria, `operationalDefaults.cash.lessorDirectOwes`), que el reparto del cobro lee de la versión vigente en el período (ADR-0009); las versiones existentes quedaron con `null`.
 - `@@unique([contractId, validFrom])`. La versión vigente a una fecha es la última con `validFrom` anterior o igual. La migración creó una por contrato con sus columnas de hoy: base `Vigente` (lo que hace el motor actual), rezago 0 (el motor anterior no lo aplicaba; los contratos nuevos toman el de los valores por defecto, 2), vencimiento el día 10 y flujo `Partido`.
 - Las tres tablas llevan `tenantId` y están registradas en `TENANT_SCOPED_MODELS`.
 
@@ -323,9 +324,10 @@ Plantillas para generar el documento del contrato.
 
 ### ContractCommission
 
-Comisión de la inmobiliaria sobre un contrato. Es el parámetro que determina la rendición al propietario.
+Comisión de la inmobiliaria sobre un contrato. Es el parámetro que determina lo que se le descuenta al locador en su cuenta corriente.
 
-- `id`, `tenantId`, `contractId`, `type`, `percentage`, `fixedAmount`, `adminFee`, `currency`, `notes`.
+- `id`, `tenantId`, `contractId`, `type`, `percentage`, `fixedAmount`, `adminFee`, `currency`, `repairMgmtFeePct`, `notes`.
+- `repairMgmtFeePct` es el honorario por gestión de una reparación a cargo del locador, en porcentaje de su importe; se asienta como `Honorario` junto con el cargo. Nulo (como quedaron todas las comisiones existentes) = sin honorario.
 
 ### ContractClosureSummary
 
@@ -518,11 +520,93 @@ erDiagram
 - Registrado en `TENANT_SCOPED_MODELS` y en la limpieza de las pruebas de integración. Sin backfill: la tabla nace vacía.
 - Un cargo `chargedTo = Inmobiliaria` queda `Pendiente` hasta que se cierra como `Gasto` de una cuenta de la caja (`CashMovement` con `sourceType = PendingCharge`); entonces pasa a `Imputado` y ya no se libera.
 - Anular o borrar la liquidación que lo tomó devuelve el cargo a `Pendiente` (`imputedLiquidacionId` nulo) en la misma transacción, igual que las partes de boletas y las correcciones de ajustes.
-- **Contrato con el estado del locador (3.2).** Los cargos `chargedTo = Locador` quedan `Pendiente` sin `imputedStatementId`; el estado de cuenta del locador toma los de su propiedad (y `lessorPersonId`, o todos los locadores si es nulo), los descuenta y los pasa a `Imputado` con el id del estado, en la misma transacción que lo crea.
+- **Cargos al locador y su estado de cuenta (3.2, ADR-0009).** Los cargos `chargedTo = Locador` quedan `Pendiente` hasta el estado del mes en que se imputan (`targetPeriod`, o el del gasto si no tiene). Por defecto, al generar los estados de ese mes se asientan como `Cargo` (y `Honorario` por gestión si es una reparación y el contrato pacta `repairMgmtFeePct`) entre quienes lo soportan —`lessorPersonId`; si no, los locadores del contrato según su porcentaje; sin contrato, los del último contrato de la unidad o sus titulares— y pasan a `Imputado` con `imputedStatementId` = el estado de quien más lo soporta, en la misma transacción. Con `ownerAccounts.lessorChargeTiming = AlEmitirEstado` eso ocurre al emitir. Anular el estado no los devuelve a `Pendiente` (siguen en la cuenta corriente), y un cargo al locador imputado no se libera a mano.
+
+### Cuenta corriente del locador
+
+Asientos por locador y estado de cuenta mensual consolidado (ítem 37, ADR-0009). La
+rendición por contrato (`OwnerRendicion`) queda como histórico de solo lectura.
+
+```mermaid
+erDiagram
+    FinancialAccount ||--o{ CashMovement : "libro"
+    FinancialAccount |o--o{ Payment : "donde entró"
+    Person |o--o{ FinancialAccount : "custodia de"
+    Liquidacion ||--o{ Payment : "cobros"
+    Payment |o--o| Receipt : "recibo"
+    Payment ||--o{ Compensation : "compensaciones"
+    Person ||--o{ Compensation : "from / to"
+    Person ||--o{ OwnerLedgerEntry : "cuenta corriente"
+    Contract |o--o{ OwnerLedgerEntry : "del contrato"
+    Property |o--o{ OwnerLedgerEntry : "de la unidad"
+    Person ||--o{ OwnerStatement : "estados de cuenta"
+    OwnerStatement |o--o{ OwnerLedgerEntry : "bloquea al emitir"
+    Payment ||..o{ OwnerLedgerEntry : "origen Payment"
+    Compensation ||..o{ OwnerLedgerEntry : "origen Compensation"
+    CashMovement ||..o| OwnerLedgerEntry : "origen CashMovement"
+    PendingCharge ||..o{ OwnerLedgerEntry : "origen PendingCharge"
+    OwnerStatement |o..o{ PendingCharge : "imputedStatementId"
+    FinancialAccount {
+        string kind
+        string currency
+    }
+    CashMovement {
+        date date
+        string direction
+        decimal amount
+        string category
+        string sourceType
+    }
+    Payment {
+        decimal amount
+        string receivedBy
+        boolean inCustody
+        json settlement
+    }
+    Receipt {
+        string series
+        int number
+    }
+    Compensation {
+        decimal amount
+        string currency
+    }
+    OwnerLedgerEntry {
+        date date
+        date period
+        string type
+        decimal amount
+        string currency
+        string sourceType
+        string sourceId
+    }
+    OwnerStatement {
+        date period
+        string currency
+        string status
+        decimal opening
+        decimal credits
+        decimal debits
+        decimal payouts
+        decimal closing
+    }
+```
+
+Las líneas punteadas son referencias por origen (`sourceType`/`sourceId`), sin clave
+foránea.
+
+- `OwnerLedgerEntry`: `id`, `tenantId`, `personId`, `contractId` y `propertyId` (opcionales; `SetNull` si se borran), `date`, `period` (primer día del mes del estado al que va, según el día de cierre de la inmobiliaria), `type` (`SaldoInicial`, `Alquiler`, `Punitorio`, `ReintegroImpuesto`, `Comision`, `Honorario`, `Cargo`, `PagoEnte`, `Transferencia`, `EntregaEfectivo`, `CobroDirecto`, `Compensacion`, `Custodia`, `Ajuste`), `amount` (con signo: positivo, la inmobiliaria le debe al locador), `currency`, `description`, `statementId` (el estado emitido que lo bloquea), `sourceType` y `sourceId` (`Payment`, `Compensation`, `CashMovement`, `ServiceBill`, `PendingCharge`, `OpeningBalance` con la moneda como id), `createdById`, `createdAt`. `@@unique([tenantId, sourceType, sourceId, personId, type])`: cada origen se asienta una sola vez por persona y concepto. Índices `[tenantId, personId, currency, date]`, `[tenantId, period]` y `[statementId]`. La persona es `Restrict`: un locador con cuenta corriente no se borra.
+- `OwnerStatement`: `id`, `tenantId`, `personId`, `period`, `currency`, `status` (`Borrador`, `Emitido`, `Enviado`, `Anulado`), `opening`, `credits`, `debits`, `payouts`, `closing`, `pdfUrl`, `sentAt`, `issuedAt`, `annulledAt`, `annulReason`, `createdById`. `@@unique([tenantId, personId, period, currency])`: un estado por locador, mes y moneda, con todas sus unidades. `opening` es el cierre del último emitido más los saldos iniciales del período; `closing = opening + credits − debits − payouts`.
+- Los asientos se escriben en la transacción de la operación que los origina (cobro, compensación, entrega de custodia, pago al locador, boleta, cargo, saldo inicial). Emitir un estado pone su id en los asientos sin emitir hasta su mes; anular lo quita.
+- Los dos modelos están en `TENANT_SCOPED_MODELS` y en la limpieza de las pruebas de integración. En la unión de personas los asientos y los estados pasan a la persona conservada; si las dos tienen un asiento del mismo origen y concepto, o un estado del mismo mes y moneda, la unión se rechaza (`conflict`).
+- Sin backfill: las tablas nacieron vacías. Cada locador arranca con un `SaldoInicial` por moneda, que carga la gerencia o la importación.
 
 ### OwnerRendicion / RendicionLineItem
 
-Rendición mensual al propietario y sus conceptos.
+Rendición mensual al propietario y sus conceptos. **Histórico de solo lectura** desde
+3.2: no se generan rendiciones nuevas ni cambian las existentes; las reemplazan la
+cuenta corriente y el estado de cuenta del locador (ADR-0009). Los reportes las siguen
+mostrando marcadas como históricas.
 
 - `OwnerRendicion`: `id`, `tenantId`, `contractId`, `ownerId`, `period`, `status`, `rentCollected`, `commissionAmount`, `adminFeeAmount`, `deductionTotal`, `netDeposit`, `currency`, `pdfUrl`, `sentAt`, `depositedAt`, `notes`. Única por contrato, período y locador (`@@unique([contractId, period, ownerId])`): hay una rendición por cada locador vigente al inicio del período.
 - **Reparto:** cada renglón de la rendición (lo cobrado, la comisión, los gastos, las deducciones) se reparte entre los locadores según `payoutPct`, por el método del mayor resto, de modo que las partes suman el renglón y los netos suman el neto total. Con un solo locador la rendición es la de siempre.
@@ -713,7 +797,8 @@ El resultado de cada fila de un lote.
 - `Contract` 1-N `AdjustmentSchedule` (lo pendiente) y 1-N `ContractAdjustment` (lo calculado y aplicado).
 - `Contract` 1-N `Liquidacion` 1-N `LiquidacionLineItem`.
 - `Liquidacion` 1-N `Payment` 1-N `Comprobante` (opcional), y 1-N `Penalty`.
-- `Contract` 1-1 `ContractCommission`, y esa comisión es la que determina el `netDeposit` de `OwnerRendicion`.
+- `Contract` 1-1 `ContractCommission`, y esa comisión es la que determina lo que se le descuenta al locador en `OwnerLedgerEntry` (antes, el `netDeposit` de `OwnerRendicion`, que queda como histórico).
+- `Person` 1-N `OwnerLedgerEntry` y 1-N `OwnerStatement`; un estado emitido bloquea sus asientos (`statementId`).
 - `Lead` N-1 `Pipeline` y N-1 `PipelineStage` a través de `currentStageId`.
 - `Ticket` N-1 `Property`, N-1 `TicketCategory` y N-1 `Person` en el rol de proveedor (opcional). `TicketAttachment` cuelga de `TicketComment`.
 - `InquilinoCredential` 1-1 `Person`, con el rol de inquilino asignado por `PersonRoleAssignment`.
