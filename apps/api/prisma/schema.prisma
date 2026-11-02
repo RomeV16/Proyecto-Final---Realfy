@@ -625,6 +625,9 @@ model Person {
   rendiciones     OwnerRendicion[]
 
   assignedTickets        Ticket[]             @relation("TicketProvider")
+  ticketsPreauthorized   Ticket[]             @relation("TicketPreauthorizer")
+  ticketQuotes           TicketQuote[]        @relation("TicketQuoteProvider")
+  ticketQuotesApproved   TicketQuote[]        @relation("TicketQuoteApprover")
   ticketsCreatedByPerson Ticket[]             @relation("TicketPortalCreator")
   ticketCommentsByPerson TicketComment[]      @relation("TicketCommentPerson")
   portalCredential       InquilinoCredential?
@@ -893,6 +896,7 @@ model Contract {
   billAllocations ServiceBillAllocation[]
   termsVersions   ContractTermsVersion[]
   pendingCharges  PendingCharge[]
+  tickets         Ticket[]
   cashMovements   CashMovement[]
   ownerLedger     OwnerLedgerEntry[]
 
@@ -2184,6 +2188,26 @@ enum TicketStatus {
   Cerrado
   Cancelado
   Reabierto
+  /// El costo estimado supera el límite sin preautorización: espera al locador.
+  PendienteAutorizacion
+  /// Autorizado a presupuestar, con presupuestos en gestión.
+  Presupuestado
+  /// El locador aprobó un presupuesto; falta ejecutar el trabajo.
+  PresupuestoAprobado
+}
+
+enum TicketQuoteStatus {
+  Pendiente
+  Aprobado
+  Rechazado
+}
+
+/// Por dónde se registró una aprobación (de un presupuesto o la preautorización).
+enum ApprovalChannel {
+  WhatsApp
+  Telefono
+  Mail
+  Presencial
 }
 
 enum TicketPriority {
@@ -2216,45 +2240,91 @@ model TicketCategory {
 }
 
 model Ticket {
-  id                String         @id @default(uuid())
-  tenantId          String
-  propertyId        String
-  categoryId        String?
-  createdByUserId   String?
-  createdByPersonId String?
-  assignedToUserId  String?
-  providerId        String?
-  title             String
-  description       String?
-  status            TicketStatus   @default(Abierto)
-  priority          TicketPriority @default(Media)
-  slaDeadline       DateTime?
-  costAmount        Decimal?       @db.Decimal(15, 2)
-  costCurrency      Currency?
-  costPayer         String?
-  providerNotes     String?
-  resolvedAt        DateTime?
-  closedAt          DateTime?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id                      String           @id @default(uuid())
+  tenantId                String
+  propertyId              String
+  /// Contrato vigente al que se imputa el gasto (el de la propiedad si hay uno solo).
+  contractId              String?
+  categoryId              String?
+  createdByUserId         String?
+  createdByPersonId       String?
+  assignedToUserId        String?
+  providerId              String?
+  title                   String
+  description             String?
+  status                  TicketStatus     @default(Abierto)
+  priority                TicketPriority   @default(Media)
+  slaDeadline             DateTime?
+  /// Costo estimado con el que se decide si hace falta preautorización.
+  estimatedAmount         Decimal?         @db.Decimal(15, 2)
+  costAmount              Decimal?         @db.Decimal(15, 2)
+  costCurrency            Currency?
+  /// Quién soporta el costo; se confirma al imputar (ChargeTarget del centro de carga).
+  costPayer               ChargeTarget?
+  providerNotes           String?
+  /// Tope autorizado por el locador para actuar sin volver a consultarlo.
+  preauthorizedAmount     Decimal?         @db.Decimal(15, 2)
+  preauthorizedByPersonId String?
+  preauthorizedAt         DateTime?
+  preauthorizedChannel    ApprovalChannel?
+  /// Se imputó a quien paga: una sola vez (el cargo es el de sourceType 'Ticket').
+  imputedAt               DateTime?
+  resolvedAt              DateTime?
+  closedAt                DateTime?
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
 
   tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   property        Property        @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  contract        Contract?       @relation(fields: [contractId], references: [id], onDelete: SetNull)
   category        TicketCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   createdBy       User?           @relation("TicketCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
   createdByPerson Person?         @relation("TicketPortalCreator", fields: [createdByPersonId], references: [id], onDelete: SetNull)
   assignedTo      User?           @relation("TicketAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
   provider        Person?         @relation("TicketProvider", fields: [providerId], references: [id], onDelete: SetNull)
+  preauthorizedBy Person?         @relation("TicketPreauthorizer", fields: [preauthorizedByPersonId], references: [id], onDelete: SetNull)
   comments        TicketComment[]
+  quotes          TicketQuote[]
 
   @@index([tenantId])
   @@index([tenantId, status])
   @@index([tenantId, priority])
   @@index([tenantId, propertyId])
+  @@index([tenantId, contractId])
   @@index([tenantId, assignedToUserId])
   @@index([tenantId, createdByPersonId])
   @@index([tenantId, providerId])
   @@map("tickets")
+}
+
+/// Presupuesto de un proveedor para una incidencia. Se aprueba uno: lo aprueba el
+/// locador (o quien lo representa) y se anota quién, cuándo y por qué canal.
+model TicketQuote {
+  id                 String            @id @default(uuid())
+  tenantId           String
+  ticketId           String
+  providerId         String
+  amount             Decimal           @db.Decimal(15, 2)
+  currency           Currency          @default(ARS)
+  status             TicketQuoteStatus @default(Pendiente)
+  approvedByPersonId String?
+  approvedByUserId   String?
+  approvedAt         DateTime?
+  channel            ApprovalChannel?
+  documentUrl        String?
+  notes              String?
+  createdById        String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  ticket     Ticket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  provider   Person  @relation("TicketQuoteProvider", fields: [providerId], references: [id], onDelete: Restrict)
+  approvedBy Person? @relation("TicketQuoteApprover", fields: [approvedByPersonId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, ticketId])
+  @@index([providerId])
+  @@index([approvedByPersonId])
+  @@map("ticket_quotes")
 }
 
 model TicketComment {

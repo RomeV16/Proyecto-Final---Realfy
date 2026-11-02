@@ -130,4 +130,14 @@ INSERT INTO "services" ("id", "tenantId", "propertyId", "serviceType", "provider
   ('svc-2',  'tenant-a', 'prop-1',  'Municipal',    'Ente de prueba 2',  9000.00, 15, now()),
   ('svc-b1', 'tenant-b', 'prop-b1', 'Gas',          'Ente de prueba 3',  7000.00, 12, now());
 
+-- Incidencias: "costPayer" era texto libre; cada valor ejercita una rama del mapeo de la migración.
+INSERT INTO "tickets" ("id", "tenantId", "propertyId", "title", "status", "priority", "costPayer", "providerNotes", "updatedAt") VALUES
+  ('tkt-1', 'tenant-a', 'prop-1', 'Pérdida en la cocina',  'Abierto',  'Media', 'Inquilino',     NULL,          now()),
+  ('tkt-2', 'tenant-a', 'prop-1', 'Humedad en el baño',    'Resuelto', 'Alta',  '  Propietario ', 'Nota previa', now()),
+  ('tkt-3', 'tenant-a', 'prop-1', 'Portero eléctrico',     'Cerrado',  'Baja',  'DUEÑO',         NULL,          now()),
+  ('tkt-4', 'tenant-a', 'prop-1', 'Cerradura',             'Abierto',  'Media', 'Agencia',       NULL,          now()),
+  ('tkt-5', 'tenant-a', 'prop-1', 'Pintura del palier',    'Abierto',  'Baja',  'mitad y mitad', NULL,          now()),
+  ('tkt-6', 'tenant-a', 'prop-1', 'Timbre',                'Abierto',  'Baja',  NULL,            NULL,          now()),
+  ('tkt-7', 'tenant-a', 'prop-1', 'Persiana',              'Abierto',  'Baja',  '',              NULL,          now());
+
 COMMIT;
