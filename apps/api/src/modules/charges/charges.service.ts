@@ -119,6 +119,18 @@ export class ChargesService {
    */
   async create(data: unknown): Promise<{ items: any[] }> {
     const input = parseOrThrow(CreatePendingChargeSchema, data, 'Invalid charge data');
+    const items = await this.prisma.client.$transaction((tx: Db) => this.createIn(tx, input));
+    return { items };
+  }
+
+  /**
+   * Crea los cargos de un alta ya validada dentro de la transacción de quien llama
+   * (la imputación de una incidencia lo usa para que el cargo y la marca de
+   * imputado sean atómicos). Con `settled` el cargo nace Imputado: ya está
+   * resuelto (la inmobiliaria absorbe un gasto que ya salió de su caja) y ninguna
+   * liquidación ni estado lo toma.
+   */
+  async createIn(tx: Db, input: CreatePendingChargeInput, opts: { settled?: boolean } = {}): Promise<any[]> {
     const tenantId = this.tenantContext.getTenantId()!;
     const { propertyId, contract } = await this.resolveScope(input);
     if (input.lessorPersonId) {
@@ -140,45 +152,43 @@ export class ChargesService {
     const beneficiary =
       kind === PendingChargeKind.HonorarioGestion ? LineBeneficiary.Inmobiliaria : input.beneficiary;
     const upfront =
-      input.chargedTo === ChargeTarget.Inquilino
+      input.chargedTo === ChargeTarget.Inquilino && !opts.settled
         ? await this.upfrontEvaluator(tenantId, contract, input.currency, incurredAt)
         : null;
 
-    const items = await this.prisma.client.$transaction(async (tx: Db) => {
-      const created: any[] = [];
-      for (const [index, amount] of parts.entries()) {
-        const row = await tx.pendingCharge.create({
-          data: {
-            tenantId,
-            propertyId,
-            contractId: contract?.id ?? null,
-            chargedTo: input.chargedTo,
-            lessorPersonId: input.lessorPersonId ?? null,
-            kind,
-            description: input.description,
-            amount,
-            currency: input.currency,
-            beneficiary,
-            incurredAt,
-            targetPeriod: firstPeriod ? addMonths(firstPeriod, index) : null,
-            requiresUpfront: upfront ? upfront(amount) : false,
-            installmentNo: index + 1,
-            installmentOf: parts.length,
-            installmentGroupId: groupId,
-            sourceType: input.sourceType ?? null,
-            sourceId: input.sourceId ?? null,
-            notes: input.notes ?? null,
-            createdById: this.tenantContext.getUserId() ?? null,
-          },
-          include: INCLUDE,
-        });
-        await this.audit.record(tx, { action: 'CREATE', entity: 'PendingCharge', entityId: row.id, after: snapshot(row) });
-        created.push(row);
-      }
-      return created;
-    });
-    this.logger.log('Charge created', { propertyId, contractId: contract?.id, count: items.length });
-    return { items };
+    const created: any[] = [];
+    for (const [index, amount] of parts.entries()) {
+      const row = await tx.pendingCharge.create({
+        data: {
+          tenantId,
+          propertyId,
+          contractId: contract?.id ?? null,
+          chargedTo: input.chargedTo,
+          lessorPersonId: input.lessorPersonId ?? null,
+          kind,
+          description: input.description,
+          amount,
+          currency: input.currency,
+          beneficiary,
+          incurredAt,
+          targetPeriod: firstPeriod ? addMonths(firstPeriod, index) : null,
+          requiresUpfront: upfront ? upfront(amount) : false,
+          installmentNo: index + 1,
+          installmentOf: parts.length,
+          installmentGroupId: groupId,
+          sourceType: input.sourceType ?? null,
+          sourceId: input.sourceId ?? null,
+          notes: input.notes ?? null,
+          createdById: this.tenantContext.getUserId() ?? null,
+          ...(opts.settled ? { status: PendingChargeStatus.Imputado, imputedAt: new Date() } : {}),
+        },
+        include: INCLUDE,
+      });
+      await this.audit.record(tx, { action: 'CREATE', entity: 'PendingCharge', entityId: row.id, after: snapshot(row) });
+      created.push(row);
+    }
+    this.logger.log('Charge created', { propertyId, contractId: contract?.id, count: created.length });
+    return created;
   }
 
   /** Carga una planilla: cada fila se valida y se guarda por separado, y se informa el resultado de cada una. */
