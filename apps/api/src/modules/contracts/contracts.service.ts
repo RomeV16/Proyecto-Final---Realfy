@@ -763,6 +763,13 @@ export class ContractsService {
       });
     }
 
+    // Un contrato vencido se regulariza con la prórroga de palabra o la renovación, no activándolo.
+    if (existing.status === ContractStatus.Vencido) {
+      throw new ConflictException({
+        error: 'EXPIRED_CONTRACT_NEEDS_EXTENSION_OR_RENEWAL',
+        message: 'An expired contract is reactivated by an oral extension or a renewal',
+      });
+    }
     this.assertTransition(existing.status, ContractStatus.Activo);
 
     const tenantId = this.tenantContext.getTenantId()!;
@@ -791,6 +798,35 @@ export class ContractsService {
     });
 
     return this.findOne(id);
+  }
+
+  /**
+   * Vencido → Activo para un contrato que en la práctica sigue corriendo. Solo
+   * lo usan la prórroga de palabra y la renovación, dentro de su transacción:
+   * valida la transición y que el nuevo fin efectivo no pise a otro alquiler,
+   * lo vuelve a poner activo (sin fecha de cierre) y ocupa la propiedad de nuevo.
+   */
+  async reactivateExpired(
+    tx: any,
+    contract: { id: string; status: string; propertyId: string; contractType: string; startDate: Date },
+    effectiveEnd: Date,
+  ): Promise<void> {
+    this.assertTransition(contract.status, ContractStatus.Activo);
+    await this.assertNoOverlap(tx, {
+      id: contract.id,
+      propertyId: contract.propertyId,
+      startDate: contract.startDate,
+      endDate: effectiveEnd,
+    });
+    await tx.contract.update({
+      where: { id: contract.id },
+      data: { status: ContractStatus.Activo, isActive: true, closedAt: null },
+    });
+    await this.occupyProperty(tx, this.tenantContext.getTenantId()!, {
+      ...contract,
+      endDate: effectiveEnd,
+      roles: [],
+    });
   }
 
   private assertTransition(from: string, to: string): void {

@@ -33,7 +33,7 @@ describe('OperationalDefaultsSchema', () => {
       upfrontThresholdFees: 2,
       upfrontBasis: 'ComisionPactada',
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
-      expiryLight: { redDays: 0, yellowDays: 60 },
+      expiryLight: { redDays: 30, yellowDays: 60 },
       cash: {
         lessorDirectOwes: 'TodoLoAjeno',
         partialAllocation: 'Proporcional',

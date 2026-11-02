@@ -35,7 +35,7 @@ describe('Valores por defecto de la inmobiliaria', () => {
       valuationUsd: 100,
       upfrontThresholdFees: 2,
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
-      expiryLight: { redDays: 0, yellowDays: 60 },
+      expiryLight: { redDays: 30, yellowDays: 60 },
     });
   });
 

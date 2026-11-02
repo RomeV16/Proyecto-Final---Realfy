@@ -95,6 +95,7 @@ export const RULE_CHANGING_AGREEMENT_KINDS: readonly ContractAgreementKind[] = [
   ContractAgreementKind.Renegociacion,
   ContractAgreementKind.Rebaja,
   ContractAgreementKind.Bonificacion,
+  ContractAgreementKind.Renovacion,
 ];
 
 export const CreateContractAgreementSchema = z

@@ -10,6 +10,7 @@ import {
   Query,
   BadRequestException,
 } from '@nestjs/common';
+import { ContractAgreementKind } from '@realfy/shared';
 import { ContractsService } from './contracts.service';
 import { ContractLessorsService } from './contract-lessors.service';
 import { ContractRulesService } from './contract-rules.service';
@@ -274,6 +275,13 @@ export class ContractsController {
   @AuditOperation('contract-agreement')
   @Post(':id/agreements')
   async createAgreement(@Param('id') id: string, @Body() body: Record<string, any>) {
+    // La prórroga y la renovación mueven fechas y períodos: tienen su propia ruta.
+    if (body?.kind === ContractAgreementKind.Prorroga || body?.kind === ContractAgreementKind.Renovacion) {
+      throw new BadRequestException({
+        error: 'USE_DEDICATED_ENDPOINT',
+        message: 'Oral extensions and renewals are recorded with /oral-extension and /renew',
+      });
+    }
     return this.rules.createAgreement(id, body);
   }
 

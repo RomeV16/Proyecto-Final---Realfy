@@ -73,7 +73,7 @@ describe('OperationalDefaultsManager', () => {
       commissionPct: 7.5,
       fees: { alta: 5, renovacion: 5, ventaConstruido: 3, ventaLote: 5 },
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
-      expiryLight: { redDays: 0, yellowDays: 60 },
+      expiryLight: { redDays: 30, yellowDays: 60 },
     });
   });
 

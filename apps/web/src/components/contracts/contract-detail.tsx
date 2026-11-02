@@ -21,6 +21,7 @@ import { ContractPendingCharges } from '@/components/charges/contract-pending-ch
 import { GenerateDocumentModal } from './generate-document-modal';
 import { CommissionConfig } from './commission-config';
 import { ClosureSummary } from './closure-summary';
+import { ContractExpiration } from '@/components/follow-ups/contract-expiration';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import {
   ActivationProblems,
@@ -76,6 +77,8 @@ interface ContractDetail {
   status: string;
   startDate: string;
   endDate?: string;
+  /** Fin real o prórroga de palabra; el fin efectivo es este si existe y si no `endDate`. */
+  actualEndDate?: string | null;
   rentAmount?: string | number;
   /** La API expone la moneda del alquiler como `rentCurrency`. */
   rentCurrency?: string;
@@ -843,6 +846,9 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
               )}
             </div>
           </div>
+
+          {/* Vencimiento: fin pactado y real, seguimiento, prórroga de palabra y renovación */}
+          <ContractExpiration contract={contract} onChanged={fetchContract} />
 
           {/* Reglas vigentes y acuerdos */}
           <ContractRules contractId={contract.id} currency={contractCurrency} />

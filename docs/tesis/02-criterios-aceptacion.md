@@ -35,11 +35,13 @@ Del piloto (CU-27, CU-28 y CU-29):
 - La modalidad de ajuste debe definirse al alta y queda inmutable salvo modificación explícita con auditoría.
 - El estado de disponibilidad vive en la operación de la propiedad y se transiciona sobre ella, no sobre la propiedad. El alta del contrato en borrador no lo cambia; la activación sí (ver «Activación del contrato»).
 - Las garantías cargadas se pueden listar y el contrato no puede activarse sin al menos una garantía válida (salvo excepción habilitada).
-- La renovación se resuelve dando de alta un contrato nuevo con las mismas partes: el contrato anterior queda en estado Renovado y no hay clonado automático de partes ni de garantías. La renovación como un período nuevo del mismo contrato está planificada en el ítem 40.
+- La renovación agrega un período de renovación al mismo contrato, con su alquiler y su regla de ajuste (una versión de reglas nueva), los garantes que reafirman y los honorarios pactados; no se clona el contrato ni se cambia su estado. Se renueva un contrato activo o uno vencido que sigue corriendo (que vuelve a Activo).
+- Una prórroga de palabra mueve el fin real y no cambia el fin pactado; queda registrada como convenio y auditada. Los avisos de vencimiento, los paneles y el cronograma de ajustes usan el fin efectivo (el real si existe y si no el pactado).
+- El proceso diario abre un seguimiento por contrato activo, o vencido sin decisión (ni renovación, ni cierre), cuyo fin efectivo está dentro de la ventana de aviso, una sola vez por fin efectivo; el semáforo se calcula y no se guarda.
 
 ### Estados del contrato
 
-El diagrama muestra los estados del contrato y sus transiciones tal como las valida la máquina de estados compartida (`packages/shared/src/state-machine/contract-state-machine.ts`). Dentro de Activo se distinguen las situaciones que agregó el piloto: el contrato pasado de su fin pactado sigue activo y se sigue liquidando, y una prórroga de palabra se registra con un fin real. Lo marcado como planificado no existe todavía.
+El diagrama muestra los estados del contrato y sus transiciones tal como las valida la máquina de estados compartida (`packages/shared/src/state-machine/contract-state-machine.ts`). Dentro de Activo se distinguen las situaciones que agregó el piloto: el contrato pasado de su fin pactado sigue activo y se sigue liquidando, y una prórroga de palabra se registra con un fin real. Un contrato Vencido que en la práctica sigue corriendo vuelve a Activo solo con la prórroga de palabra o la renovación.
 
 ```mermaid
 stateDiagram-v2
@@ -51,6 +53,7 @@ stateDiagram-v2
     Activo --> Vencido: paso manual
     Activo --> Rescindido: rescisión
     Activo --> Renovado: contrato nuevo cargado
+    Vencido --> Activo: prórroga de palabra o renovación
     Vencido --> Renovado
     Vencido --> Rescindido
     Vencido --> Archivado
@@ -66,21 +69,24 @@ stateDiagram-v2
         EnPlazo --> SinDecision: llega el fin pactado
         EnPlazo --> Prorroga: se registra un fin real
         SinDecision --> Prorroga: se registra un fin real
+        EnPlazo --> EnPlazo: renovación (período nuevo, fin nuevo)
+        Prorroga --> EnPlazo: renovación
     }
 
     note right of Activo
         Se liquida hasta el fin efectivo.
-        Semáforo y seguimiento de vencimiento
-        planificados en el ítem 40.
+        El proceso diario abre el seguimiento
+        (semáforo y checklist) al acercarse el fin.
     end note
 
     note right of Renovado
-        Renovación como período del mismo
-        contrato planificada en el ítem 40.
+        Solo contratos renovados dando de alta
+        otro. La renovación nueva es un período
+        del mismo contrato y no cambia el estado.
     end note
 ```
 
-El paso a Vencido, Renovado y Archivado es manual: no hay una tarea que venza contratos por fecha, a propósito, porque un contrato pasado de su fin sin decisión sigue cobrándose (decisión del piloto ante la prórroga de palabra). El panel de calidad de datos lista los contratos vencidos sin decisión para que no queden olvidados.
+El paso a Vencido, Renovado y Archivado es manual: no hay una tarea que venza contratos por fecha, a propósito, porque un contrato pasado de su fin sin decisión sigue cobrándose (decisión del piloto ante la prórroga de palabra). El panel de calidad de datos lista los contratos vencidos sin decisión y el proceso diario de vencimientos les abre un seguimiento (ver CU-38); el paso Vencido → Activo no existe por el cambio de estado ni por la activación: lo hacen solo la prórroga de palabra y la renovación (CU-39), dejan constancia en la auditoría y revisan que el nuevo fin no pise a otro alquiler activo de la propiedad.
 
 ### Activación del contrato
 

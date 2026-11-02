@@ -144,7 +144,7 @@ describe('NotificationSchedulerService', () => {
       prisma.baseClient.user.findMany.mockResolvedValue(users);
       // Como la base: solo devuelve el contrato si vence dentro del rango pedido.
       prisma.client.contract.findMany.mockImplementation(async ({ where }: any) =>
-        END_DATE >= where.endDate.gte && END_DATE <= where.endDate.lte
+        END_DATE >= where.OR[1].endDate.gte && END_DATE <= where.OR[1].endDate.lte
           ? [{ id: 'c1', endDate: END_DATE, property: { title: 'Depto Centro' } }]
           : [],
       );
@@ -197,6 +197,27 @@ describe('NotificationSchedulerService', () => {
 
       expect(stored.filter((n) => n.userId === 'u1')).toHaveLength(1);
       expect(stored[0].title).toContain('7 días');
+    });
+
+    it('avisa según el fin real (prórroga de palabra) y no según el fin pactado', async () => {
+      const ACTUAL_END = new Date('2026-03-08T00:00:00.000Z');
+      // Como la base: el fin efectivo es el real si existe y si no el pactado.
+      prisma.client.contract.findMany.mockImplementation(async ({ where }: any) => {
+        const [withActual] = where.OR;
+        const inRange =
+          ACTUAL_END >= withActual.actualEndDate.gte && ACTUAL_END <= withActual.actualEndDate.lte;
+        return inRange
+          ? [{ id: 'c1', endDate: new Date('2026-02-20T00:00:00.000Z'), actualEndDate: ACTUAL_END, property: { title: 'Depto Centro' } }]
+          : [];
+      });
+      setToday('2026-03-01'); // el fin pactado ya pasó; el real está a 7 días
+
+      await scheduler.handleContractExpiryWarnings();
+
+      const ofUser = stored.filter((n) => n.userId === 'u1');
+      expect(ofUser).toHaveLength(1);
+      expect(ofUser[0].title).toContain('7 días');
+      expect(ofUser[0].message).toContain('08/03/2026');
     });
 
     it('no avisa lo que vence después de 30 días', async () => {

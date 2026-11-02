@@ -27,6 +27,7 @@ vi.mock('../contracts/commission-config', () => ({ CommissionConfig: () => null 
 vi.mock('../contracts/generate-document-modal', () => ({ GenerateDocumentModal: () => null }));
 vi.mock('../contracts/adjustment-timeline', () => ({ AdjustmentTimeline: () => null }));
 vi.mock('../contracts/contract-charge-rules', () => ({ ContractChargeRules: () => null }));
+vi.mock('../follow-ups/contract-expiration', () => ({ ContractExpiration: () => null }));
 
 import { ContractDetailView } from '../contracts/contract-detail';
 import { ContractPowersSection } from './contract-powers-section';

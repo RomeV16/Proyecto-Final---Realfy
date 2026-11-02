@@ -1,5 +1,6 @@
 import {
   ContractStatus,
+  ExpirationLight,
   PendingChargeStatus,
   ImportBatchStatus,
   ImportRowAction,
@@ -42,7 +43,8 @@ export type StatusDomain =
   | 'importacion'
   | 'importFila'
   | 'cargo'
-  | 'estadoCuenta';
+  | 'estadoCuenta'
+  | 'vencimiento';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -100,6 +102,12 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
     },
     [OwnerStatementStatus.Anulado],
   ),
+  vencimiento: entries('followUps.lights', {
+    [ExpirationLight.Green]: 'success',
+    [ExpirationLight.Yellow]: 'warning',
+    [ExpirationLight.Red]: 'danger',
+    [ExpirationLight.Expired]: 'danger',
+  }),
   ajuste: entries('adjustments.statuses', {
     ready: 'success',
     provisional: 'warning',

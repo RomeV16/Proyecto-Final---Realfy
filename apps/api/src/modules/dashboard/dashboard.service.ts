@@ -9,6 +9,7 @@ import {
 } from '../liquidaciones/receivables';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { getParty } from '../contracts/contract-parties';
+import { getEffectiveEndDate } from '../contracts/contract-terms';
 import {
   buildMonthRange,
   buildBuckets,
@@ -106,6 +107,7 @@ export class DashboardService {
           id: true,
           rentAmount: true,
           endDate: true,
+          actualEndDate: true,
           property: { select: { title: true } },
           persons: {
             select: { role: true, person: { select: { firstName: true, lastName: true } } },
@@ -176,7 +178,10 @@ export class DashboardService {
 
     // ── Contract expirations ───────────────────────────────
     const within = (from: Date, to: Date) =>
-      activeContracts.filter((c) => c.endDate >= from && c.endDate <= to).length;
+      activeContracts.filter((c) => {
+        const end = getEffectiveEndDate(c);
+        return end >= from && end <= to;
+      }).length;
     const expiringContracts = {
       within30: within(now, in30),
       within60: within(in30, in60),
@@ -188,15 +193,15 @@ export class DashboardService {
       return personName(inq) || '—';
     };
     const expiringAgenda = activeContracts
-      .filter((c) => c.endDate >= now && c.endDate <= in90)
-      .sort((a, b) => a.endDate.getTime() - b.endDate.getTime())
+      .filter((c) => getEffectiveEndDate(c) >= now && getEffectiveEndDate(c) <= in90)
+      .sort((a, b) => getEffectiveEndDate(a).getTime() - getEffectiveEndDate(b).getTime())
       .slice(0, 5)
       .map((c) => ({
         id: c.id,
         property: propertyLabel(c.property) || '—',
         tenant: tenantName(c),
-        endDate: c.endDate.toISOString(),
-        daysLeft: Math.max(0, Math.round((c.endDate.getTime() - now.getTime()) / 86400000)),
+        endDate: getEffectiveEndDate(c).toISOString(),
+        daysLeft: Math.max(0, Math.round((getEffectiveEndDate(c).getTime() - now.getTime()) / 86400000)),
       }));
 
     // ── Collections (current cycle) + delinquency (all outstanding) ──
@@ -354,7 +359,8 @@ export class DashboardService {
               startDate: { lte: eom },
               OR: [
                 { closedAt: { gte: eom } },
-                { closedAt: null, endDate: { gte: eom } },
+                { closedAt: null, actualEndDate: { gte: eom } },
+                { closedAt: null, actualEndDate: null, endDate: { gte: eom } },
               ],
             },
             select: { propertyId: true },

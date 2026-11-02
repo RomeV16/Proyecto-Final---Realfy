@@ -60,6 +60,10 @@ export const ACTION_ROLES = {
   'ownerAccounts.manage': [Admin, Gerente, Liquidaciones],
   /** Cargar o corregir el saldo inicial de un locador y anular un estado emitido. */
   'ownerAccounts.administer': [Admin, Gerente],
+  /** Vencimientos: asignar, cambiar el tipo, marcar el checklist y cerrar un seguimiento. */
+  'followUps.manage': [Admin, Gerente, Ventas],
+  /** Registrar una prórroga de palabra o renovar un contrato. */
+  'expirations.administer': [Admin, Gerente],
   'dashboard.analytics': [Admin, Gerente],
 
   // Soporte y configuración

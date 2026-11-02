@@ -247,6 +247,29 @@ enum ContractAgreementKind {
   CambioRegla
   CambioReparto
   CambioCargo
+  /// Prórroga de palabra: mueve el fin real sin cambiar el fin pactado.
+  Prorroga
+  /// Renovación como período del mismo contrato.
+  Renovacion
+}
+
+/// Qué se prepara cuando se acerca el fin de un contrato.
+enum FollowUpKind {
+  Devolucion
+  Renovacion
+}
+
+enum FollowUpStatus {
+  Abierto
+  Cerrado
+}
+
+/// Cómo terminó el seguimiento.
+enum FollowUpOutcome {
+  Pendiente
+  Renovado
+  Devuelto
+  Prorrogado
 }
 
 /// Sobre qué alquiler se aplica el ajuste: el original del período o el vigente.
@@ -873,6 +896,8 @@ model Contract {
   cashMovements   CashMovement[]
   ownerLedger     OwnerLedgerEntry[]
 
+  followUps ContractFollowUp[]
+
   @@unique([tenantId, externalRef])
   @@index([previousContractId])
   @@index([tenantId])
@@ -1046,16 +1071,21 @@ model AdjustmentSchedule {
 
 /// Un tramo de vigencia del contrato: el original, una renovación o una prórroga.
 model ContractPeriod {
-  id          String             @id @default(uuid())
-  tenantId    String
-  contractId  String
-  seq         Int
-  kind        ContractPeriodKind
-  startDate   DateTime
-  endDate     DateTime
-  initialRent Decimal            @db.Decimal(15, 2)
-  signedAt    DateTime?
-  createdAt   DateTime           @default(now())
+  id                 String             @id @default(uuid())
+  tenantId           String
+  contractId         String
+  seq                Int
+  kind               ContractPeriodKind
+  startDate          DateTime
+  endDate            DateTime
+  initialRent        Decimal            @db.Decimal(15, 2)
+  signedAt           DateTime?
+  /// Honorarios de la renovación pactados (el cobro va por la caja).
+  feeAmount          Decimal?           @db.Decimal(15, 2)
+  feeCurrency        Currency?
+  /// Garantes que reafirmaron la garantía en la renovación.
+  guarantorPersonIds String[]           @default([])
+  createdAt          DateTime           @default(now())
 
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
@@ -1128,6 +1158,53 @@ model ContractTermsVersion {
   @@index([tenantId])
   @@index([agreementId])
   @@map("contract_terms_versions")
+}
+
+/// Seguimiento del fin de un contrato (devolución o renovación) con su checklist.
+/// El semáforo no se guarda: se calcula del fin efectivo.
+model ContractFollowUp {
+  id         String          @id @default(uuid())
+  tenantId   String
+  contractId String
+  kind       FollowUpKind
+  status     FollowUpStatus  @default(Abierto)
+  /// Fin efectivo del contrato cuando se abrió el seguimiento.
+  dueDate    DateTime        @db.Date
+  assigneeId String?
+  outcome    FollowUpOutcome @default(Pendiente)
+  notes      String?
+  closedAt   DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  contract Contract       @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  tasks    FollowUpTask[]
+
+  @@unique([contractId, kind, dueDate])
+  @@index([tenantId, status])
+  @@index([tenantId, assigneeId])
+  @@map("contract_follow_ups")
+}
+
+/// Un paso del checklist de un seguimiento.
+model FollowUpTask {
+  id         String    @id @default(uuid())
+  tenantId   String
+  followUpId String
+  code       String
+  label      String
+  position   Int
+  done       Boolean   @default(false)
+  doneAt     DateTime?
+  doneById   String?
+  dueDate    DateTime? @db.Date
+  createdAt  DateTime  @default(now())
+
+  followUp ContractFollowUp @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+
+  @@unique([followUpId, code])
+  @@index([tenantId])
+  @@map("follow_up_tasks")
 }
 
 model IndexData {

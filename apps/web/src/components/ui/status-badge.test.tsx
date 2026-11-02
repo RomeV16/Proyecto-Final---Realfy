@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import {
   ContractStatus,
+  ExpirationLight,
   ImportBatchStatus,
   ImportRowAction,
   LeadStatus,
@@ -34,6 +35,7 @@ const ENUMS: Record<StatusDomain, object> = {
   importFila: ImportRowAction,
   cargo: PendingChargeStatus,
   estadoCuenta: OwnerStatementStatus,
+  vencimiento: ExpirationLight,
 };
 
 function lookup(messages: unknown, path: string): unknown {

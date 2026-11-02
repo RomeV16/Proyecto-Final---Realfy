@@ -107,7 +107,15 @@ export class ContractRulesService {
 
   // ─── Alta ───────────────────────────────────────────
 
-  async createAgreement(contractId: string, data: unknown) {
+  /**
+   * `inTransaction` corre dentro de la misma transacción, después de crear el
+   * convenio y su versión de reglas: lo usa la renovación para agregar el período.
+   */
+  async createAgreement(
+    contractId: string,
+    data: unknown,
+    inTransaction?: (tx: any, agreementId: string) => Promise<void>,
+  ) {
     const input = parseOrThrow(CreateContractAgreementSchema, data, 'Invalid agreement data');
     const contract = await this.requireContract(contractId);
     const tenantId = this.tenantContext.getTenantId()!;
@@ -166,6 +174,7 @@ export class ContractRulesService {
           ...Object.fromEntries(TERMS_FIELDS.map((f) => [f, toDbValue(f, merged[f])])),
         },
       });
+      if (inTransaction) await inTransaction(tx, agreement.id as string);
 
       return {
         agreementId: agreement.id as string,

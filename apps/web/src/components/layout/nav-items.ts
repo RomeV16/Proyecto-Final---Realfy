@@ -32,6 +32,7 @@ export const navItems: NavItem[] = [
   { key: 'leads', href: '/leads', icon: 'leads' },
   { key: 'pipeline', href: '/pipeline', icon: 'pipeline', action: 'pipeline.access' },
   { key: 'contracts', href: '/contracts', icon: 'contracts' },
+  { key: 'followUps', href: '/vencimientos', icon: 'calendarClock' },
   { key: 'liquidaciones', href: '/liquidaciones', icon: 'liquidaciones' },
   { key: 'adjustments', href: '/ajustes', icon: 'percent', action: 'adjustments.manage' },
   { key: 'serviceBills', href: '/boletas', icon: 'invoices', action: 'serviceBills.manage' },

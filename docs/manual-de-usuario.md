@@ -282,8 +282,75 @@ anteriores: crea una versión nueva desde su fecha, y el contrato sigue mostrand
 que corresponde a cada día.
 
 Si un contrato venció el día pactado y nadie lo cerró, sigue activo y se sigue
-liquidando hasta que se registre su fin real (`actualEndDate`) o se rescinda: una
-prórroga de palabra se registra cargando esa fecha en el contrato.
+liquidando hasta que se registre su fin real o se rescinda; la prórroga de palabra
+se registra con la acción *Prórroga de palabra* de la tarjeta *Vencimiento* (ver más
+abajo).
+
+### Seguir los vencimientos, prorrogar de palabra y renovar un contrato
+
+**Vencimientos.** El menú *Vencimientos* (`/vencimientos`) lista los contratos que se
+acercan a su fin o ya lo pasaron. Todos los días, de madrugada, el sistema abre un
+*seguimiento* por cada contrato de alquiler activo al que le faltan 60 días o menos
+(los días son configurables en *Valores por defecto*); los contratos que ya vencieron
+y siguen activos aparecen también, con el semáforo en *Vencido*, y lo mismo los
+contratos marcados como *Vencido* que no tienen renovación ni cierre (por ejemplo, los
+importados): desde ahí se regularizan con una prórroga de palabra o una renovación.
+El hallazgo *Vencidos sin decisión* de calidad de datos enlaza a su seguimiento. El semáforo se
+calcula con el fin efectivo (el fin real si se cargó una prórroga y si no el fin
+pactado): *En plazo* (verde), *Por vencer* (amarillo, hasta los días de aviso),
+*Urgente* (rojo, hasta los días del umbral rojo, 30 de fábrica) y *Vencido* (el fin
+efectivo ya pasó). Se filtra por color, tipo (renovación o devolución), estado
+(abierto o cerrado) y *Solo los míos*; cada fila muestra el inquilino, el fin, los
+días que faltan, el avance del checklist y el responsable.
+
+**Trabajar un seguimiento.** *Abrir* muestra el seguimiento: el responsable (Admin,
+Gerente y Ventas lo asignan; quien no ve la lista de usuarios puede asignárselo a
+sí mismo), el tipo y el *checklist*. Un seguimiento nace como *Renovación*; si el
+inquilino se va, se pasa a *Devolución* y el checklist cambia (lo ya marcado en los
+pasos que se repiten se conserva).
+
+| Renovación | Devolución |
+|---|---|
+| Visita y estado de la unidad | Visita previa de inspección |
+| Precio nuevo acordado | Fecha de entrega acordada |
+| Regla de ajuste | Publicar la unidad con anticipación |
+| Garantes y fiadores reafirmados | Libre deuda de servicios |
+| Honorarios de renovación | Pintura y estado de la unidad |
+| Sellos y firma de la adenda | Entrega de llaves |
+| | Devolución del depósito |
+
+Cada paso se marca con quién y cuándo. El *Resultado* cierra el seguimiento
+(*Renovado*, *Devuelto* o *Prorrogado*); volver a *Pendiente* lo reabre. Un
+seguimiento cerrado ya no admite marcar pasos. Los avisos por correo y el panel
+también miden con el fin efectivo.
+
+**Prórroga de palabra.** En el detalle del contrato, la tarjeta *Vencimiento* muestra
+el fin pactado, el fin efectivo y el seguimiento abierto. *Prórroga de palabra*
+(Admin y Gerente, contrato activo o vencido) pide hasta cuándo sigue el inquilino (una fecha
+posterior al fin actual) y qué se acordó. El fin pactado no cambia: cambia el fin
+real, queda un convenio *Prórroga* con la nota, el cambio se audita, el seguimiento
+abierto se cierra como *Prorrogado* y, cuando el nuevo fin se acerque, se abre otro.
+Una prórroga puede encadenarse con otra. En un contrato *Vencido* que en la práctica
+sigue corriendo, la prórroga lo vuelve a *Activo* (y la propiedad a *Alquilado*), siempre
+que el nuevo fin no pise a otro alquiler activo; es el único camino de Vencido a Activo y queda
+auditado.
+
+**Renovar.** *Renovar* (Admin y Gerente, contrato activo o vencido) no crea otro contrato:
+agrega un *período de renovación* al mismo contrato. El diálogo propone empezar el
+día siguiente al fin efectivo y durar 24 meses, con el alquiler de hoy; se cambia el
+alquiler nuevo, la regla de ajuste (de fábrica *La misma que hasta ahora*: IPC, ICL,
+UVA o porcentaje fijo y cada cuánto), los garantes que reafirman (solo los garantes
+cargados en el contrato), los honorarios de renovación pactados (opcional; el diálogo
+sugiere el porcentaje de renovación de *Valores por defecto* sobre el alquiler de todos los
+meses del período, y se puede cambiar; el cobro se registra en la caja) y la fecha de firma si ya se firmó. Al confirmar, el contrato
+queda con el fin del período nuevo (si estaba *Vencido* vuelve a *Activo*), rige el alquiler nuevo desde la fecha de inicio
+(el alquiler vigente del contrato se actualiza ese día solo si la renovación ya empezó; una que empieza más adelante
+liquida con el alquiler nuevo desde su fecha),
+la prórroga de palabra que hubiera queda absorbida y el seguimiento abierto se cierra
+como *Renovado*. La tarjeta lista las renovaciones y cada una ofrece *Adenda (PDF)*: la
+adenda corta con el período, el alquiler en números y en letras, la regla de ajuste,
+los garantes, los honorarios y las firmas. Una renovación no puede empezar antes del
+inicio del período en curso ni cuando ya hay reglas desde esa fecha o una posterior.
 
 ### Reglas de impuestos y servicios de un contrato
 
@@ -851,7 +918,7 @@ liquidación (10, es decir el día 20), el rezago del IPC (2 meses), la comisió
 administración (7 %), los honorarios por alta, renovación y venta (5 %, 5 %, 3 % si
 es construido y 5 % si es lote), la tasación (USD 100), el umbral de anticipo (2
 honorarios), la cadencia de cobranza (primer recordatorio a los 5 días y después
-cada 5), el semáforo de vencimientos de contratos (rojo a los 0 días, amarillo a
+cada 5), el semáforo de vencimientos de contratos (rojo a los 30 días, amarillo a
 los 60) y las cuatro convenciones de liquidación (prorrateo de un mes parcial, ajuste a
 mitad de mes, primer mes con inicio tardío y descuento de monto fijo; de fábrica, días
 reales, desde el período siguiente, vence el día de inicio y proporcional). La sección

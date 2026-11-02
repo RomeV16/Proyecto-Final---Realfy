@@ -282,6 +282,7 @@ describe('contratos', () => {
     );
     expect(found.map((f) => f.entityId)).toEqual(['antes', 'sin']);
     expect(found[0].details).toEqual({ effectiveEnd: '2026-01-01' });
+    expect(found[0].link).toBe('/vencimientos?contractId=antes');
   });
 
   it('el fin efectivo manda sobre el fin pactado', () => {

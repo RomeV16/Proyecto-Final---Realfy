@@ -18,7 +18,7 @@ La matriz une cada hallazgo del registro (`31-registro-de-feedback.md`) con el c
 | FB-02 | CU-03, CU-05 (modificados); CU-25, CU-26 (nuevos) | 33 (#91) | ADR-0007 | `/contracts/:id/lessors`, `/persons/:id/powers`, `/properties/:id/ownerships` | CP-118, CP-244 a CP-248 |
 | FB-03 | CU-29 (nuevo) | 32 (#90) | — | `/tenants/me/read-policy`, `/tenants/me/read-access` | CP-257 a CP-265 |
 | FB-04 | CU-05 (modificado); CU-34 (nuevo) | 39 (#97) | ADR-0015 | `/import/batches`, `/import/batches/:id/rows` | CP-170 a CP-179 |
-| FB-05 | CU-06 (modificado); CU nuevo (se numera desde CU-25 en el PR del ítem) | 40 (#98) | — | Se completa en el PR | CP-180 a CP-189 |
+| FB-05 | CU-06 (modificado); CU-38, CU-39 (nuevos) | 40 (#98) | — | `/follow-ups`, `/contracts/:id/oral-extension`, `/contracts/:id/renew`, `/contracts/:id/periods/:seq/addendum` | CP-470 a CP-492 |
 | FB-06 | CU-10 (modificado); CU-31 (nuevo) | 36 (#94) | ADR-0012 | `/liquidaciones/:id/payments`, `/financial-accounts`, `/cash-movements`, `/cash-movements/conversion`, `/compensations`, `/receipts`, `/charges/:id/agency-expense` | CP-398 a CP-413 |
 | FB-07 | CU-09, CU-11, CU-12 (modificados) | 35 (#93) | ADR-0008 | Se completa en el PR | CP-130 a CP-139 |
 | FB-08 | CU-09 (modificado); CU-33 (nuevo) | 35 (#93) | ADR-0008 | Boletas, reglas de traslado por contrato y renglones de liquidación (2.4) | CP-130 a CP-139, CP-341 a CP-359 |
@@ -28,7 +28,7 @@ La matriz une cada hallazgo del registro (`31-registro-de-feedback.md`) con el c
 | FB-12 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 41 (#99) | — | Se completa en el PR | CP-190 a CP-199 |
 | FB-13 | CU-07, CU-08, CU-09 (modificados) | 34 (#92) | ADR-0011 | Se completa en el PR | CP-120 a CP-129 |
 | FB-14 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 40 (#98) | — | Se completa en el PR | CP-180 a CP-189 |
-| FB-15 | CU-06 (modificado) | 40 (#98) | — | Se completa en el PR | CP-180 a CP-189 |
+| FB-15 | CU-06 (modificado); CU-39 (nuevo) | 40 (#98) | — | `/contracts/:id/renew` (garantes que reafirman) | CP-482 |
 | FB-16 | CU-05 (modificado) | 40 (#98) | — | Se completa en el PR | — |
 | FB-17 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 44 (#102) | — | Se completa en el PR | CP-220 a CP-229 |
 | FB-18 | CU-19 (modificado); CU nuevo (se numera desde CU-25 en el PR del ítem) | 43 (#101) | ADR-0013 | Se completa en el PR | CP-210 a CP-219 |
