@@ -51,6 +51,11 @@ export const CreatePaymentSchema = z.object({
   reference: z.string().max(200).optional(),
   notes: z.string().max(1000).optional(),
   paidAt: dateString,
+  /**
+   * Cobrar junto con los punitorios devengados a la fecha del pago: se agregan
+   * a la liquidación como un renglón Multa y el pago tiene que cubrir el total.
+   */
+  settlePenalties: z.boolean().optional(),
 });
 
 // ─── Filter Schema ──────────────────────────────────────
