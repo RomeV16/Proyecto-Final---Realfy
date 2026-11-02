@@ -824,7 +824,8 @@ Admin y Gerente, y cobrar cuotas también de Liquidaciones.
 la inmobiliaria (ver *Valores por defecto*), que se pueden cambiar antes de guardar:
 
 - **Alta de un alquiler:** se elige el contrato (también desde la sección
-  *Honorarios* del contrato). La base es el **total del contrato**: los alquileres de
+  *Honorarios* de la ficha del contrato, con *Cargar honorario de alta* o *Cargar
+  honorario de renovación*). La base es el **total del contrato**: los alquileres de
   todo el plazo. Si el contrato se ajusta con un porcentaje fijo, personalizado o
   escalonado, se suman con esos ajustes; si se ajusta por un índice (IPC, ICL…), que
   no se conoce al firmar, se suma el alquiler inicial por los meses. El porcentaje de
@@ -851,7 +852,8 @@ proporción que el alquiler: si el alquiler pasó de 500000 a 560000, una cuota 
 100000 que vence después se cobra 112000. La pestaña **Cuotas** lista las cuotas por
 mes, operación, quién paga y estado, con el importe a cobrar.
 
-**Cobrar una cuota.** *Cobrar* registra el cobro de una cuota pendiente:
+**Cobrar una cuota.** *Cobrar* (en la pestaña **Cuotas** o en el detalle del
+honorario) registra el cobro de una cuota pendiente:
 
 - **En la caja o el banco**: entra a la cuenta elegida (o a la caja o el banco de la
   moneda) como *Honorario* y se emite un **recibo** con la numeración de los recibos
@@ -874,8 +876,8 @@ intervino (un usuario o una persona), como porcentaje de lo que le queda a la
 inmobiliaria después del coorretaje (o del honorario completo, si así se configura).
 Agregar o quitar un coorretaje recalcula las comisiones que faltan pagar. La pestaña
 **Comisiones del personal** (solo Admin y Gerente) lista las pendientes y las pagadas;
-*Pagar* registra la salida desde una cuenta de la misma moneda como *Comisión de
-empleado*.
+*Registrar pago* registra la salida desde una cuenta de la misma moneda como
+*Comisión de empleado*.
 
 **Anular.** Un honorario sin cuotas cobradas ni comisiones pagadas se anula con un
 motivo; sus cuotas pendientes quedan anuladas.
