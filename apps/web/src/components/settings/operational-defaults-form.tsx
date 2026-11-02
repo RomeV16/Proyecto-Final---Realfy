@@ -4,11 +4,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
   CompensationScope,
+  ContractTotalMode,
   DEFAULT_OPERATIONAL_DEFAULTS,
+  FeePayerChoice,
+  FeeVatMode,
   LessorChargeTiming,
   LessorDirectOwes,
   PartialAllocation,
   ReceiptSeriesMode,
+  StaffCommissionBase,
   operationalDefaultsFormSchema,
   operationalDefaultsFromForm,
   operationalDefaultsToForm,
@@ -29,11 +33,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PenaltyConfigForm } from './penalty-config-form';
 
 /** Campos que son una casilla (sí / no). */
-type CheckField = 'allowProvisional' | 'cashCustodyInAgencyBalance' | 'cashReceiptWhenLessorReceives';
+type CheckField = 'allowProvisional' | 'feeAdjustInstallments' | 'cashCustodyInAgencyBalance' | 'cashReceiptWhenLessorReceives';
 type FieldName = Exclude<keyof OperationalDefaultsFormInput, CheckField>;
 
-/** Opciones de caja y cobros y de la cuenta corriente del locador que se eligen de una lista. */
+/** Opciones de honorarios, de caja y cobros y de la cuenta corriente del locador que se eligen de una lista. */
 const CASH_OPTIONS = {
+  feePayer: Object.values(FeePayerChoice),
+  feeContractTotalMode: Object.values(ContractTotalMode),
+  feeVatMode: Object.values(FeeVatMode),
+  feeStaffCommissionBase: Object.values(StaffCommissionBase),
   cashLessorDirectOwes: Object.values(LessorDirectOwes),
   cashPartialAllocation: Object.values(PartialAllocation),
   cashReceiptSeries: Object.values(ReceiptSeriesMode),
@@ -55,6 +63,20 @@ const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = 
     fields: ['prorationMode', 'midMonthAdjustmentMode', 'firstDueMode', 'fixedDiscountProration'],
   },
   { key: 'fees', fields: ['commissionPct', 'feeAlta', 'feeRenovacion', 'feeVentaConstruido', 'feeVentaLote'] },
+  {
+    key: 'feeTerms',
+    fields: [
+      'feePayer',
+      'feeLessorSharePct',
+      'feeInstallments',
+      'feeContractTotalMode',
+      'feeVatMode',
+      'feeVatPct',
+      'feeStaffCommissionPct',
+      'feeStaffCommissionBase',
+    ],
+    checks: ['feeAdjustInstallments'],
+  },
   { key: 'valuation', fields: ['valuationUsd', 'upfrontThresholdFees', 'upfrontBasis'] },
   { key: 'collection', fields: ['firstReminderDays', 'everyDays'] },
   { key: 'expiry', fields: ['redDays', 'yellowDays'] },

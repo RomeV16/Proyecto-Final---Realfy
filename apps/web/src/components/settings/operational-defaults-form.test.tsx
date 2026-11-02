@@ -194,6 +194,55 @@ describe('OperationalDefaultsManager', () => {
     expect(JSON.parse(put[1].body).ownerAccounts).toEqual({ statementCloseDay: 10, lessorChargeTiming: 'AlEmitirEstado' });
   });
 
+  it('cómo se cobran los honorarios: quién paga, cuotas, IVA y comisión del personal, con su valor de fábrica', async () => {
+    const user = userEvent.setup();
+    renderEs(<OperationalDefaultsManager />);
+
+    expect(await screen.findByText('Cómo se cobran los honorarios')).toBeInTheDocument();
+    const payer = screen.getByLabelText(/Quién paga el honorario de un alquiler/);
+    expect(payer).toHaveValue('Inquilino');
+    expect(screen.getByLabelText(/Parte del locador cuando pagan los dos/)).toHaveValue('50');
+    expect(screen.getByLabelText(/^Cuotas del honorario/)).toHaveValue('1');
+    expect(screen.getByLabelText(/^Total del contrato/)).toHaveValue('ConAjustesConocidos');
+    expect(screen.getByLabelText(/^IVA del honorario/)).toHaveValue('NoAplica');
+    expect(screen.getByLabelText(/^IVA \(%\)/)).toHaveValue('21');
+    expect(screen.getByLabelText(/^Comisión del personal \(%\)/)).toHaveValue('0');
+    expect(screen.getByLabelText(/Comisión del personal sobre/)).toHaveValue('Neto');
+    const adjust = screen.getByLabelText(/Las cuotas siguen los ajustes del alquiler/);
+    expect(adjust).toBeChecked();
+    expect(screen.getByText(/De fábrica: El inquilino/)).toBeInTheDocument();
+
+    await user.selectOptions(payer, 'Ambos');
+    const share = screen.getByLabelText(/Parte del locador cuando pagan los dos/);
+    await user.clear(share);
+    await user.type(share, '40');
+    const installments = screen.getByLabelText(/^Cuotas del honorario/);
+    await user.clear(installments);
+    await user.type(installments, '3');
+    await user.selectOptions(screen.getByLabelText(/^Total del contrato/), 'AlquilerInicial');
+    await user.selectOptions(screen.getByLabelText(/^IVA del honorario/), 'Adicional');
+    const staff = screen.getByLabelText(/^Comisión del personal \(%\)/);
+    await user.clear(staff);
+    await user.type(staff, '10');
+    await user.selectOptions(screen.getByLabelText(/Comisión del personal sobre/), 'Bruto');
+    await user.click(adjust);
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(put[1].body).fees).toMatchObject({
+      payer: 'Ambos',
+      lessorSharePct: 40,
+      installments: 3,
+      adjustInstallments: false,
+      contractTotalMode: 'AlquilerInicial',
+      vatMode: 'Adicional',
+      vatPct: 21,
+      staffCommissionPct: 10,
+      staffCommissionBase: 'Bruto',
+    });
+  });
+
   it('un valor inválido se marca en el campo y no se envía', async () => {
     const user = userEvent.setup();
     renderEs(<OperationalDefaultsManager />);

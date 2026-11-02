@@ -113,6 +113,7 @@
   "permissions": "Permisos",
   "serviceBills": "Boletas del mes",
   "charges": "Centro de carga",
+  "fees": "Honorarios",
   "cash": "Caja",
   "owners": "Locadores",
   "ownerStatements": "Estados de cuenta",
@@ -4779,6 +4780,10 @@
     "title": "Comisión y honorarios",
     "description": "Porcentajes sobre el alquiler cobrado y sobre cada operación."
    },
+   "feeTerms": {
+    "title": "Cómo se cobran los honorarios",
+    "description": "Quién paga, en cuántas cuotas, el IVA y la comisión del personal con que se propone cada honorario."
+   },
    "valuation": {
     "title": "Tasaciones y anticipos",
     "description": "Honorario de tasación y umbral para pedir un pago a cuenta."
@@ -4844,6 +4849,60 @@
    "feeVentaLote": {
     "label": "Honorarios de venta, lote (%)",
     "hint": "De fábrica {value}."
+   },
+   "feePayer": {
+    "label": "Quién paga el honorario de un alquiler",
+    "hint": "De fábrica: {value}.",
+    "options": {
+     "Inquilino": "El inquilino",
+     "Locador": "El locador",
+     "Ambos": "Los dos, cada uno con su parte"
+    }
+   },
+   "feeLessorSharePct": {
+    "label": "Parte del locador cuando pagan los dos (%)",
+    "hint": "De fábrica {value}."
+   },
+   "feeInstallments": {
+    "label": "Cuotas del honorario",
+    "hint": "De 1 a 60 (de fábrica {value})."
+   },
+   "feeContractTotalMode": {
+    "label": "Total del contrato",
+    "hint": "Qué se suma como total para el honorario de alta o renovación (de fábrica: {value}).",
+    "options": {
+     "AlquilerInicial": "El alquiler inicial por los meses",
+     "ConAjustesConocidos": "Con los ajustes que se conocen al firmar"
+    }
+   },
+   "feeVatMode": {
+    "label": "IVA del honorario",
+    "hint": "De fábrica: {value}.",
+    "options": {
+     "NoAplica": "No corresponde",
+     "Incluido": "Incluido en el porcentaje",
+     "Adicional": "Se suma al honorario"
+    }
+   },
+   "feeVatPct": {
+    "label": "IVA (%)",
+    "hint": "De fábrica {value}."
+   },
+   "feeStaffCommissionPct": {
+    "label": "Comisión del personal (%)",
+    "hint": "Se propone al agregar una comisión (de fábrica {value})."
+   },
+   "feeStaffCommissionBase": {
+    "label": "Comisión del personal sobre",
+    "hint": "De fábrica: {value}.",
+    "options": {
+     "Neto": "Lo que queda después del coorretaje",
+     "Bruto": "El honorario sin IVA"
+    }
+   },
+   "feeAdjustInstallments": {
+    "label": "Las cuotas siguen los ajustes del alquiler",
+    "hint": "Una cuota que vence después de un ajuste del alquiler se ajusta en la misma proporción."
    },
    "valuationUsd": {
     "label": "Tasación (USD)",
@@ -6106,6 +6165,279 @@
    "guarantorPersonIds": "Revisá los garantes",
    "signedAt": "Elegí una fecha válida",
    "notes": "Las notas son demasiado largas"
+  }
+ },
+ "fees": {
+  "title": "Honorarios",
+  "subtitle": "Honorarios de alta, renovación, venta y tasación: las cuotas para cobrar, el reparto con otras inmobiliarias y las comisiones del personal.",
+  "forbidden": "Tu rol no puede ver los honorarios.",
+  "add": "Nuevo honorario",
+  "actionError": "No se pudo completar la acción.",
+  "adjusted": "Ajustada",
+  "adjustedHint": "Sigue los ajustes del alquiler; el importe original era {amount}.",
+  "receipt": "Recibo {number}",
+  "installmentOf": "Cuota {n} de {of}",
+  "paidOf": "{paid} de {of} cobradas",
+  "tabs": {
+   "installments": "Cuotas",
+   "fees": "Honorarios",
+   "commissions": "Comisiones del personal"
+  },
+  "kinds": {
+   "AltaAlquiler": "Alta de alquiler",
+   "Renovacion": "Renovación",
+   "Venta": "Venta",
+   "Tasacion": "Tasación",
+   "GestionReparacion": "Gestión de reparación"
+  },
+  "statuses": {
+   "Pendiente": "Pendiente",
+   "Parcial": "Parcial",
+   "Pagado": "Pagado",
+   "SinCargo": "Sin cargo",
+   "Anulado": "Anulado"
+  },
+  "installmentStatuses": {
+   "Pendiente": "Pendiente",
+   "Pagada": "Pagada",
+   "Anulada": "Anulada"
+  },
+  "roles": {
+   "Inquilino": "Inquilino",
+   "Locador": "Locador",
+   "Comprador": "Comprador",
+   "Vendedor": "Vendedor",
+   "Otro": "Otro"
+  },
+  "vatModes": {
+   "NoAplica": "Sin IVA",
+   "Incluido": "IVA incluido",
+   "Adicional": "IVA adicional"
+  },
+  "payerModes": {
+   "Reparto": "Se reparten el honorario",
+   "CadaParte": "Cada parte paga el suyo"
+  },
+  "bases": {
+   "TotalContrato": "Total del contrato",
+   "ValorOperacion": "Valor de la operación",
+   "MontoFijo": "Monto fijo"
+  },
+  "saleAssets": {
+   "Construido": "Construido",
+   "Lote": "Lote"
+  },
+  "filters": {
+   "kind": "Operación",
+   "status": "Estado",
+   "payerRole": "Quién paga",
+   "period": "Vence en",
+   "all": "Todos"
+  },
+  "columns": {
+   "dueDate": "Vence",
+   "toCollect": "A cobrar",
+   "status": "Estado",
+   "actions": "Acciones",
+   "fee": "Honorario",
+   "payer": "Quién paga",
+   "kind": "Operación",
+   "property": "Propiedad",
+   "total": "Total",
+   "installments": "Cuotas",
+   "beneficiary": "Persona",
+   "commission": "Comisión"
+  },
+  "actions": {
+   "pay": "Cobrar",
+   "view": "Ver detalle"
+  },
+  "empty": {
+   "title": "No hay honorarios",
+   "subtitle": "Cargá el honorario de un alta, una renovación, una venta o una tasación."
+  },
+  "installmentsEmpty": {
+   "title": "No hay cuotas con estos filtros",
+   "subtitle": "Probá con otro mes o con otro estado."
+  },
+  "pay": {
+   "title": "Cobrar la cuota {n} de {of} ({kind})",
+   "subtitle": "{name} ({role}) · a cobrar {amount}",
+   "error": "No se pudo registrar el cobro.",
+   "settlement": "Cómo se cobra",
+   "settlements": {
+    "Caja": "Entra a una cuenta de la inmobiliaria",
+    "CuentaLocador": "Se descuenta de la cuenta del locador"
+   },
+   "settlementHints": {
+    "Caja": "Se registra el ingreso en la caja o el banco y se emite un recibo.",
+    "CuentaLocador": "No entra dinero: se descuenta del saldo del locador y aparece en su estado de cuenta."
+   },
+   "lessorOnly": "Solo un honorario que paga el locador se puede descontar de su cuenta.",
+   "account": "Cuenta",
+   "defaultAccount": "La de la inmobiliaria en {currency}",
+   "method": "Medio de pago",
+   "methods": {
+    "Efectivo": "Efectivo",
+    "Transferencia": "Transferencia",
+    "MercadoPago": "Mercado Pago",
+    "Cheque": "Cheque"
+   },
+   "amount": "Importe ({currency})",
+   "date": "Fecha",
+   "note": "Nota",
+   "saving": "Registrando...",
+   "confirm": "Registrar cobro",
+   "done": "Cobro registrado.",
+   "doneReceipt": "Cobro registrado con el recibo {receipt}."
+  },
+  "errors": {
+   "form": "Revisá los datos del honorario.",
+   "kind": "Elegí la operación.",
+   "contractId": "Elegí el contrato.",
+   "basis": "Elegí sobre qué se calcula.",
+   "baseAmount": "La base tiene que ser un importe con hasta 2 decimales.",
+   "pct": "El porcentaje tiene que ser un número entre 0 y 100.",
+   "currency": "Elegí la moneda.",
+   "payers": "Agregá quién paga; en un reparto, las partes tienen que sumar 100.",
+   "payerMode": "Elegí cómo pagan.",
+   "vatMode": "Elegí el IVA.",
+   "vatPct": "El IVA tiene que ser un porcentaje entre 0 y 100.",
+   "installments": "Las cuotas van de 1 a 60.",
+   "firstDueDate": "Elegí el primer vencimiento.",
+   "adjustInstallments": "Solo un honorario de alquiler sigue los ajustes.",
+   "shares": "Cada coorretaje lleva el nombre de la inmobiliaria y un porcentaje.",
+   "staff": "Cada comisión lleva una persona del personal y un porcentaje.",
+   "notes": "La nota es demasiado larga.",
+   "settlement": "Elegí cómo se cobra.",
+   "accountId": "Elegí una cuenta.",
+   "method": "Elegí el medio de pago.",
+   "date": "Elegí la fecha.",
+   "amount": "El importe tiene que ser positivo, con hasta 2 decimales.",
+   "note": "La nota es demasiado larga."
+  },
+  "detail": {
+   "title": "Honorario de {kind}",
+   "loading": "Honorario",
+   "loadError": "No se pudo cargar el honorario.",
+   "payer": "Quién paga",
+   "base": "Base",
+   "net": "Honorario sin IVA",
+   "vat": "IVA",
+   "total": "Total",
+   "adjust": "Cuotas ajustables",
+   "yes": "Sí",
+   "no": "No",
+   "cancelReason": "Anulado: {reason}",
+   "installments": "Cuotas",
+   "noInstallments": "Sin cuotas (honorario sin cargo).",
+   "shares": "Coorretaje",
+   "noShares": "Sin coorretaje.",
+   "staff": "Comisiones del personal",
+   "noStaff": "Sin comisiones.",
+   "remove": "Quitar",
+   "addShare": "Agregar coorretaje",
+   "addStaff": "Agregar comisión",
+   "shareAdded": "Coorretaje agregado.",
+   "shareRemoved": "Coorretaje quitado.",
+   "staffAdded": "Comisión agregada.",
+   "staffRemoved": "Comisión quitada.",
+   "cancelSection": "Anular",
+   "reason": "Motivo de la anulación",
+   "cancel": "Anular honorario",
+   "cancelTitle": "Anular el honorario",
+   "cancelBody": "Se anulan sus cuotas pendientes y sus comisiones. No se puede deshacer.",
+   "cancelled": "Honorario anulado."
+  },
+  "commissions": {
+   "paid": "Pagada",
+   "pending": "Pendiente",
+   "pctOf": "{pct} % de {base}",
+   "empty": "No hay comisiones con este filtro.",
+   "payTitle": "Pagar a {name} {amount}",
+   "error": "No se pudo registrar el pago.",
+   "account": "Cuenta de la que sale",
+   "accountPlaceholder": "Elegí una cuenta",
+   "date": "Fecha",
+   "note": "Nota",
+   "confirm": "Registrar pago",
+   "done": "Comisión pagada."
+  },
+  "create": {
+   "title": "Nuevo honorario",
+   "kind": "Operación",
+   "contract": "Contrato",
+   "chooseContract": "Elegí un contrato",
+   "thisContract": "Este contrato",
+   "property": "Propiedad",
+   "propertyHint": "Opcional: con la propiedad se propone su titular como quien paga.",
+   "noProperty": "Sin propiedad",
+   "period": "Período renovado",
+   "noRenewals": "El contrato todavía no tiene renovaciones cargadas.",
+   "firstPeriod": "Elegí el período",
+   "periodOption": "Período {seq}: {start} a {end}",
+   "saleAsset": "Tipo de venta",
+   "saleAssetAuto": "Según la propiedad",
+   "targetsError": "No se pudieron cargar los contratos y las propiedades.",
+   "previewError": "No se pudo calcular la propuesta.",
+   "pickContract": "Elegí el contrato para calcular el honorario.",
+   "contractTotal": "Total del contrato: {months} meses del {start} al {end}, alquiler inicial {rent}.",
+   "contractTotalModes": {
+    "AlquilerInicial": "Se toma el alquiler inicial por los meses.",
+    "ConAjustesConocidos": "Incluye los ajustes que se conocen al firmar."
+   },
+   "indexBased": "El ajuste es por índice: los tramos futuros quedan con el alquiler vigente.",
+   "saved": "{count, plural, one {Honorario cargado.} other {Se cargaron # honorarios, uno por cada uno que paga.}}",
+   "saveError": "No se pudo guardar el honorario.",
+   "saving": "Guardando...",
+   "save": "Guardar honorario",
+   "basis": "Se calcula sobre",
+   "fixedAmount": "Monto",
+   "baseAmount": "Base",
+   "pct": "Porcentaje",
+   "currency": "Moneda",
+   "payers": "Quién paga",
+   "payerMode": "Cómo pagan",
+   "payerModeHints": {
+    "Reparto": "El honorario se divide según la parte de cada uno.",
+    "CadaParte": "Cada uno paga el porcentaje completo (por ejemplo, comprador y vendedor)."
+   },
+   "noPayers": "Todavía no hay nadie que pague.",
+   "sharePctOf": "Parte de {name} (%)",
+   "payerEstimate": "{total} · {count, plural, one {una cuota} other {# cuotas de {installment}}}",
+   "removePayer": "Quitar a {name}",
+   "remove": "Quitar",
+   "sharesMustAdd": "Las partes tienen que sumar 100.",
+   "newPayerRole": "Agregar como",
+   "newPayer": "Agregar quién paga",
+   "vatMode": "IVA",
+   "vatPct": "IVA (%)",
+   "installments": "Cuotas",
+   "firstDueDate": "Primer vencimiento",
+   "adjustInstallments": "Las cuotas siguen los ajustes del alquiler",
+   "adjustInstallmentsHint": "Una cuota que vence después de un ajuste se ajusta en la misma proporción que el alquiler.",
+   "shares": "Coorretaje",
+   "sharesHint": "Porcentaje del honorario sin IVA para otra inmobiliaria.",
+   "shareCounterparty": "Inmobiliaria",
+   "sharePct": "Porcentaje del coorretaje",
+   "addShare": "Agregar coorretaje",
+   "staff": "Comisiones del personal",
+   "staffHints": {
+    "Neto": "Se calculan sobre lo que le queda a la inmobiliaria después del coorretaje.",
+    "Bruto": "Se calculan sobre el honorario sin IVA, antes del coorretaje."
+   },
+   "staffUser": "Persona del personal",
+   "chooseUser": "Elegí una persona",
+   "staffPct": "Porcentaje de la comisión",
+   "addStaff": "Agregar comisión",
+   "notes": "Notas",
+   "estimateNet": "Honorario sin IVA de todos los que pagan: {net}."
+  },
+  "contract": {
+   "title": "Honorarios",
+   "viewAll": "Ver todos",
+   "addAlta": "Cargar honorario de alta",
+   "addRenewal": "Cargar honorario de renovación"
   }
  }
 }
