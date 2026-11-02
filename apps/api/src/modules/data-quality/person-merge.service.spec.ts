@@ -209,6 +209,22 @@ describe('PersonMergeService', () => {
     await expect(service.merge({ keepId: KEEP, mergeIds: [A] })).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('custodias: mueve la de otra moneda, choca si las dos tienen custodia en la misma; repunta libro y compensaciones', async () => {
+    const custody = (id: string, ownerPersonId: string, currency: string) => ({ id, kind: 'Custodia', ownerPersonId, currency });
+    const clash = setup({ financialAccount: [custody('f1', KEEP, 'USD'), custody('f2', A, 'USD')] });
+    await expect(clash.service.merge({ keepId: KEEP, mergeIds: [A] })).rejects.toBeInstanceOf(ConflictException);
+
+    const { db, service } = setup({
+      financialAccount: [custody('f1', KEEP, 'USD'), custody('f2', A, 'EUR')],
+      cashMovement: [{ id: 'm1', counterpartyId: A }],
+      compensation: [{ id: 'c1', fromLessorId: A, toLessorId: B }],
+    });
+    await service.merge({ keepId: KEEP, mergeIds: [A] });
+    expect(db.tables.financialAccount.find((r: Row) => r.id === 'f2').ownerPersonId).toBe(KEEP);
+    expect(db.tables.cashMovement[0].counterpartyId).toBe(KEEP);
+    expect(db.tables.compensation[0]).toMatchObject({ fromLessorId: KEEP, toLessorId: B });
+  });
+
   it('409 si un poder queda de una persona hacia sí misma', async () => {
     const { service } = setup({ powerOfAttorney: [{ id: 'w1', principalId: A, agentId: KEEP }] });
     const err = await service.preview({ keepId: KEEP, mergeIds: [A] }).catch((e) => e);
