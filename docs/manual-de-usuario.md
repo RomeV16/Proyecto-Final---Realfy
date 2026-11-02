@@ -338,6 +338,41 @@ la liquidación sigue en borrador y se borra, o se quita el renglón, la boleta 
 a quedar pendiente. Para marcar una boleta como pagada (quién pagó, cuándo y el
 comprobante) se usa `PATCH /service-bills/:id`.
 
+### Cargar los gastos del mes (centro de carga)
+
+**Centro de carga** (`/cargos`, Admin, Gerente y Liquidaciones). Acá se cargan los gastos
+que aparecen durante el mes: reparaciones, expensas extraordinarias con la unidad
+vacía, devoluciones al inquilino y honorarios por la gestión de una reparación. Cada
+gasto se imputa **una sola vez**.
+
+- *Cargar un gasto* abre el formulario: a cargo de quién va (inquilino, locador o
+  inmobiliaria), la clase, el contrato (o la propiedad, si está vacía), la descripción,
+  el importe, la fecha, a favor de quién va el dinero (el locador si pagó al proveedor,
+  la inmobiliaria si lo adelantó) y, si hace falta, el mes desde el que se imputa y las
+  cuotas (una por mes).
+- *Carga por planilla* permite escribir o pegar varias filas desde Excel o Sheets. Las
+  filas guardadas salen de la planilla y las que fallan quedan, con el motivo, para
+  corregirlas.
+- Un gasto **al inquilino** entra como renglón de su próxima liquidación, sin comisión.
+  Uno **al locador** se descuenta en su estado, no en la liquidación del inquilino. Uno
+  **a la inmobiliaria** solo queda registrado.
+- El detalle de cada contrato muestra sus *Cargos pendientes*.
+
+**Anticipo.** Si el gasto al inquilino supera el umbral de anticipo de la inmobiliaria
+(por defecto, 2 comisiones mensuales del contrato), queda marcado *Pide anticipo* y no
+entra solo en la liquidación. Se pide el pago por adelantado y, cuando el inquilino
+paga, se marca *Cobrado por adelantado*; o se decide *Imputar en la liquidación* y
+entra en la próxima. El umbral se cambia en la configuración de valores por defecto.
+
+**Devoluciones.** Una devolución al inquilino (por ejemplo, un arreglo que pagó él) se
+carga con su importe y se resta en su liquidación como un descuento a favor del
+inquilino, sin tocar la comisión.
+
+**Correcciones.** Un cargo pendiente se corrige o se *Anula*. Si la liquidación que lo
+incluye sigue en borrador y se borra, o se quita su renglón, el cargo vuelve a
+pendiente. Si la liquidación ya se aprobó y se anula, el cargo se *Libera* a mano y
+entra en la próxima. Un cargo ya imputado no se edita ni se anula.
+
 ### Cargar los locadores de un contrato y su porcentaje de cobro
 
 El locador es quien alquila y cobra, y es una relación del contrato: una persona

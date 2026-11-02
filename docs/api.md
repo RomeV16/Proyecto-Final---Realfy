@@ -290,6 +290,28 @@ La boleta es una entidad propia, distinta del pago (ADR-0008). Cada parte que le
 
 Códigos de error propios: `BILL_NOT_FOUND` (404), `BILL_ALREADY_BILLED` (409, la boleta ya tiene partes en una liquidación y no cambia), `BILL_PAYMENT_DATA_REQUIRED` (400, `Pagada` sin `paidBy` o `paidAt`), `ALLOCATION_ALREADY_BILLED` (409, otra generación ya incluyó la parte), `SERVICE_NOT_FOUND` (404), `FIXED_AMOUNT_REQUIRED` e `INVALID_SHARE_PCT` e `INVALID_INSTALLMENTS` (400, regla mal armada) y `VALIDATION_ERROR`. En la carga masiva el código viaja en el `error` de cada fila.
 
+### Centro de carga (cargos pendientes)
+
+Gastos y cargos puntuales del mes (reparaciones, expensas extraordinarias, devoluciones, honorarios por gestión). Cada cargo se imputa una sola vez: al inquilino en su próxima liquidación, o al locador en su próximo estado (la imputación al estado del locador la completa el estado de cuenta del locador; mientras tanto el cargo queda `Pendiente`).
+
+| Método | Ruta | Para qué | Acceso |
+|---|---|---|---|
+| GET | `/charges` | Cargos paginados; filtra por `contractId`, `propertyId`, `status`, `chargedTo`, `period` (`AAAA-MM`: el mes de imputación o, sin él, el del gasto) y `requiresUpfront`. | Autenticado |
+| GET | `/charges/:id` | Un cargo con su propiedad, contrato y locador. | Autenticado |
+| POST | `/charges` | Carga un cargo: `chargedTo` (`Inquilino`, `Locador`, `Inmobiliaria`), `kind` (`Reparacion`, `ExpensaExtra`, `Devolucion`, `HonorarioGestion`, `AjusteRetroactivo`, `Otro`), `description`, `amount`, `incurredAt`; y opcionales `contractId` (obligatorio si va al inquilino), `propertyId` (obligatorio sin contrato), `lessorPersonId`, `currency`, `beneficiary` (`Locador` por defecto, o `Inmobiliaria`), `targetPeriod`, `installments` (1 a 36, una cuota por mes por mayor resto), `notes`. Devuelve `{ items }` con un cargo por cuota. | Admin, Gerente, Liquidaciones |
+| POST | `/charges/bulk` | Carga una planilla de hasta 200 cargos (`{ rows }`); cada fila se valida y se guarda por separado y se informa el resultado de cada una. | Admin, Gerente, Liquidaciones |
+| PATCH | `/charges/:id` | Corrige un cargo `Pendiente` (descripción, importe, destino, fechas, notas). `requiresUpfront: false` fuerza la imputación en la liquidación aunque supere el umbral. | Admin, Gerente, Liquidaciones |
+| POST | `/charges/:id/cancel` | Anula un cargo `Pendiente` (queda en el historial). | Admin, Gerente, Liquidaciones |
+| POST | `/charges/:id/mark-paid-upfront` | El inquilino pagó el cargo por adelantado: pasa a `CobradoAnticipado` y no entra en la liquidación. | Admin, Gerente, Liquidaciones |
+| POST | `/charges/:id/release` | Devuelve a `Pendiente` un cargo imputado en una liquidación anulada. | Admin, Gerente, Liquidaciones |
+
+- **Importe con signo.** Un importe negativo es un crédito a favor de quien soporta el cargo; una `Devolucion` se guarda siempre negativa. En la liquidación del inquilino va como `Descuento` "a favor del inquilino" (los renglones no pueden ser negativos), sin comisión.
+- **Renglón en la liquidación** (solo cargos al inquilino): `Cargo` (reparación, expensa extra, otro), `Honorario` (honorario por gestión, siempre a favor de la inmobiliaria) o `AjusteRetroactivo`. Nunca llevan comisión salvo el ajuste retroactivo. `beneficiary` dice quién recibe el dinero. El renglón lleva `sourceType` `PendingCharge` y el id del cargo.
+- **Anticipo.** Un cargo al inquilino cuyo importe supera `operationalDefaults.upfrontThresholdFees` (2 por defecto) comisiones mensuales del contrato queda con `requiresUpfront: true`: sigue `Pendiente` y no entra solo en la liquidación. Se imputa a la fuerza con `PATCH` (`requiresUpfront: false`) o se marca `mark-paid-upfront`. Sin comisión mensual, o en otra moneda que la del alquiler, no se evalúa.
+- **Una sola vez.** La liquidación marca los cargos `Imputado` (`imputedLiquidacionId`) en la misma transacción que la crea; si otra generación ya los tomó, falla y no crea nada. Borrar una liquidación en borrador o quitar el renglón los devuelve a `Pendiente`.
+
+Códigos de error propios: `CHARGE_NOT_FOUND` (404), `CHARGE_NOT_EDITABLE` y `CHARGE_NOT_CANCELLABLE` (409, el cargo ya no está `Pendiente`), `CHARGE_NOT_PENDING` (409), `CHARGE_NOT_IMPUTED` (409, solo se libera un cargo imputado), `CHARGE_LIQUIDATION_ACTIVE` (409, la liquidación sigue vigente), `CHARGE_IN_STATEMENT` (409, ya se descontó en un estado del locador), `CHARGE_ALREADY_IMPUTED` (409, otra generación lo tomó), `UPFRONT_NOT_APPLICABLE` (400, el anticipo solo corresponde a un cargo al inquilino), `PROPERTY_MISMATCH` (400).
+
 ### Reglas de impuestos y servicios del contrato
 
 | Método | Ruta | Para qué | Acceso |

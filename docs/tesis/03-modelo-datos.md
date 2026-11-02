@@ -438,6 +438,36 @@ erDiagram
 - `ServiceBillAllocation`: `id`, `tenantId`, `billId`, `contractId`, `ruleId`, `payer`, `amount`, `basis` (texto con el cálculo), `surplus` y `surplusBeneficiary` (parte de `amount` que es la diferencia por el descuento anual y a quién va), `chargePeriod` (mes de la liquidación en que se cobra), `installmentNo`, `installmentsTotal`, `liquidacionId`, `billedAt`. Única por `[billId, contractId, chargePeriod]`. Una parte con `billedAt` ya está en una liquidación y no se rehace.
 - Los tres modelos llevan `tenantId` y están registrados en `TENANT_SCOPED_MODELS`. El renglón de liquidación que sale de una parte lleva `sourceType` `ServiceBillAllocation` y el id de la parte como `sourceId`.
 
+### Centro de carga
+
+Gastos y cargos puntuales del mes que se imputan una sola vez, al inquilino en su liquidación o al locador en su estado (ítem 35).
+
+```mermaid
+erDiagram
+    Property ||--o{ PendingCharge : "gastos de la unidad"
+    Contract |o--o{ PendingCharge : "cargos del contrato"
+    Person |o--o{ PendingCharge : "locador que lo soporta"
+    Liquidacion |o--o{ PendingCharge : "la incluye una vez"
+    PendingCharge {
+        string chargedTo
+        string kind
+        decimal amount
+        string currency
+        string beneficiary
+        date incurredAt
+        date targetPeriod
+        string status
+        boolean requiresUpfront
+        int installmentNo
+        int installmentOf
+        datetime imputedAt
+    }
+```
+
+- `PendingCharge`: `id`, `tenantId`, `propertyId`, `contractId` (opcional: un gasto de una unidad vacía no tiene contrato), `chargedTo` (`Inquilino`, `Locador`, `Inmobiliaria`), `lessorPersonId`, `kind` (`Reparacion`, `ExpensaExtra`, `Devolucion`, `HonorarioGestion`, `AjusteRetroactivo`, `Otro`), `description`, `amount` (con signo), `currency`, `beneficiary` (`Locador` o `Inmobiliaria`: quién recibe el dinero), `incurredAt`, `targetPeriod` (primer mes en que se imputa; sin mes, en la próxima liquidación), `status` (`Pendiente`, `Imputado`, `CobradoAnticipado`, `Anulado`), `requiresUpfront`, `installmentNo`, `installmentOf`, `installmentGroupId` (las cuotas de un cargo lo comparten), `imputedLiquidacionId`, `imputedStatementId` (sin clave foránea: lo completa el estado de cuenta del locador), `imputedAt`, `sourceType`, `sourceId`, `notes`, `createdById`. Índices `[tenantId, contractId, status]` y `[tenantId, propertyId, status]`.
+- Registrado en `TENANT_SCOPED_MODELS` y en la limpieza de las pruebas de integración. Sin backfill: la tabla nace vacía.
+- **Contrato con el estado del locador (3.2).** Los cargos `chargedTo = Locador` quedan `Pendiente` sin `imputedStatementId`; el estado de cuenta del locador toma los de su propiedad (y `lessorPersonId`, o todos los locadores si es nulo), los descuenta y los pasa a `Imputado` con el id del estado, en la misma transacción que lo crea.
+
 ### OwnerRendicion / RendicionLineItem
 
 Rendición mensual al propietario y sus conceptos.
