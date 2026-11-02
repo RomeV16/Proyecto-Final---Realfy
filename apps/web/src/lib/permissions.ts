@@ -60,6 +60,12 @@ export const ACTION_ROLES = {
   'permissions.manage': [Admin],
   /** Cambiar los valores por defecto de la operación (vencimiento, rezago, honorarios...). */
   'operationalDefaults.manage': [Admin, Gerente],
+  /** Cambiar la regla de punitorios de la inmobiliaria (los valores del contrato los cambia quien gestiona). */
+  'penaltyConfig.manage': [Admin],
+  /** Cambiar la regla de punitorios de un contrato (queda como un acuerdo con vigencia). */
+  'contractRules.manage': [Admin, Gerente],
+  /** Condonar punitorios, uno por uno o todos los de un contrato. */
+  'penalties.waive': [Admin, Gerente],
   /** Ver los lotes de importación desde el sistema anterior y su registro por fila. */
   'imports.manage': [Admin],
   'indexData.view': [Admin, Gerente],

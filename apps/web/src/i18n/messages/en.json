@@ -1458,6 +1458,8 @@
    "registerSuccess": "Pago registrado correctamente",
    "registerError": "Error al registrar pago",
    "exceedsBalance": "The payment exceeds the remaining balance of {balance}.",
+   "payoffRequiresFullAmount": "A payment that settles penalties must cover the calculated total. Recalculate the amount due.",
+   "withPenalties": "This payment includes the penalties accrued up to the date: it must cover the total.",
    "amountPlaceholder": "0.00",
    "amountRequired": "El monto es obligatorio",
    "methodRequired": "El método de pago es obligatorio",
@@ -4461,6 +4463,135 @@
     "Proporcional": "Prorated",
     "Completo": "Applied in full"
    }
+  }
+ },
+ "penaltyRule": {
+  "mode": "Calculation",
+  "modes": {
+   "daily_fixed": "Fixed amount per day",
+   "daily_percent": "Daily percentage of the balance",
+   "compound_percent": "Compound daily percentage",
+   "max_bna_or_daily": "The higher of the BNA active rate and a daily percentage"
+  },
+  "valueFixed": "Amount per day",
+  "valuePercent": "Percentage per day (%)",
+  "valueFloor": "Daily floor (%)",
+  "graceDays": "Grace days",
+  "maxMultiplier": "Cap (times the balance)",
+  "maxMultiplierHint": "2 allows a penalty of up to 100 % of the balance.",
+  "bnaMultiplier": "Times the BNA active rate",
+  "yearDays": "Days in the year",
+  "bnaHint": "The BNA active rate loaded in Indices (as an annual nominal rate) is converted to a daily rate by dividing by the days in the year. With no rate loaded, the daily floor applies.",
+  "options": {
+   "partialPaymentAllocation": {
+    "label": "Partial payment with late fees",
+    "hint": "What a partial payment that charges late fees covers first.",
+    "values": {"RentaPrimero": "Rent first", "PunitorioPrimero": "Late fee first"}
+   },
+   "roundingMode": {
+    "label": "Rounding",
+    "hint": "Once on the total, or each day before adding up.",
+    "values": {"Total": "On the total", "Diario": "Each day"}
+   },
+   "capBase": {
+    "label": "Cap base",
+    "hint": "The cap is computed on the balance of the first day with a late fee or on the original total.",
+    "values": {"SaldoInicioMora": "Balance when the delay starts", "TotalOriginal": "Original total"}
+   },
+   "bnaRateKind": {
+    "label": "BNA rate loaded",
+    "hint": "Nominal: divided by the days in the year. Effective: converted to a compound daily rate.",
+    "values": {"Nominal": "Annual nominal (TNA)", "Efectiva": "Annual effective (TEA)"}
+   },
+   "missingRateBehavior": {
+    "label": "Days with no rate loaded",
+    "hint": "Apply the daily floor, or do not accrue those days and flag it.",
+    "values": {"AplicarPiso": "Apply the floor", "Bloquear": "Do not accrue"}
+   }
+  },
+  "fixedHint": "This amount is charged for each day overdue with a balance.",
+  "errors": {
+   "invalid": "Check this value"
+  },
+  "describe": {
+   "daily_fixed": "{value} per day",
+   "daily_percent": "{value} per day on the balance",
+   "compound_percent": "{value} per day, compounded",
+   "max_bna_or_daily": "The higher of {multiplier}x the BNA active rate and {value} per day"
+  },
+  "grace": "{count, plural, =0 {no grace days} one {# grace day} other {# grace days}}",
+  "cap": "cap of {value}x the balance"
+ },
+ "punitorios": {
+  "settings": {
+   "title": "Late fees",
+   "description": "The rule that applies to contracts that do not set their own. Late fees run on the unpaid balance.",
+   "loadError": "Could not load the late fee rule",
+   "saveError": "Could not save the late fee rule",
+   "saved": "Late fee rule saved",
+   "save": "Save rule",
+   "saving": "Saving…",
+   "current": "Current rule: {rule}"
+  },
+  "contractRule": {
+   "label": "Late fees",
+   "unknown": "The agency rule applies",
+   "sourceContract": "This contract's rule",
+   "sourceTenant": "Agency rule",
+   "change": "Change rule",
+   "dialogTitle": "Contract late fee rule",
+   "from": "Applies from",
+   "fromHint": "It is recorded as a rule-change agreement.",
+   "fromInvalid": "Pick a date",
+   "inherit": "Use the agency rule",
+   "cancel": "Cancel",
+   "save": "Save",
+   "saving": "Saving…",
+   "saved": "Late fee rule updated",
+   "saveError": "Could not change the rule"
+  },
+  "contract": {
+   "title": "Late fees",
+   "waiveAll": "Waive all",
+   "loadError": "Could not load the late fees",
+   "accrued": "accrued on {date} · {days} days overdue",
+   "reason": "Reason: {reason}"
+  },
+  "status": {
+   "pending": "Pending",
+   "billed": "Billed in a liquidation",
+   "waived": "Waived"
+  },
+  "waive": {
+   "action": "Waive",
+   "title": "Waive the late fee",
+   "body": "A late fee of {amount} will be waived. It will not be charged in the next liquidation and the waiver is recorded.",
+   "titleAll": "Waive all late fees",
+   "bodyAll": "{count, plural, one {# late fee} other {# late fees}} for {amount} will be waived. They will not be charged in the next liquidation and the waiver is recorded.",
+   "reason": "Reason",
+   "reasonHint": "It is kept in the audit log.",
+   "reasonRequired": "Enter the reason",
+   "confirm": "Waive",
+   "done": "Late fee waived",
+   "error": "Could not waive"
+  },
+  "payoff": {
+   "title": "Calculate to pay today",
+   "description": "The balance plus the late fees accrued up to the date. Nothing is saved: it is the amount to give the tenant.",
+   "date": "Pay on",
+   "calculate": "Calculate",
+   "error": "Could not calculate the amount",
+   "balance": "Rent balance",
+   "penalties": "Late fees ({days} days overdue)",
+   "waived": "Already waived: {amount}",
+   "alreadyBilled": "Already included in another liquidation: {amount}",
+   "capHit": "The late fee cap was reached.",
+   "noRate": "{days} days with no BNA active rate loaded: the daily floor applies.",
+   "ruleContract": "Using this contract's rule",
+   "ruleTenant": "Using the agency rule",
+   "total": "Total to pay",
+   "register": "Register the payment",
+   "registerWithPenalties": "Register the payment with late fees"
   }
  },
  "contractRules": {

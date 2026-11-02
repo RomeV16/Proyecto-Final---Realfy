@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { CONVENTION_OPTIONS, isConventionField } from '@/lib/liquidation-conventions';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PenaltyConfigForm } from './penalty-config-form';
 
 type FieldName = Exclude<keyof OperationalDefaultsFormInput, 'allowProvisional'>;
 
@@ -171,6 +172,7 @@ export function OperationalDefaultsManager() {
       {loadError != null && <ErrorNotice error={loadError} fallback={t('loadError')} />}
       {loadError == null && saved === null && <Skeleton className="h-64 w-full max-w-3xl" />}
       {saved !== null && <DefaultsForm saved={saved} onSaved={setSaved} />}
+      {saved !== null && <PenaltyConfigForm />}
     </div>
   );
 }

@@ -1,188 +1,98 @@
 import { PenaltiesScheduler } from './penalties.scheduler';
-import { PenaltiesService } from './penalties.service';
-import Decimal from 'decimal.js';
 import { makeTenantCron } from '../../common/scheduler/tenant-cron.testing';
+import { makeFakePenaltyDb, type FakeLiquidacion } from './penalties.testing';
 
 /**
- * Unit tests for PenaltiesScheduler.applyPenalties()
- *
- * Uses in-memory mocks — no real DB or NestJS context required.
+ * Pruebas de `PenaltiesScheduler.applyPenalties()` sobre una base en memoria.
  */
 
-type LiquidacionRow = {
-  id: string;
-  tenantId: string;
-  total: { toString(): string };
-  dueDate: Date;
-  payments?: { amount: { toString(): string } }[];
-};
+const TODAY = '2025-03-15T15:00:00.000Z'; // 12:00 en Buenos Aires
+const d = (s: string) => new Date(`${s}T00:00:00.000Z`);
 
-function buildScheduler({
-  tenants = [] as { id: string; name: string }[],
-  penaltyConfig = {
-    mode: 'daily_fixed' as const,
-    value: '10',
-    graceDays: 0,
-    maxMultiplier: '2.0',
-  },
-  liquidaciones = [] as LiquidacionRow[],
-  existingPenalty = null as null | object,
-  priorSum = '0',
-}: {
-  tenants?: { id: string; name: string }[];
-  penaltyConfig?: { mode: 'daily_fixed' | 'daily_percent' | 'compound_percent'; value: string; graceDays: number; maxMultiplier: string };
-  liquidaciones?: LiquidacionRow[];
-  existingPenalty?: null | object;
-  priorSum?: string;
-} = {}) {
-  const createdPenalties: object[] = [];
+const fixed = { mode: 'daily_fixed', value: '10', graceDays: 0, maxMultiplier: '5.0' };
+const percent = { mode: 'daily_percent', value: '0.01', graceDays: 0, maxMultiplier: '3.0' };
 
-  const client: any = {
-      liquidacion: {
-        findMany: jest.fn().mockResolvedValue(liquidaciones.map((l) => ({ payments: [], ...l }))),
-      },
-      penalty: {
-        findFirst: jest.fn().mockResolvedValue(existingPenalty),
-        aggregate: jest.fn().mockResolvedValue({ _sum: { amount: priorSum ? new Decimal(priorSum) : null } }),
-        create: jest.fn().mockImplementation(async ({ data }: { data: object }) => {
-          createdPenalties.push(data);
-          return { id: 'pen-1', ...data };
-        }),
-      },
-  };
-  client.$transaction = jest.fn((fn: (tx: any) => unknown) => fn(client));
-  const prisma = { client } as any;
-
-  const tenantsService = {
-    getPenaltyConfig: jest.fn().mockResolvedValue(penaltyConfig),
-  } as any;
-
-  const audit = { record: jest.fn().mockResolvedValue(undefined) } as any;
+function build(
+  liquidaciones: FakeLiquidacion[],
+  over: Parameters<typeof makeFakePenaltyDb>[0] = {},
+  tenants = [{ id: 'tenant-1', name: 'Test Inmobiliaria' }],
+) {
+  const db = makeFakePenaltyDb({ liquidaciones, tenantConfig: fixed, ...over });
   const { tenantCron } = makeTenantCron(tenants);
-
-  const scheduler = new PenaltiesScheduler(prisma, new PenaltiesService(), tenantsService, tenantCron, audit);
-
-  return { scheduler, createdPenalties, prisma, audit };
+  const scheduler = new PenaltiesScheduler({ client: db.client } as any, db.service, tenantCron);
+  return { scheduler, ...db };
 }
 
+const overdue = (over: Partial<FakeLiquidacion> = {}): FakeLiquidacion => ({
+  id: 'liq-1',
+  total: '1000',
+  dueDate: d('2025-03-05'),
+  ...over,
+});
+
+beforeEach(() => jest.useFakeTimers({ now: new Date(TODAY) }));
+afterEach(() => jest.useRealTimers());
+
 describe('PenaltiesScheduler.applyPenalties()', () => {
-  const pastDueDate = new Date();
-  pastDueDate.setDate(pastDueDate.getDate() - 10);
-
-  const liquidacion = {
-    id: 'liq-1',
-    tenantId: 'tenant-1',
-    total: new Decimal('1000'),
-    dueDate: pastDueDate,
-  };
-
-  it('inserts a Penalty row for an overdue liquidacion', async () => {
-    const { scheduler, createdPenalties } = buildScheduler({
-      tenants: [{ id: 'tenant-1', name: 'Test Inmobiliaria' }],
-      liquidaciones: [liquidacion],
-      existingPenalty: null,
-    });
+  it('registra el punitorio de una liquidación vencida', async () => {
+    const { scheduler, penalties } = build([overdue()]);
 
     const result = await scheduler.applyPenalties();
 
-    expect(result.penaltiesInserted).toBe(1);
-    expect(createdPenalties).toHaveLength(1);
-    expect((createdPenalties[0] as any).liquidacionId).toBe('liq-1');
-    expect((createdPenalties[0] as any).amount).toBeGreaterThan(0);
+    expect(result).toEqual({ tenantsProcessed: 1, penaltiesInserted: 1 });
+    expect(penalties).toHaveLength(1);
+    expect(penalties[0]).toMatchObject({ liquidacionId: 'liq-1', amount: '100.00', daysOverdue: 10, status: 'active' });
   });
 
-  it('queries without tenantId (the tenant client filters) and audits the insert as a cron action', async () => {
-    const { scheduler, prisma, audit } = buildScheduler({
-      tenants: [{ id: 'tenant-1', name: 'Test Inmobiliaria' }],
-      liquidaciones: [liquidacion],
-    });
-
+  it('filtra por estado y vencimiento sin tenantId (el cliente de la inmobiliaria filtra)', async () => {
+    const { scheduler, client } = build([overdue()]);
     await scheduler.applyPenalties();
-
-    expect(prisma.client.liquidacion.findMany.mock.calls[0][0].where).not.toHaveProperty('tenantId');
-    expect(audit.record).toHaveBeenCalledTimes(1);
-    expect(audit.record).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        action: 'CREATE',
-        entity: 'Penalty',
-        entityId: 'pen-1',
-        userId: null,
-        metadata: { source: 'cron', job: 'penalties-daily' },
-      }),
-    );
+    expect(client.liquidacion.findMany.mock.calls[0][0].where).not.toHaveProperty('tenantId');
   });
 
-  it('is idempotent — skips if Penalty already exists for today', async () => {
-    const { scheduler, createdPenalties, prisma } = buildScheduler({
-      tenants: [{ id: 'tenant-1', name: 'Test Inmobiliaria' }],
-      liquidaciones: [liquidacion],
-      existingPenalty: { id: 'existing-penalty', liquidacionId: 'liq-1' },
+  it('audita el alta como una acción del cron', async () => {
+    const { scheduler, client } = build([overdue()]);
+    await scheduler.applyPenalties();
+    expect(client.auditLog.create).toHaveBeenCalledTimes(1);
+    expect(client.auditLog.create.mock.calls[0][0].data).toMatchObject({
+      action: 'CREATE',
+      entity: 'Penalty',
+      userId: null,
+      metadata: { source: 'cron', mode: 'daily_fixed' },
     });
-
-    const result1 = await scheduler.applyPenalties();
-    const result2 = await scheduler.applyPenalties();
-
-    // Both runs should find the existing penalty and skip
-    expect(result1.penaltiesInserted).toBe(0);
-    expect(result2.penaltiesInserted).toBe(0);
-    expect(prisma.client.penalty.create).not.toHaveBeenCalled();
-    expect(createdPenalties).toHaveLength(0);
   });
 
-  it('inserts only once when called twice with no existing penalty (run-now twice scenario)', async () => {
-    let callCount = 0;
-    const { scheduler, createdPenalties, prisma } = buildScheduler({
-      tenants: [{ id: 'tenant-1', name: 'Test' }],
-      liquidaciones: [liquidacion],
-    });
-    // First call: no existing. After create, subsequent calls find the row.
-    prisma.client.penalty.findFirst.mockImplementation(async () =>
-      callCount > 0 ? { id: 'p1', liquidacionId: 'liq-1' } : null,
-    );
-    prisma.client.penalty.create.mockImplementation(async ({ data }: { data: object }) => {
-      callCount++;
-      createdPenalties.push(data);
-      return { id: 'p1', ...data };
-    });
-
+  it('es idempotente: correr dos veces el mismo día no duplica', async () => {
+    const { scheduler, penalties } = build([overdue()]);
     const r1 = await scheduler.applyPenalties();
     const r2 = await scheduler.applyPenalties();
-
     expect(r1.penaltiesInserted).toBe(1);
     expect(r2.penaltiesInserted).toBe(0);
-    expect(createdPenalties).toHaveLength(1);
+    expect(penalties).toHaveLength(1);
   });
 
-  it('skips liquidaciones that are not yet overdue', async () => {
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + 5);
+  it('no inserta nada sin tenants', async () => {
+    const { scheduler } = build([], {}, []);
+    expect(await scheduler.applyPenalties()).toEqual({ tenantsProcessed: 0, penaltiesInserted: 0 });
+  });
 
-    const { scheduler, createdPenalties } = buildScheduler({
-      tenants: [{ id: 'tenant-1', name: 'Test' }],
-      liquidaciones: [{
-        id: 'liq-future',
-        tenantId: 'tenant-1',
-        total: new Decimal('1000'),
-        dueDate: futureDate,
-      }],
-      existingPenalty: null,
+  it('una liquidación que vence hoy o todavía no venció no devenga', async () => {
+    const { scheduler, penalties } = build([overdue({ dueDate: d('2025-03-15') })]);
+    const result = await scheduler.applyPenalties();
+    expect(result.penaltiesInserted).toBe(0);
+    expect(penalties).toHaveLength(0);
+  });
+
+  it('sigue con las demás si una falla', async () => {
+    const { scheduler, penalties, client } = build([overdue({ id: 'liq-mala' }), overdue({ id: 'liq-1' })]);
+    const original = client.liquidacion.findFirst.getMockImplementation()!;
+    client.liquidacion.findFirst.mockImplementation(async (args: any) => {
+      if (args.where.id === 'liq-mala') throw new Error('boom');
+      return original(args);
     });
-
     const result = await scheduler.applyPenalties();
-
-    // The liquidacion won't appear because the DB query filters dueDate < today.
-    // Since we mock findMany to return whatever we pass, amount will be 0 (future date).
-    // 0-amount penalties are not inserted.
-    expect(result.penaltiesInserted).toBe(0);
-    expect(createdPenalties).toHaveLength(0);
-  });
-
-  it('returns correct summary with zero tenants', async () => {
-    const { scheduler } = buildScheduler({ tenants: [] });
-    const result = await scheduler.applyPenalties();
-    expect(result.tenantsProcessed).toBe(0);
-    expect(result.penaltiesInserted).toBe(0);
+    expect(result.penaltiesInserted).toBe(1);
+    expect(penalties[0].liquidacionId).toBe('liq-1');
   });
 });
 
@@ -192,83 +102,109 @@ describe('PenaltiesScheduler.applyPenalties()', () => {
  * y con la fecha local del servidor.
  */
 describe('PenaltiesScheduler.applyPenalties(): base de cálculo y día', () => {
-  const percentConfig = {
-    mode: 'daily_percent' as const,
-    value: '0.01',
-    graceDays: 0,
-    maxMultiplier: '3.0',
-  };
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
   it('una liquidación pagada en parte devenga solo sobre lo impago', async () => {
-    jest.useFakeTimers({ now: new Date('2025-03-15T15:00:00.000Z') });
-    const { scheduler, createdPenalties } = buildScheduler({
-      tenants: [{ id: 'tenant-1', name: 'Test' }],
-      penaltyConfig: percentConfig,
-      liquidaciones: [
-        {
-          id: 'liq-parcial',
-          tenantId: 'tenant-1',
-          total: new Decimal('1000'),
-          dueDate: new Date('2025-03-05T00:00:00.000Z'),
-          payments: [{ amount: new Decimal('600') }],
-        },
-      ],
-    });
-
+    const { scheduler, penalties } = build(
+      [overdue({ id: 'liq-parcial', payments: [{ amount: '600', paidAt: d('2025-03-04') }] })],
+      { tenantConfig: percent },
+    );
     await scheduler.applyPenalties();
-
-    expect(createdPenalties).toHaveLength(1);
     // 10 días de mora sobre un saldo de 400: 400 * 1% * 10 = 40 (no 100)
-    expect((createdPenalties[0] as any).amount).toBe(40);
-    expect((createdPenalties[0] as any).compoundBase).toBe(400);
+    expect(penalties).toHaveLength(1);
+    expect(penalties[0].amount).toBe('40.00');
+    expect(penalties[0].compoundBase).toBe('400.00');
   });
 
   it('una liquidación pagada por completo no devenga nada', async () => {
-    jest.useFakeTimers({ now: new Date('2025-03-15T15:00:00.000Z') });
-    const { scheduler, createdPenalties } = buildScheduler({
-      tenants: [{ id: 'tenant-1', name: 'Test' }],
-      penaltyConfig: percentConfig,
-      liquidaciones: [
-        {
+    const { scheduler, penalties } = build(
+      [
+        overdue({
           id: 'liq-pagada',
-          tenantId: 'tenant-1',
-          total: new Decimal('1000'),
-          dueDate: new Date('2025-03-05T00:00:00.000Z'),
-          payments: [{ amount: new Decimal('600') }, { amount: new Decimal('400') }],
-        },
+          payments: [
+            { amount: '600', paidAt: d('2025-03-04') },
+            { amount: '400', paidAt: d('2025-03-04') },
+          ],
+        }),
       ],
-    });
-
+      { tenantConfig: percent },
+    );
     const result = await scheduler.applyPenalties();
-
     expect(result.penaltiesInserted).toBe(0);
-    expect(createdPenalties).toHaveLength(0);
+    expect(penalties).toHaveLength(0);
   });
 
   it('a las 22:30 de Buenos Aires todavía es el día anterior en UTC', async () => {
-    // 2025-03-11T01:30Z son las 22:30 del 10 de marzo en Buenos Aires
-    jest.useFakeTimers({ now: new Date('2025-03-11T01:30:00.000Z') });
-    const { scheduler, createdPenalties } = buildScheduler({
-      tenants: [{ id: 'tenant-1', name: 'Test' }],
-      penaltyConfig: percentConfig,
-      liquidaciones: [
-        {
-          id: 'liq-noche',
-          tenantId: 'tenant-1',
-          total: new Decimal('1000'),
-          dueDate: new Date('2025-03-05T00:00:00.000Z'),
-        },
-      ],
-    });
-
+    jest.setSystemTime(new Date('2025-03-11T01:30:00.000Z')); // 22:30 del 10 de marzo en Buenos Aires
+    const { scheduler, penalties } = build([overdue()], { tenantConfig: percent });
     await scheduler.applyPenalties();
+    expect(penalties).toHaveLength(1);
+    expect(penalties[0].appliedOn.toISOString()).toBe('2025-03-10T00:00:00.000Z');
+    expect(penalties[0].daysOverdue).toBe(5);
+  });
+});
 
-    expect(createdPenalties).toHaveLength(1);
-    expect((createdPenalties[0] as any).appliedOn.toISOString()).toBe('2025-03-10T00:00:00.000Z');
-    expect((createdPenalties[0] as any).daysOverdue).toBe(5);
+/**
+ * DEF-28: cada corrida diaria sumaba el punitorio acumulado entero en lugar de
+ * lo que faltaba, y las filas condonadas o cobradas volvían a devengarse.
+ */
+describe('PenaltiesScheduler.applyPenalties(): devengo incremental', () => {
+  it('al día siguiente agrega solo el día que falta', async () => {
+    const { scheduler, penalties } = build([overdue()]);
+    await scheduler.applyPenalties();
+    jest.setSystemTime(new Date('2025-03-16T15:00:00.000Z'));
+    await scheduler.applyPenalties();
+    expect(penalties.map((p) => p.amount)).toEqual(['100.00', '10.00']);
+  });
+
+  it('una fila condonada no se vuelve a devengar', async () => {
+    const { scheduler, penalties } = build([overdue()], {
+      penalties: [{ amount: '100.00', status: 'waived', appliedOn: d('2025-03-15') }],
+    });
+    const result = await scheduler.applyPenalties();
+    expect(result.penaltiesInserted).toBe(0);
+    expect(penalties).toHaveLength(1);
+  });
+
+  it('una fila ya cobrada en otra liquidación no se vuelve a devengar', async () => {
+    const { scheduler, penalties } = build([overdue()], {
+      penalties: [{ amount: '100.00', settledLiquidacionId: 'liq-2', appliedOn: d('2025-03-15') }],
+    });
+    expect((await scheduler.applyPenalties()).penaltiesInserted).toBe(0);
+    expect(penalties).toHaveLength(1);
+  });
+});
+
+describe('PenaltiesScheduler.applyPenalties(): regla por contrato', () => {
+  it('la regla de la versión de reglas del contrato manda sobre la de la inmobiliaria', async () => {
+    const { scheduler, penalties, tenants } = build([overdue()], {
+      termsPenaltyConfig: { mode: 'daily_fixed', value: '25', graceDays: 0, maxMultiplier: '9.0' },
+    });
+    await scheduler.applyPenalties();
+    expect(penalties[0].amount).toBe('250.00');
+    expect(tenants.getPenaltyConfig).not.toHaveBeenCalled();
+  });
+
+  it('una regla propia inválida cae a la de la inmobiliaria', async () => {
+    const { scheduler, penalties } = build([overdue()], { termsPenaltyConfig: { mode: 'otro' } });
+    await scheduler.applyPenalties();
+    expect(penalties[0].amount).toBe('100.00');
+  });
+
+  it('max_bna_or_daily usa la tasa activa BNA cargada', async () => {
+    const { scheduler, penalties, indexData } = build([overdue()], {
+      tenantConfig: { mode: 'max_bna_or_daily', value: '0.003', graceDays: 0, maxMultiplier: '3.0' },
+      bnaRows: [{ period: d('2025-03-01'), value: '100.000000' }],
+    });
+    await scheduler.applyPenalties();
+    // 1000 x 2 x 100 % / 365 x 10 días
+    expect(penalties[0].amount).toBe('54.79');
+    expect(indexData.getForPeriod).toHaveBeenCalledTimes(1);
+  });
+
+  it('con max_bna_or_daily y sin tasa cargada rige el piso diario', async () => {
+    const { scheduler, penalties } = build([overdue()], {
+      tenantConfig: { mode: 'max_bna_or_daily', value: '0.003', graceDays: 0, maxMultiplier: '3.0' },
+    });
+    await scheduler.applyPenalties();
+    expect(penalties[0].amount).toBe('30.00');
   });
 });

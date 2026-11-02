@@ -473,6 +473,7 @@
     "Gerente"
   ],
   "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.findOne": null,
+  "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.payoff": null,
   "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.getPdf": null,
   "src/modules/liquidaciones/liquidaciones.controller.ts#LiquidacionesController.addLineItem": [
     "Admin",
@@ -536,7 +537,12 @@
     "Gerente"
   ],
   "src/modules/penalties/penalties.controller.ts#PenaltiesController.waivePenalty": [
-    "Admin"
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/penalties/penalties.controller.ts#PenaltiesController.waiveAll": [
+    "Admin",
+    "Gerente"
   ],
   "src/modules/penalties/penalties.controller.ts#PenaltiesController.getPenaltyConfig": [
     "Admin",

@@ -1,17 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import Decimal from 'decimal.js';
 import { AR_TIME_ZONE, OVERDUE_STATUSES, todayInAR } from '@realfy/shared';
-import { outstandingBalance } from '../liquidaciones/receivables';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CronBaseService } from '../../common/scheduler/cron.service';
 import { TenantCron } from '../../common/scheduler/tenant-cron';
-import { AuditService } from '../../common/audit/audit.service';
-import { TenantsService } from '../tenants/tenants.service';
-import {
-  PenaltiesService,
-  ComputePenaltyInput,
-} from './penalties.service';
+import { PenaltiesService, PenaltyContext } from './penalties.service';
 
 @Injectable()
 export class PenaltiesScheduler extends CronBaseService {
@@ -20,16 +13,14 @@ export class PenaltiesScheduler extends CronBaseService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly penaltiesService: PenaltiesService,
-    private readonly tenantsService: TenantsService,
     private readonly tenantCron: TenantCron,
-    private readonly audit: AuditService,
   ) {
     super();
   }
 
   /**
    * Daily at 02:15 Argentina time — apply overdue penalties across all active tenants.
-   * Idempotent: skips if a Penalty row already exists for (liquidacionId, today).
+   * Idempotente: cada corrida registra solo lo devengado que todavía no está registrado.
    */
   @Cron('15 2 * * *', { name: 'penalties-daily', timeZone: AR_TIME_ZONE })
   async handleDailyPenalties(): Promise<void> {
@@ -52,8 +43,6 @@ export class PenaltiesScheduler extends CronBaseService {
     let penaltiesInserted = 0;
 
     const summary = await this.tenantCron.forEachActiveTenant('penalties-daily', async (tenantId) => {
-      const config = await this.tenantsService.getPenaltyConfig(tenantId);
-
       // Fetch overdue liquidaciones (Enviada or Vencida with dueDate < today).
       // 'Pendiente' existe en la base y en shared, pero no forma parte del filtro:
       // los punitorios corren sobre Enviada y Vencida.
@@ -62,103 +51,29 @@ export class PenaltiesScheduler extends CronBaseService {
           status: { in: [...OVERDUE_STATUSES] as any },
           dueDate: { lt: today },
         },
-        select: {
-          id: true,
-          tenantId: true,
-          total: true,
-          dueDate: true,
-          payments: { select: { amount: true } },
-        },
+        select: { id: true, contractId: true },
       });
 
+      // La regla es del contrato (o la de la inmobiliaria): se resuelve una vez por contrato.
+      const contexts = new Map<string, PenaltyContext>();
       for (const liq of overdueLiquidaciones) {
         try {
-          // Idempotency check: skip if already inserted today
-          const existing = await this.prisma.client.penalty.findFirst({
-            where: {
-              liquidacionId: liq.id,
-              appliedOn: today,
-            },
-          });
-
-          if (existing) {
-            this.logger.debug(
-              `Penalty already exists for liquidacionId=${liq.id} appliedOn=${today.toISOString().split('T')[0]} — skipping`,
-            );
-            continue;
+          let ctx = contexts.get(liq.contractId);
+          if (!ctx) {
+            ctx = await this.penaltiesService.loadContext(tenantId, liq.contractId, today);
+            contexts.set(liq.contractId, ctx);
           }
-
-          // Sum prior unsettled (active) penalty amounts for this liquidacion
-          const priorPenalties = await this.prisma.client.penalty.aggregate({
-            where: {
-              liquidacionId: liq.id,
-              status: 'active',
-            },
-            _sum: { amount: true },
-          });
-
-          const alreadyAppliedPenalty = new Decimal(
-            priorPenalties._sum.amount?.toString() ?? '0',
-          );
-
-          // El punitorio corre sobre lo que falta cobrar, no sobre el total.
-          const outstanding = outstandingBalance({
-            total: liq.total?.toString() ?? '0',
-            payments: liq.payments,
-          });
-          if (outstanding.lte(0)) {
+          // El devengo se calcula sobre el saldo de cada día y se registra solo lo que falta
+          // respecto de lo ya registrado: correr dos veces el mismo día no duplica.
+          const { created, skipped } = await this.penaltiesService.accrueLocked(tenantId, liq.id, ctx, today, 'cron');
+          if (skipped) {
             this.logger.debug(`liquidacionId=${liq.id} has no outstanding balance — skipping`);
             continue;
           }
-
-          const input: ComputePenaltyInput = {
-            liquidacion: {
-              id: liq.id,
-              totalAmount: new Decimal(outstanding.toString()),
-              dueDate: liq.dueDate,
-              tenantId: liq.tenantId,
-            },
-            config: {
-              mode: config.mode as 'daily_fixed' | 'daily_percent' | 'compound_percent',
-              value: new Decimal(config.value),
-              graceDays: config.graceDays,
-              maxMultiplier: new Decimal(config.maxMultiplier),
-            },
-            asOf: today,
-            alreadyAppliedPenalty,
-          };
-
-          const result = this.penaltiesService.computePenalty(input);
-
-          if (result.amount.greaterThan(0)) {
-            const amount = result.amount.toDecimalPlaces(2).toNumber();
-            await this.prisma.client.$transaction(async (tx) => {
-              const penalty = await tx.penalty.create({
-                data: {
-                  tenantId,
-                  liquidacionId: liq.id,
-                  amount,
-                  compoundBase: result.compoundBase.toDecimalPlaces(2).toNumber(),
-                  appliedOn: today,
-                  daysOverdue: result.daysOverdue,
-                  status: 'active',
-                },
-              });
-              // Un punitorio cambia lo que debe el inquilino: queda auditado
-              // aunque no haya un pedido ni un usuario detrás.
-              await this.audit.record(tx, {
-                action: 'CREATE',
-                entity: 'Penalty',
-                entityId: penalty?.id,
-                userId: null,
-                after: { liquidacionId: liq.id, amount, daysOverdue: result.daysOverdue },
-                metadata: { source: 'cron', job: 'penalties-daily' },
-              });
-            });
+          if (created) {
             penaltiesInserted++;
-
             this.logger.log(
-              `Penalty inserted: tenantId=${tenantId} liquidacionId=${liq.id} amount=${result.amount.toFixed(2)} daysOverdue=${result.daysOverdue}`,
+              `Penalty inserted: tenantId=${tenantId} liquidacionId=${liq.id} amount=${created.toFixed(2)}`,
             );
           }
         } catch (err) {

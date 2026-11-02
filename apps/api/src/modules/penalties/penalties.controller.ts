@@ -7,19 +7,26 @@ import {
   Param,
   Query,
   ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+  } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import { Roles } from '../../common/auth/roles.decorator';
-import { PenaltyConfigSchema, PreviewPenaltySchema, OVERDUE_STATUSES, personName, todayInAR } from '@realfy/shared';
+import {
+  PenaltyConfigSchema,
+  PreviewPenaltySchema,
+  WaivePenaltySchema,
+  WaiveAllQuerySchema,
+  OVERDUE_STATUSES,
+  accruePenalty,
+  personName,
+  todayInAR,
+} from '@realfy/shared';
 import type { PenaltyConfig, PreviewPenaltyInput } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { TenantsService } from '../tenants/tenants.service';
-import { PenaltiesService } from './penalties.service';
+import { PenaltiesService, parseDay } from './penalties.service';
 import { PenaltiesScheduler } from './penalties.scheduler';
-import { WaivePenaltyDto } from './dto/waive-penalty.dto';
-import { ZodValidationPipe } from '../../common/validation/zod';
+import { ZodValidationPipe, parseOrThrow } from '../../common/validation/zod';
 import { outstandingBalance } from '../liquidaciones/receivables';
 import { ADMIN_ONLY, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
@@ -34,13 +41,14 @@ export class PenaltiesController {
   ) {}
 
   /**
-   * GET /penalties?status=active|waived|all
-   * List penalties for the current tenant, optionally filtered by status.
+   * GET /penalties?status=active|waived|all&contractId=
+   * List penalties for the current tenant, optionally filtered by status and contract.
    */
   @Roles(...MANAGEMENT_ROLES)
   @Get('penalties')
-  async listPenalties(@Query('status') status?: string) {
+  async listPenalties(@Query('status') status?: string, @Query('contractId') contractId?: string) {
     const where: Record<string, any> = {};
+    if (contractId) where.liquidacion = { contractId };
 
     if (status === 'active') {
       where.status = 'active';
@@ -202,35 +210,27 @@ export class PenaltiesController {
 
   /**
    * POST /penalties/:id/waive
-   * Waive a penalty. Admin only.
+   * Condona un punitorio con motivo obligatorio; queda auditado y no entra en la
+   * próxima liquidación. Admin y Gerente.
    */
-  @Roles(...ADMIN_ONLY)
+  @Roles(...MANAGEMENT_ROLES)
   @Post('penalties/:id/waive')
-  async waivePenalty(
-    @Param('id') id: string,
-    @Body() dto: WaivePenaltyDto,
-  ) {
-    const penalty = await this.prisma.client.penalty.findFirst({
-      where: { id },
-    });
+  async waivePenalty(@Param('id') id: string, @Body() body: unknown) {
+    const dto = parseOrThrow(WaivePenaltySchema, body, 'Invalid waive data');
+    return this.penaltiesService.waive(id, dto.reason);
+  }
 
-    if (!penalty) {
-      throw new NotFoundException({ error: 'PENALTY_NOT_FOUND', message: `Penalty ${id} not found` });
-    }
-
-    const userId = this.tenantContext.getUserId() ?? null;
-
-    const updated = await this.prisma.client.penalty.update({
-      where: { id },
-      data: {
-        status: 'waived',
-        waivedAt: new Date(),
-        waivedBy: userId,
-        waiveReason: dto.reason,
-      },
-    });
-
-    return updated;
+  /**
+   * POST /contracts/:id/penalties/waive-all?upTo=YYYY-MM-DD
+   * Condonación masiva: todos los punitorios activos y sin cobrar del contrato
+   * hasta `upTo` (por defecto hoy), con un motivo. Admin y Gerente.
+   */
+  @Roles(...MANAGEMENT_ROLES)
+  @Post('contracts/:id/penalties/waive-all')
+  async waiveAll(@Param('id') id: string, @Query() query: unknown, @Body() body: unknown) {
+    const q = parseOrThrow(WaiveAllQuerySchema, query, 'Invalid waive-all query');
+    const dto = parseOrThrow(WaivePenaltySchema, body, 'Invalid waive data');
+    return this.penaltiesService.waiveAll(id, q.upTo ? parseDay(q.upTo) : todayInAR(), dto.reason);
   }
 
   /**
@@ -270,30 +270,21 @@ export class PenaltiesController {
   async previewPenalty(@Body(new ZodValidationPipe(PreviewPenaltySchema, 'Invalid penalty preview')) dto: PreviewPenaltyInput) {
     const today = todayInAR();
 
-    // Build synthetic dueDate so that daysOverdue matches
+    // Liquidación sintética con el vencimiento que da esos días de mora.
     const dueDate = new Date(today.getTime() - dto.daysOverdue * 86_400_000);
 
-    const result = this.penaltiesService.computePenalty({
-      liquidacion: {
-        id: 'preview',
-        totalAmount: new Decimal(dto.debt),
-        dueDate,
-        tenantId: 'preview',
-      },
-      config: {
-        mode: dto.config.mode,
-        value: new Decimal(dto.config.value),
-        graceDays: dto.config.graceDays,
-        maxMultiplier: new Decimal(dto.config.maxMultiplier),
-      },
+    const result = accruePenalty({
+      dueDate,
       asOf: today,
-      alreadyAppliedPenalty: new Decimal(0),
+      total: dto.debt,
+      rule: dto.config,
+      bnaRates: dto.bnaAnnualPct ? [{ from: new Date('2000-01-01T00:00:00.000Z'), annualPct: dto.bnaAnnualPct }] : [],
     });
 
     return {
       amount: result.amount.toFixed(2),
       daysOverdue: result.daysOverdue,
-      compoundBase: result.compoundBase.toFixed(2),
+      compoundBase: result.baseAtStart.toFixed(2),
       capHit: result.capHit,
     };
   }

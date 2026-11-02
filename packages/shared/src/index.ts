@@ -630,6 +630,9 @@ export {
   PenaltyModeEnum,
   PenaltyConfigSchema,
   PreviewPenaltySchema,
+  WaivePenaltySchema,
+  PayoffQuerySchema,
+  WaiveAllQuerySchema,
 } from './schemas/penalty-config.schema';
 export type {
   PenaltyMode,
@@ -942,6 +945,28 @@ export type AiClosureSummaryResponse = z.infer<typeof _AiClosureSummaryResponseS
 
 // Liquidation builder
 export { buildLiquidation, onBehalfOfText } from './liquidation-builder';
+export {
+  accruePenalty,
+  splitPayments,
+  daysOverdueBetween,
+  BNA_RATE_KINDS,
+  PARTIAL_PAYMENT_ALLOCATIONS,
+  ROUNDING_MODES,
+  CAP_BASES,
+  MISSING_RATE_BEHAVIORS,
+  PENALTY_MODES,
+  DEFAULT_BNA_MULTIPLIER,
+  DEFAULT_YEAR_DAYS,
+} from './penalty-engine';
+export type {
+  PenaltyRule,
+  PenaltyRuleMode,
+  BnaRate,
+  PenaltyPayment,
+  AccruePenaltyInput,
+  AccruedPenalty,
+  SplitPaymentsInput,
+} from './penalty-engine';
 export type {
   BuilderResult,
   BuiltLine,

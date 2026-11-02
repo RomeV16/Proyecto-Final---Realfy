@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { LiquidacionesController } from './liquidaciones.controller';
 import { LiquidacionesService } from './liquidaciones.service';
 import { LiquidacionesScheduler } from './liquidaciones.scheduler';
+import { PenaltiesService } from '../penalties/penalties.service';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -35,7 +36,10 @@ function buildMocks() {
   const scheduler = {
     generateForAllTenants: jest.fn().mockResolvedValue({ tenantsProcessed: 1, tenantsFailed: 0, created: 2 }),
   };
-  return { liquidacionesService, scheduler };
+  const penalties = {
+    payoff: jest.fn().mockResolvedValue({ liquidacionId: LIQ_ID, balance: '1000.00', total: '1100.00' }),
+  };
+  return { liquidacionesService, scheduler, penalties };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -52,6 +56,7 @@ describe('LiquidacionesController', () => {
       providers: [
         { provide: LiquidacionesService, useValue: mocks.liquidacionesService },
         { provide: LiquidacionesScheduler, useValue: mocks.scheduler },
+        { provide: PenaltiesService, useValue: mocks.penalties },
       ],
     })
       .overrideGuard(require('../../common/auth/jwt-auth.guard').JwtAuthGuard)
@@ -224,6 +229,27 @@ describe('LiquidacionesController', () => {
       const result = await controller.findPayments(LIQ_ID);
       expect(Array.isArray(result)).toBe(true);
       expect(result[0]).toMatchObject({ id: 'pay-001' });
+    });
+  });
+
+  // ─── GET /liquidaciones/:id/payoff ────────────────────────────────────────
+
+  describe('GET /liquidaciones/:id/payoff', () => {
+    it('delegates with the requested date', async () => {
+      const result = await controller.payoff(LIQ_ID, { date: '2026-03-20' });
+      expect(mocks.penalties.payoff).toHaveBeenCalledWith(LIQ_ID, '2026-03-20');
+      expect(result).toMatchObject({ total: '1100.00' });
+    });
+
+    it('defaults to today when no date is given', async () => {
+      await controller.payoff(LIQ_ID, {});
+      expect(mocks.penalties.payoff).toHaveBeenCalledWith(LIQ_ID, undefined);
+    });
+
+    it('rejects a malformed date', async () => {
+      await expect(controller.payoff(LIQ_ID, { date: '20/03/2026' })).rejects.toMatchObject({
+        response: { error: 'VALIDATION_ERROR' },
+      });
     });
   });
 

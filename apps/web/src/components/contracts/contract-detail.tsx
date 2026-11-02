@@ -16,6 +16,7 @@ import { GuaranteeBadge } from './guarantee-badge';
 import { AdjustmentTimeline } from './adjustment-timeline';
 import { ContractRules } from './contract-rules';
 import { ContractChargeRules } from './contract-charge-rules';
+import { ContractPenalties } from './contract-penalties';
 import { GenerateDocumentModal } from './generate-document-modal';
 import { CommissionConfig } from './commission-config';
 import { ClosureSummary } from './closure-summary';
@@ -844,6 +845,9 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
 
           {/* Reglas vigentes y acuerdos */}
           <ContractRules contractId={contract.id} currency={contractCurrency} />
+
+          {/* Punitorios devengados y su condonación */}
+          <ContractPenalties contractId={contract.id} currency={contractCurrency} />
 
           {/* Impuestos y servicios: quién paga cada uno */}
           {(contract.propertyId ?? contract.property?.id) && (

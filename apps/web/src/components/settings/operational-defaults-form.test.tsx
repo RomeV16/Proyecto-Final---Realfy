@@ -24,14 +24,17 @@ vi.mock('@/lib/auth-context', () => ({
 import { ApiRequestError } from '@/lib/api-client';
 import { OperationalDefaultsManager } from './operational-defaults-form';
 
+const PENALTY_RULE = { mode: 'daily_percent', value: '0.001', graceDays: 5, maxMultiplier: '2.0' };
+
 describe('OperationalDefaultsManager', () => {
   beforeEach(() => {
     apiClient.mockReset();
     toast.success.mockReset();
     auth.user = { id: 'me', role: 'Admin' };
-    apiClient.mockImplementation(async (_path: string, init?: RequestInit) =>
-      init?.method === 'PUT' ? JSON.parse(init.body as string) : DEFAULT_OPERATIONAL_DEFAULTS,
-    );
+    apiClient.mockImplementation(async (path: string, init?: RequestInit) => {
+      if (path.includes('penalty-config')) return PENALTY_RULE;
+      return init?.method === 'PUT' ? JSON.parse(init.body as string) : DEFAULT_OPERATIONAL_DEFAULTS;
+    });
   });
 
   it('muestra los valores de fábrica en cada campo', async () => {
@@ -153,7 +156,8 @@ describe('OperationalDefaultsManager', () => {
 
   it('un error de la API al guardar se muestra con ErrorNotice', async () => {
     const user = userEvent.setup();
-    apiClient.mockImplementation(async (_path: string, init?: RequestInit) => {
+    apiClient.mockImplementation(async (path: string, init?: RequestInit) => {
+      if (path.includes('penalty-config')) return PENALTY_RULE;
       if (init?.method === 'PUT') throw new ApiRequestError(403, 'FORBIDDEN', 'No autorizado');
       return DEFAULT_OPERATIONAL_DEFAULTS;
     });

@@ -27,7 +27,15 @@ function contract(overrides: Record<string, unknown> = {}) {
 
 function build(
   contracts: any[],
-  opts: { existing?: any; defaults?: any; findFirst?: jest.Mock; trueUps?: any[]; serviceLines?: any[] } = {},
+  opts: {
+    existing?: any;
+    defaults?: any;
+    findFirst?: jest.Mock;
+    trueUps?: any[];
+    serviceLines?: any[];
+    penaltyLines?: any[];
+    penaltyRowIds?: string[];
+  } = {},
 ) {
   const client: any = {
     contract: { findMany: jest.fn().mockResolvedValue(contracts) },
@@ -45,6 +53,11 @@ function build(
   const serviceBills = {
     pendingLines: jest.fn().mockResolvedValue(opts.serviceLines ?? []),
     markBilled: jest.fn().mockResolvedValue(0),
+    release: jest.fn().mockResolvedValue(0),
+  };
+  const penalties = {
+    pendingLines: jest.fn().mockResolvedValue({ lines: opts.penaltyLines ?? [], rowIds: opts.penaltyRowIds ?? [] }),
+    markSettled: jest.fn().mockResolvedValue(0),
     release: jest.fn().mockResolvedValue(0),
   };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
@@ -69,8 +82,9 @@ function build(
     audit as any,
     adjustments as any,
     serviceBills as any,
+    penalties as any,
   );
-  return { service, client, audit, defaults, adjustments, serviceBills };
+  return { service, client, audit, defaults, adjustments, serviceBills, penalties };
 }
 
 const createdData = (client: any, n = 0) => client.liquidacion.create.mock.calls[n][0].data;
@@ -510,5 +524,47 @@ describe('LiquidacionesScheduler', () => {
     const liquidaciones = { generateScheduled: jest.fn() };
     await new LiquidacionesScheduler(liquidaciones as any, tenantCron).handleDailyGeneration();
     expect(liquidaciones.generateScheduled).not.toHaveBeenCalled();
+  });
+});
+
+describe('LiquidacionesService.generate: punitorios (FB-07)', () => {
+  const penaltyLine = {
+    type: 'Multa',
+    description: 'Punitorios por mora, alquiler 02/2026 (10 días)',
+    amount: '100.00',
+    commissionable: true,
+    beneficiary: 'Locador',
+    sourceType: 'Penalty',
+    sourceId: 'liq-feb',
+  };
+
+  it('suma los punitorios pendientes como renglón Multa comisionable del locador', async () => {
+    const { service, client, penalties } = build([contract()], { penaltyLines: [penaltyLine], penaltyRowIds: ['pen-1', 'pen-2'] });
+    await service.generate({ month: 3, year: 2026 });
+
+    const data = createdData(client);
+    const multa = data.lineItems.create.find((l: any) => l.type === 'Multa');
+    expect(multa).toMatchObject({
+      amount: '100.00',
+      commissionable: true,
+      beneficiary: 'Locador',
+      sourceType: 'Penalty',
+      sourceId: 'liq-feb',
+    });
+    expect(data.total).toBe('300100.00');
+    expect(penalties.pendingLines).toHaveBeenCalledWith('tenant-1', 'c-1', d('2026-03-01'), expect.any(Date));
+  });
+
+  it('marca las filas como cobradas en la misma transacción que crea la liquidación', async () => {
+    const { service, client, penalties } = build([contract()], { penaltyLines: [penaltyLine], penaltyRowIds: ['pen-1', 'pen-2'] });
+    await service.generate({ month: 3, year: 2026 });
+    expect(client.$transaction).toHaveBeenCalled();
+    expect(penalties.markSettled).toHaveBeenCalledWith(client, ['pen-1', 'pen-2'], 'liq-new');
+  });
+
+  it('sin punitorios pendientes no agrega renglón', async () => {
+    const { service, client } = build([contract()]);
+    await service.generate({ month: 3, year: 2026 });
+    expect(createdData(client).lineItems.create.some((l: any) => l.type === 'Multa')).toBe(false);
   });
 });

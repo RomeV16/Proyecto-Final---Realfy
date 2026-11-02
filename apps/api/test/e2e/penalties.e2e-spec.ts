@@ -31,7 +31,7 @@ import {
  *  4. POST /penalties/:id/waive sets waivedAt + creates AuditLog entry
  *  5. PUT /tenants/me/penalty-config round-trip
  *  6. RBAC: Lectura (non-admin) gets 403 on waive + config update
- *  7. RBAC: Gerente gets 403 on waive + config update (can read)
+ *  7. RBAC: Gerente can waive, gets 403 on config update (can read)
  *  8. Tenant isolation: Tenant A cannot waive Tenant B's penalty
  */
 describe('Penalties (e2e)', () => {
@@ -329,9 +329,11 @@ describe('Penalties (e2e)', () => {
       expect(updated!.status).toBe('waived');
       expect(updated!.waivedAt).not.toBeNull();
 
-      // AuditLog assertion (waive controller doesn't write one currently — soft-skip if absent)
-      // The controller does NOT write an AuditLog for waive — this is a known gap.
-      // We assert the waive happened correctly via the DB check above.
+      // La condonación deja una fila de auditoría con el motivo.
+      const log = await prisma.baseClient.auditLog.findFirst({
+        where: { entity: 'Penalty', entityId: penalty!.id, action: 'UPDATE' },
+      });
+      expect((log?.changes as any)?.reason).toBe('test waive reason');
     });
 
     it('Returns 404 when penalty does not exist', async () => {
@@ -456,7 +458,7 @@ describe('Penalties (e2e)', () => {
         .expect(403);
     });
 
-    it('Gerente role gets 403 on POST /penalties/:id/waive', async () => {
+    it('Gerente role can POST /penalties/:id/waive (201)', async () => {
       const { user, liquidacion } = await setupOverdueLiquidacion('rbac-gerente-waive');
 
       await request(app.getHttpServer())
@@ -480,7 +482,7 @@ describe('Penalties (e2e)', () => {
         .post(`/api/penalties/${penalty!.id}/waive`)
         .set('Authorization', `Bearer ${gerenteUser.accessToken}`)
         .send({ reason: 'gerente attempt' })
-        .expect(403);
+        .expect(201);
     });
 
     it('Gerente role gets 403 on PUT /tenants/me/penalty-config', async () => {

@@ -7,6 +7,7 @@ import { formatDate, formatMoneyFixed, formatPercent } from '@/lib/format';
 import { ErrorNotice } from '@/components/ui/error-notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CONVENTION_FIELDS } from '@/lib/liquidation-conventions';
+import { ContractPenaltyRule } from './contract-penalty-rule';
 
 /* ──────────── Types ──────────── */
 
@@ -28,6 +29,7 @@ interface TermsVersion {
   midMonthAdjustmentMode?: string;
   firstDueMode?: string;
   fixedDiscountProration?: string;
+  penaltyConfig?: unknown;
 }
 
 interface TermsResponse {
@@ -71,6 +73,7 @@ export function ContractRules({ contractId, currency }: { contractId: string; cu
   const [terms, setTerms] = useState<TermsResponse | null>(null);
   const [agreements, setAgreements] = useState<Agreement[] | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const [reloads, setReloads] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +92,7 @@ export function ContractRules({ contractId, currency }: { contractId: string; cu
     return () => {
       cancelled = true;
     };
-  }, [contractId]);
+  }, [contractId, reloads]);
 
   const current = terms?.current ?? null;
   const loading = error == null && (terms === null || agreements === null);
@@ -133,6 +136,11 @@ export function ContractRules({ contractId, currency }: { contractId: string; cu
                 <Fact label={t('discountAmount')}>{formatMoneyFixed(current.discountAmount, currency)}</Fact>
               )}
             </div>
+            <ContractPenaltyRule
+              contractId={contractId}
+              own={current.penaltyConfig}
+              onChanged={() => setReloads((n) => n + 1)}
+            />
             <p className="mt-3 text-xs text-slate-400">
               {t('validFrom', { date: formatDate(current.validFrom, 'medium') })}
               {terms && terms.versions.length > 1 && ` · ${t('versions', { count: terms.versions.length })}`}

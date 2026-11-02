@@ -15,6 +15,9 @@ import {
 import type { Response } from 'express';
 import { LiquidacionesService } from './liquidaciones.service';
 import { LiquidacionesScheduler } from './liquidaciones.scheduler';
+import { PenaltiesService } from '../penalties/penalties.service';
+import { parseOrThrow } from '../../common/validation/zod';
+import { PayoffQuerySchema } from '@realfy/shared';
 import { Roles } from '../../common/auth/roles.decorator';
 import { ADMIN_ONLY, BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 
@@ -23,6 +26,7 @@ export class LiquidacionesController {
   constructor(
     private readonly liquidacionesService: LiquidacionesService,
     private readonly scheduler: LiquidacionesScheduler,
+    private readonly penalties: PenaltiesService,
   ) {}
 
   /**
@@ -105,6 +109,17 @@ export class LiquidacionesController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.liquidacionesService.findOne(id);
+  }
+
+  /**
+   * GET /liquidaciones/:id/payoff?date=YYYY-MM-DD — Lo que debe hoy (o en esa
+   * fecha): saldo más punitorios devengados, sin guardar nada. Es el monto que
+   * se le da al inquilino para pagar. Any authenticated user can read.
+   */
+  @Get(':id/payoff')
+  async payoff(@Param('id') id: string, @Query() query: unknown) {
+    const q = parseOrThrow(PayoffQuerySchema, query, 'Invalid payoff query');
+    return this.penalties.payoff(id, q.date);
   }
 
   /**

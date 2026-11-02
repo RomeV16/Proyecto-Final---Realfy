@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../common/prisma/prisma.module';
 import { TenantContextModule } from '../../common/tenant/tenant-context.module';
 import { TenantsModule } from '../tenants/tenants.module';
+import { IndexDataModule } from '../index-data/index-data.module';
 import { PenaltiesService } from './penalties.service';
 import { PenaltiesScheduler } from './penalties.scheduler';
 import { PenaltiesController } from './penalties.controller';
@@ -11,6 +12,7 @@ import { PenaltiesController } from './penalties.controller';
     PrismaModule,
     TenantContextModule,
     TenantsModule,
+    IndexDataModule,
   ],
   providers: [PenaltiesService, PenaltiesScheduler],
   controllers: [PenaltiesController],

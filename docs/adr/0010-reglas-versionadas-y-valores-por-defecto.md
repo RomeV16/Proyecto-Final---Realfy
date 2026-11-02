@@ -180,3 +180,11 @@ renglones `AjusteRetroactivo` (comisionables, al locador; `sourceType`
 inquilino, porque los renglones no admiten importes negativos. La liquidación y
 `markTrueUpBilled` van en la misma transacción: si la liquidación no se crea no se
 marca, y dos generaciones simultáneas no la facturan dos veces.
+
+Punitorios: opciones configurables, decidido por Manuel. La regla de punitorios
+(`penaltyConfig`, de la inmobiliaria o de la versión de reglas de un contrato) lleva las
+convenciones de dinero como opciones con valor por defecto: imputación del pago parcial
+(`RentaPrimero`), redondeo (`Total`), base del tope (`SaldoInicioMora`) y, con la tasa del
+BNA, tasa `Nominal`, 365 días y piso ante la falta de tasa. Siguen fijas: rige la regla de la
+fecha de devengo para toda la mora, un pago con fecha anterior no revierte filas ya
+devengadas y la condonación no frena el devengo futuro.

@@ -62,6 +62,7 @@ describe('LiquidacionesService: períodos independientes de la zona horaria', ()
         markTrueUpBilled: jest.fn().mockResolvedValue(0),
       } as any,
       { pendingLines: jest.fn().mockResolvedValue([]), markBilled: jest.fn().mockResolvedValue(0), release: jest.fn() } as any,
+      { pendingLines: jest.fn().mockResolvedValue({ lines: [], rowIds: [] }), markSettled: jest.fn().mockResolvedValue(0), release: jest.fn().mockResolvedValue(0) } as any,
     );
   });
 
