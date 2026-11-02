@@ -12,6 +12,7 @@ import {
   FinancialAccountKind,
   PaymentMethod,
   UpdateFinancialAccountSchema,
+  OwnerLedgerEntryType,
   convertAmount,
   personName,
 } from '@realfy/shared';
@@ -23,6 +24,7 @@ import { TenantContextService } from '../../common/tenant/tenant-context.service
 import { parseOrThrow } from '../../common/validation/zod';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 import { auditJson, badRequest, conflict, dayStart, notFound, rethrowSettlement } from './cash.errors';
+import { postPayout } from '../owner-accounts/ledger-posting';
 
 type Db = any;
 
@@ -286,6 +288,23 @@ export class CashService {
         sourceType: 'CustodyDelivery',
         note: input.note ?? null,
       });
+      // La custodia es parte del saldo del locador: entregarla es un pago (ADR-0009).
+      if (account.ownerPersonId) {
+        const { ownerAccounts } = await this.operationalDefaults.get(tenantId, tx);
+        await postPayout(
+          tx,
+          { tenantId, closeDay: ownerAccounts.statementCloseDay, userId: this.tenantContext.getUserId() ?? null },
+          {
+            personId: account.ownerPersonId,
+            type: OwnerLedgerEntryType.EntregaEfectivo,
+            amount,
+            currency: account.currency,
+            date: movement.date,
+            movementId: movement.id,
+            description: `Entrega de efectivo en custodia${input.note ? ` — ${input.note}` : ''}`,
+          },
+        );
+      }
       await this.audit.record(tx, {
         action: 'CREATE',
         entity: 'CashMovement',

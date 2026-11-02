@@ -5,11 +5,22 @@ const A = 'lessor-a';
 const B = 'lessor-b';
 const D = (s: string) => new Date(`${s}T00:00:00.000Z`);
 
-function build(opts: { flow?: string; cash?: Record<string, unknown>; lessors?: any[]; commission?: any; users?: string[] } = {}) {
+function build(
+  opts: {
+    flow?: string;
+    cash?: Record<string, unknown>;
+    lessors?: any[];
+    commission?: any;
+    users?: string[];
+    terms?: Record<string, unknown>;
+    lines?: any[];
+  } = {},
+) {
   const contract = {
     id: 'contract-1',
+    propertyId: 'prop-1',
     commission: opts.commission ?? null,
-    termsVersions: opts.flow ? [{ validFrom: D('2026-01-01'), paymentFlow: opts.flow }] : [],
+    termsVersions: opts.flow || opts.terms ? [{ validFrom: D('2026-01-01'), paymentFlow: opts.flow, ...(opts.terms ?? {}) }] : [],
     lessors: opts.lessors ?? [
       { personId: A, payoutPct: '50', validFrom: D('2026-01-01'), validTo: null },
       { personId: B, payoutPct: '50', validFrom: D('2026-01-01'), validTo: null },
@@ -17,7 +28,14 @@ function build(opts: { flow?: string; cash?: Record<string, unknown>; lessors?: 
     persons: [{ personId: 'tenant-person', role: 'Inquilino' }],
   };
   const movements: any[] = [];
+  const ledger: any[] = [];
   const tx: any = {
+    ownerLedgerEntry: {
+      createMany: jest.fn(async ({ data }: any) => {
+        ledger.push(...data);
+        return { count: data.length };
+      }),
+    },
     contract: { findFirst: jest.fn(async () => contract) },
     user: { findFirst: jest.fn(async ({ where }: any) => ((opts.users ?? ['u2']).includes(where.id) ? { id: where.id } : null)) },
     receipt: { create: jest.fn(async ({ data }: any) => ({ id: 'rec-1', ...data })) },
@@ -47,13 +65,13 @@ function build(opts: { flow?: string; cash?: Record<string, unknown>; lessors?: 
       contractId: 'contract-1',
       period: D('2026-01-01'),
       currency: 'ARS',
-      lineItems: [{ amount: '100000', beneficiary: 'Locador', commissionable: true, currency: 'ARS' }],
+      lineItems: opts.lines ?? [{ amount: '100000', beneficiary: 'Locador', commissionable: true, currency: 'ARS', type: 'Alquiler' }],
     },
     payment: { id: 'pay-1', amount, method: 'Efectivo', paidAt: new Date('2026-01-08T12:00:00.000Z') },
     paidBefore: '0',
     input,
   });
-  return { service, tx, cash, movements, audit, ctx };
+  return { service, tx, cash, movements, ledger, audit, ctx };
 }
 
 describe('PaymentSettlementService', () => {
@@ -128,6 +146,66 @@ describe('PaymentSettlementService', () => {
     await expect(service.record(tx, ctx({ receivedBy: 'Locador', accountId: 'caja' }))).rejects.toMatchObject({
       response: { error: 'VALIDATION_ERROR' },
     });
+  });
+});
+
+describe('PaymentSettlementService — cuenta corriente del locador (ADR-0009)', () => {
+  const rows = (ledger: any[]) => ledger.map((e) => [e.personId, e.type, e.amount]);
+
+  it('cobra la inmobiliaria: a cada locador su alquiler bruto y la comisión, con el cobro como origen (CP-451)', async () => {
+    const { service, tx, ledger, ctx, audit } = build();
+    await service.record(tx, ctx());
+    expect(rows(ledger)).toEqual([
+      [A, 'Alquiler', '50000.00'],
+      [A, 'Comision', '-3500.00'],
+      [B, 'Alquiler', '50000.00'],
+      [B, 'Comision', '-3500.00'],
+    ]);
+    expect(ledger[0]).toMatchObject({
+      tenantId: 't1',
+      sourceType: 'Payment',
+      sourceId: 'pay-1',
+      contractId: 'contract-1',
+      propertyId: 'prop-1',
+      currency: 'ARS',
+      date: D('2026-01-08'),
+      period: D('2026-01-01'),
+    });
+    expect(tx.ownerLedgerEntry.createMany).toHaveBeenCalledWith(expect.objectContaining({ skipDuplicates: true }));
+    expect(audit.record).toHaveBeenCalledWith(tx, expect.objectContaining({ metadata: expect.objectContaining({ ledgerEntries: 4 }) }));
+  });
+
+  it('cobra el locador: lo bruto y lo cobrado en mano; el saldo es lo que debe (CP-452)', async () => {
+    const { service, tx, ledger, ctx } = build({ flow: 'TodoLocador' });
+    await service.record(tx, ctx());
+    expect(rows(ledger).filter((r) => r[0] === A)).toEqual([
+      [A, 'Alquiler', '50000.00'],
+      [A, 'Comision', '-3500.00'],
+      [A, 'CobroDirecto', '-50000.00'],
+    ]);
+  });
+
+  it('lo que debe el locador que cobró se pacta por contrato y pisa el de la inmobiliaria (CP-453)', async () => {
+    const lines = [
+      { amount: '100000', beneficiary: 'Locador', commissionable: true, currency: 'ARS', type: 'Alquiler' },
+      { amount: '1000', beneficiary: 'Ente', commissionable: false, currency: 'ARS', type: 'Impuesto' },
+    ];
+    const own = build({ flow: 'TodoLocador', terms: { lessorDirectOwes: 'SoloInmobiliaria' }, lines });
+    const res = await own.service.record(own.tx, own.ctx({}, '101000'));
+    expect(res.settlement.enteHeldBy).toBe('Locador');
+    // Recibió 46500 + 3500 + 500 de entes; lo que retiene para el ente no cuenta como cobrado para la inmobiliaria.
+    expect(own.ledger.find((e) => e.personId === A && e.type === 'CobroDirecto').amount).toBe('-50000.00');
+
+    const agencyDefault = build({ flow: 'TodoLocador', terms: { lessorDirectOwes: null }, lines });
+    const res2 = await agencyDefault.service.record(agencyDefault.tx, agencyDefault.ctx({}, '101000'));
+    expect(res2.settlement.enteHeldBy).toBe('Inmobiliaria');
+    expect(agencyDefault.ledger.find((e) => e.personId === A && e.type === 'CobroDirecto').amount).toBe('-50500.00');
+  });
+
+  it('un cobro sin reparto no deja asientos', async () => {
+    const { service, tx, ledger, ctx } = build({ lessors: [] });
+    await service.record(tx, ctx());
+    expect(ledger).toEqual([]);
   });
 });
 

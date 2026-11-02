@@ -9,7 +9,7 @@ import {
   receiptSeriesFor,
   settlePayment,
 } from '@realfy/shared';
-import type { CommissionConfig, OperationalDefaults, SettlementResult } from '@realfy/shared';
+import type { CommissionConfig, LessorDirectOwes, OperationalDefaults, SettlementResult } from '@realfy/shared';
 import Decimal from 'decimal.js';
 import { AuditService } from '../../common/audit/audit.service';
 import { nextDocumentNumber } from '../../common/document-sequence/document-sequence';
@@ -18,6 +18,7 @@ import { OperationalDefaultsService } from '../tenants/operational-defaults.serv
 import { getLessorsAt, getParty } from '../contracts/contract-parties';
 import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
 import { CashService } from './cash.service';
+import { postPayment } from '../owner-accounts/ledger-posting';
 import { auditJson, badRequest, notFound } from './cash.errors';
 
 type Db = any;
@@ -111,6 +112,8 @@ export class PaymentSettlementService {
       [...versions].sort((a, b) => a.validFrom.getTime() - b.validFrom.getTime())[0] ??
       null;
     const flowRule = resolveRule(defaults, terms, 'paymentFlow');
+    // Lo que debe el locador que cobró: el pactado en el contrato o el de la inmobiliaria (ADR-0009).
+    const lessorDirectOwes = resolveRule(defaults, terms, 'lessorDirectOwes') as LessorDirectOwes;
     const receivedBy: PaymentReceiver =
       input.receivedBy ??
       (input.accountId || input.inCustody || flowRule !== PaymentFlow.TodoLocador
@@ -141,7 +144,7 @@ export class PaymentSettlementService {
         amount: payment.amount,
         receivedBy,
         inCustody,
-        options: { lessorDirectOwes: defaults.cash.lessorDirectOwes, partialAllocation: defaults.cash.partialAllocation },
+        options: { lessorDirectOwes, partialAllocation: defaults.cash.partialAllocation },
       });
     } catch (error) {
       if (!(error instanceof SettlementError)) throw error;
@@ -191,12 +194,20 @@ export class PaymentSettlementService {
       },
       include: { receipt: true, account: { select: { id: true, name: true, kind: true, currency: true } } },
     });
+    // Cuenta corriente de cada locador (ADR-0009): en la misma transacción, una sola vez por cobro.
+    const ledgerEntries = settlement
+      ? await postPayment(
+          tx,
+          { tenantId, closeDay: defaults.ownerAccounts.statementCloseDay, userId: this.tenantContext.getUserId() ?? null },
+          { payment, liquidacion, contract, settlement },
+        )
+      : 0;
     await this.audit.record(tx, {
       action: 'CREATE',
       entity: 'Payment',
       entityId: payment.id,
       after: auditJson({ ...updated, settlement: undefined }),
-      metadata: { operation: 'payment-register', flow: settlement?.flow ?? null, settlementError },
+      metadata: { operation: 'payment-register', flow: settlement?.flow ?? null, settlementError, ledgerEntries },
     });
     return updated;
   }

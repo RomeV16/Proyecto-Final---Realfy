@@ -7,6 +7,7 @@ import {
   FinancialAccountKind,
   PaymentMethod,
   checkCompensation,
+  personName,
   todayInAR,
 } from '@realfy/shared';
 import Decimal from 'decimal.js';
@@ -17,6 +18,7 @@ import { parseOrThrow } from '../../common/validation/zod';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 import { getLessorsAt } from '../contracts/contract-parties';
 import { CashService } from './cash.service';
+import { postCompensation } from '../owner-accounts/ledger-posting';
 import { auditJson, badRequest, conflict, notFound, rethrowSettlement } from './cash.errors';
 
 type Db = any;
@@ -53,7 +55,7 @@ export class CompensationsService {
   async create(data: unknown) {
     const input = parseOrThrow(CreateCompensationSchema, data, 'Invalid compensation');
     const tenantId = this.tenantContext.getTenantId()!;
-    const { cash } = await this.operationalDefaults.get(tenantId);
+    const { cash, ownerAccounts } = await this.operationalDefaults.get(tenantId);
 
     return this.prisma.client.$transaction(async (tx: Db) => {
       const payment = await tx.payment.findFirst({
@@ -104,6 +106,18 @@ export class CompensationsService {
       const movements = input.fromCustody
         ? await this.payFromCustody(tx, { tenantId, payment, compensation, toAccountId: input.toAccountId ?? null })
         : [];
+      // Cuenta corriente: resta a quien cobró y suma a quien le correspondía (ADR-0009).
+      await postCompensation(
+        tx,
+        { tenantId, closeDay: ownerAccounts.statementCloseDay, userId: this.tenantContext.getUserId() ?? null },
+        {
+          compensation,
+          contract: payment.liquidacion.contract,
+          period: payment.liquidacion.period,
+          date: todayInAR(),
+          names: { from: personName(compensation.fromLessor), to: personName(compensation.toLessor) },
+        },
+      );
       await this.audit.record(tx, {
         action: 'CREATE',
         entity: 'Compensation',

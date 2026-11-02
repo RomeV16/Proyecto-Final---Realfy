@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { TenantsModule } from '../tenants/tenants.module';
 import { ServicesController } from './services.controller';
 import { ServicesService } from './services.service';
 import { ServiceBillsController } from './service-bills.controller';
@@ -7,6 +8,7 @@ import { ChargeRulesController } from './charge-rules.controller';
 import { ChargeRulesService } from './charge-rules.service';
 
 @Module({
+  imports: [TenantsModule],
   controllers: [ServicesController, ServiceBillsController, ChargeRulesController],
   providers: [ServicesService, ServiceBillsService, ChargeRulesService],
   exports: [ServicesService, ServiceBillsService],

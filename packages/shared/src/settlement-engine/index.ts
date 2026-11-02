@@ -1,18 +1,13 @@
 import { Money, allocateLargestRemainder, round2, sumMoney } from '../money';
 import type { MoneyInput } from '../money';
-import { LineBeneficiary, PaymentReceiver } from '../enums';
+import { LessorDirectOwes, LineBeneficiary, PaymentReceiver } from '../enums';
 import { calculateCommission, InvalidCommissionError } from '../commission-engine';
 import type { CommissionConfig } from '../commission-engine';
 
 // ─── Opciones (valores por defecto de la inmobiliaria) ──
 
-/** Qué le debe el locador a la inmobiliaria cuando el inquilino le paga directamente. */
-export enum LessorDirectOwes {
-  /** Todo lo que no es del locador: comisión, renglones de la inmobiliaria y renglones de entes. */
-  TodoLoAjeno = 'TodoLoAjeno',
-  /** Solo comisión y renglones de la inmobiliaria; el locador paga los entes. */
-  SoloInmobiliaria = 'SoloInmobiliaria',
-}
+/** Qué le debe el locador a la inmobiliaria cuando el inquilino le paga directamente (pactable por contrato). */
+export { LessorDirectOwes };
 
 /** Cómo se reparte un pago parcial entre inmobiliaria, entes y locadores. */
 export enum PartialAllocation {

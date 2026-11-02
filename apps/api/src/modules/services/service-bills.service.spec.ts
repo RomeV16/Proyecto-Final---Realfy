@@ -67,12 +67,19 @@ function build(opts: { rules?: any[]; bill?: any; billed?: number } = {}) {
       update: jest.fn().mockResolvedValue({}),
       deleteMany: jest.fn().mockResolvedValue({}),
     },
+    ownerLedgerEntry: {
+      findMany: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
   };
   client.$transaction = jest.fn((fn: (tx: any) => unknown) => fn(client));
   const tenantContext = { getTenantId: () => 'tenant-1', getUserId: () => 'user-1' };
   const service = new ServiceBillsService(
     { client } as unknown as PrismaService,
     tenantContext as unknown as TenantContextService,
+    { get: jest.fn().mockResolvedValue({ ownerAccounts: { statementCloseDay: null } }) } as any,
   );
   return { service, client };
 }
