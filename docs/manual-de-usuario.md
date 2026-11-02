@@ -874,8 +874,9 @@ se cuentan como la etapa que les corresponde; la transición válida desde cada
 estado es siempre la que ofrece el botón del detalle.
 
 1. **Estimar y autorizar.** *Anotar el costo estimado* guarda el importe. Si supera
-   el límite que la inmobiliaria resuelve sin consultar (en *Valores por defecto*,
-   «Límite sin consultar al locador»; de fábrica 0, es decir que siempre se consulta)
+   el límite que la inmobiliaria resuelve sin consultar (el del contrato, si lo pactó,
+   y si no el de *Valores por defecto*, «Límite sin consultar al locador»; de fábrica 0,
+   es decir que siempre se consulta)
    el ticket pasa a *Pendiente de autorización*. Entonces se registra la autorización
    del locador: hasta qué importe, quién la dio (el locador o quien lo representa) y
    por qué canal (WhatsApp, teléfono, mail o presencial); queda la fecha. Con ese tope
@@ -904,7 +905,20 @@ estado es siempre la que ofrece el botón del detalle.
 gestionar la reparación: un porcentaje de lo pagado (el que se deje vacío usa el de
 *Valores por defecto*) o un importe fijo. Se carga como otro gasto puntual a favor
 de la inmobiliaria, a cargo de quien paga la reparación; **nunca es comisión** y no
-se cobra cuando paga la propia inmobiliaria. Es siempre opcional.
+se cobra cuando paga la propia inmobiliaria. Es siempre opcional y no lleva IVA. El porcentaje
+que se deja vacío es el del contrato (su honorario por gestión de reparaciones) y, si el contrato
+no lo pacta, el de *Valores por defecto*. Cuando paga el locador y el contrato pacta el
+honorario, lo descuenta el estado del locador con ese porcentaje: no se carga otro, y no se
+puede pedir uno distinto.
+
+**Reglas de dinero.** El pagador es obligatorio al imputar. Aprobar un presupuesto exige
+quién y por qué canal. No se paga más de lo aprobado. Un ticket con pagos al proveedor no se
+puede cancelar (el dinero ya salió de la caja). El gasto imputado al inquilino se somete al
+umbral de anticipo del centro de carga, igual que cualquier otro gasto suyo.
+
+**Límite por contrato.** Al crear el contrato (paso de convenciones), en sus reglas o con un
+convenio de cambio de regla se puede pactar un límite propio, con importe y moneda; vacío usa
+el de la inmobiliaria.
 
 Cada paso queda en la bitácora: la estimación, la preautorización, la aprobación del
 presupuesto (con quién y por qué canal), el pago y la imputación.
