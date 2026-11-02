@@ -14,10 +14,13 @@ import { CommissionType } from '@realfy/shared';
 interface CommissionData {
   id: string;
   contractId: string;
-  commissionType: CommissionType;
-  percentage?: number | null;
+  /** Tipo de comisión (la API lo llama `type`). */
+  type: CommissionType;
+  percentage?: string | number | null;
   fixedAmount?: string | number | null;
   adminFee?: string | number | null;
+  /** Honorario por gestión de una reparación a cargo del locador, en %. */
+  repairMgmtFeePct?: string | number | null;
   notes?: string | null;
 }
 
@@ -41,6 +44,7 @@ export function CommissionConfig({ contractId }: CommissionConfigProps) {
   const [percentage, setPercentage] = useState('');
   const [fixedAmount, setFixedAmount] = useState('');
   const [adminFee, setAdminFee] = useState('');
+  const [repairFee, setRepairFee] = useState('');
   const [notes, setNotes] = useState('');
 
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -51,10 +55,11 @@ export function CommissionConfig({ contractId }: CommissionConfigProps) {
       const data = await apiClient<CommissionData>(`/contracts/${contractId}/commission`);
       setExisting(data);
       if (data) {
-        setCommissionType(data.commissionType);
-        setPercentage(data.percentage != null ? String(data.percentage) : '');
+        setCommissionType(data.type);
+        setPercentage(data.percentage != null ? String(Number(data.percentage)) : '');
         setFixedAmount(data.fixedAmount != null ? String(data.fixedAmount) : '');
         setAdminFee(data.adminFee != null ? String(data.adminFee) : '');
+        setRepairFee(data.repairMgmtFeePct != null ? String(Number(data.repairMgmtFeePct)) : '');
         setNotes(data.notes || '');
       }
     } catch (err) {
@@ -81,12 +86,15 @@ export function CommissionConfig({ contractId }: CommissionConfigProps) {
     setSaving(true);
     setFeedback(null);
     try {
+      // Los campos y formatos de CreateCommissionSchema: `type` y el porcentaje como texto decimal.
       const body: Record<string, unknown> = {
-        commissionType,
+        type: commissionType,
         adminFee: adminFee ? Number(adminFee) : 0,
+        // Vacío: el contrato no cobra honorario por gestión de reparaciones.
+        repairMgmtFeePct: repairFee.trim() ? repairFee.trim().replace(',', '.') : null,
         notes: notes || undefined,
       };
-      if (showPercentage) body.percentage = Number(percentage);
+      if (showPercentage) body.percentage = percentage.trim().replace(',', '.');
       if (showFixedAmount) body.fixedAmount = Number(fixedAmount);
 
       const data = await apiClient<CommissionData>(`/contracts/${contractId}/commission`, {
@@ -113,6 +121,7 @@ export function CommissionConfig({ contractId }: CommissionConfigProps) {
       setPercentage('');
       setFixedAmount('');
       setAdminFee('');
+      setRepairFee('');
       setNotes('');
       setFeedback({ type: 'success', message: t('deleteSuccess') });
     } catch (err) {
@@ -215,6 +224,25 @@ export function CommissionConfig({ contractId }: CommissionConfigProps) {
             placeholder={t('adminFeePlaceholder')}
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
           />
+        </div>
+
+        {/* Repair management fee */}
+        <div>
+          <label htmlFor="commission-repair-fee" className="block text-xs font-medium text-slate-500 mb-1">
+            {t('repairMgmtFeePct')}
+          </label>
+          <input
+            id="commission-repair-fee"
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+            value={repairFee}
+            onChange={(e) => setRepairFee(e.target.value)}
+            placeholder={t('repairMgmtFeePctPlaceholder')}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          />
+          <p className="mt-1 text-xs text-slate-400">{t('repairMgmtFeePctHint')}</p>
         </div>
 
         {/* Notes */}
