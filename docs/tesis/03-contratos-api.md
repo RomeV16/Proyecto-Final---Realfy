@@ -187,6 +187,16 @@ es de consulta agregada.
 - `POST /api/owner-statements/:id/issue` — Emite y bloquea los movimientos del mes.
 - `POST /api/owner-statements/:id/annul` — Anula el último emitido y libera sus movimientos (Admin, Gerente).
 
+## Honorarios
+
+- `GET /api/fees/preview` — Propuesta con los valores por defecto de la inmobiliaria para un alta, una renovación, una venta o una tasación (Admin, Gerente).
+- `POST /api/fees` — Alta: un honorario por cada persona que paga, con sus cuotas, coorretaje y comisiones del personal (Admin, Gerente).
+- `GET /api/fees`, `GET /api/fees/:id` y `GET /api/fees/installments` — Honorarios y cuotas con el importe a cobrar (ajustado si corresponde).
+- `PATCH /api/fees/:id` y `POST /api/fees/:id/cancel` — Notas y anulación con motivo (Admin, Gerente).
+- `POST /api/fees/:id/installments/:n/pay` — Cobro de una cuota a la caja con recibo o descontado de la cuenta del locador (Admin, Gerente, Liquidaciones).
+- `POST`/`DELETE /api/fees/:id/shares` y `/api/fees/:id/staff-commissions` — Coorretaje y comisiones del personal (Admin, Gerente).
+- `GET /api/staff-commissions` y `POST /api/staff-commissions/:id/pay` — Comisiones del personal y su pago desde una cuenta (Admin, Gerente).
+
 ## Rendiciones al propietario (histórico)
 
 Solo lectura desde la cuenta corriente (ADR-0009): ya no se generan, no cambian de

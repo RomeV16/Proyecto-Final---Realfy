@@ -64,6 +64,14 @@ export const ACTION_ROLES = {
   'followUps.manage': [Admin, Gerente, Ventas],
   /** Registrar una prórroga de palabra o renovar un contrato. */
   'expirations.administer': [Admin, Gerente],
+  /** Honorarios: ver honorarios, cuotas y su cobro. */
+  'fees.view': [Admin, Gerente, Liquidaciones, Lectura, Ventas, Soporte],
+  /** Cargar, anular y repartir un honorario (coorretaje y comisión del personal). */
+  'fees.manage': [Admin, Gerente],
+  /** Cobrar una cuota de honorario. */
+  'fees.collect': [Admin, Gerente, Liquidaciones],
+  /** Ver y pagar las comisiones del personal. */
+  'fees.commissions': [Admin, Gerente],
   'dashboard.analytics': [Admin, Gerente],
 
   // Soporte y configuración

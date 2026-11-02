@@ -6,7 +6,7 @@ import {
   OwnerStatementStatus,
   PAYOUT_ENTRY_TYPES,
 } from '@realfy/shared';
-import type { FormSchema } from '@/hooks/use-zod-form';
+import { sharedFormSchema, type SharedSchema } from './form-schema';
 import { toDecimalString } from './index-values';
 import { parsePositiveAmount } from './cash';
 
@@ -175,27 +175,11 @@ export function parseSignedAmount(raw: string): string | null {
 /* ──────────── Formularios ──────────── */
 
 /** Esquema de formulario a partir de uno compartido: cada error va a su campo con la clave `ownerAccounts.errors.<campo>`. */
-function formSchema(
-  shared: { safeParse: (input: unknown) => { success: boolean; data?: unknown; error?: { issues: { path: PropertyKey[] }[] } } },
+const formSchema = (
+  shared: SharedSchema,
   body: (values: Record<string, string>) => Record<string, unknown>,
   fallbackField: string,
-): FormSchema<Record<string, unknown>> {
-  return {
-    safeParse(input) {
-      const result = shared.safeParse(body(input as Record<string, string>));
-      if (result.success) return { success: true, data: result.data as Record<string, unknown> };
-      return {
-        success: false,
-        error: {
-          issues: (result.error?.issues ?? []).map((issue) => {
-            const field = String(issue.path[0] ?? fallbackField);
-            return { path: [field], message: `ownerAccounts.errors.${field}` };
-          }),
-        },
-      };
-    },
-  };
-}
+) => sharedFormSchema('ownerAccounts', shared, body, fallbackField);
 
 const orNull = (value: string | undefined): string | null => (value ?? '').trim() || null;
 

@@ -244,4 +244,8 @@ stateDiagram-v2
     Devuelto --> [*]
 ```
 
+## Casos de honorarios (ítem 41)
+
+- **CU-41 Cobrar honorarios y pagar las comisiones del personal** — Admin o Gerente cargan los honorarios y las comisiones; Liquidaciones cobra las cuotas; Lectura, Ventas y Soporte consultan. Carga el honorario de una operación con la propuesta de la inmobiliaria, que puede cambiar: el alta de un alquiler (5 % del total del contrato, que suma los alquileres del plazo con los ajustes que se conocen al firmar), la renovación (sobre el período renovado), la venta (3 % por parte si es construido, 5 % si es lote, sobre el valor real) o la tasación (USD 100 o sin cargo). Elige quién paga —el inquilino, el locador o los dos con su parte—, el IVA, en cuántas cuotas mensuales y si las cuotas siguen los ajustes del alquiler; agrega el coorretaje con otra inmobiliaria y la comisión de cada persona del personal. Cobra cada cuota en la caja o el banco, con recibo, o, si paga el locador, se la descuenta de su cuenta corriente. Paga las comisiones del personal desde una cuenta. *Flujos alternativos:* una cuota que vence después de un ajuste del alquiler se cobra ajustada en la misma proporción; un honorario en cero queda sin cargo; agregar o quitar un coorretaje recalcula las comisiones sin pagar; un honorario sin cobros ni comisiones pagadas se anula con motivo; una cuota cobrada no se vuelve a cobrar. *Origen:* FB-12 y FB-19.
+
 <!-- Revisado por Manuel: refinamiento de casos para liquidaciones y ARCA -->

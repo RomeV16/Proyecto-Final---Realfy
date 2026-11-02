@@ -62,6 +62,13 @@ export {
   PaymentReceiver,
   OwnerLedgerEntryType,
   OwnerStatementStatus,
+  FeeKind,
+  FeeBasis,
+  FeePayerRole,
+  FeeStatus,
+  FeeInstallmentStatus,
+  FeeSettlement,
+  FeeVatMode,
   NotificationType,
   PipelineType,
   LeadSource,
@@ -727,6 +734,55 @@ export type {
   OralExtensionInput,
   RenewContractInput,
 } from './schemas/follow-up.schema';
+
+// Honorarios (D10): motor y esquemas
+export {
+  ContractTotalMode,
+  StaffCommissionBase,
+  FeePayerChoice,
+  SaleAsset,
+  FeeEngineError,
+  contractTermMonths,
+  contractTotal,
+  feeAmounts,
+  pctOf,
+  splitBetweenPayers,
+  feeInstallments,
+  adjustInstallments,
+  distributeFee,
+  defaultFeePct,
+} from './fee-engine';
+export type {
+  FeeRentRule,
+  ContractTotalResult,
+  FeeAmounts,
+  FeeInstallmentDraft,
+  RentChange,
+  FeeDistribution,
+} from './fee-engine';
+export {
+  FeePayerMode,
+  FeePreviewSchema,
+  FeePayerInputSchema,
+  FeeShareInputSchema,
+  StaffCommissionInputSchema,
+  CreateFeeSchema,
+  UpdateFeeSchema,
+  CancelFeeSchema,
+  FeeFilterSchema,
+  FeeInstallmentFilterSchema,
+  PayFeeInstallmentSchema,
+  StaffCommissionFilterSchema,
+  PayStaffCommissionSchema,
+} from './schemas/fee.schema';
+export type {
+  FeePreviewInput,
+  CreateFeeInput,
+  CreateFeeFormInput,
+  PayFeeInstallmentInput,
+  StaffCommissionInput,
+  FeeShareInput,
+} from './schemas/fee.schema';
 
 // Rendicion engine (histórico: lo usa solo la rendición vieja; el reparto de cobros es settlement-engine)
 export {

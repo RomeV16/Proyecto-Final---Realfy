@@ -113,6 +113,7 @@
   "permissions": "Permissions",
   "serviceBills": "Monthly bills",
   "charges": "Charge center",
+  "fees": "Fees",
   "cash": "Cash",
   "owners": "Lessors",
   "ownerStatements": "Owner statements",
@@ -4779,6 +4780,10 @@
     "title": "Commission and fees",
     "description": "Percentages over the rent collected and over each operation."
    },
+   "feeTerms": {
+    "title": "How fees are collected",
+    "description": "Who pays, in how many installments, VAT and the staff commission proposed for each fee."
+   },
    "valuation": {
     "title": "Valuations and advances",
     "description": "Valuation fee and threshold to ask for an advance payment."
@@ -4844,6 +4849,60 @@
    "feeVentaLote": {
     "label": "Sale fee, lot (%)",
     "hint": "Factory value {value}."
+   },
+   "feePayer": {
+    "label": "Who pays a rental fee",
+    "hint": "Factory default: {value}.",
+    "options": {
+     "Inquilino": "The tenant",
+     "Locador": "The lessor",
+     "Ambos": "Both, each with their share"
+    }
+   },
+   "feeLessorSharePct": {
+    "label": "Lessor's share when both pay (%)",
+    "hint": "Factory default {value}."
+   },
+   "feeInstallments": {
+    "label": "Fee installments",
+    "hint": "From 1 to 60 (factory default {value})."
+   },
+   "feeContractTotalMode": {
+    "label": "Contract total",
+    "hint": "What counts as the total for a new-lease or renewal fee (factory default: {value}).",
+    "options": {
+     "AlquilerInicial": "The initial rent times the months",
+     "ConAjustesConocidos": "With the adjustments known at signing"
+    }
+   },
+   "feeVatMode": {
+    "label": "Fee VAT",
+    "hint": "Factory default: {value}.",
+    "options": {
+     "NoAplica": "Not applicable",
+     "Incluido": "Included in the percentage",
+     "Adicional": "Added to the fee"
+    }
+   },
+   "feeVatPct": {
+    "label": "VAT (%)",
+    "hint": "Factory default {value}."
+   },
+   "feeStaffCommissionPct": {
+    "label": "Staff commission (%)",
+    "hint": "Proposed when a commission is added (factory default {value})."
+   },
+   "feeStaffCommissionBase": {
+    "label": "Staff commission on",
+    "hint": "Factory default: {value}.",
+    "options": {
+     "Neto": "What is left after co-brokerage",
+     "Bruto": "The fee before VAT"
+    }
+   },
+   "feeAdjustInstallments": {
+    "label": "Installments follow the rent adjustments",
+    "hint": "An installment due after a rent adjustment changes in the same proportion."
    },
    "valuationUsd": {
     "label": "Valuation (USD)",
@@ -6106,6 +6165,279 @@
    "guarantorPersonIds": "Check the guarantors",
    "signedAt": "Choose a valid date",
    "notes": "The notes are too long"
+  }
+ },
+ "fees": {
+  "title": "Fees",
+  "subtitle": "Lease, renewal, sale and valuation fees: installments to collect, co-brokerage splits and staff commissions.",
+  "forbidden": "Your role cannot see fees.",
+  "add": "New fee",
+  "actionError": "The action could not be completed.",
+  "adjusted": "Adjusted",
+  "adjustedHint": "Follows the rent adjustments; the original amount was {amount}.",
+  "receipt": "Receipt {number}",
+  "installmentOf": "Installment {n} of {of}",
+  "paidOf": "{paid} of {of} collected",
+  "tabs": {
+   "installments": "Installments",
+   "fees": "Fees",
+   "commissions": "Staff commissions"
+  },
+  "kinds": {
+   "AltaAlquiler": "New lease",
+   "Renovacion": "Renewal",
+   "Venta": "Sale",
+   "Tasacion": "Valuation",
+   "GestionReparacion": "Repair management"
+  },
+  "statuses": {
+   "Pendiente": "Pending",
+   "Parcial": "Partial",
+   "Pagado": "Paid",
+   "SinCargo": "Free of charge",
+   "Anulado": "Cancelled"
+  },
+  "installmentStatuses": {
+   "Pendiente": "Pending",
+   "Pagada": "Paid",
+   "Anulada": "Cancelled"
+  },
+  "roles": {
+   "Inquilino": "Tenant",
+   "Locador": "Lessor",
+   "Comprador": "Buyer",
+   "Vendedor": "Seller",
+   "Otro": "Other"
+  },
+  "vatModes": {
+   "NoAplica": "No VAT",
+   "Incluido": "VAT included",
+   "Adicional": "VAT added"
+  },
+  "payerModes": {
+   "Reparto": "They split the fee",
+   "CadaParte": "Each party pays its own"
+  },
+  "bases": {
+   "TotalContrato": "Contract total",
+   "ValorOperacion": "Deal value",
+   "MontoFijo": "Fixed amount"
+  },
+  "saleAssets": {
+   "Construido": "Built",
+   "Lote": "Lot"
+  },
+  "filters": {
+   "kind": "Operation",
+   "status": "Status",
+   "payerRole": "Paid by",
+   "period": "Due in",
+   "all": "All"
+  },
+  "columns": {
+   "dueDate": "Due",
+   "toCollect": "To collect",
+   "status": "Status",
+   "actions": "Actions",
+   "fee": "Fee",
+   "payer": "Paid by",
+   "kind": "Operation",
+   "property": "Property",
+   "total": "Total",
+   "installments": "Installments",
+   "beneficiary": "Person",
+   "commission": "Commission"
+  },
+  "actions": {
+   "pay": "Collect",
+   "view": "View details"
+  },
+  "empty": {
+   "title": "No fees",
+   "subtitle": "Add the fee of a new lease, a renewal, a sale or a valuation."
+  },
+  "installmentsEmpty": {
+   "title": "No installments match these filters",
+   "subtitle": "Try another month or status."
+  },
+  "pay": {
+   "title": "Collect installment {n} of {of} ({kind})",
+   "subtitle": "{name} ({role}) · to collect {amount}",
+   "error": "The collection could not be recorded.",
+   "settlement": "How it is collected",
+   "settlements": {
+    "Caja": "Into an agency account",
+    "CuentaLocador": "Deducted from the lessor's account"
+   },
+   "settlementHints": {
+    "Caja": "The income is recorded in the cash box or bank and a receipt is issued.",
+    "CuentaLocador": "No money comes in: it is deducted from the lessor's balance and shows on their statement."
+   },
+   "lessorOnly": "Only a fee paid by the lessor can be deducted from their account.",
+   "account": "Account",
+   "defaultAccount": "The agency's {currency} account",
+   "method": "Payment method",
+   "methods": {
+    "Efectivo": "Cash",
+    "Transferencia": "Bank transfer",
+    "MercadoPago": "Mercado Pago",
+    "Cheque": "Check"
+   },
+   "amount": "Amount ({currency})",
+   "date": "Date",
+   "note": "Note",
+   "saving": "Recording...",
+   "confirm": "Record collection",
+   "done": "Collection recorded.",
+   "doneReceipt": "Collection recorded with receipt {receipt}."
+  },
+  "errors": {
+   "form": "Check the fee details.",
+   "kind": "Choose the operation.",
+   "contractId": "Choose the contract.",
+   "basis": "Choose what it is calculated on.",
+   "baseAmount": "The base must be an amount with up to 2 decimals.",
+   "pct": "The percentage must be a number between 0 and 100.",
+   "currency": "Choose the currency.",
+   "payers": "Add who pays; when they split it, the shares must add up to 100.",
+   "payerMode": "Choose how they pay.",
+   "vatMode": "Choose the VAT.",
+   "vatPct": "VAT must be a percentage between 0 and 100.",
+   "installments": "Installments go from 1 to 60.",
+   "firstDueDate": "Choose the first due date.",
+   "adjustInstallments": "Only a rental fee follows the adjustments.",
+   "shares": "Each co-brokerage needs the agency name and a percentage.",
+   "staff": "Each commission needs a staff member and a percentage.",
+   "notes": "The note is too long.",
+   "settlement": "Choose how it is collected.",
+   "accountId": "Choose an account.",
+   "method": "Choose the payment method.",
+   "date": "Choose the date.",
+   "amount": "The amount must be positive, with up to 2 decimals.",
+   "note": "The note is too long."
+  },
+  "detail": {
+   "title": "{kind} fee",
+   "loading": "Fee",
+   "loadError": "The fee could not be loaded.",
+   "payer": "Paid by",
+   "base": "Base",
+   "net": "Fee before VAT",
+   "vat": "VAT",
+   "total": "Total",
+   "adjust": "Adjustable installments",
+   "yes": "Yes",
+   "no": "No",
+   "cancelReason": "Cancelled: {reason}",
+   "installments": "Installments",
+   "noInstallments": "No installments (free of charge).",
+   "shares": "Co-brokerage",
+   "noShares": "No co-brokerage.",
+   "staff": "Staff commissions",
+   "noStaff": "No commissions.",
+   "remove": "Remove",
+   "addShare": "Add co-brokerage",
+   "addStaff": "Add commission",
+   "shareAdded": "Co-brokerage added.",
+   "shareRemoved": "Co-brokerage removed.",
+   "staffAdded": "Commission added.",
+   "staffRemoved": "Commission removed.",
+   "cancelSection": "Cancel",
+   "reason": "Cancellation reason",
+   "cancel": "Cancel fee",
+   "cancelTitle": "Cancel the fee",
+   "cancelBody": "Its pending installments and commissions are cancelled. This cannot be undone.",
+   "cancelled": "Fee cancelled."
+  },
+  "commissions": {
+   "paid": "Paid",
+   "pending": "Pending",
+   "pctOf": "{pct} % of {base}",
+   "empty": "No commissions match this filter.",
+   "payTitle": "Pay {name} {amount}",
+   "error": "The payment could not be recorded.",
+   "account": "Paid from account",
+   "accountPlaceholder": "Choose an account",
+   "date": "Date",
+   "note": "Note",
+   "confirm": "Record payment",
+   "done": "Commission paid."
+  },
+  "create": {
+   "title": "New fee",
+   "kind": "Operation",
+   "contract": "Contract",
+   "chooseContract": "Choose a contract",
+   "thisContract": "This contract",
+   "property": "Property",
+   "propertyHint": "Optional: with the property, its owner is proposed as the payer.",
+   "noProperty": "No property",
+   "period": "Renewed period",
+   "noRenewals": "The contract has no renewals yet.",
+   "firstPeriod": "Choose the period",
+   "periodOption": "Period {seq}: {start} to {end}",
+   "saleAsset": "Sale type",
+   "saleAssetAuto": "From the property",
+   "targetsError": "Contracts and properties could not be loaded.",
+   "previewError": "The proposal could not be calculated.",
+   "pickContract": "Choose the contract to calculate the fee.",
+   "contractTotal": "Contract total: {months} months from {start} to {end}, initial rent {rent}.",
+   "contractTotalModes": {
+    "AlquilerInicial": "The initial rent times the months.",
+    "ConAjustesConocidos": "Includes the adjustments known at signing."
+   },
+   "indexBased": "Index-based adjustment: future periods keep the current rent.",
+   "saved": "{count, plural, one {Fee added.} other {# fees added, one per payer.}}",
+   "saveError": "The fee could not be saved.",
+   "saving": "Saving...",
+   "save": "Save fee",
+   "basis": "Calculated on",
+   "fixedAmount": "Amount",
+   "baseAmount": "Base",
+   "pct": "Percentage",
+   "currency": "Currency",
+   "payers": "Paid by",
+   "payerMode": "How they pay",
+   "payerModeHints": {
+    "Reparto": "The fee is split according to each one's share.",
+    "CadaParte": "Each one pays the full percentage (for example, buyer and seller)."
+   },
+   "noPayers": "Nobody pays yet.",
+   "sharePctOf": "{name}'s share (%)",
+   "payerEstimate": "{total} · {count, plural, one {one installment} other {# installments of {installment}}}",
+   "removePayer": "Remove {name}",
+   "remove": "Remove",
+   "sharesMustAdd": "The shares must add up to 100.",
+   "newPayerRole": "Add as",
+   "newPayer": "Add a payer",
+   "vatMode": "VAT",
+   "vatPct": "VAT (%)",
+   "installments": "Installments",
+   "firstDueDate": "First due date",
+   "adjustInstallments": "Installments follow the rent adjustments",
+   "adjustInstallmentsHint": "An installment due after an adjustment changes in the same proportion as the rent.",
+   "shares": "Co-brokerage",
+   "sharesHint": "Percentage of the fee before VAT for another agency.",
+   "shareCounterparty": "Agency",
+   "sharePct": "Co-brokerage percentage",
+   "addShare": "Add co-brokerage",
+   "staff": "Staff commissions",
+   "staffHints": {
+    "Neto": "Calculated on what the agency keeps after co-brokerage.",
+    "Bruto": "Calculated on the fee before VAT, before co-brokerage."
+   },
+   "staffUser": "Staff member",
+   "chooseUser": "Choose a person",
+   "staffPct": "Commission percentage",
+   "addStaff": "Add commission",
+   "notes": "Notes",
+   "estimateNet": "Fee before VAT for all payers: {net}."
+  },
+  "contract": {
+   "title": "Fees",
+   "viewAll": "View all",
+   "addAlta": "Add new-lease fee",
+   "addRenewal": "Add renewal fee"
   }
  }
 }

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { cn } from '@/lib/cn';
 import { useCan } from '@/lib/permissions';
+import { Tabs } from '@/components/ui/tabs';
 import { AccountsPanel } from './accounts-panel';
 import { CustodyPanel } from './custody-panel';
 import { MovementsPanel } from './movements-panel';
@@ -42,31 +42,7 @@ export function CashCenter() {
         <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
       </header>
 
-      <div
-        role="tablist"
-        aria-label={t('title')}
-        className="flex gap-1 overflow-x-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-1"
-      >
-        {TABS.map((key) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={tab === key}
-            onClick={() => setTab(key)}
-            className={cn(
-              'whitespace-nowrap rounded-md px-3.5 py-1.5 text-sm font-medium transition-colors',
-              tab === key
-                ? 'bg-[var(--color-surface)] text-[var(--color-text)] shadow-sm'
-                : 'text-[var(--color-muted)] hover:text-[var(--color-text)]',
-            )}
-          >
-            {t(`tabs.${key}`)}
-          </button>
-        ))}
-      </div>
-
-      <div role="tabpanel" aria-label={t(`tabs.${tab}`)}>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} label={t('title')} labelOf={(key) => t(`tabs.${key}`)}>
         {tab === 'accounts' && (
           <AccountsPanel
             data={accounts.data}
@@ -86,7 +62,7 @@ export function CashCenter() {
           />
         )}
         {tab === 'receipts' && <ReceiptsPanel />}
-      </div>
+      </Tabs>
     </div>
   );
 }

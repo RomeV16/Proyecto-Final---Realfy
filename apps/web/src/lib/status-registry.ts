@@ -1,6 +1,8 @@
 import {
   ContractStatus,
   ExpirationLight,
+  FeeInstallmentStatus,
+  FeeStatus,
   PendingChargeStatus,
   ImportBatchStatus,
   ImportRowAction,
@@ -44,7 +46,9 @@ export type StatusDomain =
   | 'importFila'
   | 'cargo'
   | 'estadoCuenta'
-  | 'vencimiento';
+  | 'vencimiento'
+  | 'honorario'
+  | 'cuotaHonorario';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -101,6 +105,26 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
       [OwnerStatementStatus.Anulado]: 'danger',
     },
     [OwnerStatementStatus.Anulado],
+  ),
+  honorario: entries(
+    'fees.statuses',
+    {
+      [FeeStatus.Pendiente]: 'warning',
+      [FeeStatus.Parcial]: 'info',
+      [FeeStatus.Pagado]: 'success',
+      [FeeStatus.SinCargo]: 'neutral',
+      [FeeStatus.Anulado]: 'neutral',
+    },
+    [FeeStatus.Anulado],
+  ),
+  cuotaHonorario: entries(
+    'fees.installmentStatuses',
+    {
+      [FeeInstallmentStatus.Pendiente]: 'warning',
+      [FeeInstallmentStatus.Pagada]: 'success',
+      [FeeInstallmentStatus.Anulada]: 'neutral',
+    },
+    [FeeInstallmentStatus.Anulada],
   ),
   vencimiento: entries('followUps.lights', {
     [ExpirationLight.Green]: 'success',

@@ -28,6 +28,7 @@ export const EmitNotaCreditoSchema = z.object({
 
 export const ComprobanteFilterSchema = z.object({
   paymentId: z.string().uuid().optional(),
+  feeInstallmentId: z.string().uuid().optional(),
   type: z.nativeEnum(ComprobanteType).optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().max(100).optional().default(20),

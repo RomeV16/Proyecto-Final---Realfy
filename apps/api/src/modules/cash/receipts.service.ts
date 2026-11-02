@@ -19,6 +19,7 @@ import { TenantContextService } from '../../common/tenant/tenant-context.service
 import { parseOrThrow } from '../../common/validation/zod';
 import { getParty } from '../contracts/contract-parties';
 import { dayStart, notFound } from './cash.errors';
+import { installmentLabel } from '../fees/fee-labels';
 
 const PERSON = { select: { id: true, firstName: true, lastName: true } } as const;
 
@@ -40,6 +41,21 @@ const RECEIPT_INCLUDE = {
               lessors: { include: { person: PERSON } },
             },
           },
+        },
+      },
+    },
+  },
+  feeInstallment: {
+    select: {
+      n: true,
+      fee: {
+        select: {
+          kind: true,
+          installments: true,
+          contractId: true,
+          payer: PERSON,
+          contract: { select: { property: true } },
+          property: true,
         },
       },
     },
@@ -92,7 +108,12 @@ export class ReceiptsService {
         ...(filters.to ? { lt: new Date(dayStart(filters.to).getTime() + 86_400_000) } : {}),
       };
     }
-    if (filters.contractId) where.payment = { liquidacion: { contractId: filters.contractId } };
+    if (filters.contractId) {
+      where.OR = [
+        { payment: { liquidacion: { contractId: filters.contractId } } },
+        { feeInstallment: { fee: { contractId: filters.contractId } } },
+      ];
+    }
     const [rows, total] = await Promise.all([
       this.prisma.client.receipt.findMany({
         where,
@@ -132,10 +153,7 @@ export class ReceiptsService {
               row('Recibimos de', s.tenantName ?? '—'),
               row('La suma de', `${receipt.currency} ${formatMoneyAR(receipt.amount.toString())}`),
               row('Son', amountInWords(receipt.amount.toString(), receipt.currency)),
-              row(
-                'En concepto de',
-                `Alquiler ${payment ? formatPeriodAR(payment.liquidacion.period) : ''} — ${propertyLabel(contract?.property) || '—'}`,
-              ),
+              row('En concepto de', this.concept(receipt)),
               row('Medio de pago', METHOD_LABEL[payment?.method] ?? payment?.method ?? '—'),
               row(
                 'Recibido por',
@@ -159,10 +177,22 @@ export class ReceiptsService {
     return { buffer, filename: `recibo-${s.number}.pdf` };
   }
 
+  /** Concepto impreso: el alquiler del mes o la cuota de honorarios. */
+  private concept(receipt: any): string {
+    const feeInstallment = receipt.feeInstallment;
+    if (feeInstallment) {
+      const fee = feeInstallment.fee;
+      return `${installmentLabel(fee, feeInstallment.n)} — ${propertyLabel(fee.contract?.property ?? fee.property) || '—'}`;
+    }
+    const payment = receipt.payment;
+    return `Alquiler ${payment ? formatPeriodAR(payment.liquidacion.period) : ''} — ${propertyLabel(payment?.liquidacion?.contract?.property) || '—'}`;
+  }
+
   private summary(r: any) {
     const payment = r.payment;
     const contract = payment?.liquidacion?.contract;
     const tenantParty = contract ? getParty<any>(contract, 'Inquilino') : undefined;
+    const fee = r.feeInstallment?.fee;
     return {
       id: r.id,
       series: r.series,
@@ -172,10 +202,13 @@ export class ReceiptsService {
       currency: r.currency,
       paymentId: payment?.id ?? null,
       liquidacionId: payment?.liquidacion?.id ?? null,
-      contractId: payment?.liquidacion?.contractId ?? null,
+      contractId: payment?.liquidacion?.contractId ?? fee?.contractId ?? null,
       period: payment?.liquidacion?.period ?? null,
-      property: contract?.property ? propertyLabel(contract.property) : null,
-      tenantName: tenantParty?.person ? personName(tenantParty.person) : null,
+      property: contract?.property
+        ? propertyLabel(contract.property)
+        : propertyLabel(fee?.contract?.property ?? fee?.property) || null,
+      tenantName: tenantParty?.person ? personName(tenantParty.person) : fee?.payer ? personName(fee.payer) : null,
+      concept: fee ? installmentLabel(fee, r.feeInstallment.n) : null,
       method: payment?.method ?? null,
       receivedBy: payment?.receivedBy ?? null,
       inCustody: payment?.inCustody ?? false,

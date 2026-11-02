@@ -4,6 +4,8 @@ import { screen } from '@testing-library/react';
 import {
   ContractStatus,
   ExpirationLight,
+  FeeInstallmentStatus,
+  FeeStatus,
   ImportBatchStatus,
   ImportRowAction,
   LeadStatus,
@@ -36,6 +38,8 @@ const ENUMS: Record<StatusDomain, object> = {
   cargo: PendingChargeStatus,
   estadoCuenta: OwnerStatementStatus,
   vencimiento: ExpirationLight,
+  honorario: FeeStatus,
+  cuotaHonorario: FeeInstallmentStatus,
 };
 
 function lookup(messages: unknown, path: string): unknown {

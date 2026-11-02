@@ -136,6 +136,7 @@ export class InvoicesService {
 
     const where: any = {};
     if (filters.paymentId) where.paymentId = filters.paymentId;
+    if (filters.feeInstallmentId) where.feeInstallmentId = filters.feeInstallmentId;
     if (filters.type) where.type = filters.type;
 
     const skip = (filters.page - 1) * filters.limit;
@@ -245,6 +246,12 @@ export class InvoicesService {
       if (existing) return { comprobante: existing, isIdempotentReplay: true };
     }
 
+    if (dto.feeInstallmentId) {
+      const installment = await this.prisma.client.feeInstallment.findFirst({ where: { id: dto.feeInstallmentId }, select: { id: true } });
+      if (!installment) {
+        throw new NotFoundException({ error: 'FEE_INSTALLMENT_NOT_FOUND', message: 'Fee installment not found' });
+      }
+    }
     const issuer = await this.resolveIssuerContext(tenantId, dto.issuerId);
     const puntoDeVenta = await this.resolvePuntoDeVenta(issuer.id, dto.ptoVta);
     const currency = currencyFromMonId(dto.monId);
@@ -295,6 +302,7 @@ export class InvoicesService {
       tenantId,
       issuerId: issuer.id,
       paymentId: dto.paymentId ?? null,
+      feeInstallmentId: dto.feeInstallmentId ?? null,
       clientRequestId: dto.clientRequestId ?? null,
       type: mapCbteTipoToEnum(dto.cbteTipo),
       status: ComprobanteStatus.Emitido,

@@ -524,6 +524,63 @@ export enum OwnerStatementStatus {
   Anulado = 'Anulado',
 }
 
+// ─── Honorarios ─────────────────────────────────────────
+
+/** Operación por la que se cobra un honorario. */
+export enum FeeKind {
+  AltaAlquiler = 'AltaAlquiler',
+  Renovacion = 'Renovacion',
+  Venta = 'Venta',
+  Tasacion = 'Tasacion',
+  GestionReparacion = 'GestionReparacion',
+}
+
+/** Sobre qué se calcula el honorario. */
+export enum FeeBasis {
+  /** Porcentaje del total del contrato (o del período renovado). */
+  TotalContrato = 'TotalContrato',
+  /** Porcentaje del valor real de la operación (venta). */
+  ValorOperacion = 'ValorOperacion',
+  /** Importe fijo (tasación, honorario pactado). */
+  MontoFijo = 'MontoFijo',
+}
+
+/** Quién paga el honorario. */
+export enum FeePayerRole {
+  Inquilino = 'Inquilino',
+  Locador = 'Locador',
+  Comprador = 'Comprador',
+  Vendedor = 'Vendedor',
+  Otro = 'Otro',
+}
+
+export enum FeeStatus {
+  Pendiente = 'Pendiente',
+  Parcial = 'Parcial',
+  Pagado = 'Pagado',
+  SinCargo = 'SinCargo',
+  Anulado = 'Anulado',
+}
+
+export enum FeeInstallmentStatus {
+  Pendiente = 'Pendiente',
+  Pagada = 'Pagada',
+  Anulada = 'Anulada',
+}
+
+/** Cómo se cobró una cuota: entró a una cuenta de la inmobiliaria o se descontó de la cuenta del locador. */
+export enum FeeSettlement {
+  Caja = 'Caja',
+  CuentaLocador = 'CuentaLocador',
+}
+
+/** IVA del honorario: no corresponde, va incluido en el porcentaje o se suma. */
+export enum FeeVatMode {
+  NoAplica = 'NoAplica',
+  Incluido = 'Incluido',
+  Adicional = 'Adicional',
+}
+
 // ─── Notification Enums ─────────────────────────────────
 
 export enum NotificationType {

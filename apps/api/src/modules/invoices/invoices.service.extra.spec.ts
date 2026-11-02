@@ -385,3 +385,24 @@ describe('InvoicesService — edge cases', () => {
     });
   });
 });
+
+describe('InvoicesService — cuota de honorario facturada', () => {
+  it('guarda la cuota que factura el comprobante', async () => {
+    const installment = { findFirst: jest.fn().mockResolvedValue({ id: 'inst-1' }) };
+    const prisma = buildPrismaMock({ feeInstallment: installment });
+    const svc = await buildService(prisma, buildArcaMock());
+    await svc.emitFromDto({ ...VALID_EMIT_DTO, feeInstallmentId: 'inst-1' } as any);
+    expect(installment.findFirst).toHaveBeenCalledWith({ where: { id: 'inst-1' }, select: { id: true } });
+    expect(JSON.stringify(prisma.client.comprobante.create.mock.calls)).toContain('"feeInstallmentId":"inst-1"');
+  });
+
+  it('una cuota inexistente es 404 y no se emite', async () => {
+    const prisma = buildPrismaMock({ feeInstallment: { findFirst: jest.fn().mockResolvedValue(null) } });
+    const arca = buildArcaMock();
+    const svc = await buildService(prisma, arca);
+    await expect(svc.emitFromDto({ ...VALID_EMIT_DTO, feeInstallmentId: 'nada' } as any)).rejects.toMatchObject({
+      response: { error: 'FEE_INSTALLMENT_NOT_FOUND' },
+    });
+    expect(arca.emit).not.toHaveBeenCalled();
+  });
+});

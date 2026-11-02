@@ -3,6 +3,8 @@ import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, Proration
 import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
 import { ReceiptSeriesMode } from '../cash';
 import { LessorChargeTiming } from '../owner-ledger';
+import { FeeVatMode } from '../enums';
+import { ContractTotalMode, FeePayerChoice, StaffCommissionBase } from '../fee-engine';
 
 const pct = z.number().min(0).max(100);
 const days = z.number().int().min(0).max(365);
@@ -48,6 +50,23 @@ export const OperationalDefaultsSchema = z
         renovacion: pct.default(5),
         ventaConstruido: pct.default(3),
         ventaLote: pct.default(5),
+        /** Cuotas en que se cobra un honorario, salvo que se pacte otra cosa. */
+        installments: z.number().int().min(1).max(60).default(1),
+        /** Las cuotas que vencen después de un ajuste del alquiler se ajustan igual. */
+        adjustInstallments: z.boolean().default(true),
+        /** Quién paga el honorario de un alquiler. */
+        payer: z.nativeEnum(FeePayerChoice).default(FeePayerChoice.Inquilino),
+        /** Parte del locador cuando pagan los dos, en porcentaje. */
+        lessorSharePct: pct.default(50),
+        /** Qué se suma como total del contrato. */
+        contractTotalMode: z.nativeEnum(ContractTotalMode).default(ContractTotalMode.ConAjustesConocidos),
+        /** IVA del honorario. */
+        vatMode: z.nativeEnum(FeeVatMode).default(FeeVatMode.NoAplica),
+        vatPct: pct.default(21),
+        /** Comisión del personal por defecto, en porcentaje. */
+        staffCommissionPct: pct.default(0),
+        /** Sobre qué se calcula la comisión del personal. */
+        staffCommissionBase: z.nativeEnum(StaffCommissionBase).default(StaffCommissionBase.Neto),
       })
       .strict()
       .default({}),

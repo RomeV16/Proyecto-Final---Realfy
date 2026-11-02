@@ -327,6 +327,75 @@
     "Gerente",
     "Ventas"
   ],
+  "src/modules/fees/fees.controller.ts#FeesController.findAll": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.preview": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.installments": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.findOne": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.create": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.update": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.cancel": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.pay": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.addShare": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.removeShare": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.addStaffCommission": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/fees/fees.controller.ts#FeesController.removeStaffCommission": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/fees/fees.controller.ts#StaffCommissionsController.findAll": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/fees/fees.controller.ts#StaffCommissionsController.pay": [
+    "Admin",
+    "Gerente"
+  ],
   "src/modules/import-export/batch/import-batch.controller.ts#ImportBatchController.run": [
     "Admin"
   ],

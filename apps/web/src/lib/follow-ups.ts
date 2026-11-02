@@ -10,8 +10,8 @@ import {
   OralExtensionSchema,
   RenewContractSchema,
 } from '@realfy/shared';
-import type { FormSchema } from '@/hooks/use-zod-form';
 import { parsePositiveAmount } from './cash';
+import { sharedFormSchema, type SharedSchema } from './form-schema';
 
 /* ──────────── Lo que devuelve la API ──────────── */
 
@@ -71,35 +71,13 @@ export const FEE_CURRENCIES = [Currency.ARS, Currency.USD] as const;
 
 /* ──────────── Formularios ──────────── */
 
-type Shared = {
-  safeParse: (input: unknown) => { success: boolean; data?: unknown; error?: { issues: { path: PropertyKey[] }[] } };
-};
-
 /** Esquema de formulario a partir de uno compartido: cada error va a su campo con la clave `followUps.errors.<campo>`. */
-function formSchema(
-  shared: Shared,
+const formSchema = (
+  shared: SharedSchema,
   body: (values: Record<string, string>) => Record<string, unknown>,
   fallbackField: string,
-  /** Campo del formulario al que va el error de un campo del cuerpo que el formulario no tiene con ese nombre. */
   fieldOf: Record<string, string> = {},
-): FormSchema<Record<string, unknown>> {
-  return {
-    safeParse(input) {
-      const result = shared.safeParse(body(input as Record<string, string>));
-      if (result.success) return { success: true, data: result.data as Record<string, unknown> };
-      return {
-        success: false,
-        error: {
-          issues: (result.error?.issues ?? []).map((issue) => {
-            const raw = String(issue.path[0] ?? fallbackField);
-            const field = fieldOf[raw] ?? raw;
-            return { path: [field], message: `followUps.errors.${field}` };
-          }),
-        },
-      };
-    },
-  };
-}
+) => sharedFormSchema('followUps', shared, body, fallbackField, fieldOf);
 
 export interface OralExtensionFormValues {
   until: string;
