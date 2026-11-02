@@ -33,6 +33,8 @@ export interface TermsLike {
   firstDueMode: string;
   fixedDiscountProration: string;
   upfrontThresholdFees: number | null;
+  repairPreauthLimitAmount: unknown;
+  repairPreauthLimitCurrency: string | null;
   upfrontBasis: string;
   lessorDirectOwes?: string | null;
 }
@@ -118,4 +120,27 @@ export function denormalizedColumns(terms: {
     adjustmentPeriod: terms.adjustmentPeriod as any,
     customAdjustmentPct: (terms.customPct ?? null) as any,
   };
+}
+
+export interface RepairPreauthLimit {
+  amount: string;
+  currency: string;
+  /** De dónde sale: lo pactado en el contrato o el valor por defecto de la inmobiliaria. */
+  source: 'Contrato' | 'Inmobiliaria';
+}
+
+/**
+ * Límite hasta el que la inmobiliaria resuelve una reparación sin consultar al locador: el de la
+ * versión de reglas vigente del contrato (importe y moneda; sin moneda, pesos) y, si no lo fija, el
+ * valor por defecto de la inmobiliaria, que está en pesos.
+ */
+export function resolveRepairPreauthLimit(
+  defaults: OperationalDefaults,
+  terms: Partial<TermsLike> | null | undefined,
+): RepairPreauthLimit {
+  const own = terms?.repairPreauthLimitAmount;
+  if (own !== null && own !== undefined) {
+    return { amount: String(own), currency: terms?.repairPreauthLimitCurrency ?? 'ARS', source: 'Contrato' };
+  }
+  return { amount: String(defaults.repairs.preauthLimit), currency: 'ARS', source: 'Inmobiliaria' };
 }

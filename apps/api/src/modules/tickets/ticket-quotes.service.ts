@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   ApproveTicketQuoteSchema,
+  Currency,
   CreateTicketQuoteSchema,
   EstimateTicketSchema,
   PreauthorizeTicketSchema,
@@ -17,6 +18,7 @@ import { assertTransition } from '../../common/errors/assert-transition';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { parseOrThrow } from '../../common/validation/zod';
+import { getTermsAt, resolveRepairPreauthLimit } from '../contracts/contract-terms';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 
 type Db = any;
@@ -95,11 +97,17 @@ export class TicketQuotesService {
       throw conflict('TICKET_NOT_ESTIMABLE', `A ticket in ${ticket.status} can no longer be estimated`);
     }
     const defaults = await this.operationalDefaults.get(tenantId);
-    const limit = defaults.repairs.preauthLimit;
+    // El contrato pacta su propio límite (con su moneda); sin él rige el de la inmobiliaria.
+    const terms = ticket.contractId
+      ? await getTermsAt(this.prisma.client, { id: ticket.contractId, tenantId }, new Date())
+      : null;
+    const resolved = resolveRepairPreauthLimit(defaults, terms);
+    const limit = Number(resolved.amount);
     const requiresAuthorization = requiresPreauthorization({
       amount: input.amount,
       currency: input.currency,
-      limitArs: limit,
+      limit: resolved.amount,
+      limitCurrency: resolved.currency as Currency,
       preauthorizedAmount: ticket.preauthorizedAmount?.toString() ?? null,
     });
     const target =
@@ -123,12 +131,18 @@ export class TicketQuotesService {
         entityId: ticketId,
         before: snapshot(ticket),
         after: snapshot(row),
-        metadata: { operation: 'ticket-estimate', requiresAuthorization, limit },
+        metadata: { operation: 'ticket-estimate', requiresAuthorization, limit, limitCurrency: resolved.currency, limitSource: resolved.source },
       });
       return row;
     });
     this.logger.log('Ticket estimated', { ticketId, requiresAuthorization });
-    return { ticket: this.withTransitions(updated), requiresAuthorization, limit };
+    return {
+      ticket: this.withTransitions(updated),
+      requiresAuthorization,
+      limit,
+      limitCurrency: resolved.currency,
+      limitSource: resolved.source,
+    };
   }
 
   /**

@@ -57,7 +57,7 @@ describe('recorrido de una incidencia', () => {
 });
 
 describe('requiresPreauthorization', () => {
-  const base = { currency: Currency.ARS, limitArs: '100000' };
+  const base = { currency: Currency.ARS, limit: '100000' };
 
   it('por debajo del límite o igual a él no hace falta', () => {
     expect(requiresPreauthorization({ ...base, amount: '99999.99' })).toBe(false);
@@ -69,13 +69,20 @@ describe('requiresPreauthorization', () => {
   });
 
   it('con límite 0 siempre se consulta', () => {
-    expect(requiresPreauthorization({ currency: Currency.ARS, limitArs: 0, amount: '1' })).toBe(true);
+    expect(requiresPreauthorization({ currency: Currency.ARS, limit: 0, amount: '1' })).toBe(true);
   });
 
   it('el tope que el locador ya autorizó para el caso pisa al límite', () => {
     expect(requiresPreauthorization({ ...base, amount: '250000', preauthorizedAmount: '300000' })).toBe(false);
     expect(requiresPreauthorization({ ...base, amount: '350000', preauthorizedAmount: '300000' })).toBe(true);
     expect(requiresPreauthorization({ ...base, amount: '50000', preauthorizedAmount: '10000' })).toBe(true);
+  });
+
+  it('el límite pactado en dólares se compara con estimados en dólares', () => {
+    const usd = { currency: Currency.USD, limit: '500', limitCurrency: Currency.USD };
+    expect(requiresPreauthorization({ ...usd, amount: '500' })).toBe(false);
+    expect(requiresPreauthorization({ ...usd, amount: '500.01' })).toBe(true);
+    expect(requiresPreauthorization({ ...usd, currency: Currency.ARS, amount: '1' })).toBe(true);
   });
 
   it('un estimado en otra moneda siempre se consulta', () => {

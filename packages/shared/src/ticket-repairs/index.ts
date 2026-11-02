@@ -78,8 +78,10 @@ export interface PreauthorizationCheck {
   /** Costo estimado del arreglo. */
   amount: MoneyInput;
   currency: Currency | `${Currency}`;
-  /** Límite en pesos hasta el que la inmobiliaria actúa sin consultar (valor por defecto de la inmobiliaria). */
-  limitArs: MoneyInput;
+  /** Límite hasta el que la inmobiliaria actúa sin consultar (el del contrato o el valor por defecto). */
+  limit: MoneyInput;
+  /** Moneda del límite; sin indicarla, pesos. */
+  limitCurrency?: Currency | `${Currency}`;
   /** Tope ya autorizado por el locador para este caso (pisa al límite); null si no lo hay. */
   preauthorizedAmount?: MoneyInput | null;
 }
@@ -87,7 +89,7 @@ export interface PreauthorizationCheck {
 /**
  * ¿Hace falta que el locador autorice antes de presupuestar? Sí si el estimado supera
  * el tope que ya autorizó para el caso o, sin tope propio, el límite de la inmobiliaria.
- * El límite está en pesos: un estimado en otra moneda siempre se consulta. Un estimado
+ * El límite tiene su moneda: un estimado en otra moneda siempre se consulta. Un estimado
  * igual al límite no requiere autorización.
  */
 export function requiresPreauthorization(check: PreauthorizationCheck): boolean {
@@ -95,8 +97,8 @@ export function requiresPreauthorization(check: PreauthorizationCheck): boolean 
   if (check.preauthorizedAmount !== null && check.preauthorizedAmount !== undefined) {
     return amount.gt(new Money(check.preauthorizedAmount));
   }
-  if (check.currency !== Currency.ARS) return amount.gt(0);
-  return amount.gt(new Money(check.limitArs));
+  if (check.currency !== (check.limitCurrency ?? Currency.ARS)) return amount.gt(0);
+  return amount.gt(new Money(check.limit));
 }
 
 export type RepairFeeMode = 'None' | 'Percent' | 'Fixed';

@@ -8,13 +8,16 @@
 --   Inmobiliaria: inmobiliaria, agencia, agency
 -- Cualquier otro texto queda en NULL; no se pierde: se agrega a "providerNotes"
 -- ("Quién pagaba (texto anterior): ...") y se avisa con un NOTICE con la cantidad.
+-- Las versiones de reglas de los contratos suman un límite propio de reparaciones sin consultar al
+-- locador (importe y moneda); nace nulo y rige el de la inmobiliaria, como hasta ahora.
 -- Los tickets existentes no se tocan en lo demás: sin contrato, sin estimado, sin
 -- preautorización, sin imputar.
 -- Rollback: DROP TABLE "ticket_quotes"; ALTER TABLE "tickets" ADD COLUMN "costPayerText"
 -- TEXT, UPDATE "tickets" SET "costPayerText" = "costPayer"::text, DROP COLUMN
 -- "costPayer", RENAME "costPayerText" TO "costPayer"; y DROP COLUMN "contractId",
 -- "estimatedAmount", "preauthorizedAmount", "preauthorizedByPersonId",
--- "preauthorizedAt", "preauthorizedChannel", "imputedAt". Los cargos creados al
+-- "preauthorizedAt", "preauthorizedChannel", "imputedAt"; ALTER TABLE "contract_terms_versions"
+-- DROP COLUMN "repairPreauthLimitAmount", "repairPreauthLimitCurrency". Los cargos creados al
 -- imputar siguen en "pending_charges" con sourceType 'Ticket'.
 
 -- AlterTable
@@ -68,6 +71,10 @@ END $$;
 
 ALTER TABLE "tickets" DROP COLUMN "costPayer";
 ALTER TABLE "tickets" RENAME COLUMN "costPayerNew" TO "costPayer";
+
+-- AlterTable
+ALTER TABLE "contract_terms_versions" ADD COLUMN     "repairPreauthLimitAmount" DECIMAL(15,2),
+ADD COLUMN     "repairPreauthLimitCurrency" "Currency";
 
 -- CreateTable
 CREATE TABLE "ticket_quotes" (

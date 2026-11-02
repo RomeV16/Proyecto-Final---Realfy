@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   Logger,
   NotFoundException,
@@ -380,6 +381,19 @@ export class TicketsService {
     const targetStatus = validated.status as TicketStatus;
 
     assertTransition(ticketMachine, currentStatus, targetStatus);
+
+    // Un caso con pagos al proveedor no se cancela: el dinero ya salió de la caja.
+    if (targetStatus === TicketStatus.Cancelado) {
+      const payments = await this.prisma.client.cashMovement.count({
+        where: { sourceType: 'Ticket', sourceId: id },
+      });
+      if (payments > 0) {
+        throw new ConflictException({
+          error: 'TICKET_HAS_PAYMENTS',
+          message: 'A ticket with provider payments can not be cancelled',
+        });
+      }
+    }
 
     // Record timestamps for specific states
     const updateData: any = { status: targetStatus };

@@ -168,6 +168,14 @@ export class TicketRepairsService {
       throw badRequest('CONTRACT_REQUIRED', 'A charge to the tenant needs the ticket to have a contract');
     }
     const lessorPersonId = payer === ChargeTarget.Locador && contract ? await this.soleLessor(contract.id) : null;
+    // Honorario por gestión: el porcentaje del contrato (su comisión) y, sin él, el de la inmobiliaria.
+    const contractFeePct = contract ? await this.contractFeePct(contract.id) : null;
+    // Si paga el locador y el contrato pacta el honorario, lo asienta el estado del locador con ese
+    // porcentaje al descontar la reparación; cargarlo acá lo duplicaría.
+    const feeBySt = payer === ChargeTarget.Locador && contractFeePct !== null;
+    if (feeBySt && fee.mode !== 'None' && !(fee.mode === 'Percent' && (fee.pct === undefined || fee.pct === null))) {
+      throw badRequest('FEE_SET_BY_CONTRACT', `The contract sets the management fee (${contractFeePct} %); the lessor statement applies it`);
+    }
 
     return this.prisma.client.$transaction(async (tx: Db) => {
       // Se reclama el ticket primero: una segunda imputación espera acá y ve imputedAt.
@@ -214,11 +222,13 @@ export class TicketRepairsService {
       );
 
       let feeCharge: any = null;
-      const feeAmount = repairManagementFee(total, {
-        mode: fee.mode,
-        pct: fee.pct ?? defaults.repairs.managementFeePct,
-        amount: fee.amount,
-      });
+      const feeAmount = feeBySt
+        ? null
+        : repairManagementFee(total, {
+            mode: fee.mode,
+            pct: fee.pct ?? contractFeePct ?? defaults.repairs.managementFeePct,
+            amount: fee.amount,
+          });
       if (feeAmount) {
         [feeCharge] = await this.charges.createIn(tx, {
           ...common,
@@ -245,7 +255,7 @@ export class TicketRepairsService {
         },
       });
       this.logger.log('Ticket charged', { ticketId, chargedTo: payer, total });
-      return { ticket: updated, charge: repair, feeCharge, total, currency };
+      return { ticket: updated, charge: repair, feeCharge, feeAppliedByStatement: feeBySt ? contractFeePct : null, total, currency };
     });
   }
 
@@ -260,6 +270,13 @@ export class TicketRepairsService {
   private async paidSoFar(tx: Db, ticketId: string): Promise<Decimal> {
     const rows = await tx.cashMovement.findMany({ where: PAYMENT_WHERE(ticketId), select: { amount: true } });
     return rows.reduce((acc: Decimal, r: any) => acc.plus(r.amount.toString()), new Decimal(0));
+  }
+
+  /** Porcentaje del honorario por gestión de reparaciones pactado en el contrato; null si no lo pacta. */
+  private async contractFeePct(contractId: string): Promise<number | null> {
+    const commission: any = await this.prisma.client.contractCommission.findFirst({ where: { contractId } });
+    const pct = commission?.repairMgmtFeePct;
+    return pct === null || pct === undefined ? null : Number(pct.toString());
   }
 
   /** El contrato del ticket o, sin él, el único vigente de la propiedad. */

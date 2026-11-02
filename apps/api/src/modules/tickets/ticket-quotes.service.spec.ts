@@ -32,7 +32,7 @@ const quote = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-function build(opts: { ticket?: any; quote?: any; limit?: number; person?: any; provider?: any; claimed?: number } = {}) {
+function build(opts: { terms?: any; ticket?: any; quote?: any; limit?: number; person?: any; provider?: any; claimed?: number } = {}) {
   const client: any = {
     ticket: {
       findUnique: jest.fn().mockResolvedValue(opts.ticket === undefined ? ticket() : opts.ticket),
@@ -46,6 +46,7 @@ function build(opts: { ticket?: any; quote?: any; limit?: number; person?: any; 
       updateMany: jest.fn().mockResolvedValue({ count: opts.claimed ?? 1 }),
       delete: jest.fn().mockResolvedValue({}),
     },
+    contractTermsVersion: { findFirst: jest.fn().mockResolvedValue(opts.terms ?? null) },
     person: {
       findFirst: jest.fn(async ({ where }: any) =>
         where.providerProfile ? (opts.provider === undefined ? { id: PROVIDER_ID } : opts.provider) : opts.person === undefined ? { id: LESSOR_ID } : opts.person,
@@ -88,6 +89,26 @@ describe('TicketQuotesService', () => {
       const res = await service.estimate(TICKET_ID, { amount: '90000' });
       expect(res.requiresAuthorization).toBe(false);
       expect(client.ticket.update.mock.calls[0][0].data.status).toBeUndefined();
+    });
+
+    it('el límite pactado en el contrato pisa al de la inmobiliaria', async () => {
+      const terms = { repairPreauthLimitAmount: money('500000'), repairPreauthLimitCurrency: 'ARS' };
+      const { service, client } = build({ ticket: ticket({ contractId: 'c-1' }), terms });
+      const res = await service.estimate(TICKET_ID, { amount: '300000' });
+      expect(res).toMatchObject({ requiresAuthorization: false, limit: 500000, limitCurrency: 'ARS', limitSource: 'Contrato' });
+      expect(client.contractTermsVersion.findFirst.mock.calls[0][0].where).toMatchObject({ contractId: 'c-1', tenantId: 'tenant-1' });
+      expect((await build({ ticket: ticket({ contractId: 'c-1' }), terms }).service.estimate(TICKET_ID, { amount: '500000.01' })).requiresAuthorization).toBe(true);
+    });
+
+    it('un límite pactado en dólares solo compara estimados en dólares', async () => {
+      const terms = { repairPreauthLimitAmount: money('400'), repairPreauthLimitCurrency: 'USD' };
+      expect((await build({ ticket: ticket({ contractId: 'c-1' }), terms }).service.estimate(TICKET_ID, { amount: '300', currency: 'USD' })).requiresAuthorization).toBe(false);
+      expect((await build({ ticket: ticket({ contractId: 'c-1' }), terms }).service.estimate(TICKET_ID, { amount: '300' })).requiresAuthorization).toBe(true);
+    });
+
+    it('un contrato sin límite propio usa el de la inmobiliaria', async () => {
+      const res = await build({ ticket: ticket({ contractId: 'c-1' }), terms: { repairPreauthLimitAmount: null } }).service.estimate(TICKET_ID, { amount: '150000' });
+      expect(res).toMatchObject({ requiresAuthorization: true, limit: 100000, limitSource: 'Inmobiliaria' });
     });
 
     it('el tope que el locador ya autorizó pisa al límite', async () => {

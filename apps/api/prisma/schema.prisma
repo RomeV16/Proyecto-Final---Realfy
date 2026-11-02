@@ -1123,37 +1123,40 @@ model ContractAgreement {
 /// Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se pisa:
 /// un cambio crea una versión nueva.
 model ContractTermsVersion {
-  id                     String                 @id @default(uuid())
-  tenantId               String
-  contractId             String
-  validFrom              DateTime
-  agreementId            String?
-  adjustmentType         AdjustmentType
-  adjustmentPeriod       AdjustmentPeriod
-  adjustmentBase         AdjustmentBase         @default(Vigente)
-  indexLagMonths         Int                    @default(2)
-  fixedInitialMonths     Int                    @default(0)
-  customPct              Decimal?               @db.Decimal(5, 2)
+  id                         String                 @id @default(uuid())
+  tenantId                   String
+  contractId                 String
+  validFrom                  DateTime
+  agreementId                String?
+  adjustmentType             AdjustmentType
+  adjustmentPeriod           AdjustmentPeriod
+  adjustmentBase             AdjustmentBase         @default(Vigente)
+  indexLagMonths             Int                    @default(2)
+  fixedInitialMonths         Int                    @default(0)
+  customPct                  Decimal?               @db.Decimal(5, 2)
   /// Escalonado: lista de { fromMonth, pct }.
-  customSteps            Json?
-  rentOverride           Decimal?               @db.Decimal(15, 2)
-  discountPct            Decimal?               @db.Decimal(5, 2)
-  discountAmount         Decimal?               @db.Decimal(15, 2)
-  dueDay                 Int
-  paymentFlow            PaymentFlow            @default(Partido)
-  penaltyConfig          Json?
+  customSteps                Json?
+  rentOverride               Decimal?               @db.Decimal(15, 2)
+  discountPct                Decimal?               @db.Decimal(5, 2)
+  discountAmount             Decimal?               @db.Decimal(15, 2)
+  dueDay                     Int
+  paymentFlow                PaymentFlow            @default(Partido)
+  penaltyConfig              Json?
   /// Convenciones de liquidación; el valor por defecto de la columna es el comportamiento original.
-  prorationMode          ProrationMode          @default(DiasReales)
-  midMonthAdjustmentMode MidMonthAdjustmentMode @default(DesdePeriodoSiguiente)
-  firstDueMode           FirstDueMode           @default(DiaDeInicio)
-  fixedDiscountProration FixedDiscountProration @default(Proporcional)
+  prorationMode              ProrationMode          @default(DiasReales)
+  midMonthAdjustmentMode     MidMonthAdjustmentMode @default(DesdePeriodoSiguiente)
+  firstDueMode               FirstDueMode           @default(DiaDeInicio)
+  fixedDiscountProration     FixedDiscountProration @default(Proporcional)
   /// Umbral de anticipo del centro de carga, en comisiones mensuales; null = el de la inmobiliaria.
-  upfrontThresholdFees   Int?
+  upfrontThresholdFees       Int?
   /// Sobre qué comisión mensual se mide el umbral de anticipo.
-  upfrontBasis           UpfrontBasis           @default(ComisionPactada)
+  upfrontBasis               UpfrontBasis           @default(ComisionPactada)
   /// Qué le debe el locador que cobró directamente; null = el de la inmobiliaria.
-  lessorDirectOwes       LessorDirectOwes?
-  createdAt              DateTime               @default(now())
+  lessorDirectOwes           LessorDirectOwes?
+  /// Límite de reparaciones sin consultar al locador (importe y moneda); null = el de la inmobiliaria.
+  repairPreauthLimitAmount   Decimal?               @db.Decimal(15, 2)
+  repairPreauthLimitCurrency Currency?
+  createdAt                  DateTime               @default(now())
 
   contract  Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
   agreement ContractAgreement? @relation(fields: [agreementId], references: [id])

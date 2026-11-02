@@ -35,6 +35,7 @@ interface Opts {
   contracts?: any[];
   lessors?: any[];
   fee?: number;
+  commission?: any;
 }
 
 function build(opts: Opts = {}) {
@@ -47,6 +48,7 @@ function build(opts: Opts = {}) {
     cashMovement: {
       findMany: jest.fn().mockResolvedValue(opts.payments ?? []),
     },
+    contractCommission: { findFirst: jest.fn().mockResolvedValue(opts.commission ?? null) },
     contract: { findMany: jest.fn().mockResolvedValue(opts.contracts ?? [{ id: CONTRACT_ID }]) },
     contractLessor: { findMany: jest.fn().mockResolvedValue(opts.lessors ?? [{ personId: LESSOR_ID }]) },
   };
@@ -235,6 +237,25 @@ describe('TicketRepairsService', () => {
       const fixed = build({ payments });
       await fixed.service.impute(TICKET_ID, { chargedTo: 'Locador', managementFee: { mode: 'Fixed', amount: '1500' } });
       expect(fixed.charges.createIn.mock.calls[1][1].amount).toBe('1500.00');
+    });
+
+    it('en porcentaje sin valor prefiere el del contrato al de la inmobiliaria (al inquilino)', async () => {
+      const { service, charges } = build({ payments, fee: 5, commission: { repairMgmtFeePct: money('12.5') } });
+      await service.impute(TICKET_ID, { chargedTo: 'Inquilino', managementFee: { mode: 'Percent' } });
+      expect(charges.createIn.mock.calls[1][1].amount).toBe('10000.06');
+    });
+
+    it('al locador con honorario pactado en el contrato lo asienta el estado: no se carga otro', async () => {
+      const { service, charges } = build({ payments, commission: { repairMgmtFeePct: money('10') } });
+      const res = await service.impute(TICKET_ID, { chargedTo: 'Locador', managementFee: { mode: 'Percent' } });
+      expect(charges.createIn).toHaveBeenCalledTimes(1);
+      expect(res).toMatchObject({ feeCharge: null, feeAppliedByStatement: 10 });
+      await expect(
+        build({ payments, commission: { repairMgmtFeePct: money('10') } }).service.impute(TICKET_ID, { chargedTo: 'Locador', managementFee: { mode: 'Fixed', amount: '1500' } }),
+      ).rejects.toMatchObject({ response: { error: 'FEE_SET_BY_CONTRACT' } });
+      await expect(
+        build({ payments, commission: { repairMgmtFeePct: money('10') } }).service.impute(TICKET_ID, { chargedTo: 'Locador', managementFee: { mode: 'Percent', pct: 5 } }),
+      ).rejects.toMatchObject({ response: { error: 'FEE_SET_BY_CONTRACT' } });
     });
 
     it('un honorario en cero no genera cargo', async () => {

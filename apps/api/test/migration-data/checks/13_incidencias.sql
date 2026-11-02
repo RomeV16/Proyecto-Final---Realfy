@@ -39,6 +39,12 @@ WHERE t."contractId" IS NOT NULL
    OR (t."id" IN ('tkt-1', 'tkt-4', 'tkt-5', 'tkt-6', 'tkt-7') AND t."status" <> 'Abierto')
 
 UNION ALL
+-- Las versiones de reglas existentes siguen sin límite propio: rige el de la inmobiliaria.
+SELECT 'versión de reglas con límite de reparaciones propio', v."id"
+FROM "contract_terms_versions" v
+WHERE v."repairPreauthLimitAmount" IS NOT NULL OR v."repairPreauthLimitCurrency" IS NOT NULL
+
+UNION ALL
 -- Los presupuestos nacen vacíos.
 SELECT 'presupuesto previo a la migración', q."id"
 FROM "ticket_quotes" q;

@@ -74,7 +74,7 @@ describe('Incidencias y reparaciones (e2e)', () => {
     return { tenantId: admin.user.tenantId as string, tokens };
   }
 
-  async function createContract(token: string) {
+  async function createContract(token: string, extra: Record<string, unknown> = {}) {
     const owner = (await post(token, '/persons', { firstName: 'Ana', lastName: 'Sintética' }).expect(201)).body.id;
     const tenantPerson = (await post(token, '/persons', { firstName: 'Ines', lastName: 'Sintética' }).expect(201)).body.id;
     await post(token, `/persons/${tenantPerson}/roles`, { role: PersonRole.Inquilino }).expect(201);
@@ -96,6 +96,7 @@ describe('Incidencias y reparaciones (e2e)', () => {
         { personId: owner, role: PersonRole.Propietario },
         { personId: tenantPerson, role: PersonRole.Inquilino },
       ],
+      ...extra,
     }).expect(201);
     return { ...(res.body as any), ownerId: owner as string };
   }
@@ -497,5 +498,71 @@ describe('Incidencias y reparaciones (e2e)', () => {
     const res = (await post(token, `/tickets/${ticket.id}/estimate`, { amount: '1' }).expect(200)).body;
     expect(res).toMatchObject({ requiresAuthorization: true, limit: 0 });
     expect(res.ticket.status).toBe('PendienteAutorizacion');
+  });
+
+  it('CP-521 — el contrato pacta su propio límite (importe y moneda); un convenio lo cambia y null vuelve al de la inmobiliaria', async () => {
+    const { tokens } = await agency('inc-14');
+    const token = tokens[UserRole.Admin];
+    // Sin pactar rige el de la inmobiliaria (100000).
+    const plain = await createContract(token);
+    const t0 = await newTicket(token, plain.propertyId);
+    expect((await post(token, `/tickets/${t0.id}/estimate`, { amount: '150000' }).expect(200)).body).toMatchObject({
+      requiresAuthorization: true,
+      limit: 100000,
+      limitSource: 'Inmobiliaria',
+    });
+
+    // Pactado al crear: 500000 en pesos.
+    const own = await createContract(token, { liquidationRules: { repairPreauthLimitAmount: '500000' } });
+    const t1 = await newTicket(token, own.propertyId);
+    const ok = (await post(token, `/tickets/${t1.id}/estimate`, { amount: '300000' }).expect(200)).body;
+    expect(ok).toMatchObject({ requiresAuthorization: false, limit: 500000, limitCurrency: 'ARS', limitSource: 'Contrato' });
+    expect(ok.ticket.status).toBe('Abierto');
+
+    // Un convenio lo baja a 200000 en dólares: ahora un estimado en pesos siempre se consulta.
+    await post(token, `/contracts/${own.id}/agreements`, {
+      kind: 'CambioRegla',
+      effectiveFrom: '2026-11-01T00:00:00.000Z',
+      termsPatch: { repairPreauthLimitAmount: '200', repairPreauthLimitCurrency: 'USD' },
+    }).expect(201);
+    const terms = (await get(token, `/contracts/${own.id}/terms`).expect(200)).body;
+    expect(terms.current).toMatchObject({ repairPreauthLimitAmount: '200', repairPreauthLimitCurrency: 'USD' });
+    const t2 = await newTicket(token, own.propertyId, { title: 'Otro' });
+    expect((await post(token, `/tickets/${t2.id}/estimate`, { amount: '1' }).expect(200)).body.requiresAuthorization).toBe(true);
+    expect(
+      (await post(token, `/tickets/${t2.id}/estimate`, { amount: '150', currency: 'USD' }).expect(200)).body,
+    ).toMatchObject({ requiresAuthorization: false, limit: 200, limitCurrency: 'USD' });
+
+    // Un convenio con null vuelve al de la inmobiliaria.
+    await post(token, `/contracts/${own.id}/agreements`, {
+      kind: 'CambioRegla',
+      effectiveFrom: '2026-11-02T00:00:00.000Z',
+      termsPatch: { repairPreauthLimitAmount: null, repairPreauthLimitCurrency: null },
+    }).expect(201);
+    const t3 = await newTicket(token, own.propertyId, { title: 'Tercero' });
+    expect((await post(token, `/tickets/${t3.id}/estimate`, { amount: '150000' }).expect(200)).body).toMatchObject({
+      requiresAuthorization: true,
+      limitSource: 'Inmobiliaria',
+    });
+    // El patch rechaza un importe inválido.
+    await post(token, `/contracts/${own.id}/agreements`, {
+      kind: 'CambioRegla',
+      effectiveFrom: '2027-01-01T00:00:00.000Z',
+      termsPatch: { repairPreauthLimitAmount: '-5' },
+    }).expect(400);
+  });
+
+  it('CP-522 — un caso con pagos al proveedor no se cancela; sin pagos sí', async () => {
+    const { tokens } = await agency('inc-15');
+    const token = tokens[UserRole.Admin];
+    const contract = await createContract(token);
+    const caja = await createCaja(token);
+    const { ticket } = await approved(token, contract, '10000');
+    await pay(token, ticket.id, caja, '4000').expect(201);
+    expect((await post(token, `/tickets/${ticket.id}/transition`, { status: 'Cancelado' }).expect(409)).body.error).toBe('TICKET_HAS_PAYMENTS');
+    expect(await statusOf(token, ticket.id)).toBe('PresupuestoAprobado');
+
+    const free = await newTicket(token, contract.propertyId, { title: 'Sin pagos' });
+    await post(token, `/tickets/${free.id}/transition`, { status: 'Cancelado' }).expect(200);
   });
 });
