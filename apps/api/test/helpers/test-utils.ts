@@ -54,6 +54,7 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
 
   // S06 tables (Notification → ServicePayment → Service, before other FK targets)
   await prisma.baseClient.notification.deleteMany();
+  await prisma.baseClient.lessorInvoiceJob.deleteMany();
   await prisma.baseClient.ownerLedgerEntry.deleteMany();
   await prisma.baseClient.staffCommission.deleteMany();
   await prisma.baseClient.feeShare.deleteMany();
@@ -81,6 +82,8 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
 
   // Liquidacion tables (delete before contracts because of FK references)
   await prisma.baseClient.comprobante.deleteMany();
+  // Los emisores delegados de un locador apuntan a la persona: salen antes que las personas.
+  await prisma.baseClient.arcaIssuer.deleteMany();
   await prisma.baseClient.payment.deleteMany();
   await prisma.baseClient.receipt.deleteMany();
   await prisma.baseClient.financialAccount.deleteMany();

@@ -72,6 +72,7 @@ const TENANT_SCOPED_MODELS = new Set([
   'ArcaCertificate',
   'ArcaCertificateAccessLog',
   'ArcaIssuer',
+  'LessorInvoiceJob',
   'ArcaPuntoDeVenta',
   'ArcaRequestLog',
   'OwnerRendicion',

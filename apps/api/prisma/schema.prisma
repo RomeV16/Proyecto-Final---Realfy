@@ -614,19 +614,21 @@ model Person {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
-  tenant          Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  roles           PersonRoleAssignment[]
-  bankAccounts    PersonBankAccount[]
-  documents       PersonDocument[]
-  contractPersons ContractPerson[]
-  lessorships     ContractLessor[]       @relation("LessorPerson")
-  paidAsPayee     ContractLessor[]       @relation("LessorPayee")
-  powersGranted   PowerOfAttorney[]      @relation("PowerPrincipal")
-  powersHeld      PowerOfAttorney[]      @relation("PowerAgent")
-  ownerships      PropertyOwnership[]
-  providerProfile ProviderProfile?
-  leads           Lead[]
-  rendiciones     OwnerRendicion[]
+  tenant           Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roles            PersonRoleAssignment[]
+  bankAccounts     PersonBankAccount[]
+  documents        PersonDocument[]
+  contractPersons  ContractPerson[]
+  lessorships      ContractLessor[]       @relation("LessorPerson")
+  paidAsPayee      ContractLessor[]       @relation("LessorPayee")
+  powersGranted    PowerOfAttorney[]      @relation("PowerPrincipal")
+  powersHeld       PowerOfAttorney[]      @relation("PowerAgent")
+  ownerships       PropertyOwnership[]
+  providerProfile  ProviderProfile?
+  leads            Lead[]
+  rendiciones      OwnerRendicion[]
+  delegatedIssuers ArcaIssuer[]           @relation("PersonDelegatedIssuer")
+  invoiceJobs      LessorInvoiceJob[]
 
   assignedTickets        Ticket[]             @relation("TicketProvider")
   ticketsPreauthorized   Ticket[]             @relation("TicketPreauthorizer")
@@ -1624,8 +1626,9 @@ model OwnerStatement {
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
-  person  Person             @relation(fields: [personId], references: [id], onDelete: Restrict)
-  entries OwnerLedgerEntry[]
+  person       Person             @relation(fields: [personId], references: [id], onDelete: Restrict)
+  entries      OwnerLedgerEntry[]
+  comprobantes Comprobante[]
 
   @@unique([tenantId, personId, period, currency])
   @@index([tenantId, period])
@@ -2706,14 +2709,20 @@ model ArcaIssuer {
   delegationLastError  String?
   isSelf               Boolean              @default(false)
   isActive             Boolean              @default(true)
+  /// Locador por cuenta del cual la inmobiliaria factura (delegación ARCA); vacío = emisor propio.
+  personId             String?
+  /// Qué y cuándo se factura de este locador; vacío = valores de la inmobiliaria.
+  invoicingSettings    Json?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
   tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  person        Person?            @relation("PersonDelegatedIssuer", fields: [personId], references: [id], onDelete: Restrict)
   puntosDeVenta ArcaPuntoDeVenta[]
   comprobantes  Comprobante[]
 
   @@unique([tenantId, cuit])
+  @@unique([tenantId, personId])
   @@index([tenantId])
   @@map("arca_issuers")
 }
@@ -2806,13 +2815,17 @@ model Comprobante {
   createdAt               DateTime          @default(now())
   /// Cuota de honorario que se factura (D10).
   feeInstallmentId        String?
+  /// Estado de cuenta del locador del que sale la factura emitida por su cuenta.
+  ownerStatementId        String?
 
   payment             Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   issuer              ArcaIssuer    @relation(fields: [issuerId], references: [id])
   originalComprobante Comprobante?  @relation("ComprobanteNC", fields: [originalComprobanteId], references: [id])
   creditNotes         Comprobante[] @relation("ComprobanteNC")
 
-  feeInstallment FeeInstallment? @relation(fields: [feeInstallmentId], references: [id], onDelete: SetNull)
+  feeInstallment    FeeInstallment?    @relation(fields: [feeInstallmentId], references: [id], onDelete: SetNull)
+  ownerStatement    OwnerStatement?    @relation(fields: [ownerStatementId], references: [id], onDelete: SetNull)
+  lessorInvoiceJobs LessorInvoiceJob[]
 
   // ARCA numera por CUIT, punto de venta y tipo: dos emisores de la misma
   // inmobiliaria pueden tener el mismo numero en el mismo punto de venta.
@@ -2822,6 +2835,7 @@ model Comprobante {
   @@index([tenantId, paymentId])
   @@index([tenantId, issuerId])
   @@index([feeInstallmentId])
+  @@index([ownerStatementId])
   @@map("comprobantes")
 }
 
@@ -3113,4 +3127,53 @@ model MoveOutSettlement {
 
   @@index([tenantId, status])
   @@map("move_out_settlements")
+}
+
+// ─── Facturación por cuenta del locador ─────────────────
+
+enum LessorInvoiceSource {
+  Payment
+  OwnerStatement
+}
+
+enum LessorInvoiceKind {
+  Factura
+  NotaCredito
+}
+
+enum LessorInvoiceStatus {
+  Pendiente
+  Emitido
+  Fallido
+  /// No había nada para facturar (sin importe en el alcance o sin factura que anular).
+  Omitido
+}
+
+/// Factura (o nota de crédito) por emitir o ya emitida a nombre de un locador por un cobro o un
+/// estado de cuenta. Una por origen, locador y tipo: es la cola de emisión (un fallo de ARCA no
+/// rompe el cobro) y la garantía de que no se factura dos veces.
+model LessorInvoiceJob {
+  id            String              @id @default(uuid())
+  tenantId      String
+  personId      String
+  sourceType    LessorInvoiceSource
+  sourceId      String
+  kind          LessorInvoiceKind
+  status        LessorInvoiceStatus @default(Pendiente)
+  /// Creado por la configuración del locador (automático) o por una persona.
+  auto          Boolean             @default(false)
+  comprobanteId String?
+  attempts      Int                 @default(0)
+  lastError     String?
+  lastAttemptAt DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  person      Person       @relation(fields: [personId], references: [id], onDelete: Restrict)
+  comprobante Comprobante? @relation(fields: [comprobanteId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, sourceType, sourceId, personId, kind])
+  @@index([tenantId, status])
+  @@index([tenantId, personId])
+  @@map("lessor_invoice_jobs")
 }
