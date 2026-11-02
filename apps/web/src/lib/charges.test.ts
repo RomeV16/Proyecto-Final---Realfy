@@ -121,9 +121,19 @@ describe('chargeActions', () => {
 
   it('un cargo al locador solo se anula; uno imputado se libera; el resto no tiene acciones', () => {
     expect(chargeActions({ status: 'Pendiente', chargedTo: 'Locador', requiresUpfront: false })).toEqual(['cancel']);
+    expect(chargeActions({ status: 'Imputado', chargedTo: 'Inmobiliaria', requiresUpfront: false })).toEqual(['release']);
     expect(chargeActions({ status: 'Imputado', chargedTo: 'Inquilino', requiresUpfront: false })).toEqual(['release']);
     expect(chargeActions({ status: 'Anulado', chargedTo: 'Inquilino', requiresUpfront: false })).toEqual([]);
     expect(chargeActions({ status: 'CobradoAnticipado', chargedTo: 'Inquilino', requiresUpfront: false })).toEqual([]);
+  });
+});
+
+describe('chargeActions: gasto de la inmobiliaria', () => {
+  it('un cargo pendiente a la inmobiliaria se registra como gasto o se anula', () => {
+    expect(chargeActions({ status: 'Pendiente', chargedTo: 'Inmobiliaria', requiresUpfront: false })).toEqual([
+      'agencyExpense',
+      'cancel',
+    ]);
   });
 });
 

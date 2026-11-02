@@ -49,6 +49,12 @@ export const ACTION_ROLES = {
   'charges.manage': [Admin, Gerente, Liquidaciones],
   /** Ajustes del mes: previsualizar y aplicar los ajustes de alquiler. */
   'adjustments.manage': [Admin, Gerente, Liquidaciones],
+  /** Caja: ver cuentas, saldos, movimientos, custodia y recibos de cobro. */
+  'cash.view': [Admin, Gerente, Liquidaciones, Lectura],
+  /** Cargar movimientos y conversiones, entregar custodia y cerrar un cargo como gasto de la inmobiliaria. */
+  'cash.manage': [Admin, Gerente, Liquidaciones],
+  /** Alta, cambio de nombre y baja de las cuentas de la inmobiliaria. */
+  'cash.accounts': [Admin, Gerente],
   'dashboard.analytics': [Admin, Gerente],
 
   // Soporte y configuración

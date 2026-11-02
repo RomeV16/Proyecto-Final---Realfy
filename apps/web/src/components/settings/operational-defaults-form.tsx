@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import {
+  CompensationScope,
   DEFAULT_OPERATIONAL_DEFAULTS,
+  LessorDirectOwes,
+  PartialAllocation,
+  ReceiptSeriesMode,
   operationalDefaultsFormSchema,
   operationalDefaultsFromForm,
   operationalDefaultsToForm,
@@ -23,11 +27,24 @@ import { CONVENTION_OPTIONS, isConventionField } from '@/lib/liquidation-convent
 import { Skeleton } from '@/components/ui/skeleton';
 import { PenaltyConfigForm } from './penalty-config-form';
 
-type FieldName = Exclude<keyof OperationalDefaultsFormInput, 'allowProvisional'>;
+/** Campos que son una casilla (sí / no). */
+type CheckField = 'allowProvisional' | 'cashCustodyInAgencyBalance' | 'cashReceiptWhenLessorReceives';
+type FieldName = Exclude<keyof OperationalDefaultsFormInput, CheckField>;
 
-/** Campos de cada sección, en el orden en que se muestran. */
-const SECTIONS: { key: string; fields: FieldName[] }[] = [
-  { key: 'rent', fields: ['dueDay', 'leadDays', 'ipcLagMonths'] },
+/** Opciones de caja y cobros que se eligen de una lista. */
+const CASH_OPTIONS = {
+  cashLessorDirectOwes: Object.values(LessorDirectOwes),
+  cashPartialAllocation: Object.values(PartialAllocation),
+  cashReceiptSeries: Object.values(ReceiptSeriesMode),
+  cashCompensationScope: Object.values(CompensationScope),
+} as const;
+type CashOptionField = keyof typeof CASH_OPTIONS;
+
+const isCashOption = (field: FieldName): field is CashOptionField => field in CASH_OPTIONS;
+
+/** Campos de cada sección, en el orden en que se muestran; las casillas van debajo. */
+const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = [
+  { key: 'rent', fields: ['dueDay', 'leadDays', 'ipcLagMonths'], checks: ['allowProvisional'] },
   {
     key: 'liquidation',
     fields: ['prorationMode', 'midMonthAdjustmentMode', 'firstDueMode', 'fixedDiscountProration'],
@@ -36,6 +53,11 @@ const SECTIONS: { key: string; fields: FieldName[] }[] = [
   { key: 'valuation', fields: ['valuationUsd', 'upfrontThresholdFees', 'upfrontBasis'] },
   { key: 'collection', fields: ['firstReminderDays', 'everyDays'] },
   { key: 'expiry', fields: ['redDays', 'yellowDays'] },
+  {
+    key: 'cash',
+    fields: ['cashLessorDirectOwes', 'cashPartialAllocation', 'cashReceiptSeries', 'cashCompensationScope'],
+    checks: ['cashCustodyInAgencyBalance', 'cashReceiptWhenLessorReceives'],
+  },
 ];
 
 const DEFAULT_FORM = operationalDefaultsToForm(DEFAULT_OPERATIONAL_DEFAULTS);
@@ -81,7 +103,25 @@ function DefaultsForm({
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {section.fields.map((field) =>
-              isConventionField(field) ? (
+              isCashOption(field) ? (
+                <FormField
+                  key={field}
+                  label={t(`fields.${field}.label`)}
+                  hint={t(`fields.${field}.hint`, { value: t(`fields.${field}.options.${DEFAULT_FORM[field]}`) })}
+                  error={errors[field]}
+                  required
+                >
+                  {(c) => (
+                    <Select {...c} value={values[field]} onChange={(e) => set(field, e.target.value as never)}>
+                      {CASH_OPTIONS[field].map((option) => (
+                        <option key={option} value={option}>
+                          {t(`fields.${field}.options.${option}`)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </FormField>
+              ) : isConventionField(field) ? (
                 <FormField
                   key={field}
                   label={tConv(`${field}.label`)}
@@ -119,20 +159,20 @@ function DefaultsForm({
               ),
             )}
           </div>
-          {section.key === 'rent' && (
-            <label className="mt-4 flex items-start gap-3 text-sm">
+          {section.checks?.map((field) => (
+            <label key={field} className="mt-4 flex items-start gap-3 text-sm">
               <input
                 type="checkbox"
                 className="mt-1 h-4 w-4 accent-[var(--color-brand-500)]"
-                checked={values.allowProvisional}
-                onChange={(e) => set('allowProvisional', e.target.checked)}
+                checked={values[field]}
+                onChange={(e) => set(field, e.target.checked)}
               />
               <span>
-                <span className="block font-medium">{t('fields.allowProvisional.label')}</span>
-                <span className="block text-[var(--color-muted)]">{t('fields.allowProvisional.hint')}</span>
+                <span className="block font-medium">{t(`fields.${field}.label`)}</span>
+                <span className="block text-[var(--color-muted)]">{t(`fields.${field}.hint`)}</span>
               </span>
             </label>
-          )}
+          ))}
         </FormShell.Section>
       ))}
     </FormShell>

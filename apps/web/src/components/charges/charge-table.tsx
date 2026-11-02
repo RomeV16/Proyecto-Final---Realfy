@@ -11,6 +11,7 @@ import { useConfirm } from '@/components/ui/confirm-dialog';
 import { DataTable, type DataTableColumn, type DataTablePagination } from '@/components/ui/data-table';
 import { MoneyText } from '@/components/ui/money-text';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { AgencyExpenseDialog } from './agency-expense-dialog';
 
 interface Props {
   items: PendingChargeRow[];
@@ -25,7 +26,9 @@ interface Props {
   hideProperty?: boolean;
 }
 
-const REQUESTS: Record<ChargeAction, { path: (id: string) => string; method: 'POST' | 'PATCH'; body?: object }> = {
+type RequestAction = Exclude<ChargeAction, 'agencyExpense'>;
+
+const REQUESTS: Record<RequestAction, { path: (id: string) => string; method: 'POST' | 'PATCH'; body?: object }> = {
   forceImpute: { path: (id) => `/charges/${id}`, method: 'PATCH', body: { requiresUpfront: false } },
   markPaidUpfront: { path: (id) => `/charges/${id}/mark-paid-upfront`, method: 'POST' },
   cancel: { path: (id) => `/charges/${id}/cancel`, method: 'POST' },
@@ -37,8 +40,13 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
   const t = useTranslations('charges');
   const confirm = useConfirm();
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [expense, setExpense] = useState<PendingChargeRow | null>(null);
 
   async function run(row: PendingChargeRow, action: ChargeAction) {
+    if (action === 'agencyExpense') {
+      setExpense(row);
+      return;
+    }
     if (action === 'cancel' || action === 'markPaidUpfront') {
       const ok = await confirm({
         title: t(`confirm.${action}.title`),
@@ -134,14 +142,17 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
   ];
 
   return (
-    <DataTable
-      items={items}
-      columns={columns}
-      keyExtractor={(row) => row.id}
-      loading={loading}
-      error={error}
-      pagination={pagination}
-      empty={{ title: t('empty.title'), subtitle: t('empty.subtitle'), iconName: 'liquidaciones', action: emptyAction }}
-    />
+    <>
+      <DataTable
+        items={items}
+        columns={columns}
+        keyExtractor={(row) => row.id}
+        loading={loading}
+        error={error}
+        pagination={pagination}
+        empty={{ title: t('empty.title'), subtitle: t('empty.subtitle'), iconName: 'liquidaciones', action: emptyAction }}
+      />
+      {expense && <AgencyExpenseDialog charge={expense} onClose={() => setExpense(null)} onDone={onChanged} />}
+    </>
   );
 }

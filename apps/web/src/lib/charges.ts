@@ -123,7 +123,7 @@ export const chargeFormSchema: FormSchema<Record<string, unknown>> = {
   },
 };
 
-export type ChargeAction = 'forceImpute' | 'markPaidUpfront' | 'cancel' | 'release';
+export type ChargeAction = 'forceImpute' | 'markPaidUpfront' | 'agencyExpense' | 'cancel' | 'release';
 
 /** Lo que se puede hacer con un cargo según su estado. */
 export function chargeActions(row: Pick<PendingChargeRow, 'status' | 'chargedTo' | 'requiresUpfront'>): ChargeAction[] {
@@ -134,6 +134,8 @@ export function chargeActions(row: Pick<PendingChargeRow, 'status' | 'chargedTo'
     if (row.requiresUpfront) actions.push('forceImpute');
     actions.push('markPaidUpfront');
   }
+  // Un gasto de la inmobiliaria se cierra como egreso de una de sus cuentas.
+  if (row.chargedTo === ChargeTarget.Inmobiliaria) actions.push('agencyExpense');
   actions.push('cancel');
   return actions;
 }

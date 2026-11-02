@@ -39,6 +39,9 @@ const EXPECTED: Record<Action, string[]> = {
   'adjustments.manage': ['Admin', 'Gerente', 'Liquidaciones'],
   'serviceBills.manage': ['Admin', 'Gerente', 'Liquidaciones'],
   'charges.manage': ['Admin', 'Gerente', 'Liquidaciones'],
+  'cash.view': ['Admin', 'Gerente', 'Liquidaciones', 'Lectura'],
+  'cash.manage': ['Admin', 'Gerente', 'Liquidaciones'],
+  'cash.accounts': ['Admin', 'Gerente'],
   'dashboard.analytics': ['Admin', 'Gerente'],
   'tickets.manage': ['Admin', 'Gerente', 'Soporte'],
   'settings.manage': ['Admin', 'Gerente'],
@@ -134,6 +137,6 @@ describe('menú por rol', () => {
       return <p>{useVisibleNavItems().length}</p>;
     }
     render(<List />);
-    expect(screen.getByText(String(navItems.filter((i) => !i.action).length))).toBeInTheDocument();
+    expect(screen.getByText(String(navItems.filter((i) => !i.action || can('Lectura', i.action)).length))).toBeInTheDocument();
   });
 });

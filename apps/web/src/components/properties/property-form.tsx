@@ -473,7 +473,7 @@ export function PropertyForm({
             {(c) => (
               <Select {...c} value={form.currency} onChange={(e) => set('currency', e.target.value)}>
                 {Object.values(Currency).map((cur) => (
-                  <option key={cur} value={cur}>{cur === 'USD' ? 'US$ (Dólar)' : '$ (Peso argentino)'}</option>
+                  <option key={cur} value={cur}>{tCommon(`currencies.${cur}`)}</option>
                 ))}
               </Select>
             )}

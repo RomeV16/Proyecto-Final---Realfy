@@ -11,10 +11,11 @@ import {
   LineItemType,
   getValidLiquidacionTransitions,
 } from '@realfy/shared';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from '@/i18n/navigation';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { PaymentForm } from './payment-form';
+import { CompensationDialog, type LessorOption } from './compensation-dialog';
 import { PayoffPanel } from './payoff-panel';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { Icon } from '@/components/ui/icon';
@@ -22,6 +23,8 @@ import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
+import { receiptLabel } from '@/lib/cash';
+import { printReceipt } from '@/components/cash/print-receipt';
 
 /* ──────────── Types ──────────── */
 
@@ -42,6 +45,11 @@ interface Payment {
   reference?: string;
   notes?: string;
   paidAt: string;
+  receivedBy?: string | null;
+  inCustody?: boolean;
+  account?: { id: string; name: string; kind: string; currency: string } | null;
+  receipt?: { id: string; series: string; number: number } | null;
+  compensations?: { id: string; fromLessorId: string; toLessorId: string; amount: string | number }[];
 }
 
 interface LiquidacionData {
@@ -63,6 +71,7 @@ interface LiquidacionData {
   contract?: {
     id: string;
     property?: { id: string; title: string; street?: string; city?: string };
+    lessors?: { personId: string; person?: { firstName: string; lastName: string } | null }[];
   };
   lineItems: LineItem[];
   payments: Payment[];
@@ -95,6 +104,28 @@ function transitionVariant(target: string): 'primary' | 'secondary' | 'danger' {
   return 'primary';
 }
 
+/** Imprime el recibo de cobro numerado de un pago. */
+function PaymentReceiptButton({
+  receipt,
+  accountName,
+}: {
+  receipt: NonNullable<Payment['receipt']>;
+  accountName?: string | null;
+}) {
+  const tPayments = useTranslations('liquidaciones.payments');
+  const tCommon = useTranslations('common');
+  const label = receiptLabel(receipt.series, receipt.number, accountName);
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={() => void printReceipt(receipt.id, label, tCommon('downloadFailed'))}
+    >
+      {tPayments('printReceiptNumber', { number: label })}
+    </Button>
+  );
+}
+
 /* ──────────── Main Component ──────────── */
 
 export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
@@ -109,6 +140,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const tBeneficiary = useTranslations('liquidaciones.beneficiary');
   const tKinds = useTranslations('liquidaciones.kinds');
   const tReceipt = useTranslations('liquidaciones.receipt');
+  const tCash = useTranslations('cash');
   const tMonths = useTranslations('liquidaciones.months');
   const tErrors = useTranslations('liquidaciones.errors');
   const tCommon = useTranslations('common');
@@ -130,6 +162,9 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const [liAmount, setLiAmount] = useState('');
 
   const canAct = useCan('liquidaciones.act');
+  const canCompensate = useCan('cash.manage');
+  const tComp = useTranslations('liquidaciones.compensations');
+  const [compensating, setCompensating] = useState<string | null>(null);
   const readOnly = !!user && !canAct;
 
   const fetchData = useCallback(async () => {
@@ -145,6 +180,16 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   }, [liquidacionId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Locadores del contrato (sin repetir), para compensar un cobro y nombrar las compensaciones.
+  const lessorOptions = useMemo<LessorOption[]>(() => {
+    const unique = new Map<string, string>();
+    for (const l of data?.contract?.lessors ?? []) {
+      if (!unique.has(l.personId)) unique.set(l.personId, l.person ? `${l.person.firstName} ${l.person.lastName}` : l.personId);
+    }
+    return [...unique].map(([personId, name]) => ({ personId, name }));
+  }, [data]);
+  const lessorName = (id: string) => lessorOptions.find((l) => l.personId === id)?.name ?? tComp('otherLessor');
 
   // Computed
   const totalAmount = data ? Number(data.totalAmount || data.total || data.subtotal || 0) : 0;
@@ -560,26 +605,72 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         ) : (
           <div className="space-y-2.5">
             {(data.payments || []).map((p) => (
-              <EntityRow
-                key={p.id}
-                accent="success"
-                leading={
-                  <span
-                    className="flex h-10 w-10 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor:
-                        'color-mix(in oklab, var(--color-success) 14%, var(--color-surface))',
-                      color: 'var(--color-success)',
-                    }}
-                  >
-                    <Icon name="check" className="h-5 w-5" strokeWidth={2} />
-                  </span>
-                }
-                title={tMethods(p.method)}
-                subtitle={p.reference || undefined}
-                meta={<EntityRow.Meta items={[{ icon: 'calendar', label: formatLocalDate(p.paidAt, 'long') }]} />}
-                trailing={<EntityRow.Amount value={formatMoneyFixed(p.amount)} tone="success" />}
-              />
+              <div key={p.id} className="space-y-1.5">
+                <EntityRow
+                  accent="success"
+                  leading={
+                    <span
+                      className="flex h-10 w-10 items-center justify-center rounded-full"
+                      style={{
+                        backgroundColor:
+                          'color-mix(in oklab, var(--color-success) 14%, var(--color-surface))',
+                        color: 'var(--color-success)',
+                      }}
+                    >
+                      <Icon name="check" className="h-5 w-5" strokeWidth={2} />
+                    </span>
+                  }
+                  title={tMethods(p.method)}
+                  subtitle={p.reference || undefined}
+                  meta={
+                    <EntityRow.Meta
+                      items={[
+                        { icon: 'calendar', label: formatLocalDate(p.paidAt, 'long') },
+                        ...(p.receivedBy
+                          ? [
+                              {
+                                icon: 'wallet' as const,
+                                label: [
+                                  tPayments('receivedByLabel', { who: tCash(`receivers.${p.receivedBy}`) }),
+                                  p.account?.name,
+                                  p.inCustody ? tPayments('inCustodyShort') : null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · '),
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
+                  }
+                  trailing={<EntityRow.Amount value={formatMoneyFixed(p.amount)} tone="success" />}
+                  actions={
+                    p.receipt || (canCompensate && p.receivedBy === 'Locador') ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {p.receipt && <PaymentReceiptButton receipt={p.receipt} accountName={p.account?.name} />}
+                        {canCompensate && p.receivedBy === 'Locador' && (
+                          <Button variant="secondary" size="sm" onClick={() => setCompensating(p.id)}>
+                            {tComp('register')}
+                          </Button>
+                        )}
+                      </div>
+                    ) : undefined
+                  }
+                />
+                {(p.compensations ?? []).length > 0 && (
+                  <ul className="ml-14 space-y-0.5 text-xs text-slate-500" aria-label={tComp('listLabel')}>
+                    {(p.compensations ?? []).map((c) => (
+                      <li key={c.id}>
+                        {tComp('item', {
+                          from: lessorName(c.fromLessorId),
+                          to: lessorName(c.toLessorId),
+                          amount: formatMoneyFixed(c.amount, data.currency),
+                        })}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             ))}
           </div>
         )}
@@ -607,6 +698,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         <PaymentForm
           liquidacionId={liquidacionId}
           remainingBalance={remainingBalance}
+          currency={data.currency}
           initialAmount={payoff?.amount}
           initialPaidAt={payoff?.date}
           settlePenalties={payoff !== null}
@@ -620,6 +712,16 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
             setShowPaymentForm(false);
             setPayoff(null);
           }}
+        />
+      )}
+
+      {compensating && (
+        <CompensationDialog
+          paymentId={compensating}
+          lessors={lessorOptions}
+          currency={data.currency}
+          onClose={() => setCompensating(null)}
+          onDone={() => void fetchData()}
         />
       )}
 

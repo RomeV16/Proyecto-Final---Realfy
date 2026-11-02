@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import es from '@/i18n/messages/es.json';
@@ -31,6 +31,7 @@ vi.mock('@/lib/download', () => ({ downloadFile: vi.fn() }));
 import { ApiRequestError } from '@/lib/api-client';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { downloadFile } from '@/lib/download';
+import { toast } from '@/lib/toast';
 import { LiquidacionDetail } from './liquidacion-detail';
 
 const nb = (s: string | null) => (s ?? '').replaceAll(' ', ' ');
@@ -120,6 +121,70 @@ describe('LiquidacionDetail', () => {
     expect(screen.getByText('Alquiler de noviembre')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Ver contrato/ })).toHaveAttribute('href', '/es/contracts/c-1');
     for (const a of screen.getAllByRole('link')) expect(a.getAttribute('href')).toMatch(/^\/es\//);
+  });
+
+  it('cada pago muestra quién lo recibió, la cuenta y el recibo para imprimir', async () => {
+    mockApi(() =>
+      liquidacion({
+        status: 'Enviada',
+        payments: [
+          {
+            id: 'pay-1',
+            amount: '40000',
+            method: 'Efectivo',
+            paidAt: '2026-11-05T12:00:00.000Z',
+            receivedBy: 'Inmobiliaria',
+            inCustody: true,
+            account: { id: 'acc-1', name: 'Caja ARS', kind: 'Caja', currency: 'ARS' },
+            receipt: { id: 'rec-1', series: 'RECIBO_COBRO', number: 12 },
+          },
+          {
+            id: 'pay-2',
+            amount: '10000',
+            method: 'Transferencia',
+            paidAt: '2026-11-06T12:00:00.000Z',
+            receivedBy: 'Locador',
+            account: null,
+            receipt: null,
+          },
+        ],
+      }),
+    );
+    vi.mocked(downloadFile).mockResolvedValue(undefined as never);
+    const user = await mount();
+    expect(screen.getByText('Recibió: Inmobiliaria · Caja ARS · en custodia')).toBeInTheDocument();
+    expect(screen.getByText('Recibió: Locador')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Recibo 00000012' }));
+    expect(downloadFile).toHaveBeenCalledWith('/receipts/rec-1/pdf', 'recibo-00000012.pdf');
+  });
+
+  it('al registrar un pago con recibo lo ofrece para imprimir y al terminar recarga', async () => {
+    let calls = 0;
+    mockApi(
+      () => {
+        calls += 1;
+        return liquidacion({ status: 'Enviada' });
+      },
+      () =>
+        Promise.resolve({
+          registeredPayment: {
+            id: 'pay-9',
+            receivedBy: 'Inmobiliaria',
+            inCustody: false,
+            account: { id: 'acc-1', name: 'Caja ARS', kind: 'Caja', currency: 'ARS' },
+            receipt: { id: 'rec-9', series: 'RECIBO_COBRO', number: 9 },
+          },
+        }),
+    );
+    const user = await mount();
+    await user.click(screen.getByRole('button', { name: 'Registrar Pago' }));
+    await user.selectOptions(screen.getByLabelText(/Método/), 'Efectivo');
+    await user.click(screen.getAllByRole('button', { name: 'Registrar Pago' }).at(-1)!);
+    expect(await screen.findByText('Se emitió el recibo Nº 00000009.')).toBeInTheDocument();
+    const before = calls;
+    await user.click(screen.getByRole('button', { name: 'Listo' }));
+    await waitFor(() => expect(calls).toBeGreaterThan(before));
+    expect(await screen.findByText('Pago registrado correctamente')).toBeInTheDocument();
   });
 
   it('con saldo cubierto muestra pagada en su totalidad', async () => {
@@ -342,6 +407,146 @@ describe('LiquidacionDetail', () => {
       mockApi(() => liquidacion({ status: 'Anulada' }));
       await mount();
       expect(screen.queryByRole('button', { name: 'Imprimir recibo' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('compensaciones', () => {
+    const ANA = '11111111-1111-4111-8111-111111111111';
+    const BETO = '22222222-2222-4222-8222-222222222222';
+    const XIMENA = '33333333-3333-4333-8333-333333333333';
+    const SIN_NOMBRE = '44444444-4444-4444-8444-444444444444';
+    const PAGO = '55555555-5555-4555-8555-555555555555';
+
+    function withLessorPayment(lessors: unknown[], write: () => Promise<unknown> = () => Promise.resolve({ id: 'comp-1' })) {
+      let loads = 0;
+      apiClient.mockImplementation((path: string, init?: { method?: string }) => {
+        if (init?.method) return write();
+        if (path.startsWith('/persons?search=')) {
+          return Promise.resolve({ items: [{ id: XIMENA, firstName: 'Ximena', lastName: 'Otra' }] });
+        }
+        if (path === '/liquidaciones/l-1') {
+          loads += 1;
+          return Promise.resolve(
+            liquidacion({
+              status: 'Enviada',
+              contract: { id: 'c-1', property: { id: 'p-1', title: 'Depto de prueba' }, lessors },
+              payments: [
+                {
+                  id: PAGO,
+                  amount: '100000',
+                  method: 'Transferencia',
+                  paidAt: '2026-11-05T12:00:00.000Z',
+                  receivedBy: 'Locador',
+                  account: null,
+                  receipt: null,
+                  compensations: [
+                    { id: 'c-a', fromLessorId: XIMENA, toLessorId: ANA, amount: '46500' },
+                    { id: 'c-b', fromLessorId: ANA, toLessorId: BETO, amount: '1000' },
+                  ],
+                },
+                { id: 'pay-2', amount: '500', method: 'Efectivo', paidAt: '2026-11-06T12:00:00.000Z', receivedBy: 'Inmobiliaria' },
+              ],
+            }),
+          );
+        }
+        return Promise.resolve({});
+      });
+      return { loads: () => loads };
+    }
+
+    const writes = () => apiClient.mock.calls.filter(([, init]) => init?.method);
+
+    it('lista las compensaciones del pago y registra una nueva con la custodia de quien cobró', async () => {
+      const api = withLessorPayment([
+        { personId: ANA, person: { firstName: 'Ana', lastName: 'Ejemplo' } },
+        { personId: BETO, person: { firstName: 'Beto', lastName: 'Prueba' } },
+        { personId: ANA, person: { firstName: 'Ana', lastName: 'Ejemplo' } },
+        { personId: SIN_NOMBRE, person: null },
+      ]);
+      const user = await mount();
+      const list = screen.getByRole('list', { name: 'Compensaciones del pago' });
+      expect(nb(list.textContent)).toContain('Compensación: otro locador cubre a Ana Ejemplo por $ 46.500,00');
+      expect(nb(list.textContent)).toContain('Compensación: Ana Ejemplo cubre a Beto Prueba por $ 1.000,00');
+      // Solo el pago que recibió un locador se compensa.
+      expect(screen.getAllByRole('button', { name: 'Registrar compensación' })).toHaveLength(1);
+
+      await user.click(screen.getByRole('button', { name: 'Registrar compensación' }));
+      const dialog = await screen.findByRole('dialog');
+      const to = within(dialog).getByLabelText(/A qué locador le correspondía/);
+      expect(within(to).getAllByRole('option').map((o) => o.textContent)).toEqual([
+        'Elegí un locador',
+        'Ana Ejemplo',
+        'Beto Prueba',
+        SIN_NOMBRE,
+      ]);
+
+      await user.click(within(dialog).getByRole('button', { name: 'Registrar' }));
+      expect(await within(dialog).findByText('Elegí quién recibió el cobro')).toBeInTheDocument();
+      expect(within(dialog).getByText(/Elegí a qué locador le correspondía/)).toBeInTheDocument();
+      expect(writes()).toHaveLength(0);
+
+      await user.type(within(dialog).getByLabelText('Quién recibió el cobro'), 'Xi');
+      await user.click(await within(dialog).findByRole('button', { name: /Ximena Otra/ }));
+      await user.selectOptions(to, ANA);
+      await user.type(within(dialog).getByLabelText(/^Importe/), '1000,5');
+      await user.click(within(dialog).getByLabelText(/Pagar con la custodia de quien recibió/));
+      await user.type(within(dialog).getByLabelText('Nota'), 'Acuerdo entre hermanos');
+      const before = api.loads();
+      await user.click(within(dialog).getByRole('button', { name: 'Registrar' }));
+
+      await waitFor(() => expect(writes()).toHaveLength(1));
+      expect(writes()[0][0]).toBe('/compensations');
+      expect(JSON.parse(writes()[0][1].body)).toEqual({
+        paymentId: PAGO,
+        fromLessorId: XIMENA,
+        toLessorId: ANA,
+        amount: '1000.5',
+        fromCustody: true,
+        note: 'Acuerdo entre hermanos',
+      });
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Compensación registrada'));
+      await waitFor(() => expect(api.loads()).toBeGreaterThan(before));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('sin importe compensa su parte; un error de la API se explica en el diálogo', async () => {
+      withLessorPayment([{ personId: ANA, person: { firstName: 'Ana', lastName: 'Ejemplo' } }], () =>
+        Promise.reject(new ApiRequestError(400, 'COMPENSATION_EXCEEDS_PAYMENT', 'exceeds')),
+      );
+      const user = await mount();
+      await user.click(screen.getByRole('button', { name: 'Registrar compensación' }));
+      const dialog = await screen.findByRole('dialog');
+      // Con un solo locador queda elegido.
+      expect(within(dialog).getByLabelText(/A qué locador le correspondía/)).toHaveValue(ANA);
+      await user.type(within(dialog).getByLabelText('Quién recibió el cobro'), 'Xi');
+      await user.click(await within(dialog).findByRole('button', { name: /Ximena Otra/ }));
+      await user.click(within(dialog).getByRole('button', { name: 'Registrar' }));
+
+      expect(await within(dialog).findByText('La compensación supera lo que le correspondía en ese cobro.')).toBeInTheDocument();
+      expect(JSON.parse(writes()[0][1].body)).toEqual({ paymentId: PAGO, fromLessorId: XIMENA, toLessorId: ANA });
+      await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    });
+
+    it('un importe inválido se marca y no se manda', async () => {
+      withLessorPayment([{ personId: ANA, person: { firstName: 'Ana', lastName: 'Ejemplo' } }]);
+      const user = await mount();
+      await user.click(screen.getByRole('button', { name: 'Registrar compensación' }));
+      const dialog = await screen.findByRole('dialog');
+      await user.type(within(dialog).getByLabelText('Quién recibió el cobro'), 'Xi');
+      await user.click(await within(dialog).findByRole('button', { name: /Ximena Otra/ }));
+      await user.type(within(dialog).getByLabelText(/^Importe/), 'mucho');
+      await user.click(within(dialog).getByRole('button', { name: 'Registrar' }));
+      expect(await within(dialog).findByText(/Ingresá un importe mayor a cero/)).toBeInTheDocument();
+      expect(writes()).toHaveLength(0);
+    });
+
+    it('un rol sin caja ve las compensaciones pero no las registra', async () => {
+      auth.role = 'Ventas';
+      withLessorPayment([{ personId: ANA, person: { firstName: 'Ana', lastName: 'Ejemplo' } }]);
+      await mount();
+      expect(screen.getByRole('list', { name: 'Compensaciones del pago' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Registrar compensación' })).not.toBeInTheDocument();
     });
   });
 });
