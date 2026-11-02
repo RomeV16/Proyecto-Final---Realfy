@@ -38,6 +38,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-28 | Cada corrida diaria suma el punitorio acumulado entero y vuelve a devengar lo condonado | Alta | — | CP-360 | [#157](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/157) | Corregido (2 nov) |
 | DEF-29 | Los cobros devuelven el número del recibo sin la etiqueta impresa | Baja | — | CP-450 | [#163](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/163) | Corregido (2 nov) |
 | DEF-30 | La comisión del contrato no se guarda desde la pantalla y una guardada aparece sin tipo | Media | — | CP-480 | [#164](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/164) | Corregido (2 nov) |
+| DEF-65 | Un mail rechazado por Resend se informa como enviado | Alta | ítem 43 (mensajería) | CP-630 | — (pendiente de abrir) | Corregido (2 nov) |
 
 ---
 
@@ -466,3 +467,17 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** el formulario usa `type` al leer y al guardar y manda el porcentaje como texto decimal.
 - **Prueba de regresión:** CP-480 en `apps/web/src/components/contracts/commission-config.def30.test.tsx`.
 - **Evidencia rojo/verde:** regresión `abb1338` en rojo (1 prueba falla: el tipo llega vacío); corrección en `bdb07a6`.
+
+## DEF-65 — Un mail rechazado por Resend se informa como enviado
+
+- **Requisito afectado:** envío de mails (ítem 43): invitaciones, liquidaciones, avisos al personal y, desde la mensajería, recibos y estados de cuenta.
+- **Origen:** al montar el proveedor de mail de la bandeja de salida sobre `CommonEmailService` (PR 5.1).
+- **Caso que lo detecta:** CP-630.
+- **Severidad:** alta. Un mail que no salió (remitente sin verificar, dominio sin SPF/DKIM, destinatario inválido) quedaba como enviado: la bandeja de salida lo habría marcado `Sent` sin reintentar ni avisar.
+- **Pasos para reproducir:** configurar `RESEND_API_KEY` con un remitente de un dominio sin verificar y mandar cualquier mail.
+- **Resultado esperado:** el envío se informa como fallido con el código y el mensaje del rechazo.
+- **Resultado obtenido:** `{ status: 'sent', id: 'unknown' }`.
+- **Causa raíz:** el SDK de Resend (v6) no lanza ante un rechazo de la API: devuelve `{ data: null, error }`. El servicio solo trataba la excepción.
+- **Corrección:** un `error` en la respuesta, o una respuesta sin id, es un envío fallido.
+- **Prueba de regresión:** CP-630 en `apps/api/src/common/email/common-email.service.spec.ts`.
+- **Evidencia rojo/verde:** regresión `9690f42` en rojo (1 prueba falla: llega `status: 'sent'`); corrección en el commit siguiente.

@@ -70,13 +70,20 @@ export class CommonEmailService {
         ...(params.attachments?.length ? { attachments: params.attachments } : {}),
       });
 
+      // El SDK no lanza cuando la API rechaza el envío: devuelve `error` (DEF-65).
+      if (result.error || !result.data?.id) {
+        const error = result.error ? `${result.error.name}: ${result.error.message}` : 'Resend did not return an id';
+        this.logger.error('Email rejected by Resend', { to: params.to, subject: params.subject, error });
+        return { status: 'failed', error };
+      }
+
       this.logger.log('Email sent successfully', {
         to: params.to,
         subject: params.subject,
-        resendId: result.data?.id,
+        resendId: result.data.id,
       });
 
-      return { status: 'sent', id: result.data?.id ?? 'unknown' };
+      return { status: 'sent', id: result.data.id };
     } catch (error) {
       const message = (error as Error).message;
       this.logger.error('Email delivery failed', {
