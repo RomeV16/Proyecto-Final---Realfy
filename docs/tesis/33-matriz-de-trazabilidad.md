@@ -35,7 +35,7 @@ La matriz une cada hallazgo del registro (`31-registro-de-feedback.md`) con el c
 | FB-19 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 44 (#102), 41 (#99) | — | Se completa en el PR | CP-220 a CP-229 |
 | FB-20 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 44 (#102) | — | Se completa en el PR | CP-220 a CP-229 |
 | FB-21 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 43 (#101) | ADR-0013 | Se completa en el PR | CP-210 a CP-219 |
-| FB-22 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 39 (#97) | — | Se completa en el PR | CP-170 a CP-179 |
+| FB-22 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 39 (#97) | — | `/data-quality`, `/data-quality/:check`, `/data-quality/persons/merge` | CP-170 a CP-179; CP-430 a CP-440 |
 | FB-23 | CU-08 (modificado) | 34 (#92) | ADR-0011 | Se completa en el PR | CP-120 a CP-129 |
 | FB-24 | CU-05 (modificado) | 34 (#92) | — | Se completa en el PR | CP-80 a CP-84 |
 | FB-25 | CU-07, CU-08 (modificados) | 34 (#92) | ADR-0011 | Se completa en el PR | CP-51, CP-52 |

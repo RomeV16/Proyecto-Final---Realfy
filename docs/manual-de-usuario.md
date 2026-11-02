@@ -722,6 +722,31 @@ el suyo.
 
 `/configuracion/importaciones` (solo Admin) muestra los lotes que los scripts de migración enviaron a la API: cada uno con su fecha, su origen, el modo (*Ensayo*, *Ejecución* o *Todo o nada*), su estado y la cantidad de filas y de errores. Al abrir un lote se ve el resumen por entidad (personas, propiedades y contratos, con cuántas filas fueron creadas, actualizadas, sin cambios o con error) y el registro de cada fila, con el código y el mensaje de cada error. El selector *Mostrar filas* deja solo las que tuvieron error y *Descargar errores (CSV)* baja ese listado para corregir el origen. Un ensayo no escribe nada; un lote *Todo o nada* que quedó *Fallido* tampoco: no se cargó ninguna fila. El procedimiento completo está en `docs/tesis/32-migracion.md`.
 
+### Calidad de datos
+
+`/calidad-de-datos` lo ven Admin y Gerente. Junta lo que conviene revisar después de una migración o de una carga manual, agrupado por tipo de problema. Arriba hay una tarjeta por control con la cantidad de hallazgos (en verde si es cero); al tocar una se listan sus hallazgos debajo, con el dato involucrado y un enlace *Abrir* a la ficha donde se corrige. *Corregir* marca lo que rompe una liquidación o un cobro; *Revisar* marca lo que puede ser legítimo (por ejemplo, una familia que comparte teléfono).
+
+Los controles son:
+
+- *Personas repetidas*: mismo CUIT o CUIL, DNI (también el que lleva el CUIL), CBU, teléfono, correo o nombre. Se comparan sin importar guiones, puntos, mayúsculas, tildes, el +54, el 9, el 0 ni el 15 del teléfono. Dos personas con el mismo nombre pero documentos distintos no se marcan.
+- *Locadores que no suman 100 %*: contratos activos cuyos locadores vigentes no reparten el cobro completo. Se corrige en la pestaña de locadores del contrato.
+- *Titulares que no suman 100 %*, *Propiedades sin titular*, *Cobran por transferencia sin cuenta* y *Locadores sin CUIT ni DNI*: titularidades incompletas.
+- *Vencidos sin decisión*: contratos vencidos cuyo fin (el real, si hay prórroga, o el pactado) ya pasó y que no tienen renovación ni cierre. Se resuelven renovando o cerrando el contrato.
+- *Contratos activos incompletos*: sin inquilino, sin alquiler o sin el porcentaje de ajuste que su tipo pide. El contrato no guarda un día de vencimiento propio (lo definen las reglas de cargos), así que no se controla acá.
+
+El panel no cambia nada por sí solo. Los hallazgos desaparecen cuando se corrige el dato: no hay que marcarlos como resueltos. No hay una opción de ignorar un hallazgo; un caso legítimo (una familia con un teléfono compartido) queda en la lista y se distingue por el tipo de control.
+
+#### Unir personas repetidas
+
+En un hallazgo de personas repetidas, el Admin tiene el botón *Unir*. Se elige a la persona que se conserva y la pantalla pide a la API la vista previa: lista, por tipo de dato, lo que va a pasar a la persona que se conserva (contratos, locadores, titularidades, cuentas, roles, poderes, reclamos, rendiciones...) y lo que se descarta porque ya existe en ella (un rol repetido, una cuenta con el mismo CBU). Al confirmar:
+
+- todo lo que apuntaba a las otras personas pasa a la conservada, en una sola operación: o se hace todo o no se hace nada;
+- los datos que la conservada tenía vacíos (correo, teléfonos, CUIT, DNI, domicilio, forma de cobro...) se completan con los de las otras;
+- las otras quedan dadas de baja, sin CUIT, con una nota que dice con quién se unieron; no se borran, y siguen consultables entre las personas inactivas;
+- queda una fila de auditoría con el antes y el después de cada persona.
+
+La unión se rechaza con un aviso, sin cambiar nada, si hay datos que no se pueden combinar: las dos personas tienen perfil de proveedor, acceso al portal, puntaje de inquilino o una rendición del mismo contrato y período, o hay un poder entre ellas. Hay que resolver eso primero (por ejemplo, dar de baja el perfil que sobra). La unión no se deshace sola: si hubo un error, se corrige a mano con la auditoría a la vista.
+
 ### Permisos de lectura
 
 `/configuracion/permisos` (solo Admin) decide qué roles pueden leer los datos sensibles: cuentas bancarias, documento (DNI y CUIT), comisión de los contratos, rendiciones, reportes financieros, facturas y auditoría. La tabla tiene un recurso por fila y un rol por columna; la casilla del Admin está fija porque siempre lee todo. Marcá o desmarcá, tocá *Guardar cambios* y confirmá: rige desde el próximo pedido de cada persona del equipo. *Abrir todo* vuelve a dar lectura a todos los roles (y hay que guardar para aplicarlo). Mientras no se cambie nada, todos los roles leen todo. Un rol sin acceso ve un aviso de *Sin acceso* en esas pantallas, los documentos y cuentas ocultos en las fichas, y no ve esas opciones en el menú.
