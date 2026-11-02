@@ -238,6 +238,19 @@ describe('Estado de cuenta: detalle (CP-476)', () => {
     expect(screen.getByRole('link', { name: 'Ver la cuenta corriente' })).toHaveAttribute('href', `/es/locadores/${ANA}?currency=ARS`);
   });
 
+  it('un estado emitido ofrece la facturación por cuenta del locador; un borrador no', async () => {
+    mockApi({ detail: { status: 'Emitido' } });
+    const { unmount } = renderEs(<OwnerStatementDetail statementId="st-1" />);
+    await screen.findByRole('heading', { name: 'Ana Locadora — Octubre de 2026' });
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/owner-statements/st-1/invoices'));
+    unmount();
+    apiClient.mockClear();
+    mockApi();
+    renderEs(<OwnerStatementDetail statementId="st-1" />);
+    await screen.findByRole('heading', { name: 'Ana Locadora — Octubre de 2026' });
+    expect(apiClient).not.toHaveBeenCalledWith('/owner-statements/st-1/invoices');
+  });
+
   it('descarga el PDF y avisa si falla', async () => {
     mockApi();
     downloadFile.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('x'));

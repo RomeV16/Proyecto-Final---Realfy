@@ -53,6 +53,23 @@ describe('OperationalDefaultsManager', () => {
     expect(apiClient).toHaveBeenCalledWith('/tenants/me/operational-defaults');
   });
 
+  it('la facturación por cuenta del locador arranca en lo conservador y se guarda en el cuerpo', async () => {
+    const user = userEvent.setup();
+    renderEs(<OperationalDefaultsManager />);
+    expect(await screen.findByLabelText(/Qué se factura/)).toHaveValue('Alquiler');
+    expect(screen.getByLabelText(/Cuándo se factura/)).toHaveValue('Manual');
+    expect(screen.getByLabelText(/IVA incluido en el importe/)).toHaveValue('0');
+    expect(screen.getByRole('option', { name: 'Sin IVA discriminado' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '10.5 %' })).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText(/Cuándo se factura/), 'AlEmitirEstado');
+    await user.selectOptions(screen.getByLabelText(/IVA incluido en el importe/), '21');
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(put[1].body).invoicing).toEqual({ scope: 'Alquiler', when: 'AlEmitirEstado', vatPct: 21 });
+  });
+
   it('guarda los valores editados con el cuerpo anidado de la API', async () => {
     const user = userEvent.setup();
     renderEs(<OperationalDefaultsManager />);

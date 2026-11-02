@@ -237,7 +237,18 @@
    "STATEMENT_NOT_LATEST": "Primero anulá los estados posteriores de este locador.",
    "STATEMENT_ALREADY_ANNULLED": "El estado de cuenta ya estaba anulado.",
    "STATEMENT_NOT_FOUND": "El estado de cuenta no existe.",
-   "OWNER_LEDGER_LOCKED": "Esos movimientos ya están en un estado de cuenta emitido: anulá el estado primero."
+   "OWNER_LEDGER_LOCKED": "Esos movimientos ya están en un estado de cuenta emitido: anulá el estado primero.",
+   "LESSOR_ISSUER_EXISTS": "Este locador ya tiene un emisor delegado.",
+   "LESSOR_ISSUER_REQUIRED": "Primero hay que crear el emisor delegado del locador.",
+   "PERSON_CUIT_REQUIRED": "El locador necesita un CUIT para facturar por su cuenta.",
+   "PERSON_FISCAL_CONDITION_REQUIRED": "El locador necesita una condición frente al IVA para facturar por su cuenta.",
+   "FISCAL_CONDITION_CANNOT_INVOICE": "Con esa condición frente al IVA no se pueden emitir facturas.",
+   "INVOICING_TRIGGER_MISMATCH": "Este locador se factura por otra vía (al pagar o al emitir el estado): no se factura a mano desde acá.",
+   "STATEMENT_NOT_ISSUED": "Solo se factura un estado de cuenta emitido.",
+   "NO_PUNTO_DE_VENTA": "El emisor no tiene punto de venta: traelos desde ARCA o cargá uno.",
+   "CURRENCY_NOT_SUPPORTED": "Todavía no se factura en dólares.",
+   "TENANT_PARTY_REQUIRED": "El contrato no tiene inquilino a quien facturar.",
+   "RECEPTOR_CUIT_REQUIRED": "Una factura A necesita el CUIT del inquilino."
   },
   "segment": {
    "loading": "Cargando…",
@@ -2704,7 +2715,8 @@
    "notFound": "Comprobante no encontrado",
    "emitError": "Error al emitir la Nota de Crédito"
   },
-  "newInvoiceBtn": "Nueva Factura"
+  "newInvoiceBtn": "Nueva Factura",
+  "pendingLink": "Pendientes por cuenta del locador"
  },
  "commissions": {
   "title": "Comisión",
@@ -4291,7 +4303,9 @@
   "amount": "Monto",
   "collected": "Total cobrado",
   "collectedHint": "{count, plural, =0 {Sin pagos registrados} one {# pago registrado} other {# pagos registrados}}",
-  "noPaymentsSubtitle": "Cuando registres cobranzas vas a verlas acá con su medio de pago y período."
+  "noPaymentsSubtitle": "Cuando registres cobranzas vas a verlas acá con su medio de pago y período.",
+  "invoicing": "Facturación",
+  "invoicingTitle": "Facturación del cobro por cuenta del locador"
  },
  "perfil": {
   "title": "Mi perfil",
@@ -4812,6 +4826,10 @@
    "repairs": {
     "title": "Reparaciones",
     "description": "Hasta qué importe se actúa sin consultar al locador y el honorario por gestión que se propone."
+   },
+   "invoicing": {
+    "title": "Facturación por cuenta del locador",
+    "description": "Qué se factura a nombre de cada locador, cuándo y con qué IVA. Cada locador puede cambiarlo. Son convenciones conservadoras: confirmalas con el contador antes de activar la emisión automática."
    }
   },
   "fields": {
@@ -4989,6 +5007,29 @@
    "repairMgmtFeePct": {
     "label": "Honorario por gestión de reparaciones (%)",
     "hint": "Porcentaje que se propone al imputar una reparación; siempre es opcional y no es comisión (de fábrica {value})."
+   },
+   "invoicingScope": {
+    "label": "Qué se factura",
+    "hint": "De fábrica: {value}.",
+    "options": {
+     "Alquiler": "Solo el alquiler",
+     "AlquilerPunitorios": "Alquiler y punitorios",
+     "TodoLocador": "Todo lo que es del locador"
+    }
+   },
+   "invoicingWhen": {
+    "label": "Cuándo se factura",
+    "hint": "De fábrica: {value}.",
+    "options": {
+     "Manual": "A pedido (manual)",
+     "AlPagar": "Al registrar cada cobro",
+     "AlEmitirEstado": "Al emitir el estado de cuenta"
+    }
+   },
+   "invoicingVatPct": {
+    "label": "IVA incluido en el importe",
+    "hint": "De fábrica: {value}.",
+    "zero": "Sin IVA discriminado"
    }
   }
  },
@@ -6553,6 +6594,137 @@
    "viewAll": "Ver todos",
    "addAlta": "Cargar honorario de alta",
    "addRenewal": "Cargar honorario de renovación"
+  }
+ },
+ "lessorInvoicing": {
+  "forbidden": "No tenés permiso para ver la facturación por cuenta de los locadores.",
+  "loadError": "No se pudo cargar la facturación del locador.",
+  "tabs": {
+   "label": "Secciones del locador",
+   "ledger": "Cuenta corriente",
+   "invoicing": "Facturación"
+  },
+  "fiscalConditions": {
+   "ResponsableInscripto": "Responsable inscripto",
+   "Monotributista": "Monotributista",
+   "ConsumidorFinal": "Consumidor final",
+   "Exento": "Exento",
+   "NoResponsable": "No responsable"
+  },
+  "delegation": {
+   "Pending": "Sin verificar",
+   "Active": "Delegación activa",
+   "Revoked": "Delegación revocada"
+  },
+  "statuses": {
+   "Pendiente": "Pendiente",
+   "Emitido": "Emitido",
+   "Fallido": "Fallido",
+   "Omitido": "Nada para facturar"
+  },
+  "kinds": {
+   "Factura": "Factura",
+   "NotaCredito": "Nota de crédito"
+  },
+  "sources": {
+   "Payment": "Cobro",
+   "OwnerStatement": "Estado de cuenta"
+  },
+  "comprobanteTypes": {
+   "FacturaA": "Factura A",
+   "FacturaB": "Factura B",
+   "FacturaC": "Factura C",
+   "NotaCreditoA": "Nota de crédito A",
+   "NotaCreditoB": "Nota de crédito B",
+   "NotaCreditoC": "Nota de crédito C",
+   "NotaDebitoA": "Nota de débito A",
+   "NotaDebitoB": "Nota de débito B",
+   "NotaDebitoC": "Nota de débito C"
+  },
+  "scope": {
+   "Alquiler": "Solo el alquiler",
+   "AlquilerPunitorios": "Alquiler y punitorios",
+   "TodoLocador": "Todo lo que es del locador"
+  },
+  "when": {
+   "Manual": "A pedido (manual)",
+   "AlPagar": "Al registrar cada cobro",
+   "AlEmitirEstado": "Al emitir el estado de cuenta"
+  },
+  "vat": {
+   "zero": "Sin IVA discriminado"
+  },
+  "issuer": {
+   "title": "Emisor delegado",
+   "explain": "La inmobiliaria factura con la delegación de ARCA del locador: la factura sale a nombre y CUIT del locador, nunca de la inmobiliaria.",
+   "none": "Este locador todavía no tiene emisor delegado.",
+   "create": "Crear emisor delegado",
+   "created": "Emisor delegado creado. Falta verificar la delegación y cargar el punto de venta.",
+   "createError": "No se pudo crear el emisor delegado.",
+   "name": "Razón social",
+   "cuit": "CUIT",
+   "condition": "Condición frente al IVA",
+   "delegation": "Delegación en ARCA",
+   "verifiedAt": "verificada el {date}",
+   "verify": "Verificar delegación",
+   "verified": "Delegación verificada.",
+   "verifyError": "No se pudo verificar la delegación.",
+   "sync": "Traer puntos de venta",
+   "synced": "Puntos de venta actualizados.",
+   "syncError": "No se pudieron traer los puntos de venta.",
+   "pdv": "Puntos de venta",
+   "noPdv": "Sin puntos de venta: sin uno no se puede emitir.",
+   "blocked": "bloqueado"
+  },
+  "settings": {
+   "title": "Qué y cuándo se factura",
+   "explain": "Lo que no definas acá lo toma de los valores por defecto de la inmobiliaria (Configuración).",
+   "scope": "Qué se factura",
+   "when": "Cuándo se factura",
+   "vat": "IVA incluido en el importe",
+   "inherit": "Lo de la inmobiliaria",
+   "fromAgency": "Inmobiliaria: {value}.",
+   "effective": "Rige: {scope} · {when} · {vat}.",
+   "autoSince": "Factura sola desde el {date}; no se factura lo anterior.",
+   "fiscalNote": "El tipo de factura sale de la condición del locador y la del inquilino. Qué conceptos se facturan y con qué IVA lo define el contador del locador: confirmalo antes de activar la facturación automática.",
+   "save": "Guardar",
+   "saved": "Configuración guardada.",
+   "saveError": "No se pudo guardar la configuración."
+  },
+  "source": {
+   "title": "Facturación por cuenta del locador",
+   "explain": "Se factura a nombre de cada locador con su emisor delegado, por el importe de su parte.",
+   "invoice": "Facturar por cuenta del locador",
+   "retry": "Facturar / reintentar",
+   "invoiced": "Facturado.",
+   "nobody": "Ningún locador de este origen tiene emisor delegado.",
+   "invoiceError": "No se pudo facturar. El cobro no se modificó: reintentá más tarde.",
+   "loadError": "No se pudieron cargar los comprobantes.",
+   "none": "Todavía no se emitió ningún comprobante por cuenta del locador.",
+   "credited": "con nota de crédito",
+   "jobs": "Estado de la emisión",
+   "notReady": "Un estado anulado no se factura; su factura ya quedó en cola para la nota de crédito."
+  },
+  "pending": {
+   "title": "Facturas por cuenta del locador pendientes",
+   "subtitle": "Lo que está en cola para emitirse o falló (por ejemplo, ARCA no respondió). Un fallo no afecta al cobro ni al estado de cuenta.",
+   "run": "Emitir pendientes",
+   "running": "Emitiendo…",
+   "ran": "Emitidas: {emitted}. Con error: {failed}.",
+   "runError": "No se pudieron emitir los pendientes.",
+   "filter": "Estado",
+   "open": "Pendientes y fallidas",
+   "empty": "No hay facturas pendientes",
+   "emptySubtitle": "Lo que se facture por cuenta de un locador y falle aparece acá.",
+   "columns": {
+    "person": "Locador",
+    "source": "Origen",
+    "kind": "Tipo",
+    "status": "Estado",
+    "attempts": "Intentos",
+    "error": "Motivo",
+    "createdAt": "En cola desde"
+   }
   }
  }
 }

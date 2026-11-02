@@ -8,6 +8,10 @@ import { RowList } from '@/components/ui/card-grid';
 import { EmptyState } from '@/components/ui/empty-state';
 import { StatTile, StatTileSkeleton } from '@/components/ui/stat-tile';
 import { Icon } from '@/components/ui/icon';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
+import { SourceInvoicesPanel } from '@/components/invoices/lessor/source-invoices-panel';
+import { useCan } from '@/lib/permissions';
 import { formatMoneyRounded, formatLocalDate, formatPeriod } from '@/lib/format';
 
 interface Payment {
@@ -38,6 +42,8 @@ export default function PagosPage() {
   const [payments, setPayments] = useState<Payment[] | null>(null);
   const [debt, setDebt] = useState<Debt | null>(null);
   const [debtLoading, setDebtLoading] = useState(true);
+  const canInvoice = useCan('lessorInvoicing.view');
+  const [invoicing, setInvoicing] = useState<string | null>(null);
 
   useEffect(() => {
     apiClient<{ items: Payment[] }>('/payments?limit=30')
@@ -128,7 +134,16 @@ export default function PagosPage() {
                   ]}
                 />
               }
-              trailing={<EntityRow.Amount value={formatMoneyRounded(p.amount)} hint={p.currency} tone="success" />}
+              trailing={
+                <div className="flex items-center gap-3">
+                  {canInvoice && (
+                    <Button type="button" size="sm" variant="secondary" onClick={() => setInvoicing(p.id)}>
+                      {t('invoicing')}
+                    </Button>
+                  )}
+                  <EntityRow.Amount value={formatMoneyRounded(p.amount)} hint={p.currency} tone="success" />
+                </div>
+              }
             />
           )}
           empty={
@@ -140,6 +155,13 @@ export default function PagosPage() {
           }
         />
       </div>
+
+      <Dialog open={invoicing !== null} onClose={() => setInvoicing(null)} size="lg">
+        <DialogHeader>
+          <h2 className="text-base font-semibold text-[var(--color-text)]">{t('invoicingTitle')}</h2>
+        </DialogHeader>
+        <DialogBody>{invoicing !== null && <SourceInvoicesPanel sourceType="Payment" sourceId={invoicing} />}</DialogBody>
+      </Dialog>
     </div>
   );
 }

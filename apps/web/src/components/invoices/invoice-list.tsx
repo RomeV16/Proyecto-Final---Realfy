@@ -199,6 +199,12 @@ export function InvoiceList() {
           <p className="text-sm text-slate-500 mt-1">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/invoices/pending"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            {t('pendingLink')}
+          </Link>
           <button
             onClick={() => router.push('/invoices/new')}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"

@@ -23,6 +23,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrorText } from '@/components/cash/use-cash-data';
 import { BalanceAmount, SignedAmount } from './balance-amount';
+import { SourceInvoicesPanel } from '@/components/invoices/lessor/source-invoices-panel';
 import { PayoutDialog } from './payout-dialog';
 
 /**
@@ -186,6 +187,14 @@ export function OwnerStatementDetail({ statementId }: { statementId: string }) {
           </p>
         )}
       </section>
+
+      {data.status !== OwnerStatementStatus.Borrador && (
+        <SourceInvoicesPanel
+          sourceType="OwnerStatement"
+          sourceId={statementId}
+          canInvoice={data.status !== OwnerStatementStatus.Anulado}
+        />
+      )}
 
       {data.groups.length === 0 && <p className="text-sm italic text-[var(--color-muted)]">{t('detail.noMovements')}</p>}
       {data.groups.map((g) => (

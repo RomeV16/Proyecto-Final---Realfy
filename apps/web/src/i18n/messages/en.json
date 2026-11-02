@@ -237,7 +237,18 @@
    "STATEMENT_NOT_LATEST": "Void this lessor's later statements first.",
    "STATEMENT_ALREADY_ANNULLED": "The statement was already voided.",
    "STATEMENT_NOT_FOUND": "The statement does not exist.",
-   "OWNER_LEDGER_LOCKED": "Those movements are already in an issued statement: void the statement first."
+   "OWNER_LEDGER_LOCKED": "Those movements are already in an issued statement: void the statement first.",
+   "LESSOR_ISSUER_EXISTS": "This lessor already has a delegated issuer.",
+   "LESSOR_ISSUER_REQUIRED": "Create the delegated issuer of the lessor first.",
+   "PERSON_CUIT_REQUIRED": "The lessor needs a tax ID (CUIT) to be invoiced on their behalf.",
+   "PERSON_FISCAL_CONDITION_REQUIRED": "The lessor needs a VAT status to be invoiced on their behalf.",
+   "FISCAL_CONDITION_CANNOT_INVOICE": "Invoices cannot be issued with that VAT status.",
+   "INVOICING_TRIGGER_MISMATCH": "This lessor is invoiced another way (on payment or on statement issue): it cannot be invoiced by hand here.",
+   "STATEMENT_NOT_ISSUED": "Only an issued account statement can be invoiced.",
+   "NO_PUNTO_DE_VENTA": "The issuer has no point of sale: fetch them from ARCA or add one.",
+   "CURRENCY_NOT_SUPPORTED": "Dollar invoicing is not supported yet.",
+   "TENANT_PARTY_REQUIRED": "The contract has no tenant to invoice.",
+   "RECEPTOR_CUIT_REQUIRED": "An A invoice needs the tenant tax ID (CUIT)."
   },
   "segment": {
    "loading": "Loading…",
@@ -2704,7 +2715,8 @@
    "notFound": "Comprobante no encontrado",
    "emitError": "Error al emitir la Nota de Crédito"
   },
-  "newInvoiceBtn": "New Invoice"
+  "newInvoiceBtn": "New Invoice",
+  "pendingLink": "Pending on behalf of lessors"
  },
  "commissions": {
   "title": "Comisión",
@@ -4291,7 +4303,9 @@
   "amount": "Monto",
   "collected": "Total collected",
   "collectedHint": "{count, plural, =0 {No payments recorded} one {# payment recorded} other {# payments recorded}}",
-  "noPaymentsSubtitle": "Once you record collections they will show up here with method and period."
+  "noPaymentsSubtitle": "Once you record collections they will show up here with method and period.",
+  "invoicing": "Invoicing",
+  "invoicingTitle": "Invoicing of the payment on behalf of the lessor"
  },
  "perfil": {
   "title": "My profile",
@@ -4812,6 +4826,10 @@
    "repairs": {
     "title": "Repairs",
     "description": "Up to which amount the agency acts without asking the lessor, and the management fee that is suggested."
+   },
+   "invoicing": {
+    "title": "Invoicing on behalf of the lessor",
+    "description": "What is invoiced in the name of each lessor, when and with what VAT. Each lessor can change it. These are conservative conventions: confirm them with the accountant before turning on automatic issuing."
    }
   },
   "fields": {
@@ -4989,6 +5007,29 @@
    "repairMgmtFeePct": {
     "label": "Repair management fee (%)",
     "hint": "Percentage suggested when charging a repair; always optional and never a commission (factory value {value})."
+   },
+   "invoicingScope": {
+    "label": "What is invoiced",
+    "hint": "Factory default: {value}.",
+    "options": {
+     "Alquiler": "Rent only",
+     "AlquilerPunitorios": "Rent and late fees",
+     "TodoLocador": "Everything that belongs to the lessor"
+    }
+   },
+   "invoicingWhen": {
+    "label": "When it is invoiced",
+    "hint": "Factory default: {value}.",
+    "options": {
+     "Manual": "On request (manual)",
+     "AlPagar": "When each payment is recorded",
+     "AlEmitirEstado": "When the account statement is issued"
+    }
+   },
+   "invoicingVatPct": {
+    "label": "VAT included in the amount",
+    "hint": "Factory default: {value}.",
+    "zero": "No VAT itemised"
    }
   }
  },
@@ -6553,6 +6594,137 @@
    "viewAll": "View all",
    "addAlta": "Add new-lease fee",
    "addRenewal": "Add renewal fee"
+  }
+ },
+ "lessorInvoicing": {
+  "forbidden": "You do not have permission to see invoicing on behalf of lessors.",
+  "loadError": "The lessor invoicing could not be loaded.",
+  "tabs": {
+   "label": "Lessor sections",
+   "ledger": "Account",
+   "invoicing": "Invoicing"
+  },
+  "fiscalConditions": {
+   "ResponsableInscripto": "VAT registered",
+   "Monotributista": "Monotributo",
+   "ConsumidorFinal": "Final consumer",
+   "Exento": "Exempt",
+   "NoResponsable": "Not responsible"
+  },
+  "delegation": {
+   "Pending": "Not verified",
+   "Active": "Delegation active",
+   "Revoked": "Delegation revoked"
+  },
+  "statuses": {
+   "Pendiente": "Pending",
+   "Emitido": "Issued",
+   "Fallido": "Failed",
+   "Omitido": "Nothing to invoice"
+  },
+  "kinds": {
+   "Factura": "Invoice",
+   "NotaCredito": "Credit note"
+  },
+  "sources": {
+   "Payment": "Payment",
+   "OwnerStatement": "Account statement"
+  },
+  "comprobanteTypes": {
+   "FacturaA": "Invoice A",
+   "FacturaB": "Invoice B",
+   "FacturaC": "Invoice C",
+   "NotaCreditoA": "Credit note A",
+   "NotaCreditoB": "Credit note B",
+   "NotaCreditoC": "Credit note C",
+   "NotaDebitoA": "Debit note A",
+   "NotaDebitoB": "Debit note B",
+   "NotaDebitoC": "Debit note C"
+  },
+  "scope": {
+   "Alquiler": "Rent only",
+   "AlquilerPunitorios": "Rent and late fees",
+   "TodoLocador": "Everything that belongs to the lessor"
+  },
+  "when": {
+   "Manual": "On request (manual)",
+   "AlPagar": "When each payment is recorded",
+   "AlEmitirEstado": "When the account statement is issued"
+  },
+  "vat": {
+   "zero": "No VAT itemised"
+  },
+  "issuer": {
+   "title": "Delegated issuer",
+   "explain": "The agency invoices with the lessor ARCA delegation: the invoice is issued in the name and tax ID of the lessor, never of the agency.",
+   "none": "This lessor has no delegated issuer yet.",
+   "create": "Create delegated issuer",
+   "created": "Delegated issuer created. The delegation still has to be verified and a point of sale loaded.",
+   "createError": "The delegated issuer could not be created.",
+   "name": "Business name",
+   "cuit": "Tax ID (CUIT)",
+   "condition": "VAT status",
+   "delegation": "ARCA delegation",
+   "verifiedAt": "verified on {date}",
+   "verify": "Verify delegation",
+   "verified": "Delegation verified.",
+   "verifyError": "The delegation could not be verified.",
+   "sync": "Fetch points of sale",
+   "synced": "Points of sale updated.",
+   "syncError": "The points of sale could not be fetched.",
+   "pdv": "Points of sale",
+   "noPdv": "No points of sale: nothing can be issued without one.",
+   "blocked": "blocked"
+  },
+  "settings": {
+   "title": "What and when is invoiced",
+   "explain": "Whatever you do not set here is taken from the agency defaults (Settings).",
+   "scope": "What is invoiced",
+   "when": "When it is invoiced",
+   "vat": "VAT included in the amount",
+   "inherit": "The agency value",
+   "fromAgency": "Agency: {value}.",
+   "effective": "In force: {scope} · {when} · {vat}.",
+   "autoSince": "Invoices automatically since {date}; earlier items are not invoiced.",
+   "fiscalNote": "The invoice type comes from the lessor and tenant tax status. Which items are invoiced and with what VAT is for the lessor accountant to decide: confirm it before turning on automatic invoicing.",
+   "save": "Save",
+   "saved": "Settings saved.",
+   "saveError": "The settings could not be saved."
+  },
+  "source": {
+   "title": "Invoicing on behalf of the lessor",
+   "explain": "Each lessor is invoiced in their name with their delegated issuer, for the amount of their share.",
+   "invoice": "Invoice on behalf of the lessor",
+   "retry": "Invoice / retry",
+   "invoiced": "Invoiced.",
+   "nobody": "No lessor of this item has a delegated issuer.",
+   "invoiceError": "It could not be invoiced. The payment was not changed: try again later.",
+   "loadError": "The vouchers could not be loaded.",
+   "none": "No voucher has been issued on behalf of the lessor yet.",
+   "credited": "with credit note",
+   "jobs": "Issuing status",
+   "notReady": "An annulled statement is not invoiced; its invoice is already queued for the credit note."
+  },
+  "pending": {
+   "title": "Pending invoices on behalf of lessors",
+   "subtitle": "What is queued to be issued or failed (for example, ARCA did not answer). A failure never affects the payment or the account statement.",
+   "run": "Issue pending",
+   "running": "Issuing…",
+   "ran": "Issued: {emitted}. Failed: {failed}.",
+   "runError": "The pending invoices could not be issued.",
+   "filter": "Status",
+   "open": "Pending and failed",
+   "empty": "No pending invoices",
+   "emptySubtitle": "Anything invoiced on behalf of a lessor that fails shows up here.",
+   "columns": {
+    "person": "Lessor",
+    "source": "Source",
+    "kind": "Type",
+    "status": "Status",
+    "attempts": "Attempts",
+    "error": "Reason",
+    "createdAt": "Queued since"
+   }
   }
  }
 }

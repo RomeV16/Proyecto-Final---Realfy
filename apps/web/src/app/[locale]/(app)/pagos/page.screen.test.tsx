@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderEs } from '@/components/index-data/test-utils';
 
 const { apiClient, failure } = vi.hoisted(() => ({
@@ -63,6 +64,7 @@ function mockApi(items = payments) {
         vencida: { count: 1, monto: 125000 },
       });
     }
+    if (path.endsWith('/invoices')) return Promise.resolve({ comprobantes: [], jobs: [] });
     return Promise.resolve({});
   });
 }
@@ -96,6 +98,17 @@ describe('PagosPage', () => {
     expect(text).toContain('01 de nov de 2026');
     expect(text).toContain('USD');
     expect(text).toContain('—');
+  });
+
+  it('abre la facturación por cuenta del locador de un pago', async () => {
+    const user = userEvent.setup();
+    mockApi();
+    renderEs(<PagosPage />);
+    const buttons = await screen.findAllByRole('button', { name: 'Facturación' });
+    expect(buttons.length).toBeGreaterThanOrEqual(3);
+    await user.click(buttons[0]);
+    expect(await screen.findByText('Facturación del cobro por cuenta del locador')).toBeInTheDocument();
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/payments/pay1/invoices'));
   });
 
   it('sin pagos muestra el estado vacío', async () => {

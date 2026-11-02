@@ -8,8 +8,11 @@ import {
   DEFAULT_OPERATIONAL_DEFAULTS,
   FeePayerChoice,
   FeeVatMode,
+  LESSOR_INVOICE_VAT_RATES,
   LessorChargeTiming,
   LessorDirectOwes,
+  LessorInvoiceScope,
+  LessorInvoiceWhen,
   PartialAllocation,
   ReceiptSeriesMode,
   StaffCommissionBase,
@@ -47,6 +50,9 @@ const CASH_OPTIONS = {
   cashReceiptSeries: Object.values(ReceiptSeriesMode),
   cashCompensationScope: Object.values(CompensationScope),
   ownerLessorChargeTiming: Object.values(LessorChargeTiming),
+  invoicingScope: Object.values(LessorInvoiceScope),
+  invoicingWhen: Object.values(LessorInvoiceWhen),
+  invoicingVatPct: LESSOR_INVOICE_VAT_RATES.map(String),
 } as const;
 
 /** Campos de texto que pueden quedar vacíos (vacío = el comportamiento de fábrica). */
@@ -54,6 +60,9 @@ const OPTIONAL_FIELDS: readonly FieldName[] = ['ownerStatementCloseDay'];
 type CashOptionField = keyof typeof CASH_OPTIONS;
 
 const isCashOption = (field: FieldName): field is CashOptionField => field in CASH_OPTIONS;
+
+/** Las alícuotas de IVA se muestran como porcentaje (su clave tendría un punto: 10.5). */
+const isVatField = (field: string) => field === 'invoicingVatPct';
 
 /** Campos de cada sección, en el orden en que se muestran; las casillas van debajo. */
 const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = [
@@ -87,6 +96,7 @@ const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = 
     checks: ['cashCustodyInAgencyBalance', 'cashReceiptWhenLessorReceives'],
   },
   { key: 'ownerAccounts', fields: ['ownerStatementCloseDay', 'ownerLessorChargeTiming'] },
+  { key: 'invoicing', fields: ['invoicingScope', 'invoicingWhen', 'invoicingVatPct'] },
 ];
 
 const DEFAULT_FORM = operationalDefaultsToForm(DEFAULT_OPERATIONAL_DEFAULTS);
@@ -100,6 +110,8 @@ function DefaultsForm({
 }) {
   const t = useTranslations('operationalDefaults');
   const tConv = useTranslations('liquidationConventions');
+  const optionLabel = (field: CashOptionField, option: string) =>
+    isVatField(field) ? (option === '0' ? t('fields.invoicingVatPct.zero') : `${option} %`) : t(`fields.${field}.options.${option}`);
   const { values, set, setValues, errors, formError, submitting, submit } = useZodForm({
     schema: operationalDefaultsFormSchema,
     initialValues: operationalDefaultsToForm(saved),
@@ -136,7 +148,7 @@ function DefaultsForm({
                 <FormField
                   key={field}
                   label={t(`fields.${field}.label`)}
-                  hint={t(`fields.${field}.hint`, { value: t(`fields.${field}.options.${DEFAULT_FORM[field]}`) })}
+                  hint={t(`fields.${field}.hint`, { value: optionLabel(field, DEFAULT_FORM[field]) })}
                   error={errors[field]}
                   required
                 >
@@ -144,7 +156,7 @@ function DefaultsForm({
                     <Select {...c} value={values[field]} onChange={(e) => set(field, e.target.value as never)}>
                       {CASH_OPTIONS[field].map((option) => (
                         <option key={option} value={option}>
-                          {t(`fields.${field}.options.${option}`)}
+                          {optionLabel(field, option)}
                         </option>
                       ))}
                     </Select>
