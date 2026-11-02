@@ -80,6 +80,18 @@ function setup({ list = [], post, failList }: Setup = {}) {
       return { items: [{ id: CONTRACT_ID, startDate: '2026-01-01T00:00:00.000Z', property: { id: PROPERTY_ID, title: 'Depto Sintético' } }] };
     }
     if (path.startsWith('/properties?')) return { items: [{ id: PROPERTY_ID, title: 'Depto Sintético' }] };
+    if (path === `/properties/${PROPERTY_ID}/ownerships`) {
+      return [{ personId: '33333333-3333-4333-8333-333333333333', validTo: null, person: { firstName: 'Ana', lastName: 'Titular' } }];
+    }
+    if (path === `/contracts/${CONTRACT_ID}`) {
+      return {
+        lessors: [
+          { personId: '44444444-4444-4444-8444-444444444444', validTo: null, person: { firstName: 'Luis', lastName: 'Vigente' } },
+          { personId: '55555555-5555-4555-8555-555555555555', validTo: '2020-01-01T00:00:00.000Z', person: { firstName: 'Vera', lastName: 'Anterior' } },
+          { personId: '44444444-4444-4444-8444-444444444444', validTo: null, person: { firstName: 'Luis', lastName: 'Vigente' } },
+        ],
+      };
+    }
     if (init?.method === 'POST' || init?.method === 'PATCH') {
       const result = post ? post(path, init) : { items: [charge('new')] };
       current = [];
@@ -271,6 +283,10 @@ describe('Centro de carga: alta rápida', () => {
     expect(within(dialog).getByText(/Se descuenta en el estado del locador/)).toBeInTheDocument();
     await user.selectOptions(within(dialog).getByLabelText('Clase de gasto'), 'ExpensaExtra');
     await user.selectOptions(within(dialog).getByLabelText('Propiedad'), PROPERTY_ID);
+    // Por defecto es de todos los locadores; se puede elegir uno de los titulares de la propiedad.
+    expect(within(dialog).getByLabelText('Locador')).toHaveValue('');
+    expect(await within(dialog).findByRole('option', { name: 'Ana Titular' })).toBeInTheDocument();
+    await user.selectOptions(within(dialog).getByLabelText('Locador'), '33333333-3333-4333-8333-333333333333');
     await user.type(within(dialog).getByLabelText('Descripción'), 'Expensa extraordinaria');
     await user.type(within(dialog).getByLabelText('Importe'), '120000');
     await user.click(within(dialog).getByRole('button', { name: 'Guardar' }));
@@ -280,10 +296,33 @@ describe('Centro de carga: alta rápida', () => {
       propertyId: PROPERTY_ID,
       contractId: null,
       chargedTo: 'Locador',
+      lessorPersonId: '33333333-3333-4333-8333-333333333333',
       kind: 'ExpensaExtra',
     });
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Se cargó 1 cargo'));
     expect(toastInfo).not.toHaveBeenCalled();
+  });
+
+  it('un gasto al locador de un contrato ofrece sus locadores vigentes y, sin elegir, es de todos', async () => {
+    setup({ list: [] });
+    const user = userEvent.setup();
+    await screen.findAllByText('No hay cargos');
+    await user.click(screen.getAllByRole('button', { name: 'Cargar un gasto' })[0]);
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() => expect(within(dialog).getByRole('option', { name: /Depto Sintético · 2026-01/ })).toBeInTheDocument());
+    await user.selectOptions(within(dialog).getByLabelText('A cargo de'), 'Locador');
+    await user.selectOptions(within(dialog).getByLabelText('Contrato'), CONTRACT_ID);
+
+    expect(await within(dialog).findByRole('option', { name: 'Luis Vigente' })).toBeInTheDocument();
+    expect(within(dialog).getAllByRole('option', { name: 'Luis Vigente' })).toHaveLength(1);
+    expect(within(dialog).queryByRole('option', { name: 'Vera Anterior' })).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('option', { name: 'Todos los locadores (según su porcentaje)' })).toBeInTheDocument();
+
+    await user.type(within(dialog).getByLabelText('Descripción'), 'Pintura');
+    await user.type(within(dialog).getByLabelText('Importe'), '5000');
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(JSON.parse(writes()[0][1].body)).toMatchObject({ contractId: CONTRACT_ID, chargedTo: 'Locador', lessorPersonId: null });
   });
 
   it('valida los campos y no manda nada con errores', async () => {

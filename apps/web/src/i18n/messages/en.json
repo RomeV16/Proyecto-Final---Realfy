@@ -4476,6 +4476,19 @@
     "Proporcional": "Prorated",
     "Completo": "Applied in full"
    }
+  },
+  "upfrontBasis": {
+   "label": "Commission for the advance threshold",
+   "hint": "Which monthly commission an expense's advance threshold is measured against (factory: {value}).",
+   "options": {
+    "ComisionPactada": "The contract's agreed commission",
+    "PorcentajePorDefecto": "The agency's default percentage"
+   }
+  },
+  "upfrontThreshold": {
+   "label": "Own advance threshold",
+   "placeholder": "Default: {value}",
+   "hint": "In monthly commissions. Empty uses the agency default."
   }
  },
  "penaltyRule": {
@@ -4615,6 +4628,7 @@
   "adjustmentPeriod": "Adjustment period",
   "adjustmentBase": "Adjustment base",
   "indexLagMonths": "Index lag",
+  "feesCount": "{count, plural, one {# monthly commission} other {# monthly commissions}}",
   "months": "{count, plural, one {# month} other {# months}}",
   "customPct": "Percentage",
   "dueDay": "Due day",
@@ -4785,6 +4799,8 @@
     "saveError": "The charge could not be saved",
     "saved": "{count, plural, one {# charge loaded} other {# installments loaded}}",
     "upfrontNotice": "{count, plural, one {# charge exceeds} other {# installments exceed}} the advance threshold: flagged to request an advance payment.",
+    "lessorHint": "The lessors in force for the contract, or the property's owners.",
+    "allLessors": "All lessors (according to their share)",
     "noContract": "No contract (empty property)",
     "chooseProperty": "Choose a property",
     "contractRequired": "A charge to the tenant needs a contract.",
@@ -4798,6 +4814,7 @@
      "Inmobiliaria": "The agency absorbs it: it is only recorded."
     },
     "fields": {
+     "lessor": "Lessor",
      "chargedTo": "Charged to",
      "kind": "Kind of expense",
      "contract": "Contract",
@@ -4812,6 +4829,7 @@
     }
    },
    "errors": {
+    "lessorPersonId": "Choose a valid lessor",
     "propertyId": "Choose the contract or the property",
     "contractId": "A charge to the tenant needs a contract",
     "chargedTo": "Choose who it is charged to",

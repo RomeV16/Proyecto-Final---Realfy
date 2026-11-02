@@ -13,7 +13,7 @@ import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { ChargeContractOption, ChargePropertyOption } from './use-charge-targets';
+import { useChargeLessors, type ChargeContractOption, type ChargePropertyOption } from './use-charge-targets';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -21,6 +21,7 @@ const initialValues = (contractId: string): ChargeFormValues => ({
   contractId,
   propertyId: '',
   chargedTo: ChargeTarget.Inquilino,
+  lessorPersonId: '',
   kind: PendingChargeKind.Reparacion,
   description: '',
   amount: '',
@@ -53,6 +54,8 @@ export function ChargeQuickAdd({ contracts, properties, contractId = '', onClose
 
   const noContract = values.contractId === '';
   const toTenant = values.chargedTo === ChargeTarget.Inquilino;
+  const toLessor = values.chargedTo === ChargeTarget.Locador;
+  const lessors = useChargeLessors(values.contractId, values.propertyId, toLessor);
 
   const save = submit(async (body) => {
     const res = await apiClient<{ items: { requiresUpfront: boolean }[] }>('/charges', {
@@ -126,6 +129,20 @@ export function ChargeQuickAdd({ contracts, properties, contractId = '', onClose
               </FormField>
             )}
           </div>
+          {toLessor && (
+            <FormField label={t('form.fields.lessor')} hint={t('form.lessorHint')} error={errors.lessorPersonId}>
+              {(c) => (
+                <Select {...c} value={values.lessorPersonId} onChange={(e) => set('lessorPersonId', e.target.value)}>
+                  <option value="">{t('form.allLessors')}</option>
+                  {lessors.map((lessor) => (
+                    <option key={lessor.personId} value={lessor.personId}>
+                      {lessor.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </FormField>
+          )}
           <FormField label={t('form.fields.description')} error={errors.description}>
             {(c) => <Input {...c} value={values.description} onChange={(e) => set('description', e.target.value)} />}
           </FormField>

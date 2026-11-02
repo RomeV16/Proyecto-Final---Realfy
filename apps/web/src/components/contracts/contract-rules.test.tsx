@@ -89,6 +89,16 @@ describe('ContractRules', () => {
     expect(text).toContain('Se descuenta completo');
   });
 
+  it('muestra el umbral de anticipo propio y la comisión con que se mide', async () => {
+    const current = version({ upfrontBasis: 'PorcentajePorDefecto', upfrontThresholdFees: 3 });
+    serve({ at: '2026-10-31T00:00:00.000Z', current, versions: [current] });
+    renderEs(<ContractRules contractId="c-1" currency="ARS" />);
+    expect(await screen.findByText('Umbral de anticipo propio')).toBeInTheDocument();
+    const text = norm(document.body.textContent);
+    expect(text).toContain('3 comisiones mensuales');
+    expect(text).toContain('El porcentaje por defecto de la inmobiliaria');
+  });
+
   it('una versión sin convenciones no muestra esos datos', async () => {
     const current = version({
       prorationMode: undefined,

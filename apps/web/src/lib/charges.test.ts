@@ -23,6 +23,7 @@ describe('chargeBody', () => {
       contractId: 'c1',
       propertyId: '',
       chargedTo: 'Inquilino',
+      lessorPersonId: 'les-1',
       kind: 'Reparacion',
       description: ' Canilla ',
       amount: '8000,50',
@@ -37,6 +38,7 @@ describe('chargeBody', () => {
       contractId: 'c1',
       propertyId: undefined,
       chargedTo: 'Inquilino',
+      lessorPersonId: null,
       kind: 'Reparacion',
       description: 'Canilla',
       amount: '8000.50',
@@ -47,6 +49,12 @@ describe('chargeBody', () => {
       installments: 3,
       notes: null,
     });
+  });
+
+  it('el locador solo viaja en un gasto al locador', () => {
+    const base = { description: 'x', amount: '1', incurredAt: '2026-10-20', kind: 'Otro', lessorPersonId: 'les-1' };
+    expect(chargeBody({ ...base, chargedTo: 'Locador' }).lessorPersonId).toBe('les-1');
+    expect(chargeBody({ ...base, chargedTo: 'Locador', lessorPersonId: '' }).lessorPersonId).toBeNull();
   });
 
   it('lo vacío queda sin valor para que mande el esquema', () => {
@@ -60,6 +68,7 @@ describe('chargeFormSchema', () => {
     contractId: '11111111-1111-4111-8111-111111111111',
     propertyId: '',
     chargedTo: 'Inquilino',
+    lessorPersonId: '',
     kind: 'Reparacion',
     description: 'Canilla',
     amount: '8000,50',

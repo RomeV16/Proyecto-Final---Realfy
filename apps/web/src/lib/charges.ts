@@ -70,6 +70,7 @@ export interface ChargeFormValues {
   contractId: string;
   propertyId: string;
   chargedTo: string;
+  lessorPersonId: string;
   kind: string;
   description: string;
   amount: string;
@@ -88,6 +89,8 @@ export function chargeBody(values: Record<string, string>): Record<string, unkno
     contractId: orNull(values.contractId ?? ''),
     propertyId: orNull(values.propertyId ?? '') ?? undefined,
     chargedTo: values.chargedTo,
+    // Solo un gasto al locador elige locador; sin elegir es de todos, según su porcentaje.
+    lessorPersonId: values.chargedTo === 'Locador' ? orNull(values.lessorPersonId ?? '') : null,
     kind: values.kind,
     description: (values.description ?? '').trim(),
     amount: parseChargeAmount(values.amount ?? '') ?? '',

@@ -99,6 +99,7 @@ describe('OperationalDefaultsManager', () => {
     expect(screen.getByLabelText(/Ajuste a mitad de mes/)).toHaveValue('DesdePeriodoSiguiente');
     expect(screen.getByLabelText(/Primer mes con inicio tardío/)).toHaveValue('DiaDeInicio');
     expect(screen.getByLabelText(/Descuento de monto fijo en un mes parcial/)).toHaveValue('Proporcional');
+    expect(screen.getByLabelText(/Comisión para el umbral de anticipo/)).toHaveValue('ComisionPactada');
     expect(screen.getByRole('option', { name: 'Mes comercial de 30 días' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Se cobra al firmar (no se liquida)' })).toBeInTheDocument();
     expect(screen.getByText(/de fábrica: Días reales del mes/)).toBeInTheDocument();
@@ -111,6 +112,7 @@ describe('OperationalDefaultsManager', () => {
     await user.selectOptions(screen.getByLabelText(/Ajuste a mitad de mes/), 'Prorrateado');
     await user.selectOptions(screen.getByLabelText(/Primer mes con inicio tardío/), 'AlFirmar');
     await user.selectOptions(screen.getByLabelText(/Descuento de monto fijo en un mes parcial/), 'Completo');
+    await user.selectOptions(screen.getByLabelText(/Comisión para el umbral de anticipo/), 'PorcentajePorDefecto');
 
     await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
 
@@ -121,6 +123,7 @@ describe('OperationalDefaultsManager', () => {
       midMonthAdjustmentMode: 'Prorrateado',
       firstDueMode: 'AlFirmar',
       fixedDiscountProration: 'Completo',
+      upfrontBasis: 'PorcentajePorDefecto',
     });
 
     await user.click(screen.getByRole('button', { name: 'Volver a los valores de fábrica' }));

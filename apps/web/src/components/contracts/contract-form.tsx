@@ -87,6 +87,8 @@ interface FormData {
   customAdjustmentPct: string;
   /** Convenciones de liquidación pactadas; arrancan con las de la inmobiliaria. */
   liquidationRules: ConventionValues;
+  /** Umbral de anticipo del centro de carga en comisiones mensuales; vacío = el de la inmobiliaria. */
+  upfrontThresholdFees: string;
   guarantees: GuaranteeEntry[];
 }
 
@@ -104,7 +106,8 @@ const INITIAL_FORM: FormData = {
   adjustmentType: '',
   adjustmentPeriod: '',
   customAdjustmentPct: '',
-  liquidationRules: { prorationMode: '', midMonthAdjustmentMode: '', firstDueMode: '', fixedDiscountProration: '' },
+  liquidationRules: { prorationMode: '', midMonthAdjustmentMode: '', firstDueMode: '', fixedDiscountProration: '', upfrontBasis: '' },
+  upfrontThresholdFees: '',
   guarantees: [],
 };
 
@@ -146,12 +149,14 @@ export function ContractForm() {
   const [step, setStep] = useState(0);
   const tConv = useTranslations('liquidationConventions');
 
+  const [defaultUpfront, setDefaultUpfront] = useState<number | null>(null);
   // Las convenciones arrancan con los valores por defecto de la inmobiliaria.
   useEffect(() => {
     let cancelled = false;
-    apiClient<Partial<ConventionValues>>('/tenants/me/operational-defaults')
+    apiClient<Partial<ConventionValues> & { upfrontThresholdFees?: number }>('/tenants/me/operational-defaults')
       .then((defaults) => {
         if (cancelled || !defaults) return;
+        setDefaultUpfront(defaults.upfrontThresholdFees ?? null);
         setForm((prev) => ({
           ...prev,
           liquidationRules: Object.fromEntries(
@@ -365,9 +370,10 @@ export function ContractForm() {
         adjustmentPeriod: form.adjustmentPeriod || undefined,
         customAdjustmentPct: form.customAdjustmentPct ? Number(form.customAdjustmentPct) : undefined,
         // Solo viaja lo que ya tiene valor: lo demás toma el valor por defecto de la inmobiliaria.
-        liquidationRules: Object.fromEntries(
-          Object.entries(form.liquidationRules).filter(([, value]) => value),
-        ),
+        liquidationRules: {
+          ...Object.fromEntries(Object.entries(form.liquidationRules).filter(([, value]) => value)),
+          ...(form.upfrontThresholdFees.trim() !== '' ? { upfrontThresholdFees: Number(form.upfrontThresholdFees) } : {}),
+        },
         persons: form.persons.map((p) => ({ personId: p.personId, role: p.role })),
         // Los locadores viajan con su porcentaje de cobro; los datos de partes iguales son solo el valor inicial.
         lessors: form.lessors.map((l) => ({
@@ -795,6 +801,20 @@ export function ContractForm() {
                     </select>
                   </div>
                 ))}
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-500" htmlFor="upfront-threshold">
+                    {tConv('upfrontThreshold.label')}
+                  </label>
+                  <input
+                    id="upfront-threshold"
+                    inputMode="numeric"
+                    value={form.upfrontThresholdFees}
+                    onChange={(e) => setForm((prev) => ({ ...prev, upfrontThresholdFees: e.target.value.replace(/\D/g, '') }))}
+                    placeholder={defaultUpfront !== null ? tConv('upfrontThreshold.placeholder', { value: defaultUpfront }) : ''}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                  />
+                  <p className="mt-1 text-xs text-slate-400">{tConv('upfrontThreshold.hint')}</p>
+                </div>
               </div>
             </div>
 

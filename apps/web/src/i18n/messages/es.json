@@ -4476,6 +4476,19 @@
     "Proporcional": "Se prorratea",
     "Completo": "Se descuenta completo"
    }
+  },
+  "upfrontBasis": {
+   "label": "Comisión para el umbral de anticipo",
+   "hint": "Con qué comisión mensual se mide el umbral de anticipo de un gasto (de fábrica: {value}).",
+   "options": {
+    "ComisionPactada": "La comisión pactada del contrato",
+    "PorcentajePorDefecto": "El porcentaje por defecto de la inmobiliaria"
+   }
+  },
+  "upfrontThreshold": {
+   "label": "Umbral de anticipo propio",
+   "placeholder": "Por defecto: {value}",
+   "hint": "En comisiones mensuales. Vacío usa el de la inmobiliaria."
   }
  },
  "penaltyRule": {
@@ -4615,6 +4628,7 @@
   "adjustmentPeriod": "Período de ajuste",
   "adjustmentBase": "Base del ajuste",
   "indexLagMonths": "Rezago del índice",
+  "feesCount": "{count, plural, one {# comisión mensual} other {# comisiones mensuales}}",
   "months": "{count, plural, one {# mes} other {# meses}}",
   "customPct": "Porcentaje",
   "dueDay": "Día de vencimiento",
@@ -4785,6 +4799,8 @@
     "saveError": "No se pudo guardar el cargo",
     "saved": "{count, plural, one {Se cargó # cargo} other {Se cargaron # cuotas}}",
     "upfrontNotice": "{count, plural, one {# cargo supera} other {# cuotas superan}} el umbral de anticipo: quedó marcado para pedir el pago por adelantado.",
+    "lessorHint": "Los locadores vigentes del contrato o titulares de la propiedad.",
+    "allLessors": "Todos los locadores (según su porcentaje)",
     "noContract": "Sin contrato (propiedad vacía)",
     "chooseProperty": "Elegí una propiedad",
     "contractRequired": "Un cargo al inquilino necesita contrato.",
@@ -4798,6 +4814,7 @@
      "Inmobiliaria": "La absorbe la inmobiliaria: solo queda registrado."
     },
     "fields": {
+     "lessor": "Locador",
      "chargedTo": "A cargo de",
      "kind": "Clase de gasto",
      "contract": "Contrato",
@@ -4812,6 +4829,7 @@
     }
    },
    "errors": {
+    "lessorPersonId": "Elegí un locador válido",
     "propertyId": "Elegí el contrato o la propiedad",
     "contractId": "Un cargo al inquilino necesita un contrato",
     "chargedTo": "Elegí a cargo de quién va",

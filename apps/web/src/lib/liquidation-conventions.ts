@@ -3,14 +3,16 @@ import {
   FixedDiscountProration,
   MidMonthAdjustmentMode,
   ProrationMode,
+  UpfrontBasis,
 } from '@realfy/shared';
 
-/** Las cuatro convenciones de liquidación que se pactan por contrato, con su valor por defecto en la inmobiliaria. */
+/** Las convenciones de liquidación y de anticipo que se pactan por contrato, con su valor por defecto en la inmobiliaria. */
 export const CONVENTION_FIELDS = [
   'prorationMode',
   'midMonthAdjustmentMode',
   'firstDueMode',
   'fixedDiscountProration',
+  'upfrontBasis',
 ] as const;
 
 export type ConventionField = (typeof CONVENTION_FIELDS)[number];
@@ -23,6 +25,7 @@ export const CONVENTION_OPTIONS: Record<ConventionField, readonly string[]> = {
   midMonthAdjustmentMode: Object.values(MidMonthAdjustmentMode),
   firstDueMode: Object.values(FirstDueMode),
   fixedDiscountProration: Object.values(FixedDiscountProration),
+  upfrontBasis: Object.values(UpfrontBasis),
 };
 
 export function isConventionField(field: string): field is ConventionField {

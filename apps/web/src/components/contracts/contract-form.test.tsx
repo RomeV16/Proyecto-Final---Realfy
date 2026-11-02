@@ -291,6 +291,8 @@ describe('ContractForm — convenciones de liquidación', () => {
       midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
       firstDueMode: 'DiaDeInicio',
       fixedDiscountProration: 'Proporcional',
+      upfrontBasis: 'ComisionPactada',
+      upfrontThresholdFees: 2,
     });
     mockApi();
   });
@@ -322,6 +324,10 @@ describe('ContractForm — convenciones de liquidación', () => {
 
     await user.selectOptions(screen.getByLabelText('Primer mes con inicio tardío'), 'AlFirmar');
     await user.selectOptions(screen.getByLabelText('Descuento de monto fijo en un mes parcial'), 'Completo');
+    expect(screen.getByLabelText('Comisión para el umbral de anticipo')).toHaveValue('ComisionPactada');
+    await user.selectOptions(screen.getByLabelText('Comisión para el umbral de anticipo'), 'PorcentajePorDefecto');
+    expect(screen.getByLabelText('Umbral de anticipo propio')).toHaveAttribute('placeholder', 'Por defecto: 2');
+    await user.type(screen.getByLabelText('Umbral de anticipo propio'), '3x');
     await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
@@ -332,6 +338,8 @@ describe('ContractForm — convenciones de liquidación', () => {
       midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
       firstDueMode: 'AlFirmar',
       fixedDiscountProration: 'Completo',
+      upfrontBasis: 'PorcentajePorDefecto',
+      upfrontThresholdFees: 3,
     });
   });
 
@@ -339,7 +347,7 @@ describe('ContractForm — convenciones de liquidación', () => {
     tenantDefaults = () => Promise.reject(new Error('sin permiso'));
     const user = await toPriceStep();
     expect(await screen.findByLabelText('Prorrateo de un mes parcial')).toHaveValue('');
-    expect(screen.getAllByRole('option', { name: 'Valor por defecto de la inmobiliaria' })).toHaveLength(4);
+    expect(screen.getAllByRole('option', { name: 'Valor por defecto de la inmobiliaria' })).toHaveLength(5);
 
     await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));

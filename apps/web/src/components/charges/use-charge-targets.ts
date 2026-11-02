@@ -55,3 +55,48 @@ export function useChargeTargets(enabled = true) {
 
   return { contracts, properties, error };
 }
+
+export interface ChargeLessorOption {
+  personId: string;
+  name: string;
+}
+
+interface LessorRow {
+  personId: string;
+  validTo?: string | null;
+  person: { firstName: string; lastName: string };
+}
+
+/**
+ * Locadores que pueden soportar un gasto: los vigentes del contrato elegido o, sin contrato,
+ * los titulares de la propiedad. Sin elegir ninguno, el gasto es de todos según su porcentaje.
+ */
+export function useChargeLessors(contractId: string, propertyId: string, enabled: boolean) {
+  const [lessors, setLessors] = useState<ChargeLessorOption[]>([]);
+
+  useEffect(() => {
+    if (!enabled || (!contractId && !propertyId)) {
+      setLessors([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = contractId
+          ? ((await apiClient<{ lessors?: LessorRow[] }>(`/contracts/${contractId}`)).lessors ?? [])
+          : await apiClient<LessorRow[]>(`/properties/${propertyId}/ownerships`);
+        const now = Date.now();
+        const inForce = rows.filter((row) => !row.validTo || new Date(row.validTo).getTime() > now);
+        const unique = new Map(inForce.map((row) => [row.personId, `${row.person.firstName} ${row.person.lastName}`]));
+        if (!cancelled) setLessors([...unique].map(([personId, name]) => ({ personId, name })));
+      } catch {
+        if (!cancelled) setLessors([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [contractId, propertyId, enabled]);
+
+  return lessors;
+}
