@@ -187,6 +187,21 @@
     "Admin",
     "Gerente"
   ],
+  "src/modules/data-quality/data-quality.controller.ts#DataQualityController.summary": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/data-quality/data-quality.controller.ts#DataQualityController.previewMerge": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/data-quality/data-quality.controller.ts#DataQualityController.merge": [
+    "Admin"
+  ],
+  "src/modules/data-quality/data-quality.controller.ts#DataQualityController.findings": [
+    "Admin",
+    "Gerente"
+  ],
   "src/modules/email-templates/email-templates.controller.ts#EmailTemplatesController.findAll": [
     "Admin",
     "Gerente",

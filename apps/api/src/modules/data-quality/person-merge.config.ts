@@ -1,0 +1,75 @@
+/**
+ * Todo lo que apunta a una persona y se mueve al unirla con otra. Se
+ * enumeró del esquema de Prisma; `person-merge.config.spec.ts` lo compara con
+ * el modelo de datos y falla si aparece una relación nueva sin tratar.
+ *
+ * - `repoint`: el campo se reescribe a la persona que se conserva.
+ * - `dedupe`: hay una clave única; si la persona conservada ya tiene la misma
+ *   fila, la de la persona unida se descarta, y si no, se reescribe.
+ * - `conflict`: hay una clave única y no hay forma segura de elegir una fila:
+ *   si ambas personas tienen una, la unión se rechaza con 409.
+ */
+export type MergeRule =
+  | { kind: 'repoint'; delegate: string; field: string }
+  | { kind: 'dedupe'; delegate: string; field: string; scope: string[] }
+  | { kind: 'conflict'; delegate: string; field: string; scope: string[] };
+
+/** Modelo de Prisma de cada delegado, para comparar con el esquema. */
+export const MERGE_MODELS: Record<string, string> = {
+  personBankAccount: 'PersonBankAccount',
+  personDocument: 'PersonDocument',
+  lead: 'Lead',
+  contractLessor: 'ContractLessor',
+  powerOfAttorney: 'PowerOfAttorney',
+  propertyOwnership: 'PropertyOwnership',
+  pendingCharge: 'PendingCharge',
+  ticket: 'Ticket',
+  ticketComment: 'TicketComment',
+  portalRefreshToken: 'PortalRefreshToken',
+  portalInvitation: 'PortalInvitation',
+  personRoleAssignment: 'PersonRoleAssignment',
+  contractPerson: 'ContractPerson',
+  ownerRendicion: 'OwnerRendicion',
+  tenantScore: 'TenantScore',
+  providerProfile: 'ProviderProfile',
+  inquilinoCredential: 'InquilinoCredential',
+};
+
+export const MERGE_RULES: MergeRule[] = [
+  { kind: 'repoint', delegate: 'personBankAccount', field: 'personId' },
+  { kind: 'repoint', delegate: 'personDocument', field: 'personId' },
+  { kind: 'repoint', delegate: 'lead', field: 'personId' },
+  { kind: 'repoint', delegate: 'contractLessor', field: 'personId' },
+  { kind: 'repoint', delegate: 'contractLessor', field: 'payeePersonId' },
+  { kind: 'repoint', delegate: 'powerOfAttorney', field: 'principalId' },
+  { kind: 'repoint', delegate: 'powerOfAttorney', field: 'agentId' },
+  { kind: 'repoint', delegate: 'propertyOwnership', field: 'personId' },
+  { kind: 'repoint', delegate: 'pendingCharge', field: 'lessorPersonId' },
+  { kind: 'repoint', delegate: 'ticket', field: 'createdByPersonId' },
+  { kind: 'repoint', delegate: 'ticket', field: 'providerId' },
+  { kind: 'repoint', delegate: 'ticketComment', field: 'personId' },
+  { kind: 'repoint', delegate: 'portalRefreshToken', field: 'personId' },
+  { kind: 'repoint', delegate: 'portalInvitation', field: 'personId' },
+  // El garante de un rol apunta a otra persona sin clave foránea.
+  { kind: 'repoint', delegate: 'personRoleAssignment', field: 'guarantorForPersonId' },
+  { kind: 'dedupe', delegate: 'personRoleAssignment', field: 'personId', scope: ['role'] },
+  { kind: 'dedupe', delegate: 'contractPerson', field: 'personId', scope: ['contractId', 'role'] },
+  { kind: 'conflict', delegate: 'ownerRendicion', field: 'ownerId', scope: ['contractId', 'period'] },
+  { kind: 'conflict', delegate: 'tenantScore', field: 'personId', scope: [] },
+  { kind: 'conflict', delegate: 'providerProfile', field: 'personId', scope: [] },
+  { kind: 'conflict', delegate: 'inquilinoCredential', field: 'personId', scope: [] },
+];
+
+/** Campos de la persona que se completan desde la unida si la conservada los tiene vacíos. */
+export const MERGE_FILL_FIELDS = [
+  'email',
+  'phone',
+  'phone2',
+  'cuit',
+  'dni',
+  'fiscalCondition',
+  'address',
+  'maritalStatus',
+  'nationality',
+  'payoutMethod',
+] as const;
