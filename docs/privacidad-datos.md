@@ -90,13 +90,13 @@ Los pedidos llegan a la inmobiliaria, que es la responsable de la base, y el equ
 ## Medidas de seguridad
 
 - **Aislamiento entre inmobiliarias.** Cada registro lleva el identificador de su inmobiliaria y toda consulta se filtra por él; ante la duda, el acceso falla cerrado (ADR-0003 y ADR-0006). Una prueba compara la lista de modelos filtrados contra el esquema, de modo que un modelo nuevo sin filtro rompe las pruebas.
-- **Ambiente separado para el piloto.** Datos reales solo en el ambiente `piloto`, con base y almacenamiento propios; nunca en demostración ni en el repositorio (ADR-0014, planificada).
+- **Ambiente separado para el piloto.** Datos reales solo en el ambiente `piloto`, con base y almacenamiento propios; nunca en demostración ni en el repositorio (ADR-0014).
 - **Autenticación.** Contraseñas guardadas con hash, sesiones con token de acceso de vida corta y renovación con rotación, y límite de intentos en el ingreso de usuarios y del portal del inquilino.
 - **Enlaces de un solo uso.** Las invitaciones de usuarios y los enlaces de recupero de contraseña llevan un token de 256 bits aleatorios. En la base solo se guarda su hash SHA-256 (`UserInvitation.token`, `PasswordResetToken.tokenHash`): el valor en claro existe una vez, en la respuesta al Admin o en el correo, y no se escribe en registros ni en la bitácora. Se consumen al usarse; la invitación vence a los 7 días y el enlace de recupero a la hora. Cambiar o recuperar la contraseña cierra las sesiones afectadas, y dar de baja a un usuario las corta de inmediato. El pedido de recupero por correo responde igual exista o no la cuenta, para no revelar quién tiene acceso. Mientras no haya correo configurado, el Admin comparte el enlace a mano: es una credencial temporal y debe enviarse solo a su destinatario.
 - **Permisos por rol** sobre las operaciones de escritura y, en el piloto, sobre la lectura (ítem 32).
 - **Auditoría.** Las operaciones sensibles dejan registro con usuario, acción y cambios.
 - **Errores sin filtración.** Las respuestas de error tienen forma uniforme y no exponen detalles internos (ADR-0005).
-- **Copias de respaldo.** Copia mensual de la base fuera del proveedor de alojamiento y prueba de restauración (previsto en el PR de infraestructura del piloto; hoy la base depende de las copias del proveedor).
+- **Copias de respaldo.** Copias nativas diarias y semanales del proveedor, y una copia lógica de la base fuera del proveedor de alojamiento, semanal y antes de cada despliegue, guardada con permisos restringidos al equipo. La restauración se probó con los datos reales el 2026-11-02 (ver `despliegue.md`).
 - **Transporte.** El ambiente de alojamiento publica la aplicación y la API por HTTPS; el piloto no se habilita sin certificado válido.
 - **Secretos.** Credenciales y claves de servicios externos se configuran por variables de entorno del ambiente, no se guardan en el repositorio.
 
