@@ -68,7 +68,7 @@ export interface ContractRow {
 }
 
 /** Tolerancia de redondeo al sumar porcentajes (3 × 33,3333 = 99,9999). */
-export const PCT_TOLERANCE = 0.01;
+const PCT_TOLERANCE = 0.01;
 
 const personLabel = (p: PersonRow) => `${p.lastName}, ${p.firstName}`.trim();
 const pct = (n: number) => Math.round(n * 10000) / 10000;
