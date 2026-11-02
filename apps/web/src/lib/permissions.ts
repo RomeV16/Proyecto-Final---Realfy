@@ -72,6 +72,12 @@ export const ACTION_ROLES = {
   'fees.collect': [Admin, Gerente, Liquidaciones],
   /** Ver y pagar las comisiones del personal. */
   'fees.commissions': [Admin, Gerente],
+  /** Depósitos de los contratos: ver el depósito y la liquidación de egreso. */
+  'deposits.view': [Admin, Gerente, Liquidaciones, Lectura],
+  /** Cargar el depósito de un contrato y confirmar la liquidación de egreso. */
+  'deposits.manage': [Admin, Gerente],
+  /** Cobrar las cuotas del depósito. */
+  'deposits.collect': [Admin, Gerente, Liquidaciones],
   'dashboard.analytics': [Admin, Gerente],
 
   // Soporte y configuración

@@ -6002,6 +6002,119 @@
    "annulError": "No se pudo anular el estado."
   }
  },
+ "deposits": {
+  "status": {
+   "Pendiente": "Pendiente",
+   "Parcial": "Cobro parcial",
+   "Cobrado": "Cobrado",
+   "Devuelto": "Devuelto"
+  },
+  "holder": {
+   "Locador": "El locador",
+   "Inmobiliaria": "La inmobiliaria"
+  },
+  "rule": {
+   "PesosActualizado": "Pesos actualizados al último alquiler",
+   "MismaMoneda": "La misma moneda, sin actualizar"
+  },
+  "collected": "Cuota cobrada",
+  "collectError": "No se pudo cobrar la cuota",
+  "card": {
+   "title": "Depósito en garantía",
+   "loadError": "No se pudo cargar el depósito.",
+   "none": "Este contrato no tiene un depósito cargado.",
+   "amount": "Importe",
+   "heldBy": "Lo guarda",
+   "refundRule": "Devolución",
+   "refundTerms": "hasta {days} días después del egreso, en {count, plural, one {# cuota} other {# cuotas}}",
+   "collected": "Cobrado",
+   "refunded": "Devuelto",
+   "installments": "Cuotas del depósito",
+   "installment": "Cuota {number} de {total}",
+   "paidOn": "Cobrada el",
+   "collect": "Cobrar",
+   "add": "Cargar el depósito",
+   "edit": "Editar el depósito",
+   "moveOut": "Liquidación de egreso"
+  },
+  "dialog": {
+   "title": "Depósito en garantía",
+   "locked": "Ya hay cuotas cobradas: el importe, la moneda, las cuotas y quién lo guarda no se pueden cambiar.",
+   "amount": "Importe",
+   "amountInvalid": "Ingresá un importe mayor a cero, con hasta 2 decimales.",
+   "currency": "Moneda",
+   "heldBy": "Quién lo guarda",
+   "holderPerson": "Locador",
+   "holderCustodyHint": "Si es dinero de un locador que la inmobiliaria guarda, queda en la custodia de ese locador.",
+   "noHolder": "Sin locador: queda en la caja de la inmobiliaria",
+   "installments": "Cuotas del depósito",
+   "refundRule": "Regla de devolución",
+   "refundRuleHint": "Pesos actualizados solo aplica a un depósito en pesos.",
+   "refundInstallments": "Cuotas de la devolución",
+   "refundDueDays": "Plazo de devolución (días)",
+   "refundDueDaysHint": "Días corridos desde el egreso.",
+   "notes": "Notas",
+   "save": "Guardar",
+   "saving": "Guardando…",
+   "saved": "Depósito guardado",
+   "saveError": "No se pudo guardar el depósito"
+  },
+  "moveOut": {
+   "title": "Liquidación de egreso",
+   "steps": {
+    "date": "Paso 1 de 2: elegí la fecha de egreso.",
+    "items": "Paso 2 de 2: revisá lo que debe el inquilino, destildá lo que no corresponde y agregá los descuentos.",
+    "done": "La liquidación está confirmada."
+   },
+   "date": "Fecha de egreso",
+   "dateHint": "Se calcula lo adeudado y el depósito a devolver a esta fecha.",
+   "rate": "Tipo de cambio (opcional)",
+   "rateHint": "Si hay renglones en otra moneda que el depósito: unidades de la moneda del depósito por unidad del renglón.",
+   "rateInvalid": "El tipo de cambio debe ser un número positivo con hasta 6 decimales.",
+   "preview": "Ver la liquidación",
+   "depositLine": "Depósito a devolver ({rule}):",
+   "partial": "solo la parte cobrada",
+   "noDeposit": "Este contrato no tiene depósito: lo adeudado queda a cargo del inquilino.",
+   "include": "Incluir",
+   "kind": "Concepto",
+   "description": "Detalle",
+   "amount": "Importe",
+   "noItems": "No hay deudas registradas. Podés agregar descuentos.",
+   "addDeduction": "Agregar un descuento",
+   "kinds": {
+    "AlquilerPendiente": "Alquiler pendiente",
+    "Servicio": "Servicio",
+    "Cargo": "Cargo",
+    "Reparacion": "Reparación",
+    "Punitorio": "Punitorio",
+    "Deduccion": "Descuento"
+   },
+   "rule": {
+    "PesosActualizado": "pesos actualizados",
+    "MismaMoneda": "misma moneda"
+   },
+   "totals": {
+    "owed": "Total adeudado",
+    "deposit": "Depósito disponible",
+    "refund": "A devolver al inquilino",
+    "collect": "A cobrar al inquilino"
+   },
+   "notes": "Observaciones",
+   "saveDraft": "Guardar borrador",
+   "draftSaved": "Borrador guardado",
+   "finish": "Confirmar liquidación",
+   "confirm": {
+    "title": "Confirmar la liquidación de egreso",
+    "body": "Se devuelven {currency} {refund} al inquilino y quedan {currency} {owed} a su cargo. Se imputan los cargos incluidos y se cierra el paso del depósito. No se puede deshacer.",
+    "action": "Confirmar"
+   },
+   "confirmed": "Liquidación confirmada",
+   "doneBody": "Resultado final:",
+   "pdf": "Descargar PDF",
+   "pdfFailed": "No se pudo descargar el PDF",
+   "error": "No se pudo completar la acción"
+  }
+ },
  "followUps": {
   "title": "Vencimientos",
   "subtitle": "Los contratos que se acercan a su fin, o que ya lo pasaron, con el semáforo, el responsable y el avance del checklist de cada seguimiento.",
@@ -6067,7 +6180,8 @@
    "outcome": "Resultado",
    "outcomeHint": "Con un resultado distinto de pendiente el seguimiento se cierra; volver a pendiente lo reabre.",
    "outcomeSaved": "Resultado guardado",
-   "openContract": "Ver el contrato"
+   "openContract": "Ver el contrato",
+   "moveOut": "Liquidación de egreso"
   },
   "tasks": {
    "Renovacion": {

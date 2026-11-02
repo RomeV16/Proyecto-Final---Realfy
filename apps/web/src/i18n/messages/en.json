@@ -6002,6 +6002,119 @@
    "annulError": "The statement could not be voided."
   }
  },
+ "deposits": {
+  "status": {
+   "Pendiente": "Pending",
+   "Parcial": "Partly collected",
+   "Cobrado": "Collected",
+   "Devuelto": "Refunded"
+  },
+  "holder": {
+   "Locador": "The lessor",
+   "Inmobiliaria": "The agency"
+  },
+  "rule": {
+   "PesosActualizado": "Pesos updated to the last rent",
+   "MismaMoneda": "Same currency, not updated"
+  },
+  "collected": "Installment collected",
+  "collectError": "The installment could not be collected",
+  "card": {
+   "title": "Security deposit",
+   "loadError": "The deposit could not be loaded.",
+   "none": "This contract has no deposit on file.",
+   "amount": "Amount",
+   "heldBy": "Held by",
+   "refundRule": "Refund",
+   "refundTerms": "within {days} days after move-out, in {count, plural, one {# installment} other {# installments}}",
+   "collected": "Collected",
+   "refunded": "Refunded",
+   "installments": "Deposit installments",
+   "installment": "Installment {number} of {total}",
+   "paidOn": "Collected on",
+   "collect": "Collect",
+   "add": "Add the deposit",
+   "edit": "Edit the deposit",
+   "moveOut": "Move-out settlement"
+  },
+  "dialog": {
+   "title": "Security deposit",
+   "locked": "Installments were already collected: the amount, currency, installments and who holds it cannot change.",
+   "amount": "Amount",
+   "amountInvalid": "Enter an amount above zero with up to 2 decimals.",
+   "currency": "Currency",
+   "heldBy": "Held by",
+   "holderPerson": "Lessor",
+   "holderCustodyHint": "If it is a lessor money held by the agency, it goes to that lessor custody account.",
+   "noHolder": "No lessor: it goes to the agency cash",
+   "installments": "Deposit installments",
+   "refundRule": "Refund rule",
+   "refundRuleHint": "Updated pesos only applies to a deposit in pesos.",
+   "refundInstallments": "Refund installments",
+   "refundDueDays": "Refund term (days)",
+   "refundDueDaysHint": "Calendar days after move-out.",
+   "notes": "Notes",
+   "save": "Save",
+   "saving": "Saving…",
+   "saved": "Deposit saved",
+   "saveError": "The deposit could not be saved"
+  },
+  "moveOut": {
+   "title": "Move-out settlement",
+   "steps": {
+    "date": "Step 1 of 2: pick the move-out date.",
+    "items": "Step 2 of 2: review what the tenant owes, untick what does not apply and add deductions.",
+    "done": "The settlement is confirmed."
+   },
+   "date": "Move-out date",
+   "dateHint": "What is owed and the deposit to refund are calculated at this date.",
+   "rate": "Exchange rate (optional)",
+   "rateHint": "If some lines are in another currency than the deposit: deposit currency units per unit of the line currency.",
+   "rateInvalid": "The exchange rate must be a positive number with up to 6 decimals.",
+   "preview": "Show the settlement",
+   "depositLine": "Deposit to refund ({rule}):",
+   "partial": "only the collected part",
+   "noDeposit": "This contract has no deposit: what is owed stays with the tenant.",
+   "include": "Include",
+   "kind": "Type",
+   "description": "Detail",
+   "amount": "Amount",
+   "noItems": "No debts on record. You can add deductions.",
+   "addDeduction": "Add a deduction",
+   "kinds": {
+    "AlquilerPendiente": "Rent due",
+    "Servicio": "Utility",
+    "Cargo": "Charge",
+    "Reparacion": "Repair",
+    "Punitorio": "Late fee",
+    "Deduccion": "Deduction"
+   },
+   "rule": {
+    "PesosActualizado": "updated pesos",
+    "MismaMoneda": "same currency"
+   },
+   "totals": {
+    "owed": "Total owed",
+    "deposit": "Deposit available",
+    "refund": "To refund to the tenant",
+    "collect": "To collect from the tenant"
+   },
+   "notes": "Remarks",
+   "saveDraft": "Save draft",
+   "draftSaved": "Draft saved",
+   "finish": "Confirm settlement",
+   "confirm": {
+    "title": "Confirm the move-out settlement",
+    "body": "{currency} {refund} are refunded to the tenant and {currency} {owed} remain owed. The included charges are applied and the deposit step is closed. This cannot be undone.",
+    "action": "Confirm"
+   },
+   "confirmed": "Settlement confirmed",
+   "doneBody": "Final result:",
+   "pdf": "Download PDF",
+   "pdfFailed": "The PDF could not be downloaded",
+   "error": "The action could not be completed"
+  }
+ },
  "followUps": {
   "title": "Expirations",
   "subtitle": "Contracts that are close to their end, or already past it, with the traffic light, the owner and the checklist progress of each follow-up.",
@@ -6067,7 +6180,8 @@
    "outcome": "Outcome",
    "outcomeHint": "Any outcome other than pending closes the follow-up; going back to pending reopens it.",
    "outcomeSaved": "Outcome saved",
-   "openContract": "View contract"
+   "openContract": "View contract",
+   "moveOut": "Move-out settlement"
   },
   "tasks": {
    "Renovacion": {
