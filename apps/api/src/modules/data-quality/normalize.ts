@@ -79,5 +79,5 @@ export function normalizeName(firstName: string | null | undefined, lastName: st
     .replace(/[^a-z0-9ñ\s]/g, ' ')
     .split(/\s+/)
     .filter(Boolean);
-  return words.length >= 2 ? words.sort().join(' ') : null;
+  return words.length >= 2 ? words.sort((a, b) => a.localeCompare(b)).join(' ') : null;
 }

@@ -92,7 +92,7 @@ function groupByKey(entries: { personId: string; key: string | null }[]): Map<st
     groups.set(key, set);
   }
   const out = new Map<string, string[]>();
-  for (const [key, set] of groups) if (set.size > 1) out.set(key, [...set].sort());
+  for (const [key, set] of groups) if (set.size > 1) out.set(key, [...set].sort((a, b) => a.localeCompare(b)));
   return out;
 }
 
@@ -196,7 +196,7 @@ export function detectDuplicateName(persons: PersonRow[]): DataQualityFinding[] 
         }
       }
     }
-    if (involved.size > 1) groups.set(key, [...involved].sort());
+    if (involved.size > 1) groups.set(key, [...involved].sort((a, b) => a.localeCompare(b)));
   }
   return duplicateFindings('duplicate-name', 'name', groups, map, 'warning');
 }
