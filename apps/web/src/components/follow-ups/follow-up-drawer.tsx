@@ -31,7 +31,7 @@ interface Props {
 }
 
 /** Texto de un paso del checklist: la traducción por tipo y código, o la etiqueta que guardó la API. */
-export function useTaskLabel() {
+function useTaskLabel() {
   const t = useTranslations('followUps');
   return (kind: string, code: string, fallback: string) => (t.has(`tasks.${kind}.${code}`) ? t(`tasks.${kind}.${code}`) : fallback);
 }
