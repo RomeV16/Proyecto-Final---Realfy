@@ -855,7 +855,7 @@ cada 5), el semáforo de vencimientos de contratos (rojo a los 0 días, amarillo
 los 60) y las cuatro convenciones de liquidación (prorrateo de un mes parcial, ajuste a
 mitad de mes, primer mes con inicio tardío y descuento de monto fijo; de fábrica, días
 reales, desde el período siguiente, vence el día de inicio y proporcional). La sección
-*Estado de cuenta del locador* fija el **día de cierre** del estado (vacío = fin de
+*Cuenta corriente del locador* fija el **día de cierre** del estado (vacío = fin de
 mes; con un día, lo posterior va al estado del mes siguiente) y **cuándo se descuentan
 los gastos al locador** (al generar el estado, de fábrica, o recién al emitirlo; en
 ese caso el borrador los muestra como previstos). Cada campo muestra debajo el valor de fábrica. Cambiá lo que necesites y
