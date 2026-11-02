@@ -19,7 +19,7 @@ La matriz une cada hallazgo del registro (`31-registro-de-feedback.md`) con el c
 | FB-03 | CU-29 (nuevo) | 32 (#90) | — | `/tenants/me/read-policy`, `/tenants/me/read-access` | CP-257 a CP-265 |
 | FB-04 | CU-05 (modificado); CU nuevo (se numera desde CU-25 en el PR del ítem) | 39 (#97) | ADR-0015 | `/import/batches`, `/import/batches/:id/rows` | CP-170 a CP-179 |
 | FB-05 | CU-06 (modificado); CU nuevo (se numera desde CU-25 en el PR del ítem) | 40 (#98) | — | Se completa en el PR | CP-180 a CP-189 |
-| FB-06 | CU-10 (modificado); CU nuevo (se numera desde CU-25 en el PR del ítem) | 36 (#94) | ADR-0012 | Se completa en el PR | CP-140 a CP-149 |
+| FB-06 | CU-10 (modificado); CU-31 (nuevo) | 36 (#94) | ADR-0012 | `/liquidaciones/:id/payments`, `/financial-accounts`, `/cash-movements`, `/cash-movements/conversion`, `/compensations`, `/receipts`, `/charges/:id/agency-expense` | CP-398 a CP-413 |
 | FB-07 | CU-09, CU-11, CU-12 (modificados) | 35 (#93) | ADR-0008 | Se completa en el PR | CP-130 a CP-139 |
 | FB-08 | CU-09 (modificado); CU nuevo (se numera desde CU-25 en el PR del ítem) | 35 (#93) | ADR-0008 | Boletas, reglas de traslado por contrato y renglones de liquidación (2.4) | CP-130 a CP-139, CP-341 a CP-359 |
 | FB-09 | CU-16, CU-17, CU-18 (modificados); CU-30 (nuevo) | 35 (#93), 42 (#100) | — | Centro de carga (ítem 35) hecho; el resto, con el ítem 42 | CP-130 a CP-139, CP-200 a CP-209, CP-380 a CP-397 |
@@ -41,7 +41,7 @@ La matriz une cada hallazgo del registro (`31-registro-de-feedback.md`) con el c
 | FB-25 | CU-07, CU-08 (modificados) | 34 (#92) | ADR-0011 | Se completa en el PR | CP-51, CP-52 |
 | FB-26 | CU-27, CU-28 (nuevos) | 32 (#90) | — | `/users`, `/users/invite`, `/users/accept-invitation`, `/users/:id`, `/users/:id/deactivate`, `/users/:id/reactivate`, `/users/:id/invitation/resend`, `/users/:id/password-reset-link`, `/auth/change-password`, `/auth/password-reset/request`, `/auth/password-reset/confirm` | CP-100 a CP-109 |
 | FB-27 | — (fuera del piloto: se mantiene como adjunto) | — | — | — | — |
-| FB-28 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 36 (#94) | ADR-0012 | Se completa en el PR | CP-140 a CP-149 |
+| FB-28 | CU-31 (nuevo) | 36 (#94) | ADR-0012 | `/financial-accounts`, `/custody/:accountId/deliver`, `/liquidaciones/:id/payments` (`inCustody`) | CP-398 a CP-413 |
 
 ## Requisitos del informe externo: RF-12, RF-13 y RF-14
 

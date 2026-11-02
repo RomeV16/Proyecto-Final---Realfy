@@ -377,8 +377,10 @@ una liquidación vigente no se edita ni se anula.
 **Gasto a cargo del locador o de la inmobiliaria.** Para un gasto al locador se elige
 un locador (los vigentes del contrato o los titulares de la propiedad) o, sin elegir,
 es de todos según su porcentaje. Un gasto a cargo de la inmobiliaria queda
-registrado como pendiente hasta que exista la caja de la inmobiliaria, que lo cerrará
-como gasto propio.
+registrado como pendiente hasta que se paga: *Registrar como gasto* pide la cuenta de
+la inmobiliaria de la que sale el dinero (y, si hace falta, la fecha) y lo cierra como
+un **Gasto** en la caja (ver *Caja de la inmobiliaria*). Se cierra una sola vez y, una
+vez cerrado, ya no vuelve a pendiente.
 
 ### Cargar los locadores de un contrato y su porcentaje de cobro
 
@@ -514,9 +516,82 @@ detalle de la liquidación, *Registrar Pago* pide la fecha, el monto, el medio
 El sistema imputa el monto y recalcula el saldo pendiente; si el pago es parcial,
 la liquidación queda con su saldo a la vista y la tarjeta lo indica.
 
+**Quién recibió el cobro.** El mismo formulario pregunta quién recibió el dinero. Sin
+elegir, rige el flujo de pago del contrato (*Reglas vigentes*): *Todo al locador* lo
+registra como recibido por el locador; *Repartido* y *Todo a la inmobiliaria*, como
+recibido por la inmobiliaria. Cómo registrar cada caso:
+
+- **La inmobiliaria cobra todo** (efectivo en la oficina o transferencia): *Recibió:
+  la inmobiliaria*. Sin elegir cuenta, el efectivo entra en la caja de la moneda y
+  los demás medios en el banco de la moneda (se crean solas la primera vez); también
+  se puede elegir una cuenta. La inmobiliaria guarda la parte de cada locador hasta
+  pagársela.
+- **Efectivo que se guarda para el locador**: además, marcar *Guardar la parte de los
+  locadores en custodia*. La parte de cada locador entra en su cuenta de custodia y a
+  la caja solo va lo de la inmobiliaria y los entes. Sirve también para la moneda
+  extranjera que algunos locadores dejan en la oficina.
+- **El locador cobra todo**: *Recibió: el locador*. No entra nada en la caja ni se
+  emite recibo de la inmobiliaria; el reparto del cobro deja anotado cuánto le debe
+  el locador a la inmobiliaria (comisión, renglones de la inmobiliaria y, por
+  defecto, los de entes). Cuando el locador paga la comisión, se carga un movimiento
+  *Honorario* en la caja.
+- **Repartido** (comisión a la inmobiliaria y el resto al locador): se registran dos
+  cobros, uno por cada receptor; los saldos de los dos se compensan.
+- **El inquilino le transfirió a otro locador** (compensación): se registra el cobro
+  como recibido por el locador y después se carga la compensación (ver más abajo).
+
+Cada cobro que recibe la inmobiliaria emite un **recibo de cobro** con número propio
+(una serie distinta de la del recibo de la liquidación, que no cambia), y queda el
+botón para imprimirlo. El cobro guarda cuánto le tocó a la inmobiliaria, a los entes
+y a cada locador según su porcentaje; en los pagos parciales el reparto es
+acumulado, así que los cobros que saldan la liquidación suman exactamente su total.
+Una referencia externa (del sistema anterior o del banco) no se puede repetir.
+
 **Pagos** (`/pagos`) es la mirada agregada: deuda pendiente, deuda vencida y los
 pagos recientes con su medio y su período. Es una pantalla de consulta; el
 registro siempre ocurre en la liquidación.
+
+### Caja de la inmobiliaria
+
+**Caja** (`/caja`; la ven Admin, Gerente, Liquidaciones y Lectura) reúne el dinero que
+pasa por la inmobiliaria.
+
+- **Cuentas**: cajas (efectivo), bancos y la custodia de cada locador, cada una en una
+  sola moneda (pesos, dólares o euros), con su saldo. Los totales por moneda separan lo
+  de la inmobiliaria de lo que guarda en custodia; la custodia suma en el total solo si
+  la inmobiliaria lo eligió en los valores por defecto. Las cuentas las crean, renombran
+  o desactivan Admin y Gerente; una cuenta con saldo no se desactiva.
+- **Movimientos**: el libro de la inmobiliaria, con filtros por cuenta, categoría,
+  fechas y contrato. Los cobros, la custodia, las compensaciones y las conversiones se
+  escriben solos. A mano (Admin, Gerente y Liquidaciones) se cargan los pagos a
+  locadores, entes y proveedores, los honorarios, los gastos, las comisiones del
+  personal y las señas, siempre en una caja o un banco.
+- **Conversión de moneda**: de una cuenta a otra de distinta moneda, con el tipo de
+  cambio escrito a mano. El sistema nunca convierte solo.
+- **Recibos**: los recibos de cobro con número, fecha, inquilino, propiedad e importe,
+  para reimprimirlos.
+
+**Custodia.** La sección de custodia muestra el efectivo que la inmobiliaria guarda
+para cada locador, por moneda. *Entregar* registra que el locador lo buscó o que se
+depositó: todo el saldo o una parte, con la fecha. No se puede entregar más de lo que
+hay, y queda una fila de auditoría.
+
+**Compensaciones.** Cuando el inquilino de un contrato le transfiere a otro locador de
+la inmobiliaria (para no mover efectivo), el cobro se registra como recibido por el
+locador y, en el detalle de la liquidación, *Registrar compensación* sobre ese cobro
+pide quién recibió, a qué locador del contrato le
+correspondía y cuánto (sin importe, su parte en ese cobro). Si quien recibió tiene
+efectivo en custodia, la compensación se puede pagar con él: sale de su custodia y
+entra en la caja, donde queda para el otro locador. La suma de las compensaciones no
+supera el cobro y, por defecto, puede cubrir cualquier locador de la inmobiliaria (se
+puede limitar a los del mismo contrato).
+
+**Convenciones de la caja.** En `/configuracion/valores-por-defecto` → *Caja y cobros*
+se eligen: qué debe el locador que cobra directamente (todo lo ajeno o solo lo de la
+inmobiliaria), cómo se reparte un pago parcial (proporcional o primero la
+inmobiliaria), si la custodia suma en el total, la serie de los recibos (única, por
+moneda o por cuenta), si se emite recibo cuando cobra el locador y entre quiénes se
+admiten compensaciones.
 
 Cuando una liquidación pasa su vencimiento sin pago, el cálculo de punitorios
 corre por su cuenta según la configuración de la inmobiliaria. **Morosos**

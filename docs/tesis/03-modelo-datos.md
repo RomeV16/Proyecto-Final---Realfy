@@ -355,17 +355,65 @@ Línea de la liquidación.
 
 ### DocumentSequence
 
-Contador por inmobiliaria y serie, hoy solo para los recibos de liquidación (`RECIBO_LIQUIDACION`).
+Contador por inmobiliaria y serie: los recibos de liquidación (`RECIBO_LIQUIDACION`) y los recibos de cobro (`RECIBO_COBRO`, o una serie por moneda o por cuenta según la inmobiliaria).
 
 - `id`, `tenantId`, `series`, `next`, con `@@unique([tenantId, series])`.
-- Un solo `INSERT ... ON CONFLICT DO UPDATE` incrementa `next`, de modo que dos aprobaciones simultáneas no repiten número.
+- Un solo `INSERT ... ON CONFLICT DO UPDATE` incrementa `next` (`nextDocumentNumber`), de modo que dos aprobaciones o dos cobros simultáneos no repiten número; dentro de la transacción del documento, un rollback no gasta número.
 
 ### Payment
 
 Pago aplicado a una liquidación.
 
-- `id`, `tenantId`, `liquidacionId`, `amount`, `currency`, `method`, `reference`, `notes`, `paidAt`.
-- `method` es transferencia, efectivo, MercadoPago o cheque. El pago no registra qué usuario lo cargó: esa traza queda en `AuditLog`.
+- `id`, `tenantId`, `liquidacionId`, `amount`, `currency`, `method`, `reference`, `notes`, `paidAt`, `receivedBy`, `accountId`, `receivedByUserId`, `inCustody`, `receiptId`, `externalRef`, `settlement`.
+- `method` es transferencia, efectivo, MercadoPago o cheque. `receivedBy` dice quién recibió el dinero (`Inmobiliaria` o `Locador`); `accountId`, en qué cuenta de la inmobiliaria entró; `receivedByUserId`, quién lo recibió en la oficina; `inCustody`, que la parte de los locadores quedó en custodia. `receiptId` es su recibo (a lo sumo uno, único). `externalRef` es única por inmobiliaria. `settlement` guarda el reparto del cobro (settlement-engine) al registrarlo.
+- Los cobros anteriores a la caja quedaron recibidos por la inmobiliaria, sin cuenta ni recibo.
+
+### Caja y cobros
+
+Cuentas, libro, recibos de cobro y compensaciones de la inmobiliaria (ítem 36, ADR-0012).
+
+```mermaid
+erDiagram
+    FinancialAccount ||--o{ CashMovement : "libro"
+    FinancialAccount |o--o{ Payment : "donde entró"
+    Person |o--o{ FinancialAccount : "custodia de"
+    Person |o--o{ CashMovement : "contraparte"
+    Contract |o--o{ CashMovement : "del contrato"
+    Payment |o--o| Receipt : "recibo"
+    Payment ||--o{ Compensation : "compensaciones"
+    Person ||--o{ Compensation : "from / to"
+    FinancialAccount {
+        string kind
+        string name
+        string currency
+        boolean isActive
+    }
+    CashMovement {
+        date date
+        string direction
+        decimal amount
+        string currency
+        string category
+        decimal rate
+        string sourceType
+    }
+    Receipt {
+        string series
+        int number
+        datetime issuedAt
+        decimal amount
+    }
+    Compensation {
+        decimal amount
+        string currency
+    }
+```
+
+- `FinancialAccount`: `id`, `tenantId`, `kind` (`Caja`, `Banco`, `Custodia`), `name`, `currency` (una sola por cuenta: `ARS`, `USD` o `EUR`), `ownerPersonId` (el locador de una custodia), `isActive`. `@@unique([tenantId, kind, ownerPersonId, currency])`: una custodia por locador y moneda. La caja y el banco de cada moneda se crean al primer cobro.
+- `CashMovement`: `id`, `tenantId`, `accountId`, `date`, `direction` (`In`, `Out`), `amount` (siempre positivo), `currency`, `category` (`AlquilerCobrado`, `PagoLocador`, `PagoEnte`, `PagoProveedor`, `Honorario`, `Gasto`, `ComisionEmpleado`, `Sena`, `Custodia`, `Compensacion`, `Conversion`), `counterpartyId`, `contractId`, `rate` (tipo de cambio de una conversión), `sourceType`/`sourceId` (cobro, entrega de custodia, compensación, conversión, cargo o manual), `note`, `createdById`. El saldo de una cuenta es entradas menos salidas. Índices `[tenantId, accountId, date]`, `[tenantId, category, date]` y `[tenantId, sourceType, sourceId]`.
+- `Receipt`: `id`, `tenantId`, `series`, `number`, `issuedAt`, `amount`, `currency`, con `@@unique([tenantId, series, number])`. Se emite en la transacción del cobro.
+- `Compensation`: `id`, `tenantId`, `paymentId`, `fromLessorId` (quien recibió el cobro o lo cubre), `toLessorId` (locador del contrato al que le correspondía), `amount`, `currency`, `note`, `createdById`.
+- `Currency` suma `EUR`. Los cuatro modelos están en `TENANT_SCOPED_MODELS` y en la limpieza de las pruebas de integración; las tablas nacieron vacías.
 
 ### Penalty
 
@@ -468,7 +516,7 @@ erDiagram
 
 - `PendingCharge`: `id`, `tenantId`, `propertyId`, `contractId` (opcional: un gasto de una unidad vacía no tiene contrato), `chargedTo` (`Inquilino`, `Locador`, `Inmobiliaria`), `lessorPersonId`, `kind` (`Reparacion`, `ExpensaExtra`, `Devolucion`, `HonorarioGestion`, `AjusteRetroactivo`, `Otro`), `description`, `amount` (con signo), `currency`, `beneficiary` (`Locador` o `Inmobiliaria`: quién recibe el dinero), `incurredAt`, `targetPeriod` (primer mes en que se imputa; sin mes, en la próxima liquidación), `status` (`Pendiente`, `Imputado`, `CobradoAnticipado`, `Anulado`), `requiresUpfront`, `installmentNo`, `installmentOf`, `installmentGroupId` (las cuotas de un cargo lo comparten), `imputedLiquidacionId`, `imputedStatementId` (sin clave foránea: lo completa el estado de cuenta del locador), `imputedAt`, `sourceType`, `sourceId`, `notes`, `createdById`. Índices `[tenantId, contractId, status]` y `[tenantId, propertyId, status]`.
 - Registrado en `TENANT_SCOPED_MODELS` y en la limpieza de las pruebas de integración. Sin backfill: la tabla nace vacía.
-- Un cargo `chargedTo = Inmobiliaria` queda `Pendiente` y no se imputa a nadie; la caja de la inmobiliaria (ítem 36) lo cerrará como gasto propio.
+- Un cargo `chargedTo = Inmobiliaria` queda `Pendiente` hasta que se cierra como `Gasto` de una cuenta de la caja (`CashMovement` con `sourceType = PendingCharge`); entonces pasa a `Imputado` y ya no se libera.
 - Anular o borrar la liquidación que lo tomó devuelve el cargo a `Pendiente` (`imputedLiquidacionId` nulo) en la misma transacción, igual que las partes de boletas y las correcciones de ajustes.
 - **Contrato con el estado del locador (3.2).** Los cargos `chargedTo = Locador` quedan `Pendiente` sin `imputedStatementId`; el estado de cuenta del locador toma los de su propiedad (y `lessorPersonId`, o todos los locadores si es nulo), los descuenta y los pasa a `Imputado` con el id del estado, en la misma transacción que lo crea.
 
