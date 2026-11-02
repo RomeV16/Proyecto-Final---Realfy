@@ -35,7 +35,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-25 | El barrido y la previsualización aplican 0 % donde el cálculo manual se niega | Media | RF-12, RF-13 | CP-272 | [#146](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/146) | Corregido (31 oct) |
 | DEF-26 | La previsualización de un ajuste sin datos de índice muestra 0 % | Media | RF-12 | CP-270 | [#147](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/147) | Corregido (31 oct) |
 | DEF-27 | Con un mes de la ventana sin publicar el ajuste se calcula con los meses que hay y deja el alquiler corto | Media | RF-12 | CP-273 | [#152](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/152) | Corregido (31 oct) |
-| DEF-28 | Cada corrida diaria suma el punitorio acumulado entero y vuelve a devengar lo condonado | Alta | — | CP-360 | — | Corregido (2 nov) |
+| DEF-28 | Cada corrida diaria suma el punitorio acumulado entero y vuelve a devengar lo condonado | Alta | — | CP-360 | [#157](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/157) | Corregido (2 nov) |
 
 ---
 
@@ -435,4 +435,4 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** `computePenalty` devolvía el devengo total para los modos simples y el scheduler lo registraba como si fuera la diferencia; la suma previa solo miraba filas activas.
 - **Corrección:** el motor calcula lo devengado a la fecha sobre el saldo de cada día y el servicio registra la diferencia con todas las filas (activas, condonadas o cobradas).
 - **Prueba de regresión:** CP-360 en `penalties/penalties.scheduler.def28.spec.ts` (en rojo, contra el cálculo anterior) y, ya corregido, en `penalties/penalties.scheduler.spec.ts` (devengo incremental) y `penalty-engine.spec.ts`.
-- **Evidencia rojo/verde:** regresión `f05c17c` en rojo (contra el código anterior: 2 pruebas fallan y 34 pasan; se registra 110 en lugar de 10, y otra fila de 100 sobre una condonada); corrección en `400d1bc`. Pipeline: se completa al abrir el PR.
+- **Evidencia rojo/verde:** regresión `f05c17c` en rojo (contra el código anterior: 2 pruebas fallan y 34 pasan; se registra 110 en lugar de 10, y otra fila de 100 sobre una condonada); corrección en `400d1bc`. PR [#158](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/158).
