@@ -328,6 +328,8 @@ describe('ContractForm — convenciones de liquidación', () => {
     await user.selectOptions(screen.getByLabelText('Comisión para el umbral de anticipo'), 'PorcentajePorDefecto');
     expect(screen.getByLabelText('Umbral de anticipo propio')).toHaveAttribute('placeholder', 'Por defecto: 2');
     await user.type(screen.getByLabelText('Umbral de anticipo propio'), '3x');
+    expect(screen.getByLabelText('Si el inquilino le paga al locador')).toHaveValue('');
+    await user.selectOptions(screen.getByLabelText('Si el inquilino le paga al locador'), 'SoloInmobiliaria');
     await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
@@ -340,6 +342,7 @@ describe('ContractForm — convenciones de liquidación', () => {
       fixedDiscountProration: 'Completo',
       upfrontBasis: 'PorcentajePorDefecto',
       upfrontThresholdFees: 3,
+      lessorDirectOwes: 'SoloInmobiliaria',
     });
   });
 
@@ -347,7 +350,7 @@ describe('ContractForm — convenciones de liquidación', () => {
     tenantDefaults = () => Promise.reject(new Error('sin permiso'));
     const user = await toPriceStep();
     expect(await screen.findByLabelText('Prorrateo de un mes parcial')).toHaveValue('');
-    expect(screen.getAllByRole('option', { name: 'Valor por defecto de la inmobiliaria' })).toHaveLength(5);
+    expect(screen.getAllByRole('option', { name: 'Valor por defecto de la inmobiliaria' })).toHaveLength(6);
 
     await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));

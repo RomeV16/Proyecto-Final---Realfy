@@ -19,6 +19,7 @@ const KNOWN_ENTITIES = new Set([
   'personBankAccount', 'personDocument', 'lead', 'contractLessor', 'powerOfAttorney', 'propertyOwnership',
   'pendingCharge', 'ticket', 'ticketComment', 'portalRefreshToken', 'portalInvitation', 'personRoleAssignment',
   'contractPerson', 'ownerRendicion', 'tenantScore', 'providerProfile', 'inquilinoCredential',
+  'cashMovement', 'compensation', 'financialAccount', 'ownerLedgerEntry', 'ownerStatement',
 ]);
 
 /** Lo que se mueve y lo que se descarta, por tabla, agrupado para que lo lea una persona. */

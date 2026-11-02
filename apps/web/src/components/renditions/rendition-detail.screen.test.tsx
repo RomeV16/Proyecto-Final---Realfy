@@ -32,7 +32,6 @@ vi.mock('@/lib/download', () => ({
   downloadFile: (...a: unknown[]) => downloadFile(...a),
 }));
 
-import { ApiRequestError } from '@/lib/api-client';
 import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 import { RenditionDetail } from './rendition-detail';
 
@@ -132,34 +131,26 @@ describe('RenditionDetail', () => {
     expect(screen.getByText('Nota sintética')).toBeInTheDocument();
   });
 
-  it.each(['Admin', 'Gerente', 'Liquidaciones'])('%s ve las acciones de gestión', async (role) => {
+  it.each(['Admin', 'Gerente', 'Liquidaciones', 'Lectura'])('%s ve la rendición como histórico, sin acciones de escritura', async (role) => {
     auth.role = role;
-    mockApi(() => rendition());
+    mockApi(() => rendition({ notes: 'Nota sintética' }));
     await mount();
-    expect(screen.getByRole('button', { name: 'Aprobar' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Enviar por Email/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Agregar concepto' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Eliminar' })).toHaveLength(2);
-  });
-
-  it.each(['Ventas', 'Lectura', 'Soporte'])('%s no ve las acciones de gestión pero sí el PDF', async (role) => {
-    auth.role = role;
-    mockApi(() => rendition());
-    await mount();
-    expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Enviar por Email/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Agregar concepto' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
+    expect(screen.getByRole('note')).toHaveTextContent('Las rendiciones por contrato quedaron como histórico');
+    expect(screen.getByRole('link', { name: 'Ir a estados de cuenta' })).toHaveAttribute('href', '/es/estados-de-cuenta');
+    expect(screen.getByRole('link', { name: 'Ir a locadores' })).toHaveAttribute('href', '/es/locadores');
+    for (const name of ['Aprobar', /Enviar por Email/, 'Agregar concepto', 'Editar', 'Eliminar', 'Marcar Depositada']) {
+      expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+    }
     expect(screen.getByRole('button', { name: /Descargar PDF/ })).toBeInTheDocument();
+    expect(screen.getByText('Nota sintética')).toBeInTheDocument();
   });
 
-  it('descarga el PDF con la ruta esperada', async () => {
+  it('descarga el PDF con la ruta esperada y no escribe nada', async () => {
     mockApi(() => rendition());
     const user = await mount();
     await user.click(screen.getByRole('button', { name: /Descargar PDF/ }));
     expect(downloadFile).toHaveBeenCalledWith('/renditions/r-1/pdf', 'rendicion-r-1.pdf');
+    expect(apiClient.mock.calls.filter(([, init]) => init?.method)).toHaveLength(0);
   });
 
   it('avisa si falla la descarga del PDF', async () => {
@@ -170,157 +161,9 @@ describe('RenditionDetail', () => {
     await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringContaining('No se pudo descargar')));
   });
 
-  it('aprueba la rendición y recarga', async () => {
-    mockApi(() => rendition());
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Aprobar' }));
-    expect(await screen.findByText('Estado actualizado correctamente')).toBeInTheDocument();
-    expect(apiClient).toHaveBeenCalledWith('/renditions/r-1/transition', {
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'Aprobada' }),
-    });
-  });
-
-  it('muestra el mensaje de la API si la transición falla', async () => {
-    mockApi(() => rendition(), () => Promise.reject(new ApiRequestError(400, 'BAD', 'Rechazada por prueba')));
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Aprobar' }));
-    expect(await screen.findByText('Rechazada por prueba')).toBeInTheDocument();
-  });
-
-  it('muestra el error genérico si la transición falla sin ApiRequestError', async () => {
-    mockApi(() => rendition(), () => Promise.reject(new Error('x')));
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Aprobar' }));
-    expect(await screen.findByText('Error al cambiar estado')).toBeInTheDocument();
-  });
-
-  it('en Aprobada ofrece enviar y volver a borrador', async () => {
-    mockApi(() => rendition({ status: 'Aprobada' }));
-    const user = await mount();
-    expect(screen.getByRole('button', { name: 'Enviar al Propietario' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Volver a Borrador' }));
-    await waitFor(() =>
-      expect(apiClient).toHaveBeenCalledWith('/renditions/r-1/transition', {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'Borrador' }),
-      }),
-    );
-    expect(screen.queryByRole('button', { name: 'Agregar concepto' })).not.toBeInTheDocument();
-  });
-
-  it('en Enviada permite marcar depositada', async () => {
-    mockApi(() => rendition({ status: 'Enviada' }));
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Marcar Depositada' }));
-    await waitFor(() =>
-      expect(apiClient).toHaveBeenCalledWith('/renditions/r-1/transition', {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'Depositada' }),
-      }),
-    );
-  });
-
   it('en Depositada muestra la fecha de depósito', async () => {
     mockApi(() => rendition({ status: 'Depositada', depositedAt: '2026-11-10T12:00:00.000Z' }));
     await mount();
     expect(nb(document.body.textContent)).toContain('Depositada el: 10 de noviembre de 2026');
-  });
-
-  it('envía por email tras confirmar', async () => {
-    mockApi(() => rendition());
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: /Enviar por Email/ }));
-    await user.click(await screen.findByRole('button', { name: 'Confirmar' }));
-    expect(await screen.findByText('Email enviado exitosamente')).toBeInTheDocument();
-    expect(apiClient).toHaveBeenCalledWith('/renditions/r-1/send', { method: 'POST' });
-  });
-
-  it('no envía si se cancela la confirmación', async () => {
-    mockApi(() => rendition());
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: /Enviar por Email/ }));
-    await user.click(await screen.findByRole('button', { name: 'Cancelar' }));
-    expect(apiClient).not.toHaveBeenCalledWith('/renditions/r-1/send', expect.anything());
-  });
-
-  it('muestra el error al fallar el envío por email', async () => {
-    mockApi(() => rendition(), () => Promise.reject(new Error('x')));
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: /Enviar por Email/ }));
-    await user.click(await screen.findByRole('button', { name: 'Confirmar' }));
-    expect(await screen.findByText('Error al enviar email')).toBeInTheDocument();
-  });
-
-  it('edita y guarda las notas, y permite cancelar', async () => {
-    mockApi(() => rendition({ notes: 'Previa' }));
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(screen.getByText('Previa')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
-    const area = screen.getByPlaceholderText('Agregar notas…');
-    await user.clear(area);
-    await user.type(area, 'Nueva');
-    await user.click(screen.getByRole('button', { name: 'Guardar notas' }));
-    expect(await screen.findByText('Notas guardadas')).toBeInTheDocument();
-    expect(apiClient).toHaveBeenCalledWith('/renditions/r-1/notes', {
-      method: 'PATCH',
-      body: JSON.stringify({ notes: 'Nueva' }),
-    });
-  });
-
-  it('muestra error al fallar el guardado de notas', async () => {
-    mockApi(() => rendition(), () => Promise.reject(new Error('x')));
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Editar' }));
-    await user.click(screen.getByRole('button', { name: 'Guardar notas' }));
-    expect(await screen.findByText('Error al guardar notas')).toBeInTheDocument();
-  });
-
-  it('agrega un concepto con el formulario', async () => {
-    mockApi(() => rendition());
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Agregar concepto' }));
-    await user.selectOptions(screen.getByRole('combobox'), 'Ajuste');
-    await user.type(screen.getByPlaceholderText('Descripción del concepto'), 'Reintegro');
-    await user.type(screen.getByPlaceholderText('0.00'), '250');
-    await user.click(screen.getByRole('checkbox'));
-    const submit = screen.getAllByRole('button', { name: 'Agregar concepto' }).at(-1)!;
-    await user.click(submit);
-    expect(await screen.findByText('Concepto agregado')).toBeInTheDocument();
-    expect(apiClient).toHaveBeenCalledWith('/renditions/r-1/line-items', {
-      method: 'POST',
-      body: JSON.stringify({ type: 'Ajuste', description: 'Reintegro', amount: 250, isDebit: false }),
-    });
-  });
-
-  it('muestra error al fallar el alta de concepto y permite cancelar el formulario', async () => {
-    mockApi(() => rendition(), () => Promise.reject(new Error('x')));
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Agregar concepto' }));
-    await user.type(screen.getByPlaceholderText('Descripción del concepto'), 'Algo');
-    await user.type(screen.getByPlaceholderText('0.00'), '10');
-    await user.click(screen.getAllByRole('button', { name: 'Agregar concepto' }).at(-1)!);
-    expect(await screen.findByText('Error al agregar concepto')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(screen.queryByPlaceholderText('Descripción del concepto')).not.toBeInTheDocument();
-  });
-
-  it('elimina un concepto tras confirmar', async () => {
-    mockApi(() => rendition());
-    const user = await mount();
-    await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]!);
-    await user.click(await screen.findByRole('button', { name: 'Confirmar' }));
-    expect(await screen.findByText('Concepto eliminado')).toBeInTheDocument();
-    expect(apiClient).toHaveBeenCalledWith('/renditions/r-1/line-items/li-1', { method: 'DELETE' });
-  });
-
-  it('muestra error al fallar la baja de concepto', async () => {
-    mockApi(() => rendition(), () => Promise.reject(new Error('x')));
-    const user = await mount();
-    await user.click(screen.getAllByRole('button', { name: 'Eliminar' })[0]!);
-    await user.click(await screen.findByRole('button', { name: 'Confirmar' }));
-    expect(await screen.findByText('Error al eliminar concepto')).toBeInTheDocument();
   });
 });

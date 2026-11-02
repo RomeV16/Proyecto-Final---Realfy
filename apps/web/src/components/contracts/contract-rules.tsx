@@ -8,6 +8,7 @@ import { ErrorNotice } from '@/components/ui/error-notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CONVENTION_FIELDS } from '@/lib/liquidation-conventions';
 import { ContractPenaltyRule } from './contract-penalty-rule';
+import { ContractLessorDirectOwes } from './contract-lessor-direct-owes';
 
 /* ──────────── Types ──────────── */
 
@@ -32,6 +33,8 @@ interface TermsVersion {
   penaltyConfig?: unknown;
   upfrontBasis?: string;
   upfrontThresholdFees?: number | null;
+  /** Lo que debe el locador que cobra directamente; null = el de la inmobiliaria. */
+  lessorDirectOwes?: string | null;
 }
 
 interface TermsResponse {
@@ -144,6 +147,11 @@ export function ContractRules({ contractId, currency }: { contractId: string; cu
             <ContractPenaltyRule
               contractId={contractId}
               own={current.penaltyConfig}
+              onChanged={() => setReloads((n) => n + 1)}
+            />
+            <ContractLessorDirectOwes
+              contractId={contractId}
+              own={current.lessorDirectOwes}
               onChanged={() => setReloads((n) => n + 1)}
             />
             <p className="mt-3 text-xs text-slate-400">

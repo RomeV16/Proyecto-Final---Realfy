@@ -5,6 +5,7 @@ import {
   ImportRowAction,
   LeadStatus,
   LiquidacionStatus,
+  OwnerStatementStatus,
   RendicionStatus,
   TicketStatus,
   USER_STATUSES,
@@ -40,7 +41,8 @@ export type StatusDomain =
   | 'ajuste'
   | 'importacion'
   | 'importFila'
-  | 'cargo';
+  | 'cargo'
+  | 'estadoCuenta';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -87,6 +89,16 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
       [PendingChargeStatus.Anulado]: 'neutral',
     },
     [PendingChargeStatus.Anulado],
+  ),
+  estadoCuenta: entries(
+    'ownerAccounts.statuses',
+    {
+      [OwnerStatementStatus.Borrador]: 'neutral',
+      [OwnerStatementStatus.Emitido]: 'info',
+      [OwnerStatementStatus.Enviado]: 'success',
+      [OwnerStatementStatus.Anulado]: 'danger',
+    },
+    [OwnerStatementStatus.Anulado],
   ),
   ajuste: entries('adjustments.statuses', {
     ready: 'success',

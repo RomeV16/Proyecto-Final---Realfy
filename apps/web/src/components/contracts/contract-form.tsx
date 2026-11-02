@@ -11,6 +11,7 @@ import {
   GuaranteeType,
   Currency,
   PersonRole,
+  LessorDirectOwes,
 } from '@realfy/shared';
 import { FULL_SHARE_UNITS, pctToUnits, splitEqualPct } from '@realfy/shared';
 import { contractFormSchema } from '@realfy/shared/schemas';
@@ -89,6 +90,8 @@ interface FormData {
   liquidationRules: ConventionValues;
   /** Umbral de anticipo del centro de carga en comisiones mensuales; vacío = el de la inmobiliaria. */
   upfrontThresholdFees: string;
+  /** Lo que debe el locador que cobra directamente; vacío = el de la inmobiliaria. */
+  lessorDirectOwes: string;
   guarantees: GuaranteeEntry[];
 }
 
@@ -108,6 +111,7 @@ const INITIAL_FORM: FormData = {
   customAdjustmentPct: '',
   liquidationRules: { prorationMode: '', midMonthAdjustmentMode: '', firstDueMode: '', fixedDiscountProration: '', upfrontBasis: '' },
   upfrontThresholdFees: '',
+  lessorDirectOwes: '',
   guarantees: [],
 };
 
@@ -373,6 +377,7 @@ export function ContractForm() {
         liquidationRules: {
           ...Object.fromEntries(Object.entries(form.liquidationRules).filter(([, value]) => value)),
           ...(form.upfrontThresholdFees.trim() !== '' ? { upfrontThresholdFees: Number(form.upfrontThresholdFees) } : {}),
+          ...(form.lessorDirectOwes ? { lessorDirectOwes: form.lessorDirectOwes } : {}),
         },
         persons: form.persons.map((p) => ({ personId: p.personId, role: p.role })),
         // Los locadores viajan con su porcentaje de cobro; los datos de partes iguales son solo el valor inicial.
@@ -814,6 +819,25 @@ export function ContractForm() {
                     className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                   />
                   <p className="mt-1 text-xs text-slate-400">{tConv('upfrontThreshold.hint')}</p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-slate-500" htmlFor="lessor-direct-owes">
+                    {tConv('lessorDirectOwes.label')}
+                  </label>
+                  <select
+                    id="lessor-direct-owes"
+                    value={form.lessorDirectOwes}
+                    onChange={(e) => setForm((prev) => ({ ...prev, lessorDirectOwes: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                  >
+                    <option value="">{tConv('useDefault')}</option>
+                    {Object.values(LessorDirectOwes).map((option) => (
+                      <option key={option} value={option}>
+                        {tConv(`lessorDirectOwes.options.${option}`)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-slate-400">{tConv('lessorDirectOwes.hint')}</p>
                 </div>
               </div>
             </div>
