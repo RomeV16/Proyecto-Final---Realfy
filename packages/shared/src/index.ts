@@ -48,6 +48,9 @@ export {
   AnnualDiscountBeneficiary,
   RemainingInstallmentsOnEnd,
   ServiceBillStatus,
+  ChargeTarget,
+  PendingChargeKind,
+  PendingChargeStatus,
   BillPaidBy,
   NotificationType,
   PipelineType,
@@ -251,6 +254,15 @@ export type {
   ServiceBillRowInput,
   CreateChargeRuleInput,
 } from './schemas/service.schema';
+
+// Schemas — centro de carga
+export {
+  CreatePendingChargeSchema,
+  BulkPendingChargesSchema,
+  UpdatePendingChargeSchema,
+  PendingChargeFilterSchema,
+} from './schemas/pending-charge.schema';
+export type { CreatePendingChargeInput, UpdatePendingChargeInput } from './schemas/pending-charge.schema';
 
 // Schemas — pipelines de venta/alquiler
 export {
@@ -987,6 +999,16 @@ export type {
   ChargeSkipReason,
   ChargeSplitResult,
 } from './charge-split';
+
+// Centro de carga
+export {
+  imputationTarget,
+  pendingChargeLine,
+  requiresUpfront,
+  signedChargeAmount,
+  splitInstallments,
+} from './pending-charge';
+export type { ChargeImputationTarget, PendingChargeLineSource, UpfrontCheck } from './pending-charge';
 
 // Amount in words
 export { amountInWords } from './amount-in-words';
