@@ -302,6 +302,22 @@
     "Marketing",
     "Ventas"
   ],
+  "src/modules/follow-ups/follow-ups.controller.ts#FollowUpsController.list": null,
+  "src/modules/follow-ups/follow-ups.controller.ts#FollowUpsController.get": null,
+  "src/modules/follow-ups/follow-ups.controller.ts#FollowUpsController.update": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/follow-ups/follow-ups.controller.ts#FollowUpsController.toggleTask": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/follow-ups/follow-ups.controller.ts#ContractExpirationsController.extend": [
+    "Admin",
+    "Gerente"
+  ],
   "src/modules/import-export/batch/import-batch.controller.ts#ImportBatchController.run": [
     "Admin"
   ],

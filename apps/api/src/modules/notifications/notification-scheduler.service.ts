@@ -8,6 +8,7 @@ import { NotificationsService } from './notifications.service';
 import { NotificationEmailService } from './notification-email.service';
 import { findStaff } from '../../common/auth/find-staff';
 import { BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
+import { getEffectiveEndDate } from '../contracts/contract-terms';
 
 /** Los avisos diarios salen a las 08:00 de Buenos Aires. */
 const DAILY_08_AR = { timeZone: AR_TIME_ZONE } as const;
@@ -126,7 +127,11 @@ export class NotificationSchedulerService extends CronBaseService {
         const contracts = await this.prisma.client.contract.findMany({
           where: {
             status: 'Activo',
-            endDate: { lte: horizon, gte: today },
+            // El fin efectivo: la prórroga de palabra mueve el aviso.
+            OR: [
+              { actualEndDate: { lte: horizon, gte: today } },
+              { actualEndDate: null, endDate: { lte: horizon, gte: today } },
+            ],
           },
           include: { property: { select: { title: true } } },
         });
@@ -136,7 +141,8 @@ export class NotificationSchedulerService extends CronBaseService {
         const users = await findStaff(this.prisma, tenantId, MANAGEMENT_ROLES, { id: true, email: true });
 
         for (const contract of contracts) {
-          const daysLeft = Math.ceil((contract.endDate.getTime() - today.getTime()) / DAY_MS);
+          const effectiveEnd = getEffectiveEndDate(contract);
+          const daysLeft = Math.ceil((effectiveEnd.getTime() - today.getTime()) / DAY_MS);
           const threshold = contractExpiryThreshold(daysLeft);
           if (threshold === null) continue;
           const title = contractExpiryTitle(threshold);
@@ -160,7 +166,7 @@ export class NotificationSchedulerService extends CronBaseService {
               userId: user.id,
               type: 'ContractExpiring',
               title,
-              message: `El contrato de ${contract.property.title} vence el ${formatDateAR(contract.endDate)} (faltan ${daysLeft} días).`,
+              message: `El contrato de ${contract.property.title} vence el ${formatDateAR(effectiveEnd)} (faltan ${daysLeft} días).`,
               entityType: 'Contract',
               entityId: contract.id,
             });
@@ -172,7 +178,7 @@ export class NotificationSchedulerService extends CronBaseService {
               to: user.email,
               subject: `Contrato por vencer — ${contract.property.title}`,
               title,
-              message: `El contrato de ${contract.property.title} vence el ${formatDateAR(contract.endDate)} (faltan ${daysLeft} días). Por favor revise las opciones de renovación.`,
+              message: `El contrato de ${contract.property.title} vence el ${formatDateAR(effectiveEnd)} (faltan ${daysLeft} días). Por favor revise las opciones de renovación.`,
               tenantName: tenant.name,
             });
           }

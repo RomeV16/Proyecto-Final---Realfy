@@ -11,6 +11,6 @@ import { ContractRulesService } from './contract-rules.service';
   imports: [IndexDataModule, AiModule, TenantsModule],
   controllers: [ContractsController],
   providers: [ContractsService, ContractLessorsService, ContractRulesService],
-  exports: [ContractsService],
+  exports: [ContractsService, ContractRulesService],
 })
 export class ContractsModule {}

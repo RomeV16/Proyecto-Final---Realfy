@@ -144,7 +144,7 @@ describe('NotificationSchedulerService', () => {
       prisma.baseClient.user.findMany.mockResolvedValue(users);
       // Como la base: solo devuelve el contrato si vence dentro del rango pedido.
       prisma.client.contract.findMany.mockImplementation(async ({ where }: any) =>
-        END_DATE >= where.endDate.gte && END_DATE <= where.endDate.lte
+        END_DATE >= where.OR[1].endDate.gte && END_DATE <= where.OR[1].endDate.lte
           ? [{ id: 'c1', endDate: END_DATE, property: { title: 'Depto Centro' } }]
           : [],
       );
