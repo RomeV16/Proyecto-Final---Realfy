@@ -37,7 +37,7 @@ import type { LessorInvoiceSourceType } from './lessor-invoice-queue';
 type Db = any;
 
 /** Intentos automáticos de un trabajo fallido antes de dejarlo para una persona. */
-export const MAX_AUTO_ATTEMPTS = 5;
+const MAX_AUTO_ATTEMPTS = 5;
 /** Cuánto hacia atrás mira la facturación automática, como tope, para no facturar historia vieja. */
 const AUTO_LOOKBACK_DAYS = 60;
 const BATCH = 50;
