@@ -33,6 +33,11 @@ requisitos RF-12, RF-13 y RF-14 del informe de la tesis y el caso de uso
 CU-08 (calcular y aplicar ajuste). El resto del sistema se mantiene como
 estaba y sigue cubierto por las suites que ya existían.
 
+Desde el piloto en una inmobiliaria real, el proceso se extiende al ciclo
+mensual completo con un nivel más: la aceptación en campo, que compara los
+resultados de Realfy con los del sistema actual de la inmobiliaria ciclo por
+ciclo (`12-piloto.md`).
+
 ## Documentos
 
 | Archivo | Eje del TP |
@@ -47,6 +52,7 @@ estaba y sigue cubierto por las suites que ya existían.
 | `08-herramienta-sonarcloud.md` | Herramientas: proceso de cinco pasos y matriz de decisión |
 | `09-metricas.md` | Métricas y análisis estático: evolución antes y después |
 | `10-stress.md` | Stress y esfuerzo sostenido: scripts, umbrales y resultados |
+| `12-piloto.md` | Aceptación en campo: ciclos del piloto, reconciliación con tolerancia cero y tratamiento de diferencias |
 
 ## Un comando para cada suite
 
