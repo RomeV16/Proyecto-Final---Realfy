@@ -6,7 +6,6 @@ jest.mock('resend', () => ({
 }));
 
 import { EmailService } from '../../../src/modules/liquidaciones/email.service';
-import { RenditionEmailService } from '../../../src/modules/renditions/rendition-email.service';
 import { NotificationEmailService } from '../../../src/modules/notifications/notification-email.service';
 import { CommonEmailService } from '../../../src/common/email/common-email.service';
 
@@ -22,7 +21,6 @@ function build() {
   const common = new CommonEmailService(config());
   return {
     liquidaciones: new EmailService(common),
-    renditions: new RenditionEmailService(common),
     notifications: new NotificationEmailService(common),
   };
 }
@@ -47,32 +45,6 @@ describe('Caracterización de mails', () => {
       'Inmobiliaria Demo',
     );
     expect(result).toEqual({ status: 'sent', id: 'email-1' });
-    expect(sentPayload()).toMatchSnapshot();
-  });
-
-  it('rendición', async () => {
-    const result = await build().renditions.sendRendicionEmail(
-      'dueno@example.com',
-      {
-        id: 'r-1',
-        period: new Date('2025-03-01T00:00:00.000Z'),
-        netDeposit: '140999.75',
-        owner: { firstName: 'Ana', lastName: 'Pérez' },
-      },
-      Buffer.from('pdf'),
-      'Inmobiliaria Demo',
-    );
-    expect(result).toEqual({ status: 'sent', id: 'email-1' });
-    expect(sentPayload()).toMatchSnapshot();
-  });
-
-  it('rendición sin propietario', async () => {
-    await build().renditions.sendRendicionEmail(
-      'dueno@example.com',
-      { id: 'r-2', period: new Date('2025-04-01T00:00:00.000Z'), netDeposit: 0 },
-      Buffer.from('pdf'),
-      'Inmobiliaria Demo',
-    );
     expect(sentPayload()).toMatchSnapshot();
   });
 

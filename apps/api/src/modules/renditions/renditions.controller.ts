@@ -1,32 +1,18 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  Query,
-  Res,
-} from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { RenditionsService } from './renditions.service';
 import { Roles } from '../../common/auth/roles.decorator';
-import { BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
+import { MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 import { ReadResource } from '../../common/read-policy/read-resource.decorator';
 
+/**
+ * Rendiciones históricas (solo lectura): la cuenta corriente del locador y su
+ * estado de cuenta las reemplazan (ADR-0009). No se generan, no cambian de
+ * estado, no se editan ni se envían: solo se consultan y se imprimen.
+ */
 @Controller('renditions')
 export class RenditionsController {
   constructor(private readonly renditionsService: RenditionsService) {}
-
-  /**
-   * POST /renditions/generate — Generate a rendition for a contract + period.
-   */
-  @Roles(...BILLING_ROLES)
-  @Post('generate')
-  async generate(@Body() body: Record<string, any>) {
-    return this.renditionsService.generate(body);
-  }
 
   /**
    * GET /renditions — List with filters + pagination.
@@ -54,18 +40,6 @@ export class RenditionsController {
   }
 
   /**
-   * PATCH /renditions/:id/transition — State transition.
-   */
-  @Roles(...BILLING_ROLES)
-  @Patch(':id/transition')
-  async transition(
-    @Param('id') id: string,
-    @Body() body: Record<string, any>,
-  ) {
-    return this.renditionsService.transition(id, body);
-  }
-
-  /**
    * GET /renditions/:id/pdf — Download PDF.
    */
   @ReadResource('renditions')
@@ -78,51 +52,6 @@ export class RenditionsController {
       'Content-Length': pdfBuffer.length,
     });
     res.end(pdfBuffer);
-  }
-
-  /**
-   * POST /renditions/:id/send — Send rendition email with PDF.
-   */
-  @Roles(...BILLING_ROLES)
-  @Post(':id/send')
-  async sendEmail(@Param('id') id: string) {
-    return this.renditionsService.sendEmail(id);
-  }
-
-  /**
-   * POST /renditions/:id/line-items — Add a line item.
-   */
-  @Roles(...BILLING_ROLES)
-  @Post(':id/line-items')
-  async addLineItem(
-    @Param('id') id: string,
-    @Body() body: Record<string, any>,
-  ) {
-    return this.renditionsService.addLineItem(id, body);
-  }
-
-  /**
-   * DELETE /renditions/:id/line-items/:itemId — Remove a line item.
-   */
-  @Roles(...BILLING_ROLES)
-  @Delete(':id/line-items/:itemId')
-  async removeLineItem(
-    @Param('id') id: string,
-    @Param('itemId') itemId: string,
-  ) {
-    return this.renditionsService.removeLineItem(id, itemId);
-  }
-
-  /**
-   * PATCH /renditions/:id/notes — Update notes.
-   */
-  @Roles(...BILLING_ROLES)
-  @Patch(':id/notes')
-  async updateNotes(
-    @Param('id') id: string,
-    @Body() body: Record<string, any>,
-  ) {
-    return this.renditionsService.updateNotes(id, body);
   }
 }
 
