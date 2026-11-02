@@ -38,6 +38,7 @@ import {
   amountInWords,
   periodKey,
   onBehalfOfText,
+  formatDateAR,
 } from '@realfy/shared';
 import type { LineItemInput, OperationalDefaults, PaymentInput } from '@realfy/shared';
 import { PdfService } from './pdf.service';
@@ -49,6 +50,7 @@ import { rentAtDate, rentChangeInMonth } from './rent-at';
 import { scheduledPeriod } from './generation-window';
 import { EmailService } from './email.service';
 import { ServiceBillsService } from '../services/service-bills.service';
+import { PenaltiesService, parseDay } from '../penalties/penalties.service';
 import Decimal from 'decimal.js';
 import { randomUUID } from 'crypto';
 import { assertTransition } from '../../common/errors/assert-transition';
@@ -90,6 +92,7 @@ export class LiquidacionesService {
     private readonly audit: AuditService,
     private readonly adjustments: ContractAdjustmentService,
     private readonly serviceBills: ServiceBillsService,
+    private readonly penalties: PenaltiesService,
   ) {}
 
   // ─── Auto-Generation ────────────────────────────────
@@ -258,6 +261,10 @@ export class LiquidacionesService {
       contract.rentCurrency,
     );
 
+    // Punitorios devengados en liquidaciones anteriores del contrato que todavía no se cobraron
+    // ni se condonaron (FB-07): entran como renglones Multa de este período.
+    const penaltyBilling = await this.penalties.pendingLines(tenantId, contract.id, period, todayInAR());
+
     const built = buildLiquidation({
       period,
       currency: contract.rentCurrency,
@@ -282,6 +289,7 @@ export class LiquidacionesService {
       lessors,
       trueUps,
       serviceAllocations,
+      penalties: penaltyBilling.lines,
     });
 
     if (built.skipped) {
@@ -336,6 +344,8 @@ export class LiquidacionesService {
           [...new Set(serviceAllocations.flatMap((l) => (l.sourceId ? [l.sourceId] : [])))],
           row.id,
         );
+        // Y cada punitorio, una sola vez: la fila queda cobrada en esta liquidación.
+        await this.penalties.markSettled(tx, penaltyBilling.rowIds, row.id);
         return row;
       });
       return { contractId: contract.id, status: 'created', liquidacionId: created?.id };
@@ -560,6 +570,10 @@ export class LiquidacionesService {
 
     await this.prisma.client.$transaction(async (tx: any) => {
       await tx.liquidacionLineItem.delete({ where: { id: lineItemId } });
+      if (lineItem.type === LineItemType.Multa && lineItem.sourceType === 'Penalty' && lineItem.sourceId) {
+        // Los punitorios de ese renglón vuelven a quedar pendientes para la próxima liquidación.
+        await this.penalties.release(tx, lineItem.liquidacionId, lineItem.sourceId);
+      }
       if (lineItem.sourceType === 'ServiceBillAllocation' && lineItem.sourceId) {
         await this.serviceBills.release(tx, { ids: [lineItem.sourceId] });
         // El renglón de la diferencia por descuento anual de esa parte sale junto con el principal.
@@ -627,6 +641,12 @@ export class LiquidacionesService {
         updateData.receiptSeq = await this.nextReceiptSeq(tx, tenantId);
         await tx.liquidacion.update({ where: { id }, data: updateData });
       });
+    } else if (toStatus === LiquidacionStatus.Anulada) {
+      await this.prisma.client.$transaction(async (tx: any) => {
+        await tx.liquidacion.update({ where: { id }, data: updateData });
+        // Una liquidación anulada no cobra: sus punitorios vuelven a quedar pendientes.
+        await this.penalties.release(tx, id);
+      });
     } else {
       await this.prisma.client.liquidacion.update({
         where: { id },
@@ -675,12 +695,23 @@ export class LiquidacionesService {
     const validated: any = parseOrThrow(CreatePaymentSchema, data, 'Invalid payment data');
     const tenantId = this.tenantContext.getTenantId()!;
 
+    // La regla de punitorios se resuelve antes de bloquear la fila: pago tardío o cobro con punitorios.
+    const paidDay = parseDay(new Date(validated.paidAt).toISOString().slice(0, 10));
+    const head = await this.prisma.client.liquidacion.findFirst({
+      where: { id: liquidacionId },
+      select: { contractId: true, dueDate: true },
+    });
+    const penaltyCtx =
+      head && (validated.settlePenalties || paidDay.getTime() > head.dueDate.getTime())
+        ? await this.penalties.loadContext(tenantId, head.contractId, paidDay)
+        : null;
+
     // Validar el saldo, crear el pago y pasar a Pagada es una sola unidad: la
     // fila de la liquidación se bloquea (SELECT ... FOR UPDATE) hasta el commit,
     // así que dos pagos simultáneos se serializan y el segundo ve el saldo que
     // dejó el primero. El SQL crudo no pasa por la extensión de inmobiliaria,
     // por eso filtra por tenantId a mano (ADR-0006).
-    const { payment, remaining, fullyPaid, totalPaid } = await this.prisma.client.$transaction(
+    const { payment, remaining, fullyPaid, totalPaid, penaltySettled } = await this.prisma.client.$transaction(
       async (tx: any) => {
         const locked: { id: string }[] = await tx.$queryRaw(
           Prisma.sql`SELECT id FROM liquidaciones WHERE id = ${liquidacionId} AND "tenantId" = ${tenantId} FOR UPDATE`,
@@ -713,6 +744,44 @@ export class LiquidacionesService {
           });
         }
 
+        // Cobro con punitorios: lo devengado a la fecha del pago, sin lo condonado ni lo ya cobrado en
+        // otra liquidación, entra como renglón Multa y el pago tiene que cubrir el total.
+        let penaltySettled: { amount: string; days: number } | null = null;
+        if (validated.settlePenalties && penaltyCtx) {
+          const { result } = await this.penalties.accrue(tx, liquidacion, penaltyCtx, paidDay, 'payment');
+          const rows: { id: string; amount: unknown }[] = await tx.penalty.findMany({
+            where: { liquidacionId, status: 'active', settledLiquidacionId: null },
+            select: { id: true, amount: true },
+          });
+          const due = rows.reduce((acc, r) => acc.plus(String(r.amount)), new Decimal(0));
+          if (due.gt(0)) {
+            const last = await tx.liquidacionLineItem.findFirst({
+              where: { liquidacionId },
+              orderBy: { sortOrder: 'desc' },
+              select: { sortOrder: true },
+            });
+            await tx.liquidacionLineItem.create({
+              data: {
+                tenantId,
+                liquidacionId,
+                type: LineItemType.Multa,
+                description: `Punitorios por mora hasta el ${formatDateAR(paidDay)} (${result.daysOverdue} días)`,
+                amount: due.toFixed(2),
+                currency: liquidacion.currency,
+                sortOrder: (last?.sortOrder ?? -1) + 1,
+                commissionable: defaultCommissionable(LineItemType.Multa),
+                beneficiary: defaultBeneficiary(LineItemType.Multa),
+                sourceType: 'Penalty',
+                sourceId: liquidacionId,
+              },
+            });
+            await this.penalties.markSettled(tx, rows.map((r) => r.id), liquidacionId);
+            const updated = await this.recalculateTotals(liquidacionId, tx);
+            liquidacion.total = updated.total;
+            penaltySettled = { amount: due.toFixed(2), days: result.daysOverdue };
+          }
+        }
+
         // Un pago no puede superar lo que falta saldar: el excedente no tiene a qué
         // imputarse y dejaría la liquidación con saldo negativo.
         const priorPayments: PaymentInput[] = liquidacion.payments.map((p: any) => ({
@@ -724,6 +793,14 @@ export class LiquidacionesService {
             error: 'PAYMENT_EXCEEDS_BALANCE',
             message: `Payment amount exceeds the remaining balance of ${balanceBefore.toFixed(2)}`,
             remainingBalance: balanceBefore.toFixed(2),
+          });
+        }
+
+        if (penaltySettled && !new Decimal(validated.amount).eq(balanceBefore)) {
+          throw new BadRequestException({
+            error: 'PAYOFF_REQUIRES_FULL_AMOUNT',
+            message: `A payment that settles penalties must cover the full amount of ${balanceBefore.toFixed(2)}`,
+            expectedAmount: balanceBefore.toFixed(2),
           });
         }
 
@@ -744,6 +821,12 @@ export class LiquidacionesService {
         const allPayments: PaymentInput[] = [...priorPayments, { amount: validated.amount }];
         const isPaid = isFullyPaid(liquidacion.total.toString(), allPayments);
         const left = calculateRemainingBalance(liquidacion.total.toString(), allPayments);
+
+        // Un pago tardío que salda la liquidación fija el devengo hasta su fecha: lo que no se cobró
+        // en el momento queda como punitorio pendiente para la próxima liquidación.
+        if (isPaid && !penaltySettled && penaltyCtx && paidDay.getTime() > liquidacion.dueDate.getTime()) {
+          await this.penalties.accrue(tx, liquidacion, penaltyCtx, paidDay, 'payment');
+        }
 
         if (isPaid) {
           // Auto-transition to Pagada. La fecha de saldado es la del último pago que
@@ -769,6 +852,7 @@ export class LiquidacionesService {
           remaining: left,
           fullyPaid: isPaid,
           totalPaid: new Decimal(liquidacion.total.toString()).minus(left).toFixed(2),
+          penaltySettled,
         };
       },
     );
@@ -790,7 +874,8 @@ export class LiquidacionesService {
       fullyPaid,
     });
 
-    return this.findOne(liquidacionId);
+    const detail = await this.findOne(liquidacionId);
+    return penaltySettled ? { ...detail, penaltySettled } : detail;
   }
 
   async findPayments(liquidacionId: string) {
@@ -913,6 +998,7 @@ export class LiquidacionesService {
       // Las partes de boletas que traía vuelven a quedar pendientes para la próxima.
       await this.prisma.client.$transaction(async (tx: any) => {
         await this.serviceBills.release(tx, { liquidacionId: id });
+        await this.penalties.release(tx, id);
         await tx.liquidacion.delete({ where: { id } });
       });
       this.logger.log('Liquidación deleted', { liquidacionId: id, status });
@@ -927,9 +1013,10 @@ export class LiquidacionesService {
       });
     }
 
-    await this.prisma.client.liquidacion.update({
-      where: { id },
-      data: { status: LiquidacionStatus.Anulada },
+    await this.prisma.client.$transaction(async (tx: any) => {
+      await tx.liquidacion.update({ where: { id }, data: { status: LiquidacionStatus.Anulada } });
+      // Una liquidación anulada no cobra: sus punitorios vuelven a quedar pendientes.
+      await this.penalties.release(tx, id);
     });
 
     this.logger.log('Liquidación annulled', {
@@ -968,8 +1055,8 @@ export class LiquidacionesService {
     return liquidacion;
   }
 
-  private async recalculateTotals(liquidacionId: string) {
-    const lineItems = await this.prisma.client.liquidacionLineItem.findMany({
+  private async recalculateTotals(liquidacionId: string, db: any = this.prisma.client) {
+    const lineItems = await db.liquidacionLineItem.findMany({
       where: { liquidacionId },
     });
 
@@ -991,7 +1078,7 @@ export class LiquidacionesService {
       throw err;
     }
 
-    await this.prisma.client.liquidacion.update({
+    return db.liquidacion.update({
       where: { id: liquidacionId },
       data: {
         subtotal: result.subtotal.toFixed(2),

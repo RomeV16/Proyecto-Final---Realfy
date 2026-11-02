@@ -7,9 +7,10 @@ import { LiquidacionesScheduler } from './liquidaciones.scheduler';
 import { TenantsModule } from '../tenants/tenants.module';
 import { IndexDataModule } from '../index-data/index-data.module';
 import { ServicesModule } from '../services/services.module';
+import { PenaltiesModule } from '../penalties/penalties.module';
 
 @Module({
-  imports: [TenantsModule, IndexDataModule, ServicesModule],
+  imports: [TenantsModule, IndexDataModule, ServicesModule, PenaltiesModule],
   controllers: [LiquidacionesController],
   providers: [
     LiquidacionesService,

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PenaltiesController } from './penalties.controller';
 import { PenaltiesService } from './penalties.service';
 import { PenaltiesScheduler } from './penalties.scheduler';
@@ -46,7 +46,10 @@ function buildMocks() {
     }),
   } as any;
 
-  const penaltiesService = new PenaltiesService();
+  const penaltiesService = {
+    waive: jest.fn().mockResolvedValue({ id: 'p1', status: 'waived' }),
+    waiveAll: jest.fn().mockResolvedValue({ waived: 2, total: '30.00', upTo: '2026-03-10' }),
+  } as any;
 
   const scheduler = {
     applyPenalties: jest.fn().mockResolvedValue({ tenantsProcessed: 1, penaltiesInserted: 0 }),
@@ -67,34 +70,45 @@ function buildController(mocks: ReturnType<typeof buildMocks>) {
 
 describe('PenaltiesController', () => {
   describe('waivePenalty', () => {
-    it('throws NotFoundException when penalty does not exist', async () => {
+    it('valida el motivo y delega en el servicio', async () => {
       const mocks = buildMocks();
-      mocks.prisma.client.penalty.findFirst.mockResolvedValue(null);
       const controller = buildController(mocks);
 
-      await expect(
-        controller.waivePenalty('non-existent', { reason: 'test' }),
-      ).rejects.toThrow(NotFoundException);
+      const result = await controller.waivePenalty('p1', { reason: ' acuerdo con el locador ' });
+
+      expect(mocks.penaltiesService.waive).toHaveBeenCalledWith('p1', 'acuerdo con el locador');
+      expect(result.status).toBe('waived');
     });
 
-    it('waives penalty when it exists', async () => {
+    it.each([{}, { reason: '   ' }, { reason: 'x', extra: 1 }])('rechaza un cuerpo sin motivo válido: %j', async (body) => {
+      const controller = buildController(buildMocks());
+      await expect(controller.waivePenalty('p1', body)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('waiveAll', () => {
+    it('condona hasta la fecha pedida', async () => {
       const mocks = buildMocks();
-      mocks.prisma.client.penalty.findFirst.mockResolvedValue({ id: 'p1', status: 'active' });
       const controller = buildController(mocks);
 
-      const result = await controller.waivePenalty('p1', { reason: 'manual override' });
+      const result = await controller.waiveAll('c1', { upTo: '2026-03-10' }, { reason: 'bonificación' });
 
-      expect(mocks.prisma.client.penalty.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'p1' },
-          data: expect.objectContaining({
-            status: 'waived',
-            waiveReason: 'manual override',
-            waivedBy: 'user-1',
-          }),
-        }),
-      );
-      expect(result.status).toBe('waived');
+      expect(mocks.penaltiesService.waiveAll).toHaveBeenCalledWith('c1', new Date('2026-03-10T00:00:00.000Z'), 'bonificación');
+      expect(result.waived).toBe(2);
+    });
+
+    it('sin upTo condona hasta hoy (Buenos Aires)', async () => {
+      const mocks = buildMocks();
+      const controller = buildController(mocks);
+      await controller.waiveAll('c1', {}, { reason: 'bonificación' });
+      const upTo = mocks.penaltiesService.waiveAll.mock.calls[0][1] as Date;
+      expect(upTo.getUTCHours()).toBe(0);
+    });
+
+    it('rechaza una fecha mal escrita o un motivo vacío', async () => {
+      const controller = buildController(buildMocks());
+      await expect(controller.waiveAll('c1', { upTo: '10/03/2026' }, { reason: 'x' })).rejects.toThrow(BadRequestException);
+      await expect(controller.waiveAll('c1', {}, { reason: '' })).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -181,6 +195,17 @@ describe('PenaltiesController', () => {
       expect(parseFloat(result.amount)).toBe(100); // 10 days × $10
       expect(result.daysOverdue).toBe(10);
       expect(result.capHit).toBe(false);
+    });
+
+    it('simula el modo de tasa BNA con la TNA indicada', async () => {
+      const controller = buildController(buildMocks());
+      const base = {
+        debt: '1000',
+        daysOverdue: 10,
+        config: { mode: 'max_bna_or_daily' as const, value: '0.003', graceDays: 0, maxMultiplier: '3.0' },
+      };
+      expect(parseFloat((await controller.previewPenalty(base)).amount)).toBe(30);
+      expect(parseFloat((await controller.previewPenalty({ ...base, bnaAnnualPct: '100' })).amount)).toBe(54.79);
     });
   });
 
