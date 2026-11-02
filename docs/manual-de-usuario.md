@@ -838,6 +838,77 @@ nivel de servicio y cuánto queda.
 
 Gestionar tickets es de Admin, Gerente y Soporte. Los demás roles los ven.
 
+### Gestionar una reparación (incidencias)
+
+Cuando el reclamo es una reparación que cuesta dinero, el detalle del ticket
+(`/tickets/[id]`) suma el circuito completo: **caso → preautorización →
+presupuesto → ejecución → pago al proveedor → imputación**. Arriba muestra el
+avance por etapas (Abierto, Pendiente de autorización, Presupuestado, Presupuesto
+aprobado, En progreso, Resuelto y Cerrado); si el ticket se cancela, el avance se
+reemplaza por un aviso.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Abierto
+    Abierto --> PendienteAutorizacion: el estimado supera el limite
+    Abierto --> Presupuestado: estimado dentro del limite
+    PendienteAutorizacion --> Presupuestado: el locador preautoriza
+    Presupuestado --> PresupuestoAprobado: el locador aprueba un presupuesto
+    PresupuestoAprobado --> ProveedorAsignado
+    PresupuestoAprobado --> EnProgreso
+    Abierto --> Asignado: sin presupuesto (arreglo menor)
+    Asignado --> EnProgreso
+    ProveedorAsignado --> EnProgreso
+    EnProgreso --> Resuelto
+    Resuelto --> Cerrado
+    Cerrado --> Reabierto
+    PendienteAutorizacion --> Cancelado
+    Presupuestado --> Cancelado
+    PresupuestoAprobado --> Cancelado
+    EnProgreso --> Cancelado
+```
+
+El diagrama resume el recorrido principal. Los estados del proveedor (proveedor
+asignado, en camino, trabajo realizado) y Asignado y Reabierto siguen como antes y
+se cuentan como la etapa que les corresponde; la transición válida desde cada
+estado es siempre la que ofrece el botón del detalle.
+
+1. **Estimar y autorizar.** *Anotar el costo estimado* guarda el importe. Si supera
+   el límite que la inmobiliaria resuelve sin consultar (en *Valores por defecto*,
+   «Límite sin consultar al locador»; de fábrica 0, es decir que siempre se consulta)
+   el ticket pasa a *Pendiente de autorización*. Entonces se registra la autorización
+   del locador: hasta qué importe, quién la dio (el locador o quien lo representa) y
+   por qué canal (WhatsApp, teléfono, mail o presencial); queda la fecha. Con ese tope
+   autorizado, un estimado menor ya no vuelve a pedir consulta. Un arreglo por debajo
+   del límite sigue sin consultar.
+2. **Presupuestar.** Se cargan los presupuestos de los proveedores (proveedor,
+   importe, nota). Se pueden corregir, descartar o quitar mientras estén pendientes.
+3. **Aprobar.** *Aprobar* abre un diálogo que pide **quién aprueba** y **por qué
+   canal**; ambos son obligatorios y quedan registrados con la fecha. El proveedor y
+   el importe del presupuesto aprobado pasan al ticket, los otros presupuestos se
+   descartan y el ticket pasa a *Presupuesto aprobado*.
+4. **Ejecutar.** Se asigna el proveedor y el ticket sigue por los estados de siempre
+   hasta *Trabajo realizado* y *Resuelto*.
+5. **Pagar al proveedor** (Admin, Gerente y Liquidaciones). Desde el presupuesto
+   aprobado, *Registrar pago al proveedor* saca el dinero de una cuenta de la
+   inmobiliaria (en la moneda del trabajo; no de la custodia de un locador) y deja un
+   egreso *Pago a proveedor* en la caja. Se puede pagar en partes (un anticipo y el
+   saldo), sin pasarse de lo aprobado.
+6. **Imputar.** Con el trabajo terminado, *Imputar el gasto* carga lo pagado a quien
+   lo soporta, **una sola vez**: **el inquilino** (entra en su próxima liquidación,
+   sin comisión), **el locador** (se descuenta en su estado) o **la inmobiliaria**
+   (queda como gasto propio; el egreso ya está en la caja, no se repite). El gasto se
+   confirma antes de enviarse.
+
+**Honorario por gestión.** Al imputar, la inmobiliaria puede sumar un honorario por
+gestionar la reparación: un porcentaje de lo pagado (el que se deje vacío usa el de
+*Valores por defecto*) o un importe fijo. Se carga como otro gasto puntual a favor
+de la inmobiliaria, a cargo de quien paga la reparación; **nunca es comisión** y no
+se cobra cuando paga la propia inmobiliaria. Es siempre opcional.
+
+Cada paso queda en la bitácora: la estimación, la preautorización, la aprobación del
+presupuesto (con quién y por qué canal), el pago y la imputación.
+
 ### Importar datos y sacar reportes
 
 **Importar** (`/import`) sube un CSV de hasta 10 MB de propiedades o de personas
@@ -921,7 +992,9 @@ honorarios), la cadencia de cobranza (primer recordatorio a los 5 días y despu�
 cada 5), el semáforo de vencimientos de contratos (rojo a los 30 días, amarillo a
 los 60) y las cuatro convenciones de liquidación (prorrateo de un mes parcial, ajuste a
 mitad de mes, primer mes con inicio tardío y descuento de monto fijo; de fábrica, días
-reales, desde el período siguiente, vence el día de inicio y proporcional). La sección
+reales, desde el período siguiente, vence el día de inicio y proporcional), el límite de
+reparaciones sin consultar al locador (de fábrica 0: siempre se consulta) y el porcentaje
+del honorario por gestión de una reparación (0: no se propone). La sección
 *Cuenta corriente del locador* fija el **día de cierre** del estado (vacío = fin de
 mes; con un día, lo posterior va al estado del mes siguiente) y **cuándo se descuentan
 los gastos al locador** (al generar el estado, de fábrica, o recién al emitirlo; en
