@@ -156,11 +156,9 @@ El honorario por gestión de reparaciones es por contrato (`ContractCommission.r
 6. De una boleta «Propietario» pagada por la inmobiliaria se descuenta solo la parte
    asignada a cada contrato; una unidad vacía va como cargo manual: ¿alcanza?
 7. Anular un estado no devuelve los cargos a pendiente: ¿es correcto?
-8. Los cobros registrados entre la puesta en marcha de la caja y la de la cuenta
-   corriente no se asientan solos: ¿se cargan en el saldo inicial?
-9. El centavo de redondeo va al primer crédito (el alquiler): ¿alguna preferencia?
-10. El honorario por gestión se calcula solo sobre reparaciones a cargo del locador
-    (no sobre créditos ni otros gastos): ¿es correcto?
+8. El centavo de redondeo va al primer crédito (el alquiler): ¿alguna preferencia?
+9. El honorario por gestión se calcula solo sobre reparaciones a cargo del locador
+   (no sobre créditos ni otros gastos): ¿es correcto?
 
 ## Alternativas consideradas
 
@@ -191,6 +189,9 @@ El honorario por gestión de reparaciones es por contrato (`ContractCommission.r
   su cuenta corriente, que escribe el egreso y el asiento juntos.
 - Sin backfill: las tablas nacen vacías y cada locador arranca con su saldo inicial
   (lo carga la gerencia o la importación, M10).
+- La caja y cobros (ADR-0012) y la cuenta corriente se despliegan juntos: no hay cobros
+  registrados con reparto que hayan quedado sin asentar, y no hace falta reasentar
+  cobros anteriores.
 - La unión de personas pasa los asientos y los estados a la persona que se conserva;
   si las dos tienen un asiento del mismo origen y concepto (por ejemplo, el saldo
   inicial de la misma moneda) o un estado del mismo mes y moneda, se rechaza y se
