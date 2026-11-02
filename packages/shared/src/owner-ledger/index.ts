@@ -31,7 +31,7 @@ export enum LessorChargeTiming {
 export const PAYOUT_ENTRY_TYPES: readonly T[] = [T.Transferencia, T.EntregaEfectivo, T.CobroDirecto];
 
 /** Lo que entra al saldo de apertura en lugar de a los movimientos del período. */
-export const OPENING_ENTRY_TYPES: readonly T[] = [T.SaldoInicial];
+const OPENING_ENTRY_TYPES: readonly T[] = [T.SaldoInicial];
 
 /** Concepto del asiento que corresponde a un renglón de la liquidación a favor del locador. */
 export function ledgerTypeForLine(type: LineItemType | `${LineItemType}` | string): T {

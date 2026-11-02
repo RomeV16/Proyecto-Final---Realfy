@@ -34,7 +34,7 @@ export const PROPERTY_LABEL = { id: true, title: true, street: true, number: tru
 const notFound = (error: string, message: string) => new NotFoundException({ error, message });
 
 /** Tipo de origen del saldo inicial; el id del origen es la moneda (uno por locador y moneda). */
-export const OPENING_SOURCE = 'OpeningBalance';
+const OPENING_SOURCE = 'OpeningBalance';
 
 /**
  * Cuenta corriente del locador (ADR-0009): movimientos con saldo corrido,

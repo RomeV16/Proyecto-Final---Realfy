@@ -2,7 +2,6 @@ import {
   Currency,
   OpeningBalanceSchema,
   OWNER_PAYOUT_METHODS,
-  OwnerLedgerEntryType,
   OwnerPayoutSchema,
   OwnerStatementStatus,
   PAYOUT_ENTRY_TYPES,
@@ -119,7 +118,6 @@ export interface GenerateResult {
 
 /* ──────────── Constantes ──────────── */
 
-export const LEDGER_ENTRY_TYPES = Object.values(OwnerLedgerEntryType);
 export const STATEMENT_STATUSES = Object.values(OwnerStatementStatus);
 export const PAYOUT_METHODS: readonly string[] = OWNER_PAYOUT_METHODS;
 export const OWNER_CURRENCIES = Object.values(Currency);

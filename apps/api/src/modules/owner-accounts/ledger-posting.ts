@@ -44,7 +44,7 @@ export interface PostingContext {
 }
 
 /** "YYYY-MM-DD" o fecha -> medianoche UTC de ese día. */
-export const dayOf = (value: Date | string): Date =>
+const dayOf = (value: Date | string): Date =>
   new Date(`${(typeof value === 'string' ? value : value.toISOString()).slice(0, 10)}T00:00:00.000Z`);
 
 /** Escribe los asientos (los de importe cero no) y omite los que ya existían con el mismo origen. */

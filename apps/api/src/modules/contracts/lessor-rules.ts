@@ -76,7 +76,7 @@ export async function assertLessorRefs(
   }
 }
 
-export function throwLessorSharesInvalid(invalidDates: InvalidShareDate[]): never {
+function throwLessorSharesInvalid(invalidDates: InvalidShareDate[]): never {
   const first = invalidDates[0];
   throw new BadRequestException({
     error: 'LESSOR_SHARES_INVALID',

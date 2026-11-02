@@ -112,7 +112,7 @@ function table(rows: Row[], prefix: string, unique?: (r: Row) => string) {
   };
 }
 
-export const ledgerKey = (r: Row) => [r.tenantId, r.sourceType, r.sourceId, r.personId, r.type].join('|');
+const ledgerKey = (r: Row) => [r.tenantId, r.sourceType, r.sourceId, r.personId, r.type].join('|');
 
 export interface FakeData {
   entries?: Row[];
