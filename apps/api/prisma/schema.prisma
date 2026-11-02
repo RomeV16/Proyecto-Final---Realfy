@@ -641,6 +641,7 @@ model Person {
   pendingCharges         PendingCharge[]
   custodyAccounts        FinancialAccount[]   @relation("CustodyOwner")
   cashMovements          CashMovement[]       @relation("CashCounterparty")
+  heldDeposits           ContractDeposit[]    @relation("DepositHolder")
   compensationsFrom      Compensation[]       @relation("CompensationFrom")
   compensationsTo        Compensation[]       @relation("CompensationTo")
   ownerLedger            OwnerLedgerEntry[]
@@ -908,6 +909,8 @@ model Contract {
   ownerLedger     OwnerLedgerEntry[]
 
   followUps ContractFollowUp[]
+  deposit   ContractDeposit?
+  moveOut   MoveOutSettlement?
 
   fees Fee[]
 
@@ -1517,6 +1520,7 @@ enum CashCategory {
   ComisionEmpleado
   Sena
   Custodia
+  Deposito
   Compensacion
   Conversion
 }
@@ -3002,4 +3006,109 @@ model ImportRowLog {
   @@index([tenantId])
   @@index([batchId, action])
   @@map("import_row_logs")
+}
+
+// ─── Depósitos y liquidación de egreso ──────────────────
+
+enum DepositHolder {
+  Locador
+  Inmobiliaria
+}
+
+/// Cómo se devuelve el depósito: en pesos actualizados al último alquiler o en la misma moneda.
+enum DepositRefundRule {
+  PesosActualizado
+  MismaMoneda
+}
+
+enum DepositStatus {
+  Pendiente
+  Parcial
+  Cobrado
+  Devuelto
+}
+
+enum MoveOutStatus {
+  Borrador
+  Confirmada
+}
+
+/// Depósito en garantía de un contrato (D9). Reemplaza a `Contract.depositAmount`
+/// y `depositCurrency`, que quedan sin uso (se migraron acá).
+model ContractDeposit {
+  id                 String            @id @default(uuid())
+  tenantId           String
+  contractId         String            @unique
+  amount             Decimal           @db.Decimal(15, 2)
+  currency           Currency
+  heldBy             DepositHolder
+  /// Locador dueño del dinero cuando lo guarda la inmobiliaria en custodia, o locador que lo guarda.
+  heldByPersonId     String?
+  installments       Int               @default(1)
+  refundRule         DepositRefundRule
+  refundInstallments Int               @default(1)
+  /// Días corridos desde el egreso para devolver el depósito.
+  refundDueDays      Int               @default(30)
+  status             DepositStatus     @default(Pendiente)
+  refundedAt         DateTime?         @db.Date
+  refundedAmount     Decimal?          @db.Decimal(15, 2)
+  notes              String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  contract        Contract                     @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  heldByPerson    Person?                      @relation("DepositHolder", fields: [heldByPersonId], references: [id], onDelete: Restrict)
+  installmentRows ContractDepositInstallment[]
+
+  @@index([tenantId, status])
+  @@map("contract_deposits")
+}
+
+/// Cuota del depósito. `paidAt` vacío: pendiente de cobro.
+model ContractDepositInstallment {
+  id             String    @id @default(uuid())
+  tenantId       String
+  depositId      String
+  number         Int
+  dueDate        DateTime  @db.Date
+  amount         Decimal   @db.Decimal(15, 2)
+  paidAt         DateTime? @db.Date
+  /// Movimiento de caja del cobro (vacío si lo cobró el locador directamente).
+  cashMovementId String?
+  createdAt      DateTime  @default(now())
+
+  deposit ContractDeposit @relation(fields: [depositId], references: [id], onDelete: Cascade)
+
+  @@unique([depositId, number])
+  @@index([tenantId])
+  @@map("contract_deposit_installments")
+}
+
+/// Liquidación de egreso ("chequeo"): lo que el inquilino debe al irse contra el depósito.
+/// `items` es la lista de renglones (ver `MoveOutItem` en @realfy/shared). Una por contrato.
+model MoveOutSettlement {
+  id               String        @id @default(uuid())
+  tenantId         String
+  contractId       String        @unique
+  date             DateTime      @db.Date
+  currency         Currency
+  status           MoveOutStatus @default(Borrador)
+  items            Json
+  totalOwed        Decimal       @db.Decimal(15, 2)
+  depositAvailable Decimal       @db.Decimal(15, 2)
+  /// Positivo: se devuelve al inquilino. Negativo: lo que el inquilino todavía debe.
+  netAmount        Decimal       @db.Decimal(15, 2)
+  rate             Decimal?      @db.Decimal(18, 6)
+  notes            String?
+  cashMovementId   String?
+  confirmedAt      DateTime?
+  confirmedById    String?
+  createdById      String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("move_out_settlements")
 }
