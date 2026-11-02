@@ -371,6 +371,8 @@ model User {
   scoredTenantScores TenantScore[] @relation("ScoredByUser")
   paymentsReceived   Payment[]     @relation("PaymentReceivedBy")
 
+  staffCommissions StaffCommission[] @relation("StaffCommissionUser")
+
   @@unique([email, tenantId])
   @@index([tenantId])
   @@map("users")
@@ -516,6 +518,8 @@ model Property {
   pendingCharges PendingCharge[]
   ownerLedger    OwnerLedgerEntry[]
 
+  fees Fee[]
+
   @@unique([tenantId, externalRef])
   @@index([tenantId])
   @@index([tenantId, type])
@@ -641,6 +645,9 @@ model Person {
   compensationsTo        Compensation[]       @relation("CompensationTo")
   ownerLedger            OwnerLedgerEntry[]
   ownerStatements        OwnerStatement[]
+
+  feesPaid         Fee[]             @relation("FeePayer")
+  staffCommissions StaffCommission[] @relation("StaffCommissionPerson")
 
   @@unique([tenantId, cuit])
   @@unique([tenantId, externalRef])
@@ -902,6 +909,8 @@ model Contract {
 
   followUps ContractFollowUp[]
 
+  fees Fee[]
+
   @@unique([tenantId, externalRef])
   @@index([previousContractId])
   @@index([tenantId])
@@ -1092,6 +1101,8 @@ model ContractPeriod {
   createdAt          DateTime           @default(now())
 
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  fees Fee[]
 
   @@unique([contractId, seq])
   @@index([tenantId])
@@ -1476,6 +1487,8 @@ model Receipt {
 
   payment Payment?
 
+  feeInstallment FeeInstallment?
+
   @@unique([tenantId, series, number])
   @@index([tenantId, issuedAt])
   @@map("receipts")
@@ -1690,6 +1703,188 @@ model Compensation {
   @@index([tenantId])
   @@index([paymentId])
   @@map("compensations")
+}
+
+// ─── Honorarios (D10) ───────────────────────────────────
+
+/// Operación por la que se cobra un honorario.
+enum FeeKind {
+  AltaAlquiler
+  Renovacion
+  Venta
+  Tasacion
+  GestionReparacion
+}
+
+/// Sobre qué se calcula el honorario.
+enum FeeBasis {
+  TotalContrato
+  ValorOperacion
+  MontoFijo
+}
+
+/// Quién paga el honorario.
+enum FeePayerRole {
+  Inquilino
+  Locador
+  Comprador
+  Vendedor
+  Otro
+}
+
+enum FeeStatus {
+  Pendiente
+  Parcial
+  Pagado
+  SinCargo
+  Anulado
+}
+
+enum FeeInstallmentStatus {
+  Pendiente
+  Pagada
+  Anulada
+}
+
+/// Cómo se cobró una cuota: a una cuenta de la inmobiliaria o descontada de la cuenta del locador.
+enum FeeSettlement {
+  Caja
+  CuentaLocador
+}
+
+/// IVA del honorario.
+enum FeeVatMode {
+  NoAplica
+  Incluido
+  Adicional
+}
+
+/// Honorario de una operación a cargo de una persona. Cuando pagan dos (inquilino
+/// y locador, o comprador y vendedor) hay un honorario por cada una, con el mismo
+/// `groupId`. `netAmount` es el honorario sin IVA (lo que se reparte con el
+/// coorretaje y el personal) y `total` lo que paga quien paga.
+model Fee {
+  id                 String       @id @default(uuid())
+  tenantId           String
+  groupId            String?
+  kind               FeeKind
+  status             FeeStatus    @default(Pendiente)
+  contractId         String?
+  contractPeriodId   String?
+  propertyId         String?
+  valuationId        String?
+  payerPersonId      String
+  payerRole          FeePayerRole
+  basis              FeeBasis
+  /// Porcentaje sobre la base; nulo en un monto fijo.
+  pct                Decimal?     @db.Decimal(7, 4)
+  baseAmount         Decimal      @db.Decimal(15, 2)
+  vatMode            FeeVatMode   @default(NoAplica)
+  vatPct             Decimal      @default(0) @db.Decimal(5, 2)
+  netAmount          Decimal      @db.Decimal(15, 2)
+  vatAmount          Decimal      @default(0) @db.Decimal(15, 2)
+  total              Decimal      @db.Decimal(15, 2)
+  currency           Currency
+  installments       Int
+  adjustInstallments Boolean      @default(false)
+  notes              String?
+  createdById        String?
+  cancelledAt        DateTime?
+  cancelReason       String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  contract         Contract?          @relation(fields: [contractId], references: [id], onDelete: Restrict)
+  contractPeriod   ContractPeriod?    @relation(fields: [contractPeriodId], references: [id], onDelete: Restrict)
+  property         Property?          @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  valuation        PropertyValuation? @relation(fields: [valuationId], references: [id], onDelete: SetNull)
+  payer            Person             @relation("FeePayer", fields: [payerPersonId], references: [id], onDelete: Restrict)
+  installmentRows  FeeInstallment[]
+  staffCommissions StaffCommission[]
+  shares           FeeShare[]
+
+  @@index([tenantId, kind, status])
+  @@index([tenantId, payerPersonId])
+  @@index([contractId])
+  @@index([contractPeriodId])
+  @@index([propertyId])
+  @@index([valuationId])
+  @@index([groupId])
+  @@map("fees")
+}
+
+/// Cuota de un honorario. `adjustedAmount` es el importe ajustado con el
+/// alquiler que se cobró (las pendientes se calculan al leer).
+model FeeInstallment {
+  id             String               @id @default(uuid())
+  tenantId       String
+  feeId          String
+  n              Int
+  dueDate        DateTime             @db.Date
+  amount         Decimal              @db.Decimal(15, 2)
+  adjustedAmount Decimal?             @db.Decimal(15, 2)
+  status         FeeInstallmentStatus @default(Pendiente)
+  paidAt         DateTime?            @db.Date
+  paidAmount     Decimal?             @db.Decimal(15, 2)
+  settlement     FeeSettlement?
+  receiptId      String?              @unique
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  fee          Fee           @relation(fields: [feeId], references: [id], onDelete: Cascade)
+  receipt      Receipt?      @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  comprobantes Comprobante[]
+
+  @@unique([feeId, n])
+  @@index([tenantId, status, dueDate])
+  @@map("fee_installments")
+}
+
+/// Comisión de una persona del personal sobre un honorario: un usuario del
+/// sistema o una persona (vendedor externo). Se paga desde la caja.
+model StaffCommission {
+  id         String    @id @default(uuid())
+  tenantId   String
+  feeId      String
+  userId     String?
+  personId   String?
+  pct        Decimal   @db.Decimal(7, 4)
+  baseAmount Decimal   @db.Decimal(15, 2)
+  amount     Decimal   @db.Decimal(15, 2)
+  currency   Currency
+  paidAt     DateTime? @db.Date
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  fee    Fee     @relation(fields: [feeId], references: [id], onDelete: Cascade)
+  user   User?   @relation("StaffCommissionUser", fields: [userId], references: [id], onDelete: Restrict)
+  person Person? @relation("StaffCommissionPerson", fields: [personId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, paidAt])
+  @@index([feeId])
+  @@index([userId])
+  @@index([personId])
+  @@map("staff_commissions")
+}
+
+/// Coorretaje: parte del honorario (sin IVA) que corresponde a otra inmobiliaria.
+model FeeShare {
+  id           String   @id @default(uuid())
+  tenantId     String
+  feeId        String
+  counterparty String
+  pct          Decimal  @db.Decimal(7, 4)
+  amount       Decimal  @db.Decimal(15, 2)
+  currency     Currency
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  fee Fee @relation(fields: [feeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([feeId])
+  @@map("fee_shares")
 }
 
 // ─── Service Enums ──────────────────────────────────────
@@ -2603,11 +2798,15 @@ model Comprobante {
   opcionales              Json?
   cbtesAsoc               Json?
   createdAt               DateTime          @default(now())
+  /// Cuota de honorario que se factura (D10).
+  feeInstallmentId        String?
 
   payment             Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
   issuer              ArcaIssuer    @relation(fields: [issuerId], references: [id])
   originalComprobante Comprobante?  @relation("ComprobanteNC", fields: [originalComprobanteId], references: [id])
   creditNotes         Comprobante[] @relation("ComprobanteNC")
+
+  feeInstallment FeeInstallment? @relation(fields: [feeInstallmentId], references: [id], onDelete: SetNull)
 
   // ARCA numera por CUIT, punto de venta y tipo: dos emisores de la misma
   // inmobiliaria pueden tener el mismo numero en el mismo punto de venta.
@@ -2616,6 +2815,7 @@ model Comprobante {
   @@index([tenantId])
   @@index([tenantId, paymentId])
   @@index([tenantId, issuerId])
+  @@index([feeInstallmentId])
   @@map("comprobantes")
 }
 
@@ -2707,6 +2907,8 @@ model PropertyValuation {
   updatedAt     DateTime        @updatedAt
 
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  fees Fee[]
 
   @@index([tenantId])
   @@index([tenantId, propertyId])

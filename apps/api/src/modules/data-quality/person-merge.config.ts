@@ -28,6 +28,8 @@ export const MERGE_MODELS: Record<string, string> = {
   financialAccount: 'FinancialAccount',
   ownerLedgerEntry: 'OwnerLedgerEntry',
   ownerStatement: 'OwnerStatement',
+  fee: 'Fee',
+  staffCommission: 'StaffCommission',
   ticket: 'Ticket',
   ticketComment: 'TicketComment',
   ticketQuote: 'TicketQuote',
@@ -62,6 +64,9 @@ export const MERGE_RULES: MergeRule[] = [
   { kind: 'repoint', delegate: 'ticketComment', field: 'personId' },
   { kind: 'repoint', delegate: 'portalRefreshToken', field: 'personId' },
   { kind: 'repoint', delegate: 'portalInvitation', field: 'personId' },
+  // Honorarios: quien paga y la persona que cobra la comisión pasan a la conservada.
+  { kind: 'repoint', delegate: 'fee', field: 'payerPersonId' },
+  { kind: 'repoint', delegate: 'staffCommission', field: 'personId' },
   // El garante de un rol apunta a otra persona sin clave foránea.
   { kind: 'repoint', delegate: 'personRoleAssignment', field: 'guarantorForPersonId' },
   { kind: 'dedupe', delegate: 'personRoleAssignment', field: 'personId', scope: ['role'] },
