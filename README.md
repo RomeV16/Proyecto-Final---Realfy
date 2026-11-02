@@ -30,24 +30,18 @@ Multi-tenant SaaS CRM for Argentine real estate agencies — property management
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    web["apps/web<br/>Next.js 15, port 3000"] -- "HTTP JSON" --> api["apps/api<br/>NestJS 11, REST under /api, port 3001"]
+    api --> db[("PostgreSQL 16<br/>Prisma ORM")]
+    api --> s3[("S3-compatible storage<br/>media and attachments")]
+    api --> resend["Resend<br/>outgoing email"]
+    api --> arca["ARCA<br/>electronic invoicing"]
+    api --> idx["BCRA and INDEC<br/>adjustment indices"]
+    api -.->|planned, item 43| wa["WhatsApp Cloud API<br/>through an outbox"]
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Turborepo monorepo                    │
-│                                                         │
-│  ┌───────────────┐        ┌───────────────────────────┐ │
-│  │  apps/web     │◄──────►│  apps/api                 │ │
-│  │  Next.js 15   │  HTTP  │  NestJS (REST, /api)      │ │
-│  │  (port 3000)  │        │  (port 3001)              │ │
-│  └───────────────┘        └──────────┬────────────────┘ │
-│                                      │                   │
-│                          ┌───────────┼───────────┐       │
-│                          ▼           ▼           ▼       │
-│                     PostgreSQL      S3        Resend     │
-│                     (Prisma ORM)  (media)    (email)     │
-│                                                         │
-│              External: ARCA · BCRA API · INDEC API       │
-└─────────────────────────────────────────────────────────┘
-```
+
+**Environments.** The Railway project has two environments with the same four services (`web`, `api`, `db`, `storage`) and nothing shared in data or secrets: `production`, the demo used for the thesis defence, with synthetic data only, and `piloto`, used by the pilot real-estate agency with real data. Deploys are manual (`railway up` from a clean copy of a merged commit), `production` first and `piloto` after verification, with a database backup before every `piloto` deploy. Email goes out through Resend and is still unconfigured in `piloto`; instant messaging and the outbox are planned. See [docs/despliegue.md](./docs/despliegue.md) and [docs/operacion-piloto.md](./docs/operacion-piloto.md).
 
 **Multi-tenancy model:** single database, every Prisma query is scoped by `tenantId` injected from the JWT claim, and the Prisma extension fails closed when there is no tenant in context. See [docs/adr/0003-multi-tenant-row-level.md](./docs/adr/0003-multi-tenant-row-level.md) and [docs/adr/0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md](./docs/adr/0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md).
 
@@ -166,16 +160,21 @@ El detalle de cada suite y de los trabajos de integración continua está en
 ## Documentation
 
 - [docs/manual-de-usuario.md](./docs/manual-de-usuario.md) — Qué ve y qué puede hacer cada rol, y los recorridos habituales
-- [docs/despliegue.md](./docs/despliegue.md) — Servicios, variables de entorno, base de datos y almacenamiento
+- [docs/despliegue.md](./docs/despliegue.md) — Servicios, ambientes, variables de entorno, base de datos, almacenamiento, copias y restauración
+- [docs/operacion-piloto.md](./docs/operacion-piloto.md) — Runbook del ambiente piloto: despliegue controlado, copias, restauración, cierre de mes e incidentes
+- [docs/privacidad-datos.md](./docs/privacidad-datos.md) — Datos personales del piloto: base legal, accesos, retención y anonimización
 - [docs/api.md](./docs/api.md) — Referencia de endpoints por módulo, con roles y forma de error
 - [docs/pruebas.md](./docs/pruebas.md) — Cómo correr las pruebas y qué cubre cada suite
 - [docs/demo.md](./docs/demo.md) — Guion de la demostración
-- [docs/adr/](./docs/adr/) — Architecture Decision Records
+- [docs/adr/](./docs/adr/README.md) — Architecture Decision Records, con su índice
 - [docs/tesis/](./docs/tesis/) — Documentación de tesis: alcance, arquitectura, modelo de datos e hitos
-- [docs/calidad/](./docs/calidad/) — Proceso de calidad sobre el módulo de índices y ajustes: plan de pruebas, matriz ISO 25010, riesgos, defectos, integración externa, stress
+- [docs/tesis/30-piloto.md](./docs/tesis/30-piloto.md) — Piloto en una inmobiliaria real: objetivos, fases, reconciliación y gobernanza de datos
+- [docs/calidad/](./docs/calidad/) — Proceso de calidad: plan de pruebas, matriz ISO 25010, riesgos, defectos, integración externa, stress y pruebas de aceptación en campo del piloto
 
 ---
 
 ## License
 
 Proprietary — All rights reserved.
+
+The repository is public but contains no real data from the pilot: no names, documents, amounts or figures. Real data lives only in the `piloto` environment.
