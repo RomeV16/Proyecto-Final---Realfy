@@ -1109,6 +1109,53 @@
     "Soporte"
   ],
   "src/modules/tickets/tickets.controller.ts#TicketsController.listComments": null,
+  "src/modules/tickets/tickets.controller.ts#TicketsController.estimate": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.preauthorize": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.listQuotes": null,
+  "src/modules/tickets/tickets.controller.ts#TicketsController.createQuote": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.updateQuote": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.removeQuote": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.rejectQuote": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.approveQuote": [
+    "Admin",
+    "Gerente",
+    "Soporte"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.listPayments": null,
+  "src/modules/tickets/tickets.controller.ts#TicketsController.registerPayment": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/tickets/tickets.controller.ts#TicketsController.impute": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
   "src/modules/users/users.controller.ts#UsersController.findAll": [
     "Admin",
     "Gerente"

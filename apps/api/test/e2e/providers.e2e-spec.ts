@@ -601,13 +601,13 @@ describe('Providers (e2e)', () => {
         .send({
           costAmount: 15000.50,
           costCurrency: Currency.ARS,
-          costPayer: 'Propietario',
+          costPayer: 'Locador',
         })
         .expect(200);
 
       expect(parseFloat(res.body.costAmount)).toBeCloseTo(15000.50, 1);
       expect(res.body.costCurrency).toBe(Currency.ARS);
-      expect(res.body.costPayer).toBe('Propietario');
+      expect(res.body.costPayer).toBe('Locador');
     });
 
     it('PATCH /tickets/:id/cost — updates existing cost fields', async () => {
@@ -632,12 +632,23 @@ describe('Providers (e2e)', () => {
         .set('Authorization', `Bearer ${admin.accessToken}`)
         .send({
           costAmount: 7500,
-          costPayer: 'Propietario',
+          costPayer: 'Locador',
         })
         .expect(200);
 
       expect(parseFloat(updated.body.costAmount)).toBeCloseTo(7500, 1);
-      expect(updated.body.costPayer).toBe('Propietario');
+      expect(updated.body.costPayer).toBe('Locador');
+    });
+
+    it('PATCH /tickets/:id/cost — rejects a payer that is not tenant, lessor or agency', async () => {
+      const { admin, propertyId } = await setupAdminWithProperty('cost-payer');
+      const ticket = await createTicket(admin.accessToken, propertyId);
+
+      await request(app.getHttpServer())
+        .patch(`/api/tickets/${ticket.id}/cost`)
+        .set('Authorization', `Bearer ${admin.accessToken}`)
+        .send({ costPayer: 'Consorcio' })
+        .expect(400);
     });
 
     it('PATCH /tickets/:id/cost — clears cost fields with null', async () => {
@@ -652,7 +663,7 @@ describe('Providers (e2e)', () => {
         .send({
           costAmount: 10000,
           costCurrency: Currency.USD,
-          costPayer: 'Consorcio',
+          costPayer: 'Inmobiliaria',
         })
         .expect(200);
 
