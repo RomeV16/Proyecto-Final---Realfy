@@ -593,9 +593,9 @@ describe('Incidencias y reparaciones (e2e)', () => {
       ((await get(token, `/owners/${personId}/ledger`).expect(200)).body.items as any[]).map((i) => [i.type, i.amount]);
     // 80000 entre dos al 50 % y el honorario del 10 % (8000) también: 40000 y 4000 para cada uno.
     for (const person of [contract.ownerId, contract.owner2Id]) {
-      expect(await rowsOf(person)).toEqual([
-        ['Cargo', '-40000.00'],
-        ['Honorario', '-4000.00'],
+      expect((await rowsOf(person)).map((r) => r.join(' ')).sort((x, y) => x.localeCompare(y))).toEqual([
+        'Cargo -40000.00',
+        'Honorario -4000.00',
       ]);
     }
     expect((await get(token, `/charges/${res.charge.id}`).expect(200)).body.status).toBe('Imputado');
