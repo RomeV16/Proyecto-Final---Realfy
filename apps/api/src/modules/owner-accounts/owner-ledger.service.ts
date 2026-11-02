@@ -22,7 +22,7 @@ import { parseOrThrow } from '../../common/validation/zod';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 import { CashService } from '../cash/cash.service';
 import { auditJson, dayStart } from '../cash/cash.errors';
-import { postPayout, writeEntries } from './ledger-posting';
+import { byLedgerOrder, postPayout, writeEntries } from './ledger-posting';
 
 type Db = any;
 
@@ -85,6 +85,7 @@ export class OwnerLedgerService {
       },
       orderBy: [{ date: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
+    rows.sort(byLedgerOrder);
     let running = opening;
     const all = rows.map((r) => {
       running = running.plus(String(r.amount));

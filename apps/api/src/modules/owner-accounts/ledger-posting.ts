@@ -43,6 +43,42 @@ export interface PostingContext {
   userId?: string | null;
 }
 
+/**
+ * Orden de los conceptos de un mismo origen: los asientos de una operación se
+ * escriben juntos (misma fecha y mismo instante), así que se muestran primero los
+ * créditos, después los descuentos y al final lo que ya le llegó al locador.
+ */
+const TYPE_ORDER: readonly OwnerLedgerEntryType[] = [
+  OwnerLedgerEntryType.SaldoInicial,
+  OwnerLedgerEntryType.Alquiler,
+  OwnerLedgerEntryType.Punitorio,
+  OwnerLedgerEntryType.ReintegroImpuesto,
+  OwnerLedgerEntryType.Ajuste,
+  OwnerLedgerEntryType.Comision,
+  OwnerLedgerEntryType.Honorario,
+  OwnerLedgerEntryType.Cargo,
+  OwnerLedgerEntryType.PagoEnte,
+  OwnerLedgerEntryType.Compensacion,
+  OwnerLedgerEntryType.Custodia,
+  OwnerLedgerEntryType.CobroDirecto,
+  OwnerLedgerEntryType.Transferencia,
+  OwnerLedgerEntryType.EntregaEfectivo,
+];
+
+/** Orden estable de los asientos: fecha, momento en que se escribieron, concepto e id. */
+export function byLedgerOrder(
+  a: { date: Date; createdAt?: Date | null; type: string; id: string },
+  b: { date: Date; createdAt?: Date | null; type: string; id: string },
+): number {
+  const time = (d?: Date | null) => (d ? new Date(d).getTime() : 0);
+  return (
+    time(a.date) - time(b.date) ||
+    time(a.createdAt) - time(b.createdAt) ||
+    TYPE_ORDER.indexOf(a.type as OwnerLedgerEntryType) - TYPE_ORDER.indexOf(b.type as OwnerLedgerEntryType) ||
+    a.id.localeCompare(b.id)
+  );
+}
+
 /** "YYYY-MM-DD" o fecha -> medianoche UTC de ese día. */
 const dayOf = (value: Date | string): Date =>
   new Date(`${(typeof value === 'string' ? value : value.toISOString()).slice(0, 10)}T00:00:00.000Z`);

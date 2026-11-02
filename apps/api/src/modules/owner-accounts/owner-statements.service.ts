@@ -23,6 +23,7 @@ import { OperationalDefaultsService } from '../tenants/operational-defaults.serv
 import { CashService } from '../cash/cash.service';
 import { auditJson } from '../cash/cash.errors';
 import { pendingLessorCharges, postLessorCharges } from './lessor-charges';
+import { byLedgerOrder } from './ledger-posting';
 import type { LessorChargePosting } from './lessor-charges';
 import { PROPERTY_LABEL } from './owner-ledger.service';
 import { OwnerStatementPdfService } from './owner-statement-pdf.service';
@@ -431,6 +432,7 @@ export class OwnerStatementsService {
       include: { property: { select: PROPERTY_LABEL } },
       orderBy: [{ date: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
     });
+    rows.sort(byLedgerOrder);
     return rows.map((r) => ({
       id: r.id,
       date: r.date,

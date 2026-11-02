@@ -87,6 +87,20 @@ describe('OwnerLedgerService — cuenta corriente (CP-459)', () => {
     expect(usd).toMatchObject({ closing: '800.00', custody: '300.00' });
   });
 
+  it('los asientos de una misma operación salen en orden de concepto, no según su id', async () => {
+    const { service, db } = setup();
+    const at = new Date('2026-10-10T12:00:00.000Z');
+    const same = { date: day('2026-10-09'), createdAt: at, sourceId: 'pay-b2', personId: B };
+    // Ids al revés del orden de concepto: el orden no puede depender del id.
+    db.ownerLedgerEntry.rows.push(
+      entry({ ...same, id: 'a-direct', type: 'CobroDirecto', amount: '-10.00' }),
+      entry({ ...same, id: 'z-rent', type: 'Alquiler', amount: '10.00' }),
+      entry({ ...same, id: 'm-fee', type: 'Comision', amount: '-1.00' }),
+    );
+    const res = await service.ledger(B, {});
+    expect(res.items.map((i: any) => i.type)).toEqual(['CobroDirecto', 'Alquiler', 'Comision', 'CobroDirecto']);
+  });
+
   it('locador inexistente: 404', async () => {
     await expect(setup().service.ledger('00000000-0000-4000-8000-000000000999', {})).rejects.toMatchObject({
       response: { error: 'PERSON_NOT_FOUND' },
