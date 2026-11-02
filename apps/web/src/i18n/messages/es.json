@@ -109,7 +109,8 @@
   "fiscal": "Configuración Fiscal",
   "pagos": "Pagos",
   "notifications": "Notificaciones",
-  "permissions": "Permisos"
+  "permissions": "Permisos",
+  "serviceBills": "Boletas del mes"
  },
  "dataTable": {
   "pagination": {
@@ -144,6 +145,20 @@
   "copyReference": "Copiar referencia",
   "copied": "Copiada",
   "codes": {
+   "BILL_ALREADY_BILLED": "La boleta ya está incluida en una liquidación y no se puede cambiar.",
+   "ALLOCATION_ALREADY_BILLED": "Una parte de la boleta ya se incluyó en otra liquidación.",
+   "BILL_NOT_FOUND": "La boleta ya no existe.",
+   "BILL_PAYMENT_DATA_REQUIRED": "Indicá quién pagó la boleta y cuándo.",
+   "CHARGE_RULE_REQUIRES_AGREEMENT": "El contrato está en vigor: el cambio necesita un acuerdo de cambio de cargo.",
+   "CHARGE_RULE_EXISTS": "Ya hay una regla para este servicio con esa fecha de inicio.",
+   "CHARGE_RULE_IN_USE": "La regla ya se usó en una liquidación: creá una versión nueva.",
+   "CHARGE_RULE_BEFORE_START": "La regla no puede empezar antes del inicio del contrato.",
+   "CHARGE_RULE_DATE_MISMATCH": "La fecha de la regla debe ser la del acuerdo.",
+   "CHARGE_RULE_NOT_FOUND": "La regla ya no existe.",
+   "SERVICE_NOT_APPLICABLE": "El servicio es de otra propiedad.",
+   "FIXED_AMOUNT_REQUIRED": "La regla de importe fijo necesita el importe.",
+   "INVALID_SHARE_PCT": "El porcentaje del inquilino va de 0 a 100.",
+   "AGREEMENT_KIND_MISMATCH": "El acuerdo tiene que ser de cambio de cargo.",
    "INTERNAL_ERROR": "El servidor tuvo un problema. Intentá de nuevo en unos minutos.",
    "UNAUTHORIZED": "Tu sesión venció. Iniciá sesión de nuevo.",
    "FORBIDDEN": "No tenés permiso para hacer esto.",
@@ -1623,6 +1638,7 @@
    "Internet": "Internet",
    "Expensas": "Expensas",
    "Municipal": "Municipal",
+   "ImpuestoInmobiliario": "Impuesto inmobiliario",
    "Otro": "Otro"
   },
   "card": {
@@ -4486,5 +4502,161 @@
   "since": "desde el {date}",
   "range": "del {from} al {to}",
   "document": "Ver documento"
+ },
+ "serviceBills": {
+  "title": "Boletas del mes",
+  "subtitle": "Cargá las boletas de impuestos y servicios del mes. Cada fila muestra quién paga según las reglas de los contratos; lo que le toca al inquilino entra en su próxima liquidación.",
+  "period": "Mes",
+  "forbidden": "No tenés permiso para cargar boletas.",
+  "loadError": "No se pudieron cargar los servicios del mes",
+  "empty": "No hay servicios activos. Cargá primero los servicios de cada propiedad.",
+  "gridLabel": "Boletas del mes",
+  "datePlaceholder": "AAAA-MM-DD o D/M/AAAA",
+  "lateNote": "Una boleta cargada después de generada la liquidación del mes entra en la próxima liquidación que se genere. Una boleta ya incluida en una liquidación no se puede cambiar.",
+  "columns": {
+   "property": "Propiedad",
+   "service": "Servicio",
+   "payer": "Quién paga",
+   "installment": "Cuota",
+   "amount": "Importe",
+   "dueDate": "Vencimiento",
+   "consumption": "Consumo",
+   "status": "Estado"
+  },
+  "payer": {
+   "none": "Sin reglas",
+   "Inquilino": "Inquilino (paga directo)",
+   "Inmobiliaria": "Inmobiliaria",
+   "Propietario": "Propietario",
+   "annual": "anual",
+   "modes": {
+    "Porcentaje": "{pct} % al inquilino",
+    "Consumo": "por consumo",
+    "Fijo": "{amount} fijo"
+   }
+  },
+  "status": {
+   "none": "Sin cargar",
+   "Pendiente": "Cargada",
+   "Pagada": "Pagada",
+   "Anulada": "Anulada"
+  },
+  "validation": {
+   "amount": "Ingresá un importe válido (hasta 2 decimales)",
+   "date": "Fecha inválida (AAAA-MM-DD o D/M/AAAA)",
+   "consumption": "Ingresá un consumo válido (hasta 3 decimales)",
+   "installmentLocked": "La cuota de una boleta cargada no se cambia"
+  },
+  "save": {
+   "action": "{count, plural, =0 {Guardar boletas} one {Guardar # boleta} other {Guardar # boletas}}",
+   "saving": "Guardando…",
+   "done": "{count, plural, =0 {No hubo boletas nuevas ni cambios} one {Se guardó # boleta} other {Se guardaron # boletas}}{unchanged, plural, =0 {} other { ({unchanged} sin cambios)}}",
+   "partial": "{failed, plural, one {# fila con error} other {# filas con error}}; se guardaron las demás ({saved}).",
+   "error": "No se pudieron guardar las boletas",
+   "failuresTitle": "Estas filas no se guardaron",
+   "retryHint": "Corregí las filas y volvé a guardar: las que ya se guardaron no se duplican."
+  }
+ },
+ "chargeRules": {
+  "title": "Impuestos y servicios",
+  "loadError": "No se pudieron cargar las reglas de impuestos y servicios",
+  "none": "El contrato todavía no tiene reglas de impuestos y servicios.",
+  "edit": "Agregar o cambiar regla",
+  "since": "desde el {date}",
+  "range": "del {from} al {to}",
+  "byAgreement": "por acuerdo",
+  "history": "{count, plural, one {# versión anterior} other {# versiones anteriores}}",
+  "payers": {
+   "Inquilino": "Inquilino",
+   "Inmobiliaria": "Inmobiliaria",
+   "Propietario": "Propietario"
+  },
+  "payerHints": {
+   "Inquilino": "Paga directo al ente; no pasa por la inmobiliaria.",
+   "Inmobiliaria": "El inquilino le paga a la inmobiliaria y ésta paga al ente.",
+   "Propietario": "El inquilino lo paga con el alquiler y todo pasa al locador."
+  },
+  "modes": {
+   "Porcentaje": "{pct} % al inquilino",
+   "Consumo": "por consumo",
+   "Fijo": "{amount} fijo"
+  },
+  "plans": {
+   "Mensual": "pago mensual",
+   "Anual": {
+    "Unico": "pago anual, se cobra de una vez",
+    "Prorrateado": "pago anual, en {count, plural, one {# cuota} other {# cuotas}}"
+   }
+  },
+  "splitModes": {
+   "Porcentaje": "Porcentaje de la boleta",
+   "Consumo": "Por consumo",
+   "Fijo": "Importe fijo"
+  },
+  "planNames": {
+   "Mensual": "Mensual",
+   "Anual": "Anual"
+  },
+  "recoveries": {
+   "Unico": "Cobrar de una vez",
+   "Prorrateado": "Prorratear en cuotas"
+  },
+  "recoveryHints": {
+   "Unico": "El inquilino paga toda su parte en la liquidación del mes de la boleta.",
+   "Prorrateado": "La parte del inquilino se reparte en cuotas mensuales iguales (lo habitual)."
+  },
+  "installmentsHint": "De 1 a 12 cuotas mensuales, desde el mes de la boleta.",
+  "discountBeneficiaries": {
+   "Inquilino": "Inquilino (se le cobra lo pagado)",
+   "Locador": "Locador (se cobra el importe sin descuento)",
+   "Inmobiliaria": "Inmobiliaria (se cobra el importe sin descuento)"
+  },
+  "discountHints": {
+   "Inquilino": "El inquilino paga lo que efectivamente se pagó, con el descuento.",
+   "Locador": "El inquilino paga el importe sin descuento y la diferencia se acredita al locador.",
+   "Inmobiliaria": "El inquilino paga el importe sin descuento y la diferencia es de la inmobiliaria, sin comisión."
+  },
+  "onEnd": {
+   "CobrarEnLiquidacionFinal": "Cobrar lo que queda en la liquidación final",
+   "Descartar": "Descartar las cuotas restantes"
+  },
+  "onEndHints": {
+   "CobrarEnLiquidacionFinal": "Las cuotas posteriores al fin del contrato se suman a la del último mes.",
+   "Descartar": "Esas cuotas no se cobran al inquilino."
+  },
+  "editorLabel": "Regla de impuestos y servicios",
+  "draftNotice": "El contrato es un borrador: la regla rige desde la fecha indicada.",
+  "agreementNotice": "El contrato está en vigor: el cambio se registra con un acuerdo de cambio de cargo y la regla nueva rige desde su fecha. La regla anterior queda en el historial.",
+  "fields": {
+   "service": "Servicio",
+   "payer": "Quién paga",
+   "splitMode": "Cómo se reparte",
+   "pct": "Porcentaje que le toca al inquilino",
+   "fixed": "Importe fijo por boleta",
+   "plan": "Plan de pago",
+   "recovery": "Recupero de la boleta anual",
+   "installments": "Cantidad de cuotas",
+   "discountBeneficiary": "A quién va el descuento por pago anual",
+   "onEnd": "Si el contrato termina antes",
+   "validFrom": "Rige desde",
+   "documentUrl": "Documento del acuerdo (enlace)",
+   "agreementNotes": "Notas del acuerdo",
+   "notes": "Notas"
+  },
+  "validation": {
+   "service": "Elegí el servicio",
+   "date": "Ingresá una fecha válida",
+   "pct": "El porcentaje va de 0 a 100",
+   "fixed": "Ingresá un importe mayor a cero",
+   "installments": "Las cuotas van de 1 a 12",
+   "url": "Ingresá un enlace que empiece con http:// o https://"
+  },
+  "save": "Guardar regla",
+  "saveWithAgreement": "Registrar acuerdo y guardar regla",
+  "saving": "Guardando…",
+  "cancel": "Cancelar",
+  "saved": "Regla guardada",
+  "saveError": "No se pudo guardar la regla",
+  "agreementKept": "El acuerdo quedó registrado; corregí la regla y volvé a guardar."
  }
 }

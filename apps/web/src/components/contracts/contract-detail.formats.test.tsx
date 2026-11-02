@@ -29,6 +29,7 @@ vi.mock('./generate-document-modal', () => ({
   GenerateDocumentModal: ({ open }: { open: boolean }) => (open ? <div>modal-documento</div> : null),
 }));
 vi.mock('./contract-rules', () => ({ ContractRules: () => null }));
+vi.mock('./contract-charge-rules', () => ({ ContractChargeRules: () => null }));
 vi.mock('./adjustment-timeline', () => ({ AdjustmentTimeline: () => null }));
 
 import { ApiRequestError } from '@/lib/api-client';

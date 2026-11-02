@@ -39,6 +39,7 @@ describe('LiquidacionesService.generatePdf: propiedad del contrato', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
   };
 

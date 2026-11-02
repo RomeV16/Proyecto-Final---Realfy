@@ -270,10 +270,35 @@ de plantillas y el de comisiones.
 |---|---|---|---|
 | GET | `/services` | Listado de servicios asociados a propiedades y contratos. | Autenticado |
 | GET | `/services/:id` | Detalle. | Autenticado |
-| POST | `/services` | Alta. | Admin, Gerente, Ventas |
+| POST | `/services` | Alta. Además del tipo (incluye `ImpuestoInmobiliario`), acepta `billingFrequency` (`Mensual` por defecto, `Bimestral`, `Trimestral`, `Anual`) y `hasAnnualOption` (falso por defecto). | Admin, Gerente, Ventas |
 | PATCH | `/services/:id` | Edición. | Admin, Gerente, Ventas |
 | DELETE | `/services/:id` | Baja. | Admin, Gerente |
 | POST | `/services/:id/payments` | Registra el pago de un servicio. | Admin, Gerente, Ventas |
+
+### Boletas de servicios e impuestos
+
+La boleta es una entidad propia, distinta del pago (ADR-0008). Cada parte que le toca al inquilino se guarda y se cobra en su liquidación, una sola vez.
+
+| Método | Ruta | Para qué | Acceso |
+|---|---|---|---|
+| GET | `/service-bills` | Boletas paginadas; filtra por `period` (`AAAA-MM`), `propertyId`, `serviceId` y `status`. | Autenticado |
+| GET | `/service-bills/sheet?period=AAAA-MM` | Planilla del mes: un renglón por servicio activo con sus boletas del período y las reglas vigentes de sus contratos (quién paga, reparto, plan). `propertyId` opcional. | Autenticado |
+| GET | `/service-bills/:id` | Boleta con sus partes. | Autenticado |
+| GET | `/service-bills/:id/allocations` | Partes guardadas (`stored`, con `billedAt` y `liquidacionId`) y el reparto que da hoy con las reglas vigentes (`preview`, con `skipped` y `warnings`). | Autenticado |
+| POST | `/service-bills/bulk` | Carga un arreglo de hasta 500 boletas (`serviceId`, `period`, `amount`, y opcionales `installmentLabel`, `nominalAmount`, `dueDate`, `consumption`, `unitConsumptions`, `notes`). Idempotente por `[serviceId, period, installmentLabel]`: responde 200 con `total`, `created`, `updated`, `unchanged`, `failed` y un resultado por fila (`index`, `status`, `billId` o `error`). Una fila con error no frena las demás. | Admin, Gerente, Liquidaciones |
+| PATCH | `/service-bills/:id` | Corrige importe, vencimiento, consumo o notas, o registra el pago (`paidBy`, `paidAt`, `receiptUrl`; con los dos primeros pasa a `Pagada` y deja un pago ligado). `status` `Anulada` quita las partes sin facturar. | Admin, Gerente, Liquidaciones |
+
+Códigos de error propios: `BILL_NOT_FOUND` (404), `BILL_ALREADY_BILLED` (409, la boleta ya tiene partes en una liquidación y no cambia), `BILL_PAYMENT_DATA_REQUIRED` (400, `Pagada` sin `paidBy` o `paidAt`), `ALLOCATION_ALREADY_BILLED` (409, otra generación ya incluyó la parte), `SERVICE_NOT_FOUND` (404), `FIXED_AMOUNT_REQUIRED` e `INVALID_SHARE_PCT` e `INVALID_INSTALLMENTS` (400, regla mal armada) y `VALIDATION_ERROR`. En la carga masiva el código viaja en el `error` de cada fila.
+
+### Reglas de impuestos y servicios del contrato
+
+| Método | Ruta | Para qué | Acceso |
+|---|---|---|---|
+| GET | `/contracts/:id/charge-rules` | Reglas del contrato: `current` (vigentes a `at`, hoy si se omite; `serviceId` filtra) y `versions` (todas, con las ya cerradas). | Autenticado |
+| POST | `/contracts/:id/charge-rules` | Crea la regla de un servicio desde `validFrom`: `payer` (`Inquilino`, `Inmobiliaria`, `Propietario`), `splitMode` (`Porcentaje` por defecto, `Consumo`, `Fijo`), `tenantSharePct` (100 por defecto), `fixedAmount` (obligatorio con `Fijo`), `paymentPlan` (`Mensual` o `Anual`), `annualRecovery` (`Prorrateado` por defecto o `Unico`), `annualInstallments` (1 a 12, 12 por defecto; solo con `Prorrateado`), `annualDiscountBeneficiary` (`Inquilino` por defecto, `Locador` o `Inmobiliaria`: con los dos últimos se cobra el importe sin descuento y la diferencia sale como renglón `Cargo` a su nombre), `remainingInstallmentsOnEnd` (`CobrarEnLiquidacionFinal` por defecto o `Descartar`: qué se hace con las cuotas posteriores al fin del contrato), `validTo`, `agreementId`, `notes`. Si ya había una regla del servicio, la anterior se cierra el día previo. En un contrato que no es borrador exige `agreementId` de un acuerdo `CambioCargo` con esa fecha. | Admin, Gerente, Liquidaciones |
+| PATCH | `/contracts/:id/charge-rules/:ruleId` | Corrige una regla que todavía no se usó para facturar (en un contrato que no es borrador, solo si nació de un acuerdo). | Admin, Gerente, Liquidaciones |
+
+Códigos de error: `CHARGE_RULE_REQUIRES_AGREEMENT` (409), `CHARGE_RULE_EXISTS` (409, ya hay una regla del servicio con esa fecha), `CHARGE_RULE_IN_USE` (409, ya se usó en una liquidación), `CHARGE_RULE_BEFORE_START` y `CHARGE_RULE_DATE_MISMATCH` (400), `CHARGE_RULE_NOT_FOUND` (404), `SERVICE_NOT_APPLICABLE` (400, el servicio no es de la propiedad del contrato ni de su edificio), `AGREEMENT_NOT_FOUND` (404) y `AGREEMENT_KIND_MISMATCH` (400).
 
 ## Liquidaciones
 
@@ -282,7 +307,7 @@ de plantillas y el de comisiones.
 | GET | `/liquidaciones` | Listado paginado y filtrable por estado y período. | Autenticado |
 | GET | `/liquidaciones/:id` | Detalle con líneas (con `beneficiary` y `commissionable`), pagos, locadores y `receiptNumber` (nulo hasta aprobar). | Autenticado |
 | GET | `/liquidaciones/:id/pdf` | Recibo en PDF: número, monto en letras, "por cuenta y orden de" los locadores vigentes y renglones agrupados por destino. | Autenticado |
-| POST | `/liquidaciones/generate` | Genera las liquidaciones del período con las reglas y el alquiler vigentes en ese mes: respeta el inicio y el fin efectivo del contrato, el día de vencimiento y el prorrateo del primer y último mes. Devuelve `created`, `skipped`, `outOfRange`, `notBilled` (primeros meses que la convención del contrato manda cobrar al firmar o con el mes siguiente), `failed`, `total` y el resultado por contrato (`status` `created`, `skipped`, `out_of_range`, `not_billed` o `failed`, con su `reason`). | Admin, Gerente, Liquidaciones |
+| POST | `/liquidaciones/generate` | Genera las liquidaciones del período con las reglas y el alquiler vigentes en ese mes: respeta el inicio y el fin efectivo del contrato, el día de vencimiento y el prorrateo del primer y último mes, y suma como renglones las partes de boletas de servicios e impuestos sin facturar de cada contrato (a lo sumo hasta ese mes), con su destino y sin comisión. Devuelve `created`, `skipped`, `outOfRange`, `notBilled` (primeros meses que la convención del contrato manda cobrar al firmar o con el mes siguiente), `failed`, `total` y el resultado por contrato (`status` `created`, `skipped`, `out_of_range`, `not_billed` o `failed`, con su `reason`). | Admin, Gerente, Liquidaciones |
 | POST | `/liquidaciones/_run-now` | Corre ahora el proceso diario de generación para todas las inmobiliarias; `today` (`YYYY-MM-DD`) opcional fija el día. Solo con `NODE_ENV=test` o `E2E_TEST_MODE=1`, como `/penalties/_run-now`; fuera de ese modo responde 403. | Admin |
 | POST | `/liquidaciones/:id/transition` | Cambia el estado. Ante un estado inválido devuelve las transiciones posibles. | Admin, Gerente, Liquidaciones |
 | POST | `/liquidaciones/bulk-approve` | Aprueba en lote. | Admin, Gerente |

@@ -27,7 +27,7 @@ function contract(overrides: Record<string, unknown> = {}) {
 
 function build(
   contracts: any[],
-  opts: { existing?: any; defaults?: any; findFirst?: jest.Mock; trueUps?: any[] } = {},
+  opts: { existing?: any; defaults?: any; findFirst?: jest.Mock; trueUps?: any[]; serviceLines?: any[] } = {},
 ) {
   const client: any = {
     contract: { findMany: jest.fn().mockResolvedValue(contracts) },
@@ -41,6 +41,11 @@ function build(
   const adjustments = {
     getPendingTrueUps: jest.fn().mockResolvedValue(opts.trueUps ?? []),
     markTrueUpBilled: jest.fn().mockResolvedValue(0),
+  };
+  const serviceBills = {
+    pendingLines: jest.fn().mockResolvedValue(opts.serviceLines ?? []),
+    markBilled: jest.fn().mockResolvedValue(0),
+    release: jest.fn().mockResolvedValue(0),
   };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const defaults = {
@@ -63,8 +68,9 @@ function build(
     defaults as any,
     audit as any,
     adjustments as any,
+    serviceBills as any,
   );
-  return { service, client, audit, defaults, adjustments };
+  return { service, client, audit, defaults, adjustments, serviceBills };
 }
 
 const createdData = (client: any, n = 0) => client.liquidacion.create.mock.calls[n][0].data;
@@ -359,6 +365,81 @@ describe('LiquidacionesService.generate: correcciones de ajustes provisorios', (
     const { service, adjustments } = build([contract({ startDate: d('2026-12-01') })], { trueUps: [trueUp()] });
     await service.generate({ month: 11, year: 2026 });
     expect(adjustments.markTrueUpBilled).not.toHaveBeenCalled();
+  });
+});
+
+describe('LiquidacionesService.generate: impuestos y servicios', () => {
+  const line = (overrides: Record<string, unknown> = {}) => ({
+    type: 'Servicio',
+    description: 'Electricidad 11/2026',
+    amount: '12500.00',
+    commissionable: false,
+    beneficiary: 'Ente',
+    sourceType: 'ServiceBillAllocation',
+    sourceId: 'alloc-1',
+    ...overrides,
+  });
+
+  it('suma los renglones de las boletas, sin comisión, con su destino, y marca las partes en la misma transacción', async () => {
+    const { service, client, serviceBills } = build([contract()], {
+      serviceLines: [
+        line(),
+        line({
+          type: 'Impuesto',
+          description: 'Impuesto inmobiliario 2026, cuota 11/12 (por cuenta y orden del locador)',
+          amount: '4000.00',
+          beneficiary: 'Locador',
+          sourceId: 'alloc-2',
+        }),
+      ],
+    });
+    await service.generate({ month: 11, year: 2026 });
+
+    expect(serviceBills.pendingLines).toHaveBeenCalledWith('c-1', d('2026-11-01'), 'ARS');
+    const data = createdData(client);
+    expect(
+      data.lineItems.create.map((l: any) => [l.type, l.amount, l.commissionable, l.beneficiary, l.sourceType, l.sourceId]),
+    ).toEqual([
+      ['Alquiler', '300000.00', true, 'Locador', null, null],
+      ['Servicio', '12500.00', false, 'Ente', 'ServiceBillAllocation', 'alloc-1'],
+      ['Impuesto', '4000.00', false, 'Locador', 'ServiceBillAllocation', 'alloc-2'],
+    ]);
+    expect(data.total).toBe('316500.00');
+    expect(serviceBills.markBilled).toHaveBeenCalledWith(client, ['alloc-1', 'alloc-2'], 'liq-new');
+  });
+
+  it('una parte con dos renglones (diferencia por descuento) se marca una sola vez', async () => {
+    const { service, serviceBills } = build([contract()], {
+      serviceLines: [
+        line({ amount: '4500.00' }),
+        line({ type: 'Cargo', amount: '500.00', beneficiary: 'Locador', sourceType: 'ServiceBillAllocationSurplus' }),
+      ],
+    });
+    await service.generate({ month: 11, year: 2026 });
+    expect(serviceBills.markBilled.mock.calls[0][1]).toEqual(['alloc-1']);
+  });
+
+  it('si la liquidación no se crea, las partes no se marcan', async () => {
+    const { service, client, serviceBills } = build([contract()], { serviceLines: [line()] });
+    client.liquidacion.create.mockRejectedValue(new Error('boom'));
+    const summary = await service.generate({ month: 11, year: 2026 });
+    expect(summary.failed).toBe(1);
+    expect(serviceBills.markBilled).not.toHaveBeenCalled();
+  });
+
+  it('si otra generación ya facturó una parte, el contrato falla y no se crea nada', async () => {
+    const { service, serviceBills } = build([contract()], { serviceLines: [line()] });
+    serviceBills.markBilled.mockRejectedValue(new Error('ALLOCATION_ALREADY_BILLED'));
+    const summary = await service.generate({ month: 11, year: 2026 });
+    expect(summary.failed).toBe(1);
+    expect(summary.results[0].reason).toBe('ALLOCATION_ALREADY_BILLED');
+  });
+
+  it('un contrato que ya tiene su liquidación no consulta boletas', async () => {
+    const { service, serviceBills } = build([contract()], { existing: { id: 'liq-old' }, serviceLines: [line()] });
+    await service.generate({ month: 11, year: 2026 });
+    expect(serviceBills.pendingLines).not.toHaveBeenCalled();
+    expect(serviceBills.markBilled).not.toHaveBeenCalled();
   });
 });
 

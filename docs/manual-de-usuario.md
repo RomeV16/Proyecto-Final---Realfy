@@ -277,6 +277,67 @@ Si un contrato venció el día pactado y nadie lo cerró, sigue activo y se sigu
 liquidando hasta que se registre su fin real (`actualEndDate`) o se rescinda: una
 prórroga de palabra se registra cargando esa fecha en el contrato.
 
+### Reglas de impuestos y servicios de un contrato
+
+En el detalle del contrato, *Impuestos y servicios* dice, servicio por servicio,
+quién paga y cómo se reparte:
+
+- **Inquilino**: paga directo al ente; no pasa por la inmobiliaria y no aparece en
+  su liquidación.
+- **Inmobiliaria**: el inquilino le paga el importe a la inmobiliaria y ésta paga
+  al ente. Sale como un renglón *Servicio* o *Impuesto* de la liquidación del
+  inquilino, a nombre del ente, y no cuenta para la comisión.
+- **Propietario**: el inquilino lo paga junto con el alquiler y todo pasa al
+  locador (por cuenta y orden). Sale como renglón a nombre del locador, con la
+  leyenda «por cuenta y orden del locador», y tampoco cuenta para la comisión.
+
+El reparto es un **porcentaje** de la boleta (el que le toca al inquilino), **por
+consumo** (la parte del consumo de la unidad sobre el total de la boleta, por
+ejemplo el agua de un edificio) o un **importe fijo** (nunca más que la boleta). Un
+servicio con opción anual (tasa municipal, impuesto inmobiliario) puede cobrarse
+**mensual** o **anual**. En el plan anual se elige cómo se recupera la boleta: **en
+cuotas** mensuales iguales (lo habitual; de 1 a 12, de fábrica 12) o **de una vez** en
+el mes de la boleta. También se elige **a quién va el descuento por pago anual**: al
+inquilino (se le cobra lo que efectivamente se pagó), o al locador o a la
+inmobiliaria (se le cobra el importe sin descuento y la diferencia sale como un
+renglón aparte a nombre de ese beneficiario, sin comisión). Y qué pasa si el contrato
+termina antes de la última cuota: **cobrar lo que queda en la liquidación final** (se
+suma a la cuota del último mes) o **descartar** las cuotas restantes.
+
+Quien administra la facturación (Admin, Gerente y Liquidaciones) usa *Agregar o
+cambiar regla*: elige el servicio, quién paga, el reparto, el plan y desde qué fecha
+rige. Las reglas no se pisan: la nueva rige desde su fecha, la anterior queda en el
+historial y los meses anteriores se siguen cobrando como se pactó. En un contrato
+que ya está en vigor, el cambio necesita un acuerdo escrito: el editor registra el
+acuerdo de cambio de cargo (con el enlace al documento y las notas) y crea la regla
+con la misma fecha. En un borrador la regla se crea sin acuerdo. Una regla que ya se
+usó en una liquidación no se corrige: se crea una versión nueva.
+
+### Cargar las boletas del mes
+
+**Boletas del mes** (`/boletas`, Admin, Gerente y Liquidaciones). Se elige el mes y la
+pantalla muestra una fila por servicio activo (o por boleta ya cargada), con la
+propiedad, el servicio, **quién paga** según las reglas de los contratos, la cuota
+(`MM/AAAA` si no se indica otra), el importe, el vencimiento (propuesto con el día de
+vencimiento del servicio) y el consumo.
+
+La carga es como una planilla: se escribe en las celdas, con las flechas y Enter para
+moverse, o se **pega desde Excel o Sheets** a partir de la celda activa (importe,
+vencimiento y consumo en ese orden, una fila por servicio). El importe admite coma
+decimal (hasta 2 decimales), el vencimiento se escribe `AAAA-MM-DD` o `D/M/AAAA`, y
+cada celda con error se marca. *Guardar* envía solo las filas con importe que se
+tocaron, en una sola carga masiva: se informa cuántas boletas se guardaron, y las
+filas rechazadas quedan listadas con el motivo, con lo escrito intacto para
+corregirlas. Cargar dos veces lo mismo no duplica nada.
+
+Lo que le toca al inquilino se calcula al guardar y entra como renglón en su
+liquidación. Si la liquidación del mes ya se generó, la boleta entra en la próxima
+que se genere (también las cuotas de un plan anual de meses anteriores que todavía
+no se cobraron). Una boleta ya incluida en una liquidación no se puede cambiar; si
+la liquidación sigue en borrador y se borra, o se quita el renglón, la boleta vuelve
+a quedar pendiente. Para marcar una boleta como pagada (quién pagó, cuándo y el
+comprobante) se usa `PATCH /service-bills/:id`.
+
 ### Cargar los locadores de un contrato y su porcentaje de cobro
 
 El locador es quien alquila y cobra, y es una relación del contrato: una persona

@@ -40,6 +40,15 @@ export {
   LineBeneficiary,
   LiquidacionKind,
   ServiceType,
+  BillingFrequency,
+  ChargePayer,
+  ChargeSplitMode,
+  ServicePaymentPlan,
+  AnnualRecovery,
+  AnnualDiscountBeneficiary,
+  RemainingInstallmentsOnEnd,
+  ServiceBillStatus,
+  BillPaidBy,
   NotificationType,
   PipelineType,
   LeadSource,
@@ -231,6 +240,16 @@ export {
   UpdateServiceSchema,
   ServiceFilterSchema,
   CreateServicePaymentSchema,
+  CreateChargeRuleSchema,
+  UpdateChargeRuleSchema,
+  ChargeRuleFilterSchema,
+  ServiceBillRowSchema,
+  UpdateServiceBillSchema,
+  ServiceBillFilterSchema,
+} from './schemas/service.schema';
+export type {
+  ServiceBillRowInput,
+  CreateChargeRuleInput,
 } from './schemas/service.schema';
 
 // Schemas — pipelines de venta/alquiler
@@ -932,6 +951,17 @@ export type {
   LiquidationExtraLine,
   LiquidationSkipReason,
 } from './liquidation-builder';
+
+// Charge split
+export { splitBill, chargeAllocationLine, chargeAllocationLines, InvalidChargeRuleError } from './charge-split';
+export type {
+  ChargeAllocation,
+  ChargeBillInput,
+  ChargeLineSource,
+  ChargeRuleInput,
+  ChargeSkipReason,
+  ChargeSplitResult,
+} from './charge-split';
 
 // Amount in words
 export { amountInWords } from './amount-in-words';
