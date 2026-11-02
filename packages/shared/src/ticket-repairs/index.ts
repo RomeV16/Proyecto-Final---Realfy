@@ -48,8 +48,9 @@ export function ticketStepIndex(status: TicketStatus | `${TicketStatus}`): numbe
   return step === null ? -1 : TICKET_STEPS.indexOf(step);
 }
 
-/** Estados en los que ya se puede pagar al proveedor: hay un proveedor y el trabajo arrancó. */
+/** Estados en los que ya se puede pagar al proveedor (un anticipo o el saldo): hay un presupuesto aprobado o un proveedor asignado. */
 export const PROVIDER_PAYMENT_STATUSES: readonly TicketStatus[] = [
+  TicketStatus.PresupuestoAprobado,
   TicketStatus.ProveedorAsignado,
   TicketStatus.ProveedorEnCamino,
   TicketStatus.EnProgreso,

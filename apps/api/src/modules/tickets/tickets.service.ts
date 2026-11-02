@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
@@ -126,6 +127,8 @@ export class TicketsService {
       }
     }
 
+    const contractId = await this.resolveContract(validated.propertyId, validated.contractId);
+
     const slaDeadline = await this.computeSlaDeadline(
       validated.priority,
       tenantId,
@@ -140,6 +143,7 @@ export class TicketsService {
       data: {
         tenantId,
         propertyId: validated.propertyId,
+        contractId,
         categoryId: validated.categoryId ?? null,
         createdByUserId: userId,
         assignedToUserId: validated.assignedToUserId ?? null,
@@ -165,6 +169,33 @@ export class TicketsService {
       `Ticket created: id=${ticket.id}, status=${ticket.status}, priority=${ticket.priority}`,
     );
     return ticket;
+  }
+
+  /**
+   * Contrato al que se imputa el gasto del ticket: el indicado (de esa propiedad) o,
+   * sin él, el único vigente de la propiedad; null si hay varios o ninguno.
+   */
+  private async resolveContract(propertyId: string, contractId?: string | null): Promise<string | null> {
+    if (contractId) {
+      const contract = await this.prisma.client.contract.findFirst({
+        where: { id: contractId },
+        select: { id: true, propertyId: true },
+      });
+      if (!contract) {
+        throw new NotFoundException({ error: 'CONTRACT_NOT_FOUND', message: `Contract ${contractId} not found` });
+      }
+      if (contract.propertyId !== propertyId) {
+        throw new BadRequestException({ error: 'PROPERTY_MISMATCH', message: 'The contract belongs to another property' });
+      }
+      return contract.id;
+    }
+    const active = await this.prisma.client.contract.findMany({
+      where: { propertyId, status: 'Activo' },
+      select: { id: true },
+      orderBy: [{ startDate: 'desc' }, { id: 'asc' }],
+      take: 2,
+    });
+    return active.length === 1 ? active[0].id : null;
   }
 
   // ─── List ─────────────────────────────────────────────
@@ -246,6 +277,17 @@ export class TicketsService {
         },
         provider: {
           select: { id: true, firstName: true, lastName: true },
+        },
+        preauthorizedBy: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        contract: { select: { id: true, status: true } },
+        quotes: {
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          include: {
+            provider: { select: { id: true, firstName: true, lastName: true } },
+            approvedBy: { select: { id: true, firstName: true, lastName: true } },
+          },
         },
       },
     });
