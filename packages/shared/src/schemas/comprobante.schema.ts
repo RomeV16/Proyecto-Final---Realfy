@@ -29,6 +29,11 @@ export const EmitNotaCreditoSchema = z.object({
 export const ComprobanteFilterSchema = z.object({
   paymentId: z.string().uuid().optional(),
   feeInstallmentId: z.string().uuid().optional(),
+  ownerStatementId: z.string().uuid().optional(),
+  /** Locador por cuenta del cual se emitió. */
+  personId: z.string().uuid().optional(),
+  /** De dónde sale: un cobro, un estado de cuenta del locador o una cuota de honorario. */
+  source: z.enum(['Payment', 'OwnerStatement', 'FeeInstallment']).optional(),
   type: z.nativeEnum(ComprobanteType).optional(),
   page: z.coerce.number().int().positive().optional().default(1),
   limit: z.coerce.number().int().positive().max(100).optional().default(20),

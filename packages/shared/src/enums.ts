@@ -678,6 +678,26 @@ export enum VisitOutcome {
 
 // ─── Comprobante Enums ──────────────────────────────────
 
+// ─── Facturación por cuenta del locador ─────────────────
+
+export enum LessorInvoiceSource {
+  Payment = 'Payment',
+  OwnerStatement = 'OwnerStatement',
+}
+
+export enum LessorInvoiceKind {
+  Factura = 'Factura',
+  NotaCredito = 'NotaCredito',
+}
+
+export enum LessorInvoiceStatus {
+  Pendiente = 'Pendiente',
+  Emitido = 'Emitido',
+  Fallido = 'Fallido',
+  /** No había nada para facturar (sin importe en el alcance o sin factura que anular). */
+  Omitido = 'Omitido',
+}
+
 export enum ComprobanteType {
   FacturaA = 'FacturaA',
   FacturaB = 'FacturaB',

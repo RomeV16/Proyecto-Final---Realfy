@@ -5,6 +5,7 @@ import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settl
 import { ReceiptSeriesMode } from '../cash';
 import { LessorChargeTiming } from '../owner-ledger';
 import { FeeVatMode } from '../enums';
+import { LessorInvoiceScope, LessorInvoiceWhen, LESSOR_INVOICE_VAT_RATES } from '../lessor-invoicing';
 import { ContractTotalMode, FeePayerChoice, StaffCommissionBase } from '../fee-engine';
 
 // Esquema del formulario web de valores por defecto: todos los campos viajan
@@ -68,6 +69,12 @@ export const operationalDefaultsFormSchema = z
         message: 'validation.outOfRange',
       }),
     ownerLessorChargeTiming: z.nativeEnum(LessorChargeTiming),
+    invoicingScope: z.nativeEnum(LessorInvoiceScope),
+    invoicingWhen: z.nativeEnum(LessorInvoiceWhen),
+    /** Una de las alícuotas de ARCA, como texto. */
+    invoicingVatPct: z.string().refine((v) => (LESSOR_INVOICE_VAT_RATES as readonly number[]).includes(Number(v)), {
+      message: 'validation.outOfRange',
+    }),
     repairPreauthLimit: numberText({ min: 0 }),
     repairMgmtFeePct: numberText({ min: 0, max: 100 }),
   })
@@ -120,6 +127,9 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     cashCompensationScope: d.cash.compensationScope,
     ownerStatementCloseDay: d.ownerAccounts.statementCloseDay === null ? '' : String(d.ownerAccounts.statementCloseDay),
     ownerLessorChargeTiming: d.ownerAccounts.lessorChargeTiming,
+    invoicingScope: d.invoicing.scope,
+    invoicingWhen: d.invoicing.when,
+    invoicingVatPct: String(d.invoicing.vatPct),
     repairPreauthLimit: String(d.repairs.preauthLimit),
     repairMgmtFeePct: String(d.repairs.managementFeePct),
   };
@@ -169,6 +179,7 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
       statementCloseDay: f.ownerStatementCloseDay.trim() === '' ? null : num(f.ownerStatementCloseDay),
       lessorChargeTiming: f.ownerLessorChargeTiming,
     },
+    invoicing: { scope: f.invoicingScope, when: f.invoicingWhen, vatPct: num(f.invoicingVatPct) },
     repairs: { preauthLimit: num(f.repairPreauthLimit), managementFeePct: num(f.repairMgmtFeePct) },
   };
 }
