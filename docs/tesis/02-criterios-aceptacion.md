@@ -35,7 +35,9 @@ Del piloto (CU-27, CU-28 y CU-29):
 - La modalidad de ajuste debe definirse al alta y queda inmutable salvo modificación explícita con auditoría.
 - El estado de disponibilidad vive en la operación de la propiedad y se transiciona sobre ella, no sobre la propiedad. El alta del contrato en borrador no lo cambia; la activación sí (ver «Activación del contrato»).
 - Las garantías cargadas se pueden listar y el contrato no puede activarse sin al menos una garantía válida (salvo excepción habilitada).
-- La renovación se resuelve dando de alta un contrato nuevo con las mismas partes: el contrato anterior queda en estado Renovado y no hay clonado automático de partes ni de garantías. La renovación como un período nuevo del mismo contrato está planificada en el ítem 40.
+- La renovación agrega un período de renovación al mismo contrato, con su alquiler y su regla de ajuste (una versión de reglas nueva), los garantes que reafirman y los honorarios pactados; no se clona el contrato ni se cambia su estado. Solo un contrato activo se renueva.
+- Una prórroga de palabra mueve el fin real y no cambia el fin pactado; queda registrada como convenio y auditada. Los avisos de vencimiento, los paneles y el cronograma de ajustes usan el fin efectivo (el real si existe y si no el pactado).
+- El proceso diario abre un seguimiento por contrato activo cuyo fin efectivo está dentro de la ventana de aviso, una sola vez por fin efectivo; el semáforo se calcula y no se guarda.
 
 ### Estados del contrato
 

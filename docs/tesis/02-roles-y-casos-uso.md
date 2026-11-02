@@ -155,7 +155,7 @@ A continuación se listan los casos de uso considerados centrales para la operac
 ### Contratos
 
 - **CU-05 Alta de contrato** — Ventas. Genera un contrato a partir de una propiedad, sus locadores, un inquilino, sus garantías y su esquema de ajuste, y produce el documento a partir de una plantilla. Para activarlo, los locadores vigentes tienen que sumar exactamente 100 % del cobro; el documento incluye a los locadores y a los apoderados que firman por ellos.
-- **CU-06 Renovación de contrato** — Ventas. Da de alta un contrato nuevo tomando como base uno vencido y manteniendo las partes. No es una operación automática: el contrato anterior queda en estado Renovado y el nuevo se carga como cualquier otro. Desde el piloto, si el inquilino sigue sin contrato nuevo (prórroga de palabra), se registra el fin real del contrato vigente y este sigue liquidándose hasta esa fecha; un contrato pasado de su fin pactado sin fin real sigue activo. *Planificado (ítem 40, FB-05 y FB-15):* la renovación como un período nuevo del mismo contrato, con precio, regla, fiadores y honorarios, y el seguimiento por semáforo con su lista de verificación.
+- **CU-06 Renovación de contrato** — Admin o Gerente. Renueva el contrato como un período nuevo del mismo contrato (no se clona): fechas, alquiler, regla de ajuste, garantes que reafirman y honorarios; ver CU-39. El estado Renovado queda para los contratos que se renovaron dando de alta uno nuevo antes de este mecanismo.
 - **CU-07 Configurar ajuste** — Ventas o Gerente. Define la modalidad de ajuste —IPC, ICL, CCP, UVA, porcentaje fijo, escalonado o personalizado— y su periodicidad, de mensual a anual. Desde el piloto también fija el rezago del índice, la base del ajuste (alquiler original o vigente) y los meses iniciales sin ajuste; lo que el contrato no fija toma el valor por defecto de la inmobiliaria. En un contrato activo con más de una versión de reglas, cambiar la modalidad es un acuerdo (CU-32). *Modificado por el piloto:* FB-13 y FB-25.
 - **CU-08 Calcular y aplicar ajuste** — Ventas calcula, Admin o Gerente aplica. El cálculo toma el índice publicado para el período; la aplicación escribe el nuevo monto en el contrato. Desde el piloto el caso habitual es mensual y masivo: Admin, Gerente o Liquidaciones piden la previsualización de todos los ajustes que vencen en el mes (con el índice de dos meses antes por defecto), revisan contrato por contrato y aplican los elegidos; cada contrato se aplica en su propia transacción y la respuesta dice cuáles se aplicaron y por qué se salteó el resto. *Flujo alternativo:* si el índice del mes no está publicado y la inmobiliaria admite el pago a cuenta, el ajuste se aplica como provisorio con un índice estimado y se corrige solo cuando el índice se publica, con la diferencia como renglón de la liquidación siguiente; si no lo admite, el contrato queda con `MISSING_INDEX_DATA` y no se ajusta. Una tarea diaria aplica los vencidos y corrige los provisorios. *Modificado por el piloto:* FB-13 y FB-23.
 - **CU-25 Registrar locadores de un contrato** — Ventas, Gerente o Admin. Indica quién alquila (propietario, usufructuario, sublocador, acreedor u otro), qué porcentaje del cobro le corresponde, desde y hasta cuándo, qué cuenta recibe su parte y, si cobra otra persona, quién. Los locadores vigentes suman 100 % en cada fecha; una cesión se carga cerrando a uno y abriendo a otro en la misma fecha. Para cambiar el reparto de un contrato activo se reemplaza el conjunto de una vez. Los contratos migrados con varios propietarios quedan marcados para revisar el reparto.
@@ -210,5 +210,35 @@ A continuación se listan los casos de uso considerados centrales para la operac
 - **CU-31 Manejar la caja, la custodia y las compensaciones** — Admin, Gerente, Liquidaciones (Lectura consulta). Ve las cuentas de la inmobiliaria (cajas, bancos y la custodia de cada locador, cada una en una moneda) con su saldo y el libro de movimientos; carga a mano pagos a locadores, entes y proveedores, honorarios, gastos, comisiones del personal y señas; convierte entre monedas con un tipo de cambio explícito; entrega a un locador el efectivo que se le guarda; registra que un locador recibió un cobro que le correspondía a otro (compensación), pagándolo si hace falta con su custodia; cierra como gasto un cargo a la inmobiliaria; reimprime los recibos de cobro. *Flujo alternativo:* no se entrega más de lo que hay en custodia; una cuenta con saldo no se desactiva; las compensaciones de un cobro no superan el cobro. *Origen:* FB-06, FB-28.
 
 - **CU-35 Llevar la cuenta corriente y el estado de cuenta del locador** — Admin, Gerente, Liquidaciones (Lectura consulta). Ve el saldo de cada locador por moneda —lo que la inmobiliaria le debe o lo que él le debe—, cuánto está en custodia y cuánto falta pagarle, y su cuenta corriente con el saldo después de cada movimiento: los cobros (su parte de cada concepto, menos comisión y gastos; lo que cobró directamente si le pagó el inquilino), las compensaciones, los pagos a entes hechos por él, los gastos a su cargo, las entregas de custodia y los pagos. Le paga desde una caja o un banco (transferencia o efectivo), lo que resta de su saldo. A fin de mes genera los borradores del estado de cuenta de todos los locadores con movimientos o saldo, con todas sus unidades y el saldo arrastrado del mes anterior, los revisa agrupados por unidad, los emite (los movimientos quedan fijos) y descarga el PDF para imprimirlo o compartirlo. *Flujos alternativos:* el Admin o el Gerente carga o corrige el saldo inicial de un locador con un motivo, que queda auditado, salvo que ya esté en un estado emitido; anula, con motivo, el último estado emitido de un locador y sus movimientos vuelven al estado siguiente; un mes anterior al último emitido no se vuelve a generar; un cobro sin reparto no deja movimientos. Las rendiciones por contrato quedan como histórico de consulta. *Origen:* FB-10.
+
+## Casos de vencimientos y renovaciones (ítem 40)
+
+- **CU-38 Seguir los vencimientos de contratos** — Admin, Gerente y Ventas trabajan; todos los roles de personal consultan. Todos los días el sistema abre, para cada contrato de alquiler activo cuyo fin efectivo ya está a 60 días o menos (o lo pasó), un seguimiento con su checklist. Nace como renovación con resultado pendiente; el equipo lo asigna a una persona, lo pasa a devolución si el inquilino se va, marca los pasos hechos (renovación: visita, precio nuevo, regla de ajuste, garantes, honorarios, sellos y firma; devolución: visita previa, libre deuda de servicios, pintura y estado, llaves, depósito), anota y lo cierra con un resultado (renovado, devuelto, prorrogado). La pantalla Vencimientos lista los seguimientos con el semáforo (en plazo, por vencer, urgente, vencido) y filtros por color, tipo, estado y responsable. El semáforo no se guarda: se calcula del fin efectivo y de los umbrales de la inmobiliaria (rojo 0 días y amarillo 60 por defecto, configurables en Valores por defecto).
+- **CU-39 Prorrogar de palabra y renovar un contrato** — Admin o Gerente. La *prórroga de palabra* registra hasta cuándo sigue el inquilino sin papeles: mueve el fin real y deja intacto el fin pactado, queda como convenio y auditada, cierra el seguimiento como prorrogado y los avisos, los paneles y el cronograma de ajustes pasan a medir con el fin efectivo. La *renovación* agrega al mismo contrato un período de renovación con su alquiler y su regla de ajuste nuevos, los garantes que reafirman y los honorarios pactados, cierra el seguimiento como renovado, absorbe la prórroga de palabra si la había y permite bajar la adenda corta en PDF.
+
+Diagrama 8. Semáforo de vencimientos y checklist: del fin efectivo del contrato al resultado del seguimiento.
+
+```mermaid
+stateDiagram-v2
+    [*] --> EnPlazo: contrato activo
+    EnPlazo --> PorVencer: faltan 60 días o menos
+    PorVencer --> Urgente: faltan 0 días (umbral rojo)
+    Urgente --> Vencido: pasó el fin efectivo
+    PorVencer --> Seguimiento: el proceso diario abre el seguimiento
+    Vencido --> Seguimiento: el proceso diario abre el seguimiento
+    state Seguimiento {
+        [*] --> Renovacion
+        Renovacion --> Devolucion: el inquilino se va
+        Devolucion --> Renovacion: el inquilino se queda
+        Renovacion: checklist de renovación
+        Devolucion: checklist de devolución
+    }
+    Seguimiento --> Renovado: renovar (período nuevo)
+    Seguimiento --> Devuelto: se entrega la unidad
+    Seguimiento --> Prorrogado: prórroga de palabra
+    Prorrogado --> EnPlazo: el fin efectivo se movió
+    Renovado --> EnPlazo: el fin pactado se movió
+    Devuelto --> [*]
+```
 
 <!-- Revisado por Manuel: refinamiento de casos para liquidaciones y ARCA -->

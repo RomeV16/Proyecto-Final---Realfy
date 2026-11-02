@@ -267,14 +267,15 @@ erDiagram
 
 Un tramo de vigencia del contrato.
 
-- `id`, `tenantId`, `contractId`, `seq`, `kind` (`Original`, `Renovacion`, `Prorroga`), `startDate`, `endDate`, `initialRent`, `signedAt`.
+- `id`, `tenantId`, `contractId`, `seq`, `kind` (`Original`, `Renovacion`, `Prorroga`), `startDate`, `endDate`, `initialRent`, `signedAt`, `feeAmount` y `feeCurrency` (honorarios de renovación pactados), `guarantorPersonIds` (garantes que reafirmaron).
 - `@@unique([contractId, seq])`. Todo contrato tiene el período 1 (`Original`): se crea con el contrato y la migración lo creó para los existentes (`initialRent` es el alquiler anterior al primer ajuste aplicado, o el actual si no hubo). Editar el fin pactado del contrato mueve el fin del último período.
 
 #### ContractAgreement
 
 Convenio fechado que cambia las reglas del contrato.
 
-- `id`, `tenantId`, `contractId`, `kind` (`Renegociacion`, `Rebaja`, `Bonificacion`, `CambioRegla`, `CambioReparto`, `CambioCargo`), `effectiveFrom`, `effectiveTo`, `documentUrl`, `notes`, `createdById`.
+- `id`, `tenantId`, `contractId`, `kind` (`Renegociacion`, `Rebaja`, `Bonificacion`, `CambioRegla`, `CambioReparto`, `CambioCargo`, `Prorroga`, `Renovacion`), `effectiveFrom`, `effectiveTo`, `documentUrl`, `notes`, `createdById`.
+- `Prorroga` (prórroga de palabra: `effectiveFrom` es el fin efectivo anterior y `effectiveTo` el nuevo) y `Renovacion` (renovación como período) no se cargan por `POST /contracts/:id/agreements`: tienen su propia acción. La renovación sí trae un `termsPatch` (alquiler acordado y regla de ajuste).
 - Los cuatro primeros tipos traen un `termsPatch` que crea una `ContractTermsVersion` en la misma transacción; `CambioReparto` y `CambioCargo` solo se registran.
 
 #### ContractTermsVersion
@@ -285,6 +286,15 @@ Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se modifica: u
 - Cuatro convenciones de liquidación, pactables por contrato y con valor por defecto de la inmobiliaria (`Tenant.operationalDefaults`): `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`). Las columnas son obligatorias y su valor por defecto en la base es el comportamiento original (días reales, el ajuste rige desde el período siguiente, vence el día de inicio, descuento fijo proporcional), de modo que las versiones existentes liquidan igual que antes. Un contrato nuevo las toma de los valores por defecto de la inmobiliaria o de lo que se pacte en el alta; un convenio puede cambiarlas con `termsPatch`. Además pacta el anticipo del centro de carga: `upfrontThresholdFees` (entero, en comisiones mensuales; `null` = el de la inmobiliaria) y `upfrontBasis` (`ComisionPactada` por defecto, o `PorcentajePorDefecto`); las versiones existentes quedan con `null` y `ComisionPactada`, el comportamiento anterior. Y pacta `lessorDirectOwes` (`TodoLoAjeno` o `SoloInmobiliaria`: qué le debe a la inmobiliaria el locador que cobra directamente; `null` = el de la inmobiliaria, `operationalDefaults.cash.lessorDirectOwes`), que el reparto del cobro lee de la versión vigente en el período (ADR-0009); las versiones existentes quedaron con `null`.
 - `@@unique([contractId, validFrom])`. La versión vigente a una fecha es la última con `validFrom` anterior o igual. La migración creó una por contrato con sus columnas de hoy: base `Vigente` (lo que hace el motor actual), rezago 0 (el motor anterior no lo aplicaba; los contratos nuevos toman el de los valores por defecto, 2), vencimiento el día 10 y flujo `Partido`.
 - Las tres tablas llevan `tenantId` y están registradas en `TENANT_SCOPED_MODELS`.
+
+### ContractFollowUp y FollowUpTask
+
+Seguimiento del fin de un contrato y los pasos de su checklist.
+
+- `ContractFollowUp`: `id`, `tenantId`, `contractId`, `kind` (`Renovacion` o `Devolucion`), `status` (`Abierto` o `Cerrado`), `dueDate` (el fin efectivo del contrato cuando se abrió), `assigneeId`, `outcome` (`Pendiente`, `Renovado`, `Devuelto`, `Prorrogado`), `notes`, `closedAt`.
+- `@@unique([contractId, kind, dueDate])`: el proceso diario es idempotente y un contrato no repite el seguimiento de un mismo fin efectivo. Una prórroga de palabra o una renovación cierran el abierto; el nuevo fin efectivo abre otro cuando entra en la ventana.
+- `FollowUpTask`: `id`, `tenantId`, `followUpId`, `code`, `label`, `position`, `done`, `doneAt`, `doneById`, `dueDate`; `@@unique([followUpId, code])`. Las plantillas de checklist son constantes del paquete compartido (`FOLLOW_UP_CHECKLISTS`); al cambiar el tipo se arma el checklist del tipo nuevo y se conserva lo ya hecho en los pasos que se repiten.
+- El semáforo (`expirationLight`) no se guarda: sale del fin efectivo del contrato y de `Tenant.operationalDefaults.expiryLight`. Ambas tablas llevan `tenantId` y están en `TENANT_SCOPED_MODELS`. La migración no crea seguimientos.
 
 ### ContractGuarantee
 
