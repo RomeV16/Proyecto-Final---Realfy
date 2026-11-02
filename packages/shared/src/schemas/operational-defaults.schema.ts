@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode } from '../enums';
+import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
 
 const pct = z.number().min(0).max(100);
 const days = z.number().int().min(0).max(365);
@@ -52,6 +52,8 @@ export const OperationalDefaultsSchema = z
     valuationUsd: z.number().min(0).default(100),
     /** Pago a cuenta: monto a partir del cual se pide anticipo, en honorarios mensuales. */
     upfrontThresholdFees: z.number().min(0).default(2),
+    /** Sobre qué comisión mensual se mide ese umbral; cada contrato puede pactar la suya. */
+    upfrontBasis: z.nativeEnum(UpfrontBasis).default(UpfrontBasis.ComisionPactada),
     /** Recordatorios de cobranza: el primero a los N días del vencimiento y luego cada M días. */
     collectionCadence: z
       .object({

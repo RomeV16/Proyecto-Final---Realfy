@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode } from '../enums';
+import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
 import type { OperationalDefaults, OperationalDefaultsInput } from './operational-defaults.schema';
 
 // Esquema del formulario web de valores por defecto: todos los campos viajan
@@ -35,6 +35,7 @@ export const operationalDefaultsFormSchema = z
     feeVentaLote: numberText({ min: 0, max: 100 }),
     valuationUsd: numberText({ min: 0 }),
     upfrontThresholdFees: numberText({ min: 0 }),
+    upfrontBasis: z.nativeEnum(UpfrontBasis),
     firstReminderDays: numberText({ int: true, min: 0, max: 365 }),
     everyDays: numberText({ int: true, min: 1, max: 365 }),
     redDays: numberText({ int: true, min: 0, max: 365 }),
@@ -67,6 +68,7 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     feeVentaLote: String(d.fees.ventaLote),
     valuationUsd: String(d.valuationUsd),
     upfrontThresholdFees: String(d.upfrontThresholdFees),
+    upfrontBasis: d.upfrontBasis,
     firstReminderDays: String(d.collectionCadence.firstReminderDays),
     everyDays: String(d.collectionCadence.everyDays),
     redDays: String(d.expiryLight.redDays),
@@ -94,6 +96,7 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
     },
     valuationUsd: num(f.valuationUsd),
     upfrontThresholdFees: num(f.upfrontThresholdFees),
+    upfrontBasis: f.upfrontBasis,
     collectionCadence: { firstReminderDays: num(f.firstReminderDays), everyDays: num(f.everyDays) },
     expiryLight: { redDays: num(f.redDays), yellowDays: num(f.yellowDays) },
   };

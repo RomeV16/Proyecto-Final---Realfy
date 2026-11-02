@@ -410,6 +410,12 @@ export enum PendingChargeKind {
   Otro = 'Otro',
 }
 
+/** Comisión mensual con la que se mide el umbral de anticipo del centro de carga. */
+export enum UpfrontBasis {
+  ComisionPactada = 'ComisionPactada',
+  PorcentajePorDefecto = 'PorcentajePorDefecto',
+}
+
 export enum PendingChargeStatus {
   Pendiente = 'Pendiente',
   Imputado = 'Imputado',

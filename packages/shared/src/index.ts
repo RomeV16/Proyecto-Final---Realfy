@@ -51,6 +51,7 @@ export {
   ChargeTarget,
   PendingChargeKind,
   PendingChargeStatus,
+  UpfrontBasis,
   BillPaidBy,
   NotificationType,
   PipelineType,
