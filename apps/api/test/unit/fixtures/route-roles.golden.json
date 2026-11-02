@@ -1312,5 +1312,52 @@
   "src/modules/valuations/valuations.controller.ts#ValuationsController.remove": [
     "Admin",
     "Gerente"
+  ],
+  "src/modules/invoices/lessor-invoicing.controller.ts#LessorInvoicingController.settings": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/lessor-invoicing.controller.ts#LessorInvoicingController.saveSettings": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/invoices/lessor-invoicing.controller.ts#LessorInvoicingController.createIssuer": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/invoices/lessor-invoicing.controller.ts#LessorInvoicingController.paymentInvoices": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/lessor-invoicing.controller.ts#LessorInvoicingController.invoicePayment": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/lessor-invoicing.controller.ts#LessorInvoicingController.statementInvoices": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/lessor-invoicing.controller.ts#LessorInvoicingController.invoiceStatement": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/lessor-invoicing.controller.ts#LessorInvoicingController.pending": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/invoices/lessor-invoicing.controller.ts#LessorInvoicingController.run": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
   ]
 }

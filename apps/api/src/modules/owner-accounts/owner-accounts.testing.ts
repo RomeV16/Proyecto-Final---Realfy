@@ -140,6 +140,10 @@ export function fakeDb(data: FakeData = {}) {
     person: table(data.persons ?? [], 'person'),
     financialAccount: table(data.accounts ?? [], 'account'),
     serviceBillAllocation: table(data.allocations ?? [], 'allocation'),
+    lessorInvoiceJob: {
+      findMany: jest.fn(async () => []),
+      createMany: jest.fn(async () => ({ count: 0 })),
+    },
     tenant: { findFirst: jest.fn(async () => ({ name: 'Inmobiliaria Demo', cuit: '30-00000000-1' })) },
     $queryRaw: jest.fn(async () => [{ id: 'locked' }]),
   };

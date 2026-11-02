@@ -60,7 +60,7 @@ export interface ArcaEmitResult {
 
 // ─── IVA condition mapping ─────────────────────────────────────────────────────
 
-const FISCAL_CONDITION_TO_ARCA: Record<FiscalCondition, number> = {
+export const FISCAL_CONDITION_TO_ARCA: Record<FiscalCondition, number> = {
   [FiscalCondition.ResponsableInscripto]: 1,
   [FiscalCondition.Exento]: 4,
   [FiscalCondition.ConsumidorFinal]: 5,

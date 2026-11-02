@@ -57,7 +57,7 @@ export class IssuersService {
     });
   }
 
-  async createIssuer(data: IssuerCreateDto) {
+  async createIssuer(data: IssuerCreateDto, personId: string | null = null) {
     const tenantId = this.tenantContext.getTenantId()!;
 
     // Validate CUIT checksum
@@ -83,7 +83,8 @@ export class IssuersService {
     const tenant = await this.prisma.client.tenant.findFirst({
       where: { id: tenantId },
     });
-    const isSelf = tenant ? (tenant as any).cuit === data.cuit : false;
+    // Un emisor delegado de un locador nunca es el propio de la inmobiliaria.
+    const isSelf = !personId && tenant ? (tenant as any).cuit === data.cuit : false;
 
     const issuer = await this.prisma.client.arcaIssuer.create({
       data: {
@@ -95,6 +96,7 @@ export class IssuersService {
         activityStartDate: data.activityStartDate ?? null,
         businessAddress: data.businessAddress ?? null,
         isSelf,
+        personId,
       },
       include: { puntosDeVenta: true },
     });
