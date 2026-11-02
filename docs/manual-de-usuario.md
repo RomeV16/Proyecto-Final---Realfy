@@ -362,16 +362,23 @@ gasto se imputa **una sola vez**.
 (por defecto, 2 comisiones mensuales del contrato), queda marcado *Pide anticipo* y no
 entra solo en la liquidación. Se pide el pago por adelantado y, cuando el inquilino
 paga, se marca *Cobrado por adelantado*; o se decide *Imputar en la liquidación* y
-entra en la próxima. El umbral se cambia en la configuración de valores por defecto.
+entra en la próxima. El umbral se cambia en la configuración de valores por defecto y se puede pactar distinto por contrato (al crearlo o en un convenio): un umbral propio en comisiones mensuales y la comisión con que se mide (la pactada del contrato o el porcentaje por defecto de la inmobiliaria). Rige el pactado a la fecha del gasto.
 
 **Devoluciones.** Una devolución al inquilino (por ejemplo, un arreglo que pagó él) se
 carga con su importe y se resta en su liquidación como un descuento a favor del
 inquilino, sin tocar la comisión.
 
 **Correcciones.** Un cargo pendiente se corrige o se *Anula*. Si la liquidación que lo
-incluye sigue en borrador y se borra, o se quita su renglón, el cargo vuelve a
-pendiente. Si la liquidación ya se aprobó y se anula, el cargo se *Libera* a mano y
-entra en la próxima. Un cargo ya imputado no se edita ni se anula.
+incluye se borra (en borrador), se anula o se quita su renglón, el cargo vuelve a
+pendiente solo, igual que las boletas y las correcciones de ajuste que traía, y
+entra en la próxima liquidación; queda una fila de auditoría. Un cargo imputado en
+una liquidación vigente no se edita ni se anula.
+
+**Gasto a cargo del locador o de la inmobiliaria.** Para un gasto al locador se elige
+un locador (los vigentes del contrato o los titulares de la propiedad) o, sin elegir,
+es de todos según su porcentaje. Un gasto a cargo de la inmobiliaria queda
+registrado como pendiente hasta que exista la caja de la inmobiliaria, que lo cerrará
+como gasto propio.
 
 ### Cargar los locadores de un contrato y su porcentaje de cobro
 

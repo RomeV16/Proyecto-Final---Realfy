@@ -151,6 +151,10 @@ en `Tenant.operationalDefaults` (defecto -> contrato -> acuerdo, igual que
 | `midMonthAdjustmentMode` | `DesdePeriodoSiguiente`, `Prorrateado` (dos renglones de alquiler partidos por días, con el conteo de `prorationMode`; con `SinProrrateo` se cuentan días reales), `DesdeEsePeriodo` (todo el mes al alquiler nuevo) |
 | `firstDueMode` | `DiaDeInicio` (vence el día de inicio si es posterior al vencimiento), `VencimientoMesSiguiente`, `AlFirmar` |
 | `fixedDiscountProration` | `Proporcional`, `Completo` |
+| `upfrontBasis` | `ComisionPactada` (la comisión del contrato; sin ella, el porcentaje por defecto), `PorcentajePorDefecto` |
+| `upfrontThresholdFees` | entero de 0 a 24 comisiones mensuales; `null` = el de la inmobiliaria (2 de fábrica) |
+
+Adenda (2 de noviembre de 2026): el centro de carga suma a las reglas del contrato el umbral de anticipo de un gasto (`upfrontThresholdFees`, opcional) y la comisión con que se mide (`upfrontBasis`), con la misma resolución defecto, contrato y convenio, a la fecha del gasto.
 
 Decisiones de modelado:
 
