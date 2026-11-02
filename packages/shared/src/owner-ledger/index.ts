@@ -309,7 +309,7 @@ export function computeStatement<E extends StatementEntry>(input: {
 
   const opening = round2(input.previousClosing ?? 0).plus(initial);
   const ordered = [...groups.values()].sort((a, b) => {
-    if (!a.propertyId !== !b.propertyId) return a.propertyId ? -1 : 1;
+    if (Boolean(a.propertyId) !== Boolean(b.propertyId)) return a.propertyId ? -1 : 1;
     return (a.label ?? '').localeCompare(b.label ?? '', 'es') || (a.propertyId ?? '').localeCompare(b.propertyId ?? '');
   });
   return {
