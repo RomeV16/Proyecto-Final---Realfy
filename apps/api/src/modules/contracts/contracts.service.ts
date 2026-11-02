@@ -359,6 +359,11 @@ export class ContractsService {
           upfrontBasis: validated.liquidationRules?.upfrontBasis ?? defaults.upfrontBasis,
           // Qué debe el locador que cobra directamente: null = el de la inmobiliaria.
           lessorDirectOwes: validated.liquidationRules?.lessorDirectOwes ?? null,
+          // Reparaciones: límite propio sin consultar al locador (null = el de la inmobiliaria).
+          repairPreauthLimitAmount: validated.liquidationRules?.repairPreauthLimitAmount ?? null,
+          repairPreauthLimitCurrency: validated.liquidationRules?.repairPreauthLimitAmount
+            ? (validated.liquidationRules?.repairPreauthLimitCurrency ?? 'ARS')
+            : null,
         },
       });
 

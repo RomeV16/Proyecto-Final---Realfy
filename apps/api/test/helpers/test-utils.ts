@@ -46,6 +46,7 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
   // Order matters — delete children before parents
 
   // Ticket tables (delete attachments → comments → tickets → categories before other FK targets)
+  await prisma.baseClient.ticketQuote.deleteMany();
   await prisma.baseClient.ticketAttachment.deleteMany();
   await prisma.baseClient.ticketComment.deleteMany();
   await prisma.baseClient.ticket.deleteMany();

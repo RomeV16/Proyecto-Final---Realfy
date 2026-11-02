@@ -3086,7 +3086,183 @@
    "Resuelto": "Resuelto",
    "Cerrado": "Cerrado",
    "Cancelado": "Cancelado",
-   "Reabierto": "Reabierto"
+   "Reabierto": "Reabierto",
+   "PendienteAutorizacion": "Pendiente de autorización",
+   "Presupuestado": "Presupuestado",
+   "PresupuestoAprobado": "Presupuesto aprobado"
+  },
+  "repair": {
+   "eyebrow": "Incidencia",
+   "title": "Reparación",
+   "saving": "Guardando…",
+   "optionsError": "No se pudieron cargar los proveedores y las personas.",
+   "approver": "Quién aprueba",
+   "approverHint": "El locador o quien lo representa.",
+   "approverPlaceholder": "Elegí una persona",
+   "channel": "Por qué canal",
+   "channelPlaceholder": "Elegí un canal",
+   "note": "Nota",
+   "channels": {
+    "WhatsApp": "WhatsApp",
+    "Telefono": "Teléfono",
+    "Mail": "Mail",
+    "Presencial": "Presencial"
+   },
+   "payers": {
+    "Inquilino": "El inquilino",
+    "Locador": "El locador",
+    "Inmobiliaria": "La inmobiliaria"
+   },
+   "stepper": {
+    "label": "Etapas de la incidencia",
+    "cancelled": "La incidencia se canceló: no sigue el recorrido.",
+    "done": "(hecho)",
+    "current": "(etapa actual)",
+    "todo": "(pendiente)"
+   },
+   "authorization": {
+    "eyebrow": "Autorización",
+    "title": "Estimado y autorización del locador",
+    "waiting": "El costo estimado supera lo que la inmobiliaria puede resolver sin consultar. Falta la autorización del locador para presupuestar."
+   },
+   "estimate": {
+    "title": "Anotar el costo estimado",
+    "amount": "Costo estimado",
+    "hint": "Si supera el límite de la inmobiliaria, el caso espera la autorización del locador.",
+    "submit": "Anotar estimado",
+    "error": "No se pudo anotar el estimado.",
+    "requires": "El estimado supera el límite: el caso espera la autorización del locador.",
+    "within": "Estimado anotado: se puede seguir sin consultar al locador.",
+    "current": "Costo estimado"
+   },
+   "preauth": {
+    "title": "Registrar la autorización del locador",
+    "amount": "Tope autorizado",
+    "amountHint": "Hasta qué importe se puede actuar sin volver a consultarlo.",
+    "submit": "Registrar autorización",
+    "error": "No se pudo registrar la autorización.",
+    "done": "Autorización registrada.",
+    "current": "Autorización del locador",
+    "none": "Sin autorización",
+    "by": "Autorizó {name} por {channel} el {date}"
+   },
+   "quotes": {
+    "eyebrow": "Presupuestos",
+    "title": "Presupuestos de proveedores",
+    "added": "Presupuesto cargado.",
+    "error": "No se pudo completar la acción sobre el presupuesto.",
+    "columns": {
+     "provider": "Proveedor",
+     "amount": "Importe",
+     "status": "Estado",
+     "approval": "Aprobación",
+     "actions": "Acciones"
+    },
+    "statuses": {
+     "Pendiente": "Pendiente",
+     "Aprobado": "Aprobado",
+     "Rechazado": "Descartado"
+    },
+    "approvedBy": "Aprobó {name} por {channel} el {date}",
+    "empty": {
+     "title": "Todavía no hay presupuestos",
+     "subtitle": "Cargá el de cada proveedor para que el locador elija uno."
+    },
+    "add": {
+     "title": "Cargar un presupuesto",
+     "providerPlaceholder": "Elegí un proveedor",
+     "submit": "Cargar presupuesto",
+     "error": "No se pudo cargar el presupuesto."
+    },
+    "approve": {
+     "open": "Aprobar",
+     "title": "Aprobar presupuesto",
+     "body": "Presupuesto de {provider} por",
+     "confirm": "Aprobar presupuesto",
+     "done": "Presupuesto aprobado.",
+     "error": "No se pudo aprobar el presupuesto."
+    },
+    "reject": {
+     "open": "Descartar",
+     "title": "Descartar presupuesto",
+     "body": "Se descarta el presupuesto de {provider}. Queda en el historial.",
+     "confirm": "Descartar"
+    },
+    "remove": {
+     "open": "Quitar",
+     "title": "Quitar presupuesto",
+     "body": "Se quita el presupuesto de {provider}. No se puede deshacer.",
+     "confirm": "Quitar"
+    }
+   },
+   "payments": {
+    "eyebrow": "Pago",
+    "title": "Pagos al proveedor",
+    "loadError": "No se pudieron cargar los pagos.",
+    "empty": {
+     "title": "Sin pagos al proveedor",
+     "subtitle": "Cuando la inmobiliaria pague, queda en la caja y acá."
+    },
+    "total": "Pagado:",
+    "approved": "Aprobado:",
+    "columns": {
+     "date": "Fecha",
+     "account": "Cuenta",
+     "amount": "Importe",
+     "note": "Nota"
+    },
+    "add": {
+     "title": "Registrar pago al proveedor",
+     "error": "No se pudo registrar el pago.",
+     "noAccounts": "No hay una cuenta de la inmobiliaria en {currency} para pagar.",
+     "accountPlaceholder": "Elegí la cuenta",
+     "submit": "Registrar pago"
+    },
+    "done": "Pago registrado en la caja."
+   },
+   "impute": {
+    "title": "Imputar el gasto",
+    "help": "Se carga lo pagado al proveedor a quien lo soporta, una sola vez: el inquilino en su próxima liquidación, el locador en su próximo estado, o la inmobiliaria como gasto propio.",
+    "payer": "Quién paga",
+    "payerPlaceholder": "Elegí quién paga",
+    "fee": {
+     "label": "Honorario por gestión",
+     "hint": "Opcional: un gasto aparte de la inmobiliaria. Nunca es comisión.",
+     "modes": {
+      "None": "Sin honorario",
+      "Percent": "Porcentaje de lo pagado",
+      "Fixed": "Importe fijo"
+     },
+     "pct": "Porcentaje",
+     "pctHint": "Vacío usa el del contrato y, sin él, el de la inmobiliaria.",
+     "amount": "Importe del honorario"
+    },
+    "submit": "Imputar gasto",
+    "confirm": {
+     "title": "Imputar el gasto",
+     "body": "Se carga {total} a {payer}. Esto se hace una sola vez.",
+     "action": "Imputar"
+    },
+    "done": "Gasto imputado.",
+    "imputed": "El gasto ya se imputó a: {payer}.",
+    "notYet": "Se puede imputar cuando el trabajo esté terminado y haya pagos al proveedor.",
+    "error": "No se pudo imputar el gasto.",
+    "result": "Se cargaron {total}.",
+    "resultFee": "Honorario por gestión: {fee}."
+   },
+   "errors": {
+    "amount": "Escribí un importe mayor a cero con hasta dos decimales",
+    "approvedByPersonId": "Elegí quién aprueba",
+    "channel": "Elegí el canal",
+    "providerId": "Elegí un proveedor",
+    "accountId": "Elegí la cuenta",
+    "chargedTo": "Elegí quién paga",
+    "managementFee": "Revisá el honorario: el porcentaje va de 0 a 100 y el importe fijo debe ser mayor a cero",
+    "date": "Usá una fecha válida",
+    "note": "La nota es demasiado larga",
+    "notes": "La nota es demasiado larga",
+    "currency": "Elegí la moneda"
+   }
   },
   "priorities": {
    "Urgente": "Urgente",
@@ -4626,6 +4802,10 @@
    "ownerAccounts": {
     "title": "Cuenta corriente del locador",
     "description": "Cuándo cierra el estado de cuenta mensual y cuándo se descuentan los gastos a cargo del locador."
+   },
+   "repairs": {
+    "title": "Reparaciones",
+    "description": "Hasta qué importe se actúa sin consultar al locador y el honorario por gestión que se propone."
    }
   },
   "fields": {
@@ -4741,6 +4921,14 @@
      "AlGenerarEstado": "Al generar el borrador del mes",
      "AlEmitirEstado": "Al emitir el estado (el borrador los muestra como previstos)"
     }
+   },
+   "repairPreauthLimit": {
+    "label": "Límite sin consultar al locador ($)",
+    "hint": "Un arreglo estimado por encima de este importe espera la autorización del locador (de fábrica {value}: siempre se consulta)."
+   },
+   "repairMgmtFeePct": {
+    "label": "Honorario por gestión de reparaciones (%)",
+    "hint": "Porcentaje que se propone al imputar una reparación; siempre es opcional y no es comisión (de fábrica {value})."
    }
   }
  },
@@ -4803,6 +4991,12 @@
     "TodoLoAjeno": "Todo lo que no es suyo (comisión, inmobiliaria y entes)",
     "SoloInmobiliaria": "Solo comisión e inmobiliaria (los entes los paga él)"
    }
+  },
+  "repairPreauthLimit": {
+   "label": "Límite de reparaciones propio",
+   "placeholder": "Por defecto: {value}",
+   "hint": "Hasta qué importe se resuelve una reparación sin consultar al locador. Vacío usa el de la inmobiliaria.",
+   "currency": "Moneda del límite"
   }
  },
  "penaltyRule": {
@@ -5374,7 +5568,8 @@
    "CustodyDelivery": "Entrega de custodia",
    "Compensation": "Compensación entre locadores",
    "PendingCharge": "Gasto del centro de carga",
-   "OwnerPayout": "Pago al locador"
+   "OwnerPayout": "Pago al locador",
+   "Ticket": "Pago de una incidencia"
   },
   "errors": {
    "name": "Escribí un nombre (hasta 120 caracteres)",

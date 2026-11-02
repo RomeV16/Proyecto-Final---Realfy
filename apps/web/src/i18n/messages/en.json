@@ -3086,7 +3086,183 @@
    "Resuelto": "Resuelto",
    "Cerrado": "Cerrado",
    "Cancelado": "Cancelado",
-   "Reabierto": "Reabierto"
+   "Reabierto": "Reabierto",
+   "PendienteAutorizacion": "Pending authorization",
+   "Presupuestado": "Quoted",
+   "PresupuestoAprobado": "Quote approved"
+  },
+  "repair": {
+   "eyebrow": "Incident",
+   "title": "Repair",
+   "saving": "Saving…",
+   "optionsError": "Could not load providers and people.",
+   "approver": "Approved by",
+   "approverHint": "The lessor or their representative.",
+   "approverPlaceholder": "Choose a person",
+   "channel": "Through which channel",
+   "channelPlaceholder": "Choose a channel",
+   "note": "Note",
+   "channels": {
+    "WhatsApp": "WhatsApp",
+    "Telefono": "Phone",
+    "Mail": "Email",
+    "Presencial": "In person"
+   },
+   "payers": {
+    "Inquilino": "The tenant",
+    "Locador": "The lessor",
+    "Inmobiliaria": "The agency"
+   },
+   "stepper": {
+    "label": "Incident stages",
+    "cancelled": "The incident was cancelled: it does not follow the path.",
+    "done": "(done)",
+    "current": "(current stage)",
+    "todo": "(pending)"
+   },
+   "authorization": {
+    "eyebrow": "Authorization",
+    "title": "Estimate and lessor authorization",
+    "waiting": "The estimated cost is above what the agency can handle without asking. The lessor's authorization is needed before quoting."
+   },
+   "estimate": {
+    "title": "Enter the estimated cost",
+    "amount": "Estimated cost",
+    "hint": "If it is above the agency limit, the case waits for the lessor's authorization.",
+    "submit": "Save estimate",
+    "error": "Could not save the estimate.",
+    "requires": "The estimate is above the limit: the case waits for the lessor's authorization.",
+    "within": "Estimate saved: you can go on without asking the lessor.",
+    "current": "Estimated cost"
+   },
+   "preauth": {
+    "title": "Record the lessor's authorization",
+    "amount": "Authorized ceiling",
+    "amountHint": "Up to which amount the agency can act without asking again.",
+    "submit": "Record authorization",
+    "error": "Could not record the authorization.",
+    "done": "Authorization recorded.",
+    "current": "Lessor authorization",
+    "none": "No authorization",
+    "by": "Authorized by {name} via {channel} on {date}"
+   },
+   "quotes": {
+    "eyebrow": "Quotes",
+    "title": "Provider quotes",
+    "added": "Quote added.",
+    "error": "The action on the quote could not be completed.",
+    "columns": {
+     "provider": "Provider",
+     "amount": "Amount",
+     "status": "Status",
+     "approval": "Approval",
+     "actions": "Actions"
+    },
+    "statuses": {
+     "Pendiente": "Pending",
+     "Aprobado": "Approved",
+     "Rechazado": "Discarded"
+    },
+    "approvedBy": "Approved by {name} via {channel} on {date}",
+    "empty": {
+     "title": "No quotes yet",
+     "subtitle": "Add each provider's quote so the lessor can pick one."
+    },
+    "add": {
+     "title": "Add a quote",
+     "providerPlaceholder": "Choose a provider",
+     "submit": "Add quote",
+     "error": "Could not add the quote."
+    },
+    "approve": {
+     "open": "Approve",
+     "title": "Approve quote",
+     "body": "Quote from {provider} for",
+     "confirm": "Approve quote",
+     "done": "Quote approved.",
+     "error": "Could not approve the quote."
+    },
+    "reject": {
+     "open": "Discard",
+     "title": "Discard quote",
+     "body": "The quote from {provider} is discarded. It stays in the history.",
+     "confirm": "Discard"
+    },
+    "remove": {
+     "open": "Remove",
+     "title": "Remove quote",
+     "body": "The quote from {provider} is removed. This cannot be undone.",
+     "confirm": "Remove"
+    }
+   },
+   "payments": {
+    "eyebrow": "Payment",
+    "title": "Provider payments",
+    "loadError": "Could not load the payments.",
+    "empty": {
+     "title": "No provider payments",
+     "subtitle": "When the agency pays, it is recorded in the cash book and here."
+    },
+    "total": "Paid:",
+    "approved": "Approved:",
+    "columns": {
+     "date": "Date",
+     "account": "Account",
+     "amount": "Amount",
+     "note": "Note"
+    },
+    "add": {
+     "title": "Record a provider payment",
+     "error": "Could not record the payment.",
+     "noAccounts": "There is no agency account in {currency} to pay from.",
+     "accountPlaceholder": "Choose the account",
+     "submit": "Record payment"
+    },
+    "done": "Payment recorded in the cash book."
+   },
+   "impute": {
+    "title": "Charge the expense",
+    "help": "What was paid to the provider is charged to whoever bears it, once: the tenant in their next liquidation, the lessor in their next statement, or the agency as its own expense.",
+    "payer": "Who pays",
+    "payerPlaceholder": "Choose who pays",
+    "fee": {
+     "label": "Management fee",
+     "hint": "Optional: a separate agency charge. It is never a commission.",
+     "modes": {
+      "None": "No fee",
+      "Percent": "Percentage of what was paid",
+      "Fixed": "Fixed amount"
+     },
+     "pct": "Percentage",
+     "pctHint": "Empty uses the contract's and, without one, the agency default.",
+     "amount": "Fee amount"
+    },
+    "submit": "Charge expense",
+    "confirm": {
+     "title": "Charge the expense",
+     "body": "{total} is charged to {payer}. This is done only once.",
+     "action": "Charge"
+    },
+    "done": "Expense charged.",
+    "imputed": "The expense was already charged to: {payer}.",
+    "notYet": "It can be charged once the work is finished and there are provider payments.",
+    "error": "Could not charge the expense.",
+    "result": "{total} charged.",
+    "resultFee": "Management fee: {fee}."
+   },
+   "errors": {
+    "amount": "Enter an amount above zero with up to two decimals",
+    "approvedByPersonId": "Choose who approves",
+    "channel": "Choose the channel",
+    "providerId": "Choose a provider",
+    "accountId": "Choose the account",
+    "chargedTo": "Choose who pays",
+    "managementFee": "Check the fee: the percentage goes from 0 to 100 and a fixed amount must be above zero",
+    "date": "Use a valid date",
+    "note": "The note is too long",
+    "notes": "The note is too long",
+    "currency": "Choose the currency"
+   }
   },
   "priorities": {
    "Urgente": "Urgente",
@@ -4626,6 +4802,10 @@
    "ownerAccounts": {
     "title": "Lessor account",
     "description": "When the monthly owner statement closes and when the expenses charged to the lessor are deducted."
+   },
+   "repairs": {
+    "title": "Repairs",
+    "description": "Up to which amount the agency acts without asking the lessor, and the management fee that is suggested."
    }
   },
   "fields": {
@@ -4741,6 +4921,14 @@
      "AlGenerarEstado": "When the month's draft is generated",
      "AlEmitirEstado": "When the statement is issued (the draft shows them as expected)"
     }
+   },
+   "repairPreauthLimit": {
+    "label": "Limit without asking the lessor ($)",
+    "hint": "A repair estimated above this amount waits for the lessor's authorization (factory value {value}: always ask)."
+   },
+   "repairMgmtFeePct": {
+    "label": "Repair management fee (%)",
+    "hint": "Percentage suggested when charging a repair; always optional and never a commission (factory value {value})."
    }
   }
  },
@@ -4803,6 +4991,12 @@
     "TodoLoAjeno": "Everything that isn't theirs (commission, agency and utilities)",
     "SoloInmobiliaria": "Only commission and agency (they pay the utilities)"
    }
+  },
+  "repairPreauthLimit": {
+   "label": "Own repair limit",
+   "placeholder": "Default: {value}",
+   "hint": "Up to which amount a repair is handled without asking the lessor. Empty uses the agency default.",
+   "currency": "Limit currency"
   }
  },
  "penaltyRule": {
@@ -5374,7 +5568,8 @@
    "CustodyDelivery": "Custody delivery",
    "Compensation": "Compensation between lessors",
    "PendingCharge": "Charge center expense",
-   "OwnerPayout": "Payout to lessor"
+   "OwnerPayout": "Payout to lessor",
+   "Ticket": "Incident payment"
   },
   "errors": {
    "name": "Enter a name (up to 120 characters)",

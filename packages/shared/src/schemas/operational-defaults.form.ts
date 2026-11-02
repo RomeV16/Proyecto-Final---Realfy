@@ -57,6 +57,8 @@ export const operationalDefaultsFormSchema = z
         message: 'validation.outOfRange',
       }),
     ownerLessorChargeTiming: z.nativeEnum(LessorChargeTiming),
+    repairPreauthLimit: numberText({ min: 0 }),
+    repairMgmtFeePct: numberText({ min: 0, max: 100 }),
   })
   .refine((v) => Number(v.yellowDays) >= Number(v.redDays) || !/^\d+$/.test(v.yellowDays), {
     message: 'validation.outOfRange',
@@ -98,6 +100,8 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     cashCompensationScope: d.cash.compensationScope,
     ownerStatementCloseDay: d.ownerAccounts.statementCloseDay === null ? '' : String(d.ownerAccounts.statementCloseDay),
     ownerLessorChargeTiming: d.ownerAccounts.lessorChargeTiming,
+    repairPreauthLimit: String(d.repairs.preauthLimit),
+    repairMgmtFeePct: String(d.repairs.managementFeePct),
   };
 }
 
@@ -136,5 +140,6 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
       statementCloseDay: f.ownerStatementCloseDay.trim() === '' ? null : num(f.ownerStatementCloseDay),
       lessorChargeTiming: f.ownerLessorChargeTiming,
     },
+    repairs: { preauthLimit: num(f.repairPreauthLimit), managementFeePct: num(f.repairMgmtFeePct) },
   };
 }

@@ -4,6 +4,7 @@ import {
   AdjustmentPeriod,
   AdjustmentType,
   ContractAgreementKind,
+  Currency,
   FirstDueMode,
   FixedDiscountProration,
   MidMonthAdjustmentMode,
@@ -59,9 +60,18 @@ const upfrontThresholdField = { upfrontThresholdFees: z.number().int().min(0).ma
  */
 const lessorDirectOwesField = { lessorDirectOwes: z.nativeEnum(LessorDirectOwes).nullable() };
 
+/**
+ * Límite de reparaciones sin consultar al locador pactado en el contrato (importe y moneda); null en
+ * ambos vuelve al valor por defecto de la inmobiliaria. Un importe sin moneda se toma en pesos.
+ */
+const repairPreauthLimitFields = {
+  repairPreauthLimitAmount: decimal(2).nullable(),
+  repairPreauthLimitCurrency: z.nativeEnum(Currency).nullable(),
+};
+
 /** Las cuatro convenciones al crear o corregir un contrato; lo omitido toma el valor por defecto de la inmobiliaria. */
 export const LiquidationConventionsSchema = z
-  .object({ ...liquidationConventionFields, ...upfrontThresholdField, ...lessorDirectOwesField })
+  .object({ ...liquidationConventionFields, ...upfrontThresholdField, ...lessorDirectOwesField, ...repairPreauthLimitFields })
   .partial()
   .strict();
 export type LiquidationConventions = z.infer<typeof LiquidationConventionsSchema>;
@@ -85,6 +95,7 @@ export const TermsPatchSchema = z
     ...liquidationConventionFields,
     ...upfrontThresholdField,
     ...lessorDirectOwesField,
+    ...repairPreauthLimitFields,
   })
   .partial()
   .strict();

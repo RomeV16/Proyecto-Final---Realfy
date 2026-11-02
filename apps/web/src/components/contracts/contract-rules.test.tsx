@@ -99,6 +99,14 @@ describe('ContractRules', () => {
     expect(text).toContain('El porcentaje por defecto de la inmobiliaria');
   });
 
+  it('muestra el límite de reparaciones pactado con su moneda', async () => {
+    const current = version({ repairPreauthLimitAmount: '500', repairPreauthLimitCurrency: 'USD' });
+    serve({ at: '2026-10-31T00:00:00.000Z', current, versions: [current] });
+    renderEs(<ContractRules contractId="c-1" currency="ARS" />);
+    expect(await screen.findByText('Límite de reparaciones propio')).toBeInTheDocument();
+    expect(norm(document.body.textContent)).toContain('500');
+  });
+
   it('una versión sin convenciones no muestra esos datos', async () => {
     const current = version({
       prorationMode: undefined,

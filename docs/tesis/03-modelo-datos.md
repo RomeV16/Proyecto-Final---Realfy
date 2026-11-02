@@ -259,6 +259,8 @@ erDiagram
         int upfrontThresholdFees
         string upfrontBasis
         string lessorDirectOwes
+        decimal repairPreauthLimitAmount
+        string repairPreauthLimitCurrency
         json customSteps
     }
 ```
@@ -283,7 +285,7 @@ Convenio fechado que cambia las reglas del contrato.
 Foto de las reglas vigentes del contrato desde `validFrom`. Nunca se modifica: un cambio crea otra.
 
 - `id`, `tenantId`, `contractId`, `validFrom`, `agreementId`, `adjustmentType`, `adjustmentPeriod`, `adjustmentBase` (`Original` o `Vigente`), `indexLagMonths` (por defecto 2), `fixedInitialMonths` (0), `customPct`, `customSteps` (JSON, lista de `{ fromMonth, pct }` para el escalonado), `rentOverride`, `discountPct`, `discountAmount`, `dueDay`, `paymentFlow` (`Partido`, `TodoInmobiliaria`, `TodoLocador`), `penaltyConfig` (JSON).
-- Cuatro convenciones de liquidación, pactables por contrato y con valor por defecto de la inmobiliaria (`Tenant.operationalDefaults`): `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`). Las columnas son obligatorias y su valor por defecto en la base es el comportamiento original (días reales, el ajuste rige desde el período siguiente, vence el día de inicio, descuento fijo proporcional), de modo que las versiones existentes liquidan igual que antes. Un contrato nuevo las toma de los valores por defecto de la inmobiliaria o de lo que se pacte en el alta; un convenio puede cambiarlas con `termsPatch`. Además pacta el anticipo del centro de carga: `upfrontThresholdFees` (entero, en comisiones mensuales; `null` = el de la inmobiliaria) y `upfrontBasis` (`ComisionPactada` por defecto, o `PorcentajePorDefecto`); las versiones existentes quedan con `null` y `ComisionPactada`, el comportamiento anterior. Y pacta `lessorDirectOwes` (`TodoLoAjeno` o `SoloInmobiliaria`: qué le debe a la inmobiliaria el locador que cobra directamente; `null` = el de la inmobiliaria, `operationalDefaults.cash.lessorDirectOwes`), que el reparto del cobro lee de la versión vigente en el período (ADR-0009); las versiones existentes quedaron con `null`.
+- Cuatro convenciones de liquidación, pactables por contrato y con valor por defecto de la inmobiliaria (`Tenant.operationalDefaults`): `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`). Las columnas son obligatorias y su valor por defecto en la base es el comportamiento original (días reales, el ajuste rige desde el período siguiente, vence el día de inicio, descuento fijo proporcional), de modo que las versiones existentes liquidan igual que antes. Un contrato nuevo las toma de los valores por defecto de la inmobiliaria o de lo que se pacte en el alta; un convenio puede cambiarlas con `termsPatch`. Pacta también, para las incidencias, el límite de reparaciones sin consultar al locador: `repairPreauthLimitAmount` y `repairPreauthLimitCurrency` (nulos = el valor por defecto de la inmobiliaria, `operationalDefaults.repairs.preauthLimit`, en pesos; un importe sin moneda se toma en pesos); se fija al crear el contrato, en las reglas del contrato o con un convenio (`termsPatch`). Además pacta el anticipo del centro de carga: `upfrontThresholdFees` (entero, en comisiones mensuales; `null` = el de la inmobiliaria) y `upfrontBasis` (`ComisionPactada` por defecto, o `PorcentajePorDefecto`); las versiones existentes quedan con `null` y `ComisionPactada`, el comportamiento anterior. Y pacta `lessorDirectOwes` (`TodoLoAjeno` o `SoloInmobiliaria`: qué le debe a la inmobiliaria el locador que cobra directamente; `null` = el de la inmobiliaria, `operationalDefaults.cash.lessorDirectOwes`), que el reparto del cobro lee de la versión vigente en el período (ADR-0009); las versiones existentes quedaron con `null`.
 - `@@unique([contractId, validFrom])`. La versión vigente a una fecha es la última con `validFrom` anterior o igual. La migración creó una por contrato con sus columnas de hoy: base `Vigente` (lo que hace el motor actual), rezago 0 (el motor anterior no lo aplicaba; los contratos nuevos toman el de los valores por defecto, 2), vencimiento el día 10 y flujo `Partido`.
 - Las tres tablas llevan `tenantId` y están registradas en `TENANT_SCOPED_MODELS`.
 
@@ -714,8 +716,30 @@ Categoría configurable (plomería, electricidad, otros).
 
 Reclamo abierto por el inquilino o por la inmobiliaria.
 
-- `id`, `tenantId`, `propertyId`, `categoryId`, `createdByUserId`, `createdByPersonId`, `assignedToUserId`, `providerId`, `title`, `description`, `status`, `priority`, `slaDeadline`, `costAmount`, `costCurrency`, `costPayer`, `providerNotes`, `resolvedAt`, `closedAt`.
-- El ticket cuelga de la propiedad, no del contrato. Quien lo abre se registra en una de dos columnas según el ámbito: `createdByUserId` si lo abrió el personal, `createdByPersonId` si entró por el portal del inquilino. `slaDeadline` se deriva de la prioridad.
+- `id`, `tenantId`, `propertyId`, `contractId` (opcional), `categoryId`, `createdByUserId`, `createdByPersonId`, `assignedToUserId`, `providerId`, `title`, `description`, `status`, `priority`, `slaDeadline`, `estimatedAmount`, `costAmount`, `costCurrency`, `costPayer` (`ChargeTarget`: `Inquilino`, `Locador` o `Inmobiliaria`), `providerNotes`, `preauthorizedAmount`, `preauthorizedByPersonId`, `preauthorizedAt`, `preauthorizedChannel`, `imputedAt`, `resolvedAt`, `closedAt`.
+- `status` suma `PendienteAutorizacion`, `Presupuestado` y `PresupuestoAprobado` a los diez estados anteriores (diagrama en el manual de usuario, «Gestionar una reparación»). `ChargeTarget` es el mismo tipo que usa el centro de carga para `PendingCharge.chargedTo`; no se creó un tipo nuevo.
+- `costPayer` era texto libre. La migración `20261102230100_incidencias` lo mapea sin distinguir mayúsculas, tildes ni espacios: `inquilino`, `inquilina`, `locatario`, `locataria`, `tenant` → `Inquilino`; `locador`, `locadora`, `propietario`, `propietaria`, `dueño`, `dueña`, `owner`, `landlord` → `Locador`; `inmobiliaria`, `agencia`, `agency` → `Inmobiliaria`. Cualquier otro texto queda en NULL y se conserva en `providerNotes` («Quién pagaba (texto anterior): …»).
+- `contractId` es el contrato al que se imputa el gasto: el indicado al abrir o, sin él, el único vigente de la propiedad. `imputedAt` marca la imputación y es lo que garantiza que el gasto se cargue una sola vez; el cargo resultante es un `PendingCharge` con `sourceType` `Ticket` y `sourceId` el ticket.
+- El ticket cuelga de la propiedad y, desde la incidencia, de un contrato opcional. Quien lo abre se registra en una de dos columnas según el ámbito: `createdByUserId` si lo abrió el personal, `createdByPersonId` si entró por el portal del inquilino. `slaDeadline` se deriva de la prioridad.
+
+### TicketQuote
+
+Presupuesto de un proveedor para una incidencia; se aprueba uno.
+
+- `id`, `tenantId`, `ticketId`, `providerId`, `amount`, `currency`, `status` (`Pendiente`, `Aprobado`, `Rechazado`), `approvedByPersonId`, `approvedByUserId`, `approvedAt`, `channel` (`ApprovalChannel`: `WhatsApp`, `Telefono`, `Mail`, `Presencial`), `documentUrl`, `notes`, `createdById`.
+- `approvedByPersonId` es quien aprobó (el locador o su representante) y `approvedByUserId` el usuario de la inmobiliaria que lo registró. El proveedor y el aprobador entran en la unión de personas.
+- Al aprobar uno, el proveedor y el importe pasan al ticket (`providerId`, `costAmount`, `costCurrency`) y los demás presupuestos pendientes quedan `Rechazado`.
+
+```mermaid
+erDiagram
+    Ticket ||--o{ TicketQuote : "presupuestos"
+    Person ||--o{ TicketQuote : "proveedor que presupuesta"
+    Person |o--o{ TicketQuote : "aprueba"
+    Person |o--o{ Ticket : "preautoriza"
+    Contract |o--o{ Ticket : "se imputa a"
+    Ticket ||--o{ CashMovement : "pagos al proveedor (origen Ticket)"
+    Ticket ||--o{ PendingCharge : "gasto imputado (origen Ticket)"
+```
 
 ### TicketComment / TicketAttachment
 
@@ -810,6 +834,6 @@ El resultado de cada fila de un lote.
 - `Contract` 1-1 `ContractCommission`, y esa comisión es la que determina lo que se le descuenta al locador en `OwnerLedgerEntry` (antes, el `netDeposit` de `OwnerRendicion`, que queda como histórico).
 - `Person` 1-N `OwnerLedgerEntry` y 1-N `OwnerStatement`; un estado emitido bloquea sus asientos (`statementId`).
 - `Lead` N-1 `Pipeline` y N-1 `PipelineStage` a través de `currentStageId`.
-- `Ticket` N-1 `Property`, N-1 `TicketCategory` y N-1 `Person` en el rol de proveedor (opcional). `TicketAttachment` cuelga de `TicketComment`.
+- `Ticket` N-1 `Property`, N-1 `TicketCategory`, N-1 `Contract` (opcional) y N-1 `Person` en el rol de proveedor y en el de quien preautoriza (opcionales); 1-N `TicketQuote`. Los pagos al proveedor (`CashMovement`) y el gasto imputado (`PendingCharge`) apuntan al ticket por origen, sin clave foránea. `TicketAttachment` cuelga de `TicketComment`.
 - `InquilinoCredential` 1-1 `Person`, con el rol de inquilino asignado por `PersonRoleAssignment`.
 - `RefreshToken` y `PipelineStage` son las dos únicas tablas sin `tenantId`: se aíslan por su padre, `User` y `Pipeline` respectivamente.

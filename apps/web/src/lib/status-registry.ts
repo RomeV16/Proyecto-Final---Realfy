@@ -140,6 +140,9 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
     [TicketStatus.Cerrado]: 'neutral',
     [TicketStatus.Cancelado]: 'danger',
     [TicketStatus.Reabierto]: 'warning',
+    [TicketStatus.PendienteAutorizacion]: 'warning',
+    [TicketStatus.Presupuestado]: 'info',
+    [TicketStatus.PresupuestoAprobado]: 'brand',
   }),
   lead: entries('leads.statuses', {
     [LeadStatus.Nuevo]: 'info',

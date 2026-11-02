@@ -13,6 +13,8 @@ import { Reveal } from '@/components/ui/reveal';
 import { Spinner } from '@/components/ui/spinner';
 import { formatDateTime } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
+import { RepairSection } from '@/components/tickets/repair-section';
+import type { RepairTicket } from '@/lib/ticket-repairs';
 
 /* ──────────── Types ──────────── */
 
@@ -59,6 +61,8 @@ interface TicketDetail {
   comments: TicketComment[];
   validTransitions: string[];
 }
+
+type TicketWithRepair = TicketDetail & RepairTicket;
 
 interface ProviderOption {
   id: string;
@@ -134,7 +138,7 @@ export default function TicketDetailPage() {
 
   const canManage = useCan('tickets.manage');
 
-  const [ticket, setTicket] = useState<TicketDetail | null>(null);
+  const [ticket, setTicket] = useState<TicketWithRepair | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -161,7 +165,7 @@ export default function TicketDetailPage() {
 
   const loadTicket = useCallback(async () => {
     try {
-      const data = await apiClient<TicketDetail>(`/tickets/${ticketId}`);
+      const data = await apiClient<TicketWithRepair>(`/tickets/${ticketId}`);
       setTicket(data);
     } catch (err) {
       if (err instanceof ApiRequestError && err.statusCode === 404) setNotFound(true);
@@ -308,7 +312,7 @@ export default function TicketDetailPage() {
     : '—';
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-5xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Link
@@ -362,6 +366,9 @@ export default function TicketDetailPage() {
           </div>
         </div>
       </Reveal>
+
+      {/* Reparación: autorización, presupuestos, pago al proveedor e imputación */}
+      <RepairSection ticket={ticket} onChanged={() => void loadTicket()} />
 
       {/* Responsable */}
       {canManage && (

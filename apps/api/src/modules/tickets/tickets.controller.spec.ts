@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
+import { TicketQuotesService } from './ticket-quotes.service';
+import { TicketRepairsService } from './ticket-repairs.service';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -26,7 +28,22 @@ function buildMocks() {
     addComment: jest.fn().mockResolvedValue({ id: 'comment-001', text: 'Fixed', attachments: [] }),
     listComments: jest.fn().mockResolvedValue([{ id: 'comment-001', text: 'Fixed' }]),
   };
-  return { ticketsService };
+  const quotes = {
+    estimate: jest.fn().mockResolvedValue({ requiresAuthorization: true }),
+    preauthorize: jest.fn().mockResolvedValue({ status: 'Presupuestado' }),
+    listQuotes: jest.fn().mockResolvedValue([{ id: 'q1' }]),
+    createQuote: jest.fn().mockResolvedValue({ id: 'q1' }),
+    updateQuote: jest.fn().mockResolvedValue({ id: 'q1' }),
+    removeQuote: jest.fn().mockResolvedValue({ deleted: true }),
+    rejectQuote: jest.fn().mockResolvedValue({ id: 'q1', status: 'Rechazado' }),
+    approveQuote: jest.fn().mockResolvedValue({ quote: { id: 'q1' } }),
+  };
+  const repairs = {
+    listPayments: jest.fn().mockResolvedValue({ items: [], total: '0.00' }),
+    registerPayment: jest.fn().mockResolvedValue({ movement: { id: 'm1' } }),
+    impute: jest.fn().mockResolvedValue({ charge: { id: 'c1' } }),
+  };
+  return { ticketsService, quotes, repairs };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -40,7 +57,11 @@ describe('TicketsController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TicketsController],
-      providers: [{ provide: TicketsService, useValue: mocks.ticketsService }],
+      providers: [
+        { provide: TicketsService, useValue: mocks.ticketsService },
+        { provide: TicketQuotesService, useValue: mocks.quotes },
+        { provide: TicketRepairsService, useValue: mocks.repairs },
+      ],
     })
       .overrideGuard(require('../../common/auth/jwt-auth.guard').JwtAuthGuard)
       .useValue({ canActivate: () => true })
@@ -158,6 +179,42 @@ describe('TicketsController', () => {
       const result = await controller.listComments(TICKET_ID);
       expect(Array.isArray(result)).toBe(true);
       expect(result[0]).toMatchObject({ id: 'comment-001' });
+    });
+  });
+  // ─── Incidencias y reparaciones ───────────────────────────────────────────
+
+  describe('incidencias y reparaciones', () => {
+    const QUOTE_ID = 'q0000000-0000-0000-0000-000000000001';
+
+    it('delega el estimado y la preautorización', async () => {
+      await expect(controller.estimate(TICKET_ID, { amount: '10' })).resolves.toEqual({ requiresAuthorization: true });
+      expect(mocks.quotes.estimate).toHaveBeenCalledWith(TICKET_ID, { amount: '10' });
+      await controller.preauthorize(TICKET_ID, { amount: '10' });
+      expect(mocks.quotes.preauthorize).toHaveBeenCalledWith(TICKET_ID, { amount: '10' });
+    });
+
+    it('delega el alta, la corrección, la baja, el descarte y la aprobación de presupuestos', async () => {
+      await controller.listQuotes(TICKET_ID);
+      await controller.createQuote(TICKET_ID, { amount: '5' });
+      await controller.updateQuote(TICKET_ID, QUOTE_ID, { amount: '6' });
+      await controller.removeQuote(TICKET_ID, QUOTE_ID);
+      await controller.rejectQuote(TICKET_ID, QUOTE_ID);
+      await controller.approveQuote(TICKET_ID, QUOTE_ID, { channel: 'WhatsApp' });
+      expect(mocks.quotes.listQuotes).toHaveBeenCalledWith(TICKET_ID);
+      expect(mocks.quotes.createQuote).toHaveBeenCalledWith(TICKET_ID, { amount: '5' });
+      expect(mocks.quotes.updateQuote).toHaveBeenCalledWith(TICKET_ID, QUOTE_ID, { amount: '6' });
+      expect(mocks.quotes.removeQuote).toHaveBeenCalledWith(TICKET_ID, QUOTE_ID);
+      expect(mocks.quotes.rejectQuote).toHaveBeenCalledWith(TICKET_ID, QUOTE_ID);
+      expect(mocks.quotes.approveQuote).toHaveBeenCalledWith(TICKET_ID, QUOTE_ID, { channel: 'WhatsApp' });
+    });
+
+    it('delega los pagos al proveedor y la imputación', async () => {
+      await controller.listPayments(TICKET_ID);
+      await controller.registerPayment(TICKET_ID, { amount: '5' });
+      await controller.impute(TICKET_ID, { chargedTo: 'Locador' });
+      expect(mocks.repairs.listPayments).toHaveBeenCalledWith(TICKET_ID);
+      expect(mocks.repairs.registerPayment).toHaveBeenCalledWith(TICKET_ID, { amount: '5' });
+      expect(mocks.repairs.impute).toHaveBeenCalledWith(TICKET_ID, { chargedTo: 'Locador' });
     });
   });
 });

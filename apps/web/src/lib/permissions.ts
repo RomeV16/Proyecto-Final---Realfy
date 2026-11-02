@@ -68,6 +68,8 @@ export const ACTION_ROLES = {
 
   // Soporte y configuración
   'tickets.manage': [Admin, Gerente, Soporte],
+  /** Pagar al proveedor de una incidencia desde la caja e imputar el gasto a quien lo paga. */
+  'tickets.pay': [Admin, Gerente, Liquidaciones],
   'settings.manage': [Admin, Gerente],
   /** Ver el equipo (solo lectura) y gestionarlo: invitar, cambiar roles, dar de baja. */
   'users.view': [Admin, Gerente],

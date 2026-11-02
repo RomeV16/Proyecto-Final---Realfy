@@ -35,6 +35,8 @@ interface TermsVersion {
   upfrontThresholdFees?: number | null;
   /** Lo que debe el locador que cobra directamente; null = el de la inmobiliaria. */
   lessorDirectOwes?: string | null;
+  repairPreauthLimitAmount?: string | null;
+  repairPreauthLimitCurrency?: string | null;
 }
 
 interface TermsResponse {
@@ -133,6 +135,11 @@ export function ContractRules({ contractId, currency }: { contractId: string; cu
               })}
               {current.upfrontThresholdFees != null && (
                 <Fact label={tConv('upfrontThreshold.label')}>{t('feesCount', { count: current.upfrontThresholdFees })}</Fact>
+              )}
+              {current.repairPreauthLimitAmount != null && (
+                <Fact label={tConv('repairPreauthLimit.label')}>
+                  {formatMoneyFixed(current.repairPreauthLimitAmount, current.repairPreauthLimitCurrency ?? 'ARS')}
+                </Fact>
               )}
               {current.rentOverride != null && (
                 <Fact label={t('rentOverride')}>{formatMoneyFixed(current.rentOverride, currency)}</Fact>

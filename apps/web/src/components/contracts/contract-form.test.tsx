@@ -346,6 +346,33 @@ describe('ContractForm — convenciones de liquidación', () => {
     });
   });
 
+  it('el límite de reparaciones se pacta con importe y moneda; vacío o inválido no viaja', async () => {
+    tenantDefaults = () => ({ prorationMode: 'Mes30', repairs: { preauthLimit: 150000 } });
+    const user = await toPriceStep();
+    const limit = await screen.findByLabelText('Límite de reparaciones propio');
+    await waitFor(() => expect(limit).toHaveAttribute('placeholder', 'Por defecto: 150000'));
+    await user.selectOptions(screen.getByLabelText('Moneda del límite'), 'USD');
+    await user.type(limit, '500,5');
+    await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
+    await waitFor(() => expect(router.push).toHaveBeenCalled());
+    expect(lastPost().body.liquidationRules).toMatchObject({
+      repairPreauthLimitAmount: '500.5',
+      repairPreauthLimitCurrency: 'USD',
+    });
+  });
+
+  it('un límite de reparaciones inválido no se manda', async () => {
+    const user = await toPriceStep();
+    await user.type(await screen.findByLabelText('Límite de reparaciones propio'), 'mucho');
+    await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
+    await waitFor(() => expect(router.push).toHaveBeenCalled());
+    expect(lastPost().body.liquidationRules).not.toHaveProperty('repairPreauthLimitAmount');
+  });
+
   it('si no se pueden leer los valores por defecto, no envía convenciones y rige el de la inmobiliaria', async () => {
     tenantDefaults = () => Promise.reject(new Error('sin permiso'));
     const user = await toPriceStep();

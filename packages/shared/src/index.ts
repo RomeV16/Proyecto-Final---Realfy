@@ -76,6 +76,8 @@ export {
   RendicionLineItemType,
   ValuationMethod,
   TicketStatus,
+  TicketQuoteStatus,
+  ApprovalChannel,
   TicketPriority,
 } from './enums';
 
@@ -799,6 +801,14 @@ export {
   UpdateTicketCategorySchema,
   CreateTicketCommentSchema,
   UpdateTicketCostSchema,
+  EstimateTicketSchema,
+  PreauthorizeTicketSchema,
+  CreateTicketQuoteSchema,
+  UpdateTicketQuoteSchema,
+  ApproveTicketQuoteSchema,
+  RegisterProviderPaymentSchema,
+  RepairFeeSchema,
+  ImputeTicketSchema,
   CreatePortalTicketSchema,
   CreatePortalTicketCommentSchema,
 } from './schemas/ticket.schema';
@@ -821,6 +831,7 @@ import {
   UpdateTicketCategorySchema as _UpdateTicketCategorySchema,
   CreateTicketCommentSchema as _CreateTicketCommentSchema,
   UpdateTicketCostSchema as _UpdateTicketCostSchema,
+  ImputeTicketSchema as _ImputeTicketSchema,
 } from './schemas/ticket.schema';
 import {
   CreateProviderProfileSchema as _CreateProviderProfileSchema,
@@ -837,10 +848,31 @@ export type CreateTicketCategoryInput = z.infer<typeof _CreateTicketCategorySche
 export type UpdateTicketCategoryInput = z.infer<typeof _UpdateTicketCategorySchema>;
 export type CreateTicketCommentInput = z.infer<typeof _CreateTicketCommentSchema>;
 export type UpdateTicketCostInput = z.infer<typeof _UpdateTicketCostSchema>;
+export type ImputeTicketInput = z.infer<typeof _ImputeTicketSchema>;
 export type CreateProviderProfileInput = z.infer<typeof _CreateProviderProfileSchema>;
 export type UpdateProviderProfileInput = z.infer<typeof _UpdateProviderProfileSchema>;
 export type ProviderFilterInput = z.infer<typeof _ProviderFilterSchema>;
 export type AssignProviderInput = z.infer<typeof _AssignProviderSchema>;
+
+// ── Incidencias y reparaciones ──────────────────────────
+export {
+  TICKET_STEPS,
+  ticketStep,
+  ticketStepIndex,
+  PROVIDER_PAYMENT_STATUSES,
+  IMPUTATION_STATUSES,
+  QUOTING_STATUSES,
+  requiresPreauthorization,
+  ticketRepairFee,
+  totalPaid,
+  feeApplies,
+} from './ticket-repairs';
+export type {
+  TicketStep,
+  PreauthorizationCheck,
+  RepairFeeMode,
+  RepairFeeInput,
+} from './ticket-repairs';
 
 // ── State machine ───────────────────────────────────────
 export {

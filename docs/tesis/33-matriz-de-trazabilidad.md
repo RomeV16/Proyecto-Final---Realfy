@@ -22,7 +22,7 @@ La matriz une cada hallazgo del registro (`31-registro-de-feedback.md`) con el c
 | FB-06 | CU-10 (modificado); CU-31 (nuevo) | 36 (#94) | ADR-0012 | `/liquidaciones/:id/payments`, `/financial-accounts`, `/cash-movements`, `/cash-movements/conversion`, `/compensations`, `/receipts`, `/charges/:id/agency-expense` | CP-398 a CP-413 |
 | FB-07 | CU-09, CU-11, CU-12 (modificados) | 35 (#93) | ADR-0008 | Se completa en el PR | CP-130 a CP-139 |
 | FB-08 | CU-09 (modificado); CU-33 (nuevo) | 35 (#93) | ADR-0008 | Boletas, reglas de traslado por contrato y renglones de liquidación (2.4) | CP-130 a CP-139, CP-341 a CP-359 |
-| FB-09 | CU-16, CU-17, CU-18 (modificados); CU-30 (nuevo) | 35 (#93), 42 (#100) | — | Centro de carga (ítem 35) hecho; el resto, con el ítem 42 | CP-130 a CP-139, CP-200 a CP-209, CP-380 a CP-397 |
+| FB-09 | CU-16, CU-17, CU-18 (modificados); CU-30, CU-40 (nuevos) | 35 (#93), 42 (#100) | — | Centro de carga (ítem 35) y, con el ítem 42, `/tickets/:id/estimate`, `/preauthorize`, `/quotes`, `/provider-payments` e `/impute` | CP-130 a CP-139, CP-200 a CP-209, CP-380 a CP-397, CP-500 a CP-524 |
 | FB-10 | CU-13 (retirado: rendición histórica); CU-35 (nuevo) | 37 (#95) | ADR-0009 | `/owners/balances`, `/owners/:personId/ledger`, `/owners/:personId/opening-balance`, `/owners/:personId/payouts`, `/owner-statements/generate`, `/owner-statements`, `/owner-statements/:id`, `/owner-statements/:id/pdf`, `/owner-statements/:id/issue`, `/owner-statements/:id/annul`; `/renditions` solo lectura | CP-450 a CP-480 |
 | FB-11 | CU-14 (modificado) | 38 (#96) | — | Se completa en el PR | CP-160 a CP-169 |
 | FB-12 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 41 (#99) | — | Se completa en el PR | CP-190 a CP-199 |

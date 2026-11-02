@@ -72,6 +72,7 @@ const TENANT_SCOPED_MODELS = new Set([
   'Ticket',
   'TicketCategory',
   'TicketComment',
+  'TicketQuote',
   'TicketAttachment',
   'ProviderProfile',
   'InquilinoCredential',

@@ -48,6 +48,8 @@ La tabla resume quién puede operar en lo que agregó el piloto, tal como lo imp
 | Importar lotes del sistema anterior | Sí | No | No | No | No |
 | Consultar el panel de calidad de datos | Sí | Sí | No | No | No |
 | Unir personas repetidas | Sí | Previsualiza | No | No | No |
+| Estimar, preautorizar, presupuestar y aprobar presupuestos de una incidencia | Sí | Sí | No | Lectura | Soporte sí; Marketing y Lectura, no |
+| Pagar al proveedor de una incidencia e imputar el gasto | Sí | Sí | No | Sí | No |
 
 En el piloto, la función de dirección usa el rol Admin. Las otras dos funciones de la inmobiliaria (atención y publicación, muestras e inventarios) todavía no tienen usuario propio: cuando lo tengan, la decisión de la dirección es que por ahora vean todo, así que la política de lectura queda en su valor por defecto. El mecanismo para cerrar lecturas existe y se prueba (CP-257 a CP-265), de modo que restringir a una función es una configuración y no un desarrollo.
 
@@ -179,8 +181,9 @@ A continuación se listan los casos de uso considerados centrales para la operac
 ### Tickets y mantenimiento
 
 - **CU-16 Abrir reclamo** — Inquilino o Soporte. Registra un reclamo con categoría, descripción y adjuntos.
-- **CU-17 Asignar proveedor** — Soporte. Vincula al ticket un proveedor de los habilitados por rubro y zona, y lo lleva al estado correspondiente.
-- **CU-18 Cerrar ticket** — Soporte. Recorre la máquina de estados hasta Resuelto o Cerrado, con el costo del trabajo cargado.
+- **CU-17 Asignar proveedor** — Soporte. Vincula al ticket un proveedor de los habilitados por rubro y zona, y lo lleva al estado correspondiente. *Modificado por el piloto:* con un presupuesto aprobado el proveedor ya está elegido y solo se confirma la asignación (CU-40). *Origen:* FB-09.
+- **CU-18 Cerrar ticket** — Soporte. Recorre la máquina de estados hasta Resuelto o Cerrado, con el costo del trabajo cargado. *Modificado por el piloto:* el pagador del costo es uno de tres (inquilino, locador o inmobiliaria) y el gasto se imputa con CU-40. *Origen:* FB-09.
+- **CU-40 Gestionar una reparación: autorización, presupuesto, pago e imputación** — Soporte (autorización y presupuestos), Liquidaciones (pago e imputación); Admin y Gerente hacen todo, Lectura consulta. Anota el costo estimado de la incidencia; si supera el límite que la inmobiliaria resuelve sin consultar (valor por defecto, 0: siempre se consulta), el caso espera la autorización del locador y se registra hasta qué importe, quién la dio, cuándo y por qué canal (WhatsApp, teléfono, mail o presencial). Carga los presupuestos de los proveedores y el locador (o quien lo representa) aprueba uno: se anota quién, cuándo y por qué canal, el proveedor y el importe aprobados pasan al ticket y los demás presupuestos se descartan. Con el trabajo en marcha la inmobiliaria paga al proveedor desde una de sus cuentas (un movimiento del libro de caja, en una o varias partes sin pasarse de lo aprobado) y, terminado el trabajo, imputa lo pagado a quien lo soporta, **una sola vez**: el inquilino en su próxima liquidación, el locador en su próximo estado o la inmobiliaria como gasto propio. Puede sumar un honorario por gestión de la reparación (un porcentaje de lo pagado o un importe fijo), cargado como otro gasto puntual de la inmobiliaria y nunca como comisión. *Flujo alternativo:* un caso por debajo del límite se presupuesta o se trabaja sin consultar; no se paga ni se imputa antes de tiempo; la inmobiliaria no se cobra honorario a sí misma; una segunda imputación se rechaza; el límite sin consultar se puede pactar por contrato (con importe y moneda) y el honorario por gestión por contrato; un caso con pagos al proveedor no se cancela. *Origen:* FB-09.
 
 ### CRM
 
