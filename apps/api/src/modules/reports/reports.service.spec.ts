@@ -10,6 +10,7 @@ function createMockPrismaService() {
   return {
     client: {
       ownerRendicion: { findMany: jest.fn() },
+      ownerLedgerEntry: { findMany: jest.fn().mockResolvedValue([]) },
       payment: { findMany: jest.fn() },
       liquidacion: { findMany: jest.fn() },
       pipeline: { findMany: jest.fn() },
@@ -145,6 +146,48 @@ describe('ReportsService', () => {
       expect(args.where.period.lte).toEqual(new Date('2026-03-31'));
     });
 
+    it('lee la cuenta corriente por mes y unidad y agrega las rendiciones viejas como histórico', async () => {
+      const e = (period: string, propertyId: string, title: string, type: string, amount: string) => ({
+        period: new Date(`${period}T00:00:00Z`),
+        propertyId,
+        property: { title },
+        type,
+        amount,
+      });
+      (prisma.client.ownerLedgerEntry.findMany as jest.Mock).mockResolvedValue([
+        e('2026-10-01', 'p1', 'Belgrano 100', 'Alquiler', '100000.00'),
+        e('2026-10-01', 'p1', 'Belgrano 100', 'Punitorio', '3000.00'),
+        e('2026-10-01', 'p1', 'Belgrano 100', 'Comision', '-7210.00'),
+        e('2026-10-01', 'p1', 'Belgrano 100', 'Honorario', '-1000.00'),
+        e('2026-10-01', 'p1', 'Belgrano 100', 'Cargo', '-12000.00'),
+        e('2026-10-01', 'p2', 'Arenales 1', 'Alquiler', '50000.00'),
+        e('2026-10-01', 'p2', 'Arenales 1', 'PagoEnte', '-4000.00'),
+      ]);
+      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([
+        rendicion({
+          period: new Date('2026-01-01T00:00:00Z'),
+          rentCollected: '100000.00',
+          commissionAmount: '8000.00',
+          netDeposit: '92000.00',
+          propertyTitle: 'Belgrano 100',
+        }),
+      ]);
+
+      const report = await service.getOwnerStatement({ ownerId: OWNER_ID, from: '2026-01-01', to: '2026-12-31' });
+
+      // Arenales: 50000 − 4000 = 46000 · Belgrano: 103000 − 7210 − 1000 − 12000 = 82790
+      expect(report.rows).toEqual([
+        { periodo: '10/2026', propiedad: 'Arenales 1', cobrado: '50000.00', comision: '0.00', honorarios: '0.00', deducciones: '4000.00', depositoNeto: '46000.00' },
+        { periodo: '10/2026', propiedad: 'Belgrano 100', cobrado: '103000.00', comision: '7210.00', honorarios: '1000.00', deducciones: '12000.00', depositoNeto: '82790.00' },
+        expect.objectContaining({ propiedad: 'Belgrano 100 (rendición histórica)', depositoNeto: '92000.00' }),
+      ]);
+      expect(report.summary).toMatchObject({ cobrado: '253000.00', depositoNeto: '220790.00' });
+      const where = (prisma.client.ownerLedgerEntry.findMany as jest.Mock).mock.calls[0][0].where;
+      expect(where.personId).toBe(OWNER_ID);
+      expect(where.type.notIn).toEqual(expect.arrayContaining(['SaldoInicial', 'Transferencia', 'EntregaEfectivo', 'CobroDirecto']));
+      expect(where.period).toEqual({ gte: new Date('2026-01-01'), lte: new Date('2026-12-31') });
+    });
+
     it('rechaza filtros invalidos', async () => {
       await expect(service.getOwnerStatement({ ownerId: 'no-es-uuid' })).rejects.toThrow(
         BadRequestException,
@@ -257,6 +300,23 @@ describe('ReportsService', () => {
       });
     });
 
+    it('los pagos al locador de la cuenta corriente son egresos, junto con las rendiciones históricas', async () => {
+      (prisma.client.payment.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.client.ownerLedgerEntry.findMany as jest.Mock).mockResolvedValue([
+        { amount: '-60000.00', date: new Date('2026-01-15T00:00:00Z') },
+        { amount: '-5000.50', date: new Date('2026-01-20T00:00:00Z') },
+      ]);
+      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([
+        { netDeposit: '1000.00', depositedAt: new Date('2026-01-05T00:00:00Z'), period: new Date('2026-01-01T00:00:00Z') },
+      ]);
+
+      const report = await service.getCashFlow({ from: '2026-01-01', to: '2026-01-31' });
+
+      expect(report.rows[0]).toMatchObject({ egresos: '66000.50', saldoNeto: '-66000.50' });
+      const where = (prisma.client.ownerLedgerEntry.findMany as jest.Mock).mock.calls[0][0].where;
+      expect(where.type).toEqual({ in: ['Transferencia', 'EntregaEfectivo'] });
+    });
+
     it('toma como egresos solo las rendiciones depositadas', async () => {
       (prisma.client.payment.findMany as jest.Mock).mockResolvedValue([]);
       (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([]);
@@ -306,6 +366,38 @@ describe('ReportsService', () => {
         honorarios: '3000.00',
         total: '18500.50',
       });
+    });
+
+    it('agrupa comisión y gastos de la cuenta corriente por mes, contrato y locador', async () => {
+      const e = (type: string, amount: string, personId = 'ana') => ({
+        period: new Date('2026-10-01T00:00:00Z'),
+        contractId: CONTRACT_ID,
+        personId,
+        type,
+        amount,
+        person: personId === 'ana' ? { firstName: 'Ana', lastName: 'Diaz' } : { firstName: 'Luis', lastName: 'Paz' },
+        property: null,
+        contract: { property: { title: 'Belgrano 100' }, commission: { type: 'FixedPercent' } },
+      });
+      (prisma.client.ownerLedgerEntry.findMany as jest.Mock).mockResolvedValue([
+        e('Comision', '-3605.00'),
+        e('Comision', '-1000.00'),
+        e('Honorario', '-500.00'),
+        e('Comision', '-2163.00', 'luis'),
+      ]);
+      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([
+        rendicion({ period: new Date('2026-01-01T00:00:00Z'), commissionAmount: '100.00', propertyTitle: 'Belgrano 100' }),
+      ]);
+
+      const report = await service.getCommissionSummary({ contractId: CONTRACT_ID, from: '2026-01-01' });
+
+      expect(report.rows).toEqual([
+        { propiedad: 'Belgrano 100', propietario: 'Ana Diaz', periodo: '10/2026', tipoComision: 'FixedPercent', comision: '4605.00', honorarios: '500.00', total: '5105.00' },
+        { propiedad: 'Belgrano 100', propietario: 'Luis Paz', periodo: '10/2026', tipoComision: 'FixedPercent', comision: '2163.00', honorarios: '0.00', total: '2163.00' },
+        expect.objectContaining({ propiedad: 'Belgrano 100 (rendición histórica)', comision: '100.00' }),
+      ]);
+      const where = (prisma.client.ownerLedgerEntry.findMany as jest.Mock).mock.calls[0][0].where;
+      expect(where).toMatchObject({ contractId: CONTRACT_ID, period: { gte: new Date('2026-01-01') } });
     });
 
     it('muestra un guion cuando la rendicion no tiene propietario cargado', async () => {

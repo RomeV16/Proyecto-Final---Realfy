@@ -13,6 +13,8 @@ import {
   PipelineAnalyticsFilterSchema,
   MorosidadFilterSchema,
   RendicionStatus,
+  OwnerLedgerEntryType,
+  PAYOUT_ENTRY_TYPES,
   OVERDUE_STATUSES,
   LiquidacionStatus,
   LeadStatus,
@@ -86,6 +88,29 @@ export interface MorosidadRow {
   moneda: string;
 }
 
+/** Sufijo de los renglones que salen de las rendiciones viejas (histórico de solo lectura, ADR-0009). */
+const HISTORICAL = ' (rendición histórica)';
+
+/** Pagos que salieron hacia el locador desde la inmobiliaria (egresos de caja). */
+const PAYOUT_OUTFLOW_TYPES: any[] = [OwnerLedgerEntryType.Transferencia, OwnerLedgerEntryType.EntregaEfectivo];
+
+/** Campos de la unidad con que se arma su nombre. */
+const PROPERTY_LABEL_SELECT = { id: true, title: true, street: true, number: true, floor: true, apartment: true } as const;
+
+/** "MM/AAAA" de un mes guardado a medianoche UTC. */
+function periodLabel(period: Date | string): string {
+  return new Date(period).toLocaleDateString('es-AR', { month: '2-digit', year: 'numeric', timeZone: 'UTC' });
+}
+
+/** Filtro de Prisma de un rango de meses (`period`) desde los filtros del reporte. */
+function periodRange(filters: { from?: string; to?: string }): Record<string, Date> | undefined {
+  if (!filters.from && !filters.to) return undefined;
+  return {
+    ...(filters.from ? { gte: new Date(filters.from) } : {}),
+    ...(filters.to ? { lte: new Date(filters.to) } : {}),
+  };
+}
+
 export interface ReportResult<T> {
   type: string;
   title: string;
@@ -119,6 +144,49 @@ export class ReportsService {
       if (filters.to) where.period.lte = new Date(filters.to);
     }
 
+    // Cuenta corriente del locador (ADR-0009): un renglón por mes del estado y unidad.
+    const range = periodRange(filters);
+    const entries: any[] = await this.prisma.client.ownerLedgerEntry.findMany({
+      where: {
+        personId: filters.ownerId,
+        type: { notIn: [OwnerLedgerEntryType.SaldoInicial, ...PAYOUT_ENTRY_TYPES] },
+        ...(range ? { period: range } : {}),
+      },
+      include: { property: { select: PROPERTY_LABEL_SELECT } },
+      orderBy: [{ period: 'asc' }, { date: 'asc' }],
+    });
+    const zero = () => new Decimal(0);
+    const groups = new Map<string, { period: Date; propiedad: string; cobrado: Decimal; comision: Decimal; honorarios: Decimal; deducciones: Decimal }>();
+    for (const e of entries) {
+      const key = `${periodKey(new Date(e.period))}|${e.propertyId ?? ''}`;
+      const g = groups.get(key) ?? {
+        period: new Date(e.period),
+        propiedad: propertyLabel(e.property) || '—',
+        cobrado: zero(),
+        comision: zero(),
+        honorarios: zero(),
+        deducciones: zero(),
+      };
+      const amount = new Decimal(e.amount.toString());
+      if (e.type === OwnerLedgerEntryType.Comision) g.comision = g.comision.minus(amount);
+      else if (e.type === OwnerLedgerEntryType.Honorario) g.honorarios = g.honorarios.minus(amount);
+      else if (amount.isPositive()) g.cobrado = g.cobrado.plus(amount);
+      else g.deducciones = g.deducciones.minus(amount);
+      groups.set(key, g);
+    }
+    const ledgerRows: OwnerStatementRow[] = [...groups.values()]
+      .sort((a, b) => a.period.getTime() - b.period.getTime() || a.propiedad.localeCompare(b.propiedad, 'es'))
+      .map((g) => ({
+        periodo: periodLabel(g.period),
+        propiedad: g.propiedad,
+        cobrado: g.cobrado.toFixed(2),
+        comision: g.comision.toFixed(2),
+        honorarios: g.honorarios.toFixed(2),
+        deducciones: g.deducciones.toFixed(2),
+        depositoNeto: g.cobrado.minus(g.comision).minus(g.honorarios).minus(g.deducciones).toFixed(2),
+      }));
+
+    // Rendiciones viejas: histórico de solo lectura.
     const rendiciones = await this.prisma.client.ownerRendicion.findMany({
       where,
       include: {
@@ -128,7 +196,7 @@ export class ReportsService {
       orderBy: { period: 'asc' },
     });
 
-    const rows: OwnerStatementRow[] = rendiciones.map((r: any) => {
+    const historicalRows: OwnerStatementRow[] = rendiciones.map((r: any) => {
       const rentCollected = new Decimal(r.rentCollected.toString());
       const commissionAmount = new Decimal(r.commissionAmount.toString());
       const adminFeeAmount = new Decimal(r.adminFeeAmount.toString());
@@ -141,7 +209,7 @@ export class ReportsService {
           year: 'numeric',
           timeZone: 'UTC',
         }),
-        propiedad: propertyLabel(r.contract?.property) || '—',
+        propiedad: `${propertyLabel(r.contract?.property) || '—'}${HISTORICAL}`,
         cobrado: rentCollected.toFixed(2),
         comision: commissionAmount.toFixed(2),
         honorarios: adminFeeAmount.toFixed(2),
@@ -149,6 +217,7 @@ export class ReportsService {
         depositoNeto: netDeposit.toFixed(2),
       };
     });
+    const rows = [...ledgerRows, ...historicalRows];
 
     // Summary row
     const summary = rows.reduce(
@@ -327,7 +396,13 @@ export class ReportsService {
       },
     });
 
-    // Outflow: OwnerRendicion with status=Depositada
+    // Egresos: pagos al locador de la cuenta corriente (transferencias y entregas de efectivo).
+    const payouts: any[] = await this.prisma.client.ownerLedgerEntry.findMany({
+      where: { type: { in: PAYOUT_OUTFLOW_TYPES }, date: { gte: fromDate, lte: toDate } },
+      select: { amount: true, date: true },
+    });
+
+    // Y las rendiciones viejas depositadas (histórico).
     const rendiciones = await this.prisma.client.ownerRendicion.findMany({
       where: {
         tenantId,
@@ -366,6 +441,10 @@ export class ReportsService {
     }
 
     // Outflow by month
+    for (const payout of payouts) {
+      const entry = monthMap.get(periodKey(new Date(payout.date)));
+      if (entry) entry.egresos = entry.egresos.minus(payout.amount.toString());
+    }
     for (const rend of rendiciones) {
       const depositedAt = rend.depositedAt ? new Date(rend.depositedAt) : new Date(rend.period);
       const key = periodKey(depositedAt);
@@ -436,6 +515,47 @@ export class ReportsService {
       where.contractId = filters.contractId;
     }
 
+    // Cuenta corriente: comisión y gastos administrativos por mes, contrato y locador.
+    const entries: any[] = await this.prisma.client.ownerLedgerEntry.findMany({
+      where: {
+        type: { in: [OwnerLedgerEntryType.Comision, OwnerLedgerEntryType.Honorario] },
+        ...(where.period ? { period: where.period } : {}),
+        ...(filters.contractId ? { contractId: filters.contractId } : {}),
+      },
+      include: {
+        person: { select: { id: true, firstName: true, lastName: true } },
+        property: { select: PROPERTY_LABEL_SELECT },
+        contract: { include: { property: true, commission: true } },
+      },
+      orderBy: [{ period: 'asc' }, { date: 'asc' }],
+    });
+    const groups = new Map<string, { period: Date; row: Omit<CommissionSummaryRow, 'comision' | 'honorarios' | 'total'>; comision: Decimal; honorarios: Decimal }>();
+    for (const e of entries) {
+      const key = `${periodKey(new Date(e.period))}|${e.contractId ?? ''}|${e.personId}`;
+      const g = groups.get(key) ?? {
+        period: new Date(e.period),
+        row: {
+          propiedad: propertyLabel(e.contract?.property ?? e.property) || '—',
+          propietario: personName(e.person) || '—',
+          periodo: periodLabel(e.period),
+          tipoComision: e.contract?.commission?.type ?? '—',
+        },
+        comision: new Decimal(0),
+        honorarios: new Decimal(0),
+      };
+      const amount = new Decimal(e.amount.toString());
+      if (e.type === OwnerLedgerEntryType.Comision) g.comision = g.comision.minus(amount);
+      else g.honorarios = g.honorarios.minus(amount);
+      groups.set(key, g);
+    }
+    const ledgerRows: CommissionSummaryRow[] = [...groups.values()].map((g) => ({
+      ...g.row,
+      comision: g.comision.toFixed(2),
+      honorarios: g.honorarios.toFixed(2),
+      total: g.comision.plus(g.honorarios).toFixed(2),
+    }));
+
+    // Rendiciones viejas: histórico de solo lectura.
     const rendiciones = await this.prisma.client.ownerRendicion.findMany({
       where,
       include: {
@@ -450,13 +570,13 @@ export class ReportsService {
       orderBy: { period: 'asc' },
     });
 
-    const rows: CommissionSummaryRow[] = rendiciones.map((r: any) => {
+    const historicalRows: CommissionSummaryRow[] = rendiciones.map((r: any) => {
       const commissionAmount = new Decimal(r.commissionAmount.toString());
       const adminFeeAmount = new Decimal(r.adminFeeAmount.toString());
       const total = commissionAmount.plus(adminFeeAmount);
 
       return {
-        propiedad: propertyLabel(r.contract?.property) || '—',
+        propiedad: `${propertyLabel(r.contract?.property) || '—'}${HISTORICAL}`,
         propietario: personName(r.owner) || '—',
         periodo: new Date(r.period).toLocaleDateString('es-AR', {
           month: '2-digit',
@@ -469,6 +589,7 @@ export class ReportsService {
         total: total.toFixed(2),
       };
     });
+    const rows = [...ledgerRows, ...historicalRows];
 
     const summary = rows.reduce(
       (acc, row) => ({
