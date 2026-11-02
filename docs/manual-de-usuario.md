@@ -480,7 +480,39 @@ Cuando una liquidación pasa su vencimiento sin pago, el cálculo de punitorios
 corre por su cuenta según la configuración de la inmobiliaria. **Morosos**
 (`/delinquency`) reúne a los inquilinos con liquidaciones vencidas, con la deuda,
 la multa acumulada y los días de atraso; desde ahí se condona una multa, que es
-una operación de Admin. La pantalla es de Admin y Gerente.
+una operación de Admin y Gerente. La pantalla es de Admin y Gerente.
+
+#### Punitorios
+
+El punitorio corre cada día sobre el **saldo impago** (no sobre el total) desde
+el día siguiente al vencimiento, descontando los días de gracia, y tiene un tope.
+La regla se elige en `/configuracion/valores-por-defecto` → *Punitorios* (la cambia
+el Admin) y rige en todos los contratos que no fijan la suya. Los cálculos son:
+monto fijo por día, porcentaje diario simple, porcentaje diario compuesto y
+*la mayor entre la tasa activa del BNA y un porcentaje diario*: cada día se toma
+la mayor entre 2 veces la tasa activa del Banco Nación (la TNA cargada en
+*Índices*, dividida por 365) y el piso del 0,3 % diario. Sin tasa cargada rige el
+piso, y la pantalla lo avisa. Un contrato puede tener su propia regla: en el
+detalle, *Reglas vigentes* → *Cambiar la regla* la registra desde una fecha como
+un acuerdo, o vuelve a la de la inmobiliaria.
+
+**Cobro en la liquidación siguiente.** Al generar el período siguiente, los
+punitorios devengados que no se cobraron ni se condonaron entran como un renglón
+*Multa* (comisionable, para el locador). Cada punitorio se cobra una sola vez; si
+se borra el borrador o se anula la liquidación, vuelven a quedar pendientes.
+
+**Calcular el monto a pagar hoy.** En el detalle de una liquidación enviada o
+vencida, *Calcular para pagar hoy* da el saldo más los punitorios devengados a la
+fecha elegida, sin guardar nada: es el monto exacto para pasarle al inquilino.
+*Registrar el pago con punitorios* agrega la Multa a la liquidación y registra el
+pago; tiene que cubrir el total. El recibo en PDF ya trae el renglón de punitorios.
+Un pago común que salda una liquidación vencida deja fijado el devengo hasta esa
+fecha, que pasa a la liquidación siguiente.
+
+**Condonar.** En el detalle del contrato, *Punitorios* lista lo devengado; *Condonar*
+(uno) o *Condonar todos* piden un motivo obligatorio y quedan auditados. Un punitorio
+condonado no entra en la próxima liquidación ni se vuelve a devengar. Lo pueden hacer
+Admin y Gerente; uno ya cobrado en una liquidación no se puede condonar.
 
 ### Emitir un comprobante
 

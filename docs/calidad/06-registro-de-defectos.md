@@ -35,6 +35,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-25 | El barrido y la previsualización aplican 0 % donde el cálculo manual se niega | Media | RF-12, RF-13 | CP-272 | [#146](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/146) | Corregido (31 oct) |
 | DEF-26 | La previsualización de un ajuste sin datos de índice muestra 0 % | Media | RF-12 | CP-270 | [#147](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/147) | Corregido (31 oct) |
 | DEF-27 | Con un mes de la ventana sin publicar el ajuste se calcula con los meses que hay y deja el alquiler corto | Media | RF-12 | CP-273 | [#152](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/152) | Corregido (31 oct) |
+| DEF-28 | Cada corrida diaria suma el punitorio acumulado entero y vuelve a devengar lo condonado | Alta | — | CP-360 | — | Corregido (2 nov) |
 
 ---
 
@@ -421,3 +422,17 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** cada mes de las series mensuales se exige por fecha; los faltantes se informan con el índice y los meses, y un mes se cubre con el estimado solo con `allowProvisional`. La caracterización cambia únicamente donde corrige una ventana parcial (el caso de CCP con series de distinto largo pasa a `MISSING_INDEX_DATA`).
 - **Prueba de regresión:** CP-273 en `index-data/contract-adjustment.service.spec.ts` y casos de `contracts/contract-adjustment-paths.spec.ts`.
 - **Evidencia rojo/verde:** regresión `68dc253` en rojo; corrección en `fc3f189`. PR [#153](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/153).
+
+## DEF-28 — Cada corrida diaria suma el acumulado entero y vuelve a devengar lo condonado
+
+- **Requisito afectado:** ninguno funcional; cálculo de mora (lo que debe un inquilino), ítem 35.
+- **Origen:** al mover el cálculo de punitorios a un motor compartido (2.6).
+- **Caso que lo detecta:** CP-360.
+- **Severidad:** alta. Con el modo diario cada día se registraba una fila por el total de días de mora, así que la suma de las filas crecía de forma cuadrática; una fila condonada o ya cobrada no se descontaba y volvía a devengarse al día siguiente.
+- **Pasos para reproducir:** monto fijo de 10 por día, una liquidación vencida; correr el cron dos días seguidos y sumar las filas, o condonar la fila y correr de nuevo.
+- **Resultado esperado:** 100 el primer día y 10 el segundo (110 en total); nada nuevo tras condonar lo ya devengado.
+- **Resultado obtenido:** 100 y 20 (120); el modo compuesto restaba solo las filas activas, de modo que lo condonado reaparecía.
+- **Causa raíz:** `computePenalty` devolvía el devengo total para los modos simples y el scheduler lo registraba como si fuera la diferencia; la suma previa solo miraba filas activas.
+- **Corrección:** el motor calcula lo devengado a la fecha sobre el saldo de cada día y el servicio registra la diferencia con todas las filas (activas, condonadas o cobradas).
+- **Prueba de regresión:** CP-360 en `penalties/penalties.scheduler.spec.ts` (devengo incremental) y `penalty-engine.spec.ts`.
+- **Evidencia rojo/verde:** regresión y corrección en el mismo cambio de la rama de punitorios (la prueba incremental falla contra el cálculo anterior por construcción: 20 en lugar de 10).

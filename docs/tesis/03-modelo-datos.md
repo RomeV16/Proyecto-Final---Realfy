@@ -370,7 +370,7 @@ Pago aplicado a una liquidación.
 Punitorio calculado sobre una liquidación vencida.
 
 - `id`, `tenantId`, `liquidacionId`, `amount`, `appliedOn`, `daysOverdue`, `compoundBase`, `status`, `waivedAt`, `waivedBy`, `waiveReason`, `settledLiquidacionId`.
-- La condonación no borra el registro: lo marca con su fecha, su responsable y su motivo. `settledLiquidacionId` apunta a la liquidación en la que el punitorio terminó cobrándose.
+- La condonación no borra el registro: lo marca con su fecha, su responsable y su motivo. `settledLiquidacionId` apunta a la liquidación en la que el punitorio terminó cobrándose: la siguiente, como renglón `Multa` (`sourceType` `Penalty`, `sourceId` la liquidación de origen), o la propia si se cobró al instante con `settlePenalties`. Cada fila es el devengo de un tramo (lo que faltaba respecto de lo ya registrado, condonado o cobrado). `penaltyConfig` (de la inmobiliaria y de `ContractTermsVersion`) admite el modo `max_bna_or_daily`, con `bnaMultiplier` y `yearDays` opcionales.
 
 ### Service / ServicePayment
 

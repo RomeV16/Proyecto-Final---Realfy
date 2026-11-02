@@ -309,6 +309,7 @@ Códigos de error: `CHARGE_RULE_REQUIRES_AGREEMENT` (409), `CHARGE_RULE_EXISTS` 
 | GET | `/liquidaciones/:id/pdf` | Recibo en PDF: número, monto en letras, "por cuenta y orden de" los locadores vigentes y renglones agrupados por destino. | Autenticado |
 | POST | `/liquidaciones/generate` | Genera las liquidaciones del período con las reglas y el alquiler vigentes en ese mes: respeta el inicio y el fin efectivo del contrato, el día de vencimiento y el prorrateo del primer y último mes, y suma como renglones las partes de boletas de servicios e impuestos sin facturar de cada contrato (a lo sumo hasta ese mes), con su destino y sin comisión. Devuelve `created`, `skipped`, `outOfRange`, `notBilled` (primeros meses que la convención del contrato manda cobrar al firmar o con el mes siguiente), `failed`, `total` y el resultado por contrato (`status` `created`, `skipped`, `out_of_range`, `not_billed` o `failed`, con su `reason`). | Admin, Gerente, Liquidaciones |
 | POST | `/liquidaciones/_run-now` | Corre ahora el proceso diario de generación para todas las inmobiliarias; `today` (`YYYY-MM-DD`) opcional fija el día. Solo con `NODE_ENV=test` o `E2E_TEST_MODE=1`, como `/penalties/_run-now`; fuera de ese modo responde 403. | Admin |
+| GET | `/liquidaciones/:id/payoff` | Monto a pagar en `date` (`YYYY-MM-DD`, por defecto hoy en Buenos Aires): `balance`, `penalty` (`accrued`, `waived`, `alreadyBilled`, `due`, `daysOverdue`, regla aplicada y, con tasa BNA, los días regidos por la tasa o por el piso) y `total`. No guarda nada. | Autenticado |
 | POST | `/liquidaciones/:id/transition` | Cambia el estado. Ante un estado inválido devuelve las transiciones posibles. | Admin, Gerente, Liquidaciones |
 | POST | `/liquidaciones/bulk-approve` | Aprueba en lote. | Admin, Gerente |
 | POST | `/liquidaciones/bulk-send` | Envía en lote. | Admin, Gerente |
@@ -316,7 +317,7 @@ Códigos de error: `CHARGE_RULE_REQUIRES_AGREEMENT` (409), `CHARGE_RULE_EXISTS` 
 | PATCH | `/liquidaciones/:id/line-items/:lineItemId` | Edita una línea. | Admin, Gerente, Liquidaciones |
 | DELETE | `/liquidaciones/:id/line-items/:lineItemId` | Quita una línea. | Admin, Gerente, Liquidaciones |
 | GET | `/liquidaciones/:id/payments` | Pagos imputados. | Autenticado |
-| POST | `/liquidaciones/:id/payments` | Registra un pago e imputa el saldo. Rechaza con `PAYMENT_EXCEEDS_BALANCE` un importe mayor al saldo. | Admin, Gerente, Liquidaciones |
+| POST | `/liquidaciones/:id/payments` | Registra un pago e imputa el saldo. Rechaza con `PAYMENT_EXCEEDS_BALANCE` un importe mayor al saldo. Con `settlePenalties: true` agrega a la liquidación un renglón Multa con los punitorios devengados a `paidAt` (sin lo condonado ni lo ya cobrado), marca esas filas como cobradas y exige que el pago cubra el total (400 `PAYOFF_REQUIRES_FULL_AMOUNT`, con `expectedAmount`); la respuesta suma `penaltySettled`. Un pago tardío que salda la liquidación fija el devengo hasta su fecha. | Admin, Gerente, Liquidaciones |
 | DELETE | `/liquidaciones/:id` | Borra la liquidación. | Admin, Gerente |
 
 ## Pagos
@@ -333,14 +334,15 @@ consulta agregada.
 
 | Método | Ruta | Para qué | Acceso |
 |---|---|---|---|
-| GET | `/penalties` | Punitorios calculados. | Admin, Gerente |
+| GET | `/penalties` | Punitorios calculados; `status` (`active`, `waived`) y `contractId` filtran. | Admin, Gerente |
 | GET | `/penalties/delinquent-tenants` | Inquilinos con liquidaciones vencidas, con deuda y días de atraso. | Admin, Gerente |
 | GET | `/penalties/delinquent-tenants/count` | Cantidad de casos, para el panel. | Admin, Gerente |
-| POST | `/penalties/preview` | Simula el punitorio de una liquidación. | Admin, Gerente |
-| POST | `/penalties/:id/waive` | Condona una multa, con motivo. | Admin |
+| POST | `/penalties/preview` | Simula el punitorio de una liquidación (`debt`, `daysOverdue`, `config`); con `max_bna_or_daily`, `bnaAnnualPct` fija la TNA de la simulación. | Admin, Gerente |
+| POST | `/penalties/:id/waive` | Condona un punitorio; el cuerpo `{ reason }` es obligatorio y la condonación queda auditada. Errores: 404 `PENALTY_NOT_FOUND`, 409 `PENALTY_ALREADY_WAIVED`, 409 `PENALTY_ALREADY_SETTLED`. | Admin, Gerente |
+| POST | `/contracts/:id/penalties/waive-all` | Condona los punitorios activos y sin cobrar del contrato hasta `upTo` (`YYYY-MM-DD`, por defecto hoy); `{ reason }` obligatorio. Responde `{ waived, total, upTo }` y deja una fila de auditoría. | Admin, Gerente |
 | POST | `/penalties/run` | Dispara la corrida de cálculo. | Admin |
 | GET | `/tenants/me/penalty-config` | Parámetros de punitorios de la inmobiliaria. | Admin, Gerente |
-| PUT | `/tenants/me/penalty-config` | Actualiza esos parámetros. | Admin |
+| PUT | `/tenants/me/penalty-config` | Actualiza esos parámetros: `mode` (`daily_fixed`, `daily_percent`, `compound_percent`, `max_bna_or_daily`), `value`, `graceDays`, `maxMultiplier` y, solo con `max_bna_or_daily`, `bnaMultiplier` (2) y `yearDays` (365). Un contrato puede fijar la suya en `termsPatch.penaltyConfig`. | Admin |
 
 Existe además `POST /penalties/_run-now`, que fuerza la corrida diaria sin
 esperar al planificador. No declara roles, pero el propio manejador rechaza la
