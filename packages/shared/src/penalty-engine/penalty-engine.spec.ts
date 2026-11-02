@@ -1,4 +1,4 @@
-import { accruePenalty, daysOverdueBetween, type PenaltyRule } from './index';
+import { accruePenalty, daysOverdueBetween, splitPayments, type PenaltyRule } from './index';
 
 const d = (s: string) => new Date(`${s}T00:00:00.000Z`);
 
@@ -213,5 +213,94 @@ describe('accruePenalty: max_bna_or_daily', () => {
     );
     expect(capped.amount.toFixed(2)).toBe('20.00');
     expect(capped.capHit).toBe(true);
+  });
+});
+
+describe('accruePenalty: opciones pactables', () => {
+  const rates = [{ from: d('2026-01-01'), annualPct: '100' }];
+
+  it('bnaRateKind Efectiva convierte la TEA a diaria compuesta', () => {
+    // TEA 100 %: (1 + 1)^(1/365) - 1 = 0,0019009; x 2 = 0,0038017; x 1000 x 10 = 38,02
+    const r = accrue({ ...maxBna, bnaRateKind: 'Efectiva' }, { bnaRates: rates });
+    expect(r.amount.toFixed(2)).toBe('38.02');
+    expect(r.bnaDays).toBe(10);
+    // Nominal da más con la misma cifra: 54,79
+    expect(accrue({ ...maxBna, bnaRateKind: 'Nominal' }, { bnaRates: rates }).amount.toFixed(2)).toBe('54.79');
+  });
+
+  it('yearDays 360 sube la tasa diaria', () => {
+    // 2 x 1 / 360 x 1000 x 10 = 55,56
+    expect(accrue({ ...maxBna, yearDays: 360 }, { bnaRates: rates }).amount.toFixed(2)).toBe('55.56');
+  });
+
+  it('missingRateBehavior Bloquear no devenga los días sin tasa y los informa', () => {
+    const blocked = accrue({ ...maxBna, missingRateBehavior: 'Bloquear' });
+    expect(blocked.amount.toFixed(2)).toBe('0.00');
+    expect(blocked.blockedDays).toBe(10);
+    expect(blocked.daysWithoutRate).toBe(10);
+    // con tasa publicada desde el 6, solo devengan los últimos 6 días (6 a 11)
+    const partial = accrue(
+      { ...maxBna, missingRateBehavior: 'Bloquear' },
+      { bnaRates: [{ from: d('2026-01-06'), annualPct: '40' }] },
+    );
+    expect(partial.blockedDays).toBe(4);
+    expect(partial.amount.toFixed(2)).toBe('18.00');
+    // AplicarPiso (por defecto) devenga los 10
+    expect(accrue({ ...maxBna, missingRateBehavior: 'AplicarPiso' }).blockedDays).toBe(0);
+  });
+
+  it('roundingMode Diario redondea cada día antes de sumar', () => {
+    const rule = { ...pct, value: '0.00333' };
+    // 1000 x 0,00333 = 3,33 por día; 10 días: 33,30 en ambos casos
+    expect(accrue(rule, { total: '1000.5' }).amount.toFixed(2)).toBe('33.32');
+    // 1000,5 x 0,00333 = 3,331665 por día: diario 3,33 x 10 = 33,30; total 33,32
+    expect(accrue({ ...rule, roundingMode: 'Diario' }, { total: '1000.5' }).amount.toFixed(2)).toBe('33.30');
+  });
+
+  it('capBase TotalOriginal calcula el tope sobre el total y no sobre el saldo de inicio', () => {
+    const payments = [{ date: d('2026-01-01'), amount: '800' }];
+    // saldo de inicio 200: tope (1,5 - 1) x 200 = 100 contra 10 x 20 = 200 devengados
+    const byBalance = accrue({ ...fixed, value: '20', maxMultiplier: '1.5' }, { payments });
+    expect(byBalance.amount.toFixed(2)).toBe('100.00');
+    expect(byBalance.capHit).toBe(true);
+    // sobre el total original de 1000: tope 500, rige lo devengado
+    const byTotal = accrue({ ...fixed, value: '20', maxMultiplier: '1.5', capBase: 'TotalOriginal' }, { payments });
+    expect(byTotal.amount.toFixed(2)).toBe('200.00');
+    expect(byTotal.capHit).toBe(false);
+  });
+});
+
+describe('splitPayments: imputación de pagos parciales', () => {
+  const pays = [
+    { date: d('2026-01-05'), amount: '300' },
+    { date: d('2026-01-08'), amount: '900' },
+  ];
+
+  it('sin punitorio cobrado en la liquidación todo es alquiler', () => {
+    const r = splitPayments({ total: '1000', billedPenalty: '0', payments: pays });
+    expect(r.rentTotal.toFixed(2)).toBe('1000.00');
+    expect(r.rentPayments.map((p) => String(p.amount))).toEqual(['300', '900']);
+  });
+
+  it('RentaPrimero: cada pago cubre primero el alquiler', () => {
+    // total 1100 = alquiler 1000 + Multa 100; 300 va a alquiler; 900: 700 a alquiler y 100 al punitorio (sobran 100)
+    const r = splitPayments({ total: '1100', billedPenalty: '100', payments: pays, allocation: 'RentaPrimero' });
+    expect(r.rentTotal.toFixed(2)).toBe('1000.00');
+    expect(r.rentPayments.map((p) => p.amount.toString())).toEqual(['300', '700']);
+  });
+
+  it('PunitorioPrimero: el punitorio se cubre antes que el alquiler', () => {
+    const r = splitPayments({ total: '1100', billedPenalty: '100', payments: pays, allocation: 'PunitorioPrimero' });
+    expect(r.rentPayments.map((p) => p.amount.toString())).toEqual(['200', '900']);
+  });
+
+  it('ordena los pagos por fecha', () => {
+    const r = splitPayments({
+      total: '1100',
+      billedPenalty: '100',
+      payments: [...pays].reverse(),
+      allocation: 'PunitorioPrimero',
+    });
+    expect(r.rentPayments.map((p) => p.amount.toString())).toEqual(['200', '900']);
   });
 });

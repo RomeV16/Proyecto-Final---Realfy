@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { PENALTY_MODES } from '../penalty-engine';
+import {
+  BNA_RATE_KINDS,
+  CAP_BASES,
+  MISSING_RATE_BEHAVIORS,
+  PARTIAL_PAYMENT_ALLOCATIONS,
+  PENALTY_MODES,
+  ROUNDING_MODES,
+} from '../penalty-engine';
 
 export const PenaltyModeEnum = z.enum(PENALTY_MODES);
 
@@ -19,7 +26,17 @@ export const PenaltyConfigSchema = z
     /** Solo `max_bna_or_daily`: veces la tasa activa BNA (por defecto 2). */
     bnaMultiplier: decimalString('bnaMultiplier must be a non-negative decimal string (e.g. "2")').optional(),
     /** Solo `max_bna_or_daily`: días del año para convertir la TNA a diaria (por defecto 365). */
-    yearDays: z.number().int().min(360).max(366).optional(),
+    yearDays: z.union([z.literal(365), z.literal(360)]).optional(),
+    /** Solo `max_bna_or_daily`: la tasa cargada es nominal (TNA) o efectiva (TEA). */
+    bnaRateKind: z.enum(BNA_RATE_KINDS).optional(),
+    /** Con un pago parcial que cobra punitorios: cubre primero el alquiler (por defecto) o el punitorio. */
+    partialPaymentAllocation: z.enum(PARTIAL_PAYMENT_ALLOCATIONS).optional(),
+    /** Redondeo: una vez sobre el total (por defecto) o cada día. */
+    roundingMode: z.enum(ROUNDING_MODES).optional(),
+    /** Base del tope: el saldo del primer día con punitorio (por defecto) o el total original. */
+    capBase: z.enum(CAP_BASES).optional(),
+    /** Solo `max_bna_or_daily`: sin tasa cargada rige el piso (por defecto) o no se devenga ese día. */
+    missingRateBehavior: z.enum(MISSING_RATE_BEHAVIORS).optional(),
   })
   .strict();
 
