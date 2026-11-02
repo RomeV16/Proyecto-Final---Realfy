@@ -1,9 +1,17 @@
 -- Centro de carga: gastos y cargos puntuales del mes (reparaciones, expensas
 -- extraordinarias, devoluciones, honorarios por gestión) que se imputan una sola vez al
 -- inquilino en su próxima liquidación o al locador en su próximo estado.
--- Backfill: ninguno; la tabla nace vacía y la versión anterior la ignora.
--- Rollback: DROP TABLE "pending_charges" (las liquidaciones que ya incluyeron un
+-- Las versiones de reglas del contrato suman el umbral de anticipo propio (null = el de la
+-- inmobiliaria) y la comisión sobre la que se mide.
+-- Backfill: la tabla nace vacía; las versiones existentes quedan con umbral null y base
+-- ComisionPactada, que es el comportamiento que ya tenía el centro de carga.
+-- Rollback: ALTER TABLE "contract_terms_versions" DROP COLUMN "upfrontThresholdFees",
+-- DROP COLUMN "upfrontBasis"; DROP TABLE "pending_charges" (las liquidaciones que ya incluyeron un
 -- cargo conservan su renglón; solo se pierde el vínculo con el cargo de origen).
+
+-- AlterTable
+ALTER TABLE "contract_terms_versions" ADD COLUMN     "upfrontBasis" "UpfrontBasis" NOT NULL DEFAULT 'ComisionPactada',
+ADD COLUMN     "upfrontThresholdFees" INTEGER;
 
 -- CreateTable
 CREATE TABLE "pending_charges" (

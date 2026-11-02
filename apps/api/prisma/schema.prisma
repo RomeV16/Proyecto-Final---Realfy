@@ -1102,6 +1102,10 @@ model ContractTermsVersion {
   midMonthAdjustmentMode MidMonthAdjustmentMode @default(DesdePeriodoSiguiente)
   firstDueMode           FirstDueMode           @default(DiaDeInicio)
   fixedDiscountProration FixedDiscountProration @default(Proporcional)
+  /// Umbral de anticipo del centro de carga, en comisiones mensuales; null = el de la inmobiliaria.
+  upfrontThresholdFees   Int?
+  /// Sobre qué comisión mensual se mide el umbral de anticipo.
+  upfrontBasis           UpfrontBasis           @default(ComisionPactada)
   createdAt              DateTime               @default(now())
 
   contract  Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
@@ -1571,6 +1575,14 @@ model ServiceBillAllocation {
   @@unique([billId, contractId, chargePeriod])
   @@index([tenantId, contractId, billedAt, chargePeriod])
   @@map("service_bill_allocations")
+}
+
+/// Comisión mensual con la que se mide el umbral de anticipo.
+enum UpfrontBasis {
+  /// La comisión pactada en el contrato (o, sin ella, el porcentaje por defecto).
+  ComisionPactada
+  /// Siempre el porcentaje por defecto de la inmobiliaria sobre el alquiler.
+  PorcentajePorDefecto
 }
 
 /// Quién soporta un cargo puntual cargado en el centro de carga.
