@@ -151,7 +151,8 @@
   "copyReference": "Copiar referencia",
   "copied": "Copiada",
   "codes": {
-   "CONTRACT_NOT_ACTIVE": "El contrato no está activo.",
+   "CONTRACT_NOT_ACTIVE": "Solo se puede hacer con un contrato activo o vencido.",
+  "EXPIRED_CONTRACT_NEEDS_EXTENSION_OR_RENEWAL": "Un contrato vencido se vuelve a activar con una prórroga de palabra o una renovación.",
    "EXTENSION_NOT_AFTER_END": "La prórroga tiene que terminar después del fin actual del contrato.",
    "FOLLOW_UP_NOT_FOUND": "El seguimiento no existe.",
    "FOLLOW_UP_CLOSED": "El seguimiento está cerrado: reabrilo para cambiarlo.",
@@ -5825,6 +5826,8 @@
    },
    "Devolucion": {
     "VISITA": "Visita previa de inspección",
+    "FECHA_ENTREGA": "Fecha de entrega acordada",
+    "PUBLICAR": "Publicar la unidad con anticipación",
     "LIBRE_DEUDA": "Libre deuda de servicios",
     "PINTURA": "Pintura y estado de la unidad",
     "LLAVES": "Entrega de llaves",
@@ -5871,6 +5874,7 @@
    "guarantorsHint": "Los que firman de nuevo para este período.",
    "fee": "Honorarios de renovación",
    "feeHint": "Opcional: el importe pactado. El cobro se registra en la caja.",
+   "feeSuggested": "Sugerido: {pct} % del alquiler por los meses del período. Podés cambiarlo.",
    "feeCurrency": "Moneda",
    "signedAt": "Firmada el",
    "signedAtHint": "Si todavía no se firmó, dejalo vacío.",

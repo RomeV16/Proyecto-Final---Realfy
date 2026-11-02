@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { AdjustmentType } from '@realfy/shared';
 import { apiClient } from '@/lib/api-client';
@@ -10,6 +11,7 @@ import {
   dayAfter,
   periodEnd,
   renewFormSchema,
+  suggestedRenewalFee,
   type RenewFormValues,
 } from '@/lib/follow-ups';
 import { toast } from '@/lib/toast';
@@ -65,6 +67,28 @@ export function RenewDialog({ contractId, effectiveEnd, currentRent, guarantors,
     } satisfies RenewFormValues,
     translate: useSchemaMessages(),
   });
+
+  // Honorarios sugeridos con el porcentaje de renovación de la inmobiliaria; se dejan de seguir al editarlos.
+  const [feePct, setFeePct] = useState<number | null>(null);
+  const [feeTouched, setFeeTouched] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const defaults = await apiClient<{ fees?: { renovacion?: number } }>('/tenants/me/operational-defaults');
+        if (!cancelled) setFeePct(defaults?.fees?.renovacion ?? null);
+      } catch {
+        if (!cancelled) setFeePct(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  const suggestion = suggestedRenewalFee(values.rent, values.start, values.end, feePct);
+  useEffect(() => {
+    if (!feeTouched && suggestion) set('feeAmount', suggestion);
+  }, [feeTouched, suggestion, set]);
 
   const save = submit(async (body) => {
     await apiClient(`/contracts/${contractId}/renew`, { method: 'POST', body: JSON.stringify(body) });
@@ -156,8 +180,18 @@ export function RenewDialog({ contractId, effectiveEnd, currentRent, guarantors,
           )}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <FormField label={t('fee')} hint={t('feeHint')} error={errors.feeAmount}>
-              {(c) => <Input {...c} inputMode="decimal" value={values.feeAmount} onChange={(e) => set('feeAmount', e.target.value)} />}
+            <FormField label={t('fee')} hint={!feeTouched && suggestion ? t('feeSuggested', { pct: feePct ?? 0 }) : t('feeHint')} error={errors.feeAmount}>
+              {(c) => (
+                <Input
+                  {...c}
+                  inputMode="decimal"
+                  value={values.feeAmount}
+                  onChange={(e) => {
+                    setFeeTouched(true);
+                    set('feeAmount', e.target.value);
+                  }}
+                />
+              )}
             </FormField>
             <FormField label={t('feeCurrency')}>
               {(c) => (

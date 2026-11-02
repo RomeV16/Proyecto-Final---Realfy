@@ -151,7 +151,8 @@
   "copyReference": "Copy reference",
   "copied": "Copied",
   "codes": {
-   "CONTRACT_NOT_ACTIVE": "The contract is not active.",
+   "CONTRACT_NOT_ACTIVE": "This can only be done with an active or expired contract.",
+  "EXPIRED_CONTRACT_NEEDS_EXTENSION_OR_RENEWAL": "An expired contract is reactivated by an oral extension or a renewal.",
    "EXTENSION_NOT_AFTER_END": "The extension must end after the contract's current end.",
    "FOLLOW_UP_NOT_FOUND": "The follow-up does not exist.",
    "FOLLOW_UP_CLOSED": "The follow-up is closed: reopen it to change it.",
@@ -5825,6 +5826,8 @@
    },
    "Devolucion": {
     "VISITA": "Pre-return inspection visit",
+    "FECHA_ENTREGA": "Agreed handover date",
+    "PUBLICAR": "List the unit in advance",
     "LIBRE_DEUDA": "Utilities clearance",
     "PINTURA": "Painting and unit condition",
     "LLAVES": "Key handover",
@@ -5871,6 +5874,7 @@
    "guarantorsHint": "Those who sign again for this period.",
    "fee": "Renewal fee",
    "feeHint": "Optional: the agreed amount. Collection is recorded in the cash module.",
+   "feeSuggested": "Suggested: {pct}% of the rent for the months of the period. You can change it.",
    "feeCurrency": "Currency",
    "signedAt": "Signed on",
    "signedAtHint": "If it has not been signed yet, leave it empty.",

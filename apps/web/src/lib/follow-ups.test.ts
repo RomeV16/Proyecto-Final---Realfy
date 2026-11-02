@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { dayAfter, oralExtensionFormSchema, periodEnd, renewFormSchema, type RenewFormValues } from './follow-ups';
+import {
+  dayAfter,
+  oralExtensionFormSchema,
+  periodEnd,
+  renewFormSchema,
+  suggestedRenewalFee,
+  type RenewFormValues,
+} from './follow-ups';
 
 const base: RenewFormValues = {
   start: '2027-01-01',
@@ -96,5 +103,21 @@ describe('formulario de renovación', () => {
       expect(keys).toContain('followUps.errors.end');
       expect(keys.every((k) => k.startsWith('followUps.errors.'))).toBe(true);
     }
+  });
+});
+
+describe('suggestedRenewalFee', () => {
+  it('es el porcentaje del alquiler por los meses del período, con dos decimales', () => {
+    expect(suggestedRenewalFee('150000', '2027-01-01', '2028-12-31', 5)).toBe('180000.00');
+    expect(suggestedRenewalFee('123456.78', '2027-01-01', '2027-12-31', 5)).toBe('74074.07');
+  });
+
+  it('sin porcentaje, alquiler válido o fechas válidas no hay sugerencia', () => {
+    expect(suggestedRenewalFee('150000', '2027-01-01', '2028-12-31', null)).toBeNull();
+    expect(suggestedRenewalFee('150000', '2027-01-01', '2028-12-31', 0)).toBeNull();
+    expect(suggestedRenewalFee('', '2027-01-01', '2028-12-31', 5)).toBeNull();
+    expect(suggestedRenewalFee('150000', '', '2028-12-31', 5)).toBeNull();
+    expect(suggestedRenewalFee('150000', '2027-01-01', 'x', 5)).toBeNull();
+    expect(suggestedRenewalFee('150000', '2027-01-01', '2027-01-05', 5)).toBeNull();
   });
 });

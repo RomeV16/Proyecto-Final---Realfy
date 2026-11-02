@@ -51,7 +51,8 @@ export function ContractExpiration({ contract, onChanged }: Props) {
   const [followUp, setFollowUp] = useState<FollowUp | null>(null);
   const [periods, setPeriods] = useState<Period[]>([]);
   const [dialog, setDialog] = useState<Dialog>('');
-  const active = contract.status === 'Activo';
+  // Un contrato vencido que en la práctica sigue corriendo se regulariza con estas dos acciones.
+  const canAct = contract.status === 'Activo' || contract.status === 'Vencido';
   const signedEnd = contract.endDate ?? '';
   const effectiveEnd = contract.actualEndDate ?? signedEnd;
 
@@ -155,7 +156,7 @@ export function ContractExpiration({ contract, onChanged }: Props) {
         </div>
       )}
 
-      {active && canAdminister && (
+      {canAct && canAdminister && (
         <div className="mt-4 flex flex-wrap gap-2">
           <Button type="button" variant="secondary" onClick={() => setDialog('extension')}>
             {t('card.oralExtension')}

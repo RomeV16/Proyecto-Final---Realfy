@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
 import type { Paged } from '@/lib/cash';
 import { KINDS, LIGHTS, type FollowUp } from '@/lib/follow-ups';
@@ -32,6 +33,8 @@ const INITIAL: Filters = { light: '', kind: '', status: 'Abierto', mine: false }
 export function FollowUpsScreen() {
   const t = useTranslations('followUps');
   const userId = useOptionalAuth()?.user?.id ?? null;
+  // Los hallazgos de calidad de datos enlazan acá con el contrato elegido.
+  const contractId = useSearchParams()?.get('contractId') ?? '';
   const [filters, setFilters] = useState<Filters>(INITIAL);
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Paged<FollowUp> | null>(null);
@@ -45,13 +48,14 @@ export function FollowUpsScreen() {
       if (filters.light) params.set('light', filters.light);
       if (filters.kind) params.set('kind', filters.kind);
       if (!filters.light && filters.status) params.set('status', filters.status);
+      if (contractId) params.set('contractId', contractId);
       if (filters.mine && userId) params.set('assigneeId', userId);
       setData(await apiClient<Paged<FollowUp>>(`/follow-ups?${params.toString()}`));
     } catch (err) {
       setError(err);
       setData(null);
     }
-  }, [filters, page, userId]);
+  }, [filters, page, userId, contractId]);
 
   useEffect(() => {
     void load();

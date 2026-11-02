@@ -1,5 +1,7 @@
 import {
   AdjustmentPeriod,
+  Money,
+  toAmountString,
   AdjustmentType,
   Currency,
   ExpirationLight,
@@ -168,4 +170,17 @@ export function periodEnd(start: string, months: number): string {
   // Un 31 que cae en un mes más corto se corre al último día de ese mes.
   if (date.getUTCDate() !== d) date.setUTCDate(0);
   return new Date(date.getTime() - DAY_MS).toISOString().slice(0, 10);
+}
+
+/**
+ * Honorarios de renovación sugeridos: `pct` % del total del alquiler del período (alquiler por los meses que dura).
+ * Es solo una propuesta que se puede cambiar; null si falta algún dato.
+ */
+export function suggestedRenewalFee(rent: string, start: string, end: string, pct: number | null): string | null {
+  const amount = parsePositiveAmount(rent);
+  if (!amount || pct === null || pct <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) return null;
+  const days = (Date.parse(`${end}T00:00:00.000Z`) + DAY_MS - Date.parse(`${start}T00:00:00.000Z`)) / DAY_MS;
+  const months = Math.round(days / (365.25 / 12));
+  if (months < 1) return null;
+  return toAmountString(new Money(amount).times(months).times(pct).div(100));
 }

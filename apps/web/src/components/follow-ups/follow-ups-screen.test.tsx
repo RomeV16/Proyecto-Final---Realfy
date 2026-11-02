@@ -4,8 +4,9 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderEs } from '../index-data/test-utils';
 
-const { apiClient, auth, toastSuccess } = vi.hoisted(() => ({
+const { apiClient, auth, toastSuccess, search } = vi.hoisted(() => ({
   apiClient: vi.fn(),
+  search: { value: '' },
   auth: { role: 'Admin' },
   toastSuccess: vi.fn(),
 }));
@@ -17,6 +18,10 @@ vi.mock('@/lib/api-client', async (importOriginal) => ({
 vi.mock('@/lib/auth-context', () => ({
   useAuth: () => ({ user: { id: 'u1', firstName: 'Usuario', lastName: 'Demo', role: auth.role } }),
   useOptionalAuth: () => ({ user: { id: 'u1', firstName: 'Usuario', lastName: 'Demo', role: auth.role } }),
+}));
+vi.mock('next/navigation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/navigation')>()),
+  useSearchParams: () => new URLSearchParams(search.value),
 }));
 vi.mock('@/lib/toast', () => ({ toast: { success: (...a: unknown[]) => toastSuccess(...a), error: vi.fn(), info: vi.fn() } }));
 vi.mock('@/i18n/navigation', () => ({
@@ -97,6 +102,7 @@ beforeEach(() => {
   apiClient.mockReset();
   toastSuccess.mockReset();
   auth.role = 'Admin';
+  search.value = '';
 });
 
 describe('Vencimientos', () => {
@@ -111,6 +117,13 @@ describe('Vencimientos', () => {
     expect(screen.getAllByText(/prórroga de palabra/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('yo').length).toBeGreaterThan(0);
     expect(lastUrl()).toContain('status=Abierto');
+  });
+
+  it('con ?contractId= (desde calidad de datos) muestra solo el seguimiento de ese contrato', async () => {
+    search.value = 'contractId=c-a';
+    setup();
+    await screen.findAllByText('Depto Sintético');
+    expect(lastUrl()).toContain('contractId=c-a');
   });
 
   it('la página monta la pantalla', async () => {

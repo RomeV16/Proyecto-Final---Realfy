@@ -80,15 +80,18 @@ interface Setup {
   periods?: unknown[];
   write?: (path: string, init: { method: string; body: string }) => unknown;
   loadFails?: boolean;
+  /** Porcentaje de honorarios de renovación de la inmobiliaria; sin él no hay sugerencia. */
+  feePct?: number;
 }
 
-function setup(props: Record<string, unknown> = {}, { followUps = [FOLLOW_UP], periods = PERIODS, write, loadFails }: Setup = {}) {
+function setup(props: Record<string, unknown> = {}, { followUps = [FOLLOW_UP], periods = PERIODS, write, loadFails, feePct }: Setup = {}) {
   const onChanged = vi.fn();
   apiClient.mockImplementation(async (path: string, init?: { method?: string; body: string }) => {
     if (init?.method) return write ? write(path, init as { method: string; body: string }) : {};
     if (loadFails) throw new ApiRequestError(500, 'INTERNAL_ERROR', 'boom');
     if (path.startsWith('/follow-ups?')) return { items: followUps, total: followUps.length, page: 1, limit: 1, totalPages: 1 };
     if (path.endsWith('/periods')) return periods;
+    if (path === '/tenants/me/operational-defaults') return feePct === undefined ? {} : { fees: { renovacion: feePct } };
     throw new Error(`unexpected ${path}`);
   });
   renderEs(<ContractExpiration contract={contract(props)} onChanged={onChanged} />);
@@ -156,10 +159,16 @@ describe('Vencimiento del contrato', () => {
     expect(screen.queryByRole('button', { name: 'Prórroga de palabra' })).not.toBeInTheDocument();
   });
 
-  it('un contrato que no está activo no se renueva', async () => {
+  it('un contrato rescindido no se renueva', async () => {
     setup({ status: 'Rescindido' });
     await screen.findByText('Por vencer');
     expect(screen.queryByRole('button', { name: 'Renovar' })).not.toBeInTheDocument();
+  });
+
+  it('un contrato vencido sí: es la forma de regularizarlo', async () => {
+    setup({ status: 'Vencido' });
+    expect(await screen.findByRole('button', { name: 'Renovar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Prórroga de palabra' })).toBeInTheDocument();
   });
 });
 
@@ -273,6 +282,33 @@ describe('Renovar', () => {
     expect(await dialog.findByText(/Ingresá un alquiler mayor a cero/)).toBeInTheDocument();
     expect(dialog.getByText('Revisá la regla de ajuste')).toBeInTheDocument();
     expect(writes()).toHaveLength(0);
+  });
+
+  it('sugiere los honorarios con el porcentaje de la inmobiliaria y deja de seguir el alquiler al editarlos', async () => {
+    const user = userEvent.setup();
+    setup({}, { feePct: 5 });
+    await user.click(await screen.findByRole('button', { name: 'Renovar' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    // 150.000 x 24 meses x 5 %
+    await waitFor(() => expect(dialog.getByLabelText('Honorarios de renovación')).toHaveValue('180000.00'));
+    expect(dialog.getByText(/Sugerido: 5 %/)).toBeInTheDocument();
+
+    const rent = dialog.getByLabelText(/Alquiler nuevo/);
+    await user.clear(rent);
+    await user.type(rent, '200000');
+    await waitFor(() => expect(dialog.getByLabelText('Honorarios de renovación')).toHaveValue('240000.00'));
+
+    const fee = dialog.getByLabelText('Honorarios de renovación');
+    await user.clear(fee);
+    await user.type(fee, '100000');
+    await user.clear(rent);
+    await user.type(rent, '300000');
+    expect(fee).toHaveValue('100000');
+    expect(dialog.queryByText(/Sugerido/)).not.toBeInTheDocument();
+
+    await user.click(dialog.getByRole('button', { name: 'Renovar' }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(JSON.parse(writes()[0][1].body).fee).toEqual({ amount: '100000', currency: 'ARS' });
   });
 
   it('cancela sin escribir', async () => {
