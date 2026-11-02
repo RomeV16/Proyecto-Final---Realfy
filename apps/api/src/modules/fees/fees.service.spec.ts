@@ -254,3 +254,41 @@ describe('FeesService: cambios', () => {
     await expect(service.update('nada', { notes: 'x' })).rejects.toBeInstanceOf(NotFoundException);
   });
 });
+
+describe('FeesService: honorario de una renovación', () => {
+  it('monto pactado del período a quien paga según la inmobiliaria, con sus cuotas', async () => {
+    const { service, client } = buildFees({ defaults: { fees: { payer: 'Ambos', installments: 2 } as any } });
+    const ids = await service.createRenewalFee(client, 'tenant-1', {
+      contractId: CONTRACT_ID,
+      contractPeriodId: PERIOD_ID,
+      amount: '96000',
+      currency: 'ARS',
+      firstDueDate: d('2028-03-01'),
+    });
+    expect(ids).toHaveLength(2);
+    expect(client.fee.rows.map((f: any) => [f.kind, f.basis, f.payerRole, f.total, f.contractPeriodId])).toEqual([
+      ['Renovacion', 'MontoFijo', 'Inquilino', '48000.00', PERIOD_ID],
+      ['Renovacion', 'MontoFijo', 'Locador', '48000.00', PERIOD_ID],
+    ]);
+    expect(client.feeInstallment.rows.map((i: any) => i.dueDate.toISOString().slice(0, 10))).toEqual([
+      '2028-03-01',
+      '2028-04-01',
+      '2028-03-01',
+      '2028-04-01',
+    ]);
+  });
+
+  it('sin contrato o sin quién pague, no se carga', async () => {
+    const args = { contractId: CONTRACT_ID, contractPeriodId: PERIOD_ID, amount: '1', currency: 'ARS', firstDueDate: d('2028-03-01') };
+    const none = buildFees({ contract: null });
+    await expect(none.service.createRenewalFee(none.client, 'tenant-1', args)).rejects.toBeInstanceOf(NotFoundException);
+    const nobody = buildFees({ contract: { ...syntheticContractWithoutTenant() } });
+    await expect(nobody.service.createRenewalFee(nobody.client, 'tenant-1', args)).rejects.toMatchObject({
+      response: { error: 'FEE_PAYER_NOT_FOUND' },
+    });
+  });
+});
+
+function syntheticContractWithoutTenant() {
+  return { id: CONTRACT_ID, propertyId: PROPERTY_ID, persons: [] };
+}

@@ -339,4 +339,22 @@ describe('Honorarios (e2e)', () => {
     expect(cancelled.installmentRows[0].status).toBe('Anulada');
     await post(token, `/fees/${fee.id}/installments/1/pay`, { date: '2026-03-05' }).expect(409);
   });
+
+  it('CP-537 — renovar con honorarios pactados carga el honorario de renovación del período', async () => {
+    const { token } = await agency('hon-9');
+    const { contract, tenantPerson } = await rental(token);
+    const renewal = (
+      await post(token, `/contracts/${contract.id}/renew`, {
+        start: '2028-03-01',
+        end: '2029-02-28',
+        rent: '900000',
+        fee: { amount: '96000', currency: 'ARS' },
+      }).expect(201)
+    ).body;
+    const fees = (await get(token, `/fees?contractId=${contract.id}&kind=Renovacion`).expect(200)).body.items;
+    expect(fees.map((f: any) => [f.payerPersonId, f.basis, f.total, f.contractPeriodId, f.notes])).toEqual([
+      [tenantPerson, 'MontoFijo', '96000', renewal.period.id, 'Honorarios pactados en la renovación'],
+    ]);
+    expect(fees[0].installmentRows.map((i: any) => [i.dueDate.slice(0, 10), i.dueAmount])).toEqual([['2028-03-01', '96000.00']]);
+  });
 });

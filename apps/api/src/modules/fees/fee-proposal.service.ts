@@ -37,6 +37,34 @@ export interface SuggestedPayer {
   sharePct: string;
 }
 
+/** Quién paga un alquiler según la inmobiliaria: inquilino, locador principal o los dos con su parte. */
+export async function suggestRentalPayers(
+  db: any,
+  contract: { id: string; persons?: any[] | null },
+  at: Date,
+  defaults: OperationalDefaults,
+): Promise<SuggestedPayer[]> {
+  const tenantParty = getParty<any>(contract, 'Inquilino');
+  const lessors: any[] = await getLessorsAt(db, contract.id, at);
+  const lessor = lessors[0];
+  const out: SuggestedPayer[] = [];
+  const choice = defaults.fees.payer;
+  const lessorShare = choice === FeePayerChoice.Ambos ? defaults.fees.lessorSharePct : 100;
+  if (choice !== FeePayerChoice.Locador && tenantParty?.person) {
+    out.push({
+      role: FeePayerRole.Inquilino,
+      personId: tenantParty.personId,
+      name: personName(tenantParty.person),
+      sharePct: String(choice === FeePayerChoice.Ambos ? 100 - lessorShare : 100),
+    });
+  }
+  if (choice !== FeePayerChoice.Inquilino && lessor?.person) {
+    out.push({ role: FeePayerRole.Locador, personId: lessor.personId, name: personName(lessor.person), sharePct: String(lessorShare) });
+  }
+  if (out.length === 1) out[0].sharePct = '100';
+  return out;
+}
+
 /**
  * Propuesta de honorario con los valores por defecto de la inmobiliaria
  * (defecto -> contrato): base, porcentaje, quién paga, IVA, cuotas y comisión
@@ -109,7 +137,7 @@ export class FeeProposalService {
       },
     });
     const pct = defaultFeePct(input.kind, defaults)!;
-    const payers = await this.rentalPayers(contract, start, defaults);
+    const payers = await suggestRentalPayers(this.prisma.client, contract, start, defaults);
     const gross = pctOf(total.total, pct);
     const parts = splitBetweenPayers(gross, payers.length ? payers.map((p) => p.sharePct) : ['100']);
     return {
@@ -135,29 +163,6 @@ export class FeeProposalService {
       },
       estimate: parts.map((part) => feeAmounts(part, defaults.fees.vatMode, defaults.fees.vatPct).total.toFixed(2)),
     };
-  }
-
-  /** Quién paga un alquiler según la inmobiliaria: inquilino, locador principal o los dos con su parte. */
-  private async rentalPayers(contract: any, at: Date, defaults: OperationalDefaults): Promise<SuggestedPayer[]> {
-    const tenantParty = getParty<any>(contract, 'Inquilino');
-    const lessors: any[] = await getLessorsAt(this.prisma.client, contract.id, at);
-    const lessor = lessors[0];
-    const out: SuggestedPayer[] = [];
-    const choice = defaults.fees.payer;
-    const lessorShare = choice === FeePayerChoice.Ambos ? defaults.fees.lessorSharePct : 100;
-    if (choice !== FeePayerChoice.Locador && tenantParty?.person) {
-      out.push({
-        role: FeePayerRole.Inquilino,
-        personId: tenantParty.personId,
-        name: personName(tenantParty.person),
-        sharePct: String(choice === FeePayerChoice.Ambos ? 100 - lessorShare : 100),
-      });
-    }
-    if (choice !== FeePayerChoice.Inquilino && lessor?.person) {
-      out.push({ role: FeePayerRole.Locador, personId: lessor.personId, name: personName(lessor.person), sharePct: String(lessorShare) });
-    }
-    if (out.length === 1) out[0].sharePct = '100';
-    return out;
   }
 
   /** Venta: cada parte paga su porcentaje sobre el valor real (construido o lote). */

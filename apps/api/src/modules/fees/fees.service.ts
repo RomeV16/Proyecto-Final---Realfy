@@ -37,6 +37,7 @@ import {
   presentFee,
   rethrowFeeEngine,
 } from './fees.helpers';
+import { suggestRentalPayers } from './fee-proposal.service';
 
 type Db = any;
 
@@ -278,6 +279,43 @@ export class FeesService {
     }
     this.logger.log('Fees created', { kind: input.kind, count: created.length });
     return created;
+  }
+
+  /**
+   * Honorario pactado al renovar un contrato (4.3), en la transacción de la
+   * renovación: monto fijo del período renovado, a cargo de quien paga según la
+   * inmobiliaria (`fees.payer`), con sus cuotas, ajuste e IVA por defecto. Las
+   * cuotas arrancan al inicio del período.
+   */
+  async createRenewalFee(
+    tx: Db,
+    tenantId: string,
+    input: { contractId: string; contractPeriodId: string; amount: string; currency: string; firstDueDate: Date },
+  ): Promise<string[]> {
+    const defaults = await this.operationalDefaults.get(tenantId, tx);
+    const contract = await tx.contract.findFirst({ where: { id: input.contractId }, include: { persons: { include: { person: true } } } });
+    if (!contract) throw notFound('CONTRACT_NOT_FOUND', 'Contract not found');
+    const payers = await suggestRentalPayers(tx, contract, input.firstDueDate, defaults);
+    if (payers.length === 0) throw badRequest('FEE_PAYER_NOT_FOUND', 'The contract has no one to pay the renewal fee');
+    return this.createInTx(tx, tenantId, {
+      kind: FeeKind.Renovacion,
+      contractId: input.contractId,
+      contractPeriodId: input.contractPeriodId,
+      basis: FeeBasis.MontoFijo,
+      baseAmount: new Decimal(input.amount).toFixed(2),
+      pct: null,
+      currency: input.currency as CreateFeeInput['currency'],
+      payers: payers.map((p) => ({ role: p.role, personId: p.personId, sharePct: p.sharePct })),
+      payerMode: FeePayerMode.Reparto,
+      vatMode: defaults.fees.vatMode,
+      vatPct: String(defaults.fees.vatPct),
+      installments: defaults.fees.installments,
+      firstDueDate: input.firstDueDate.toISOString().slice(0, 10),
+      adjustInstallments: defaults.fees.adjustInstallments,
+      shares: [],
+      staff: [],
+      notes: 'Honorarios pactados en la renovación',
+    });
   }
 
   /** Contrato, período, propiedad y tasación del honorario; un honorario de alquiler necesita contrato. */

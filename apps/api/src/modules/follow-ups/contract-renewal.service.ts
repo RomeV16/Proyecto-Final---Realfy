@@ -18,13 +18,15 @@ import { ContractRulesService } from '../contracts/contract-rules.service';
 import { ContractsService } from '../contracts/contracts.service';
 import { getEffectiveEndDate } from '../contracts/contract-terms';
 import { FollowUpsService } from './follow-ups.service';
+import { FeesService } from '../fees/fees.service';
 
 /**
  * Renovación como período del mismo contrato (4.3). No se clona el contrato:
  * se agrega un período `Renovacion` con su alquiler inicial, un convenio
  * `Renovacion` con la versión de reglas nueva (alquiler y regla de ajuste) y
  * el fin pactado pasa a ser el del período. Garantes y honorarios quedan
- * anotados en el período. Los seguimientos abiertos se cierran como renovados.
+ * anotados en el período, y los honorarios pactados se cargan como honorario
+ * de renovación con sus cuotas (D10). Los seguimientos abiertos se cierran como renovados.
  */
 @Injectable()
 export class ContractRenewalService {
@@ -37,6 +39,7 @@ export class ContractRenewalService {
     private readonly rules: ContractRulesService,
     private readonly contracts: ContractsService,
     private readonly followUps: FollowUpsService,
+    private readonly fees: FeesService,
   ) {}
 
   async renew(contractId: string, data: unknown) {
@@ -79,7 +82,7 @@ export class ContractRenewalService {
         termsPatch,
       },
       async (tx, agreementId) => {
-        await tx.contractPeriod.create({
+        const period = await tx.contractPeriod.create({
           data: {
             tenantId,
             contractId,
@@ -94,6 +97,16 @@ export class ContractRenewalService {
             guarantorPersonIds: input.guarantorPersonIds ?? [],
           },
         });
+        // El honorario pactado se cobra como un honorario de renovación (D10).
+        const feeIds = input.fee
+          ? await this.fees.createRenewalFee(tx, tenantId, {
+              contractId,
+              contractPeriodId: period.id,
+              amount: input.fee.amount,
+              currency: input.fee.currency,
+              firstDueDate: start,
+            })
+          : [];
         if (wasExpired) await this.contracts.reactivateExpired(tx, contract, end);
         // El fin pactado pasa a ser el del período; la prórroga de palabra queda absorbida.
         await tx.contract.update({
@@ -123,6 +136,7 @@ export class ContractRenewalService {
             agreementId,
             followUpsClosed: closed,
             fee: input.fee ?? null,
+            feeIds,
             reactivated: wasExpired,
           },
         });

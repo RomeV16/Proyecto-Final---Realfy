@@ -7,7 +7,7 @@ const input = { start: '2027-01-01', end: '2028-12-31', rent: '200000' };
 function build(over: { contract?: any; last?: any; laterTerms?: number; guarantors?: string[] } = {}) {
   const contract = over.contract === undefined ? { id: 'c1', status: 'Activo', endDate: utc(2026, 12, 31), actualEndDate: null, rentAmount: '100000' } : over.contract;
   const tx = {
-    contractPeriod: { create: jest.fn() },
+    contractPeriod: { create: jest.fn().mockResolvedValue({ id: 'p2' }) },
     contract: { update: jest.fn() },
   };
   const prisma = {
@@ -35,6 +35,7 @@ function build(over: { contract?: any; last?: any; laterTerms?: number; guaranto
   };
   const followUps = { closeOpenForContract: jest.fn().mockResolvedValue(1) };
   const audit = { record: jest.fn() };
+  const fees = { createRenewalFee: jest.fn().mockResolvedValue(['fee-1']) };
   const service = new ContractRenewalService(
     prisma as any,
     { getTenantId: () => 't1' } as any,
@@ -42,8 +43,9 @@ function build(over: { contract?: any; last?: any; laterTerms?: number; guaranto
     rules as any,
     contracts as any,
     followUps as any,
+    fees as any,
   );
-  return { service, tx, rules, contracts, followUps, audit, prisma };
+  return { service, tx, rules, contracts, followUps, audit, prisma, fees };
 }
 
 describe('ContractRenewalService', () => {
@@ -83,6 +85,15 @@ describe('ContractRenewalService', () => {
     expect(ok.tx.contract.update.mock.calls[0][0].data).toEqual({ endDate: utc(2028, 12, 31), actualEndDate: null });
     expect(ok.followUps.closeOpenForContract).toHaveBeenCalledWith(ok.tx, 'c1', 'Renovado');
     expect(ok.audit.record.mock.calls[0][1].metadata.operation).toBe('renewal');
+    // El honorario pactado se carga como honorario de renovación del período nuevo.
+    expect(ok.fees.createRenewalFee).toHaveBeenCalledWith(ok.tx, 't1', {
+      contractId: 'c1',
+      contractPeriodId: 'p2',
+      amount: '96000',
+      currency: 'ARS',
+      firstDueDate: utc(2027, 1, 1),
+    });
+    expect(ok.audit.record.mock.calls[0][1].metadata.feeIds).toEqual(['fee-1']);
     expect(ok.contracts.rebuildPendingSchedule).toHaveBeenCalledWith('c1');
     expect(res.period).toEqual({ seq: 2 });
   });
@@ -91,6 +102,7 @@ describe('ContractRenewalService', () => {
     const future = build();
     await future.service.renew('c1', { start: '2999-01-01', end: '2999-12-31', rent: '1' });
     expect(future.tx.contract.update.mock.calls[0][0].data.rentAmount).toBeUndefined();
+    expect(future.fees.createRenewalFee).not.toHaveBeenCalled();
     const started = build({ last: { seq: 1, startDate: utc(2019, 1, 1) } });
     await started.service.renew('c1', { start: '2020-01-01', end: '2021-01-01', rent: '150000' });
     expect(started.tx.contract.update.mock.calls[0][0].data.rentAmount).toBe('150000');
