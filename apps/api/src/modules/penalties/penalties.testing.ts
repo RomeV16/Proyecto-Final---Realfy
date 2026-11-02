@@ -11,6 +11,7 @@ export interface FakeLiquidacion {
   period?: Date;
   currency?: string;
   payments?: { amount: string; paidAt: Date }[];
+  lineItems?: { type: string; amount: string; sourceType?: string | null; sourceId?: string | null }[];
 }
 
 export interface FakePenalty {
@@ -64,6 +65,7 @@ export function makeFakePenaltyDb(opts: FakeOptions = {}) {
     period: new Date('2026-01-01T00:00:00.000Z'),
     currency: 'ARS',
     payments: [],
+    lineItems: [],
     ...l,
   }));
   const penalties: FakePenalty[] = (opts.penalties ?? []).map((p, i) => ({

@@ -725,7 +725,7 @@ export class LiquidacionesService {
 
         const liquidacion = await tx.liquidacion.findFirst({
           where: { id: liquidacionId },
-          include: { payments: true },
+          include: { payments: true, lineItems: true },
         });
 
         if (!liquidacion) {
@@ -760,7 +760,7 @@ export class LiquidacionesService {
               orderBy: { sortOrder: 'desc' },
               select: { sortOrder: true },
             });
-            await tx.liquidacionLineItem.create({
+            const multa = await tx.liquidacionLineItem.create({
               data: {
                 tenantId,
                 liquidacionId,
@@ -778,6 +778,7 @@ export class LiquidacionesService {
             await this.penalties.markSettled(tx, rows.map((r) => r.id), liquidacionId);
             const updated = await this.recalculateTotals(liquidacionId, tx);
             liquidacion.total = updated.total;
+            liquidacion.lineItems = [...(liquidacion.lineItems ?? []), multa];
             penaltySettled = { amount: due.toFixed(2), days: result.daysOverdue };
           }
         }
@@ -796,7 +797,10 @@ export class LiquidacionesService {
           });
         }
 
-        if (penaltySettled && !new Decimal(validated.amount).eq(balanceBefore)) {
+        // Con `RentaPrimero` (por defecto) el pago tiene que cubrir todo; con `PunitorioPrimero` puede
+        // ser parcial y cubre primero el punitorio.
+        const penaltyFirst = penaltyCtx?.rule.partialPaymentAllocation === 'PunitorioPrimero';
+        if (penaltySettled && !penaltyFirst && !new Decimal(validated.amount).eq(balanceBefore)) {
           throw new BadRequestException({
             error: 'PAYOFF_REQUIRES_FULL_AMOUNT',
             message: `A payment that settles penalties must cover the full amount of ${balanceBefore.toFixed(2)}`,

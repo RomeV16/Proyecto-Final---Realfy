@@ -9,6 +9,7 @@ import {
   PenaltyConfigSchema,
   Money,
   accruePenalty,
+  splitPayments,
   todayInAR,
 } from '@realfy/shared';
 import type { AccruedPenalty, BnaRate, LiquidationExtraLine, PenaltyConfig, PenaltyRule } from '@realfy/shared';
@@ -39,6 +40,8 @@ export interface PenaltyLiquidacion {
   total: unknown;
   dueDate: Date;
   payments: ReadonlyArray<{ amount: unknown; paidAt: Date }>;
+  /** Renglones de la liquidación: los Multa cobrados en ella misma no devengan punitorio. */
+  lineItems?: ReadonlyArray<{ type: string; amount: unknown; sourceType?: string | null; sourceId?: string | null }>;
 }
 
 const OPEN_STATUSES: readonly string[] = [...OVERDUE_STATUSES];
@@ -104,11 +107,22 @@ export class PenaltiesService {
 
   /** Lo devengado por una liquidación a `asOf`, sobre el saldo de cada día. */
   compute(liq: PenaltyLiquidacion, ctx: PenaltyContext, asOf: Date): AccruedPenalty {
+    // El punitorio ya cobrado en esta misma liquidación (renglón Multa propio) no devenga punitorio:
+    // se calcula sobre el alquiler impago, con los pagos imputados según `partialPaymentAllocation`.
+    const own = (liq.lineItems ?? []).filter(
+      (l) => l.type === LineItemType.Multa && l.sourceType === 'Penalty' && l.sourceId === liq.id,
+    );
+    const { rentTotal, rentPayments } = splitPayments({
+      total: String(liq.total),
+      billedPenalty: sumAmounts(own),
+      payments: liq.payments.map((p) => ({ date: p.paidAt, amount: String(p.amount) })),
+      allocation: ctx.rule.partialPaymentAllocation,
+    });
     return accruePenalty({
       dueDate: liq.dueDate,
       asOf,
-      total: String(liq.total),
-      payments: liq.payments.map((p) => ({ date: p.paidAt, amount: String(p.amount) })),
+      total: rentTotal,
+      payments: rentPayments,
       rule: ctx.rule,
       bnaRates: ctx.bnaRates,
     });
@@ -170,7 +184,15 @@ export class PenaltiesService {
       );
       const liq = await tx.liquidacion.findFirst({
         where: { id: liquidacionId },
-        select: { id: true, tenantId: true, total: true, dueDate: true, status: true, payments: { select: { amount: true, paidAt: true } } },
+        select: {
+          id: true,
+          tenantId: true,
+          total: true,
+          dueDate: true,
+          status: true,
+          payments: { select: { amount: true, paidAt: true } },
+          lineItems: { select: { type: true, amount: true, sourceType: true, sourceId: true } },
+        },
       });
       if (!liq) throw new NotFoundException({ error: 'LIQUIDACION_NOT_FOUND', message: 'Liquidación not found' });
       if (outstandingBalance({ total: liq.total.toString(), payments: liq.payments }).lte(0)) {
@@ -215,6 +237,7 @@ export class PenaltiesService {
         status: true,
         currency: true,
         payments: { select: { amount: true, paidAt: true } },
+        lineItems: { select: { type: true, amount: true, sourceType: true, sourceId: true } },
       },
     });
     if (!liq) throw new NotFoundException({ error: 'LIQUIDACION_NOT_FOUND', message: 'Liquidación not found' });
@@ -247,11 +270,16 @@ export class PenaltiesService {
             ? {
                 bnaMultiplier: String(ctx.rule.bnaMultiplier ?? '2'),
                 yearDays: ctx.rule.yearDays ?? 365,
+                bnaRateKind: ctx.rule.bnaRateKind ?? 'Nominal',
                 bnaDays: result.bnaDays,
                 floorDays: result.floorDays,
                 daysWithoutRate: result.daysWithoutRate,
+                blockedDays: result.blockedDays,
               }
             : {}),
+          partialPaymentAllocation: ctx.rule.partialPaymentAllocation ?? 'RentaPrimero',
+          roundingMode: ctx.rule.roundingMode ?? 'Total',
+          capBase: ctx.rule.capBase ?? 'SaldoInicioMora',
         },
       },
       total: balance.plus(due).toFixed(2),

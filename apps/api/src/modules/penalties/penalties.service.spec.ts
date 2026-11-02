@@ -76,6 +76,41 @@ describe('PenaltiesService.payoff (monto a pagar en una fecha)', () => {
   });
 });
 
+describe('PenaltiesService: opciones pactables de la regla', () => {
+  const multa = { type: 'Multa', amount: '100.00', sourceType: 'Penalty', sourceId: 'liq-1' };
+  const rule = { mode: 'daily_percent', value: '0.01', graceDays: 0, maxMultiplier: '5.0' };
+
+  it('el punitorio cobrado en la misma liquidación no devenga punitorio y los pagos se imputan según la regla', async () => {
+    const withPayment = { total: '1100', lineItems: [multa], payments: [{ amount: '100', paidAt: d('2026-03-10') }] };
+    // RentaPrimero: el pago de 100 baja el alquiler a 900: 10 días x 1 % x 900
+    const rentFirst = makeFakePenaltyDb({ liquidaciones: [liq(withPayment)], tenantConfig: { ...rule, partialPaymentAllocation: 'RentaPrimero' } });
+    expect((await rentFirst.service.payoff('liq-1', '2026-03-20')).penalty?.accrued).toBe('90.00');
+    // PunitorioPrimero: el pago cubre la Multa y el alquiler sigue en 1000
+    const penaltyFirst = makeFakePenaltyDb({ liquidaciones: [liq(withPayment)], tenantConfig: { ...rule, partialPaymentAllocation: 'PunitorioPrimero' } });
+    const r = await penaltyFirst.service.payoff('liq-1', '2026-03-20');
+    expect(r.penalty?.accrued).toBe('100.00');
+    expect(r.penalty?.rule).toMatchObject({ partialPaymentAllocation: 'PunitorioPrimero', roundingMode: 'Total', capBase: 'SaldoInicioMora' });
+  });
+
+  it('una Multa de otra liquidación sí integra la base', async () => {
+    const { service } = makeFakePenaltyDb({
+      liquidaciones: [liq({ total: '1100', lineItems: [{ ...multa, sourceId: 'liq-0' }] })],
+      tenantConfig: rule,
+    });
+    expect((await service.payoff('liq-1', '2026-03-20')).penalty?.accrued).toBe('110.00');
+  });
+
+  it('informa la tasa efectiva y los días bloqueados con max_bna_or_daily', async () => {
+    const { service } = makeFakePenaltyDb({
+      liquidaciones: [liq()],
+      tenantConfig: { mode: 'max_bna_or_daily', value: '0.003', graceDays: 0, maxMultiplier: '3.0', bnaRateKind: 'Efectiva', missingRateBehavior: 'Bloquear' },
+    });
+    const r = await service.payoff('liq-1', '2026-03-20');
+    expect(r.penalty?.rule).toMatchObject({ bnaRateKind: 'Efectiva', blockedDays: 10, daysWithoutRate: 10 });
+    expect(r.penalty?.accrued).toBe('0.00');
+  });
+});
+
 describe('PenaltiesService.accrue', () => {
   it('una versión de reglas con regla propia manda y se informa como del contrato', async () => {
     const { service } = makeFakePenaltyDb({

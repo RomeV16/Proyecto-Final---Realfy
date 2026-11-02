@@ -12,11 +12,11 @@ const fixed = { mode: 'daily_fixed', value: '10', graceDays: 0, maxMultiplier: '
  * Cobro con punitorios: `registerPayment` con `settlePenalties` agrega el
  * renglón Multa a la misma liquidación y el pago tiene que cubrir el total.
  */
-function buildPayment(opts: { total?: string; payments?: any[]; penalties?: any[]; status?: string } = {}) {
+function buildPayment(opts: { total?: string; payments?: any[]; penalties?: any[]; status?: string; rule?: Record<string, unknown> } = {}) {
   const db = makeFakePenaltyDb({
     liquidaciones: [{ id: 'liq-1', total: opts.total ?? '1000', dueDate: d('2026-03-10'), payments: opts.payments ?? [] }],
     penalties: opts.penalties,
-    tenantConfig: fixed,
+    tenantConfig: { ...fixed, ...opts.rule },
   });
   const lines: any[] = [{ id: 'li-1', type: 'Alquiler', amount: '1000.00', sortOrder: 0 }];
   const liquidacion: any = {
@@ -119,6 +119,23 @@ describe('registerPayment: cobro con punitorios', () => {
     expect(lines[1].amount).toBe('70.00');
     expect(penalties.filter((p) => p.status === 'active').every((p) => p.settledLiquidacionId === 'liq-1')).toBe(true);
     expect(result.penaltySettled.amount).toBe('70.00');
+  });
+
+  it('con PunitorioPrimero un pago parcial cobra primero el punitorio y deja el resto a cuenta', async () => {
+    const { service, lines, penalties, liquidacion, created } = buildPayment({ rule: { partialPaymentAllocation: 'PunitorioPrimero' } });
+    const result: any = await service.registerPayment('liq-1', pay('500', { settlePenalties: true }));
+    expect(lines[1]).toMatchObject({ type: 'Multa', amount: '100.00' });
+    expect(penalties[0].settledLiquidacionId).toBe('liq-1');
+    expect(created[0].amount).toBe('500');
+    expect(liquidacion.status).toBe('Vencida');
+    expect(result.penaltySettled).toEqual({ amount: '100.00', days: 10 });
+  });
+
+  it('con PunitorioPrimero igual rechaza un pago mayor al total', async () => {
+    const { service } = buildPayment({ rule: { partialPaymentAllocation: 'PunitorioPrimero' } });
+    await expect(service.registerPayment('liq-1', pay('1200', { settlePenalties: true }))).rejects.toMatchObject({
+      response: { error: 'PAYMENT_EXCEEDS_BALANCE' },
+    });
   });
 
   it('si no hay punitorio que cobrar, es un pago común', async () => {

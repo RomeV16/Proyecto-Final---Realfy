@@ -52,7 +52,7 @@ describe('Punitorios en la liquidación (e2e)', () => {
   const post = (token: string, path: string, body: object = {}) =>
     http().post(`/api${path}`).set(auth(token)).send(body);
 
-  async function agency(tag: string) {
+  async function agency(tag: string, rule: Record<string, unknown> = {}) {
     const admin = await registerUser(app, {
       email: `admin@${tag}.test`,
       password: PASSWORD,
@@ -69,7 +69,7 @@ describe('Punitorios en la liquidación (e2e)', () => {
     await http()
       .put('/api/tenants/me/penalty-config')
       .set(auth(token))
-      .send({ mode: 'daily_fixed', value: '100', graceDays: 0, maxMultiplier: '1000' })
+      .send({ mode: 'daily_fixed', value: '100', graceDays: 0, maxMultiplier: '1000', ...rule })
       .expect(200);
     return { tenantId: admin.user.tenantId as string, tokens, token };
   }
@@ -291,6 +291,56 @@ describe('Punitorios en la liquidación (e2e)', () => {
       await generate(token, 2, 2026);
       const feb = await byMonth(token, '2026-02');
       expect(feb.lineItems.find((l: any) => l.type === 'Multa')).toMatchObject({ amount: '1000' });
+    });
+  });
+
+  describe('Opciones pactables', () => {
+    it('CP-369 — con PunitorioPrimero un pago parcial cobra primero el punitorio y el resto queda a cuenta', async () => {
+      const { token } = await agency('pun-9', { partialPaymentAllocation: 'PunitorioPrimero' });
+      const { jan } = await enviadaDeEnero(token);
+      const paidAt = '2026-01-20T00:00:00.000Z';
+
+      const payoff = await get(token, `/liquidaciones/${jan.id}/payoff?date=2026-01-20`).expect(200);
+      expect(payoff.body.penalty.rule).toMatchObject({ partialPaymentAllocation: 'PunitorioPrimero', roundingMode: 'Total' });
+
+      const partial = await post(token, `/liquidaciones/${jan.id}/payments`, {
+        amount: '100000.00',
+        method: 'Transferencia',
+        paidAt,
+        settlePenalties: true,
+      }).expect(200);
+      expect(partial.body.penaltySettled).toEqual({ amount: '1000.00', days: 10 });
+      expect(partial.body).toMatchObject({ status: 'Enviada', total: '301000' });
+
+      // El punitorio quedó cobrado y no devenga punitorio: el cron no agrega nada sobre lo ya registrado.
+      const rows = await prisma.baseClient.penalty.findMany({ where: { liquidacionId: jan.id } });
+      expect(rows[0]).toMatchObject({ settledLiquidacionId: jan.id });
+
+      const rest = await post(token, `/liquidaciones/${jan.id}/payments`, {
+        amount: '201000.00',
+        method: 'Transferencia',
+        paidAt,
+      }).expect(200);
+      expect(rest.body.status).toBe('Pagada');
+    });
+
+    it('CP-370 — la regla acepta las opciones y rechaza valores inválidos', async () => {
+      const { token } = await agency('pun-10', {
+        mode: 'max_bna_or_daily',
+        value: '0.003',
+        bnaRateKind: 'Efectiva',
+        yearDays: 360,
+        roundingMode: 'Diario',
+        capBase: 'TotalOriginal',
+        missingRateBehavior: 'Bloquear',
+      });
+      const config = (await get(token, '/tenants/me/penalty-config').expect(200)).body;
+      expect(config).toMatchObject({ bnaRateKind: 'Efectiva', yearDays: 360, roundingMode: 'Diario', capBase: 'TotalOriginal', missingRateBehavior: 'Bloquear' });
+      await http()
+        .put('/api/tenants/me/penalty-config')
+        .set(auth(token))
+        .send({ ...config, yearDays: 366 })
+        .expect(400);
     });
   });
 
