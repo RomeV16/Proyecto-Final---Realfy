@@ -491,6 +491,7 @@ model Property {
   tickets        Ticket[]
   valuations     PropertyValuation[]
   pendingCharges PendingCharge[]
+  ownerLedger    OwnerLedgerEntry[]
 
   @@unique([tenantId, externalRef])
   @@index([tenantId])
@@ -612,6 +613,8 @@ model Person {
   cashMovements          CashMovement[]       @relation("CashCounterparty")
   compensationsFrom      Compensation[]       @relation("CompensationFrom")
   compensationsTo        Compensation[]       @relation("CompensationTo")
+  ownerLedger            OwnerLedgerEntry[]
+  ownerStatements        OwnerStatement[]
 
   @@unique([tenantId, cuit])
   @@unique([tenantId, externalRef])
@@ -868,6 +871,7 @@ model Contract {
   termsVersions   ContractTermsVersion[]
   pendingCharges  PendingCharge[]
   cashMovements   CashMovement[]
+  ownerLedger     OwnerLedgerEntry[]
 
   @@unique([tenantId, externalRef])
   @@index([previousContractId])
@@ -1113,6 +1117,8 @@ model ContractTermsVersion {
   upfrontThresholdFees   Int?
   /// Sobre qué comisión mensual se mide el umbral de anticipo.
   upfrontBasis           UpfrontBasis           @default(ComisionPactada)
+  /// Qué le debe el locador que cobró directamente; null = el de la inmobiliaria.
+  lessorDirectOwes       LessorDirectOwes?
   createdAt              DateTime               @default(now())
 
   contract  Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
@@ -1422,6 +1428,106 @@ enum CashCategory {
 enum PaymentReceiver {
   Inmobiliaria
   Locador
+}
+
+/// Qué le debe el locador a la inmobiliaria cuando el inquilino le paga directamente.
+enum LessorDirectOwes {
+  TodoLoAjeno
+  SoloInmobiliaria
+}
+
+/// Concepto de un asiento de la cuenta corriente del locador (ADR-0009).
+enum OwnerLedgerEntryType {
+  SaldoInicial
+  Alquiler
+  Punitorio
+  ReintegroImpuesto
+  Comision
+  Honorario
+  Cargo
+  PagoEnte
+  Transferencia
+  EntregaEfectivo
+  CobroDirecto
+  Compensacion
+  Custodia
+  Ajuste
+}
+
+enum OwnerStatementStatus {
+  Borrador
+  Emitido
+  Enviado
+  Anulado
+}
+
+/// Asiento de la cuenta corriente de un locador. El importe lleva signo:
+/// positivo, la inmobiliaria le debe; negativo, se le descuenta o ya lo recibió.
+/// Cada asiento sale de un origen (`sourceType`/`sourceId`) y se escribe una sola
+/// vez por persona y concepto. Un asiento con `statementId` está en un estado
+/// emitido y no se toca hasta anularlo.
+model OwnerLedgerEntry {
+  id          String               @id @default(uuid())
+  tenantId    String
+  personId    String
+  contractId  String?
+  propertyId  String?
+  date        DateTime             @db.Date
+  /// Mes del estado de cuenta al que va (primer día del mes).
+  period      DateTime             @db.Date
+  type        OwnerLedgerEntryType
+  amount      Decimal              @db.Decimal(15, 2)
+  currency    Currency
+  description String
+  statementId String?
+  sourceType  String
+  sourceId    String
+  createdById String?
+  createdAt   DateTime             @default(now())
+
+  person    Person          @relation(fields: [personId], references: [id], onDelete: Restrict)
+  contract  Contract?       @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  property  Property?       @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  statement OwnerStatement? @relation(fields: [statementId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, sourceType, sourceId, personId, type])
+  @@index([tenantId, personId, currency, date])
+  @@index([tenantId, period])
+  @@index([statementId])
+  @@map("owner_ledger_entries")
+}
+
+/// Estado de cuenta mensual de un locador en una moneda: todas sus unidades,
+/// con el saldo arrastrado del estado anterior.
+model OwnerStatement {
+  id          String               @id @default(uuid())
+  tenantId    String
+  personId    String
+  /// Mes del estado (primer día del mes).
+  period      DateTime             @db.Date
+  currency    Currency
+  status      OwnerStatementStatus @default(Borrador)
+  opening     Decimal              @db.Decimal(15, 2)
+  credits     Decimal              @db.Decimal(15, 2)
+  debits      Decimal              @db.Decimal(15, 2)
+  payouts     Decimal              @db.Decimal(15, 2)
+  closing     Decimal              @db.Decimal(15, 2)
+  pdfUrl      String?
+  sentAt      DateTime?
+  issuedAt    DateTime?
+  annulledAt  DateTime?
+  annulReason String?
+  createdById String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  person  Person             @relation(fields: [personId], references: [id], onDelete: Restrict)
+  entries OwnerLedgerEntry[]
+
+  @@unique([tenantId, personId, period, currency])
+  @@index([tenantId, period])
+  @@index([tenantId, status])
+  @@map("owner_statements")
 }
 
 /// Cuenta de la inmobiliaria: caja (efectivo), banco o custodia de un locador.
@@ -1920,17 +2026,19 @@ enum RendicionLineItemType {
 // ─── Commission & Rendicion Models ──────────────────────
 
 model ContractCommission {
-  id          String         @id @default(uuid())
-  tenantId    String
-  contractId  String         @unique
-  type        CommissionType
-  percentage  Decimal?       @db.Decimal(5, 2)
-  fixedAmount Decimal?       @db.Decimal(15, 2)
-  adminFee    Decimal?       @db.Decimal(15, 2)
-  currency    Currency       @default(ARS)
-  notes       String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id               String         @id @default(uuid())
+  tenantId         String
+  contractId       String         @unique
+  type             CommissionType
+  percentage       Decimal?       @db.Decimal(5, 2)
+  fixedAmount      Decimal?       @db.Decimal(15, 2)
+  adminFee         Decimal?       @db.Decimal(15, 2)
+  currency         Currency       @default(ARS)
+  /// Honorario por gestión de una reparación a cargo del locador, en % de su importe; null = sin honorario.
+  repairMgmtFeePct Decimal?       @db.Decimal(5, 2)
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 

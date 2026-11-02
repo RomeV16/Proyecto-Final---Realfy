@@ -209,6 +209,29 @@ describe('PersonMergeService', () => {
     await expect(service.merge({ keepId: KEEP, mergeIds: [A] })).rejects.toBeInstanceOf(ConflictException);
   });
 
+  it('cuenta corriente: repunta asientos y estados; choca con el mismo origen y concepto o el mismo mes y moneda', async () => {
+    const entry = (id: string, personId: string, sourceId: string) => ({
+      id,
+      personId,
+      sourceType: 'OpeningBalance',
+      sourceId,
+      type: 'SaldoInicial',
+    });
+    const sameOpening = setup({ ownerLedgerEntry: [entry('e1', KEEP, 'ARS'), entry('e2', A, 'ARS')] });
+    await expect(sameOpening.service.merge({ keepId: KEEP, mergeIds: [A] })).rejects.toBeInstanceOf(ConflictException);
+    const statement = (id: string, personId: string, currency: string) => ({ id, personId, period: '2026-10', currency });
+    const sameMonth = setup({ ownerStatement: [statement('s1', KEEP, 'ARS'), statement('s2', A, 'ARS')] });
+    await expect(sameMonth.service.merge({ keepId: KEEP, mergeIds: [A] })).rejects.toBeInstanceOf(ConflictException);
+
+    const { db, service } = setup({
+      ownerLedgerEntry: [entry('e1', KEEP, 'ARS'), entry('e2', A, 'USD')],
+      ownerStatement: [statement('s1', KEEP, 'ARS'), statement('s2', A, 'USD')],
+    });
+    await service.merge({ keepId: KEEP, mergeIds: [A] });
+    expect(db.tables.ownerLedgerEntry.map((r: Row) => r.personId)).toEqual([KEEP, KEEP]);
+    expect(db.tables.ownerStatement.map((r: Row) => r.personId)).toEqual([KEEP, KEEP]);
+  });
+
   it('custodias: mueve la de otra moneda, choca si las dos tienen custodia en la misma; repunta libro y compensaciones', async () => {
     const custody = (id: string, ownerPersonId: string, currency: string) => ({ id, kind: 'Custodia', ownerPersonId, currency });
     const clash = setup({ financialAccount: [custody('f1', KEEP, 'USD'), custody('f2', A, 'USD')] });

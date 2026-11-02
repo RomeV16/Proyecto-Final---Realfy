@@ -26,6 +26,8 @@ export const MERGE_MODELS: Record<string, string> = {
   cashMovement: 'CashMovement',
   compensation: 'Compensation',
   financialAccount: 'FinancialAccount',
+  ownerLedgerEntry: 'OwnerLedgerEntry',
+  ownerStatement: 'OwnerStatement',
   ticket: 'Ticket',
   ticketComment: 'TicketComment',
   portalRefreshToken: 'PortalRefreshToken',
@@ -64,6 +66,13 @@ export const MERGE_RULES: MergeRule[] = [
   // (cada una tiene su libro); se entrega o se compensa una antes de unir.
   { kind: 'conflict', delegate: 'financialAccount', field: 'ownerPersonId', scope: ['kind', 'currency'] },
   { kind: 'conflict', delegate: 'ownerRendicion', field: 'ownerId', scope: ['contractId', 'period'] },
+  // Cuenta corriente: los asientos pasan a la persona conservada; si las dos tienen un
+  // asiento del mismo origen y concepto (por ejemplo, el saldo inicial de la misma
+  // moneda, o la parte de cada una en el mismo cobro), sumarlos o elegir uno cambiaría
+  // un saldo: la unión se rechaza y se corrige a mano antes.
+  { kind: 'conflict', delegate: 'ownerLedgerEntry', field: 'personId', scope: ['sourceType', 'sourceId', 'type'] },
+  // Un estado por locador, mes y moneda: dos estados del mismo mes no se juntan solos.
+  { kind: 'conflict', delegate: 'ownerStatement', field: 'personId', scope: ['period', 'currency'] },
   { kind: 'conflict', delegate: 'tenantScore', field: 'personId', scope: [] },
   { kind: 'conflict', delegate: 'providerProfile', field: 'personId', scope: [] },
   { kind: 'conflict', delegate: 'inquilinoCredential', field: 'personId', scope: [] },
