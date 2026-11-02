@@ -434,5 +434,5 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Resultado obtenido:** 100 y 20 (120); el modo compuesto restaba solo las filas activas, de modo que lo condonado reaparecía.
 - **Causa raíz:** `computePenalty` devolvía el devengo total para los modos simples y el scheduler lo registraba como si fuera la diferencia; la suma previa solo miraba filas activas.
 - **Corrección:** el motor calcula lo devengado a la fecha sobre el saldo de cada día y el servicio registra la diferencia con todas las filas (activas, condonadas o cobradas).
-- **Prueba de regresión:** CP-360 en `penalties/penalties.scheduler.spec.ts` (devengo incremental) y `penalty-engine.spec.ts`.
-- **Evidencia rojo/verde:** regresión y corrección en el mismo cambio de la rama de punitorios (la prueba incremental falla contra el cálculo anterior por construcción: 20 en lugar de 10).
+- **Prueba de regresión:** CP-360 en `penalties/penalties.scheduler.def28.spec.ts` (en rojo, contra el cálculo anterior) y, ya corregido, en `penalties/penalties.scheduler.spec.ts` (devengo incremental) y `penalty-engine.spec.ts`.
+- **Evidencia rojo/verde:** regresión `f05c17c` en rojo (contra el código anterior: 2 pruebas fallan y 34 pasan; se registra 110 en lugar de 10, y otra fila de 100 sobre una condonada); corrección en `400d1bc`. Pipeline: se completa al abrir el PR.

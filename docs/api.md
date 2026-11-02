@@ -317,7 +317,7 @@ Códigos de error: `CHARGE_RULE_REQUIRES_AGREEMENT` (409), `CHARGE_RULE_EXISTS` 
 | PATCH | `/liquidaciones/:id/line-items/:lineItemId` | Edita una línea. | Admin, Gerente, Liquidaciones |
 | DELETE | `/liquidaciones/:id/line-items/:lineItemId` | Quita una línea. | Admin, Gerente, Liquidaciones |
 | GET | `/liquidaciones/:id/payments` | Pagos imputados. | Autenticado |
-| POST | `/liquidaciones/:id/payments` | Registra un pago e imputa el saldo. Rechaza con `PAYMENT_EXCEEDS_BALANCE` un importe mayor al saldo. Con `settlePenalties: true` agrega a la liquidación un renglón Multa con los punitorios devengados a `paidAt` (sin lo condonado ni lo ya cobrado), marca esas filas como cobradas y exige que el pago cubra el total (400 `PAYOFF_REQUIRES_FULL_AMOUNT`, con `expectedAmount`); la respuesta suma `penaltySettled`. Un pago tardío que salda la liquidación fija el devengo hasta su fecha. | Admin, Gerente, Liquidaciones |
+| POST | `/liquidaciones/:id/payments` | Registra un pago e imputa el saldo. Rechaza con `PAYMENT_EXCEEDS_BALANCE` un importe mayor al saldo. Con `settlePenalties: true` agrega a la liquidación un renglón Multa con los punitorios devengados a `paidAt` (sin lo condonado ni lo ya cobrado), marca esas filas como cobradas y, con `RentaPrimero`, exige que el pago cubra el total (400 `PAYOFF_REQUIRES_FULL_AMOUNT`, con `expectedAmount`); con `PunitorioPrimero` el pago puede ser parcial y cubre primero la Multa; la respuesta suma `penaltySettled`. Un pago tardío que salda la liquidación fija el devengo hasta su fecha. | Admin, Gerente, Liquidaciones |
 | DELETE | `/liquidaciones/:id` | Borra la liquidación. | Admin, Gerente |
 
 ## Pagos
@@ -342,7 +342,7 @@ consulta agregada.
 | POST | `/contracts/:id/penalties/waive-all` | Condona los punitorios activos y sin cobrar del contrato hasta `upTo` (`YYYY-MM-DD`, por defecto hoy); `{ reason }` obligatorio. Responde `{ waived, total, upTo }` y deja una fila de auditoría. | Admin, Gerente |
 | POST | `/penalties/run` | Dispara la corrida de cálculo. | Admin |
 | GET | `/tenants/me/penalty-config` | Parámetros de punitorios de la inmobiliaria. | Admin, Gerente |
-| PUT | `/tenants/me/penalty-config` | Actualiza esos parámetros: `mode` (`daily_fixed`, `daily_percent`, `compound_percent`, `max_bna_or_daily`), `value`, `graceDays`, `maxMultiplier` y, solo con `max_bna_or_daily`, `bnaMultiplier` (2) y `yearDays` (365). Un contrato puede fijar la suya en `termsPatch.penaltyConfig`. | Admin |
+| PUT | `/tenants/me/penalty-config` | Actualiza esos parámetros: `mode` (`daily_fixed`, `daily_percent`, `compound_percent`, `max_bna_or_daily`), `value`, `graceDays`, `maxMultiplier` y, solo con `max_bna_or_daily`, `bnaMultiplier` (2), `yearDays` (365 o 360) y `bnaRateKind` (`Nominal` o `Efectiva`) y `missingRateBehavior` (`AplicarPiso` o `Bloquear`); en cualquier modo, `partialPaymentAllocation` (`RentaPrimero` o `PunitorioPrimero`), `roundingMode` (`Total` o `Diario`) y `capBase` (`SaldoInicioMora` o `TotalOriginal`); sin ellas rige el primer valor. Un contrato puede fijar la suya en `termsPatch.penaltyConfig`. | Admin |
 
 Existe además `POST /penalties/_run-now`, que fuerza la corrida diaria sin
 esperar al planificador. No declara roles, pero el propio manejador rechaza la

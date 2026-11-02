@@ -496,6 +496,21 @@ piso, y la pantalla lo avisa. Un contrato puede tener su propia regla: en el
 detalle, *Reglas vigentes* → *Cambiar la regla* la registra desde una fecha como
 un acuerdo, o vuelve a la de la inmobiliaria.
 
+**Opciones de la regla.** Además del cálculo, la regla (de la inmobiliaria o de un
+contrato) fija cómo se aplican estas convenciones; el valor por defecto es el primero:
+- *Pago parcial con punitorios*: primero el alquiler (el pago que cobra punitorios tiene
+  que cubrir el total) o primero el punitorio (un pago parcial cobra la Multa y deja el
+  resto a cuenta; el punitorio cobrado no devenga punitorio).
+- *Redondeo*: una vez sobre el total, o cada día antes de sumar.
+- *Base del tope*: el saldo al empezar la mora, o el total original.
+- Con la tasa del BNA: *nominal* (TNA dividida por 365) o *efectiva* (TEA convertida a
+  diaria compuesta); *días del año* 365 o 360; y qué hacer en los días sin tasa
+  cargada: aplicar el piso diario o no devengar esos días (la pantalla los avisa).
+
+Se mantienen estas reglas: rige la regla vigente en la fecha de devengo para toda la
+mora; un pago con fecha anterior a lo ya devengado no revierte las filas registradas; y
+condonar no frena el devengo futuro sobre el alquiler que sigue impago.
+
 **Cobro en la liquidación siguiente.** Al generar el período siguiente, los
 punitorios devengados que no se cobraron ni se condonaron entran como un renglón
 *Multa* (comisionable, para el locador). Cada punitorio se cobra una sola vez; si
