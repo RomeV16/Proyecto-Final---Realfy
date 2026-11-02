@@ -10,20 +10,33 @@ import { formatMoneyFixed, formatNumber } from '@/lib/format';
 interface PaymentFormProps {
   liquidacionId: string;
   remainingBalance: number;
+  /** Monto y fecha propuestos (los del cálculo "pagar hoy"). */
+  initialAmount?: string;
+  initialPaidAt?: string;
+  /** Cobra también los punitorios devengados a la fecha del pago: el monto tiene que ser el total. */
+  settlePenalties?: boolean;
   onSuccess: () => void;
   onClose: () => void;
 }
 
-export function PaymentForm({ liquidacionId, remainingBalance, onSuccess, onClose }: PaymentFormProps) {
+export function PaymentForm({
+  liquidacionId,
+  remainingBalance,
+  initialAmount,
+  initialPaidAt,
+  settlePenalties = false,
+  onSuccess,
+  onClose,
+}: PaymentFormProps) {
   const t = useTranslations('liquidaciones.payments');
   const tMethods = useTranslations('liquidaciones.paymentMethods');
   const tCommon = useTranslations('common');
 
-  const [amount, setAmount] = useState(remainingBalance > 0 ? String(remainingBalance) : '');
+  const [amount, setAmount] = useState(initialAmount ?? (remainingBalance > 0 ? String(remainingBalance) : ''));
   const [method, setMethod] = useState('');
   const [reference, setReference] = useState('');
   const [notes, setNotes] = useState('');
-  const [paidAt, setPaidAt] = useState(new Date().toISOString().split('T')[0]);
+  const [paidAt, setPaidAt] = useState(initialPaidAt ?? new Date().toISOString().split('T')[0]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -51,12 +64,15 @@ export function PaymentForm({ liquidacionId, remainingBalance, onSuccess, onClos
           reference: reference || undefined,
           notes: notes || undefined,
           paidAt: paidAt ? new Date(paidAt).toISOString() : undefined,
+          ...(settlePenalties ? { settlePenalties: true } : {}),
         }),
       });
       onSuccess();
     } catch (err) {
       if (err instanceof ApiRequestError && err.errorCode === 'PAYMENT_EXCEEDS_BALANCE') {
         setError(t('exceedsBalance', { balance: formatNumber(remainingBalance) }));
+      } else if (err instanceof ApiRequestError && err.errorCode === 'PAYOFF_REQUIRES_FULL_AMOUNT') {
+        setError(t('payoffRequiresFullAmount'));
       } else {
         setError(err instanceof ApiRequestError ? err.message : t('registerError'));
       }
@@ -83,6 +99,11 @@ export function PaymentForm({ liquidacionId, remainingBalance, onSuccess, onClos
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <h2 className="text-lg font-semibold text-slate-900">{t('title')}</h2>
+          {settlePenalties && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              {t('withPenalties')}
+            </p>
+          )}
 
           {/* Amount */}
           <div>

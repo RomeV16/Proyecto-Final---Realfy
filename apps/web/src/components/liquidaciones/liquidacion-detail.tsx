@@ -15,6 +15,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { PaymentForm } from './payment-form';
+import { PayoffPanel } from './payoff-panel';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { Icon } from '@/components/ui/icon';
 import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
@@ -80,6 +81,7 @@ const LINE_ITEM_ICONS: Record<string, string> = {
   [LineItemType.Ajuste]: '📊',
   [LineItemType.Extra]: '➕',
   [LineItemType.Descuento]: '🏷️',
+  [LineItemType.Multa]: '⚠️',
   [LineItemType.Impuesto]: '🏛️',
   [LineItemType.Servicio]: '💡',
   [LineItemType.Cargo]: '🔧',
@@ -118,6 +120,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const [actionLoading, setActionLoading] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [payoff, setPayoff] = useState<{ amount: string; date: string } | null>(null);
   const [showLineItemForm, setShowLineItemForm] = useState(false);
   const [editingLineItem, setEditingLineItem] = useState<LineItem | null>(null);
 
@@ -590,17 +593,33 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         </div>
       </div>
 
+      {/* Monto a pagar en una fecha, con los punitorios devengados */}
+      {!readOnly && canAct && [LiquidacionStatus.Enviada, LiquidacionStatus.Vencida].includes(data.status as LiquidacionStatus) && (
+        <PayoffPanel
+          liquidacionId={liquidacionId}
+          currency={data.currency}
+          onPay={(amount, date) => setPayoff({ amount, date })}
+        />
+      )}
+
       {/* PaymentForm modal */}
-      {showPaymentForm && (
+      {(showPaymentForm || payoff) && (
         <PaymentForm
           liquidacionId={liquidacionId}
           remainingBalance={remainingBalance}
+          initialAmount={payoff?.amount}
+          initialPaidAt={payoff?.date}
+          settlePenalties={payoff !== null}
           onSuccess={() => {
             setShowPaymentForm(false);
+            setPayoff(null);
             setFeedback({ type: 'success', msg: tPayments('registerSuccess') });
             fetchData();
           }}
-          onClose={() => setShowPaymentForm(false)}
+          onClose={() => {
+            setShowPaymentForm(false);
+            setPayoff(null);
+          }}
         />
       )}
 
