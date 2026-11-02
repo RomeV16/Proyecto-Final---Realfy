@@ -15,6 +15,10 @@ Esta dispersión genera problemas recurrentes:
 
 Realfy busca consolidar todo el ciclo de gestión inmobiliaria sobre una única plataforma multi-inmobiliaria, con foco en el contexto regulatorio argentino.
 
+### Piloto con una inmobiliaria real
+
+Desde octubre de 2026 el sistema se valida en una inmobiliaria real, una empresa familiar de administración de alquileres que lleva su ciclo mensual con una base de datos de escritorio y planillas (el capítulo completo está en `30-piloto.md`). El relevamiento de su operación confirmó los problemas de la lista anterior y agregó tres que el planteo original no había visto. El primero es que quien alquila y cobra no es necesariamente el dueño del inmueble: un contrato puede tener varios locadores, cada uno con su porcentaje de cobro, y apoderados que firman o cobran por ellos. El segundo es que casi todas las reglas del negocio son pactables contrato por contrato y cambian por acuerdos fechados, de modo que un sistema con reglas fijas en el código no sirve para operar. El tercero es que el costo principal de la operación está en el estado de cuenta que cada locador recibe al cierre del mes, que se arma a mano y llega con atraso.
+
 ## Objetivos generales
 
 - Diseñar e implementar una plataforma SaaS multi-inmobiliaria que cubra el ciclo completo de gestión de alquileres residenciales y comerciales, desde la captación del lead hasta la rendición al propietario.
@@ -29,6 +33,7 @@ Realfy busca consolidar todo el ciclo de gestión inmobiliaria sobre una única 
 - Proveer un CRM básico con pipeline configurable, registro de interacciones y conversión de lead a contrato.
 - Establecer un esquema de auditoría, logging y permisos por rol que permita operar en modo multi-inmobiliaria sin fugas entre tenants.
 - Documentar la solución y validarla con pruebas integrales (Playwright) y revisión de seguridad sobre los flujos críticos.
+- Validar el sistema en uso real con una inmobiliaria piloto: reproducir su ciclo mensual completo con las reglas pactadas en cada contrato, reconciliar los resultados contra su sistema actual hasta que no queden diferencias sin explicar y registrar cada fricción del uso hasta una corrección verificada. Las metas y la forma de medirlas están en `30-piloto.md`.
 
 ## Alcance funcional
 
@@ -50,16 +55,42 @@ Forman parte del alcance del trabajo final:
 - Dashboard de KPIs operativos.
 - Componentes con asistencia de IA: panel diario de priorización y resumen al cierre de contrato.
 
+### Ampliación por el piloto
+
+El piloto agrega al alcance lo que la inmobiliaria necesita para dejar sus planillas. La ampliación se decidió el 30 de octubre de 2026, a partir del relevamiento, y se organiza en los ítems 30 a 46 del cronograma (`04-backlog.md`). Al 2 de noviembre de 2026 su estado es el siguiente:
+
+| Funcionalidad | Ítem | Estado |
+|---|---|---|
+| Usuarios con invitación, cambio y recupero de contraseña, menú y lectura de datos sensibles por rol | 32 | Implementado |
+| Personas con documento, domicilio y varias cuentas bancarias; locadores por contrato con porcentaje de cobro y vigencia; apoderados; titularidad separada | 33 | Implementado |
+| Activación del contrato; reglas versionadas con acuerdos fechados y valores por defecto de la inmobiliaria; fin real y prórroga de palabra; ajuste con rezago, estimado y corrección, y aplicación de los ajustes del mes | 34 | Implementado |
+| Liquidación completa: generación anticipada con prorrateo y vencimiento pactado, boletas de impuestos y servicios con reglas de traslado, centro de carga, punitorios dentro de la liquidación, recibo numerado con monto en letras | 35 | Implementado |
+| Importación idempotente desde el sistema anterior y panel de calidad de datos | 39 | Implementado; la carga de la cartera real está hecha y su revisión con la inmobiliaria sigue en curso |
+| Caja operativa, cobro en tres flujos, efectivo en custodia y compensaciones | 36 | Implementado |
+| Cuenta corriente y estado de cuenta consolidado por locador | 37 | Planificado (oleada 3) |
+| Facturación electrónica por cuenta del locador | 38 | Planificado (oleada 4) |
+| Vencimientos con semáforo, renovación como período del contrato, depósitos y liquidación de egreso | 40 | Planificado (oleada 4) |
+| Honorarios de alta, renovación, venta y tasación, y comisiones del personal | 41 | Planificado (oleada 4) |
+| Incidencias y reparaciones con preautorización, presupuesto e imputación | 42 | Planificado (oleada 4) |
+| Correo con dominio propio, mensajería instantánea con consentimiento, bandeja de consultas y cobranza escalonada | 43 | Planificado (oleadas 4 y 5) |
+| Operación de venta hasta el boleto (reserva y seña), registro de llaves y publicación asistida en portales | 44 | Planificado (oleada 5) |
+| Ciclos en paralelo, reconciliación y métricas del piloto | 45 | Pendiente: línea base y primer ciclo en sombra alrededor del 20/11/2026 |
+
 ## Exclusiones
 
 Quedan fuera del alcance del trabajo final:
 
-- Contabilidad completa (libro diario, balances, conciliación bancaria avanzada).
-- Cobros automáticos por pasarela de pago, débito directo o billeteras virtuales (se modela el registro del pago, no la captura del dinero).
+- Contabilidad completa (libro diario, balances, conciliación bancaria avanzada). La caja operativa y la cuenta corriente por locador que agrega el piloto registran el dinero que pasa por la inmobiliaria y lo que se le debe a cada locador; no son un sistema contable.
+- Cobros automáticos por pasarela de pago, débito directo, billeteras virtuales o recaudadoras como SIRO (se modela el registro del pago, incluido el efectivo en oficina, no la captura del dinero). La recaudadora queda declarada como trabajo futuro.
 - App móvil nativa para inquilinos o agentes (el portal web es responsive).
 - Firma digital de contratos con certificación oficial; se contempla únicamente la generación del documento y su descarga.
-- Integraciones con portales externos de publicación (ZonaProp, Argenprop, MercadoLibre) más allá de exportación CSV.
-- Liquidación tributaria del propietario o del inquilino (retenciones, ganancias, ingresos brutos).
-- Soporte para operaciones de venta con escrituración; el foco es alquiler.
+- Integraciones con portales externos de publicación (ZonaProp, Argenprop, MercadoLibre y portales de clasificados) que no ofrezcan una interfaz programática. El piloto incorpora la publicación asistida —estado del aviso por portal y texto listo para copiar— y el micrositio como portal propio; la integración solo entra si el portal ofrece una interfaz.
+- Liquidación tributaria del propietario o del inquilino (retenciones, ganancias, ingresos brutos). La facturación electrónica por cuenta del locador que agrega el piloto emite el comprobante en su nombre; no liquida sus impuestos.
+- Escrituración de operaciones de venta. El piloto incorpora la operación de venta hasta el boleto —reserva, seña y honorarios—, sin la escrituración.
+- Dentro del piloto, además: el inventario estructurado con fotos (se mantiene como adjunto), el portal del propietario, la publicación en redes sociales y una capa de análisis de garantes más allá del puntaje actual. Se declaran como trabajo futuro.
+
+## Revisión del alcance por el piloto
+
+Este documento se aprobó en el Hito 1 y su versión original no incluía el uso con datos reales de personas ni las secciones «Piloto con una inmobiliaria real», «Ampliación por el piloto» y la precisión de las exclusiones, que se agregaron el 2 de noviembre de 2026. Es un desvío declarado respecto del alcance aprobado: el cambio no nace de una reestimación del equipo sino del relevamiento de una operación real, y cada ampliación tiene su hallazgo de origen en `31-registro-de-feedback.md` y su ítem en `04-backlog.md`. Las exclusiones originales se mantienen; lo que cambió es dónde pasa exactamente la frontera de cada una, y la relación entre unas y otras está detallada en `30-piloto.md`, «Relación con las exclusiones del alcance original».
 
 <!-- Cierre item 01 — aprobado por tutor 2026-04-14 -->
