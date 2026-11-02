@@ -75,6 +75,17 @@ function ticket(overrides: Record<string, unknown> = {}) {
       },
     ],
     validTransitions: ['EnProgreso', 'Cancelado'],
+    contractId: null,
+    providerId: null,
+    estimatedAmount: null,
+    costAmount: null,
+    costCurrency: null,
+    costPayer: null,
+    preauthorizedAmount: null,
+    preauthorizedAt: null,
+    preauthorizedChannel: null,
+    imputedAt: null,
+    quotes: [],
     ...overrides,
   };
 }
@@ -107,6 +118,9 @@ function mockApi(opts: Opts = {}) {
     if (path === '/providers/for-ticket/t-1') {
       return Promise.resolve().then(opts.providers ?? (() => providers));
     }
+    if (path.startsWith('/providers?')) return Promise.resolve({ data: [] });
+    if (path.startsWith('/persons?')) return Promise.resolve({ items: [] });
+    if (path === '/tickets/t-1/provider-payments') return Promise.resolve({ items: [], total: '0.00', currency: null });
     return Promise.resolve({});
   });
 }
@@ -167,8 +181,8 @@ describe('TicketDetailPage', () => {
   it('reasigna al elegir otro usuario activo (sin el actual ni inactivos)', async () => {
     mockApi();
     const user = await renderPage();
-    const select = (await screen.findAllByRole('combobox'))[0];
-    await screen.findByRole('option', { name: /Rita Imaginada · Gerente/ });
+    const option = await screen.findByRole('option', { name: /Rita Imaginada · Gerente/ });
+    const select = option.closest('select')!;
     expect(screen.queryByRole('option', { name: /Pedro Simulado/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /Baja Inactiva/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reasignar' })).toBeDisabled();
@@ -190,8 +204,8 @@ describe('TicketDetailPage', () => {
       },
     });
     const user = await renderPage();
-    await screen.findByRole('option', { name: /Rita Imaginada/ });
-    await user.selectOptions((await screen.findAllByRole('combobox'))[0], 'u3');
+    const rita = await screen.findByRole('option', { name: /Rita Imaginada/ });
+    await user.selectOptions(rita.closest('select')!, 'u3');
     await user.click(screen.getByRole('button', { name: 'Reasignar' }));
     expect(await screen.findByText('No se puede reasignar')).toBeInTheDocument();
     fail = new Error('x');
@@ -236,7 +250,7 @@ describe('TicketDetailPage', () => {
     mockApi({ ticket: () => ticket({ validTransitions: [], status: 'Cerrado', priority: 'Baja' }) });
     await renderPage();
     expect(screen.getByText('Sin transiciones disponibles')).toBeInTheDocument();
-    expect(screen.getByText('Cerrado')).toBeInTheDocument();
+    expect(screen.getAllByText('Cerrado').length).toBeGreaterThan(0);
     expect(screen.getByText('Baja')).toBeInTheDocument();
   });
 

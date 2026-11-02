@@ -61,7 +61,7 @@ export function RepairPayments({ ticket, canPay, onChanged }: Props) {
       try {
         const res = await apiClient<ProviderPaymentsResponse>(`/tickets/${ticket.id}/provider-payments`);
         if (cancelled) return;
-        setPayments(res);
+        setPayments({ items: res?.items ?? [], total: res?.total ?? '0.00', currency: res?.currency ?? null });
         setLoadError(null);
       } catch (err) {
         if (!cancelled) setLoadError(err);
