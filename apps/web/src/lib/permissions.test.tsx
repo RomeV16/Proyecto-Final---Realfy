@@ -50,6 +50,8 @@ const EXPECTED: Record<Action, string[]> = {
   'contractRules.manage': ['Admin', 'Gerente'],
   'penalties.waive': ['Admin', 'Gerente'],
   'imports.manage': ['Admin'],
+  'dataQuality.view': ['Admin', 'Gerente'],
+  'dataQuality.merge': ['Admin'],
   'indexData.view': ['Admin', 'Gerente'],
   'indexData.manage': ['Admin'],
 };
