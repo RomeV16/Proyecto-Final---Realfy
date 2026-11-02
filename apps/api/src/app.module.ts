@@ -31,6 +31,7 @@ import { PenaltiesModule } from './modules/penalties/penalties.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { EmailTemplatesModule } from './modules/email-templates/email-templates.module';
 import { ServicesModule } from './modules/services/services.module';
+import { ChargesModule } from './modules/charges/charges.module';
 import { PipelinesModule } from './modules/pipelines/pipelines.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
@@ -96,6 +97,7 @@ import { ReadPolicyModule } from './common/read-policy/read-policy.module';
     InvoicesModule,
     RenditionsModule,
     ServicesModule,
+    ChargesModule,
     NotificationsModule,
     EmailTemplatesModule,
     PortalAuthModule,

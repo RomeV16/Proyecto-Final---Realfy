@@ -8,9 +8,10 @@ import { TenantsModule } from '../tenants/tenants.module';
 import { IndexDataModule } from '../index-data/index-data.module';
 import { ServicesModule } from '../services/services.module';
 import { PenaltiesModule } from '../penalties/penalties.module';
+import { ChargesModule } from '../charges/charges.module';
 
 @Module({
-  imports: [TenantsModule, IndexDataModule, ServicesModule, PenaltiesModule],
+  imports: [TenantsModule, IndexDataModule, ServicesModule, PenaltiesModule, ChargesModule],
   controllers: [LiquidacionesController],
   providers: [
     LiquidacionesService,

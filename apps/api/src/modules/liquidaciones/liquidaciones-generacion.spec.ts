@@ -33,6 +33,7 @@ function build(
     findFirst?: jest.Mock;
     trueUps?: any[];
     serviceLines?: any[];
+    chargeLines?: any[];
     penaltyLines?: any[];
     penaltyRowIds?: string[];
   } = {},
@@ -60,6 +61,11 @@ function build(
     markSettled: jest.fn().mockResolvedValue(0),
     release: jest.fn().mockResolvedValue(0),
   };
+  const charges = {
+    pendingLines: jest.fn().mockResolvedValue(opts.chargeLines ?? []),
+    markImputed: jest.fn().mockResolvedValue(0),
+    releaseFromLiquidation: jest.fn().mockResolvedValue(0),
+  };
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const defaults = {
     get: jest.fn().mockResolvedValue({
@@ -83,8 +89,9 @@ function build(
     adjustments as any,
     serviceBills as any,
     penalties as any,
+    charges as any,
   );
-  return { service, client, audit, defaults, adjustments, serviceBills, penalties };
+  return { service, client, audit, defaults, adjustments, serviceBills, penalties, charges };
 }
 
 const createdData = (client: any, n = 0) => client.liquidacion.create.mock.calls[n][0].data;
@@ -454,6 +461,63 @@ describe('LiquidacionesService.generate: impuestos y servicios', () => {
     await service.generate({ month: 11, year: 2026 });
     expect(serviceBills.pendingLines).not.toHaveBeenCalled();
     expect(serviceBills.markBilled).not.toHaveBeenCalled();
+  });
+});
+
+describe('LiquidacionesService.generate: centro de carga', () => {
+  const chargeLine = (overrides: Record<string, unknown> = {}) => ({
+    type: 'Cargo',
+    description: 'Reparación: canilla',
+    amount: '8000.50',
+    commissionable: false,
+    beneficiary: 'Locador',
+    sourceType: 'PendingCharge',
+    sourceId: 'pc-1',
+    ...overrides,
+  });
+
+  it('suma los cargos sin comisión y los marca imputados en la misma transacción', async () => {
+    const { service, client, charges } = build([contract()], {
+      chargeLines: [
+        chargeLine(),
+        chargeLine({ type: 'Descuento', description: 'Devolución: arreglo, a favor del inquilino', amount: '3000.00', sourceId: 'pc-2' }),
+      ],
+    });
+    await service.generate({ month: 11, year: 2026 });
+
+    expect(charges.pendingLines).toHaveBeenCalledWith('c-1', d('2026-11-01'), 'ARS');
+    const data = createdData(client);
+    expect(
+      data.lineItems.create.map((l: any) => [l.type, l.amount, l.commissionable, l.beneficiary, l.sourceType, l.sourceId]),
+    ).toEqual([
+      ['Alquiler', '300000.00', true, 'Locador', null, null],
+      ['Cargo', '8000.50', false, 'Locador', 'PendingCharge', 'pc-1'],
+      ['Descuento', '3000.00', false, 'Locador', 'PendingCharge', 'pc-2'],
+    ]);
+    expect(data.total).toBe('305000.50');
+    expect(charges.markImputed).toHaveBeenCalledWith(client, ['pc-1', 'pc-2'], 'liq-new');
+  });
+
+  it('si la liquidación no se crea, los cargos no se marcan', async () => {
+    const { service, client, charges } = build([contract()], { chargeLines: [chargeLine()] });
+    client.liquidacion.create.mockRejectedValue(new Error('boom'));
+    const summary = await service.generate({ month: 11, year: 2026 });
+    expect(summary.failed).toBe(1);
+    expect(charges.markImputed).not.toHaveBeenCalled();
+  });
+
+  it('si otra generación ya imputó un cargo, el contrato falla y no se crea nada', async () => {
+    const { service, charges } = build([contract()], { chargeLines: [chargeLine()] });
+    charges.markImputed.mockRejectedValue(new Error('CHARGE_ALREADY_IMPUTED'));
+    const summary = await service.generate({ month: 11, year: 2026 });
+    expect(summary.failed).toBe(1);
+    expect(summary.results[0].reason).toBe('CHARGE_ALREADY_IMPUTED');
+  });
+
+  it('un contrato que ya tiene su liquidación no consulta cargos', async () => {
+    const { service, charges } = build([contract()], { existing: { id: 'liq-old' }, chargeLines: [chargeLine()] });
+    await service.generate({ month: 11, year: 2026 });
+    expect(charges.pendingLines).not.toHaveBeenCalled();
   });
 });
 
