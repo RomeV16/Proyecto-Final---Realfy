@@ -42,6 +42,7 @@ describe('LiquidacionesService.generatePdf: propiedad del contrato', () => {
       {} as any,
       {} as any,
       {} as any,
+      { record: jest.fn(async (_tx: any, ctx: any) => ctx.payment) } as any,
     );
   };
 

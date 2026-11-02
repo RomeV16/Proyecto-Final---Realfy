@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   BadRequestException,
+  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -52,10 +53,18 @@ import { EmailService } from './email.service';
 import { ServiceBillsService } from '../services/service-bills.service';
 import { PenaltiesService, parseDay } from '../penalties/penalties.service';
 import { ChargesService } from '../charges/charges.service';
+import { PaymentSettlementService } from '../cash/payment-settlement.service';
 import Decimal from 'decimal.js';
-import { randomUUID } from 'crypto';
+import { nextDocumentNumber } from '../../common/document-sequence/document-sequence';
 import { assertTransition } from '../../common/errors/assert-transition';
 import { parseOrThrow } from '../../common/validation/zod';
+
+/** Lo que acompaña a cada cobro: cuenta, recibo y compensaciones (ADR-0012). */
+const PAYMENT_INCLUDE = {
+  account: { select: { id: true, name: true, kind: true, currency: true } },
+  receipt: { select: { id: true, series: true, number: true } },
+  compensations: { select: { id: true, fromLessorId: true, toLessorId: true, amount: true } },
+} as const;
 
 /** Serie de numeración de los recibos de liquidación (una por inmobiliaria). */
 const RECEIPT_SERIES = 'RECIBO_LIQUIDACION';
@@ -95,6 +104,7 @@ export class LiquidacionesService {
     private readonly serviceBills: ServiceBillsService,
     private readonly penalties: PenaltiesService,
     private readonly charges: ChargesService,
+    private readonly paymentCash: PaymentSettlementService,
   ) {}
 
   // ─── Auto-Generation ────────────────────────────────
@@ -462,7 +472,7 @@ export class LiquidacionesService {
       where: { id },
       include: {
         lineItems: { orderBy: { sortOrder: 'asc' } },
-        payments: { orderBy: { paidAt: 'asc' } },
+        payments: { orderBy: { paidAt: 'asc' }, include: PAYMENT_INCLUDE },
         contract: {
           include: {
             property: true,
@@ -656,7 +666,7 @@ export class LiquidacionesService {
     if (needsReceipt) {
       const tenantId = this.tenantContext.getTenantId()!;
       await this.prisma.client.$transaction(async (tx: any) => {
-        updateData.receiptSeq = await this.nextReceiptSeq(tx, tenantId);
+        updateData.receiptSeq = await nextDocumentNumber(tx, tenantId, RECEIPT_SERIES);
         await tx.liquidacion.update({ where: { id }, data: updateData });
       });
     } else if (toStatus === LiquidacionStatus.Anulada) {
@@ -688,23 +698,6 @@ export class LiquidacionesService {
     }
 
     return updated;
-  }
-
-  /**
-   * Próximo número de recibo de la inmobiliaria. Un solo INSERT ... ON CONFLICT
-   * incrementa el contador de la serie, así que dos aprobaciones simultáneas
-   * no repiten número. El SQL crudo no pasa por la extensión de inmobiliaria:
-   * filtra por tenantId a mano (ADR-0006).
-   */
-  private async nextReceiptSeq(tx: any, tenantId: string): Promise<number> {
-    const rows: { next: number }[] = await tx.$queryRaw(
-      Prisma.sql`INSERT INTO document_sequences ("id", "tenantId", "series", "next")
-        VALUES (${randomUUID()}, ${tenantId}, ${RECEIPT_SERIES}, 2)
-        ON CONFLICT ("tenantId", "series")
-        DO UPDATE SET "next" = document_sequences."next" + 1
-        RETURNING "next"`,
-    );
-    return rows[0].next - 1;
   }
 
   // ─── Payments ───────────────────────────────────────
@@ -826,7 +819,17 @@ export class LiquidacionesService {
           });
         }
 
-        const created = await tx.payment.create({
+        if (validated.externalRef) {
+          const duplicate = await tx.payment.findFirst({ where: { externalRef: validated.externalRef }, select: { id: true } });
+          if (duplicate) {
+            throw new ConflictException({
+              error: 'PAYMENT_EXTERNAL_REF_EXISTS',
+              message: `A payment with external reference ${validated.externalRef} already exists`,
+            });
+          }
+        }
+
+        const inserted = await tx.payment.create({
           data: {
             tenantId,
             liquidacionId,
@@ -836,6 +839,22 @@ export class LiquidacionesService {
             notes: validated.notes ?? null,
             paidAt: new Date(validated.paidAt),
             currency: liquidacion.currency,
+            externalRef: validated.externalRef ?? null,
+          },
+        });
+
+        // Caja y recibo en la misma transacción: quién recibió, reparto, movimientos y
+        // recibo numerado una sola vez (ADR-0012).
+        const created = await this.paymentCash.record(tx, {
+          tenantId,
+          liquidacion,
+          payment: inserted,
+          paidBefore: priorPayments.reduce((acc, p) => acc.plus(String(p.amount)), new Decimal(0)).toFixed(2),
+          input: {
+            receivedBy: validated.receivedBy ?? null,
+            accountId: validated.accountId ?? null,
+            inCustody: validated.inCustody ?? null,
+            receivedByUserId: validated.receivedByUserId ?? null,
           },
         });
 
@@ -897,7 +916,8 @@ export class LiquidacionesService {
     });
 
     const detail = await this.findOne(liquidacionId);
-    return penaltySettled ? { ...detail, penaltySettled } : detail;
+    const withPayment = { ...detail, registeredPayment: payment };
+    return penaltySettled ? { ...withPayment, penaltySettled } : withPayment;
   }
 
   async findPayments(liquidacionId: string) {
@@ -915,6 +935,7 @@ export class LiquidacionesService {
     return this.prisma.client.payment.findMany({
       where: { liquidacionId },
       orderBy: { paidAt: 'asc' },
+      include: PAYMENT_INCLUDE,
     });
   }
 

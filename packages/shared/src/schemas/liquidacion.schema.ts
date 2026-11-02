@@ -64,6 +64,8 @@ export const CreatePaymentSchema = z
     accountId: z.string().uuid().optional().nullable(),
     /** La parte de los locadores queda en custodia de la inmobiliaria hasta entregarla. */
     inCustody: z.boolean().optional(),
+    /** Persona del personal que recibió el dinero en la oficina; por defecto, quien registra. */
+    receivedByUserId: z.string().uuid().optional(),
     /** Referencia del sistema anterior o del banco; única por inmobiliaria. */
     externalRef: z.string().trim().min(1).max(100).optional(),
   })

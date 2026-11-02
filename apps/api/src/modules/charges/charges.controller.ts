@@ -79,6 +79,18 @@ export class ChargesController {
   }
 
   /**
+   * POST /charges/:id/agency-expense — Cierra un cargo a la inmobiliaria como
+   * egreso (Gasto) de la cuenta indicada. Admin, Gerente, Liquidaciones.
+   */
+  @Roles(...BILLING_ROLES)
+  @AuditOperation('pending-charge-agency-expense')
+  @Post(':id/agency-expense')
+  @HttpCode(200)
+  async agencyExpense(@Param('id') id: string, @Body() body: unknown) {
+    return this.charges.closeAsAgencyExpense(id, body);
+  }
+
+  /**
    * POST /charges/:id/release — Devuelve a Pendiente un cargo imputado en una
    * liquidación anulada. Admin, Gerente, Liquidaciones.
    */

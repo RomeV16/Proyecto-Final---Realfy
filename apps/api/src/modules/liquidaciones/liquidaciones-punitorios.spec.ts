@@ -65,6 +65,7 @@ function buildPayment(opts: { total?: string; payments?: any[]; penalties?: any[
     {} as any,
     db.service,
     {} as any,
+    { record: jest.fn(async (_tx: any, ctx: any) => ctx.payment) } as any,
   );
   jest.spyOn(service, 'findOne').mockResolvedValue({ id: 'liq-1', lineItems: lines } as any);
   return { ...db, service, lines, created, liquidacion };
@@ -75,6 +76,35 @@ const pay = (amount: string, extra: Record<string, unknown> = {}) => ({
   method: 'Transferencia',
   paidAt: '2026-03-20',
   ...extra,
+});
+
+describe('registerPayment: caja y recibo (ADR-0012)', () => {
+  it('pasa a la caja el cobro, lo cobrado antes y quién lo recibió, en la misma transacción', async () => {
+    const { service, client } = buildPayment({ payments: [{ amount: '300', paidAt: d('2026-03-05') }] }) as any;
+    client.payment.findFirst = jest.fn(async () => null);
+    const record = (service as any).paymentCash.record as jest.Mock;
+    const res: any = await service.registerPayment(
+      'liq-1',
+      pay('400', { paidAt: '2026-03-09', receivedBy: 'Inmobiliaria', inCustody: true, externalRef: 'ANT-1' }),
+    );
+    const [, ctx] = record.mock.calls[0];
+    expect(ctx).toMatchObject({
+      tenantId: 'tenant-1',
+      paidBefore: '300.00',
+      payment: { id: 'pay-1', amount: '400', externalRef: 'ANT-1' },
+      input: { receivedBy: 'Inmobiliaria', inCustody: true, accountId: null, receivedByUserId: null },
+    });
+    expect(res.registeredPayment).toMatchObject({ id: 'pay-1' });
+  });
+
+  it('una referencia externa repetida se rechaza antes de crear el cobro', async () => {
+    const { service, client, created } = buildPayment() as any;
+    client.payment.findFirst = jest.fn(async () => ({ id: 'otro' }));
+    await expect(service.registerPayment('liq-1', pay('400', { externalRef: 'ANT-1' }))).rejects.toMatchObject({
+      response: { error: 'PAYMENT_EXTERNAL_REF_EXISTS' },
+    });
+    expect(created).toHaveLength(0);
+  });
 });
 
 describe('registerPayment: cobro con punitorios', () => {
@@ -193,6 +223,7 @@ describe('liberación de los punitorios cobrados', () => {
       serviceBills as any,
       penalties as any,
       { releaseFromLiquidation: jest.fn().mockResolvedValue(0) } as any,
+      { record: jest.fn(async (_tx: any, ctx: any) => ctx.payment) } as any,
     );
     jest.spyOn(service, 'findOne').mockResolvedValue({} as any);
     return { service, penalties, tx, client };

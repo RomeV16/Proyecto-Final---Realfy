@@ -37,6 +37,7 @@ function build(status = 'Borrador') {
     serviceBills as any,
     penalties as any,
     charges as any,
+    { record: jest.fn(async (_tx: any, ctx: any) => ctx.payment) } as any,
   );
   jest.spyOn(service as any, 'findOne').mockResolvedValue({ id: 'liq-1' });
   return { service, client, charges, serviceBills, adjustments, audit, penalties };
