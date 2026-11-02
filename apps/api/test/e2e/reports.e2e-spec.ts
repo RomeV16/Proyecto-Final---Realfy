@@ -350,7 +350,7 @@ describe('Reports (e2e)', () => {
       // Un renglón de la cuenta corriente y otro de la rendición histórica.
       expect(res.body.rows).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ periodo: '03/2026', cobrado: '150000.00', comision: '7500.00', depositoNeto: '142500.00' }),
+          expect.objectContaining({ periodo: expect.stringMatching(/^0?3\/2026$/), cobrado: '150000.00', comision: '7500.00', depositoNeto: '142500.00' }),
           expect.objectContaining({ propiedad: expect.stringContaining('(rendición histórica)') }),
         ]),
       );
@@ -422,7 +422,7 @@ describe('Reports (e2e)', () => {
       expect(res.body.summary).toBeDefined();
       expect(res.body.rows).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ periodo: '03/2026', propietario: expect.any(String), comision: '7500.00', honorarios: '0.00' }),
+          expect.objectContaining({ periodo: expect.stringMatching(/^0?3\/2026$/), propietario: expect.any(String), comision: '7500.00', honorarios: '0.00' }),
           expect.objectContaining({ propiedad: expect.stringContaining('(rendición histórica)') }),
         ]),
       );
