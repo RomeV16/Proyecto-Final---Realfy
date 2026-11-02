@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
+import { DepositHolder, FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
 import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
 import { ReceiptSeriesMode } from '../cash';
 import { LessorChargeTiming } from '../owner-ledger';
@@ -128,6 +128,21 @@ export const OperationalDefaultsSchema = z
       .object({
         preauthLimit: z.number().min(0).default(0),
         managementFeePct: pct.default(0),
+      })
+      .strict()
+      .default({}),
+    /**
+     * Depósitos y liquidación de egreso (D9): convenciones que la inmobiliaria no fijó.
+     * Cada contrato puede pactar las suyas al cargar el depósito.
+     */
+    deposits: z
+      .object({
+        /** Quién guarda el depósito cuando no se indica. */
+        defaultHeldBy: z.nativeEnum(DepositHolder).default(DepositHolder.Locador),
+        /** Días corridos desde el egreso para devolver el depósito. */
+        refundDueDays: days.default(30),
+        /** Si los descuentos y reparaciones de la liquidación de egreso necesitan la conformidad del locador. */
+        deductionsNeedLessorApproval: z.boolean().default(false),
       })
       .strict()
       .default({}),

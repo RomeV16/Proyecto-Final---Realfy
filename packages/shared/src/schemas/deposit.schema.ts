@@ -62,7 +62,7 @@ export const MoveOutItemSchema = z
 export const MoveOutPreviewQuerySchema = z
   .object({
     date: dateOnly.optional(),
-    /** Si la liquidación va en otra moneda que el depósito: unidades de la moneda de la liquidación por unidad de la del depósito. */
+    /** Cambio para pasar a la moneda del depósito los renglones en otra moneda: unidades de la moneda del depósito por unidad de la del renglón. */
     rate: rate.optional(),
   })
   .strict();
@@ -82,6 +82,8 @@ export const ConfirmMoveOutSchema = z
     accountId: z.string().uuid().optional(),
     method: z.nativeEnum(PaymentMethod).default(PaymentMethod.Efectivo),
     note: z.string().max(500).optional(),
+    /** El locador dio su conformidad a los descuentos (si la inmobiliaria la exige). */
+    lessorApproved: z.boolean().optional(),
   })
   .strict();
 
