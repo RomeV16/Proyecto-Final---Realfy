@@ -9,9 +9,7 @@ import {
   Currency,
   DeliverCustodySchema,
   FinancialAccountKind,
-  formatReceiptNumber,
   MANUAL_CASH_CATEGORIES,
-  PAYMENT_RECEIPT_SERIES,
 } from '@realfy/shared';
 import type { FormSchema } from '@/hooks/use-zod-form';
 import { toDecimalString } from './index-values';
@@ -101,7 +99,8 @@ export interface RegisteredPayment {
   receivedBy: string;
   inCustody: boolean;
   account: { id: string; name: string; kind: string; currency: string } | null;
-  receipt: { id: string; series: string; number: number } | null;
+  /** `label` es el número como se imprime (lo arma la API). */
+  receipt: { id: string; series: string; number: number; label: string } | null;
 }
 
 /* ──────────── Constantes ──────────── */
@@ -134,17 +133,6 @@ export function custodyAccounts(accounts: readonly FinancialAccount[]): Financia
 /** Importe con signo para mostrar un movimiento: la salida en negativo. */
 export function signedAmount(row: Pick<CashMovementRow, 'direction' | 'amount'>): string {
   return row.direction === CashDirection.Out ? `-${row.amount}` : row.amount;
-}
-
-/**
- * Número de un recibo de cobro como se imprime: la serie única muestra solo el
- * número; una serie por moneda o por cuenta lo antepone.
- */
-export function receiptLabel(series: string, number: number, accountName?: string | null): string {
-  const n = formatReceiptNumber(number);
-  if (series === PAYMENT_RECEIPT_SERIES) return n;
-  const suffix = series.slice(PAYMENT_RECEIPT_SERIES.length + 1);
-  return `${/^[A-Z]{3}$/.test(suffix) ? suffix : (accountName ?? suffix)}-${n}`;
 }
 
 /** Importe positivo con hasta 2 decimales (acepta coma decimal), o null. */

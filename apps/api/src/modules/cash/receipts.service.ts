@@ -64,6 +64,16 @@ export function receiptLabel(series: string, number: number, accountName?: strin
   return `${/^[A-Z]{3}$/.test(suffix) ? suffix : (accountName ?? suffix)}-${n}`;
 }
 
+/**
+ * Un cobro con la etiqueta de su recibo (`receipt.label`), la misma que se
+ * imprime y que devuelve la lista de recibos.
+ */
+export function withReceiptLabel<P extends { receipt?: any; account?: { name?: string | null } | null }>(payment: P): P {
+  if (!payment?.receipt) return payment;
+  const { series, number } = payment.receipt;
+  return { ...payment, receipt: { ...payment.receipt, label: receiptLabel(series, number, payment.account?.name) } };
+}
+
 /** Recibos de cobro (ADR-0012): lista para reimprimir y PDF con el número del recibo. */
 @Injectable()
 export class ReceiptsService {

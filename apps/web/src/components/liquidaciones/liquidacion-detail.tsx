@@ -23,7 +23,6 @@ import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
-import { receiptLabel } from '@/lib/cash';
 import { printReceipt } from '@/components/cash/print-receipt';
 
 /* ──────────── Types ──────────── */
@@ -48,7 +47,8 @@ interface Payment {
   receivedBy?: string | null;
   inCustody?: boolean;
   account?: { id: string; name: string; kind: string; currency: string } | null;
-  receipt?: { id: string; series: string; number: number } | null;
+  /** `label` es el número del recibo como se imprime (lo arma la API). */
+  receipt?: { id: string; series: string; number: number; label: string } | null;
   compensations?: { id: string; fromLessorId: string; toLessorId: string; amount: string | number }[];
 }
 
@@ -105,16 +105,10 @@ function transitionVariant(target: string): 'primary' | 'secondary' | 'danger' {
 }
 
 /** Imprime el recibo de cobro numerado de un pago. */
-function PaymentReceiptButton({
-  receipt,
-  accountName,
-}: {
-  receipt: NonNullable<Payment['receipt']>;
-  accountName?: string | null;
-}) {
+function PaymentReceiptButton({ receipt }: { receipt: NonNullable<Payment['receipt']> }) {
   const tPayments = useTranslations('liquidaciones.payments');
   const tCommon = useTranslations('common');
-  const label = receiptLabel(receipt.series, receipt.number, accountName);
+  const { label } = receipt;
   return (
     <Button
       variant="secondary"
@@ -647,7 +641,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
                   actions={
                     p.receipt || (canCompensate && p.receivedBy === 'Locador') ? (
                       <div className="flex flex-wrap gap-1.5">
-                        {p.receipt && <PaymentReceiptButton receipt={p.receipt} accountName={p.account?.name} />}
+                        {p.receipt && <PaymentReceiptButton receipt={p.receipt} />}
                         {canCompensate && p.receivedBy === 'Locador' && (
                           <Button variant="secondary" size="sm" onClick={() => setCompensating(p.id)}>
                             {tComp('register')}

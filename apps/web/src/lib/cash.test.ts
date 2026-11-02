@@ -10,7 +10,6 @@ import {
   parsePositiveAmount,
   parseRate,
   personLabel,
-  receiptLabel,
   signedAmount,
   today,
   type FinancialAccount,
@@ -81,15 +80,6 @@ describe('cuentas', () => {
 
   it('la fecha de hoy es YYYY-MM-DD', () => {
     expect(today()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-  });
-});
-
-describe('receiptLabel', () => {
-  it('la serie única muestra solo el número; por moneda o cuenta lo antepone', () => {
-    expect(receiptLabel('RECIBO_COBRO', 7)).toBe('00000007');
-    expect(receiptLabel('RECIBO_COBRO_USD', 3)).toBe('USD-00000003');
-    expect(receiptLabel(`RECIBO_COBRO_${ACC}`, 2, 'Banco Ejemplo')).toBe('Banco Ejemplo-00000002');
-    expect(receiptLabel(`RECIBO_COBRO_${ACC}`, 2)).toBe(`${ACC}-00000002`);
   });
 });
 
