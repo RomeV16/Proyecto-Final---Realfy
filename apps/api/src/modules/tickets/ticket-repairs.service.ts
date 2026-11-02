@@ -11,7 +11,7 @@ import {
   PendingChargeKind,
   RegisterProviderPaymentSchema,
   feeApplies,
-  repairManagementFee,
+  ticketRepairFee,
   todayInAR,
   totalPaid,
 } from '@realfy/shared';
@@ -224,7 +224,7 @@ export class TicketRepairsService {
       let feeCharge: any = null;
       const feeAmount = feeBySt
         ? null
-        : repairManagementFee(total, {
+        : ticketRepairFee(total, {
             mode: fee.mode,
             pct: fee.pct ?? contractFeePct ?? defaults.repairs.managementFeePct,
             amount: fee.amount,
@@ -274,9 +274,12 @@ export class TicketRepairsService {
 
   /** Porcentaje del honorario por gestión de reparaciones pactado en el contrato; null si no lo pacta. */
   private async contractFeePct(contractId: string): Promise<number | null> {
-    const commission: any = await this.prisma.client.contractCommission.findFirst({ where: { contractId } });
+    const commission = await this.prisma.client.contractCommission.findFirst({
+      where: { contractId },
+      select: { repairMgmtFeePct: true },
+    });
     const pct = commission?.repairMgmtFeePct;
-    return pct === null || pct === undefined ? null : Number(pct.toString());
+    return pct == null ? null : Number(pct.toString());
   }
 
   /** El contrato del ticket o, sin él, el único vigente de la propiedad. */

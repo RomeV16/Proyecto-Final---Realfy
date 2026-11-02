@@ -11,7 +11,7 @@ import {
 import { resolveOperationalDefaults } from '../schemas/operational-defaults.schema';
 import {
   feeApplies,
-  repairManagementFee,
+  ticketRepairFee,
   requiresPreauthorization,
   ticketStep,
   ticketStepIndex,
@@ -90,24 +90,24 @@ describe('requiresPreauthorization', () => {
   });
 });
 
-describe('repairManagementFee', () => {
+describe('ticketRepairFee', () => {
   it('sin honorario no devuelve nada', () => {
-    expect(repairManagementFee('50000', { mode: 'None' })).toBeNull();
+    expect(ticketRepairFee('50000', { mode: 'None' })).toBeNull();
   });
 
   it('un porcentaje de lo pagado, a dos decimales', () => {
-    expect(repairManagementFee('12345.67', { mode: 'Percent', pct: 10 })).toBe('1234.57');
-    expect(repairManagementFee('100', { mode: 'Percent', pct: 7.5 })).toBe('7.50');
+    expect(ticketRepairFee('12345.67', { mode: 'Percent', pct: 10 })).toBe('1234.57');
+    expect(ticketRepairFee('100', { mode: 'Percent', pct: 7.5 })).toBe('7.50');
   });
 
   it('un importe fijo', () => {
-    expect(repairManagementFee('999', { mode: 'Fixed', amount: '1500' })).toBe('1500.00');
+    expect(ticketRepairFee('999', { mode: 'Fixed', amount: '1500' })).toBe('1500.00');
   });
 
   it('un resultado en cero no se cobra', () => {
-    expect(repairManagementFee('100', { mode: 'Percent', pct: 0 })).toBeNull();
-    expect(repairManagementFee('100', { mode: 'Percent' })).toBeNull();
-    expect(repairManagementFee('100', { mode: 'Fixed' })).toBeNull();
+    expect(ticketRepairFee('100', { mode: 'Percent', pct: 0 })).toBeNull();
+    expect(ticketRepairFee('100', { mode: 'Percent' })).toBeNull();
+    expect(ticketRepairFee('100', { mode: 'Fixed' })).toBeNull();
   });
 });
 

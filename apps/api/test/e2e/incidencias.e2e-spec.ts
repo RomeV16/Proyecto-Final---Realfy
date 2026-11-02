@@ -74,8 +74,11 @@ describe('Incidencias y reparaciones (e2e)', () => {
     return { tenantId: admin.user.tenantId as string, tokens };
   }
 
-  async function createContract(token: string, extra: Record<string, unknown> = {}) {
+  async function createContract(token: string, extra: Record<string, unknown> = {}, secondOwner = false) {
     const owner = (await post(token, '/persons', { firstName: 'Ana', lastName: 'Sintética' }).expect(201)).body.id;
+    const owner2: string | null = secondOwner
+      ? (await post(token, '/persons', { firstName: 'Beto', lastName: 'Sintético' }).expect(201)).body.id
+      : null;
     const tenantPerson = (await post(token, '/persons', { firstName: 'Ines', lastName: 'Sintética' }).expect(201)).body.id;
     await post(token, `/persons/${tenantPerson}/roles`, { role: PersonRole.Inquilino }).expect(201);
     const property = (
@@ -94,11 +97,12 @@ describe('Incidencias y reparaciones (e2e)', () => {
       guarantees: [],
       persons: [
         { personId: owner, role: PersonRole.Propietario },
+        ...(owner2 ? [{ personId: owner2, role: PersonRole.Propietario }] : []),
         { personId: tenantPerson, role: PersonRole.Inquilino },
       ],
       ...extra,
     }).expect(201);
-    return { ...(res.body as any), ownerId: owner as string };
+    return { ...(res.body as any), ownerId: owner as string, owner2Id: owner2 };
   }
 
   const createProvider = async (token: string, lastName = 'Plomero') =>
@@ -564,5 +568,36 @@ describe('Incidencias y reparaciones (e2e)', () => {
 
     const free = await newTicket(token, contract.propertyId, { title: 'Sin pagos' });
     await post(token, `/tickets/${free.id}/transition`, { status: 'Cancelado' }).expect(200);
+  });
+
+  it('CP-525 — un gasto al locador sin locador nombrado se reparte entre los locadores del contrato en su estado y el honorario del contrato lo asienta el estado', async () => {
+    const { tokens } = await agency('inc-16');
+    const token = tokens[UserRole.Admin];
+    const contract = await createContract(token, {}, true);
+    const caja = await createCaja(token);
+    const { ticket } = await worked(token, contract, '80000');
+    await pay(token, ticket.id, caja, '80000').expect(201);
+    // El contrato pacta un honorario por gestión del 10 %.
+    await post(token, `/contracts/${contract.id}/commission`, { type: 'FixedPercent', percentage: '5.00', repairMgmtFeePct: '10' }).expect(201);
+
+    // Con dos locadores el cargo no lleva nombre y el honorario no se carga aparte: lo asienta el estado.
+    expect(
+      (await post(token, `/tickets/${ticket.id}/impute`, { chargedTo: 'Locador', managementFee: { mode: 'Fixed', amount: '500' } }).expect(400)).body.error,
+    ).toBe('FEE_SET_BY_CONTRACT');
+    const res = (await post(token, `/tickets/${ticket.id}/impute`, { chargedTo: 'Locador', managementFee: { mode: 'Percent' } }).expect(200)).body;
+    expect(res.charge.lessorPersonId).toBeNull();
+    expect(res).toMatchObject({ feeCharge: null, feeAppliedByStatement: 10 });
+
+    await post(token, '/owner-statements/generate?period=2026-10').expect(200);
+    const rowsOf = async (personId: string) =>
+      ((await get(token, `/owners/${personId}/ledger`).expect(200)).body.items as any[]).map((i) => [i.type, i.amount]);
+    // 80000 entre dos al 50 % y el honorario del 10 % (8000) también: 40000 y 4000 para cada uno.
+    for (const person of [contract.ownerId, contract.owner2Id]) {
+      expect(await rowsOf(person)).toEqual([
+        ['Cargo', '-40000.00'],
+        ['Honorario', '-4000.00'],
+      ]);
+    }
+    expect((await get(token, `/charges/${res.charge.id}`).expect(200)).body.status).toBe('Imputado');
   });
 });

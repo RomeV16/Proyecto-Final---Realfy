@@ -116,7 +116,7 @@ export interface RepairFeeInput {
  * importe fijo, a 2 decimales. Null si no se cobra (modo None, o un resultado en cero).
  * No lleva IVA ni comisión: es el importe que se carga tal cual como gasto puntual.
  */
-export function repairManagementFee(base: MoneyInput, fee: RepairFeeInput): string | null {
+export function ticketRepairFee(base: MoneyInput, fee: RepairFeeInput): string | null {
   if (fee.mode === 'None') return null;
   const value =
     fee.mode === 'Fixed'

@@ -863,7 +863,7 @@ export {
   IMPUTATION_STATUSES,
   QUOTING_STATUSES,
   requiresPreauthorization,
-  repairManagementFee,
+  ticketRepairFee,
   totalPaid,
   feeApplies,
 } from './ticket-repairs';
