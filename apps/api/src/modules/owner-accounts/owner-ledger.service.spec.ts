@@ -6,6 +6,7 @@ import { day, fakeDb } from './owner-accounts.testing';
 const A = '00000000-0000-4000-8000-0000000000a1';
 const B = '00000000-0000-4000-8000-0000000000b1';
 const ACC = '00000000-0000-4000-8000-0000000000c1';
+const C = '00000000-0000-4000-8000-0000000000d1';
 
 const entry = (over: Record<string, unknown>) => ({
   tenantId: 't1',
@@ -26,8 +27,13 @@ function setup(opts: { closeDay?: number | null } = {}) {
     persons: [
       { id: A, firstName: 'Ana', lastName: 'Locadora' },
       { id: B, firstName: 'Beto', lastName: 'Dueño' },
+      { id: C, firstName: 'Carla', lastName: 'Nueva' },
     ],
     properties: [{ id: 'p1', title: 'Belgrano 100' }],
+    lessors: [
+      { contractId: 'c1', personId: A },
+      { contractId: 'c9', personId: C },
+    ],
     accounts: [{ id: 'cust-a', kind: 'Custodia', ownerPersonId: A, currency: 'USD' }],
     entries: [
       entry({ type: 'SaldoInicial', amount: '-1500.00', date: day('2026-09-30'), period: day('2026-09-01'), sourceType: 'OpeningBalance', sourceId: 'ARS', propertyId: null }),
@@ -94,8 +100,11 @@ describe('OwnerLedgerService — cuenta corriente (CP-459)', () => {
       ['Ana Locadora', 'ARS', '41500.00', '0.00', '41500.00'],
       ['Ana Locadora', 'USD', '800.00', '300.00', '500.00'],
       ['Beto Dueño', 'ARS', '-300.00', '0.00', '0.00'],
+      // Locadora sin movimientos: aparece en cero para cargarle el saldo inicial.
+      ['Carla Nueva', 'ARS', '0.00', '0.00', '0.00'],
     ]);
     expect((await service.balances({ currency: 'EUR' })).items).toEqual([]);
+    expect((await service.balances({ currency: 'USD' })).items.map((i: any) => i.name)).toEqual(['Ana Locadora']);
   });
 });
 

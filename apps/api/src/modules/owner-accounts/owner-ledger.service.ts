@@ -126,7 +126,9 @@ export class OwnerLedgerService {
    * Saldo de cada locador en cada moneda: lo que la inmobiliaria le debe
    * (positivo) o lo que él le debe (negativo), cuánto de eso guarda en
    * custodia y el último estado emitido. Lo que falta pagarle es el saldo
-   * positivo; si hay custodia, esa parte ya está separada.
+   * positivo; si hay custodia, esa parte ya está separada. Los locadores de
+   * algún contrato que todavía no tienen movimientos aparecen con saldo cero en
+   * pesos, para poder cargarles el saldo inicial.
    */
   async balances(query: { currency?: string }) {
     const where: Record<string, unknown> = query.currency ? { currency: query.currency } : {};
@@ -136,6 +138,13 @@ export class OwnerLedgerService {
       _sum: { amount: true },
       _max: { date: true },
     });
+    if (!query.currency || query.currency === 'ARS') {
+      const lessors: any[] = await this.prisma.client.contractLessor.findMany({ select: { personId: true }, distinct: ['personId'] });
+      const known = new Set(sums.map((s) => s.personId));
+      for (const personId of new Set(lessors.map((l) => l.personId))) {
+        if (!known.has(personId)) sums.push({ personId, currency: 'ARS', _sum: { amount: 0 }, _max: { date: null } });
+      }
+    }
     if (sums.length === 0) return { items: [] };
     const personIds = [...new Set(sums.map((s) => s.personId))];
     const [persons, custodies, statements] = await Promise.all([
