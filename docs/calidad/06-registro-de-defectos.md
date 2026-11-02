@@ -36,8 +36,8 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-26 | La previsualización de un ajuste sin datos de índice muestra 0 % | Media | RF-12 | CP-270 | [#147](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/147) | Corregido (31 oct) |
 | DEF-27 | Con un mes de la ventana sin publicar el ajuste se calcula con los meses que hay y deja el alquiler corto | Media | RF-12 | CP-273 | [#152](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/152) | Corregido (31 oct) |
 | DEF-28 | Cada corrida diaria suma el punitorio acumulado entero y vuelve a devengar lo condonado | Alta | — | CP-360 | [#157](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/157) | Corregido (2 nov) |
-| DEF-29 | Los cobros devuelven el número del recibo sin la etiqueta impresa | Baja | — | CP-450 | — | Corregido (2 nov) |
-| DEF-30 | La comisión del contrato no se guarda desde la pantalla y una guardada aparece sin tipo | Media | — | CP-480 | — | Corregido (2 nov) |
+| DEF-29 | Los cobros devuelven el número del recibo sin la etiqueta impresa | Baja | — | CP-450 | [#163](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/163) | Corregido (2 nov) |
+| DEF-30 | La comisión del contrato no se guarda desde la pantalla y una guardada aparece sin tipo | Media | — | CP-480 | [#164](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/164) | Corregido (2 nov) |
 
 ---
 
