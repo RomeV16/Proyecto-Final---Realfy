@@ -16,6 +16,7 @@
 | [0008](0008-impuestos-y-servicios-trasladables.md) | Impuestos y servicios trasladables: tres pagadores, reglas con vigencia y boletas | Aceptado | 2026-11-01 |
 | [0010](0010-reglas-versionadas-y-valores-por-defecto.md) | Reglas versionadas del contrato y valores por defecto de la inmobiliaria | Aceptado | 2026-10-31 |
 | [0011](0011-ajuste-con-rezago-estimacion-y-correccion.md) | Ajuste con rezago, estimación y corrección | Aceptado | 2026-10-31 |
+| [0012](0012-flujos-de-cobro-caja-y-custodia.md) | Flujos de cobro, caja y custodia | Aceptado | 2026-11-02 |
 | [0014](0014-ambiente-piloto-con-datos-reales.md) | Ambiente piloto con datos reales | Aceptado | 2026-10-31 |
 | [0015](0015-importacion-idempotente-desde-el-sistema-anterior.md) | Importación idempotente desde el sistema anterior | Aceptado | 2026-11-01 |
 | [0016](0016-diagramas-como-codigo.md) | Diagramas como código (mermaid) | Aceptado | 2026-10-30 |
@@ -28,7 +29,6 @@ Las decisiones que el piloto vuelve necesarias (ver `../tesis/30-piloto.md`) se 
 |---|---|---|---|
 | 0009 | Cuenta corriente y estado de cuenta del locador, en reemplazo de la rendición por contrato | Planificada | Ítem 37, PR de cuenta corriente |
 | 0011 | Ajuste con rezago, estimación y corrección; fuente del índice de precios | Planificada | Ítem 34, PR del motor de ajuste |
-| 0012 | Flujos de cobro, caja y custodia | Planificada | Ítem 36, PR de caja y cuentas |
 | 0013 | Mensajería saliente con outbox y cobranza escalonada | Planificada | Ítem 43, PR de mensajería |
 
 ## Ajustes previstos a decisiones existentes
