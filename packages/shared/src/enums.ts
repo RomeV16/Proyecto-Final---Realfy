@@ -365,6 +365,22 @@ export enum AnnualRecovery {
   Prorrateado = 'Prorrateado',
 }
 
+/** A quién va el descuento por pago anual de una boleta. */
+export enum AnnualDiscountBeneficiary {
+  /** El inquilino: se le cobra lo efectivamente pagado. */
+  Inquilino = 'Inquilino',
+  /** Se cobra el importe sin descuento y la diferencia es del locador. */
+  Locador = 'Locador',
+  /** Se cobra el importe sin descuento y la diferencia es de la inmobiliaria. */
+  Inmobiliaria = 'Inmobiliaria',
+}
+
+/** Qué se hace con las cuotas anuales que quedan cuando el contrato termina antes. */
+export enum RemainingInstallmentsOnEnd {
+  CobrarEnLiquidacionFinal = 'CobrarEnLiquidacionFinal',
+  Descartar = 'Descartar',
+}
+
 export enum ServiceBillStatus {
   Pendiente = 'Pendiente',
   Pagada = 'Pagada',

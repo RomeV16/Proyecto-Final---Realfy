@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import {
+  AnnualDiscountBeneficiary,
   AnnualRecovery,
+  RemainingInstallmentsOnEnd,
   BillPaidBy,
   BillingFrequency,
   ChargePayer,
@@ -75,7 +77,9 @@ const shareFields = {
   fixedAmount: decimal(2).nullable(),
   paymentPlan: z.nativeEnum(ServicePaymentPlan),
   annualRecovery: z.nativeEnum(AnnualRecovery),
-  annualDiscountToTenant: z.boolean(),
+  annualInstallments: z.number().int().min(1).max(12),
+  annualDiscountBeneficiary: z.nativeEnum(AnnualDiscountBeneficiary),
+  remainingInstallmentsOnEnd: z.nativeEnum(RemainingInstallmentsOnEnd),
   notes: z.string().max(2000).nullable(),
 };
 
@@ -88,7 +92,11 @@ export const CreateChargeRuleSchema = z
     fixedAmount: shareFields.fixedAmount.optional(),
     paymentPlan: shareFields.paymentPlan.default(ServicePaymentPlan.Mensual),
     annualRecovery: shareFields.annualRecovery.default(AnnualRecovery.Prorrateado),
-    annualDiscountToTenant: shareFields.annualDiscountToTenant.default(true),
+    annualInstallments: shareFields.annualInstallments.default(12),
+    annualDiscountBeneficiary: shareFields.annualDiscountBeneficiary.default(AnnualDiscountBeneficiary.Inquilino),
+    remainingInstallmentsOnEnd: shareFields.remainingInstallmentsOnEnd.default(
+      RemainingInstallmentsOnEnd.CobrarEnLiquidacionFinal,
+    ),
     validFrom: dateOnly,
     validTo: dateOnly.nullable().optional(),
     agreementId: z.string().uuid().nullable().optional(),

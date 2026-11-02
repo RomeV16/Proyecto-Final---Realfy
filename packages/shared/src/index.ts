@@ -45,6 +45,8 @@ export {
   ChargeSplitMode,
   ServicePaymentPlan,
   AnnualRecovery,
+  AnnualDiscountBeneficiary,
+  RemainingInstallmentsOnEnd,
   ServiceBillStatus,
   BillPaidBy,
   NotificationType,
@@ -951,7 +953,7 @@ export type {
 } from './liquidation-builder';
 
 // Charge split
-export { splitBill, chargeAllocationLine, InvalidChargeRuleError } from './charge-split';
+export { splitBill, chargeAllocationLine, chargeAllocationLines, InvalidChargeRuleError } from './charge-split';
 export type {
   ChargeAllocation,
   ChargeBillInput,

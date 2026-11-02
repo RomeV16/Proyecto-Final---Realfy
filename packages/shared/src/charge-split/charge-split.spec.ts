@@ -1,13 +1,15 @@
 import {
+  AnnualDiscountBeneficiary,
   AnnualRecovery,
   ChargePayer,
   ChargeSplitMode,
   LineBeneficiary,
   LineItemType,
+  RemainingInstallmentsOnEnd,
   ServicePaymentPlan,
   ServiceType,
 } from '../enums';
-import { InvalidChargeRuleError, chargeAllocationLine, splitBill, type ChargeRuleInput } from './index';
+import { InvalidChargeRuleError, chargeAllocationLine, chargeAllocationLines, splitBill, type ChargeRuleInput } from './index';
 
 /**
  * Los importes esperados están calculados a mano antes de correr el motor (el
@@ -188,19 +190,106 @@ describe('charge-split: planes anuales', () => {
     expect(amounts(r)).toEqual([['c1', '4500.00']]);
   });
 
-  it('con el descuento para quien pagó se reparte el importe sin descuento: 50 % de 10000 es 5000', () => {
-    const r = splitBill({ amount: '9000.00', nominalAmount: '10000.00', period: JAN }, [
-      annual({ tenantSharePct: '50', annualRecovery: AnnualRecovery.Unico, annualDiscountToTenant: false }),
-    ]);
-    expect(amounts(r)).toEqual([['c1', '5000.00']]);
+  it('en 6 cuotas: 1000,00 da cuatro de 166,67 y dos de 166,66', () => {
+    // 1000 / 6 = 166,666..: 6 x 166,66 = 999,96; los 4 centavos que faltan van a las primeras cuatro.
+    const r = splitBill({ amount: '1000.00', period: JAN }, [annual({ annualInstallments: 6 })]);
+    expect(r.allocations.map((a) => a.amount)).toEqual(['166.67', '166.67', '166.67', '166.67', '166.66', '166.66']);
+    expect(r.allocations.map((a) => a.chargePeriod.getUTCMonth())).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(r.allocations[5]).toMatchObject({ installmentNo: 6, installmentsTotal: 6 });
   });
 
-  it('el contrato que termina en marzo recibe 3 de las 12 cuotas y se avisa', () => {
-    const r = splitBill({ amount: '1200.00', period: JAN }, [
-      annual({ lastBillableMonth: new Date(Date.UTC(2026, 2, 1)) }),
-    ]);
-    expect(r.allocations).toHaveLength(3);
-    expect(r.warnings).toEqual([{ contractId: 'c1', code: 'AfterContractEnd', droppedInstallments: 9 }]);
+  it('en 10 cuotas: 1000,01 da una de 100,01 y nueve de 100,00', () => {
+    // 1000,01 / 10 = 100,001: 10 x 100,00 = 1000,00; el centavo que falta va a la primera.
+    const r = splitBill({ amount: '1000.01', period: JAN }, [annual({ annualInstallments: 10 })]);
+    expect(r.allocations.map((a) => a.amount)).toEqual(['100.01', ...new Array(9).fill('100.00')]);
+  });
+
+  it('las cuotas fuera de 1 a 12 se rechazan', () => {
+    for (const bad of [0, 13, 2.5]) {
+      expect(() => splitBill({ amount: '100', period: JAN }, [annual({ annualInstallments: bad })])).toThrow(
+        InvalidChargeRuleError,
+      );
+    }
+  });
+
+  describe('descuento por pago anual', () => {
+    const bill = { amount: '9000.00', nominalAmount: '10000.00', period: JAN };
+    const unico = { tenantSharePct: '50', annualRecovery: AnnualRecovery.Unico };
+
+    it('Inquilino (por defecto): se cobra lo pagado, 50 % de 9000 = 4500, sin diferencia', () => {
+      const r = splitBill(bill, [annual({ ...unico, annualDiscountBeneficiary: AnnualDiscountBeneficiary.Inquilino })]);
+      expect(amounts(r)).toEqual([['c1', '4500.00']]);
+      expect(r.allocations[0]).toMatchObject({ surplus: '0.00', surplusBeneficiary: null });
+      expect(splitBill(bill, [annual(unico)]).allocations[0].amount).toBe('4500.00');
+    });
+
+    it('Locador: se cobra el nominal, 50 % de 10000 = 5000, y la diferencia de 500 es del locador', () => {
+      // lo pagado: 50 % de 9000 = 4500; nominal: 5000; diferencia 500.
+      const r = splitBill(bill, [annual({ ...unico, annualDiscountBeneficiary: AnnualDiscountBeneficiary.Locador })]);
+      expect(r.allocations[0]).toMatchObject({ amount: '5000.00', surplus: '500.00', surplusBeneficiary: 'Locador' });
+    });
+
+    it('Inmobiliaria: igual cobro y la diferencia de 500 es de la inmobiliaria', () => {
+      const r = splitBill(bill, [
+        annual({ ...unico, annualDiscountBeneficiary: AnnualDiscountBeneficiary.Inmobiliaria }),
+      ]);
+      expect(r.allocations[0]).toMatchObject({ amount: '5000.00', surplus: '500.00', surplusBeneficiary: 'Inmobiliaria' });
+    });
+
+    it('sin importe nominal o sin descuento no hay diferencia', () => {
+      const r = splitBill({ amount: '9000.00', period: JAN }, [
+        annual({ ...unico, annualDiscountBeneficiary: AnnualDiscountBeneficiary.Locador }),
+      ]);
+      expect(r.allocations[0]).toMatchObject({ amount: '4500.00', surplus: '0.00', surplusBeneficiary: null });
+    });
+
+    it('en 6 cuotas la diferencia se reparte con las cuotas y suma 500', () => {
+      // cobrado 5000 / 6 = 833,33..: 833,34 las dos primeras y 833,33 el resto; pagado 4500 / 6 = 750,00 cada una.
+      const r = splitBill(bill, [
+        annual({ tenantSharePct: '50', annualInstallments: 6, annualDiscountBeneficiary: AnnualDiscountBeneficiary.Locador }),
+      ]);
+      expect(r.allocations.map((a) => a.amount)).toEqual(['833.34', '833.34', '833.33', '833.33', '833.33', '833.33']);
+      expect(r.allocations.map((a) => a.surplus)).toEqual(['83.34', '83.34', '83.33', '83.33', '83.33', '83.33']);
+    });
+  });
+
+  describe('contrato que termina antes de la última cuota (termina en marzo)', () => {
+    const march = new Date(Date.UTC(2026, 2, 1));
+
+    it('CobrarEnLiquidacionFinal (por defecto): las 9 cuotas restantes se suman a la de marzo', () => {
+      // 1200 / 12 = 100 por cuota: enero 100, febrero 100, marzo 100 + 9 x 100 = 1000.
+      const r = splitBill({ amount: '1200.00', period: JAN }, [annual({ lastBillableMonth: march })]);
+      expect(r.allocations.map((a) => a.amount)).toEqual(['100.00', '100.00', '1000.00']);
+      expect(r.allocations[2].basis).toContain('incluye 9 cuotas restantes');
+      expect(r.warnings).toEqual([{ contractId: 'c1', code: 'CollectedInFinalLiquidation', collectedInstallments: 9 }]);
+    });
+
+    it('Descartar: solo se cobran las 3 cuotas del contrato y se avisa', () => {
+      const r = splitBill({ amount: '1200.00', period: JAN }, [
+        annual({ lastBillableMonth: march, remainingInstallmentsOnEnd: RemainingInstallmentsOnEnd.Descartar }),
+      ]);
+      expect(r.allocations.map((a) => a.amount)).toEqual(['100.00', '100.00', '100.00']);
+      expect(r.warnings).toEqual([{ contractId: 'c1', code: 'AfterContractEnd', droppedInstallments: 9 }]);
+    });
+
+    it('con diferencia por descuento, la diferencia de las cuotas restantes también se suma', () => {
+      // cobrado 10000 en 12 cuotas: cuatro de 833,34 y ocho de 833,33; diferencia 1000: cuatro de 83,34 y ocho de 83,33.
+      // Marzo: 833,34 + (833,34 + 8 x 833,33) = 8333,32; diferencia 83,34 + (83,34 + 8 x 83,33) = 833,32.
+      const r = splitBill({ amount: '9000.00', nominalAmount: '10000.00', period: JAN }, [
+        annual({ lastBillableMonth: march, annualDiscountBeneficiary: AnnualDiscountBeneficiary.Locador }),
+      ]);
+      expect(r.allocations.map((a) => [a.amount, a.surplus])).toEqual([
+        ['833.34', '83.34'],
+        ['833.34', '83.34'],
+        ['8333.32', '833.32'],
+      ]);
+    });
+
+    it('un contrato sin fin no suma ni descarta nada', () => {
+      const r = splitBill({ amount: '1200.00', period: JAN }, [annual()]);
+      expect(r.allocations).toHaveLength(12);
+      expect(r.warnings).toEqual([]);
+    });
   });
 
   it('el plan mensual no se prorratea aunque el recupero sea prorrateado', () => {
@@ -283,5 +372,42 @@ describe('charge-split: renglón de la liquidación', () => {
 
   it('el que paga directo no tiene renglón', () => {
     expect(() => chargeAllocationLine({ ...base, payer: ChargePayer.Inquilino })).toThrow();
+  });
+});
+
+describe('charge-split: renglones con diferencia por descuento anual', () => {
+  const base = {
+    allocationId: 'a1',
+    payer: ChargePayer.Inmobiliaria,
+    amount: '5000.00',
+    serviceType: ServiceType.ImpuestoInmobiliario,
+    installmentLabel: '2026',
+    installmentNo: 1,
+    installmentsTotal: 1,
+  };
+
+  it('sin diferencia es un solo renglón por el total', () => {
+    const lines = chargeAllocationLines({ ...base, surplus: '0.00', surplusBeneficiary: null });
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ amount: '5000.00', beneficiary: LineBeneficiary.Ente, type: LineItemType.Impuesto });
+  });
+
+  it('la diferencia del locador sale aparte, a su nombre y sin comisión', () => {
+    const lines = chargeAllocationLines({ ...base, surplus: '500.00', surplusBeneficiary: 'Locador' });
+    expect(lines.map((l) => [l.type, l.amount.toString(), l.beneficiary, l.commissionable, l.sourceType])).toEqual([
+      [LineItemType.Impuesto, '4500', LineBeneficiary.Ente, false, 'ServiceBillAllocation'],
+      [LineItemType.Cargo, '500.00', LineBeneficiary.Locador, false, 'ServiceBillAllocationSurplus'],
+    ]);
+    expect(lines[1].description).toBe('Diferencia por pago anual de Impuesto inmobiliario 2026');
+    expect(lines.every((l) => l.sourceId === 'a1')).toBe(true);
+  });
+
+  it('la diferencia de la inmobiliaria va a su nombre; si es todo el importe queda un solo renglón', () => {
+    const lines = chargeAllocationLines({ ...base, surplus: '500.00', surplusBeneficiary: 'Inmobiliaria', installmentsTotal: 12, installmentNo: 3 });
+    expect(lines[1]).toMatchObject({ beneficiary: LineBeneficiary.Inmobiliaria, commissionable: false });
+    expect(lines[1].description).toBe('Diferencia por pago anual de Impuesto inmobiliario 2026, cuota 3/12');
+    const only = chargeAllocationLines({ ...base, amount: '500.00', surplus: '500.00', surplusBeneficiary: 'Locador' });
+    expect(only).toHaveLength(1);
+    expect(only[0].type).toBe(LineItemType.Cargo);
   });
 });
