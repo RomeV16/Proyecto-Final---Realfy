@@ -58,6 +58,7 @@ const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = 
   { key: 'valuation', fields: ['valuationUsd', 'upfrontThresholdFees', 'upfrontBasis'] },
   { key: 'collection', fields: ['firstReminderDays', 'everyDays'] },
   { key: 'expiry', fields: ['redDays', 'yellowDays'] },
+  { key: 'repairs', fields: ['repairPreauthLimit', 'repairMgmtFeePct'] },
   {
     key: 'cash',
     fields: ['cashLessorDirectOwes', 'cashPartialAllocation', 'cashReceiptSeries', 'cashCompensationScope'],

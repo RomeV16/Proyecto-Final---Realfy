@@ -48,6 +48,7 @@ const EXPECTED: Record<Action, string[]> = {
   'expirations.administer': ['Admin', 'Gerente'],
   'dashboard.analytics': ['Admin', 'Gerente'],
   'tickets.manage': ['Admin', 'Gerente', 'Soporte'],
+  'tickets.pay': ['Admin', 'Gerente', 'Liquidaciones'],
   'settings.manage': ['Admin', 'Gerente'],
   'users.view': ['Admin', 'Gerente'],
   'users.manage': ['Admin'],
