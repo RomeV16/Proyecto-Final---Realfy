@@ -830,7 +830,10 @@ la inmobiliaria (ver *Valores por defecto*), que se pueden cambiar antes de guar
   no se conoce al firmar, se suma el alquiler inicial por los meses. El porcentaje de
   fábrica es el **5 %**. Ejemplo: 500000 por 24 meses con IPC suman 12000000 y el
   honorario es 600000.
-- **Renovación:** igual, sobre el período renovado del contrato.
+- **Renovación:** igual, sobre el período renovado del contrato. Si al renovar el
+  contrato (*Vencimientos* → *Renovar*) se anotan los honorarios pactados, el
+  honorario de renovación se carga solo, por ese importe, a cargo de quien paga
+  según la inmobiliaria y con sus cuotas desde el inicio del período.
 - **Venta:** sobre el valor real de la operación, **3 % por parte** si es una
   propiedad construida o **5 % por parte** si es un lote. Comprador y vendedor pagan
   cada uno el suyo.

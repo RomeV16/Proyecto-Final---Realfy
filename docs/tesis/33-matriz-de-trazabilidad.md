@@ -32,7 +32,7 @@ La matriz une cada hallazgo del registro (`31-registro-de-feedback.md`) con el c
 | FB-16 | CU-05 (modificado) | 40 (#98) | — | Se completa en el PR | — |
 | FB-17 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 44 (#102) | — | Se completa en el PR | CP-220 a CP-229 |
 | FB-18 | CU-19 (modificado); CU nuevo (se numera desde CU-25 en el PR del ítem) | 43 (#101) | ADR-0013 | Se completa en el PR | CP-210 a CP-219 |
-| FB-19 | CU-41 (nuevo: honorarios de venta y comisiones del personal); CU nuevo de la operación de venta (ítem 44) | 44 (#102), 41 (#99) | — | `/fees` (venta por parte), `/staff-commissions`, `/staff-commissions/:id/pay`; la operación de venta se completa en su PR | CP-533, CP-542; CP-220 a CP-229 |
+| FB-19 | CU-41 (nuevo: honorarios de venta y comisiones del personal); CU nuevo de la operación de venta (ítem 44) | 44 (#102), 41 (#99) | — | `/fees` (venta por parte), `/staff-commissions`, `/staff-commissions/:id/pay`; la operación de venta se completa en su PR | CP-533, CP-543; CP-220 a CP-229 |
 | FB-20 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 44 (#102) | — | Se completa en el PR | CP-220 a CP-229 |
 | FB-21 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 43 (#101) | ADR-0013 | Se completa en el PR | CP-210 a CP-219 |
 | FB-22 | CU-36 (nuevo) | 39 (#97) | — | `/data-quality`, `/data-quality/:check`, `/data-quality/persons/merge` | CP-170 a CP-179; CP-430 a CP-440 |
