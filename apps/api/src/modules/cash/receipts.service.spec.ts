@@ -69,7 +69,10 @@ describe('ReceiptsService', () => {
     });
     expect(client.receipt.findMany.mock.calls[0][0].where).toEqual({
       issuedAt: { gte: D('2026-01-01'), lt: D('2026-02-01') },
-      payment: { liquidacion: { contractId: '00000000-0000-4000-8000-000000000001' } },
+      OR: [
+        { payment: { liquidacion: { contractId: '00000000-0000-4000-8000-000000000001' } } },
+        { feeInstallment: { fee: { contractId: '00000000-0000-4000-8000-000000000001' } } },
+      ],
     });
   });
 
@@ -92,6 +95,37 @@ describe('ReceiptsService', () => {
     const { service, renderer } = build([row]);
     await service.pdf('rec-1');
     expect(JSON.stringify((renderer.render.mock.calls as any[])[0][0].content)).toContain('El locador, directamente');
+  });
+
+  it('un recibo de honorarios nombra la cuota, quien paga y la propiedad', async () => {
+    const row = receipt({
+      payment: null,
+      amount: { toString: () => '96000' },
+      feeInstallment: {
+        n: 2,
+        fee: {
+          kind: 'Renovacion',
+          installments: 3,
+          contractId: 'c1',
+          payer: { firstName: 'Ines', lastName: 'Inquilina' },
+          contract: { property: { title: 'Unidad sintética' } },
+          property: null,
+        },
+      },
+    });
+    const { service, renderer } = build([row]);
+    const list = await service.list({});
+    expect(list.items[0]).toMatchObject({
+      tenantName: 'Ines Inquilina',
+      property: 'Unidad sintética',
+      contractId: 'c1',
+      concept: 'Honorarios de renovación, cuota 2/3',
+      paymentId: null,
+    });
+    await service.pdf('rec-1');
+    const doc = JSON.stringify((renderer.render.mock.calls as any[])[0][0].content);
+    expect(doc).toContain('Honorarios de renovación, cuota 2/3 — Unidad sintética');
+    expect(doc).toContain('La inmobiliaria');
   });
 
   it('un recibo inexistente es 404', async () => {
