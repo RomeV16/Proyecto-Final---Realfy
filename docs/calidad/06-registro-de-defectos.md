@@ -36,6 +36,8 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-26 | La previsualización de un ajuste sin datos de índice muestra 0 % | Media | RF-12 | CP-270 | [#147](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/147) | Corregido (31 oct) |
 | DEF-27 | Con un mes de la ventana sin publicar el ajuste se calcula con los meses que hay y deja el alquiler corto | Media | RF-12 | CP-273 | [#152](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/152) | Corregido (31 oct) |
 | DEF-28 | Cada corrida diaria suma el punitorio acumulado entero y vuelve a devengar lo condonado | Alta | — | CP-360 | [#157](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/157) | Corregido (2 nov) |
+| DEF-29 | Los cobros devuelven el número del recibo sin la etiqueta impresa | Baja | — | CP-450 | [#163](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/163) | Corregido (2 nov) |
+| DEF-30 | La comisión del contrato no se guarda desde la pantalla y una guardada aparece sin tipo | Media | — | CP-480 | [#164](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/164) | Corregido (2 nov) |
 
 ---
 
@@ -436,3 +438,31 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** el motor calcula lo devengado a la fecha sobre el saldo de cada día y el servicio registra la diferencia con todas las filas (activas, condonadas o cobradas).
 - **Prueba de regresión:** CP-360 en `penalties/penalties.scheduler.def28.spec.ts` (en rojo, contra el cálculo anterior) y, ya corregido, en `penalties/penalties.scheduler.spec.ts` (devengo incremental) y `penalty-engine.spec.ts`.
 - **Evidencia rojo/verde:** regresión `f05c17c` en rojo (contra el código anterior: 2 pruebas fallan y 34 pasan; se registra 110 en lugar de 10, y otra fila de 100 sobre una condonada); corrección en `400d1bc`. PR [#158](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/158).
+
+## DEF-29 — Los cobros devuelven el número del recibo sin la etiqueta impresa
+
+- **Requisito afectado:** ninguno funcional; caja y cobros (ítem 36).
+- **Origen:** revisión de la caja y cobros (3.1) al construir el estado de cuenta del locador (3.2).
+- **Caso que lo detecta:** CP-450.
+- **Severidad:** baja. El número que mostraba la pantalla coincidía con el impreso, pero salía de una copia de la regla en la web que podía desviarse de la de la API.
+- **Pasos para reproducir:** con la serie de recibos por moneda, registrar un cobro en dólares y abrir el detalle de la liquidación o la lista de sus cobros.
+- **Resultado esperado:** el cobro trae el número del recibo como se imprime (`USD-00000007`), igual que `GET /receipts`.
+- **Resultado obtenido:** el cobro trae solo la serie (`RECIBO_COBRO_USD`) y el número entero (7); la web rearmaba la etiqueta con su propia copia de la regla.
+- **Causa raíz:** la etiqueta impresa se armaba en el servicio de recibos y la respuesta del cobro no la incluía; la web duplicaba la regla para mostrarla.
+- **Corrección:** `withReceiptLabel` arma la etiqueta en un solo lugar: el detalle de la liquidación, la lista de cobros y el cobro recién registrado devuelven `receipt.label`. La web muestra esa etiqueta y se quita su copia de la regla.
+- **Prueba de regresión:** CP-450 en `apps/api/src/modules/liquidaciones/liquidaciones-cobros.def29.spec.ts`.
+- **Evidencia rojo/verde:** regresión `9747812` en rojo (2 pruebas fallan: la etiqueta llega vacía en los tres cobros con recibo); corrección en `1201b92`.
+
+## DEF-30 — La comisión del contrato no se guarda desde la pantalla y una guardada aparece sin tipo
+
+- **Requisito afectado:** ninguno funcional; comisión del contrato (base de la cuenta corriente del locador, ítem 37).
+- **Origen:** al sumar el honorario por gestión de reparaciones al formulario de comisión (3.2).
+- **Caso que lo detecta:** CP-480.
+- **Severidad:** media. La comisión pactada solo se podía cargar por la API; desde la pantalla guardar fallaba y el reparto de los cobros usaba el porcentaje de la inmobiliaria.
+- **Pasos para reproducir:** en un contrato, abrir la comisión, elegir *Porcentaje fijo*, escribir 7 y guardar; o abrir un contrato con la comisión ya cargada.
+- **Resultado esperado:** se guarda la comisión; una comisión guardada se muestra con su tipo y su porcentaje.
+- **Resultado obtenido:** 400 `VALIDATION_ERROR` al guardar; una comisión guardada aparece con el tipo vacío.
+- **Causa raíz:** el formulario mandaba `commissionType` y el porcentaje como número, y leía `commissionType` de la respuesta; la API usa `type` y el porcentaje como texto decimal.
+- **Corrección:** el formulario usa `type` al leer y al guardar y manda el porcentaje como texto decimal.
+- **Prueba de regresión:** CP-480 en `apps/web/src/components/contracts/commission-config.def30.test.tsx`.
+- **Evidencia rojo/verde:** regresión `abb1338` en rojo (1 prueba falla: el tipo llega vacío); corrección en `bdb07a6`.

@@ -167,6 +167,32 @@ describe('OperationalDefaultsManager', () => {
     });
   });
 
+  it('cuenta corriente del locador: día de cierre (vacío = fin de mes) y cuándo se descuentan los gastos (CP-478)', async () => {
+    const user = userEvent.setup();
+    renderEs(<OperationalDefaultsManager />);
+
+    expect(await screen.findByText('Cuenta corriente del locador')).toBeInTheDocument();
+    const closeDay = screen.getByLabelText(/Día de cierre del estado/);
+    expect(closeDay).toHaveValue('');
+    expect(closeDay).not.toBeRequired();
+    expect(screen.getByText(/Vacío = fin de mes/)).toBeInTheDocument();
+    const timing = screen.getByLabelText(/Gastos a cargo del locador/);
+    expect(timing).toHaveValue('AlGenerarEstado');
+
+    await user.type(closeDay, '31');
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+    await waitFor(() => expect(closeDay).toHaveAttribute('aria-invalid', 'true'));
+    expect(apiClient.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+
+    await user.clear(closeDay);
+    await user.type(closeDay, '10');
+    await user.selectOptions(timing, 'AlEmitirEstado');
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(put[1].body).ownerAccounts).toEqual({ statementCloseDay: 10, lessorChargeTiming: 'AlEmitirEstado' });
+  });
+
   it('un valor inválido se marca en el campo y no se envía', async () => {
     const user = userEvent.setup();
     renderEs(<OperationalDefaultsManager />);

@@ -622,6 +622,59 @@
   "src/modules/notifications/notifications.controller.ts#NotificationsController.getUnreadCount": null,
   "src/modules/notifications/notifications.controller.ts#NotificationsController.markAsRead": null,
   "src/modules/notifications/notifications.controller.ts#NotificationsController.markAllAsRead": null,
+  "src/modules/owner-accounts/owner-accounts.controller.ts#OwnersController.balances": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/owner-accounts/owner-accounts.controller.ts#OwnersController.ledgerOf": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/owner-accounts/owner-accounts.controller.ts#OwnersController.openingBalance": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/owner-accounts/owner-accounts.controller.ts#OwnersController.payout": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/owner-accounts/owner-accounts.controller.ts#OwnerStatementsController.generate": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/owner-accounts/owner-accounts.controller.ts#OwnerStatementsController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/owner-accounts/owner-accounts.controller.ts#OwnerStatementsController.findOne": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/owner-accounts/owner-accounts.controller.ts#OwnerStatementsController.pdf": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/owner-accounts/owner-accounts.controller.ts#OwnerStatementsController.issue": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/owner-accounts/owner-accounts.controller.ts#OwnerStatementsController.annul": [
+    "Admin",
+    "Gerente"
+  ],
   "src/modules/payments/payments.controller.ts#PaymentsController.list": [
     "Admin",
     "Gerente",
@@ -862,39 +915,9 @@
   "src/modules/public/public.controller.ts#PublicController.listProperties": null,
   "src/modules/public/public.controller.ts#PublicController.getProperty": null,
   "src/modules/public/public.controller.ts#PublicController.createInquiry": null,
-  "src/modules/renditions/renditions.controller.ts#RenditionsController.generate": [
-    "Admin",
-    "Gerente",
-    "Liquidaciones"
-  ],
   "src/modules/renditions/renditions.controller.ts#RenditionsController.findAll": null,
   "src/modules/renditions/renditions.controller.ts#RenditionsController.findOne": null,
-  "src/modules/renditions/renditions.controller.ts#RenditionsController.transition": [
-    "Admin",
-    "Gerente",
-    "Liquidaciones"
-  ],
   "src/modules/renditions/renditions.controller.ts#RenditionsController.getPdf": null,
-  "src/modules/renditions/renditions.controller.ts#RenditionsController.sendEmail": [
-    "Admin",
-    "Gerente",
-    "Liquidaciones"
-  ],
-  "src/modules/renditions/renditions.controller.ts#RenditionsController.addLineItem": [
-    "Admin",
-    "Gerente",
-    "Liquidaciones"
-  ],
-  "src/modules/renditions/renditions.controller.ts#RenditionsController.removeLineItem": [
-    "Admin",
-    "Gerente",
-    "Liquidaciones"
-  ],
-  "src/modules/renditions/renditions.controller.ts#RenditionsController.updateNotes": [
-    "Admin",
-    "Gerente",
-    "Liquidaciones"
-  ],
   "src/modules/renditions/renditions.controller.ts#CommissionsController.createCommission": [
     "Admin",
     "Gerente"

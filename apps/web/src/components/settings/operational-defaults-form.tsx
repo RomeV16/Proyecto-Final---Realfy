@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import {
   CompensationScope,
   DEFAULT_OPERATIONAL_DEFAULTS,
+  LessorChargeTiming,
   LessorDirectOwes,
   PartialAllocation,
   ReceiptSeriesMode,
@@ -31,13 +32,17 @@ import { PenaltyConfigForm } from './penalty-config-form';
 type CheckField = 'allowProvisional' | 'cashCustodyInAgencyBalance' | 'cashReceiptWhenLessorReceives';
 type FieldName = Exclude<keyof OperationalDefaultsFormInput, CheckField>;
 
-/** Opciones de caja y cobros que se eligen de una lista. */
+/** Opciones de caja y cobros y de la cuenta corriente del locador que se eligen de una lista. */
 const CASH_OPTIONS = {
   cashLessorDirectOwes: Object.values(LessorDirectOwes),
   cashPartialAllocation: Object.values(PartialAllocation),
   cashReceiptSeries: Object.values(ReceiptSeriesMode),
   cashCompensationScope: Object.values(CompensationScope),
+  ownerLessorChargeTiming: Object.values(LessorChargeTiming),
 } as const;
+
+/** Campos de texto que pueden quedar vacíos (vacío = el comportamiento de fábrica). */
+const OPTIONAL_FIELDS: readonly FieldName[] = ['ownerStatementCloseDay'];
 type CashOptionField = keyof typeof CASH_OPTIONS;
 
 const isCashOption = (field: FieldName): field is CashOptionField => field in CASH_OPTIONS;
@@ -58,6 +63,7 @@ const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = 
     fields: ['cashLessorDirectOwes', 'cashPartialAllocation', 'cashReceiptSeries', 'cashCompensationScope'],
     checks: ['cashCustodyInAgencyBalance', 'cashReceiptWhenLessorReceives'],
   },
+  { key: 'ownerAccounts', fields: ['ownerStatementCloseDay', 'ownerLessorChargeTiming'] },
 ];
 
 const DEFAULT_FORM = operationalDefaultsToForm(DEFAULT_OPERATIONAL_DEFAULTS);
@@ -145,7 +151,7 @@ function DefaultsForm({
                   label={t(`fields.${field}.label`)}
                   hint={t(`fields.${field}.hint`, { value: DEFAULT_FORM[field] })}
                   error={errors[field]}
-                  required
+                  required={!OPTIONAL_FIELDS.includes(field)}
                 >
                   {(c) => (
                     <Input

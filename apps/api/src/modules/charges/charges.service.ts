@@ -290,8 +290,8 @@ export class ChargesService {
     if (current.status !== PendingChargeStatus.Imputado) {
       throw conflict('CHARGE_NOT_IMPUTED', 'Only an imputed charge can be released');
     }
-    if (current.imputedStatementId) {
-      throw conflict('CHARGE_IN_STATEMENT', 'The charge was deducted in a lessor statement');
+    if (current.imputedStatementId || current.chargedTo === ChargeTarget.Locador) {
+      throw conflict('CHARGE_IN_STATEMENT', 'The charge was deducted in the lessor account');
     }
     if (current.chargedTo === ChargeTarget.Inmobiliaria) {
       throw conflict('CHARGE_PAID_BY_AGENCY', 'The charge was closed as an agency expense');

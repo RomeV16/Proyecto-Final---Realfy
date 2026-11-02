@@ -91,8 +91,10 @@ lectura y puede exportar propiedades y personas a CSV y a Excel.
 ### Liquidaciones
 
 Es el rol de la administración. Genera las liquidaciones del mes, edita sus
-líneas, transiciona sus estados y registra los pagos. Genera, edita y transiciona
-las rendiciones al propietario, y las envía por correo. Emite facturas y notas de
+líneas, transiciona sus estados y registra los pagos. Lleva la cuenta corriente de
+los locadores: les paga, genera y emite su estado de cuenta mensual (el saldo inicial
+y la anulación de un estado son de Admin y Gerente); las rendiciones por contrato
+quedan como histórico de consulta. Emite facturas y notas de
 crédito, administra emisores y puntos de venta. Accede a los reportes financieros
 y a los indicadores de flujo de caja y morosidad del panel. No aprueba ni envía
 liquidaciones en lote —eso es de Admin y Gerente— ni borra una liquidación.
@@ -158,7 +160,7 @@ persona. El alta (`/persons/new`) pide los datos base, y el detalle
 Una misma persona puede tener varios roles a la vez, y cada asignación puede
 apuntar a una propiedad o a un contrato concreto —el mismo registro puede ser
 propietario de un inmueble e inquilino de otro—. En el detalle se cargan también
-los datos fiscales y bancarios, que después alimentan la rendición, y los
+los datos fiscales y bancarios, que después alimentan el pago al locador, y los
 documentos adjuntos. Admin y Gerente ven además la sección de puntaje del
 inquilino.
 
@@ -244,8 +246,11 @@ En el detalle (`/contracts/[id]`) se ven las partes, las garantías, la línea d
 tiempo de ajustes y la comisión pactada. Desde ahí se calcula el próximo ajuste
 —cualquiera de los tres roles operativos puede hacerlo— y se lo aplica, que es
 una operación de Admin o Gerente. La comisión del contrato es la que después
-determina qué se le descuenta al propietario en la rendición, así que conviene
-cargarla junto con el contrato y no cuando llega el momento de rendir.
+determina qué se le descuenta al locador en su cuenta corriente, así que conviene
+cargarla junto con el contrato. En la misma comisión se puede pactar un **honorario
+por gestión de reparaciones** (un porcentaje): cada reparación a cargo del locador
+que se descuenta en su estado de cuenta suma ese honorario. Sin porcentaje no se
+cobra.
 
 El documento del contrato se genera desde el mismo detalle, eligiendo una de las
 plantillas disponibles. Las plantillas se administran aparte y son de Admin y
@@ -264,8 +269,11 @@ En el detalle del contrato, *Reglas vigentes* muestra lo que rige hoy: modalidad
 período de ajuste, base del ajuste (sobre el alquiler original o sobre el vigente),
 rezago del índice, día de vencimiento, quién cobra (se reparte, todo la inmobiliaria
 o todo el locador) y los descuentos o el alquiler acordado, si los hay, con la fecha
-desde la que rigen y cuántas versiones tuvo, y las cuatro convenciones de liquidación
-pactadas. Debajo, *Acuerdos* lista los convenios
+desde la que rigen y cuántas versiones tuvo, las cuatro convenciones de liquidación
+pactadas y, si el contrato lo pacta, **qué debe el locador cuando cobra él
+directamente** (todo lo ajeno, o solo lo de la inmobiliaria si él paga los entes);
+sin pactar rige lo que eligió la inmobiliaria en *Caja y cobros*. Se pacta al crear
+el contrato o con un convenio de cambio de reglas. Debajo, *Acuerdos* lista los convenios
 registrados (renegociación, rebaja, bonificación, cambio de reglas, de reparto o de
 cargo) con su vigencia, sus notas y un enlace al documento. Ambas secciones son de
 solo lectura: los acuerdos todavía se cargan por la API (`POST
@@ -533,8 +541,9 @@ recibido por la inmobiliaria. Cómo registrar cada caso:
 - **El locador cobra todo**: *Recibió: el locador*. No entra nada en la caja ni se
   emite recibo de la inmobiliaria; el reparto del cobro deja anotado cuánto le debe
   el locador a la inmobiliaria (comisión, renglones de la inmobiliaria y, por
-  defecto, los de entes). Cuando el locador paga la comisión, se carga un movimiento
-  *Honorario* en la caja.
+  defecto, los de entes; el contrato puede pactar otra cosa) y su cuenta corriente
+  queda con ese saldo en contra. Cuando el locador paga la comisión, se carga un
+  movimiento *Honorario* en la caja.
 - **Repartido** (comisión a la inmobiliaria y el resto al locador): se registran dos
   cobros, uno por cada receptor; los saldos de los dos se compensan.
 - **El inquilino le transfirió a otro locador** (compensación): se registra el cobro
@@ -545,7 +554,9 @@ Cada cobro que recibe la inmobiliaria emite un **recibo de cobro** con número p
 botón para imprimirlo. El cobro guarda cuánto le tocó a la inmobiliaria, a los entes
 y a cada locador según su porcentaje; en los pagos parciales el reparto es
 acumulado, así que los cobros que saldan la liquidación suman exactamente su total.
-Una referencia externa (del sistema anterior o del banco) no se puede repetir.
+Una referencia externa (del sistema anterior o del banco) no se puede repetir. Cada
+cobro con reparto deja además sus asientos en la cuenta corriente de cada locador
+(ver *Cuenta corriente del locador*).
 
 **Pagos** (`/pagos`) es la mirada agregada: deuda pendiente, deuda vencida y los
 pagos recientes con su medio y su período. Es una pantalla de consulta; el
@@ -564,8 +575,10 @@ pasa por la inmobiliaria.
 - **Movimientos**: el libro de la inmobiliaria, con filtros por cuenta, categoría,
   fechas y contrato. Los cobros, la custodia, las compensaciones y las conversiones se
   escriben solos. A mano (Admin, Gerente y Liquidaciones) se cargan los pagos a
-  locadores, entes y proveedores, los honorarios, los gastos, las comisiones del
-  personal y las señas, siempre en una caja o un banco.
+  entes y proveedores, los honorarios, los gastos, las comisiones del personal y las
+  señas, siempre en una caja o un banco. Los pagos a locadores se registran desde su
+  cuenta corriente (*Pagar al locador*), que escribe el egreso y descuenta su saldo
+  a la vez.
 - **Conversión de moneda**: de una cuenta a otra de distinta moneda, con el tipo de
   cambio escrito a mano. El sistema nunca convierte solo.
 - **Recibos**: los recibos de cobro con número, fecha, inquilino, propiedad e importe,
@@ -574,7 +587,8 @@ pasa por la inmobiliaria.
 **Custodia.** La sección de custodia muestra el efectivo que la inmobiliaria guarda
 para cada locador, por moneda. *Entregar* registra que el locador lo buscó o que se
 depositó: todo el saldo o una parte, con la fecha. No se puede entregar más de lo que
-hay, y queda una fila de auditoría.
+hay, y queda una fila de auditoría. La custodia es parte del saldo del locador:
+la entrega queda en su cuenta corriente como *Entrega de efectivo*.
 
 **Compensaciones.** Cuando el inquilino de un contrato le transfiere a otro locador de
 la inmobiliaria (para no mover efectivo), el cobro se registra como recibido por el
@@ -668,22 +682,76 @@ Liquidaciones; el resto de los roles tiene lectura.
 La consulta de padrón por CUIT está disponible dentro del asistente y sirve para
 verificar la condición fiscal del receptor antes de emitir.
 
-### Rendir al propietario
+### Cuenta corriente del locador
 
-**Rendiciones** (`/renditions`) → *Generar Rendición*, indicando el contrato y el
-período. La rendición toma lo efectivamente cobrado en el período y le descuenta
-la comisión pactada en el contrato más los conceptos que correspondan, para
-llegar al depósito neto que recibe el propietario.
+**Locadores** (`/locadores`; la ven Admin, Gerente, Liquidaciones y Lectura) lista a
+cada locador con su saldo por moneda, cuánto de ese saldo está en custodia, cuánto
+falta pagarle y su último estado emitido. Al abrir uno se ve su **cuenta corriente**:
+los movimientos de una moneda, del más viejo al más nuevo, con el saldo después de
+cada uno. Se filtra por fechas; el saldo anterior a la fecha *Desde* abre la lista.
 
-En el detalle (`/renditions/[id]`) se ven los conceptos discriminados y se pueden
-agregar o quitar líneas y dejar notas. Los estados son Borrador, Aprobada,
-Enviada y Depositada. El PDF se descarga, con la sesión abierta, desde el listado
-o el detalle, y desde
-el detalle se lo envía por correo al propietario. Todo el circuito es de Admin,
-Gerente y Liquidaciones.
+**Cómo se lee el saldo.** Positivo: la inmobiliaria le debe al locador. Negativo: el
+locador le debe a la inmobiliaria. Los movimientos se escriben solos:
 
-Si la rendición no cuadra con lo esperado, lo primero a revisar es la comisión
-del contrato: es el parámetro que la determina.
+- Un cobro que recibe la inmobiliaria suma la parte del locador de cada concepto
+  (alquiler, punitorios, impuestos y servicios que le corresponden) y resta la
+  comisión y los gastos administrativos. Con dos locadores al 50 %, un alquiler de
+  100000 y comisión del 7 %, cada uno queda con +50000 −3500 = **46500 a favor**.
+- Si el efectivo queda en **custodia**, es lo mismo: es dinero del locador que
+  guarda la oficina, y la pantalla muestra cuánto del saldo está en custodia.
+- Si el inquilino le pagó **al locador**, se ven los mismos conceptos y, además,
+  *Cobrado directamente* por lo que ya tiene en mano: el saldo queda en lo que le
+  debe a la inmobiliaria (en el ejemplo, **−3500**, la comisión).
+- Una **compensación** resta a quien cobró y suma al locador al que le correspondía.
+- Una boleta que el inquilino paga con el alquiler para el locador y que pagó la
+  inmobiliaria resta como *Pago a ente*.
+- Los gastos al locador del centro de carga restan al generar su estado de cuenta.
+
+**Saldo inicial.** Cada locador arranca con un saldo inicial por moneda (el del último
+acumulador). *Saldo inicial* lo carga o lo corrige: pide la moneda, el importe
+(negativo si el locador le debe a la inmobiliaria), la fecha y un **motivo**, y queda
+en la auditoría con el antes y el después. Es una operación de Admin y Gerente. Un
+saldo inicial que ya está en un estado emitido no se corrige: hay que anular el
+estado primero.
+
+**Pagar al locador.** *Pagar al locador* (Admin, Gerente y Liquidaciones) registra
+una transferencia o una entrega de efectivo desde una caja o un banco de la
+inmobiliaria: sale de la cuenta como *Pago a locador* y resta de su saldo, en una
+sola operación. Puede dejar el saldo negativo (un adelanto). El efectivo que está en
+custodia no se paga desde acá: se **entrega** desde la caja (*Custodia* →
+*Entregar*), y también resta del saldo.
+
+### Estado de cuenta mensual
+
+**Estados de cuenta** (`/estados-de-cuenta`) reemplaza a los acumuladores: un estado
+por locador, mes y moneda, con **todas sus unidades** y el saldo que viene del mes
+anterior.
+
+- *Generar el mes* (Admin, Gerente y Liquidaciones) arma un **borrador** para cada
+  locador con movimientos o con saldo; volver a generar recalcula los borradores. Al
+  generar se descuentan los gastos al locador del centro de carga de ese mes (o
+  hasta ese mes): cada uno queda *Imputado* en el estado.
+- El detalle muestra el **saldo anterior**, el saldo inicial (si lo hay), los
+  **créditos**, los **descuentos**, los **pagos** (transferencias, entregas y lo que
+  cobró directamente) y el **saldo al cierre**, con los movimientos agrupados por
+  unidad.
+- *Emitir* cierra el mes: los movimientos quedan fijos en ese estado y el mes
+  siguiente arranca de su saldo al cierre. Un estado emitido no se vuelve a generar.
+- *Descargar PDF* baja el estado para imprimirlo o mandarlo por WhatsApp o por mail.
+  El envío automático desde el sistema llega más adelante.
+- *Anular* (Admin y Gerente) pide un motivo y libera los movimientos, que vuelven a
+  entrar en el próximo estado que se genere. Solo se anula el último emitido de cada
+  locador y moneda. Los gastos que ya se descontaron siguen en la cuenta corriente.
+
+Si un estado no cuadra, lo primero a revisar es la comisión del contrato y el saldo
+inicial del locador.
+
+### Rendiciones (histórico)
+
+**Rendiciones** (`/renditions`) quedó como **histórico**: muestra y descarga en PDF
+las rendiciones por contrato hechas antes de la cuenta corriente, pero ya no se
+generan, no cambian de estado, no se editan ni se envían. Lo que se le liquida a cada
+locador está ahora en su cuenta corriente y su estado de cuenta mensual.
 
 ### Atender un reclamo
 
@@ -713,7 +781,8 @@ conviene corregir el archivo y volver a subirlo antes de confirmar. Es una
 operación de Admin y Gerente. La exportación de propiedades y personas a CSV y
 Excel está además disponible para Ventas.
 
-**Reportes** (`/reports`) genera estado de cuenta del propietario, rentabilidad
+**Reportes** (`/reports`) genera estado de cuenta del propietario (desde la cuenta
+corriente, con las rendiciones históricas marcadas como tales), rentabilidad
 por propiedad, flujo de caja mensual, resumen de comisiones, analítica del embudo
 y morosidad, y los descarga en Excel o PDF. La pantalla es de Admin, Gerente y
 Liquidaciones; programar un envío periódico es de Admin y Gerente.
@@ -785,7 +854,11 @@ honorarios), la cadencia de cobranza (primer recordatorio a los 5 días y despu�
 cada 5), el semáforo de vencimientos de contratos (rojo a los 0 días, amarillo a
 los 60) y las cuatro convenciones de liquidación (prorrateo de un mes parcial, ajuste a
 mitad de mes, primer mes con inicio tardío y descuento de monto fijo; de fábrica, días
-reales, desde el período siguiente, vence el día de inicio y proporcional). Cada campo muestra debajo el valor de fábrica. Cambiá lo que necesites y
+reales, desde el período siguiente, vence el día de inicio y proporcional). La sección
+*Cuenta corriente del locador* fija el **día de cierre** del estado (vacío = fin de
+mes; con un día, lo posterior va al estado del mes siguiente) y **cuándo se descuentan
+los gastos al locador** (al generar el estado, de fábrica, o recién al emitirlo; en
+ese caso el borrador los muestra como previstos). Cada campo muestra debajo el valor de fábrica. Cambiá lo que necesites y
 tocá *Guardar valores*; *Volver a los valores de fábrica* los restaura en el
 formulario (hay que guardar para aplicarlo).
 
@@ -820,7 +893,7 @@ En un hallazgo de personas repetidas, el Admin tiene el botón *Unir*. Se elige 
 - las otras quedan dadas de baja, sin CUIT, con una nota que dice con quién se unieron; no se borran, y siguen consultables entre las personas inactivas;
 - queda una fila de auditoría con el antes y el después de cada persona.
 
-La unión se rechaza con un aviso, sin cambiar nada, si hay datos que no se pueden combinar: las dos personas tienen perfil de proveedor, acceso al portal, puntaje de inquilino o una rendición del mismo contrato y período, o hay un poder entre ellas. Hay que resolver eso primero (por ejemplo, dar de baja el perfil que sobra). La unión no se deshace sola: si hubo un error, se corrige a mano con la auditoría a la vista.
+La unión se rechaza con un aviso, sin cambiar nada, si hay datos que no se pueden combinar: las dos personas tienen perfil de proveedor, acceso al portal, puntaje de inquilino, una rendición del mismo contrato y período, un movimiento de cuenta corriente del mismo origen (por ejemplo, las dos tienen saldo inicial en la misma moneda), un estado de cuenta del mismo mes y moneda o una custodia en la misma moneda, o hay un poder entre ellas. Hay que resolver eso primero (por ejemplo, dar de baja el perfil que sobra). La unión no se deshace sola: si hubo un error, se corrige a mano con la auditoría a la vista.
 
 ### Permisos de lectura
 

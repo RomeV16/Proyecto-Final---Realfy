@@ -217,6 +217,8 @@ describe('Unir personas repetidas', () => {
       { entity: 'propertyOwnership', field: 'personId', count: 2 },
       { entity: 'contractLessor', field: 'personId', count: 1 },
       { entity: 'contractLessor', field: 'payeePersonId', count: 1 },
+      { entity: 'ownerLedgerEntry', field: 'personId', count: 4 },
+      { entity: 'ownerStatement', field: 'personId', count: 1 },
     ],
     discarded: [{ entity: 'personRoleAssignment', field: 'personId', count: 1 }],
   };
@@ -248,6 +250,8 @@ describe('Unir personas repetidas', () => {
     expect(within(body).getByText('Titularidades: 2')).toBeInTheDocument();
     expect(within(body).getByText('Locadores de contratos: 2')).toBeInTheDocument();
     expect(within(body).getByText('Roles: 1')).toBeInTheDocument();
+    expect(within(body).getByText('Movimientos de la cuenta corriente: 4')).toBeInTheDocument();
+    expect(within(body).getByText('Estados de cuenta: 1')).toBeInTheDocument();
     expect(merge).not.toHaveBeenCalled();
 
     await user.click(within(body).getByRole('button', { name: 'Unir personas' }));

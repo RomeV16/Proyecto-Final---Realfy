@@ -295,7 +295,7 @@ describe('Caja y cobros (e2e)', () => {
       date: '2026-01-17',
       direction: 'Out',
       amount: '1',
-      category: 'PagoLocador',
+      category: 'Gasto',
     });
     expect(manual.body.error).toBe('CUSTODY_ACCOUNT_RESERVED');
   });

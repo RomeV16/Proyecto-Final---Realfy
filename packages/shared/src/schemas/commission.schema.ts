@@ -12,6 +12,12 @@ const percentageString = z
   .regex(/^\d{1,3}(\.\d{1,2})?$/, 'Must be a valid percentage (0-100) with up to 2 decimal places')
   .refine((value) => Number(value) <= 100, 'Percentage cannot be greater than 100');
 
+/**
+ * Honorario por gestión de una reparación a cargo del locador, en % de su
+ * importe; null = sin honorario.
+ */
+const repairMgmtFeePct = z.union([percentageString, z.number().transform(String).pipe(percentageString)]).nullable().optional();
+
 // ─── Create Commission Schema ───────────────────────────
 
 export const CreateCommissionSchema = z
@@ -20,6 +26,7 @@ export const CreateCommissionSchema = z
     percentage: percentageString.optional(),
     fixedAmount: decimalString.optional(),
     adminFee: decimalString.optional(),
+    repairMgmtFeePct,
     currency: z.nativeEnum(Currency).optional(),
     notes: z.string().max(1000).optional(),
   })
@@ -57,6 +64,7 @@ export const UpdateCommissionSchema = z
     percentage: percentageString.optional(),
     fixedAmount: decimalString.optional(),
     adminFee: decimalString.optional(),
+    repairMgmtFeePct,
     currency: z.nativeEnum(Currency).optional(),
     notes: z.string().max(1000).optional(),
   });

@@ -43,6 +43,8 @@ const TENANT_SCOPED_MODELS = new Set([
   'FinancialAccount',
   'CashMovement',
   'Compensation',
+  'OwnerLedgerEntry',
+  'OwnerStatement',
   'Service',
   'ServicePayment',
   'ServiceBill',

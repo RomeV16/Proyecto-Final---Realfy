@@ -33,7 +33,6 @@ vi.mock('@/lib/download', () => ({
   downloadFile: (...a: unknown[]) => downloadFile(...a),
 }));
 
-import { ApiRequestError } from '@/lib/api-client';
 import { RenditionList } from './rendition-list';
 
 const nb = (s: string | null) => (s ?? '').replaceAll(' ', ' ');
@@ -57,11 +56,8 @@ function page(items: unknown[], extra: Record<string, unknown> = {}) {
   return { items, total: items.length, page: 1, limit: 12, totalPages: 1, ...extra };
 }
 
-function mockList(getPage: (path: string) => unknown, onWrite: () => Promise<unknown> = () => Promise.resolve({})) {
-  apiClient.mockImplementation((path: string, init?: { method?: string }) => {
-    if (init?.method) return onWrite();
-    return Promise.resolve(getPage(path));
-  });
+function mockList(getPage: (path: string) => unknown) {
+  apiClient.mockImplementation((path: string) => Promise.resolve(getPage(path)));
 }
 
 async function mount() {
@@ -120,32 +116,20 @@ describe('RenditionList', () => {
     await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringContaining('No se pudo descargar')));
   });
 
-  it.each(['Admin', 'Gerente', 'Liquidaciones'])('%s ve el botón de generar', async (role) => {
+  it.each(['Admin', 'Gerente', 'Liquidaciones', 'Lectura'])('%s ve el aviso de histórico y ningún botón de generar', async (role) => {
     auth.role = role;
     mockList(() => page([item('r-1')]));
     await mount();
-    expect(screen.getByRole('button', { name: 'Generar Rendición' })).toBeInTheDocument();
+    expect(screen.getByRole('note')).toHaveTextContent('La cuenta corriente y el estado de cuenta mensual del locador las reemplazan');
+    expect(screen.getByRole('link', { name: 'Ir a estados de cuenta' })).toHaveAttribute('href', '/es/estados-de-cuenta');
+    expect(screen.queryByRole('button', { name: /Generar Rendición/ })).not.toBeInTheDocument();
   });
 
-  it.each(['Ventas', 'Lectura', 'Soporte'])('%s no ve el botón de generar', async (role) => {
-    auth.role = role;
-    mockList(() => page([item('r-1')]));
-    await mount();
-    expect(screen.queryByRole('button', { name: 'Generar Rendición' })).not.toBeInTheDocument();
-  });
-
-  it('vacío sin filtros ofrece generar solo a quien puede', async () => {
+  it('vacío sin filtros explica dónde está ahora lo que se le liquida al locador, sin ofrecer generar', async () => {
     mockList(() => page([]));
     await mount();
     expect(await screen.findByText('No hay rendiciones')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Generar Rendición/ })).toHaveLength(2);
-  });
-
-  it('vacío para un rol sin permiso no ofrece generar', async () => {
-    auth.role = 'Lectura';
-    mockList(() => page([]));
-    await mount();
-    expect(await screen.findByText('No hay rendiciones')).toBeInTheDocument();
+    expect(screen.getByText(/No hay rendiciones históricas/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Generar Rendición/ })).not.toBeInTheDocument();
   });
 
@@ -191,40 +175,5 @@ describe('RenditionList', () => {
     expect(await screen.findByText('Mostrando 13-24 de 30')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Anterior' }));
     expect(await screen.findByText('Mostrando 1-12 de 30')).toBeInTheDocument();
-  });
-
-  it('genera una rendición desde el modal y recarga', async () => {
-    mockList(() => page([item('r-1')]));
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Generar Rendición' }));
-    const submit = screen.getByRole('button', { name: 'Generar' });
-    expect(submit).toBeDisabled();
-    await user.type(screen.getByPlaceholderText('Seleccionar contrato'), 'c-9');
-    const combos = screen.getAllByRole('combobox');
-    await user.selectOptions(combos.at(-2)!, '3');
-    await user.click(submit);
-    await waitFor(() =>
-      expect(apiClient).toHaveBeenCalledWith('/renditions/generate', {
-        method: 'POST',
-        body: JSON.stringify({ contractId: 'c-9', month: 3, year: new Date().getFullYear() }),
-      }),
-    );
-    await waitFor(() => expect(screen.queryByPlaceholderText('Seleccionar contrato')).not.toBeInTheDocument());
-  });
-
-  it('muestra el mensaje de la API o el genérico si falla la generación y permite cancelar', async () => {
-    mockList(() => page([item('r-1')]), () => Promise.reject(new ApiRequestError(400, 'BAD', 'Contrato inválido de prueba')));
-    const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Generar Rendición' }));
-    await user.type(screen.getByPlaceholderText('Seleccionar contrato'), 'c-9');
-    await user.click(screen.getByRole('button', { name: 'Generar' }));
-    expect(await screen.findByText('Contrato inválido de prueba')).toBeInTheDocument();
-
-    mockList(() => page([item('r-1')]), () => Promise.reject(new Error('x')));
-    await user.click(screen.getByRole('button', { name: 'Generar' }));
-    expect(await screen.findByText('Error al generar rendición')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(screen.queryByPlaceholderText('Seleccionar contrato')).not.toBeInTheDocument();
   });
 });

@@ -34,6 +34,7 @@ export interface TermsLike {
   fixedDiscountProration: string;
   upfrontThresholdFees: number | null;
   upfrontBasis: string;
+  lessorDirectOwes?: string | null;
 }
 
 type TermsClient = {
@@ -87,6 +88,7 @@ const RULE_DEFAULTS = {
   fixedDiscountProration: (d: OperationalDefaults) => d.fixedDiscountProration,
   upfrontThresholdFees: (d: OperationalDefaults) => d.upfrontThresholdFees,
   upfrontBasis: (d: OperationalDefaults) => d.upfrontBasis,
+  lessorDirectOwes: (d: OperationalDefaults) => d.cash.lessorDirectOwes,
 } as const;
 
 export type ResolvableRule = keyof typeof RULE_DEFAULTS;

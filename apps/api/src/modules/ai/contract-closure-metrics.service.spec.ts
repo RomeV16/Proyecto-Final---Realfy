@@ -354,6 +354,29 @@ describe('ContractClosureMetricsService', () => {
       expect(metrics.rendicionNetAmount).toBe(310000);
     });
 
+    it('suma los estados de cuenta emitidos del contrato a las rendiciones históricas (ADR-0009)', async () => {
+      prisma.client.contract.findFirst.mockResolvedValueOnce({
+        ...CONTRACT,
+        // La consulta ya trae solo asientos de estados emitidos.
+        ownerLedger: [
+          { statementId: 's-oct', type: 'Alquiler', amount: 300000 },
+          { statementId: 's-oct', type: 'Comision', amount: -21000 },
+          { statementId: 's-oct', type: 'Transferencia', amount: -279000 },
+          { statementId: 's-nov', type: 'Alquiler', amount: 300000 },
+          { statementId: 's-nov', type: 'Comision', amount: -21000 },
+          { statementId: 's-ini', type: 'SaldoInicial', amount: 5000 },
+        ],
+      });
+
+      const metrics = (await service.compute(CONTRACT_ID))!;
+
+      // 2 rendiciones viejas + 2 estados (el del saldo inicial no cuenta); 310000 + 2 × 279000
+      expect(metrics.rendicionCount).toBe(4);
+      expect(metrics.rendicionNetAmount).toBe(868000);
+      const select = prisma.client.contract.findFirst.mock.calls[0][0].select;
+      expect(select.ownerLedger.where).toEqual({ statement: { status: { in: ['Emitido', 'Enviado'] } } });
+    });
+
     it('un contrato sin historial devuelve la grilla en cero y no rompe', async () => {
       prisma.client.contract.findFirst.mockResolvedValueOnce({
         ...CONTRACT,

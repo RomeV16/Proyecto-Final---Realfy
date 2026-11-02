@@ -54,6 +54,7 @@ import { ServiceBillsService } from '../services/service-bills.service';
 import { PenaltiesService, parseDay } from '../penalties/penalties.service';
 import { ChargesService } from '../charges/charges.service';
 import { PaymentSettlementService } from '../cash/payment-settlement.service';
+import { withReceiptLabel } from '../cash/receipts.service';
 import Decimal from 'decimal.js';
 import { nextDocumentNumber } from '../../common/document-sequence/document-sequence';
 import { assertTransition } from '../../common/errors/assert-transition';
@@ -492,6 +493,7 @@ export class LiquidacionesService {
 
     return {
       ...liquidacion,
+      payments: (liquidacion.payments ?? []).map(withReceiptLabel),
       receiptNumber: liquidacion.receiptSeq != null ? formatReceiptNumber(liquidacion.receiptSeq) : null,
     };
   }
@@ -916,7 +918,7 @@ export class LiquidacionesService {
     });
 
     const detail = await this.findOne(liquidacionId);
-    const withPayment = { ...detail, registeredPayment: payment };
+    const withPayment = { ...detail, registeredPayment: withReceiptLabel(payment) };
     return penaltySettled ? { ...withPayment, penaltySettled } : withPayment;
   }
 
@@ -932,11 +934,12 @@ export class LiquidacionesService {
       });
     }
 
-    return this.prisma.client.payment.findMany({
+    const payments = await this.prisma.client.payment.findMany({
       where: { liquidacionId },
       orderBy: { paidAt: 'asc' },
       include: PAYMENT_INCLUDE,
     });
+    return payments.map(withReceiptLabel);
   }
 
   // ─── PDF Generation ─────────────────────────────────

@@ -113,7 +113,9 @@
   "permissions": "Permisos",
   "serviceBills": "Boletas del mes",
   "charges": "Centro de carga",
-  "cash": "Caja"
+  "cash": "Caja",
+  "owners": "Locadores",
+  "ownerStatements": "Estados de cuenta"
  },
  "dataTable": {
   "pagination": {
@@ -211,7 +213,15 @@
    "COMPENSATION_EXCEEDS_PAYMENT": "La compensación supera lo que le correspondía en ese cobro.",
    "COMPENSATION_OUT_OF_SCOPE": "Esa compensación no está permitida: el locador no es del contrato o la inmobiliaria solo admite compensaciones entre locadores del mismo contrato.",
    "COMPENSATION_REQUIRES_LESSOR_RECEIPT": "Solo se compensa un cobro que recibió un locador.",
-   "COMPENSATION_SAME_LESSOR": "Un locador no se compensa consigo mismo."
+   "COMPENSATION_SAME_LESSOR": "Un locador no se compensa consigo mismo.",
+   "OPENING_BALANCE_LOCKED": "El saldo inicial ya está en un estado de cuenta emitido: anulá el estado antes de corregirlo.",
+   "STATEMENT_NOT_DRAFT": "El estado de cuenta ya no es un borrador.",
+   "STATEMENT_PERIOD_CLOSED": "Ya hay un estado emitido de este mes o de uno posterior para este locador.",
+   "STATEMENT_CHANGED": "La cuenta corriente cambió mientras se emitía: volvé a intentarlo.",
+   "STATEMENT_NOT_LATEST": "Primero anulá los estados posteriores de este locador.",
+   "STATEMENT_ALREADY_ANNULLED": "El estado de cuenta ya estaba anulado.",
+   "STATEMENT_NOT_FOUND": "El estado de cuenta no existe.",
+   "OWNER_LEDGER_LOCKED": "Esos movimientos ya están en un estado de cuenta emitido: anulá el estado primero."
   },
   "segment": {
    "loading": "Cargando…",
@@ -2714,11 +2724,14 @@
    "percentageRange": "El porcentaje debe estar entre 0 y 100",
    "fixedAmountRequired": "El monto fijo es obligatorio para este tipo",
    "fixedAmountPositive": "El monto fijo debe ser mayor a 0"
-  }
+  },
+  "repairMgmtFeePct": "Honorario por gestión de reparaciones (%)",
+  "repairMgmtFeePctPlaceholder": "Sin honorario",
+  "repairMgmtFeePctHint": "Se descuenta al locador sobre cada reparación a su cargo. Vacío: no se cobra."
  },
  "renditions": {
   "title": "Rendiciones",
-  "subtitle": "Gestión de rendiciones a propietarios",
+  "subtitle": "Rendiciones por contrato emitidas antes de la cuenta corriente (histórico, solo lectura)",
   "generate": "Generar Rendición",
   "generateDesc": "Crear una rendición para un contrato y período específico",
   "generateSuccess": "Rendición generada correctamente",
@@ -2856,7 +2869,7 @@
    "title": "No hay rendiciones",
    "subtitle": "Las rendiciones se generan a partir de los pagos registrados en las liquidaciones",
    "filtered": "No se encontraron rendiciones con los filtros aplicados",
-   "description": "Las rendiciones detallan cuánto se transfiere a cada propietario después de cobrar el alquiler y descontar comisión y gastos.",
+   "description": "No hay rendiciones históricas. Lo que se le liquida a cada locador está ahora en su cuenta corriente y en el estado de cuenta mensual.",
    "step1": "Asegurate de tener liquidaciones pagadas",
    "step2": "Generá la rendición del período para cada propietario",
    "step3": "Aprobá y enviá la rendición por email"
@@ -2878,6 +2891,12 @@
    "noProperty": "Sin propiedad asociada",
    "notSent": "Aún no enviada al propietario",
    "missingPdf": "PDF no generado aún"
+  },
+  "historical": {
+   "title": "Histórico",
+   "body": "Las rendiciones por contrato quedaron como histórico. La cuenta corriente y el estado de cuenta mensual del locador las reemplazan.",
+   "statements": "Ir a estados de cuenta",
+   "owners": "Ir a locadores"
   }
  },
  "reports": {
@@ -3828,7 +3847,12 @@
     "tenantScore": "Puntaje de inquilino",
     "providerProfile": "Perfil de proveedor",
     "inquilinoCredential": "Acceso al portal",
-    "other": "Otros datos"
+    "other": "Otros datos",
+    "cashMovement": "Movimientos de caja",
+    "compensation": "Compensaciones",
+    "financialAccount": "Cuentas de custodia",
+    "ownerLedgerEntry": "Movimientos de la cuenta corriente",
+    "ownerStatement": "Estados de cuenta"
   }
  },
  "adjustments": {
@@ -4583,6 +4607,10 @@
    "cash": {
     "title": "Caja y cobros",
     "description": "Cómo se reparte un cobro, cómo se numeran los recibos y qué hace la inmobiliaria con el efectivo de los locadores."
+   },
+   "ownerAccounts": {
+    "title": "Cuenta corriente del locador",
+    "description": "Cuándo cierra el estado de cuenta mensual y cuándo se descuentan los gastos a cargo del locador."
    }
   },
   "fields": {
@@ -4686,6 +4714,18 @@
    "cashReceiptWhenLessorReceives": {
     "label": "Recibo cuando cobra el locador",
     "hint": "Se emite un recibo numerado también cuando el inquilino le paga directamente al locador."
+   },
+   "ownerStatementCloseDay": {
+    "label": "Día de cierre del estado",
+    "hint": "Vacío = fin de mes. Con un día (1 a 28), lo posterior a ese día va al estado del mes siguiente."
+   },
+   "ownerLessorChargeTiming": {
+    "label": "Gastos a cargo del locador",
+    "hint": "Cuándo se descuentan del estado (de fábrica: {value}).",
+    "options": {
+     "AlGenerarEstado": "Al generar el borrador del mes",
+     "AlEmitirEstado": "Al emitir el estado (el borrador los muestra como previstos)"
+    }
    }
   }
  },
@@ -4740,6 +4780,14 @@
    "label": "Umbral de anticipo propio",
    "placeholder": "Por defecto: {value}",
    "hint": "En comisiones mensuales. Vacío usa el de la inmobiliaria."
+  },
+  "lessorDirectOwes": {
+   "label": "Si el inquilino le paga al locador",
+   "hint": "Qué le debe el locador a la inmobiliaria cuando cobra directamente; vacío, el de la inmobiliaria.",
+   "options": {
+    "TodoLoAjeno": "Todo lo que no es suyo (comisión, inmobiliaria y entes)",
+    "SoloInmobiliaria": "Solo comisión e inmobiliaria (los entes los paga él)"
+   }
   }
  },
  "penaltyRule": {
@@ -4910,7 +4958,25 @@
   },
   "since": "desde el {date}",
   "range": "del {from} al {to}",
-  "document": "Ver documento"
+  "document": "Ver documento",
+  "lessorDirectOwes": {
+   "label": "Si el inquilino le paga al locador",
+   "hint": "Qué le debe el locador a la inmobiliaria cuando cobra directamente.",
+   "unknown": "El de la inmobiliaria",
+   "sourceContract": "Pactado en el contrato",
+   "sourceTenant": "Valor de la inmobiliaria",
+   "change": "Cambiar",
+   "dialogTitle": "Lo que debe el locador que cobra directamente",
+   "from": "Desde",
+   "fromHint": "Queda como un acuerdo de cambio de reglas desde esa fecha.",
+   "fromInvalid": "Ingresá una fecha válida.",
+   "inherit": "Valor de la inmobiliaria",
+   "save": "Guardar",
+   "saving": "Guardando…",
+   "saved": "Regla actualizada.",
+   "saveError": "No se pudo cambiar la regla.",
+   "cancel": "Cancelar"
+  }
  },
  "serviceBills": {
   "title": "Boletas del mes",
@@ -5292,7 +5358,8 @@
    "Conversion": "Conversión de moneda",
    "CustodyDelivery": "Entrega de custodia",
    "Compensation": "Compensación entre locadores",
-   "PendingCharge": "Gasto del centro de carga"
+   "PendingCharge": "Gasto del centro de carga",
+   "OwnerPayout": "Pago al locador"
   },
   "errors": {
    "name": "Escribí un nombre (hasta 120 caracteres)",
@@ -5466,6 +5533,204 @@
     "title": "No hay recibos",
     "subtitle": "Los recibos se emiten al registrar un cobro."
    }
+  }
+ },
+ "ownerAccounts": {
+  "forbidden": "No tenés permiso para ver la cuenta corriente de los locadores.",
+  "reading": {
+   "agencyOwes": "La inmobiliaria le debe",
+   "ownerOwes": "Le debe a la inmobiliaria",
+   "settled": "Sin saldo"
+  },
+  "statuses": {
+   "Borrador": "Borrador",
+   "Emitido": "Emitido",
+   "Enviado": "Enviado",
+   "Anulado": "Anulado"
+  },
+  "types": {
+   "SaldoInicial": "Saldo inicial",
+   "Alquiler": "Alquiler",
+   "Punitorio": "Punitorios",
+   "ReintegroImpuesto": "Impuestos y servicios",
+   "Comision": "Comisión",
+   "Honorario": "Honorarios",
+   "Cargo": "Gasto",
+   "PagoEnte": "Pago a ente",
+   "Transferencia": "Transferencia",
+   "EntregaEfectivo": "Entrega de efectivo",
+   "CobroDirecto": "Cobrado por el locador",
+   "Compensacion": "Compensación",
+   "Custodia": "Custodia",
+   "Ajuste": "Ajuste"
+  },
+  "errors": {
+   "currency": "Elegí la moneda.",
+   "amount": "Ingresá un importe válido, con hasta 2 decimales.",
+   "date": "Ingresá una fecha válida.",
+   "reason": "Contá el motivo (al menos 3 letras).",
+   "accountId": "Elegí la cuenta de donde sale el dinero.",
+   "method": "Elegí cómo se le paga.",
+   "note": "La nota es demasiado larga."
+  },
+  "balances": {
+   "title": "Locadores",
+   "subtitle": "Saldo de la cuenta corriente de cada locador por moneda: lo que la inmobiliaria le debe o lo que él le debe, cuánto está en custodia y lo que falta pagarle.",
+   "currency": "Moneda",
+   "allCurrencies": "Todas las monedas",
+   "noStatement": "Sin estados emitidos",
+   "columns": {
+    "name": "Locador",
+    "currency": "Moneda",
+    "balance": "Saldo",
+    "custody": "En custodia",
+    "payoutDue": "Falta pagarle",
+    "lastStatement": "Último estado"
+   },
+   "empty": {
+    "title": "Todavía no hay movimientos",
+    "subtitle": "La cuenta corriente se arma con los cobros, los pagos a locadores y los saldos iniciales."
+   }
+  },
+  "ledger": {
+   "back": "Locadores",
+   "title": "Cuenta corriente de {name}",
+   "titleLoading": "Cuenta corriente",
+   "subtitle": "Cada movimiento con el saldo después de él. Positivo: la inmobiliaria le debe; negativo: el locador le debe a la inmobiliaria.",
+   "openingBalance": "Saldo inicial",
+   "payout": "Registrar pago al locador",
+   "currencies": "Monedas",
+   "summary": "Resumen en {currency}",
+   "opening": "Saldo inicial del período",
+   "openingAt": "Saldo al {date}",
+   "closing": "Saldo actual",
+   "custody": "Efectivo en custodia",
+   "from": "Desde",
+   "to": "Hasta",
+   "unlocked": "Sin emitir",
+   "columns": {
+    "date": "Fecha",
+    "type": "Concepto",
+    "description": "Detalle",
+    "property": "Unidad",
+    "amount": "Importe",
+    "balance": "Saldo",
+    "statement": "Estado de cuenta"
+   },
+   "empty": {
+    "title": "Sin movimientos",
+    "subtitle": "No hay movimientos en esta moneda para las fechas elegidas."
+   }
+  },
+  "opening": {
+   "title": "Saldo inicial de {name}",
+   "explain": "Lo que el locador traía del sistema anterior (el último acumulador). Uno por moneda: si ya existe, se corrige. Queda en la auditoría con el motivo.",
+   "currency": "Moneda",
+   "amount": "Importe",
+   "amountHint": "Positivo si la inmobiliaria le debe; negativo si él le debe.",
+   "date": "Fecha",
+   "dateHint": "Vacío: hoy.",
+   "reason": "Motivo",
+   "reasonHint": "Por ejemplo: saldo del último acumulador de octubre.",
+   "save": "Guardar saldo inicial",
+   "saving": "Guardando…",
+   "error": "No se pudo guardar el saldo inicial.",
+   "done": "Saldo inicial guardado.",
+   "confirmTitle": "Confirmar saldo inicial",
+   "confirmBody": "El saldo inicial de {name} queda en {amount}.",
+   "confirmReason": "Motivo: {reason}",
+   "confirmLabel": "Sí, guardar"
+  },
+  "payout": {
+   "title": "Pago a {name}",
+   "explain": "Sale de una cuenta de la inmobiliaria en {currency} y baja el saldo del locador. El efectivo en custodia se entrega desde la caja.",
+   "account": "Cuenta",
+   "accountPlaceholder": "Elegí una cuenta",
+   "method": "Forma de pago",
+   "methods": {
+    "Transferencia": "Transferencia",
+    "EntregaEfectivo": "Entrega de efectivo"
+   },
+   "amount": "Importe ({currency})",
+   "date": "Fecha",
+   "note": "Nota",
+   "noAccounts": "No hay cuentas de la inmobiliaria en {currency}: creá una en la caja.",
+   "confirm": "Registrar pago",
+   "saving": "Registrando…",
+   "error": "No se pudo registrar el pago.",
+   "done": "Pago registrado. Saldo del locador: {balance}."
+  },
+  "statements": {
+   "title": "Estados de cuenta",
+   "subtitle": "Un estado por locador y moneda con todas sus unidades y el saldo que se arrastra del mes anterior. Se genera como borrador, se revisa y se emite; el PDF sirve para imprimir o compartir.",
+   "period": "Mes",
+   "status": "Estado",
+   "allStatuses": "Todos los estados",
+   "currency": "Moneda",
+   "generate": "Generar estados del mes",
+   "generating": "Generando…",
+   "generateError": "No se pudieron generar los estados.",
+   "generated": "{period}: {created, plural, =0 {ningún estado nuevo} one {# estado nuevo} other {# estados nuevos}} y {updated, plural, =0 {ninguno recalculado} one {# recalculado} other {# recalculados}}.",
+   "chargesPosted": "{count, plural, one {Se descontó # gasto del centro de carga.} other {Se descontaron # gastos del centro de carga.}}",
+   "skipped": "{count, plural, one {# omitido} other {# omitidos}}",
+   "skipReasons": {
+    "STATEMENT_ALREADY_ISSUED": "ya estaba emitido",
+    "STATEMENT_PERIOD_CLOSED": "hay un estado emitido de ese mes o de uno posterior"
+   },
+   "columns": {
+    "person": "Locador",
+    "period": "Mes",
+    "currency": "Moneda",
+    "opening": "Saldo anterior",
+    "credits": "Créditos",
+    "debits": "Descuentos",
+    "payouts": "Pagos",
+    "closing": "Saldo al cierre",
+    "status": "Estado"
+   },
+   "empty": {
+    "title": "No hay estados de este mes",
+    "subtitle": "Generá los estados del mes para ver el de cada locador."
+   }
+  },
+  "detail": {
+   "back": "Estados de cuenta",
+   "loadError": "No se pudo cargar el estado de cuenta.",
+   "title": "{name} — {period}",
+   "range": "Del {from} al {to} · {currency}",
+   "ledgerLink": "Ver la cuenta corriente",
+   "annulledBecause": "Anulado: {reason}",
+   "pdf": "Descargar PDF",
+   "issue": "Emitir",
+   "issueTitle": "Emitir el estado de cuenta",
+   "issueConfirm": "Se recalcula con lo que haya sin emitir hasta este mes y esos movimientos quedan cerrados: no se pueden cambiar hasta anular el estado.",
+   "issued": "Estado emitido.",
+   "issueError": "No se pudo emitir el estado.",
+   "annul": "Anular",
+   "totals": "Resumen",
+   "previous": "Saldo anterior",
+   "initial": "Saldo inicial",
+   "credits": "Créditos (alquileres, punitorios, reintegros)",
+   "debits": "Descuentos (comisión, honorarios, gastos)",
+   "payouts": "Pagos recibidos y cobros directos",
+   "closing": "Saldo al cierre",
+   "reading": {
+    "agencyOwes": "Saldo a favor del locador: la inmobiliaria le debe {amount}.",
+    "ownerOwes": "Saldo a favor de la inmobiliaria: el locador le debe {amount}.",
+    "settled": "Sin saldo pendiente."
+   },
+   "custody": "De ese saldo, en efectivo en custodia:",
+   "noMovements": "Sin movimientos en el período.",
+   "general": "Movimientos generales",
+   "subtotal": "Subtotal:",
+   "provisional": "previsto: se descuenta al emitir",
+   "annulTitle": "Anular el estado de cuenta",
+   "annulExplain": "Sus movimientos vuelven a quedar sin emitir y entran en el próximo estado. Solo se anula el último emitido del locador en esa moneda.",
+   "annulReason": "Motivo",
+   "annulReasonRequired": "Contá el motivo de la anulación.",
+   "annulConfirm": "Anular estado",
+   "annulled": "Estado anulado.",
+   "annulError": "No se pudo anular el estado."
   }
  }
 }

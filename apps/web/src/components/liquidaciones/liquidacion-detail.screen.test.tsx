@@ -136,7 +136,7 @@ describe('LiquidacionDetail', () => {
             receivedBy: 'Inmobiliaria',
             inCustody: true,
             account: { id: 'acc-1', name: 'Caja ARS', kind: 'Caja', currency: 'ARS' },
-            receipt: { id: 'rec-1', series: 'RECIBO_COBRO', number: 12 },
+            receipt: { id: 'rec-1', series: 'RECIBO_COBRO', number: 12, label: '00000012' },
           },
           {
             id: 'pay-2',
@@ -172,7 +172,7 @@ describe('LiquidacionDetail', () => {
             receivedBy: 'Inmobiliaria',
             inCustody: false,
             account: { id: 'acc-1', name: 'Caja ARS', kind: 'Caja', currency: 'ARS' },
-            receipt: { id: 'rec-9', series: 'RECIBO_COBRO', number: 9 },
+            receipt: { id: 'rec-9', series: 'RECIBO_COBRO', number: 9, label: '00000009' },
           },
         }),
     );

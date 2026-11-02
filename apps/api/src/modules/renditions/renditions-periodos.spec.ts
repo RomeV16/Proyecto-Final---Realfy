@@ -36,7 +36,6 @@ describe('RenditionsService: filtro de período independiente de la zona horaria
       { client } as unknown as PrismaService,
       { getTenantId: jest.fn().mockReturnValue('tenant-1') } as unknown as TenantContextService,
       {} as any,
-      {} as any,
     );
   });
 

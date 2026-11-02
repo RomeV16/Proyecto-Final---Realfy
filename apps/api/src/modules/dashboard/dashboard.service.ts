@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import Decimal from 'decimal.js';
-import { Money, monthStartUTC, periodKey, personName, propertyLabel, sumMoney, todayInAR } from '@realfy/shared';
+import { Money, OwnerLedgerEntryType, monthStartUTC, periodKey, personName, propertyLabel, sumMoney, todayInAR } from '@realfy/shared';
 import {
   isOverdue,
   isReceivable,
@@ -523,11 +523,10 @@ export class DashboardService {
    * Cash flow aggregated by month or ISO week over a date range.
    *
    * Inflow:  sum of Payment.amount where paidAt falls in the bucket.
-   * Outflow: sum of OwnerRendicion.netDeposit where depositedAt falls in the
-   *          bucket (disbursements to property owners). The OwnerRendicion model
-   *          tracks what was actually deposited to each owner after commission and
-   *          fees, making it the best available proxy for cash outflows.
-   *          If no rendiciones are deposited in a period, outflow = 0.
+   * Outflow: pagos a los locadores de la cuenta corriente (ADR-0009): los
+   *          asientos Transferencia y EntregaEfectivo cuya fecha cae en el
+   *          período, más las rendiciones viejas depositadas en él (histórico de
+   *          solo lectura, `netDeposit` por `depositedAt`). Sin pagos, 0.
    *
    * Returns one row per bucket covering the range, with net = inflow - outflow.
    */
@@ -541,13 +540,21 @@ export class DashboardService {
     const cached = this.cache.get<CashFlowRow[]>(tenantId, cacheKey, args);
     if (cached) return cached;
 
-    const [payments, rendiciones] = await Promise.all([
+    const [payments, payouts, rendiciones] = await Promise.all([
       (this.prisma.client as any).payment.findMany({
         where: {
           tenantId,
           paidAt: { gte: range.from, lte: range.to },
         },
         select: { amount: true, paidAt: true },
+      }),
+      (this.prisma.client as any).ownerLedgerEntry.findMany({
+        where: {
+          tenantId,
+          type: { in: [OwnerLedgerEntryType.Transferencia, OwnerLedgerEntryType.EntregaEfectivo] },
+          date: { gte: range.from, lte: range.to },
+        },
+        select: { amount: true, date: true },
       }),
       (this.prisma.client as any).ownerRendicion.findMany({
         where: {
@@ -564,9 +571,12 @@ export class DashboardService {
     );
 
     const outflowByBucket = aggregateIntoBuckets(
-      rendiciones
-        .filter((r: any) => r.depositedAt != null)
-        .map((r: any) => ({ date: new Date(r.depositedAt), amount: Number(r.netDeposit) })),
+      [
+        ...payouts.map((p: any) => ({ date: new Date(p.date), amount: -Number(p.amount) })),
+        ...rendiciones
+          .filter((r: any) => r.depositedAt != null)
+          .map((r: any) => ({ date: new Date(r.depositedAt), amount: Number(r.netDeposit) })),
+      ],
       granularity,
     );
 

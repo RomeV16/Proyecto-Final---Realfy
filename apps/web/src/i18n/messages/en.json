@@ -113,7 +113,9 @@
   "permissions": "Permissions",
   "serviceBills": "Monthly bills",
   "charges": "Charge center",
-  "cash": "Cash"
+  "cash": "Cash",
+  "owners": "Lessors",
+  "ownerStatements": "Owner statements"
  },
  "dataTable": {
   "pagination": {
@@ -211,7 +213,15 @@
    "COMPENSATION_EXCEEDS_PAYMENT": "The compensation exceeds that lessor's share of the payment.",
    "COMPENSATION_OUT_OF_SCOPE": "That compensation is not allowed: the lessor is not on the contract or the agency only allows compensations between lessors of the same contract.",
    "COMPENSATION_REQUIRES_LESSOR_RECEIPT": "Only a payment received by a lessor can be compensated.",
-   "COMPENSATION_SAME_LESSOR": "A lessor cannot compensate themselves."
+   "COMPENSATION_SAME_LESSOR": "A lessor cannot compensate themselves.",
+   "OPENING_BALANCE_LOCKED": "The opening balance is already in an issued statement: void the statement before correcting it.",
+   "STATEMENT_NOT_DRAFT": "The statement is no longer a draft.",
+   "STATEMENT_PERIOD_CLOSED": "A statement for this or a later month was already issued for this lessor.",
+   "STATEMENT_CHANGED": "The account changed while issuing: try again.",
+   "STATEMENT_NOT_LATEST": "Void this lessor's later statements first.",
+   "STATEMENT_ALREADY_ANNULLED": "The statement was already voided.",
+   "STATEMENT_NOT_FOUND": "The statement does not exist.",
+   "OWNER_LEDGER_LOCKED": "Those movements are already in an issued statement: void the statement first."
   },
   "segment": {
    "loading": "Loading…",
@@ -2714,11 +2724,14 @@
    "percentageRange": "El porcentaje debe estar entre 0 y 100",
    "fixedAmountRequired": "El monto fijo es obligatorio para este tipo",
    "fixedAmountPositive": "El monto fijo debe ser mayor a 0"
-  }
+  },
+  "repairMgmtFeePct": "Repair management fee (%)",
+  "repairMgmtFeePctPlaceholder": "No fee",
+  "repairMgmtFeePctHint": "Deducted from the lessor on each repair charged to them. Empty: not charged."
  },
  "renditions": {
   "title": "Rendiciones",
-  "subtitle": "Gestión de rendiciones a propietarios",
+  "subtitle": "Per-contract renditions issued before the lessor account (history, read only)",
   "generate": "Generar Rendición",
   "generateDesc": "Crear una rendición para un contrato y período específico",
   "generateSuccess": "Rendición generada correctamente",
@@ -2856,7 +2869,7 @@
    "title": "No hay rendiciones",
    "subtitle": "Las rendiciones se generan a partir de los pagos registrados en las liquidaciones",
    "filtered": "No se encontraron rendiciones con los filtros aplicados",
-   "description": "Las rendiciones detallan cuánto se transfiere a cada propietario después de cobrar el alquiler y descontar comisión y gastos.",
+   "description": "There are no historical renditions. What each lessor is owed now lives in their account and monthly owner statement.",
    "step1": "Asegurate de tener liquidaciones pagadas",
    "step2": "Generá la rendición del período para cada propietario",
    "step3": "Aprobá y enviá la rendición por email"
@@ -2878,6 +2891,12 @@
    "noProperty": "No property linked",
    "notSent": "Not yet sent to owner",
    "missingPdf": "PDF not generated yet"
+  },
+  "historical": {
+   "title": "History",
+   "body": "Per-contract renditions are kept as history. The lessor account and the monthly owner statement replace them.",
+   "statements": "Go to owner statements",
+   "owners": "Go to lessors"
   }
  },
  "reports": {
@@ -3828,7 +3847,12 @@
     "tenantScore": "Tenant score",
     "providerProfile": "Provider profile",
     "inquilinoCredential": "Portal access",
-    "other": "Other data"
+    "other": "Other data",
+    "cashMovement": "Cash movements",
+    "compensation": "Offsets",
+    "financialAccount": "Custody accounts",
+    "ownerLedgerEntry": "Lessor account movements",
+    "ownerStatement": "Owner statements"
   }
  },
  "adjustments": {
@@ -4583,6 +4607,10 @@
    "cash": {
     "title": "Cash and collections",
     "description": "How a payment is split, how receipts are numbered and what the agency does with the lessors' cash."
+   },
+   "ownerAccounts": {
+    "title": "Lessor account",
+    "description": "When the monthly owner statement closes and when the expenses charged to the lessor are deducted."
    }
   },
   "fields": {
@@ -4686,6 +4714,18 @@
    "cashReceiptWhenLessorReceives": {
     "label": "Receipt when the lessor collects",
     "hint": "A numbered receipt is also issued when the tenant pays the lessor directly."
+   },
+   "ownerStatementCloseDay": {
+    "label": "Statement closing day",
+    "hint": "Empty = end of month. With a day (1 to 28), anything after it goes to the next month's statement."
+   },
+   "ownerLessorChargeTiming": {
+    "label": "Expenses charged to the lessor",
+    "hint": "When they are deducted from the statement (factory default: {value}).",
+    "options": {
+     "AlGenerarEstado": "When the month's draft is generated",
+     "AlEmitirEstado": "When the statement is issued (the draft shows them as expected)"
+    }
    }
   }
  },
@@ -4740,6 +4780,14 @@
    "label": "Own advance threshold",
    "placeholder": "Default: {value}",
    "hint": "In monthly commissions. Empty uses the agency default."
+  },
+  "lessorDirectOwes": {
+   "label": "If the tenant pays the lessor",
+   "hint": "What the lessor owes the agency when they collect directly; empty, the agency's.",
+   "options": {
+    "TodoLoAjeno": "Everything that isn't theirs (commission, agency and utilities)",
+    "SoloInmobiliaria": "Only commission and agency (they pay the utilities)"
+   }
   }
  },
  "penaltyRule": {
@@ -4910,7 +4958,25 @@
   },
   "since": "since {date}",
   "range": "from {from} to {to}",
-  "document": "View document"
+  "document": "View document",
+  "lessorDirectOwes": {
+   "label": "If the tenant pays the lessor",
+   "hint": "What the lessor owes the agency when they collect directly.",
+   "unknown": "The agency's",
+   "sourceContract": "Agreed in the contract",
+   "sourceTenant": "Agency's default",
+   "change": "Change",
+   "dialogTitle": "What a lessor who collects directly owes",
+   "from": "From",
+   "fromHint": "It is recorded as a rule-change agreement from that date.",
+   "fromInvalid": "Enter a valid date.",
+   "inherit": "Agency's default",
+   "save": "Save",
+   "saving": "Saving…",
+   "saved": "Rule updated.",
+   "saveError": "The rule could not be changed.",
+   "cancel": "Cancel"
+  }
  },
  "serviceBills": {
   "title": "Monthly bills",
@@ -5292,7 +5358,8 @@
    "Conversion": "Currency conversion",
    "CustodyDelivery": "Custody delivery",
    "Compensation": "Compensation between lessors",
-   "PendingCharge": "Charge center expense"
+   "PendingCharge": "Charge center expense",
+   "OwnerPayout": "Payout to lessor"
   },
   "errors": {
    "name": "Enter a name (up to 120 characters)",
@@ -5466,6 +5533,204 @@
     "title": "No receipts",
     "subtitle": "Receipts are issued when a payment is registered."
    }
+  }
+ },
+ "ownerAccounts": {
+  "forbidden": "You don't have permission to see the lessors' accounts.",
+  "reading": {
+   "agencyOwes": "The agency owes them",
+   "ownerOwes": "They owe the agency",
+   "settled": "No balance"
+  },
+  "statuses": {
+   "Borrador": "Draft",
+   "Emitido": "Issued",
+   "Enviado": "Sent",
+   "Anulado": "Voided"
+  },
+  "types": {
+   "SaldoInicial": "Opening balance",
+   "Alquiler": "Rent",
+   "Punitorio": "Late fees",
+   "ReintegroImpuesto": "Taxes and utilities",
+   "Comision": "Commission",
+   "Honorario": "Fees",
+   "Cargo": "Expense",
+   "PagoEnte": "Utility paid",
+   "Transferencia": "Transfer",
+   "EntregaEfectivo": "Cash handed over",
+   "CobroDirecto": "Collected by the lessor",
+   "Compensacion": "Offset",
+   "Custodia": "Custody",
+   "Ajuste": "Adjustment"
+  },
+  "errors": {
+   "currency": "Choose the currency.",
+   "amount": "Enter a valid amount with up to 2 decimals.",
+   "date": "Enter a valid date.",
+   "reason": "Give the reason (at least 3 letters).",
+   "accountId": "Choose the account the money comes from.",
+   "method": "Choose how they are paid.",
+   "note": "The note is too long."
+  },
+  "balances": {
+   "title": "Lessors",
+   "subtitle": "Each lessor's account balance per currency: what the agency owes them or what they owe the agency, how much is held in custody and what is still to be paid.",
+   "currency": "Currency",
+   "allCurrencies": "All currencies",
+   "noStatement": "No issued statements",
+   "columns": {
+    "name": "Lessor",
+    "currency": "Currency",
+    "balance": "Balance",
+    "custody": "In custody",
+    "payoutDue": "Still to pay",
+    "lastStatement": "Last statement"
+   },
+   "empty": {
+    "title": "No movements yet",
+    "subtitle": "The account is built from payments, payouts to lessors and opening balances."
+   }
+  },
+  "ledger": {
+   "back": "Lessors",
+   "title": "{name}'s account",
+   "titleLoading": "Lessor account",
+   "subtitle": "Each movement with the balance after it. Positive: the agency owes them; negative: the lessor owes the agency.",
+   "openingBalance": "Opening balance",
+   "payout": "Record payout to lessor",
+   "currencies": "Currencies",
+   "summary": "Summary in {currency}",
+   "opening": "Opening balance of the period",
+   "openingAt": "Balance on {date}",
+   "closing": "Current balance",
+   "custody": "Cash in custody",
+   "from": "From",
+   "to": "To",
+   "unlocked": "Not issued",
+   "columns": {
+    "date": "Date",
+    "type": "Concept",
+    "description": "Detail",
+    "property": "Unit",
+    "amount": "Amount",
+    "balance": "Balance",
+    "statement": "Statement"
+   },
+   "empty": {
+    "title": "No movements",
+    "subtitle": "There are no movements in this currency for the chosen dates."
+   }
+  },
+  "opening": {
+   "title": "{name}'s opening balance",
+   "explain": "What the lessor carried over from the previous system (the last ledger sheet). One per currency: if it exists, it is corrected. The reason is kept in the audit log.",
+   "currency": "Currency",
+   "amount": "Amount",
+   "amountHint": "Positive if the agency owes them; negative if they owe the agency.",
+   "date": "Date",
+   "dateHint": "Empty: today.",
+   "reason": "Reason",
+   "reasonHint": "For example: balance of October's last ledger sheet.",
+   "save": "Save opening balance",
+   "saving": "Saving…",
+   "error": "The opening balance could not be saved.",
+   "done": "Opening balance saved.",
+   "confirmTitle": "Confirm opening balance",
+   "confirmBody": "{name}'s opening balance will be {amount}.",
+   "confirmReason": "Reason: {reason}",
+   "confirmLabel": "Yes, save"
+  },
+  "payout": {
+   "title": "Payout to {name}",
+   "explain": "It leaves an agency account in {currency} and lowers the lessor's balance. Cash in custody is handed over from the cash screen.",
+   "account": "Account",
+   "accountPlaceholder": "Choose an account",
+   "method": "Payment method",
+   "methods": {
+    "Transferencia": "Transfer",
+    "EntregaEfectivo": "Cash handed over"
+   },
+   "amount": "Amount ({currency})",
+   "date": "Date",
+   "note": "Note",
+   "noAccounts": "There are no agency accounts in {currency}: create one in the cash screen.",
+   "confirm": "Record payout",
+   "saving": "Recording…",
+   "error": "The payout could not be recorded.",
+   "done": "Payout recorded. Lessor's balance: {balance}."
+  },
+  "statements": {
+   "title": "Owner statements",
+   "subtitle": "One statement per lessor and currency with all their units and the balance carried over from the previous month. It is generated as a draft, reviewed and issued; the PDF can be printed or shared.",
+   "period": "Month",
+   "status": "Status",
+   "allStatuses": "All statuses",
+   "currency": "Currency",
+   "generate": "Generate the month's statements",
+   "generating": "Generating…",
+   "generateError": "The statements could not be generated.",
+   "generated": "{period}: {created, plural, =0 {no new statements} one {# new statement} other {# new statements}} and {updated, plural, =0 {none recalculated} one {# recalculated} other {# recalculated}}.",
+   "chargesPosted": "{count, plural, one {# charge from the charge center was deducted.} other {# charges from the charge center were deducted.}}",
+   "skipped": "{count, plural, one {# skipped} other {# skipped}}",
+   "skipReasons": {
+    "STATEMENT_ALREADY_ISSUED": "it was already issued",
+    "STATEMENT_PERIOD_CLOSED": "a statement for that month or a later one was issued"
+   },
+   "columns": {
+    "person": "Lessor",
+    "period": "Month",
+    "currency": "Currency",
+    "opening": "Previous balance",
+    "credits": "Credits",
+    "debits": "Deductions",
+    "payouts": "Payouts",
+    "closing": "Closing balance",
+    "status": "Status"
+   },
+   "empty": {
+    "title": "No statements for this month",
+    "subtitle": "Generate the month's statements to see each lessor's."
+   }
+  },
+  "detail": {
+   "back": "Owner statements",
+   "loadError": "The statement could not be loaded.",
+   "title": "{name} — {period}",
+   "range": "From {from} to {to} · {currency}",
+   "ledgerLink": "See the account",
+   "annulledBecause": "Voided: {reason}",
+   "pdf": "Download PDF",
+   "issue": "Issue",
+   "issueTitle": "Issue the statement",
+   "issueConfirm": "It is recalculated with everything not yet issued up to this month and those movements are closed: they cannot change until the statement is voided.",
+   "issued": "Statement issued.",
+   "issueError": "The statement could not be issued.",
+   "annul": "Void",
+   "totals": "Summary",
+   "previous": "Previous balance",
+   "initial": "Opening balance",
+   "credits": "Credits (rent, late fees, reimbursements)",
+   "debits": "Deductions (commission, fees, expenses)",
+   "payouts": "Payouts received and direct collections",
+   "closing": "Closing balance",
+   "reading": {
+    "agencyOwes": "Balance in the lessor's favor: the agency owes them {amount}.",
+    "ownerOwes": "Balance in the agency's favor: the lessor owes {amount}.",
+    "settled": "Nothing pending."
+   },
+   "custody": "Of that balance, cash held in custody:",
+   "noMovements": "No movements in the period.",
+   "general": "General movements",
+   "subtotal": "Subtotal:",
+   "provisional": "expected: deducted when issued",
+   "annulTitle": "Void the statement",
+   "annulExplain": "Its movements become unissued again and go into the next statement. Only the last issued statement of the lessor in that currency can be voided.",
+   "annulReason": "Reason",
+   "annulReasonRequired": "Give the reason for voiding it.",
+   "annulConfirm": "Void statement",
+   "annulled": "Statement voided.",
+   "annulError": "The statement could not be voided."
   }
  }
 }

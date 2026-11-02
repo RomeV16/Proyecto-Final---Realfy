@@ -33,6 +33,7 @@ const TERMS_FIELDS = [
   'fixedDiscountProration',
   'upfrontThresholdFees',
   'upfrontBasis',
+  'lessorDirectOwes',
 ] as const;
 
 const JSON_FIELDS = new Set(['customSteps', 'penaltyConfig']);

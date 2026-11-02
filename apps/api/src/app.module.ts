@@ -33,6 +33,7 @@ import { EmailTemplatesModule } from './modules/email-templates/email-templates.
 import { ServicesModule } from './modules/services/services.module';
 import { ChargesModule } from './modules/charges/charges.module';
 import { CashModule } from './modules/cash/cash.module';
+import { OwnerAccountsModule } from './modules/owner-accounts/owner-accounts.module';
 import { PipelinesModule } from './modules/pipelines/pipelines.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
@@ -101,6 +102,7 @@ import { ReadPolicyModule } from './common/read-policy/read-policy.module';
     ServicesModule,
     ChargesModule,
     CashModule,
+    OwnerAccountsModule,
     NotificationsModule,
     EmailTemplatesModule,
     PortalAuthModule,

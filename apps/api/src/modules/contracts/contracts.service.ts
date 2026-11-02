@@ -357,6 +357,8 @@ export class ContractsService {
           // Anticipo del centro de carga: umbral propio (null = el de la inmobiliaria) y su base.
           upfrontThresholdFees: validated.liquidationRules?.upfrontThresholdFees ?? null,
           upfrontBasis: validated.liquidationRules?.upfrontBasis ?? defaults.upfrontBasis,
+          // Qué debe el locador que cobra directamente: null = el de la inmobiliaria.
+          lessorDirectOwes: validated.liquidationRules?.lessorDirectOwes ?? null,
         },
       });
 

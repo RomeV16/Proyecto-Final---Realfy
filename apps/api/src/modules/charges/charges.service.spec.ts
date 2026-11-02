@@ -399,6 +399,9 @@ describe('ChargesService: anular, cobrar por adelantado y liberar', () => {
     await expect(open.service.release('pc-1')).rejects.toMatchObject({ response: { error: 'CHARGE_NOT_IMPUTED' } });
     const statement = build({ charge: pending({ status: 'Imputado', imputedStatementId: 'st-1' }) });
     await expect(statement.service.release('pc-1')).rejects.toMatchObject({ response: { error: 'CHARGE_IN_STATEMENT' } });
+    // Un cargo al locador imputado ya está en su cuenta corriente, aunque su estado no tenga id todavía.
+    const lessor = build({ charge: pending({ status: 'Imputado', chargedTo: 'Locador' }) });
+    await expect(lessor.service.release('pc-1')).rejects.toMatchObject({ response: { error: 'CHARGE_IN_STATEMENT' } });
   });
 });
 

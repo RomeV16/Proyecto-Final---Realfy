@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import {
   Money,
+  OwnerLedgerEntryType,
+  PAYOUT_ENTRY_TYPES,
   isClosedStatus,
   round2 as roundMoney,
   sumMoney,
@@ -14,6 +16,12 @@ const VOID_LIQUIDACION_STATUS = 'Anulada';
 
 /** Rendiciones que efectivamente salieron hacia el propietario. */
 const ISSUED_RENDICION_STATUSES = ['Aprobada', 'Enviada', 'Depositada'];
+
+/** Estados de cuenta del locador ya emitidos (ADR-0009). */
+const ISSUED_STATEMENT_STATUSES = ['Emitido', 'Enviado'];
+
+/** Asientos que no son lo rendido del contrato: pagos al locador y saldos iniciales. */
+const NOT_RENDERED_TYPES: string[] = [...PAYOUT_ENTRY_TYPES, OwnerLedgerEntryType.SaldoInicial];
 
 /** Reclamos que se cerraron con el trabajo hecho. */
 const RESOLVED_TICKET_STATUSES = ['Resuelto', 'Cerrado'];
@@ -89,6 +97,10 @@ export class ContractClosureMetricsService {
           orderBy: { adjustmentDate: 'asc' },
         },
         rendiciones: { select: { status: true, netDeposit: true } },
+        ownerLedger: {
+          where: { statement: { status: { in: ISSUED_STATEMENT_STATUSES as any } } },
+          select: { amount: true, type: true, statementId: true },
+        },
       },
     });
 
@@ -198,9 +210,13 @@ export class ContractClosureMetricsService {
         : currentRent;
 
     // ── Rendiciones ──────────────────────────────────────
+    // Las viejas (histórico) más los estados de cuenta emitidos que incluyen al
+    // contrato: lo rendido es lo del contrato sin los pagos ni saldos iniciales.
     const issuedRendiciones = contract.rendiciones.filter((r) =>
       ISSUED_RENDICION_STATUSES.includes(r.status),
     );
+    const statementEntries = (contract.ownerLedger ?? []).filter((e) => !NOT_RENDERED_TYPES.includes(e.type));
+    const statementIds = new Set(statementEntries.map((e) => e.statementId));
 
     return {
       contractType: contract.contractType,
@@ -242,9 +258,12 @@ export class ContractClosureMetricsService {
       lastRent: toNumber(lastRent),
       rentIncreasePct: firstRent > 0 ? round1(((lastRent - firstRent) / firstRent) * 100) : 0,
 
-      rendicionCount: issuedRendiciones.length,
+      rendicionCount: issuedRendiciones.length + statementIds.size,
       rendicionNetAmount: roundMoney(
-        sumMoney(issuedRendiciones.map((r) => r.netDeposit.toString())),
+        sumMoney([
+          ...issuedRendiciones.map((r) => r.netDeposit.toString()),
+          ...statementEntries.map((e) => e.amount.toString()),
+        ]),
       ).toNumber(),
     };
   }

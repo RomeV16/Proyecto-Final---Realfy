@@ -452,10 +452,53 @@ export enum CashCategory {
   Conversion = 'Conversion',
 }
 
+/**
+ * Qué le debe el locador a la inmobiliaria cuando el inquilino le paga
+ * directamente. Lo fija la inmobiliaria y se puede pactar por contrato.
+ */
+export enum LessorDirectOwes {
+  /** Todo lo que no es del locador: comisión, renglones de la inmobiliaria y renglones de entes. */
+  TodoLoAjeno = 'TodoLoAjeno',
+  /** Solo comisión y renglones de la inmobiliaria; el locador paga los entes. */
+  SoloInmobiliaria = 'SoloInmobiliaria',
+}
+
 /** Quién recibió un cobro: la inmobiliaria o el locador directamente. */
 export enum PaymentReceiver {
   Inmobiliaria = 'Inmobiliaria',
   Locador = 'Locador',
+}
+
+// ─── Cuenta corriente del locador ───────────────────────
+
+/**
+ * Concepto de un asiento de la cuenta corriente del locador (ADR-0009). El
+ * importe lleva signo: positivo, la inmobiliaria le debe al locador; negativo,
+ * le descuenta o le pagó.
+ */
+export enum OwnerLedgerEntryType {
+  SaldoInicial = 'SaldoInicial',
+  Alquiler = 'Alquiler',
+  Punitorio = 'Punitorio',
+  ReintegroImpuesto = 'ReintegroImpuesto',
+  Comision = 'Comision',
+  Honorario = 'Honorario',
+  Cargo = 'Cargo',
+  PagoEnte = 'PagoEnte',
+  Transferencia = 'Transferencia',
+  EntregaEfectivo = 'EntregaEfectivo',
+  /** Lo que el locador cobró directamente del inquilino (flujo "cobra el locador"). */
+  CobroDirecto = 'CobroDirecto',
+  Compensacion = 'Compensacion',
+  Custodia = 'Custodia',
+  Ajuste = 'Ajuste',
+}
+
+export enum OwnerStatementStatus {
+  Borrador = 'Borrador',
+  Emitido = 'Emitido',
+  Enviado = 'Enviado',
+  Anulado = 'Anulado',
 }
 
 // ─── Notification Enums ─────────────────────────────────

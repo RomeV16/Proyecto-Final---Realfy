@@ -31,13 +31,17 @@ function build(opts: { accounts?: any[]; sums?: any[]; cash?: Record<string, unk
     },
     person: { findFirst: jest.fn(async ({ where }: any) => (where.id === OWNER ? { id: OWNER, firstName: 'Ana', lastName: 'Locadora' } : null)) },
     contract: { findFirst: jest.fn(async () => null) },
+    ownerLedgerEntry: { createMany: jest.fn(async ({ data }: any) => ({ count: data.length })) },
     tenant: { findUnique: jest.fn() },
     $queryRaw: jest.fn(async () => [{ id: ACC }]),
   };
   db.$transaction = jest.fn((fn: any) => fn(db));
   const audit = { record: jest.fn() };
   const defaults = {
-    get: jest.fn(async () => ({ cash: { custodyInAgencyBalance: false, ...(opts.cash ?? {}) } })),
+    get: jest.fn(async () => ({
+      cash: { custodyInAgencyBalance: false, ...(opts.cash ?? {}) },
+      ownerAccounts: { statementCloseDay: null, lessorChargeTiming: 'AlGenerarEstado' },
+    })),
   };
   const service = new CashService(
     { client: db } as any,
@@ -185,6 +189,21 @@ describe('CashService — custodia y cuentas por defecto', () => {
     const all = await ok.service.deliverCustody(ACC, { date: '2026-01-15' });
     expect(all.balance).toBe('0.00');
     expect(all.movement).toMatchObject({ direction: 'Out', amount: '465.00', category: 'Custodia', counterpartyId: OWNER });
+    // La custodia es parte del saldo del locador: entregarla es una entrega de efectivo en su cuenta (CP-455).
+    expect(ok.db.ownerLedgerEntry.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          personId: OWNER,
+          type: 'EntregaEfectivo',
+          amount: '-465.00',
+          currency: 'USD',
+          sourceType: 'CashMovement',
+          sourceId: 'mov',
+          period: new Date('2026-01-01T00:00:00.000Z'),
+        }),
+      ],
+      skipDuplicates: true,
+    });
     await expect(ok.service.deliverCustody(ACC, { date: '2026-01-15', amount: '465.01' })).rejects.toMatchObject({
       response: { error: 'CUSTODY_INSUFFICIENT' },
     });

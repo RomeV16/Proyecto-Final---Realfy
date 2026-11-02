@@ -36,7 +36,6 @@ export const ACTION_ROLES = {
   'liquidaciones.act': [Admin, Gerente, Ventas, Liquidaciones],
   /** Aviso de "solo lectura" en el listado de liquidaciones. */
   'liquidaciones.readOnlyNotice': [Lectura],
-  'renditions.manage': [Admin, Gerente, Liquidaciones],
   'invoices.emit': [Admin, Gerente, Liquidaciones],
   'fiscal.configure': [Admin, Gerente],
 
@@ -55,6 +54,12 @@ export const ACTION_ROLES = {
   'cash.manage': [Admin, Gerente, Liquidaciones],
   /** Alta, cambio de nombre y baja de las cuentas de la inmobiliaria. */
   'cash.accounts': [Admin, Gerente],
+  /** Cuenta corriente y estados de cuenta de los locadores (reemplazan a las rendiciones). */
+  'ownerAccounts.view': [Admin, Gerente, Liquidaciones, Lectura],
+  /** Generar y emitir estados de cuenta y registrar pagos a locadores. */
+  'ownerAccounts.manage': [Admin, Gerente, Liquidaciones],
+  /** Cargar o corregir el saldo inicial de un locador y anular un estado emitido. */
+  'ownerAccounts.administer': [Admin, Gerente],
   'dashboard.analytics': [Admin, Gerente],
 
   // Soporte y configuración

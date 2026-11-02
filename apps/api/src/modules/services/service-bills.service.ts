@@ -16,6 +16,8 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { parseOrThrow } from '../../common/validation/zod';
 import { monthStart, pickRuleAt } from './charge-rule-dates';
+import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
+import { syncServiceBillEntries } from '../owner-accounts/ledger-posting';
 
 export type BulkBillRowResult =
   | { index: number; status: 'created' | 'updated' | 'unchanged'; billId: string }
@@ -54,6 +56,7 @@ export class ServiceBillsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
+    private readonly operationalDefaults: OperationalDefaultsService,
   ) {}
 
   // ─── Lecturas ───────────────────────────────────────
@@ -277,6 +280,8 @@ export class ServiceBillsService {
       throw badRequest('BILL_PAYMENT_DATA_REQUIRED', 'paidBy and paidAt are required to mark a bill as paid');
     }
 
+    const tenantId = this.tenantContext.getTenantId()!;
+    const { ownerAccounts } = await this.operationalDefaults.get(tenantId);
     await this.prisma.client.$transaction(async (tx: Db) => {
       if (changesAmounts || finalStatus === ServiceBillStatus.Anulada) await this.assertNotBilled(tx, id);
 
@@ -303,6 +308,12 @@ export class ServiceBillsService {
         await this.materialize(tx, updated);
       }
       await this.syncPayment(tx, updated);
+      // La boleta "Propietario" que pagó la inmobiliaria se le descuenta al locador (ADR-0009).
+      await syncServiceBillEntries(
+        tx,
+        { tenantId, closeDay: ownerAccounts.statementCloseDay, userId: this.tenantContext.getUserId() ?? null },
+        updated,
+      );
     });
 
     return this.requireBill(id, true);

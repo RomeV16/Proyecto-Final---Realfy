@@ -1,440 +1,67 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { RendicionStatus, RendicionLineItemType, CommissionType } from '@realfy/shared';
+import { NotFoundException } from '@nestjs/common';
+import { CommissionType } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 
-// The PDF service does `require('pdfmake/src/printer')` at module load time,
-// and the jest mock for that native module isn't wired up in this repo yet
-// (tracked separately). A factory mock here keeps the real file — and its
-// pdfmake import — from ever being evaluated, so this suite stays green
-// regardless of that pending fix.
+// El servicio de PDF carga pdfmake al importarse; acá no se usa.
 jest.mock('./rendition-pdf.service', () => ({
   RenditionPdfService: jest.fn(),
 }));
 
 import { RenditionsService } from './renditions.service';
 
-// ─── Mocks ──────────────────────────────────────────────────────────────────
-
-function createMockPrismaService() {
-  return {
-    client: {
-      contract: { findFirst: jest.fn() },
-      contractLessor: { findMany: jest.fn() },
-      contractCommission: { findFirst: jest.fn() },
-      payment: { findMany: jest.fn() },
-      ownerRendicion: {
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
-        count: jest.fn(),
-        update: jest.fn(),
-      },
-      rendicionLineItem: {
-        findFirst: jest.fn(),
-        findMany: jest.fn(),
-        delete: jest.fn(),
-      },
-      $transaction: jest.fn(),
-    },
-  } as unknown as PrismaService;
-}
-
-function createMockTenantContext() {
-  return {
-    getTenantId: jest.fn().mockReturnValue('tenant-1'),
-    getUserId: jest.fn().mockReturnValue('user-1'),
-  } as unknown as TenantContextService;
-}
-
 const CONTRACT_ID = 'c0000000-0000-0000-0000-000000000001';
-const OWNER_ID = 'p0000000-0000-0000-0000-000000000001';
-const RENDICION_ID = 'r0000000-0000-0000-0000-000000000001';
 
-describe('RenditionsService', () => {
-  let service: RenditionsService;
-  let prisma: ReturnType<typeof createMockPrismaService>;
-  let tenantContext: ReturnType<typeof createMockTenantContext>;
+function build() {
+  const client: any = {
+    contract: { findFirst: jest.fn().mockResolvedValue({ id: CONTRACT_ID, rentCurrency: 'ARS' }) },
+    contractCommission: {
+      upsert: jest.fn().mockImplementation(async ({ create }: any) => ({ id: 'com-1', ...create })),
+      findFirst: jest.fn(),
+    },
+    ownerRendicion: { findFirst: jest.fn().mockResolvedValue(null) },
+    tenant: { findFirst: jest.fn().mockResolvedValue({ name: 'Inmobiliaria', cuit: null }) },
+  };
+  const pdf = { generateRenditionPdf: jest.fn().mockResolvedValue(Buffer.from('pdf')) };
+  const service = new RenditionsService(
+    { client } as unknown as PrismaService,
+    { getTenantId: jest.fn().mockReturnValue('tenant-1') } as unknown as TenantContextService,
+    pdf as any,
+  );
+  return { service, client, pdf };
+}
 
-  beforeEach(() => {
-    prisma = createMockPrismaService();
-    tenantContext = createMockTenantContext();
-    service = new RenditionsService(
-      prisma as any,
-      tenantContext as any,
-      {} as any, // RenditionPdfService — not exercised by these specs
-      {} as any, // RenditionEmailService — not exercised by these specs
-    );
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  // ─── generate() — armado de la rendicion y sus totales ─────────────────────
-
-  describe('generate', () => {
-    function stubHappyPath(overrides: {
-      commission?: Partial<Record<string, any>>;
-      payments?: Array<{ amount: string }>;
-      lessors?: Array<{ personId: string; payoutPct: string }>;
-    } = {}) {
-      (prisma.client.contract.findFirst as jest.Mock).mockResolvedValue({
-        id: CONTRACT_ID,
-        tenantId: 'tenant-1',
-        property: { id: 'prop-1' },
-      });
-      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([]);
-      (prisma.client.contractCommission.findFirst as jest.Mock).mockResolvedValue({
-        type: CommissionType.FixedPercent,
-        percentage: '10.00',
-        fixedAmount: null,
-        adminFee: '50.00',
-        currency: 'ARS',
-        ...overrides.commission,
-      });
-      (prisma.client.contractLessor.findMany as jest.Mock).mockResolvedValue(
-        overrides.lessors ?? [{ personId: OWNER_ID, payoutPct: '100.0000' }],
-      );
-      (prisma.client.payment.findMany as jest.Mock).mockResolvedValue(
-        (overrides.payments ?? [{ amount: '1000.00' }]).map((p, i) => ({
-          id: `pay-${i}`,
-          amount: p.amount,
-          liquidacion: { period: new Date(2026, 4, 1) },
-        })),
-      );
-
-      const createdById = new Map<string, any>();
-      let seq = 0;
-      const txClient = {
-        ownerRendicion: {
-          create: jest.fn().mockImplementation(({ data }: any) => {
-            const row = { id: `${RENDICION_ID}-${seq++}`, ...data, lineItems: [] as any[] };
-            createdById.set(row.id, row);
-            return Promise.resolve(row);
-          }),
-          findFirst: jest.fn().mockImplementation(({ where }: any) =>
-            Promise.resolve(createdById.get(where.id)),
-          ),
-        },
-        rendicionLineItem: {
-          create: jest.fn().mockImplementation(({ data }: any) => {
-            createdById.get(data.rendicionId).lineItems.push(data);
-            return Promise.resolve(data);
-          }),
-        },
-      };
-      (prisma.client.$transaction as jest.Mock).mockImplementation((cb: any) => cb(txClient));
-
-      return { txClient };
+describe('RenditionsService (histórico de solo lectura)', () => {
+  it('ya no genera, no cambia de estado, no edita ni envía rendiciones', () => {
+    const { service } = build();
+    for (const method of ['generate', 'transition', 'updateNotes', 'addLineItem', 'removeLineItem', 'sendEmail']) {
+      expect((service as any)[method]).toBeUndefined();
     }
-
-    it('builds the rendicion with FixedPercent commission and admin fee, and computes totals correctly', async () => {
-      const { txClient } = stubHappyPath({ payments: [{ amount: '1000.00' }, { amount: '500.00' }] });
-
-      await service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 });
-
-      expect(txClient.ownerRendicion.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            rentCollected: '1500.00',
-            commissionAmount: '150.00', // 10% of 1500
-            adminFeeAmount: '50.00',
-            deductionTotal: '0.00',
-            netDeposit: '1300.00', // 1500 - 150 - 50
-            status: RendicionStatus.Borrador,
-            ownerId: OWNER_ID,
-          }),
-        }),
-      );
-
-      // Alquiler x2 + Comision + AdminFee = 4 line items
-      expect(txClient.rendicionLineItem.create).toHaveBeenCalledTimes(4);
-      const types = (txClient.rendicionLineItem.create as jest.Mock).mock.calls.map(
-        ([{ data }]: any) => data.type,
-      );
-      expect(types).toEqual([
-        RendicionLineItemType.Alquiler,
-        RendicionLineItemType.Alquiler,
-        RendicionLineItemType.Comision,
-        RendicionLineItemType.AdminFee,
-      ]);
-    });
-
-    it('computes totals correctly for a Mixed commission with no admin fee', async () => {
-      const { txClient } = stubHappyPath({
-        commission: { type: CommissionType.Mixed, percentage: '5.00', fixedAmount: '100.00', adminFee: null },
-        payments: [{ amount: '2000.00' }],
-      });
-
-      await service.generate({ contractId: CONTRACT_ID, month: 6, year: 2026 });
-
-      // commission = 100 + 5% of 2000 = 100 + 100 = 200
-      expect(txClient.ownerRendicion.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            rentCollected: '2000.00',
-            commissionAmount: '200.00',
-            adminFeeAmount: '0.00',
-            netDeposit: '1800.00',
-          }),
-        }),
-      );
-
-      // No AdminFee line item when adminFee is 0
-      const types = (txClient.rendicionLineItem.create as jest.Mock).mock.calls.map(
-        ([{ data }]: any) => data.type,
-      );
-      expect(types).not.toContain(RendicionLineItemType.AdminFee);
-    });
-
-    it('is idempotent — returns the existing rendicion without recomputing', async () => {
-      (prisma.client.contract.findFirst as jest.Mock).mockResolvedValue({
-        id: CONTRACT_ID,
-        tenantId: 'tenant-1',
-        property: {},
-      });
-      const existing = { id: RENDICION_ID, lineItems: [] };
-      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([existing]);
-
-      const result = await service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 });
-
-      expect(result).toEqual({ ...existing, lessorRenditions: [existing] });
-      expect(prisma.client.contractCommission.findFirst).not.toHaveBeenCalled();
-      expect(prisma.client.$transaction).not.toHaveBeenCalled();
-    });
-
-    it('throws COMMISSION_NOT_CONFIGURED when the contract has no commission set up', async () => {
-      (prisma.client.contract.findFirst as jest.Mock).mockResolvedValue({
-        id: CONTRACT_ID,
-        tenantId: 'tenant-1',
-        property: {},
-      });
-      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([]);
-      (prisma.client.contractCommission.findFirst as jest.Mock).mockResolvedValue(null);
-
-      await expect(
-        service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('throws LESSOR_SHARES_INVALID when the contract has no active lessors', async () => {
-      stubHappyPath({ lessors: [] });
-
-      await expect(
-        service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 }),
-      ).rejects.toMatchObject({ response: { error: 'LESSOR_SHARES_INVALID' } });
-      expect(prisma.client.$transaction).not.toHaveBeenCalled();
-    });
-
-    it('throws LESSOR_SHARES_INVALID when the active lessors do not add up to 100', async () => {
-      stubHappyPath({
-        lessors: [
-          { personId: OWNER_ID, payoutPct: '60.0000' },
-          { personId: 'p-2', payoutPct: '30.0000' },
-        ],
-      });
-
-      await expect(
-        service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 }),
-      ).rejects.toMatchObject({
-        response: {
-          error: 'LESSOR_SHARES_INVALID',
-          details: { invalidDates: [{ date: '2026-05-01', sum: '90.0000' }] },
-        },
-      });
-    });
-
-    it('golden: splits the net among three lessors 33.3334 / 33.3333 / 33.3333', async () => {
-      const { txClient } = stubHappyPath({
-        commission: { type: CommissionType.FixedPercent, percentage: '5.00', adminFee: null },
-        payments: [{ amount: '100000.00' }],
-        lessors: [
-          { personId: 'p-1', payoutPct: '33.3334' },
-          { personId: 'p-2', payoutPct: '33.3333' },
-          { personId: 'p-3', payoutPct: '33.3333' },
-        ],
-      });
-
-      const result: any = await service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 });
-
-      const rows = (txClient.ownerRendicion.create as jest.Mock).mock.calls.map(([a]: any) => a.data);
-      expect(rows.map((r: any) => [r.ownerId, r.rentCollected, r.commissionAmount, r.netDeposit])).toEqual([
-        ['p-1', '33333.40', '1666.67', '31666.73'],
-        ['p-2', '33333.30', '1666.67', '31666.63'],
-        ['p-3', '33333.30', '1666.66', '31666.64'],
-      ]);
-      expect(result.lessorRenditions).toHaveLength(3);
-      expect(result.ownerId).toBe('p-1');
-    });
-
-    it('throws NotFoundException when the contract does not exist for the tenant', async () => {
-      (prisma.client.contract.findFirst as jest.Mock).mockResolvedValue(null);
-
-      await expect(
-        service.generate({ contractId: CONTRACT_ID, month: 5, year: 2026 }),
-      ).rejects.toThrow(NotFoundException);
-    });
   });
 
-  // ─── Line items — recalculo de totales ─────────────────────────────────────
-
-  describe('addLineItem / removeLineItem — recalculateTotals', () => {
-    function stubDraftRendicion(lineItems: Array<{ id: string; type: string; amount: string }>) {
-      (prisma.client.ownerRendicion.findFirst as jest.Mock).mockResolvedValue({
-        id: RENDICION_ID,
-        tenantId: 'tenant-1',
-        status: RendicionStatus.Borrador,
-        currency: 'ARS',
-        lineItems,
-      });
-      (prisma.client.rendicionLineItem.findMany as jest.Mock).mockResolvedValue(lineItems);
-    }
-
-    it('recalculates totals after adding a Deduccion line item', async () => {
-      stubDraftRendicion([
-        { id: 'li-1', type: 'Alquiler', amount: '1000.00' },
-        { id: 'li-2', type: 'Comision', amount: '100.00' },
-      ]);
-      (prisma.client.rendicionLineItem.findFirst as jest.Mock).mockResolvedValue(null); // maxSort lookup
-      (prisma.client as any).rendicionLineItem.create = jest.fn().mockResolvedValue({ id: 'li-3' });
-
-      // After the write, recalculateTotals re-reads line items including the new one
-      (prisma.client.rendicionLineItem.findMany as jest.Mock).mockResolvedValue([
-        { id: 'li-1', type: 'Alquiler', amount: '1000.00' },
-        { id: 'li-2', type: 'Comision', amount: '100.00' },
-        { id: 'li-3', type: 'Deduccion', amount: '50.00' },
-      ]);
-
-      await service.addLineItem(RENDICION_ID, {
-        type: RendicionLineItemType.Deduccion,
-        description: 'Reparación',
-        amount: '50.00',
-        isDebit: true,
-      });
-
-      expect(prisma.client.ownerRendicion.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            rentCollected: '1000.00',
-            commissionAmount: '100.00',
-            deductionTotal: '50.00',
-            netDeposit: '850.00',
-          }),
-        }),
-      );
-    });
-
-    it('rejects adding a line item when the rendicion is not Borrador', async () => {
-      (prisma.client.ownerRendicion.findFirst as jest.Mock).mockResolvedValue({
-        id: RENDICION_ID,
-        tenantId: 'tenant-1',
-        status: RendicionStatus.Aprobada,
-        currency: 'ARS',
-        lineItems: [],
-      });
-
-      await expect(
-        service.addLineItem(RENDICION_ID, {
-          type: RendicionLineItemType.Deduccion,
-          description: 'Reparación',
-          amount: '50.00',
-        }),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('recalculates totals after removing a line item', async () => {
-      stubDraftRendicion([
-        { id: 'li-1', type: 'Alquiler', amount: '1000.00' },
-        { id: 'li-2', type: 'Deduccion', amount: '50.00' },
-      ]);
-      (prisma.client.rendicionLineItem.findFirst as jest.Mock).mockResolvedValue({
-        id: 'li-2',
-        rendicionId: RENDICION_ID,
-      });
-
-      // After the delete, recalculateTotals re-reads the remaining line items
-      (prisma.client.rendicionLineItem.findMany as jest.Mock).mockResolvedValue([
-        { id: 'li-1', type: 'Alquiler', amount: '1000.00' },
-      ]);
-
-      await service.removeLineItem(RENDICION_ID, 'li-2');
-
-      expect(prisma.client.rendicionLineItem.delete).toHaveBeenCalledWith({ where: { id: 'li-2' } });
-      expect(prisma.client.ownerRendicion.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            rentCollected: '1000.00',
-            deductionTotal: '0.00',
-            netDeposit: '1000.00',
-          }),
-        }),
-      );
-    });
+  it('el detalle de una rendición inexistente es 404', async () => {
+    const { service } = build();
+    await expect(service.findOne('nope')).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  // ─── transition() — maquina de estados ──────────────────────────────────────
+  it('el PDF de una rendición histórica se sigue generando', async () => {
+    const { service, client, pdf } = build();
+    client.ownerRendicion.findFirst.mockResolvedValue({ id: 'r1', lineItems: [] });
+    const buffer = await service.generatePdf('r1');
+    expect(buffer.toString()).toBe('pdf');
+    expect(pdf.generateRenditionPdf).toHaveBeenCalledWith({ id: 'r1', lineItems: [] }, { name: 'Inmobiliaria', cuit: null });
+  });
+});
 
-  describe('transition', () => {
-    it('moves a Borrador rendicion to Aprobada', async () => {
-      (prisma.client.ownerRendicion.findFirst as jest.Mock).mockResolvedValue({
-        id: RENDICION_ID,
-        tenantId: 'tenant-1',
-        status: RendicionStatus.Borrador,
-        lineItems: [],
-      });
+describe('comisión del contrato', () => {
+  it('guarda el honorario por gestión de reparaciones; sin él queda nulo', async () => {
+    const { service, client } = build();
+    await service.createCommission(CONTRACT_ID, { type: CommissionType.FixedPercent, percentage: '7', repairMgmtFeePct: '10' });
+    const args = client.contractCommission.upsert.mock.calls[0][0];
+    expect(args.create.repairMgmtFeePct).toBe('10');
+    expect(args.update.repairMgmtFeePct).toBe('10');
 
-      await service.transition(RENDICION_ID, { status: RendicionStatus.Aprobada });
-
-      expect(prisma.client.ownerRendicion.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: RENDICION_ID },
-          data: expect.objectContaining({ status: RendicionStatus.Aprobada }),
-        }),
-      );
-    });
-
-    it('stamps sentAt when transitioning to Enviada', async () => {
-      (prisma.client.ownerRendicion.findFirst as jest.Mock).mockResolvedValue({
-        id: RENDICION_ID,
-        tenantId: 'tenant-1',
-        status: RendicionStatus.Aprobada,
-        lineItems: [],
-      });
-
-      await service.transition(RENDICION_ID, { status: RendicionStatus.Enviada });
-
-      expect(prisma.client.ownerRendicion.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ status: RendicionStatus.Enviada, sentAt: expect.any(Date) }),
-        }),
-      );
-    });
-
-    it('rejects an invalid transition (Borrador -> Depositada)', async () => {
-      (prisma.client.ownerRendicion.findFirst as jest.Mock).mockResolvedValue({
-        id: RENDICION_ID,
-        tenantId: 'tenant-1',
-        status: RendicionStatus.Borrador,
-        lineItems: [],
-      });
-
-      await expect(
-        service.transition(RENDICION_ID, { status: RendicionStatus.Depositada }),
-      ).rejects.toThrow(BadRequestException);
-      expect(prisma.client.ownerRendicion.update).not.toHaveBeenCalled();
-    });
-
-    it('rejects transitioning out of the terminal Depositada state', async () => {
-      (prisma.client.ownerRendicion.findFirst as jest.Mock).mockResolvedValue({
-        id: RENDICION_ID,
-        tenantId: 'tenant-1',
-        status: RendicionStatus.Depositada,
-        lineItems: [],
-      });
-
-      await expect(
-        service.transition(RENDICION_ID, { status: RendicionStatus.Borrador }),
-      ).rejects.toThrow(BadRequestException);
-    });
+    await service.createCommission(CONTRACT_ID, { type: CommissionType.FixedPercent, percentage: '7' });
+    expect(client.contractCommission.upsert.mock.calls[1][0].create.repairMgmtFeePct).toBeNull();
   });
 });

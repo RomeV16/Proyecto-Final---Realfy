@@ -1,18 +1,16 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useConfirm } from '@/components/ui/confirm-dialog';
-import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { apiClient } from '@/lib/api-client';
 import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
-import { Spinner } from '@/components/ui/spinner';
 import { RendicionStatus, RendicionLineItemType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { formatMoneyFixed, formatLocalDate } from '@/lib/format';
-import { useCan } from '@/lib/permissions';
+import { RenditionsHistoricalNotice } from './historical-notice';
 
 /* ──────────── Types ──────────── */
 
@@ -68,35 +66,17 @@ const LINE_ITEM_ICONS: Record<string, string> = {
 export function RenditionDetail({ renditionId }: RenditionDetailProps) {
   const t = useTranslations('renditions');
   const tMonths = useTranslations('renditions.months');
-  const tLineItems = useTranslations('renditions.lineItems');
   const tLineItemTypes = useTranslations('renditions.lineItemTypes');
   const tCommon = useTranslations('common');
-  const confirm = useConfirm();
-
-  const canManage = useCan('renditions.manage');
 
   const [rendition, setRendition] = useState<RenditionDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState('');
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  // Notes editing
-  const [editingNotes, setEditingNotes] = useState(false);
-  const [notesValue, setNotesValue] = useState('');
-
-  // Add line item form
-  const [showAddItem, setShowAddItem] = useState(false);
-  const [newItemType, setNewItemType] = useState<RendicionLineItemType>(RendicionLineItemType.Deduccion);
-  const [newItemDesc, setNewItemDesc] = useState('');
-  const [newItemAmount, setNewItemAmount] = useState('');
-  const [newItemIsDebit, setNewItemIsDebit] = useState(true);
 
   const fetchRendition = useCallback(async () => {
     setLoading(true);
     try {
       const data = await apiClient<RenditionDetail>(`/renditions/${renditionId}`);
       setRendition(data);
-      setNotesValue(data.notes || '');
     } catch {
       setRendition(null);
     } finally {
@@ -108,109 +88,12 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
     fetchRendition();
   }, [fetchRendition]);
 
-  async function handleTransition(targetStatus: RendicionStatus) {
-    if (!rendition) return;
-    setActionLoading('transition');
-    setFeedback(null);
-    try {
-      await apiClient(`/renditions/${rendition.id}/transition`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: targetStatus }),
-      });
-      setFeedback({ type: 'success', message: t('transitions.success') });
-      fetchRendition();
-    } catch (err) {
-      setFeedback({ type: 'error', message: err instanceof ApiRequestError ? err.message : t('transitions.error') });
-    } finally {
-      setActionLoading('');
-    }
-  }
-
   async function handleDownloadPdf() {
     if (!rendition) return;
-    setActionLoading('pdf');
     try {
       await downloadFile(`/renditions/${rendition.id}/pdf`, `rendicion-${rendition.id}.pdf`);
     } catch {
       toast.error(tCommon('downloadFailed'));
-    } finally {
-      setActionLoading('');
-    }
-  }
-
-  async function handleSendEmail() {
-    if (!rendition || !(await confirm({ body: t('email.confirmSend') }))) return;
-    setActionLoading('email');
-    setFeedback(null);
-    try {
-      await apiClient(`/renditions/${rendition.id}/send`, { method: 'POST' });
-      setFeedback({ type: 'success', message: t('email.sendSuccess') });
-      fetchRendition();
-    } catch (err) {
-      setFeedback({ type: 'error', message: err instanceof ApiRequestError ? err.message : t('email.sendError') });
-    } finally {
-      setActionLoading('');
-    }
-  }
-
-  async function handleSaveNotes() {
-    if (!rendition) return;
-    setActionLoading('notes');
-    setFeedback(null);
-    try {
-      await apiClient(`/renditions/${rendition.id}/notes`, {
-        method: 'PATCH',
-        body: JSON.stringify({ notes: notesValue }),
-      });
-      setFeedback({ type: 'success', message: t('notes.saveSuccess') });
-      setEditingNotes(false);
-      fetchRendition();
-    } catch (err) {
-      setFeedback({ type: 'error', message: err instanceof ApiRequestError ? err.message : t('notes.saveError') });
-    } finally {
-      setActionLoading('');
-    }
-  }
-
-  async function handleAddLineItem(e: React.FormEvent) {
-    e.preventDefault();
-    if (!rendition) return;
-    setActionLoading('addItem');
-    setFeedback(null);
-    try {
-      await apiClient(`/renditions/${rendition.id}/line-items`, {
-        method: 'POST',
-        body: JSON.stringify({
-          type: newItemType,
-          description: newItemDesc,
-          amount: Number(newItemAmount),
-          isDebit: newItemIsDebit,
-        }),
-      });
-      setFeedback({ type: 'success', message: t('lineItems.addSuccess') });
-      setShowAddItem(false);
-      setNewItemDesc('');
-      setNewItemAmount('');
-      fetchRendition();
-    } catch (err) {
-      setFeedback({ type: 'error', message: err instanceof ApiRequestError ? err.message : t('lineItems.addError') });
-    } finally {
-      setActionLoading('');
-    }
-  }
-
-  async function handleRemoveLineItem(itemId: string) {
-    if (!rendition || !(await confirm({ body: t('lineItems.removeConfirm'), tone: 'danger' }))) return;
-    setActionLoading('removeItem');
-    setFeedback(null);
-    try {
-      await apiClient(`/renditions/${rendition.id}/line-items/${itemId}`, { method: 'DELETE' });
-      setFeedback({ type: 'success', message: t('lineItems.removeSuccess') });
-      fetchRendition();
-    } catch (err) {
-      setFeedback({ type: 'error', message: err instanceof ApiRequestError ? err.message : t('lineItems.removeError') });
-    } finally {
-      setActionLoading('');
     }
   }
 
@@ -235,7 +118,6 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
     );
   }
 
-  const isDraft = rendition.status === RendicionStatus.Borrador;
   const periodLabel = `${tMonths(String(rendition.month) as '1')} ${rendition.year}`;
 
   return (
@@ -244,6 +126,8 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
       <Link href={'/renditions'} className="text-sm text-brand-600 hover:text-brand-700">
         ← {tCommon('back')}
       </Link>
+
+      <RenditionsHistoricalNotice />
 
       {/* Header */}
       <div className="bg-white rounded-xl border border-slate-200 p-6">
@@ -276,73 +160,13 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
               </svg>
               {t('pdf.download')}
             </button>
-            {canManage && (
-              <button
-                onClick={handleSendEmail}
-                disabled={actionLoading === 'email'}
-                className="px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {actionLoading === 'email' ? (
-                  <Spinner className="w-3 h-3 text-slate-500" />
-                ) : (
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-                  </svg>
-                )}
-                {t('email.send')}
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Transition buttons */}
-        {canManage && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
-            {rendition.status === RendicionStatus.Borrador && (
-              <button
-                onClick={() => handleTransition(RendicionStatus.Aprobada)}
-                disabled={!!actionLoading}
-                className="px-4 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {actionLoading === 'transition' && <Spinner className="w-3 h-3 text-white" />}
-                {t('transitions.approve')}
-              </button>
-            )}
-            {rendition.status === RendicionStatus.Aprobada && (
-              <>
-                <button
-                  onClick={() => handleTransition(RendicionStatus.Enviada)}
-                  disabled={!!actionLoading}
-                  className="px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {actionLoading === 'transition' && <Spinner className="w-3 h-3 text-white" />}
-                  {t('transitions.send')}
-                </button>
-                <button
-                  onClick={() => handleTransition(RendicionStatus.Borrador)}
-                  disabled={!!actionLoading}
-                  className="px-4 py-2 rounded-lg text-sm text-slate-600 hover:text-slate-900"
-                >
-                  {t('transitions.backToDraft')}
-                </button>
-              </>
-            )}
-            {rendition.status === RendicionStatus.Enviada && (
-              <button
-                onClick={() => handleTransition(RendicionStatus.Depositada)}
-                disabled={!!actionLoading}
-                className="px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {actionLoading === 'transition' && <Spinner className="w-3 h-3 text-white" />}
-                {t('transitions.markDeposited')}
-              </button>
-            )}
-            {rendition.status === RendicionStatus.Depositada && rendition.depositedAt && (
-              <p className="text-sm text-slate-500">
-                {t('depositedAt')}: {formatLocalDate(rendition.depositedAt, 'long')}
-              </p>
-            )}
-          </div>
+        {rendition.depositedAt && (
+          <p className="mt-2 text-sm text-slate-500">
+            {t('depositedAt')}: {formatLocalDate(rendition.depositedAt, 'long')}
+          </p>
         )}
 
         {/* Timestamps */}
@@ -352,16 +176,6 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
           </p>
         )}
 
-        {/* Feedback */}
-        {feedback && (
-          <div className={`mt-3 rounded-lg px-3 py-2 text-sm ${
-            feedback.type === 'success'
-              ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-              : 'bg-red-50 border border-red-200 text-red-700'
-          }`}>
-            {feedback.message}
-          </div>
-        )}
       </div>
 
       {/* Summary Card */}
@@ -399,17 +213,6 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
       <div className="bg-white rounded-xl border border-slate-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-slate-900">{t('lineItems.title')}</h2>
-          {isDraft && canManage && (
-            <button
-              onClick={() => setShowAddItem(true)}
-              className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              {t('lineItems.add')}
-            </button>
-          )}
         </div>
 
         {(rendition.lineItems || []).length === 0 ? (
@@ -444,139 +247,20 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
                     tone={li.isDebit ? 'danger' : 'default'}
                   />
                 }
-                actions={
-                  isDraft && canManage ? (
-                    <EntityRow.Action
-                      icon="close"
-                      variant="quiet"
-                      onClick={() => handleRemoveLineItem(li.id)}
-                      title={tLineItems('remove')}
-                      className="text-[var(--color-danger)] hover:bg-[color-mix(in_oklab,var(--color-danger)_10%,var(--color-surface))]"
-                    >
-                      <span className="sr-only">{tLineItems('remove')}</span>
-                    </EntityRow.Action>
-                  ) : undefined
-                }
               />
             ))}
           </div>
         )}
 
-        {/* Add line item form */}
-        {showAddItem && isDraft && (
-          <form onSubmit={handleAddLineItem} className="mt-4 pt-4 border-t border-slate-100 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">{t('lineItems.type')}</label>
-                <select
-                  value={newItemType}
-                  onChange={(e) => setNewItemType(e.target.value as RendicionLineItemType)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                >
-                  {Object.values(RendicionLineItemType).map((lt) => (
-                    <option key={lt} value={lt}>{t(`lineItemTypes.${lt}`)}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">{t('lineItems.description')}</label>
-                <input
-                  type="text"
-                  value={newItemDesc}
-                  onChange={(e) => setNewItemDesc(e.target.value)}
-                  placeholder={t('lineItems.descriptionPlaceholder')}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">{t('lineItems.amount')}</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={newItemAmount}
-                  onChange={(e) => setNewItemAmount(e.target.value)}
-                  placeholder={t('lineItems.amountPlaceholder')}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                  required
-                />
-              </div>
-            </div>
-            <label className="flex items-center gap-2 text-sm text-slate-600">
-              <input
-                type="checkbox"
-                checked={newItemIsDebit}
-                onChange={(e) => setNewItemIsDebit(e.target.checked)}
-                className="rounded border-slate-300"
-              />
-              {t('lineItems.isDebit')}
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={actionLoading === 'addItem'}
-                className="px-3 py-1.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
-              >
-                {t('lineItems.add')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddItem(false)}
-                className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900"
-              >
-                {tCommon('cancel')}
-              </button>
-            </div>
-          </form>
-        )}
       </div>
 
-      {/* Notes section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-slate-900">{t('notes.title')}</h2>
-          {!editingNotes && canManage && (
-            <button
-              onClick={() => setEditingNotes(true)}
-              className="text-sm text-brand-600 hover:text-brand-700"
-            >
-              {t('notes.edit')}
-            </button>
-          )}
+      {/* Notes */}
+      {rendition.notes && (
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <h2 className="text-sm font-semibold text-slate-900 mb-3">{t('notes.title')}</h2>
+          <p className="text-sm text-slate-600">{rendition.notes}</p>
         </div>
-        {editingNotes ? (
-          <div className="space-y-3">
-            <textarea
-              value={notesValue}
-              onChange={(e) => setNotesValue(e.target.value)}
-              placeholder={t('notes.placeholder')}
-              rows={3}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleSaveNotes}
-                disabled={actionLoading === 'notes'}
-                className="px-3 py-1.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {actionLoading === 'notes' && <Spinner className="w-3 h-3 text-white" />}
-                {t('notes.save')}
-              </button>
-              <button
-                onClick={() => { setEditingNotes(false); setNotesValue(rendition.notes || ''); }}
-                className="px-3 py-1.5 text-sm text-slate-600 hover:text-slate-900"
-              >
-                {tCommon('cancel')}
-              </button>
-            </div>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-600">
-            {rendition.notes || <span className="text-slate-400 italic">{t('notes.placeholder')}</span>}
-          </p>
-        )}
-      </div>
+      )}
 
       {/* Metadata */}
       <div className="text-xs text-slate-400 flex gap-4">

@@ -77,7 +77,7 @@ describe('PaymentForm: quién recibió el cobro', () => {
         receivedBy: 'Inmobiliaria',
         inCustody: true,
         account: { id: BANCO, name: 'Banco Pesos', kind: 'Banco', currency: 'ARS' },
-        receipt: { id: RECEIPT, series: 'RECIBO_COBRO_ARS', number: 7 },
+        receipt: { id: RECEIPT, series: 'RECIBO_COBRO_ARS', number: 7, label: 'ARS-00000007' },
       },
     }));
     await user.selectOptions(screen.getByLabelText('¿Quién recibió el cobro?'), 'Inmobiliaria');
@@ -112,7 +112,7 @@ describe('PaymentForm: quién recibió el cobro', () => {
         receivedBy: 'Inmobiliaria',
         inCustody: false,
         account: { id: CAJA, name: 'Caja ARS', kind: 'Caja', currency: 'ARS' },
-        receipt: { id: RECEIPT, series: 'RECIBO_COBRO', number: 3 },
+        receipt: { id: RECEIPT, series: 'RECIBO_COBRO', number: 3, label: '00000003' },
       },
     }));
     await user.selectOptions(screen.getByLabelText('¿Quién recibió el cobro?'), 'Inmobiliaria');

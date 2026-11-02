@@ -1,44 +1,21 @@
-import {
-  Injectable,
-  Logger,
-  BadRequestException,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
   CreateCommissionSchema,
-  UpdateCommissionSchema,
-  GenerateRendicionSchema,
-  TransitionRendicionSchema,
   RendicionFilterSchema,
-  CreateRendicionLineItemSchema,
-  UpdateRendicionNotesSchema,
-  RendicionStatus,
-  LiquidacionStatus,
-  CommissionType,
-  rendicionMachine,
-  buildRendicionFromPayments,
-  splitRendicionAmongLessors,
-  FULL_SHARE_UNITS,
-  pctToUnits,
-  unitsToPct,
   monthStartUTC,
   periodFilter,
   todayInAR,
-  InvalidCommissionError,
-  InvalidRendicionLineError,
 } from '@realfy/shared';
-import type { CommissionConfig } from '@realfy/shared';
 import { RenditionPdfService } from './rendition-pdf.service';
-import { RenditionEmailService } from './rendition-email.service';
-import Decimal from 'decimal.js';
-import { assertTransition } from '../../common/errors/assert-transition';
 import { parseOrThrow } from '../../common/validation/zod';
-import { getLessorsAt } from '../contracts/contract-parties';
-import { throwLessorSharesInvalid } from '../contracts/lessor-rules';
 
+/**
+ * Rendiciones históricas (solo lectura): la cuenta corriente del locador y su
+ * estado de cuenta las reemplazan (ADR-0009). Quedan la lista, el detalle y el
+ * PDF de las que ya existían, y la configuración de la comisión del contrato.
+ */
 @Injectable()
 export class RenditionsService {
   private readonly logger = new Logger(RenditionsService.name);
@@ -47,7 +24,6 @@ export class RenditionsService {
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
     private readonly pdfService: RenditionPdfService,
-    private readonly emailService: RenditionEmailService,
   ) {}
 
   // ─── Commission CRUD ────────────────────────────────
@@ -78,6 +54,7 @@ export class RenditionsService {
         percentage: validated.percentage ?? null,
         fixedAmount: validated.fixedAmount ?? null,
         adminFee: validated.adminFee ?? null,
+        repairMgmtFeePct: validated.repairMgmtFeePct ?? null,
         currency: validated.currency ?? contract.rentCurrency,
         notes: validated.notes ?? null,
       },
@@ -86,6 +63,7 @@ export class RenditionsService {
         percentage: validated.percentage ?? null,
         fixedAmount: validated.fixedAmount ?? null,
         adminFee: validated.adminFee ?? null,
+        repairMgmtFeePct: validated.repairMgmtFeePct ?? null,
         currency: validated.currency ?? contract.rentCurrency,
         notes: validated.notes ?? null,
       },
@@ -136,184 +114,6 @@ export class RenditionsService {
     });
 
     return { deleted: true, contractId };
-  }
-
-  // ─── Rendition Generation ───────────────────────────
-
-  async generate(data: unknown) {
-    const validated: { contractId: string; month: number; year: number } = parseOrThrow(GenerateRendicionSchema, data, 'Invalid generation parameters');
-
-    const { contractId, month, year } = validated;
-    const tenantId = this.tenantContext.getTenantId()!;
-    const period = monthStartUTC(year, month);
-
-    // 1. Verify contract exists and belongs to tenant
-    const contract = await this.prisma.client.contract.findFirst({
-      where: { id: contractId, tenantId },
-      include: { property: true },
-    });
-
-    if (!contract) {
-      throw new NotFoundException({
-        error: 'CONTRACT_NOT_FOUND',
-        message: 'Contract not found',
-      });
-    }
-
-    // 2. Check idempotency — return existing if duplicate
-    const existingAll = await this.prisma.client.ownerRendicion.findMany({
-      where: { contractId, period },
-      include: { lineItems: { orderBy: { sortOrder: 'asc' } } },
-      orderBy: { createdAt: 'asc' },
-    });
-    const existing = existingAll[0];
-
-    if (existing) {
-      this.logger.log('Rendition already exists — returning existing', {
-        tenantId,
-        contractId,
-        period: `${month}/${year}`,
-        rendicionId: existing.id,
-      });
-      return { ...existing, lessorRenditions: existingAll };
-    }
-
-    // 3. Load commission config — required
-    const commissionRecord =
-      await this.prisma.client.contractCommission.findFirst({
-        where: { contractId, tenantId },
-      });
-
-    if (!commissionRecord) {
-      throw new BadRequestException({
-        error: 'COMMISSION_NOT_CONFIGURED',
-        message:
-          'Commission configuration is required before generating a rendition. Configure it under the contract settings.',
-        contractId,
-      });
-    }
-
-    // 4. Locadores vigentes al inicio del período: entre ellos se reparte el neto.
-    const lessors = await getLessorsAt(this.prisma.client, contractId, period);
-    const lessorUnits = lessors.reduce((acc: number, l: any) => acc + pctToUnits(l.payoutPct.toString()), 0);
-    if (lessorUnits !== FULL_SHARE_UNITS) {
-      throwLessorSharesInvalid([{ date: period, sum: unitsToPct(lessorUnits) }]);
-    }
-
-    // 5. Query all paid payments for liquidaciones of this contract in the period
-    const payments = await this.prisma.client.payment.findMany({
-      where: {
-        liquidacion: {
-          contractId,
-          period,
-          status: LiquidacionStatus.Pagada,
-        },
-      },
-      include: {
-        liquidacion: true,
-      },
-    });
-
-    // 6. Build rendition via shared engine
-    const commissionConfig: CommissionConfig = {
-      type: commissionRecord.type as CommissionType,
-      percentage: commissionRecord.percentage
-        ? commissionRecord.percentage.toString()
-        : null,
-      fixedAmount: commissionRecord.fixedAmount
-        ? commissionRecord.fixedAmount.toString()
-        : null,
-      adminFee: commissionRecord.adminFee
-        ? commissionRecord.adminFee.toString()
-        : null,
-    };
-
-    const paymentInputs = payments.map((p: any) => ({
-      amount: p.amount.toString(),
-      description: `Pago ${p.liquidacion?.period ? new Date(p.liquidacion.period).toLocaleDateString('es-AR', { month: '2-digit', year: 'numeric', timeZone: 'UTC' }) : p.id}`,
-    }));
-
-    let result: ReturnType<typeof buildRendicionFromPayments>;
-    try {
-      result = buildRendicionFromPayments(
-        paymentInputs,
-        commissionConfig,
-        [], // deductions can be added as line items later
-      );
-    } catch (err) {
-      if (err instanceof InvalidCommissionError || err instanceof InvalidRendicionLineError) {
-        throw new BadRequestException({
-          error: err.code,
-          message: err.message,
-        });
-      }
-      throw err;
-    }
-
-    // 7. Una rendición por locador, con su parte, en una transacción
-    const shares = splitRendicionAmongLessors(
-      result,
-      lessors.map((l: any) => l.payoutPct.toString()),
-    );
-    const renditions = await this.prisma.client.$transaction(async (tx: any) => {
-      const out: any[] = [];
-      for (let k = 0; k < lessors.length; k++) {
-        const share = shares[k];
-        const created = await tx.ownerRendicion.create({
-          data: {
-            tenantId,
-            contractId,
-            ownerId: lessors[k].personId,
-            period,
-            status: RendicionStatus.Borrador,
-            rentCollected: share.rentCollected.toFixed(2),
-            commissionAmount: share.commissionAmount.toFixed(2),
-            adminFeeAmount: share.adminFeeAmount.toFixed(2),
-            deductionTotal: share.deductionTotal.toFixed(2),
-            netDeposit: share.netDeposit.toFixed(2),
-            currency: commissionRecord.currency,
-          },
-        });
-
-        // Create line items
-        for (let i = 0; i < share.lineItems.length; i++) {
-          const li = share.lineItems[i];
-          await tx.rendicionLineItem.create({
-            data: {
-              tenantId,
-              rendicionId: created.id,
-              type: li.type,
-              description: li.description,
-              amount: li.amount.toFixed(2),
-              isDebit: li.type !== 'Alquiler',
-              currency: commissionRecord.currency,
-              sortOrder: i,
-            },
-          });
-        }
-
-        out.push(
-          await tx.ownerRendicion.findFirst({
-            where: { id: created.id },
-            include: { lineItems: { orderBy: { sortOrder: 'asc' } } },
-          }),
-        );
-      }
-      return out;
-    });
-    const rendicion = { ...renditions[0], lessorRenditions: renditions };
-
-    this.logger.log('Rendition generated', {
-      tenantId,
-      contractId,
-      period: `${month}/${year}`,
-      rendicionId: rendicion.id,
-      lessors: lessors.length,
-      rentCollected: result.rentCollected.toFixed(2),
-      netDeposit: result.netDeposit.toFixed(2),
-    });
-
-    return rendicion;
   }
 
   // ─── Rendition CRUD ─────────────────────────────────
@@ -389,127 +189,6 @@ export class RenditionsService {
     return rendicion;
   }
 
-  async updateNotes(id: string, data: unknown) {
-    const validated: { notes: string } = parseOrThrow(UpdateRendicionNotesSchema, data, 'Invalid notes data');
-
-    const rendicion = await this.findOne(id);
-
-    await this.prisma.client.ownerRendicion.update({
-      where: { id: rendicion.id },
-      data: { notes: validated.notes },
-    });
-
-    this.logger.log('Rendition notes updated', {
-      rendicionId: id,
-      tenantId: this.tenantContext.getTenantId(),
-    });
-
-    return this.findOne(id);
-  }
-
-  // ─── State Transitions ──────────────────────────────
-
-  async transition(id: string, data: unknown) {
-    const validated: { status: RendicionStatus } = parseOrThrow(TransitionRendicionSchema, data, 'Invalid transition data');
-
-    const rendicion = await this.findOne(id);
-    const fromStatus = rendicion.status as RendicionStatus;
-    const toStatus = validated.status;
-
-    assertTransition(rendicionMachine, fromStatus, toStatus);
-
-    const updateData: any = { status: toStatus };
-
-    if (toStatus === RendicionStatus.Enviada) {
-      updateData.sentAt = new Date();
-    }
-    if (toStatus === RendicionStatus.Depositada) {
-      updateData.depositedAt = new Date();
-    }
-
-    await this.prisma.client.ownerRendicion.update({
-      where: { id: rendicion.id },
-      data: updateData,
-    });
-
-    this.logger.log('Rendition transitioned', {
-      rendicionId: id,
-      from: fromStatus,
-      to: toStatus,
-      userId: this.tenantContext.getUserId(),
-    });
-
-    return this.findOne(id);
-  }
-
-  // ─── Line Item Management ───────────────────────────
-
-  async addLineItem(rendicionId: string, data: unknown) {
-    const validated: any = parseOrThrow(CreateRendicionLineItemSchema, data, 'Invalid line item data');
-
-    const rendicion = await this.ensureDraft(rendicionId);
-    const tenantId = this.tenantContext.getTenantId()!;
-
-    // Get max sort order
-    const maxSort = await this.prisma.client.rendicionLineItem.findFirst({
-      where: { rendicionId },
-      orderBy: { sortOrder: 'desc' },
-      select: { sortOrder: true },
-    });
-
-    const lineItem = await this.prisma.client.rendicionLineItem.create({
-      data: {
-        tenantId,
-        rendicionId,
-        type: validated.type,
-        description: validated.description,
-        amount: validated.amount,
-        isDebit: validated.isDebit ?? false,
-        currency: validated.currency ?? rendicion.currency,
-        sortOrder: (maxSort?.sortOrder ?? 0) + 1,
-      },
-    });
-
-    await this.recalculateTotals(rendicionId);
-
-    this.logger.log('Rendition line item added', {
-      rendicionId,
-      lineItemId: lineItem.id,
-      type: validated.type,
-      amount: validated.amount,
-    });
-
-    return this.findOne(rendicionId);
-  }
-
-  async removeLineItem(rendicionId: string, itemId: string) {
-    await this.ensureDraft(rendicionId);
-
-    const lineItem = await this.prisma.client.rendicionLineItem.findFirst({
-      where: { id: itemId, rendicionId },
-    });
-
-    if (!lineItem) {
-      throw new NotFoundException({
-        error: 'LINE_ITEM_NOT_FOUND',
-        message: 'Line item not found',
-      });
-    }
-
-    await this.prisma.client.rendicionLineItem.delete({
-      where: { id: itemId },
-    });
-
-    await this.recalculateTotals(rendicionId);
-
-    this.logger.log('Rendition line item removed', {
-      rendicionId,
-      lineItemId: itemId,
-    });
-
-    return this.findOne(rendicionId);
-  }
-
   // ─── PDF Generation ─────────────────────────────────
 
   async generatePdf(id: string): Promise<Buffer> {
@@ -531,141 +210,5 @@ export class RenditionsService {
     });
 
     return pdfBuffer;
-  }
-
-  // ─── Email ──────────────────────────────────────────
-
-  async sendEmail(id: string) {
-    const rendicion = await this.findOne(id);
-    const tenantId = this.tenantContext.getTenantId()!;
-
-    const tenant = await this.prisma.client.tenant.findFirst({
-      where: { id: tenantId },
-    });
-
-    const pdfBuffer = await this.pdfService.generateRenditionPdf(rendicion, {
-      name: tenant?.name ?? 'Inmobiliaria',
-      cuit: (tenant as any)?.cuit ?? null,
-    });
-
-    const ownerEmail = rendicion.owner?.email;
-    if (!ownerEmail) {
-      this.logger.warn('No owner email found — skipping email', {
-        rendicionId: id,
-        ownerId: rendicion.ownerId,
-      });
-      throw new UnprocessableEntityException({
-        error: 'OWNER_EMAIL_MISSING',
-        message: 'El locador no tiene email cargado: descargá el PDF y compartilo por otro medio.',
-      });
-    }
-
-    try {
-      const result = await this.emailService.sendRendicionEmail(
-        ownerEmail,
-        rendicion,
-        pdfBuffer,
-        tenant?.name ?? 'Inmobiliaria',
-      );
-
-      // A delivery failure fails the request, as before.
-      if (result.status === 'failed') throw new Error(result.error);
-      // Sin mail configurado no hubo envío: no se marca como enviada.
-      if (result.status === 'skipped') {
-        throw new UnprocessableEntityException({
-          error: 'EMAIL_NOT_CONFIGURED',
-          message: 'El envío de mails no está configurado: descargá el PDF y compartilo por otro medio.',
-        });
-      }
-
-      // Update sentAt
-      await this.prisma.client.ownerRendicion.update({
-        where: { id: rendicion.id },
-        data: { sentAt: new Date() },
-      });
-
-      this.logger.log('Rendition email sent', {
-        rendicionId: id,
-        to: ownerEmail,
-        resendId: result.status === 'sent' ? result.id : null,
-      });
-
-      return {
-        sent: true,
-        to: ownerEmail,
-        resendId: result.status === 'sent' ? result.id : undefined,
-      };
-    } catch (error) {
-      if (error instanceof UnprocessableEntityException) throw error;
-      this.logger.error('Rendition email delivery failed', {
-        rendicionId: id,
-        to: ownerEmail,
-        error: (error as Error).message,
-      });
-      throw error;
-    }
-  }
-
-  // ─── Private Helpers ────────────────────────────────
-
-  private async ensureDraft(rendicionId: string) {
-    const rendicion = await this.findOne(rendicionId);
-    const status = rendicion.status as RendicionStatus;
-
-    if (status !== RendicionStatus.Borrador) {
-      throw new BadRequestException({
-        error: 'NOT_EDITABLE',
-        message: `Line items can only be modified when status is Borrador (current: ${status})`,
-      });
-    }
-
-    return rendicion;
-  }
-
-  private async recalculateTotals(rendicionId: string) {
-    const lineItems = await this.prisma.client.rendicionLineItem.findMany({
-      where: { rendicionId },
-    });
-
-    let rentCollected = new Decimal(0);
-    let commissionAmount = new Decimal(0);
-    let adminFeeAmount = new Decimal(0);
-    let deductionTotal = new Decimal(0);
-
-    for (const li of lineItems) {
-      const amt = new Decimal(li.amount.toString());
-      switch (li.type) {
-        case 'Alquiler':
-          rentCollected = rentCollected.plus(amt);
-          break;
-        case 'Comision':
-          commissionAmount = commissionAmount.plus(amt);
-          break;
-        case 'AdminFee':
-          adminFeeAmount = adminFeeAmount.plus(amt);
-          break;
-        case 'Deduccion':
-        case 'Ajuste':
-          deductionTotal = deductionTotal.plus(amt);
-          break;
-      }
-    }
-
-    const netDeposit = rentCollected
-      .minus(commissionAmount)
-      .minus(adminFeeAmount)
-      .minus(deductionTotal)
-      .toDecimalPlaces(2);
-
-    await this.prisma.client.ownerRendicion.update({
-      where: { id: rendicionId },
-      data: {
-        rentCollected: rentCollected.toFixed(2),
-        commissionAmount: commissionAmount.toFixed(2),
-        adminFeeAmount: adminFeeAmount.toFixed(2),
-        deductionTotal: deductionTotal.toFixed(2),
-        netDeposit: netDeposit.toFixed(2),
-      },
-    });
   }
 }

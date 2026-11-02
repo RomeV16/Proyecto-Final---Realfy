@@ -23,6 +23,7 @@ function build(opts: { payment?: any; lessorships?: number; custody?: any; balan
             period: D('2026-01-01'),
             contract: {
               id: 'c1',
+              propertyId: 'p1',
               lessors: [
                 { personId: A, payoutPct: '50', validFrom: D('2026-01-01'), validTo: null },
                 { personId: B, payoutPct: '50', validFrom: D('2026-01-01'), validTo: null },
@@ -35,10 +36,16 @@ function build(opts: { payment?: any; lessorships?: number; custody?: any; balan
     payment: { findFirst: jest.fn(async () => payment) },
     person: { findFirst: jest.fn(async ({ where }: any) => (where.id === X || where.id === A ? { id: where.id, _count: { lessorships: opts.lessorships ?? 1 } } : null)) },
     compensation: {
-      create: jest.fn(async ({ data }: any) => ({ id: 'comp-1', ...data })),
+      create: jest.fn(async ({ data }: any) => ({
+        id: 'comp-1',
+        ...data,
+        fromLessor: { id: data.fromLessorId, firstName: 'Ana', lastName: 'Uno' },
+        toLessor: { id: data.toLessorId, firstName: 'Beto', lastName: 'Dos' },
+      })),
       findMany: jest.fn(async () => []),
     },
     financialAccount: { findFirst: jest.fn(async () => opts.custody ?? null) },
+    ownerLedgerEntry: { createMany: jest.fn(async ({ data }: any) => ({ count: data.length })) },
   };
   tx.$transaction = jest.fn((fn: any) => fn(tx));
   const cash = {
@@ -64,6 +71,19 @@ describe('CompensationsService', () => {
     payment.compensations = [{ toLessorId: A, amount: '1500' }];
     const res = await service.create({ paymentId: PAY, fromLessorId: X, toLessorId: A });
     expect(res).toMatchObject({ amount: '45000.00', fromLessorId: X, toLessorId: A, currency: 'ARS', movements: [] });
+  });
+
+  it('cuenta corriente: resta a quien cobró y suma a quien le correspondía, con la compensación como origen (CP-454)', async () => {
+    const { service, tx } = build();
+    await service.create({ paymentId: PAY, fromLessorId: X, toLessorId: A, amount: '1000' });
+    const { data, skipDuplicates } = tx.ownerLedgerEntry.createMany.mock.calls[0][0];
+    expect(skipDuplicates).toBe(true);
+    expect(data.map((e: any) => [e.personId, e.type, e.amount, e.sourceType, e.sourceId, e.propertyId])).toEqual([
+      [X, 'Compensacion', '-1000.00', 'Compensation', 'comp-1', 'p1'],
+      [A, 'Compensacion', '1000.00', 'Compensation', 'comp-1', 'p1'],
+    ]);
+    expect(data[0].description).toContain('Beto Dos');
+    expect(data[1].description).toContain('Ana Uno');
   });
 
   it('con la custodia de quien cubre: sale de su custodia y entra en la caja', async () => {

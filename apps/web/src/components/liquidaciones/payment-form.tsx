@@ -5,7 +5,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { PaymentMethod, PaymentReceiver } from '@realfy/shared';
 import { useState } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
-import { agencyAccounts, receiptLabel, type RegisteredPayment } from '@/lib/cash';
+import { agencyAccounts, type RegisteredPayment } from '@/lib/cash';
 import { formatMoneyFixed, formatNumber } from '@/lib/format';
 import { printReceipt } from '@/components/cash/print-receipt';
 import { useCashAccounts } from '@/components/cash/use-cash-data';
@@ -93,10 +93,7 @@ export function PaymentForm({
       const issued = res?.registeredPayment?.receipt;
       if (issued) {
         // Con recibo, el formulario queda abierto para imprimirlo; "Listo" cierra y recarga.
-        setReceipt({
-          id: issued.id,
-          label: receiptLabel(issued.series, issued.number, res?.registeredPayment?.account?.name),
-        });
+        setReceipt({ id: issued.id, label: issued.label });
       } else {
         onSuccess();
       }

@@ -301,6 +301,18 @@ describe('Reports (e2e)', () => {
       },
     });
 
+    // Cuenta corriente del locador (ADR-0009): de acá leen los reportes; la
+    // rendición de arriba queda como histórico.
+    const ledger = { tenantId, personId: owner.id, contractId: contract.id, propertyId: property.id, currency: 'ARS' as const };
+    const march = { period: new Date('2026-03-01'), date: new Date('2026-03-15'), sourceType: 'Test' };
+    await prisma.baseClient.ownerLedgerEntry.createMany({
+      data: [
+        { ...ledger, ...march, type: 'Alquiler', amount: '150000.00', description: 'Alquiler marzo', sourceId: `alq-${payment.id}` },
+        { ...ledger, ...march, type: 'Comision', amount: '-7500.00', description: 'Comisión marzo', sourceId: `com-${payment.id}` },
+        { ...ledger, ...march, type: 'Transferencia', amount: '-142500.00', description: 'Transferencia', sourceId: `tra-${payment.id}` },
+      ],
+    });
+
     return {
       accessToken,
       user,
@@ -335,6 +347,13 @@ describe('Reports (e2e)', () => {
       expect(res.body.columns).toContain('Cobrado');
       expect(res.body.summary).toBeDefined();
       expect(res.body.generatedAt).toBeDefined();
+      // Un renglón de la cuenta corriente y otro de la rendición histórica.
+      expect(res.body.rows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ periodo: expect.stringMatching(/^0?3\/2026$/), cobrado: '150000.00', comision: '7500.00', depositoNeto: '142500.00' }),
+          expect.objectContaining({ propiedad: expect.stringContaining('(rendición histórica)') }),
+        ]),
+      );
     });
 
     it('GET /reports/ownerStatement — 400 without ownerId', async () => {
@@ -382,6 +401,8 @@ describe('Reports (e2e)', () => {
       expect(res.body.type).toBe('cashFlow');
       expect(res.body.rows.length).toBeGreaterThanOrEqual(1);
       expect(res.body.summary).toBeDefined();
+      // Egresos: la transferencia al locador (142500) más la rendición histórica depositada (137500).
+      expect(res.body.summary.egresos).toBe('280000.00');
     });
   });
 
@@ -399,6 +420,12 @@ describe('Reports (e2e)', () => {
       expect(res.body.type).toBe('commissionSummary');
       expect(res.body.rows.length).toBeGreaterThanOrEqual(1);
       expect(res.body.summary).toBeDefined();
+      expect(res.body.rows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ periodo: expect.stringMatching(/^0?3\/2026$/), propietario: expect.any(String), comision: '7500.00', honorarios: '0.00' }),
+          expect.objectContaining({ propiedad: expect.stringContaining('(rendición histórica)') }),
+        ]),
+      );
     });
   });
 
