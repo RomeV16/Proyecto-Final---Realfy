@@ -31,7 +31,7 @@ describe('Valores por defecto de la inmobiliaria', () => {
       leadDays: 10,
       ipcLagMonths: 2,
       commissionPct: 7,
-      fees: { alta: 5, renovacion: 5, ventaConstruido: 3, ventaLote: 5 },
+      fees: expect.objectContaining({ alta: 5, renovacion: 5, ventaConstruido: 3, ventaLote: 5, installments: 1 }),
       valuationUsd: 100,
       upfrontThresholdFees: 2,
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
@@ -44,7 +44,7 @@ describe('Valores por defecto de la inmobiliaria', () => {
     const { service } = build('t1', { dueDay: 5, fees: { alta: 6 } });
     const values = await service.getOperationalDefaults();
     expect(values.dueDay).toBe(5);
-    expect(values.fees).toEqual({ alta: 6, renovacion: 5, ventaConstruido: 3, ventaLote: 5 });
+    expect(values.fees).toMatchObject({ alta: 6, renovacion: 5, ventaConstruido: 3, ventaLote: 5, payer: 'Inquilino' });
     expect(values.ipcLagMonths).toBe(2);
   });
 

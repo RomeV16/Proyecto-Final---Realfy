@@ -74,6 +74,7 @@ export const EmitInvoiceDtoSchema = z.object({
   periodoAsocHasta: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   // Business-side link
   paymentId: z.string().uuid().optional(),     // if linked to a Payment, for auto-associating
+  feeInstallmentId: z.string().uuid().optional(), // cuota de honorario que se factura
   description: z.string().max(500).optional(), // line item description
   clientRequestId: z.string().uuid().optional(), // idempotency
 })

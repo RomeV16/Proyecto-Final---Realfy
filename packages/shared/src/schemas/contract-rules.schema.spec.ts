@@ -28,7 +28,21 @@ describe('OperationalDefaultsSchema', () => {
       ipcLagMonths: 2,
       allowProvisional: true,
       commissionPct: 7,
-      fees: { alta: 5, renovacion: 5, ventaConstruido: 3, ventaLote: 5 },
+      fees: {
+        alta: 5,
+        renovacion: 5,
+        ventaConstruido: 3,
+        ventaLote: 5,
+        installments: 1,
+        adjustInstallments: true,
+        payer: 'Inquilino',
+        lessorSharePct: 50,
+        contractTotalMode: 'ConAjustesConocidos',
+        vatMode: 'NoAplica',
+        vatPct: 21,
+        staffCommissionPct: 0,
+        staffCommissionBase: 'Neto',
+      },
       valuationUsd: 100,
       upfrontThresholdFees: 2,
       upfrontBasis: 'ComisionPactada',
@@ -49,7 +63,7 @@ describe('OperationalDefaultsSchema', () => {
 
   it('un valor parcial se completa campo a campo', () => {
     const parsed = OperationalDefaultsSchema.parse({ fees: { ventaLote: 4 }, dueDay: 7 });
-    expect(parsed.fees).toEqual({ alta: 5, renovacion: 5, ventaConstruido: 3, ventaLote: 4 });
+    expect(parsed.fees).toMatchObject({ alta: 5, renovacion: 5, ventaConstruido: 3, ventaLote: 4, installments: 1 });
     expect(parsed.dueDay).toBe(7);
   });
 
@@ -64,6 +78,8 @@ describe('OperationalDefaultsSchema', () => {
     [{ expiryLight: { redDays: 30, yellowDays: 10 } }],
     [{ unknown: true }],
     [{ fees: { otro: 1 } }],
+    [{ fees: { installments: 0 } }],
+    [{ fees: { payer: 'Nadie' } }],
   ])('rechaza %j', (input) => {
     expect(OperationalDefaultsSchema.safeParse(input).success).toBe(false);
   });

@@ -4,6 +4,8 @@ import type { OperationalDefaults, OperationalDefaultsInput } from './operationa
 import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
 import { ReceiptSeriesMode } from '../cash';
 import { LessorChargeTiming } from '../owner-ledger';
+import { FeeVatMode } from '../enums';
+import { ContractTotalMode, FeePayerChoice, StaffCommissionBase } from '../fee-engine';
 
 // Esquema del formulario web de valores por defecto: todos los campos viajan
 // como texto (lo que escribe la persona) y se convierten con
@@ -36,6 +38,15 @@ export const operationalDefaultsFormSchema = z
     feeRenovacion: numberText({ min: 0, max: 100 }),
     feeVentaConstruido: numberText({ min: 0, max: 100 }),
     feeVentaLote: numberText({ min: 0, max: 100 }),
+    feeInstallments: numberText({ int: true, min: 1, max: 60 }),
+    feeAdjustInstallments: z.boolean(),
+    feePayer: z.nativeEnum(FeePayerChoice),
+    feeLessorSharePct: numberText({ min: 0, max: 100 }),
+    feeContractTotalMode: z.nativeEnum(ContractTotalMode),
+    feeVatMode: z.nativeEnum(FeeVatMode),
+    feeVatPct: numberText({ min: 0, max: 100 }),
+    feeStaffCommissionPct: numberText({ min: 0, max: 100 }),
+    feeStaffCommissionBase: z.nativeEnum(StaffCommissionBase),
     valuationUsd: numberText({ min: 0 }),
     upfrontThresholdFees: numberText({ min: 0 }),
     upfrontBasis: z.nativeEnum(UpfrontBasis),
@@ -85,6 +96,15 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     feeRenovacion: String(d.fees.renovacion),
     feeVentaConstruido: String(d.fees.ventaConstruido),
     feeVentaLote: String(d.fees.ventaLote),
+    feeInstallments: String(d.fees.installments),
+    feeAdjustInstallments: d.fees.adjustInstallments,
+    feePayer: d.fees.payer,
+    feeLessorSharePct: String(d.fees.lessorSharePct),
+    feeContractTotalMode: d.fees.contractTotalMode,
+    feeVatMode: d.fees.vatMode,
+    feeVatPct: String(d.fees.vatPct),
+    feeStaffCommissionPct: String(d.fees.staffCommissionPct),
+    feeStaffCommissionBase: d.fees.staffCommissionBase,
     valuationUsd: String(d.valuationUsd),
     upfrontThresholdFees: String(d.upfrontThresholdFees),
     upfrontBasis: d.upfrontBasis,
@@ -122,6 +142,15 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
       renovacion: num(f.feeRenovacion),
       ventaConstruido: num(f.feeVentaConstruido),
       ventaLote: num(f.feeVentaLote),
+      installments: num(f.feeInstallments),
+      adjustInstallments: f.feeAdjustInstallments,
+      payer: f.feePayer,
+      lessorSharePct: num(f.feeLessorSharePct),
+      contractTotalMode: f.feeContractTotalMode,
+      vatMode: f.feeVatMode,
+      vatPct: num(f.feeVatPct),
+      staffCommissionPct: num(f.feeStaffCommissionPct),
+      staffCommissionBase: f.feeStaffCommissionBase,
     },
     valuationUsd: num(f.valuationUsd),
     upfrontThresholdFees: num(f.upfrontThresholdFees),
