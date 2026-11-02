@@ -13,6 +13,10 @@ export {
   SignatureMode,
   PowerScope,
   FiscalCondition,
+  DepositHolder,
+  DepositRefundRule,
+  DepositStatus,
+  MoveOutStatus,
   PersonType,
   PayoutMethod,
   ContractStatus,
@@ -1168,7 +1172,7 @@ export type ContractClosureMetrics = z.infer<typeof _ContractClosureMetricsSchem
 export type AiClosureSummaryResponse = z.infer<typeof _AiClosureSummaryResponseSchema>;
 
 // Liquidation builder
-export { buildLiquidation, onBehalfOfText } from './liquidation-builder';
+export { buildLiquidation, lastMonthRent, onBehalfOfText } from './liquidation-builder';
 export {
   accruePenalty,
   splitPayments,
@@ -1265,3 +1269,32 @@ export type {
   MergePersonsPlan,
   MergePersonsResult,
 } from './schemas/data-quality.schema';
+
+export {
+  MoveOutItemKind,
+  rentAt,
+  updatedDepositFactor,
+  depositRefundAmount,
+  depositSchedule,
+  depositStatusFor,
+  refundDueDate,
+  refundSchedule,
+  computeMoveOut,
+} from './deposit-engine';
+export type {
+  RentStep,
+  DepositRefundInput,
+  DepositInstallmentRow,
+  MoveOutItem,
+  MoveOutInput,
+  MoveOutResult,
+} from './deposit-engine';
+export {
+  UpsertDepositSchema,
+  CollectDepositInstallmentSchema,
+  MoveOutItemSchema,
+  MoveOutPreviewQuerySchema,
+  CreateMoveOutSchema,
+  ConfirmMoveOutSchema,
+} from './schemas/deposit.schema';
+export type { UpsertDepositInput, CreateMoveOutInput } from './schemas/deposit.schema';

@@ -196,6 +196,22 @@ function proratedAmount(monthly: MoneyInput, covered: number, base: number): Mon
   return covered < base ? round2(new Money(monthly).times(covered).div(base)) : round2(monthly);
 }
 
+/**
+ * Alquiler del último mes, el del egreso: del día 1 al día de egreso, con la convención de prorrateo
+ * del contrato (`prorationMode`; sin prorrateo se cobra el mes completo).
+ */
+export function lastMonthRent(input: {
+  monthlyRent: MoneyInput;
+  moveOutDate: Date;
+  prorationMode: ProrationMode | `${ProrationMode}`;
+}): { amount: Money; coveredDays: number; baseDays: number } {
+  const year = input.moveOutDate.getUTCFullYear();
+  const month = input.moveOutDate.getUTCMonth();
+  const monthDays = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const { covered, base } = dayCount(input.prorationMode, 1, input.moveOutDate.getUTCDate(), monthDays);
+  return { amount: proratedAmount(input.monthlyRent, covered, base), coveredDays: covered, baseDays: base };
+}
+
 type DraftLine = Omit<BuiltLine, 'sortOrder'>;
 
 const rentLine = (description: string, amount: Money, sourceType: string | null = null): DraftLine => ({

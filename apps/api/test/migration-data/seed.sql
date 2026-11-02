@@ -141,3 +141,9 @@ INSERT INTO "tickets" ("id", "tenantId", "propertyId", "title", "status", "prior
   ('tkt-7', 'tenant-a', 'prop-1', 'Persiana',              'Abierto',  'Baja',  '',              NULL,          now());
 
 COMMIT;
+
+-- Depósitos declarados en el contrato (columnas heredadas): uno en pesos con moneda,
+-- uno en dólares y uno sin moneda (toma la del alquiler).
+UPDATE "contracts" SET "depositAmount" = 100000.00, "depositCurrency" = 'ARS' WHERE "id" = 'con-1';
+UPDATE "contracts" SET "depositAmount" = 1500.00, "depositCurrency" = 'USD' WHERE "id" = 'con-2';
+UPDATE "contracts" SET "depositAmount" = 120000.00 WHERE "id" = 'con-3';

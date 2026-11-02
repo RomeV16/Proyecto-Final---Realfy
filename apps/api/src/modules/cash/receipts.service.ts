@@ -67,6 +67,7 @@ const METHOD_LABEL: Record<string, string> = {
   Efectivo: 'Efectivo',
   MercadoPago: 'Mercado Pago',
   Cheque: 'Cheque',
+  AplicacionDeposito: 'Aplicación del depósito',
 };
 
 /**

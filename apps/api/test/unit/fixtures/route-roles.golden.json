@@ -265,6 +265,53 @@
     "Admin",
     "Gerente"
   ],
+  "src/modules/deposits/deposits.controller.ts#ContractDepositsController.getDeposit": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/deposits/deposits.controller.ts#ContractDepositsController.putDeposit": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/deposits/deposits.controller.ts#ContractDepositsController.collect": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/deposits/deposits.controller.ts#ContractDepositsController.getMoveOut": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/deposits/deposits.controller.ts#ContractDepositsController.preview": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/deposits/deposits.controller.ts#ContractDepositsController.createMoveOut": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/deposits/deposits.controller.ts#MoveOutsController.get": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/deposits/deposits.controller.ts#MoveOutsController.confirm": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/deposits/deposits.controller.ts#MoveOutsController.pdfOf": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
   "src/modules/email-templates/email-templates.controller.ts#EmailTemplatesController.findAll": [
     "Admin",
     "Gerente",

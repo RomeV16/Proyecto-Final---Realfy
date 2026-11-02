@@ -49,7 +49,9 @@ export const TransitionLiquidacionSchema = z.object({
 export const CreatePaymentSchema = z
   .object({
     amount: decimalString,
-    method: z.nativeEnum(PaymentMethod),
+    method: z
+      .nativeEnum(PaymentMethod)
+      .refine((m) => m !== PaymentMethod.AplicacionDeposito, 'The deposit application is made by the move-out settlement'),
     reference: z.string().max(200).optional(),
     notes: z.string().max(1000).optional(),
     paidAt: dateString,

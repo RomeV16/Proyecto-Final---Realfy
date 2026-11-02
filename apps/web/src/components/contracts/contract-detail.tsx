@@ -23,6 +23,7 @@ import { GenerateDocumentModal } from './generate-document-modal';
 import { CommissionConfig } from './commission-config';
 import { ClosureSummary } from './closure-summary';
 import { ContractExpiration } from '@/components/follow-ups/contract-expiration';
+import { ContractDeposit } from '@/components/deposits/contract-deposit';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import {
   ActivationProblems,
@@ -850,6 +851,14 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
 
           {/* Vencimiento: fin pactado y real, seguimiento, prórroga de palabra y renovación */}
           <ContractExpiration contract={contract} onChanged={fetchContract} />
+
+          {/* Depósito en garantía y liquidación de egreso */}
+          <ContractDeposit
+            contractId={contract.id}
+            status={contract.status}
+            rentCurrency={contractCurrency ?? 'ARS'}
+            lessors={lessors}
+          />
 
           {/* Reglas vigentes y acuerdos */}
           <ContractRules contractId={contract.id} currency={contractCurrency} />

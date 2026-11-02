@@ -227,6 +227,29 @@ export enum FollowUpKind {
   Renovacion = 'Renovacion',
 }
 
+export enum DepositHolder {
+  Locador = 'Locador',
+  Inmobiliaria = 'Inmobiliaria',
+}
+
+/** Cómo se devuelve el depósito: pesos actualizados al último alquiler o la misma moneda. */
+export enum DepositRefundRule {
+  PesosActualizado = 'PesosActualizado',
+  MismaMoneda = 'MismaMoneda',
+}
+
+export enum DepositStatus {
+  Pendiente = 'Pendiente',
+  Parcial = 'Parcial',
+  Cobrado = 'Cobrado',
+  Devuelto = 'Devuelto',
+}
+
+export enum MoveOutStatus {
+  Borrador = 'Borrador',
+  Confirmada = 'Confirmada',
+}
+
 export enum FollowUpStatus {
   Abierto = 'Abierto',
   Cerrado = 'Cerrado',
@@ -311,6 +334,8 @@ export enum PaymentMethod {
   Efectivo = 'Efectivo',
   MercadoPago = 'MercadoPago',
   Cheque = 'Cheque',
+  /** Pago interno de la liquidación de egreso: el depósito aplicado a las deudas; no se elige a mano. */
+  AplicacionDeposito = 'AplicacionDeposito',
 }
 
 export enum LineItemType {
@@ -471,6 +496,7 @@ export enum CashCategory {
   ComisionEmpleado = 'ComisionEmpleado',
   Sena = 'Sena',
   Custodia = 'Custodia',
+  Deposito = 'Deposito',
   Compensacion = 'Compensacion',
   Conversion = 'Conversion',
 }

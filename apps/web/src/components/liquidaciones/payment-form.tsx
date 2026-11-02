@@ -202,7 +202,7 @@ export function PaymentForm({
               required
             >
               <option value="">{t('method')}</option>
-              {Object.values(PaymentMethod).map((m) => (
+              {Object.values(PaymentMethod).filter((m) => m !== PaymentMethod.AplicacionDeposito).map((m) => (
                 <option key={m} value={m}>{tMethods(m)}</option>
               ))}
             </select>

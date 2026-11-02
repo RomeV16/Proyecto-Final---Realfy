@@ -19,6 +19,9 @@ import {
   ContractPeriodKind,
   ContractStatus,
   ContractType,
+  Currency,
+  DepositHolder,
+  DepositRefundRule,
   PaymentFlow,
   PersonRole,
   PropertyOperationType,
@@ -366,6 +369,35 @@ export class ContractsService {
             : null,
         },
       });
+
+      // Depósito declarado en el alta: nace pendiente, en una cuota al inicio, con la
+      // regla habitual (pesos actualizado en pesos, la misma moneda en los demás).
+      if (validated.depositAmount && Number(validated.depositAmount) > 0) {
+        const depositCurrency = validated.depositCurrency ?? validated.rentCurrency;
+        const heldBy = defaults.deposits.defaultHeldBy;
+        const deposit = await tx.contractDeposit.create({
+          data: {
+            tenantId,
+            contractId: created.id,
+            amount: validated.depositAmount,
+            currency: depositCurrency,
+            heldBy,
+            heldByPersonId: heldBy === DepositHolder.Locador ? (lessorRows[0]?.personId ?? null) : null,
+            refundRule:
+              depositCurrency === Currency.ARS ? DepositRefundRule.PesosActualizado : DepositRefundRule.MismaMoneda,
+            refundDueDays: defaults.deposits.refundDueDays,
+          },
+        });
+        await tx.contractDepositInstallment.create({
+          data: {
+            tenantId,
+            depositId: deposit.id,
+            number: 1,
+            dueDate: new Date(validated.startDate),
+            amount: validated.depositAmount,
+          },
+        });
+      }
 
       // Create contract persons (inquilino, garante...) and lessors
       for (const cp of otherEntries) {

@@ -52,6 +52,7 @@ import { scheduledPeriod } from './generation-window';
 import { EmailService } from './email.service';
 import { ServiceBillsService } from '../services/service-bills.service';
 import { PenaltiesService, parseDay } from '../penalties/penalties.service';
+import type { PenaltyContext } from '../penalties/penalties.service';
 import { ChargesService } from '../charges/charges.service';
 import { PaymentSettlementService } from '../cash/payment-settlement.service';
 import { withReceiptLabel } from '../cash/receipts.service';
@@ -725,179 +726,7 @@ export class LiquidacionesService {
     // dejó el primero. El SQL crudo no pasa por la extensión de inmobiliaria,
     // por eso filtra por tenantId a mano (ADR-0006).
     const { payment, remaining, fullyPaid, totalPaid, penaltySettled } = await this.prisma.client.$transaction(
-      async (tx: any) => {
-        const locked: { id: string }[] = await tx.$queryRaw(
-          Prisma.sql`SELECT id FROM liquidaciones WHERE id = ${liquidacionId} AND "tenantId" = ${tenantId} FOR UPDATE`,
-        );
-        if (locked.length === 0) {
-          throw new NotFoundException({
-            error: 'LIQUIDACION_NOT_FOUND',
-            message: 'Liquidación not found',
-          });
-        }
-
-        const liquidacion = await tx.liquidacion.findFirst({
-          where: { id: liquidacionId },
-          include: { payments: true, lineItems: true },
-        });
-
-        if (!liquidacion) {
-          throw new NotFoundException({
-            error: 'LIQUIDACION_NOT_FOUND',
-            message: 'Liquidación not found',
-          });
-        }
-
-        // Payments are only allowed when status is Enviada or Vencida
-        const status = liquidacion.status as LiquidacionStatus;
-        if (status !== LiquidacionStatus.Enviada && status !== LiquidacionStatus.Vencida) {
-          throw new BadRequestException({
-            error: 'INVALID_STATUS_FOR_PAYMENT',
-            message: `Cannot register payment when status is ${status}. Must be Enviada or Vencida.`,
-          });
-        }
-
-        // Cobro con punitorios: lo devengado a la fecha del pago, sin lo condonado ni lo ya cobrado en
-        // otra liquidación, entra como renglón Multa y el pago tiene que cubrir el total.
-        let penaltySettled: { amount: string; days: number } | null = null;
-        if (validated.settlePenalties && penaltyCtx) {
-          const { result } = await this.penalties.accrue(tx, liquidacion, penaltyCtx, paidDay, 'payment');
-          const rows: { id: string; amount: unknown }[] = await tx.penalty.findMany({
-            where: { liquidacionId, status: 'active', settledLiquidacionId: null },
-            select: { id: true, amount: true },
-          });
-          const due = rows.reduce((acc, r) => acc.plus(String(r.amount)), new Decimal(0));
-          if (due.gt(0)) {
-            const last = await tx.liquidacionLineItem.findFirst({
-              where: { liquidacionId },
-              orderBy: { sortOrder: 'desc' },
-              select: { sortOrder: true },
-            });
-            const multa = await tx.liquidacionLineItem.create({
-              data: {
-                tenantId,
-                liquidacionId,
-                type: LineItemType.Multa,
-                description: `Punitorios por mora hasta el ${formatDateAR(paidDay)} (${result.daysOverdue} días)`,
-                amount: due.toFixed(2),
-                currency: liquidacion.currency,
-                sortOrder: (last?.sortOrder ?? -1) + 1,
-                commissionable: defaultCommissionable(LineItemType.Multa),
-                beneficiary: defaultBeneficiary(LineItemType.Multa),
-                sourceType: 'Penalty',
-                sourceId: liquidacionId,
-              },
-            });
-            await this.penalties.markSettled(tx, rows.map((r) => r.id), liquidacionId);
-            const updated = await this.recalculateTotals(liquidacionId, tx);
-            liquidacion.total = updated.total;
-            liquidacion.lineItems = [...(liquidacion.lineItems ?? []), multa];
-            penaltySettled = { amount: due.toFixed(2), days: result.daysOverdue };
-          }
-        }
-
-        // Un pago no puede superar lo que falta saldar: el excedente no tiene a qué
-        // imputarse y dejaría la liquidación con saldo negativo.
-        const priorPayments: PaymentInput[] = liquidacion.payments.map((p: any) => ({
-          amount: p.amount.toString(),
-        }));
-        const balanceBefore = calculateRemainingBalance(liquidacion.total.toString(), priorPayments);
-        if (new Decimal(validated.amount).gt(balanceBefore)) {
-          throw new BadRequestException({
-            error: 'PAYMENT_EXCEEDS_BALANCE',
-            message: `Payment amount exceeds the remaining balance of ${balanceBefore.toFixed(2)}`,
-            remainingBalance: balanceBefore.toFixed(2),
-          });
-        }
-
-        // Con `RentaPrimero` (por defecto) el pago tiene que cubrir todo; con `PunitorioPrimero` puede
-        // ser parcial y cubre primero el punitorio.
-        const penaltyFirst = penaltyCtx?.rule.partialPaymentAllocation === 'PunitorioPrimero';
-        if (penaltySettled && !penaltyFirst && !new Decimal(validated.amount).eq(balanceBefore)) {
-          throw new BadRequestException({
-            error: 'PAYOFF_REQUIRES_FULL_AMOUNT',
-            message: `A payment that settles penalties must cover the full amount of ${balanceBefore.toFixed(2)}`,
-            expectedAmount: balanceBefore.toFixed(2),
-          });
-        }
-
-        if (validated.externalRef) {
-          const duplicate = await tx.payment.findFirst({ where: { externalRef: validated.externalRef }, select: { id: true } });
-          if (duplicate) {
-            throw new ConflictException({
-              error: 'PAYMENT_EXTERNAL_REF_EXISTS',
-              message: `A payment with external reference ${validated.externalRef} already exists`,
-            });
-          }
-        }
-
-        const inserted = await tx.payment.create({
-          data: {
-            tenantId,
-            liquidacionId,
-            amount: validated.amount,
-            method: validated.method,
-            reference: validated.reference ?? null,
-            notes: validated.notes ?? null,
-            paidAt: new Date(validated.paidAt),
-            currency: liquidacion.currency,
-            externalRef: validated.externalRef ?? null,
-          },
-        });
-
-        // Caja y recibo en la misma transacción: quién recibió, reparto, movimientos y
-        // recibo numerado una sola vez (ADR-0012).
-        const created = await this.paymentCash.record(tx, {
-          tenantId,
-          liquidacion,
-          payment: inserted,
-          paidBefore: priorPayments.reduce((acc, p) => acc.plus(String(p.amount)), new Decimal(0)).toFixed(2),
-          input: {
-            receivedBy: validated.receivedBy ?? null,
-            accountId: validated.accountId ?? null,
-            inCustody: validated.inCustody ?? null,
-            receivedByUserId: validated.receivedByUserId ?? null,
-          },
-        });
-
-        // Check if fully paid using shared engine
-        const allPayments: PaymentInput[] = [...priorPayments, { amount: validated.amount }];
-        const isPaid = isFullyPaid(liquidacion.total.toString(), allPayments);
-        const left = calculateRemainingBalance(liquidacion.total.toString(), allPayments);
-
-        // Un pago tardío que salda la liquidación fija el devengo hasta su fecha: lo que no se cobró
-        // en el momento queda como punitorio pendiente para la próxima liquidación.
-        if (isPaid && !penaltySettled && penaltyCtx && paidDay.getTime() > liquidacion.dueDate.getTime()) {
-          await this.penalties.accrue(tx, liquidacion, penaltyCtx, paidDay, 'payment');
-        }
-
-        if (isPaid) {
-          // Auto-transition to Pagada. La fecha de saldado es la del último pago que
-          // la completó, no el momento en que se cargó en el sistema: una cobranza
-          // del día 5 registrada el día 20 se saldó el 5, y de esa fecha dependen la
-          // puntualidad, el puntaje del inquilino y el resumen de cierre.
-          const settledOn = [
-            ...liquidacion.payments.map((p: { paidAt: Date }) => p.paidAt),
-            created.paidAt,
-          ].reduce((latest, date) => (date > latest ? date : latest));
-
-          await tx.liquidacion.update({
-            where: { id: liquidacionId },
-            data: {
-              status: LiquidacionStatus.Pagada,
-              paidAt: settledOn,
-            },
-          });
-        }
-
-        return {
-          payment: created,
-          remaining: left,
-          fullyPaid: isPaid,
-          totalPaid: new Decimal(liquidacion.total.toString()).minus(left).toFixed(2),
-          penaltySettled,
-        };
-      },
+      (tx: any) => this.applyPaymentInTx(tx, tenantId, liquidacionId, validated, penaltyCtx, paidDay),
     );
 
     if (fullyPaid) {
@@ -920,6 +749,193 @@ export class LiquidacionesService {
     const detail = await this.findOne(liquidacionId);
     const withPayment = { ...detail, registeredPayment: withReceiptLabel(payment) };
     return penaltySettled ? { ...withPayment, penaltySettled } : withPayment;
+  }
+
+  /**
+   * Un pago de una liquidación dentro de la transacción del que llama: bloquea la fila, valida el
+   * estado y el saldo, cobra los punitorios si se pidió, crea el pago, reparte (caja, recibo y cuenta
+   * corriente de los locadores) y pasa la liquidación a Pagada si queda saldada. Lo usan el cobro
+   * normal y la aplicación del depósito en la liquidación de egreso.
+   */
+  async applyPaymentInTx(
+    tx: any,
+    tenantId: string,
+    liquidacionId: string,
+    validated: any,
+    penaltyCtx: PenaltyContext | null,
+    paidDay: Date,
+  ) {
+    const locked: { id: string }[] = await tx.$queryRaw(
+      Prisma.sql`SELECT id FROM liquidaciones WHERE id = ${liquidacionId} AND "tenantId" = ${tenantId} FOR UPDATE`,
+    );
+    if (locked.length === 0) {
+      throw new NotFoundException({
+        error: 'LIQUIDACION_NOT_FOUND',
+        message: 'Liquidación not found',
+      });
+    }
+
+    const liquidacion = await tx.liquidacion.findFirst({
+      where: { id: liquidacionId },
+      include: { payments: true, lineItems: true },
+    });
+
+    if (!liquidacion) {
+      throw new NotFoundException({
+        error: 'LIQUIDACION_NOT_FOUND',
+        message: 'Liquidación not found',
+      });
+    }
+
+    // Payments are only allowed when status is Enviada or Vencida
+    const status = liquidacion.status as LiquidacionStatus;
+    if (status !== LiquidacionStatus.Enviada && status !== LiquidacionStatus.Vencida) {
+      throw new BadRequestException({
+        error: 'INVALID_STATUS_FOR_PAYMENT',
+        message: `Cannot register payment when status is ${status}. Must be Enviada or Vencida.`,
+      });
+    }
+
+    // Cobro con punitorios: lo devengado a la fecha del pago, sin lo condonado ni lo ya cobrado en
+    // otra liquidación, entra como renglón Multa y el pago tiene que cubrir el total.
+    let penaltySettled: { amount: string; days: number } | null = null;
+    if (validated.settlePenalties && penaltyCtx) {
+      const { result } = await this.penalties.accrue(tx, liquidacion, penaltyCtx, paidDay, 'payment');
+      const rows: { id: string; amount: unknown }[] = await tx.penalty.findMany({
+        where: { liquidacionId, status: 'active', settledLiquidacionId: null },
+        select: { id: true, amount: true },
+      });
+      const due = rows.reduce((acc, r) => acc.plus(String(r.amount)), new Decimal(0));
+      if (due.gt(0)) {
+        const last = await tx.liquidacionLineItem.findFirst({
+          where: { liquidacionId },
+          orderBy: { sortOrder: 'desc' },
+          select: { sortOrder: true },
+        });
+        const multa = await tx.liquidacionLineItem.create({
+          data: {
+            tenantId,
+            liquidacionId,
+            type: LineItemType.Multa,
+            description: `Punitorios por mora hasta el ${formatDateAR(paidDay)} (${result.daysOverdue} días)`,
+            amount: due.toFixed(2),
+            currency: liquidacion.currency,
+            sortOrder: (last?.sortOrder ?? -1) + 1,
+            commissionable: defaultCommissionable(LineItemType.Multa),
+            beneficiary: defaultBeneficiary(LineItemType.Multa),
+            sourceType: 'Penalty',
+            sourceId: liquidacionId,
+          },
+        });
+        await this.penalties.markSettled(tx, rows.map((r) => r.id), liquidacionId);
+        const updated = await this.recalculateTotals(liquidacionId, tx);
+        liquidacion.total = updated.total;
+        liquidacion.lineItems = [...(liquidacion.lineItems ?? []), multa];
+        penaltySettled = { amount: due.toFixed(2), days: result.daysOverdue };
+      }
+    }
+
+    // Un pago no puede superar lo que falta saldar: el excedente no tiene a qué
+    // imputarse y dejaría la liquidación con saldo negativo.
+    const priorPayments: PaymentInput[] = liquidacion.payments.map((p: any) => ({
+      amount: p.amount.toString(),
+    }));
+    const balanceBefore = calculateRemainingBalance(liquidacion.total.toString(), priorPayments);
+    if (new Decimal(validated.amount).gt(balanceBefore)) {
+      throw new BadRequestException({
+        error: 'PAYMENT_EXCEEDS_BALANCE',
+        message: `Payment amount exceeds the remaining balance of ${balanceBefore.toFixed(2)}`,
+        remainingBalance: balanceBefore.toFixed(2),
+      });
+    }
+
+    // Con `RentaPrimero` (por defecto) el pago tiene que cubrir todo; con `PunitorioPrimero` puede
+    // ser parcial y cubre primero el punitorio.
+    const penaltyFirst = penaltyCtx?.rule.partialPaymentAllocation === 'PunitorioPrimero';
+    if (penaltySettled && !penaltyFirst && !new Decimal(validated.amount).eq(balanceBefore)) {
+      throw new BadRequestException({
+        error: 'PAYOFF_REQUIRES_FULL_AMOUNT',
+        message: `A payment that settles penalties must cover the full amount of ${balanceBefore.toFixed(2)}`,
+        expectedAmount: balanceBefore.toFixed(2),
+      });
+    }
+
+    if (validated.externalRef) {
+      const duplicate = await tx.payment.findFirst({ where: { externalRef: validated.externalRef }, select: { id: true } });
+      if (duplicate) {
+        throw new ConflictException({
+          error: 'PAYMENT_EXTERNAL_REF_EXISTS',
+          message: `A payment with external reference ${validated.externalRef} already exists`,
+        });
+      }
+    }
+
+    const inserted = await tx.payment.create({
+      data: {
+        tenantId,
+        liquidacionId,
+        amount: validated.amount,
+        method: validated.method,
+        reference: validated.reference ?? null,
+        notes: validated.notes ?? null,
+        paidAt: new Date(validated.paidAt),
+        currency: liquidacion.currency,
+        externalRef: validated.externalRef ?? null,
+      },
+    });
+
+    // Caja y recibo en la misma transacción: quién recibió, reparto, movimientos y
+    // recibo numerado una sola vez (ADR-0012).
+    const created = await this.paymentCash.record(tx, {
+      tenantId,
+      liquidacion,
+      payment: inserted,
+      paidBefore: priorPayments.reduce((acc, p) => acc.plus(String(p.amount)), new Decimal(0)).toFixed(2),
+      input: {
+        receivedBy: validated.receivedBy ?? null,
+        accountId: validated.accountId ?? null,
+        inCustody: validated.inCustody ?? null,
+        receivedByUserId: validated.receivedByUserId ?? null,
+      },
+    });
+
+    // Check if fully paid using shared engine
+    const allPayments: PaymentInput[] = [...priorPayments, { amount: validated.amount }];
+    const isPaid = isFullyPaid(liquidacion.total.toString(), allPayments);
+    const left = calculateRemainingBalance(liquidacion.total.toString(), allPayments);
+
+    // Un pago tardío que salda la liquidación fija el devengo hasta su fecha: lo que no se cobró
+    // en el momento queda como punitorio pendiente para la próxima liquidación.
+    if (isPaid && !penaltySettled && penaltyCtx && paidDay.getTime() > liquidacion.dueDate.getTime()) {
+      await this.penalties.accrue(tx, liquidacion, penaltyCtx, paidDay, 'payment');
+    }
+
+    if (isPaid) {
+      // Auto-transition to Pagada. La fecha de saldado es la del último pago que
+      // la completó, no el momento en que se cargó en el sistema: una cobranza
+      // del día 5 registrada el día 20 se saldó el 5, y de esa fecha dependen la
+      // puntualidad, el puntaje del inquilino y el resumen de cierre.
+      const settledOn = [
+        ...liquidacion.payments.map((p: { paidAt: Date }) => p.paidAt),
+        created.paidAt,
+      ].reduce((latest, date) => (date > latest ? date : latest));
+
+      await tx.liquidacion.update({
+        where: { id: liquidacionId },
+        data: {
+          status: LiquidacionStatus.Pagada,
+          paidAt: settledOn,
+        },
+      });
+    }
+
+    return {
+      payment: created,
+      remaining: left,
+      fullyPaid: isPaid,
+      totalPaid: new Decimal(liquidacion.total.toString()).minus(left).toFixed(2),
+      penaltySettled,
+    };
   }
 
   async findPayments(liquidacionId: string) {

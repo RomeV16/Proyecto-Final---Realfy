@@ -211,6 +211,11 @@ export function FollowUpDrawer({ followUp, onClose, onChanged }: Props) {
         <Link href={`/contracts/${current.contractId}`} className="mr-auto text-sm font-medium text-[var(--color-brand)] hover:underline">
           {t('drawer.openContract')}
         </Link>
+        {current.kind === 'Devolucion' && (
+          <Link href={`/contracts/${current.contractId}#deposito`} className="text-sm font-medium text-[var(--color-brand)] hover:underline">
+            {t('drawer.moveOut')}
+          </Link>
+        )}
         <Button type="button" variant="secondary" onClick={onClose} disabled={busy}>
           {tCommon('close')}
         </Button>
