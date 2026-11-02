@@ -115,7 +115,8 @@
   "charges": "Centro de carga",
   "cash": "Caja",
   "owners": "Locadores",
-  "ownerStatements": "Estados de cuenta"
+  "ownerStatements": "Estados de cuenta",
+  "followUps": "Vencimientos"
  },
  "dataTable": {
   "pagination": {
@@ -150,6 +151,19 @@
   "copyReference": "Copiar referencia",
   "copied": "Copiada",
   "codes": {
+   "CONTRACT_NOT_ACTIVE": "El contrato no está activo.",
+   "EXTENSION_NOT_AFTER_END": "La prórroga tiene que terminar después del fin actual del contrato.",
+   "FOLLOW_UP_NOT_FOUND": "El seguimiento no existe.",
+   "FOLLOW_UP_CLOSED": "El seguimiento está cerrado: reabrilo para cambiarlo.",
+   "FOLLOW_UP_EXISTS": "El contrato ya tiene un seguimiento de ese tipo para este fin.",
+   "FOLLOW_UP_TASK_NOT_FOUND": "El paso del checklist no existe.",
+   "ASSIGNEE_NOT_FOUND": "El responsable no es un usuario activo de la inmobiliaria.",
+   "RENEWAL_BEFORE_PERIOD_START": "La renovación tiene que empezar después del inicio del período actual.",
+   "TERMS_VERSION_EXISTS": "Ya hay reglas vigentes desde esa fecha o una posterior.",
+   "GUARANTOR_NOT_IN_CONTRACT": "Alguno de los garantes elegidos no es garante de este contrato.",
+   "PERIOD_NOT_FOUND": "El período no existe.",
+   "PERIOD_NOT_A_RENEWAL": "Solo un período de renovación tiene adenda.",
+   "USE_DEDICATED_ENDPOINT": "La prórroga y la renovación se registran con sus propias acciones.",
    "CONTRACT_NOT_FOUND": "El contrato no existe.",
    "PROPERTY_NOT_FOUND": "La propiedad no existe.",
    "CHARGE_NOT_FOUND": "El cargo ya no existe.",
@@ -5731,6 +5745,168 @@
    "annulConfirm": "Anular estado",
    "annulled": "Estado anulado.",
    "annulError": "No se pudo anular el estado."
+  }
+ },
+ "followUps": {
+  "title": "Vencimientos",
+  "subtitle": "Los contratos que se acercan a su fin, o que ya lo pasaron, con el semáforo, el responsable y el avance del checklist de cada seguimiento.",
+  "open": "Abrir",
+  "actionError": "No se pudo completar la acción",
+  "filters": {
+   "light": "Semáforo",
+   "kind": "Tipo",
+   "status": "Estado",
+   "mine": "Solo los míos",
+   "all": "Todos"
+  },
+  "lights": {
+   "green": "En plazo",
+   "yellow": "Por vencer",
+   "red": "Urgente",
+   "expired": "Vencido"
+  },
+  "kinds": {
+   "Renovacion": "Renovación",
+   "Devolucion": "Devolución"
+  },
+  "statuses": {
+   "Abierto": "Abierto",
+   "Cerrado": "Cerrado"
+  },
+  "outcomes": {
+   "Pendiente": "Pendiente",
+   "Renovado": "Renovado",
+   "Devuelto": "Devuelto",
+   "Prorrogado": "Prorrogado"
+  },
+  "columns": {
+   "light": "Semáforo",
+   "property": "Propiedad",
+   "tenant": "Inquilino",
+   "end": "Fin",
+   "days": "Días",
+   "kind": "Tipo",
+   "progress": "Checklist",
+   "assignee": "Responsable",
+   "assigned": "Asignado",
+   "actions": "Acciones"
+  },
+  "empty": {
+   "title": "No hay seguimientos",
+   "subtitle": "Cuando el fin de un contrato entre en la ventana de aviso se abre su seguimiento."
+  },
+  "drawer": {
+   "contract": "Contrato",
+   "endsOn": "termina el",
+   "signedEnd": "pactado",
+   "assignee": "Responsable",
+   "unassigned": "Sin asignar",
+   "me": "yo",
+   "assigned": "Responsable guardado",
+   "kind": "Qué se prepara",
+   "kindChanged": "Tipo cambiado: el checklist se armó de nuevo",
+   "checklist": "Checklist",
+   "notes": "Notas",
+   "saveNotes": "Guardar notas",
+   "notesSaved": "Notas guardadas",
+   "outcome": "Resultado",
+   "outcomeHint": "Con un resultado distinto de pendiente el seguimiento se cierra; volver a pendiente lo reabre.",
+   "outcomeSaved": "Resultado guardado",
+   "openContract": "Ver el contrato"
+  },
+  "tasks": {
+   "Renovacion": {
+    "VISITA": "Visita y estado de la unidad",
+    "PRECIO": "Precio nuevo acordado",
+    "REGLA": "Regla de ajuste",
+    "GARANTES": "Garantes y fiadores reafirmados",
+    "HONORARIOS": "Honorarios de renovación",
+    "SELLOS_FIRMA": "Sellos y firma de la adenda"
+   },
+   "Devolucion": {
+    "VISITA": "Visita previa de inspección",
+    "LIBRE_DEUDA": "Libre deuda de servicios",
+    "PINTURA": "Pintura y estado de la unidad",
+    "LLAVES": "Entrega de llaves",
+    "DEPOSITO": "Devolución del depósito"
+   }
+  },
+  "card": {
+   "title": "Vencimiento",
+   "signedEnd": "Fin pactado",
+   "effectiveEnd": "Fin efectivo",
+   "followUp": "Seguimiento",
+   "noFollowUp": "Sin seguimiento abierto",
+   "renewals": "Renovaciones",
+   "addendum": "Adenda (PDF)",
+   "addendumFailed": "No se pudo descargar la adenda",
+   "oralExtension": "Prórroga de palabra",
+   "renew": "Renovar"
+  },
+  "oralExtension": {
+   "title": "Prórroga de palabra",
+   "currentEnd": "El contrato termina el",
+   "intro": "Registrá hasta cuándo sigue el inquilino sin papeles. El fin pactado no cambia; cambia el fin real, que es el que usan los avisos y las liquidaciones.",
+   "until": "Sigue hasta",
+   "untilHint": "Tiene que ser posterior al fin actual.",
+   "note": "Qué se acordó",
+   "save": "Registrar prórroga",
+   "saving": "Guardando…",
+   "saved": "Prórroga registrada",
+   "saveError": "No se pudo registrar la prórroga",
+   "badge": "prórroga de palabra"
+  },
+  "renew": {
+   "title": "Renovar el contrato",
+   "intro": "La renovación agrega un período al mismo contrato, con su alquiler y su regla de ajuste. No se crea otro contrato.",
+   "start": "Empieza",
+   "end": "Termina",
+   "rent": "Alquiler nuevo",
+   "rentHint": "Importe mensual desde el inicio de la renovación.",
+   "rule": "Regla de ajuste",
+   "ruleKeep": "La misma que hasta ahora",
+   "rulePeriod": "Cada cuánto",
+   "rulePct": "Porcentaje por ajuste",
+   "guarantors": "Garantes que reafirman",
+   "guarantorsHint": "Los que firman de nuevo para este período.",
+   "fee": "Honorarios de renovación",
+   "feeHint": "Opcional: el importe pactado. El cobro se registra en la caja.",
+   "feeCurrency": "Moneda",
+   "signedAt": "Firmada el",
+   "signedAtHint": "Si todavía no se firmó, dejalo vacío.",
+   "notes": "Notas",
+   "save": "Renovar",
+   "saving": "Guardando…",
+   "saved": "Renovación registrada",
+   "saveError": "No se pudo renovar el contrato"
+  },
+  "adjustment": {
+   "types": {
+    "IPC": "IPC",
+    "ICL": "ICL",
+    "UVA": "UVA",
+    "FixedPercent": "Porcentaje fijo"
+   },
+   "periods": {
+    "Trimestral": "Trimestral",
+    "Cuatrimestral": "Cuatrimestral",
+    "Semestral": "Semestral",
+    "Anual": "Anual"
+   }
+  },
+  "errors": {
+   "until": "Elegí una fecha de fin",
+   "note": "Anotá qué se acordó",
+   "start": "Elegí la fecha de inicio",
+   "end": "El fin tiene que ser posterior al inicio",
+   "rent": "Ingresá un alquiler mayor a cero, con hasta dos decimales",
+   "adjustmentType": "Revisá la regla de ajuste",
+   "adjustmentPeriod": "Elegí cada cuánto se ajusta",
+   "customPct": "Ingresá el porcentaje",
+   "feeAmount": "Ingresá un importe válido",
+   "guarantorPersonIds": "Revisá los garantes",
+   "signedAt": "Elegí una fecha válida",
+   "notes": "Las notas son demasiado largas"
   }
  }
 }

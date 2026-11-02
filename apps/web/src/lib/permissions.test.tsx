@@ -44,6 +44,8 @@ const EXPECTED: Record<Action, string[]> = {
   'ownerAccounts.view': ['Admin', 'Gerente', 'Liquidaciones', 'Lectura'],
   'ownerAccounts.manage': ['Admin', 'Gerente', 'Liquidaciones'],
   'ownerAccounts.administer': ['Admin', 'Gerente'],
+  'followUps.manage': ['Admin', 'Gerente', 'Ventas'],
+  'expirations.administer': ['Admin', 'Gerente'],
   'dashboard.analytics': ['Admin', 'Gerente'],
   'tickets.manage': ['Admin', 'Gerente', 'Soporte'],
   'settings.manage': ['Admin', 'Gerente'],

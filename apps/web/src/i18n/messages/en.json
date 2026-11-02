@@ -115,7 +115,8 @@
   "charges": "Charge center",
   "cash": "Cash",
   "owners": "Lessors",
-  "ownerStatements": "Owner statements"
+  "ownerStatements": "Owner statements",
+  "followUps": "Expirations"
  },
  "dataTable": {
   "pagination": {
@@ -150,6 +151,19 @@
   "copyReference": "Copy reference",
   "copied": "Copied",
   "codes": {
+   "CONTRACT_NOT_ACTIVE": "The contract is not active.",
+   "EXTENSION_NOT_AFTER_END": "The extension must end after the contract's current end.",
+   "FOLLOW_UP_NOT_FOUND": "The follow-up does not exist.",
+   "FOLLOW_UP_CLOSED": "The follow-up is closed: reopen it to change it.",
+   "FOLLOW_UP_EXISTS": "The contract already has a follow-up of that kind for this end date.",
+   "FOLLOW_UP_TASK_NOT_FOUND": "The checklist step does not exist.",
+   "ASSIGNEE_NOT_FOUND": "The assignee is not an active user of the agency.",
+   "RENEWAL_BEFORE_PERIOD_START": "The renewal must start after the current period starts.",
+   "TERMS_VERSION_EXISTS": "There are already rules in force from that date or a later one.",
+   "GUARANTOR_NOT_IN_CONTRACT": "One of the chosen guarantors is not a guarantor of this contract.",
+   "PERIOD_NOT_FOUND": "The period does not exist.",
+   "PERIOD_NOT_A_RENEWAL": "Only a renewal period has an addendum.",
+   "USE_DEDICATED_ENDPOINT": "Extensions and renewals are recorded with their own actions.",
    "CONTRACT_NOT_FOUND": "The contract does not exist.",
    "PROPERTY_NOT_FOUND": "The property does not exist.",
    "CHARGE_NOT_FOUND": "The charge no longer exists.",
@@ -5731,6 +5745,168 @@
    "annulConfirm": "Void statement",
    "annulled": "Statement voided.",
    "annulError": "The statement could not be voided."
+  }
+ },
+ "followUps": {
+  "title": "Expirations",
+  "subtitle": "Contracts that are close to their end, or already past it, with the traffic light, the owner and the checklist progress of each follow-up.",
+  "open": "Open",
+  "actionError": "The action could not be completed",
+  "filters": {
+   "light": "Traffic light",
+   "kind": "Type",
+   "status": "Status",
+   "mine": "Mine only",
+   "all": "All"
+  },
+  "lights": {
+   "green": "On time",
+   "yellow": "Expiring",
+   "red": "Urgent",
+   "expired": "Expired"
+  },
+  "kinds": {
+   "Renovacion": "Renewal",
+   "Devolucion": "Return"
+  },
+  "statuses": {
+   "Abierto": "Open",
+   "Cerrado": "Closed"
+  },
+  "outcomes": {
+   "Pendiente": "Pending",
+   "Renovado": "Renewed",
+   "Devuelto": "Returned",
+   "Prorrogado": "Extended"
+  },
+  "columns": {
+   "light": "Traffic light",
+   "property": "Property",
+   "tenant": "Tenant",
+   "end": "End",
+   "days": "Days",
+   "kind": "Type",
+   "progress": "Checklist",
+   "assignee": "Owner",
+   "assigned": "Assigned",
+   "actions": "Actions"
+  },
+  "empty": {
+   "title": "No follow-ups",
+   "subtitle": "A contract's follow-up opens when its end enters the warning window."
+  },
+  "drawer": {
+   "contract": "Contract",
+   "endsOn": "ends on",
+   "signedEnd": "signed",
+   "assignee": "Owner",
+   "unassigned": "Unassigned",
+   "me": "me",
+   "assigned": "Owner saved",
+   "kind": "What is being prepared",
+   "kindChanged": "Type changed: the checklist was rebuilt",
+   "checklist": "Checklist",
+   "notes": "Notes",
+   "saveNotes": "Save notes",
+   "notesSaved": "Notes saved",
+   "outcome": "Outcome",
+   "outcomeHint": "Any outcome other than pending closes the follow-up; going back to pending reopens it.",
+   "outcomeSaved": "Outcome saved",
+   "openContract": "View contract"
+  },
+  "tasks": {
+   "Renovacion": {
+    "VISITA": "Visit and unit condition",
+    "PRECIO": "New agreed price",
+    "REGLA": "Adjustment rule",
+    "GARANTES": "Guarantors reaffirmed",
+    "HONORARIOS": "Renewal fee",
+    "SELLOS_FIRMA": "Stamps and addendum signature"
+   },
+   "Devolucion": {
+    "VISITA": "Pre-return inspection visit",
+    "LIBRE_DEUDA": "Utilities clearance",
+    "PINTURA": "Painting and unit condition",
+    "LLAVES": "Key handover",
+    "DEPOSITO": "Deposit refund"
+   }
+  },
+  "card": {
+   "title": "Expiration",
+   "signedEnd": "Signed end",
+   "effectiveEnd": "Effective end",
+   "followUp": "Follow-up",
+   "noFollowUp": "No open follow-up",
+   "renewals": "Renewals",
+   "addendum": "Addendum (PDF)",
+   "addendumFailed": "The addendum could not be downloaded",
+   "oralExtension": "Verbal extension",
+   "renew": "Renew"
+  },
+  "oralExtension": {
+   "title": "Verbal extension",
+   "currentEnd": "The contract ends on",
+   "intro": "Record how long the tenant stays without paperwork. The signed end does not change; the real end does, and it is the one used by alerts and settlements.",
+   "until": "Stays until",
+   "untilHint": "It must be after the current end.",
+   "note": "What was agreed",
+   "save": "Record extension",
+   "saving": "Saving…",
+   "saved": "Extension recorded",
+   "saveError": "The extension could not be recorded",
+   "badge": "verbal extension"
+  },
+  "renew": {
+   "title": "Renew the contract",
+   "intro": "A renewal adds a period to the same contract, with its own rent and adjustment rule. No new contract is created.",
+   "start": "Starts",
+   "end": "Ends",
+   "rent": "New rent",
+   "rentHint": "Monthly amount from the start of the renewal.",
+   "rule": "Adjustment rule",
+   "ruleKeep": "The same as so far",
+   "rulePeriod": "How often",
+   "rulePct": "Percentage per adjustment",
+   "guarantors": "Guarantors who reaffirm",
+   "guarantorsHint": "Those who sign again for this period.",
+   "fee": "Renewal fee",
+   "feeHint": "Optional: the agreed amount. Collection is recorded in the cash module.",
+   "feeCurrency": "Currency",
+   "signedAt": "Signed on",
+   "signedAtHint": "If it has not been signed yet, leave it empty.",
+   "notes": "Notes",
+   "save": "Renew",
+   "saving": "Saving…",
+   "saved": "Renewal recorded",
+   "saveError": "The contract could not be renewed"
+  },
+  "adjustment": {
+   "types": {
+    "IPC": "IPC",
+    "ICL": "ICL",
+    "UVA": "UVA",
+    "FixedPercent": "Fixed percentage"
+   },
+   "periods": {
+    "Trimestral": "Quarterly",
+    "Cuatrimestral": "Every four months",
+    "Semestral": "Semiannual",
+    "Anual": "Annual"
+   }
+  },
+  "errors": {
+   "until": "Choose an end date",
+   "note": "Write down what was agreed",
+   "start": "Choose the start date",
+   "end": "The end must be after the start",
+   "rent": "Enter a rent above zero, with up to two decimals",
+   "adjustmentType": "Check the adjustment rule",
+   "adjustmentPeriod": "Choose how often it adjusts",
+   "customPct": "Enter the percentage",
+   "feeAmount": "Enter a valid amount",
+   "guarantorPersonIds": "Check the guarantors",
+   "signedAt": "Choose a valid date",
+   "notes": "The notes are too long"
   }
  }
 }
