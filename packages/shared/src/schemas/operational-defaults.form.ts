@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
 import type { OperationalDefaults, OperationalDefaultsInput } from './operational-defaults.schema';
+import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
+import { ReceiptSeriesMode } from '../cash';
 
 // Esquema del formulario web de valores por defecto: todos los campos viajan
 // como texto (lo que escribe la persona) y se convierten con
@@ -40,6 +42,12 @@ export const operationalDefaultsFormSchema = z
     everyDays: numberText({ int: true, min: 1, max: 365 }),
     redDays: numberText({ int: true, min: 0, max: 365 }),
     yellowDays: numberText({ int: true, min: 0, max: 365 }),
+    cashLessorDirectOwes: z.nativeEnum(LessorDirectOwes),
+    cashPartialAllocation: z.nativeEnum(PartialAllocation),
+    cashCustodyInAgencyBalance: z.boolean(),
+    cashReceiptSeries: z.nativeEnum(ReceiptSeriesMode),
+    cashReceiptWhenLessorReceives: z.boolean(),
+    cashCompensationScope: z.nativeEnum(CompensationScope),
   })
   .refine((v) => Number(v.yellowDays) >= Number(v.redDays) || !/^\d+$/.test(v.yellowDays), {
     message: 'validation.outOfRange',
@@ -73,6 +81,12 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     everyDays: String(d.collectionCadence.everyDays),
     redDays: String(d.expiryLight.redDays),
     yellowDays: String(d.expiryLight.yellowDays),
+    cashLessorDirectOwes: d.cash.lessorDirectOwes,
+    cashPartialAllocation: d.cash.partialAllocation,
+    cashCustodyInAgencyBalance: d.cash.custodyInAgencyBalance,
+    cashReceiptSeries: d.cash.receiptSeries,
+    cashReceiptWhenLessorReceives: d.cash.receiptWhenLessorReceives,
+    cashCompensationScope: d.cash.compensationScope,
   };
 }
 
@@ -99,5 +113,13 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
     upfrontBasis: f.upfrontBasis,
     collectionCadence: { firstReminderDays: num(f.firstReminderDays), everyDays: num(f.everyDays) },
     expiryLight: { redDays: num(f.redDays), yellowDays: num(f.yellowDays) },
+    cash: {
+      lessorDirectOwes: f.cashLessorDirectOwes,
+      partialAllocation: f.cashPartialAllocation,
+      custodyInAgencyBalance: f.cashCustodyInAgencyBalance,
+      receiptSeries: f.cashReceiptSeries,
+      receiptWhenLessorReceives: f.cashReceiptWhenLessorReceives,
+      compensationScope: f.cashCompensationScope,
+    },
   };
 }

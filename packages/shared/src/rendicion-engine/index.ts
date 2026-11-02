@@ -65,6 +65,10 @@ export class InvalidRendicionLineError extends Error {
  * Ningún pago ni deducción puede ser negativo: lanza InvalidRendicionLineError
  * (INVALID_LINE_AMOUNT), igual que la liquidación y la comisión.
  * All arithmetic uses Decimal.js; outputs are rounded to 2 decimal places.
+ *
+ * @deprecated El reparto de cada cobro lo hace `settlePayment` (settlement-engine,
+ * ADR-0012). Este motor queda solo para la rendición vieja (`OwnerRendicion`),
+ * que pasa a ser histórica con la cuenta corriente del locador.
  */
 export function buildRendicionFromPayments(
   payments: RendicionPaymentInput[],

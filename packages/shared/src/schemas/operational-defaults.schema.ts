@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
+import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
+import { ReceiptSeriesMode } from '../cash';
 
 const pct = z.number().min(0).max(100);
 const days = z.number().int().min(0).max(365);
@@ -59,6 +61,27 @@ export const OperationalDefaultsSchema = z
       .object({
         firstReminderDays: days.default(5),
         everyDays: z.number().int().min(1).max(365).default(5),
+      })
+      .strict()
+      .default({}),
+    /**
+     * Caja y cobros (ADR-0012). Convenciones de dinero que no fijó la inmobiliaria:
+     * cada una tiene un valor de fábrica y se puede cambiar.
+     */
+    cash: z
+      .object({
+        /** Qué le debe el locador a la inmobiliaria cuando el inquilino le paga directamente. */
+        lessorDirectOwes: z.nativeEnum(LessorDirectOwes).default(LessorDirectOwes.TodoLoAjeno),
+        /** Reparto de un pago parcial entre inmobiliaria, entes y locadores. */
+        partialAllocation: z.nativeEnum(PartialAllocation).default(PartialAllocation.Proporcional),
+        /** Si el efectivo en custodia de los locadores suma en el total de la inmobiliaria. */
+        custodyInAgencyBalance: z.boolean().default(false),
+        /** Serie de numeración de los recibos de cobro. */
+        receiptSeries: z.nativeEnum(ReceiptSeriesMode).default(ReceiptSeriesMode.Unica),
+        /** Emitir recibo también cuando el inquilino le paga al locador. */
+        receiptWhenLessorReceives: z.boolean().default(false),
+        /** Entre quiénes se admite una compensación. */
+        compensationScope: z.nativeEnum(CompensationScope).default(CompensationScope.CualquierLocador),
       })
       .strict()
       .default({}),
