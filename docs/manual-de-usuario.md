@@ -507,6 +507,16 @@ no se exige que los porcentajes sumen 100. Si los porcentajes cargados no suman
 100 %, aparece un aviso que no impide guardar. Agregar y quitar titulares es de
 Admin, Gerente y Ventas; quitar pide confirmación.
 
+### Depósito del contrato y liquidación de egreso
+
+En el detalle de cada contrato está la tarjeta **Depósito en garantía**.
+
+1. **Cargar el depósito** (Admin y Gerente). Indicá el importe y la moneda, quién lo guarda (el locador, o la inmobiliaria; si es dinero de un locador que la inmobiliaria guarda, elegí al locador y queda en su custodia), en cuántas cuotas se paga y cómo se devuelve: *pesos actualizados al último alquiler* (solo para depósitos en pesos) o *la misma moneda* (por ejemplo, un depósito en dólares se devuelve en dólares). Completá el plazo de devolución en días corridos desde el egreso y las cuotas de la devolución. Mientras no se cobre ninguna cuota podés cambiar todo; después, el importe, la moneda, las cuotas y quién lo guarda quedan fijos.
+2. **Cobrar las cuotas** (Admin, Gerente y Liquidaciones). Cada cuota tiene su botón **Cobrar**. Si el depósito lo guarda la inmobiliaria, el dinero entra a la caja o, con un locador dueño, a la custodia de ese locador; si lo guarda el locador, solo se anota.
+3. **Liquidación de egreso** (botón en la tarjeta, Admin y Gerente; el seguimiento de una devolución en Vencimientos tiene un enlace directo). Elegí la fecha de egreso. El sistema trae lo que el inquilino debe a esa fecha: alquileres sin cobrar, punitorios, servicios sin facturar, cargos y reparaciones pendientes. Destildá lo que no corresponde, corregí los importes y agregá los descuentos a mano (pintura, faltantes, llaves). Abajo ves el total adeudado, el depósito disponible y lo que se devuelve o se cobra. Con **Guardar borrador** podés seguir después; **Confirmar liquidación** pide una confirmación y no se puede deshacer: devuelve el depósito, imputa los cargos, deja como cargo pendiente lo que el inquilino todavía debe y tilda el paso «Devolución del depósito» del seguimiento. Después descargá el PDF para firmar.
+
+Si la inmobiliaria activó la conformidad del locador (Valores por defecto), los descuentos y las reparaciones no se confirman sin ella. Si un renglón está en otra moneda que el depósito, la pantalla pide el tipo de cambio.
+
 ### Generar la liquidación del mes
 
 La inmobiliaria no tiene que acordarse de abrir el mes: todos los días a las 6 de

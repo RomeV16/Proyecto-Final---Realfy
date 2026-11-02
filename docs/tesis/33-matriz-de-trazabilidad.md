@@ -27,7 +27,7 @@ La matriz une cada hallazgo del registro (`31-registro-de-feedback.md`) con el c
 | FB-11 | CU-14 (modificado) | 38 (#96) | — | Se completa en el PR | CP-160 a CP-169 |
 | FB-12 | CU-37 (modificado: valores por defecto de los honorarios); CU-41 (nuevo) | 41 (#99) | — | `/fees/preview`, `/fees`, `/fees/installments`, `/fees/:id`, `/fees/:id/cancel`, `/fees/:id/installments/:n/pay`, `/fees/:id/shares`, `/fees/:id/staff-commissions`, `/staff-commissions`, `/staff-commissions/:id/pay`; `/receipts` y `/invoices/emit` con la cuota de honorario | CP-530 a CP-552 (la banda CP-190 a CP-199 queda sin usar) |
 | FB-13 | CU-07, CU-08, CU-09 (modificados) | 34 (#92) | ADR-0011 | Se completa en el PR | CP-120 a CP-129 |
-| FB-14 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 40 (#98) | — | Se completa en el PR | CP-180 a CP-189 |
+| FB-14 | CU-42 (nuevo) | 40 (#98) | — | `/contracts/:id/deposit`, `/contracts/:id/deposit/installments/:number/collect`, `/contracts/:id/move-out`, `/contracts/:id/move-out/preview`, `/move-outs/:id`, `/move-outs/:id/confirm`, `/move-outs/:id/pdf` | CP-560 a CP-580 |
 | FB-15 | CU-06 (modificado); CU-39 (nuevo) | 40 (#98) | — | `/contracts/:id/renew` (garantes que reafirman) | CP-482 |
 | FB-16 | CU-05 (modificado) | 40 (#98) | — | Se completa en el PR | — |
 | FB-17 | CU nuevo (se numera desde CU-25 en el PR del ítem) | 44 (#102) | — | Se completa en el PR | CP-220 a CP-229 |
