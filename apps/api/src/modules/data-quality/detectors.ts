@@ -350,7 +350,8 @@ export function detectLessorWithoutTaxId(persons: PersonRow[], owners: Set<strin
 
 /**
  * Contratos vencidos cuyo fin efectivo (`actualEndDate` o `endDate`) ya pasó y
- * sin decisión: ni renovación, ni cierre con resumen, ni fecha de cierre. Una
+ * sin decisión: ni renovación, ni cierre con resumen, ni fecha de cierre. El
+ * proceso diario de vencimientos les abre un seguimiento. Una
  * rescisión cambia el estado a Rescindido y una prórroga corre el fin efectivo,
  * así que ninguna de las dos llega acá.
  */
@@ -367,7 +368,8 @@ export function detectExpiredUndecided(contracts: ContractRow[], now: Date): Dat
       entityId: c.id,
       label: c.propertyTitle,
       fields: ['status', 'endDate'],
-      link: `/contracts/${c.id}`,
+      // El proceso diario le abre su seguimiento: se regulariza desde ahí (prórroga de palabra, renovación o devolución).
+      link: `/vencimientos?contractId=${c.id}`,
       details: { effectiveEnd: isoDate(c.actualEndDate ?? c.endDate) },
     }))
     .sort((a, b) => String(a.details?.effectiveEnd).localeCompare(String(b.details?.effectiveEnd)));

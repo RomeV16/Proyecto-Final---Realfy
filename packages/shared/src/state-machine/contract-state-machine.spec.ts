@@ -14,8 +14,12 @@ describe('contract-state-machine', () => {
       expect(validateContractTransition(Borrador, Activo)).toBe(true);
     });
 
-    it('un contrato cerrado no vuelve a estar activo', () => {
-      for (const from of [Vencido, Rescindido, Renovado, Archivado]) {
+    it('un contrato vencido se regulariza como activo (prórroga de palabra o renovación)', () => {
+      expect(validateContractTransition(Vencido, Activo)).toBe(true);
+    });
+
+    it('un contrato rescindido, renovado o archivado no vuelve a estar activo', () => {
+      for (const from of [Rescindido, Renovado, Archivado]) {
         expect(validateContractTransition(from, Activo)).toBe(false);
       }
     });

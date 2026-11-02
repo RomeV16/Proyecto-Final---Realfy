@@ -163,10 +163,18 @@ export class FollowUpsService {
 
     const contracts = await this.prisma.client.contract.findMany({
       where: {
-        status: 'Activo',
         isActive: true,
         contractType: { in: ['Alquiler', 'AlquilerTemporario'] },
-        ...effectiveEndWhere({ lte: horizon }),
+        AND: [
+          effectiveEndWhere({ lte: horizon }),
+          // Un vencido sin decisión (ni renovación, ni cierre) sigue corriendo: también se sigue.
+          {
+            OR: [
+              { status: 'Activo' },
+              { status: 'Vencido', closedAt: null, closureSummary: null, renewals: { none: {} } },
+            ],
+          },
+        ],
       },
       select: { id: true, endDate: true, actualEndDate: true },
     });

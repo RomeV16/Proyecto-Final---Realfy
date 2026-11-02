@@ -46,6 +46,8 @@ describe('checklistFor', () => {
     }
     expect(checklistFor('Devolucion').map((t) => t.code)).toEqual([
       'VISITA',
+      'FECHA_ENTREGA',
+      'PUBLICAR',
       'LIBRE_DEUDA',
       'PINTURA',
       'LLAVES',

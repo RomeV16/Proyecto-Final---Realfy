@@ -24,7 +24,7 @@ const DAY_MS = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const inDays = (n: number) => new Date(todayInAR().getTime() + n * DAY_MS);
 
-/** CP-470 a CP-479: vencimientos (semáforo, seguimientos, checklist) y prórroga de palabra; CP-480 a CP-485: renovación como período. */
+/** CP-470 a CP-479: vencimientos (semáforo, seguimientos, checklist) y prórroga de palabra; CP-480 a CP-485: renovación como período; CP-490 a CP-492: contratos vencidos que siguen corriendo. */
 describe('Vencimientos (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -132,7 +132,7 @@ describe('Vencimientos (e2e)', () => {
   describe('proceso diario', () => {
     it('CP-470: abre el seguimiento de los contratos en la ventana, una sola vez', async () => {
       const { token } = await agency('cron');
-      const soon = await activeContract(token, 'soon', 20);
+      const soon = await activeContract(token, 'soon', 45);
       const expired = await activeContract(token, 'old', -10);
       const far = await activeContract(token, 'far', 400);
 
@@ -177,7 +177,7 @@ describe('Vencimientos (e2e)', () => {
 
     it('CP-472: filtra por color, tipo, estado y responsable', async () => {
       const { token, admin } = await agency('flt');
-      const a = await activeContract(token, 'a', 10);
+      const a = await activeContract(token, 'a', 45);
       await activeContract(token, 'b', -5);
       await scheduler.openForAllTenants();
 
@@ -258,7 +258,7 @@ describe('Vencimientos (e2e)', () => {
         .send({ kind: 'Devolucion' })
         .expect(200);
       expect(res.body.kind).toBe('Devolucion');
-      expect(res.body.tasks.map((t: any) => t.code)).toEqual(['VISITA', 'LIBRE_DEUDA', 'PINTURA', 'LLAVES', 'DEPOSITO']);
+      expect(res.body.tasks.map((t: any) => t.code)).toEqual(['VISITA', 'FECHA_ENTREGA', 'PUBLICAR', 'LIBRE_DEUDA', 'PINTURA', 'LLAVES', 'DEPOSITO']);
       expect(res.body.tasks.filter((t: any) => t.done).map((t: any) => t.code)).toEqual(['VISITA']);
     });
 
@@ -490,6 +490,74 @@ describe('Vencimientos (e2e)', () => {
 
       await http().get(`/api/contracts/${contractId}/periods/1/addendum`).set(auth(token)).expect(400);
       await http().get(`/api/contracts/${contractId}/periods/9/addendum`).set(auth(token)).expect(404);
+    });
+  });
+
+  describe('contratos vencidos que siguen corriendo', () => {
+    /** Un contrato importado como Vencido: sin fecha de cierre ni decisión. */
+    async function expiredContract(token: string, prefix: string, endInDays: number) {
+      const id = await activeContract(token, prefix, endInDays);
+      await prisma.baseClient.contract.update({ where: { id }, data: { status: 'Vencido', closedAt: null } });
+      return id;
+    }
+    const contractOf = async (token: string, id: string) =>
+      (await http().get(`/api/contracts/${id}`).set(auth(token)).expect(200)).body;
+
+    it('CP-490: el proceso diario sigue a los vencidos sin decisión y no a los cerrados', async () => {
+      const { token } = await agency('vxx');
+      const undecided = await expiredContract(token, 'und', -40);
+      const closed = await expiredContract(token, 'clo', -40);
+      await prisma.baseClient.contract.update({ where: { id: closed }, data: { closedAt: new Date() } });
+
+      expect((await scheduler.openForAllTenants()).opened).toBe(1);
+      const res = await list(token);
+      expect(res.body.items.map((i: any) => i.contractId)).toEqual([undecided]);
+      expect(res.body.items[0]).toMatchObject({ light: 'expired', kind: 'Renovacion' });
+    });
+
+    it('CP-491: la prórroga de palabra reactiva el vencido, lo audita y /activate no puede', async () => {
+      const { token } = await agency('vpr');
+      const id = await expiredContract(token, 'vpr', -40);
+      await scheduler.openForAllTenants();
+
+      await http().post(`/api/contracts/${id}/activate`).set(auth(token)).expect(409);
+      await http()
+        .post(`/api/contracts/${id}/oral-extension`)
+        .set(auth(token))
+        .send({ until: iso(inDays(120)), note: 'Sigue de palabra' })
+        .expect(201);
+
+      const contract = await contractOf(token, id);
+      expect(contract.status).toBe('Activo');
+      expect(contract.closedAt).toBeNull();
+      expect(iso(new Date(contract.actualEndDate))).toBe(iso(inDays(120)));
+      expect((await list(token, `?contractId=${id}`)).body.items[0]).toMatchObject({ status: 'Cerrado', outcome: 'Prorrogado' });
+      const audit = await prisma.baseClient.auditLog.findMany({ where: { entityId: id } });
+      const entry: any = audit.find((a: any) => a.changes?.operation === 'oral-extension');
+      expect(entry.changes.before.status).toBe('Vencido');
+      expect(entry.changes.after.status).toBe('Activo');
+      expect(entry.changes.reactivated).toBe(true);
+    });
+
+    it('CP-492: la renovación reactiva el vencido y un rescindido sigue sin poder renovarse', async () => {
+      const { token } = await agency('vrn');
+      const id = await expiredContract(token, 'vrn', -40);
+      const res = await http()
+        .post(`/api/contracts/${id}/renew`)
+        .set(auth(token))
+        .send({ start: iso(inDays(-39)), end: iso(inDays(-39 + 365)), rent: '150000' })
+        .expect(201);
+      expect(res.body.contract.status).toBe('Activo');
+      expect(res.body.contract.closedAt).toBeNull();
+      expect(res.body.contract.rentAmount).toBe('150000');
+
+      const dead = await activeContract(token, 'dead', 30);
+      await http().post(`/api/contracts/${dead}/terminate`).set(auth(token)).expect(201);
+      await http()
+        .post(`/api/contracts/${dead}/renew`)
+        .set(auth(token))
+        .send({ start: iso(inDays(31)), end: iso(inDays(400)), rent: '1' })
+        .expect(409);
     });
   });
 });

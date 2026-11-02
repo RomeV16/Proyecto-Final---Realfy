@@ -102,7 +102,7 @@ export const OperationalDefaultsSchema = z
     /** Semáforo de vencimiento de contratos: rojo a los N días o menos del fin, amarillo hasta los M días. */
     expiryLight: z
       .object({
-        redDays: days.default(0),
+        redDays: days.default(30),
         yellowDays: days.default(60),
       })
       .strict()

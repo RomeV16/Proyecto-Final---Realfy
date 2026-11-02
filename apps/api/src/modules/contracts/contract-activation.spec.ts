@@ -172,6 +172,47 @@ describe('ContractsService — activación del contrato', () => {
 
       await expect(service.activate('nope')).rejects.toThrow(NotFoundException);
     });
+
+    it('un contrato vencido no se activa: se regulariza con la prórroga de palabra o la renovación', async () => {
+      mocks.client.contract.findFirst.mockResolvedValue({ ...DRAFT, status: 'Vencido' });
+
+      await expect(service.activate(CONTRACT_ID)).rejects.toMatchObject({
+        response: { error: 'EXPIRED_CONTRACT_NEEDS_EXTENSION_OR_RENEWAL' },
+      });
+      expect(mocks.client.contract.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reactivación de un vencido (prórroga de palabra y renovación)', () => {
+    const EXPIRED = { ...DRAFT, status: 'Vencido' };
+    const NEW_END = new Date('2029-01-01T00:00:00.000Z');
+
+    it('vuelve a Activo sin fecha de cierre y ocupa la propiedad', async () => {
+      await service.reactivateExpired(mocks.client, EXPIRED, NEW_END);
+
+      expect(mocks.client.contract.update).toHaveBeenCalledWith({
+        where: { id: CONTRACT_ID },
+        data: { status: 'Activo', isActive: true, closedAt: null },
+      });
+      expect(mocks.client.propertyOperation.create).toHaveBeenCalled();
+    });
+
+    it('rechaza si el nuevo fin pisa a otro alquiler activo', async () => {
+      mocks.client.contract.findMany.mockResolvedValue([
+        { id: 'otro', startDate: new Date('2027-01-01T00:00:00.000Z'), endDate: new Date('2028-01-01T00:00:00.000Z') },
+      ]);
+
+      const body = await rejection(service.reactivateExpired(mocks.client, EXPIRED, NEW_END));
+
+      expect(codes(body)).toEqual(['OVERLAPPING_CONTRACT']);
+      expect(mocks.client.contract.update).not.toHaveBeenCalled();
+    });
+
+    it('solo parte de un vencido: un rescindido sigue cerrado', async () => {
+      await expect(
+        service.reactivateExpired(mocks.client, { ...DRAFT, status: 'Rescindido' }, NEW_END),
+      ).rejects.toMatchObject({ response: { error: 'INVALID_TRANSITION' } });
+    });
   });
 
   describe('reglas', () => {

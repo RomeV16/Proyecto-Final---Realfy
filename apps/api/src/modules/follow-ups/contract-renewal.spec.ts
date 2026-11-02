@@ -28,7 +28,11 @@ function build(over: { contract?: any; last?: any; laterTerms?: number; guaranto
     }),
     listPeriods: jest.fn().mockResolvedValue([{ seq: 1 }, { seq: 2 }]),
   };
-  const contracts = { rebuildPendingSchedule: jest.fn(), findOne: jest.fn().mockResolvedValue({ id: 'c1' }) };
+  const contracts = {
+    rebuildPendingSchedule: jest.fn(),
+    findOne: jest.fn().mockResolvedValue({ id: 'c1' }),
+    reactivateExpired: jest.fn(),
+  };
   const followUps = { closeOpenForContract: jest.fn().mockResolvedValue(1) };
   const audit = { record: jest.fn() };
   const service = new ContractRenewalService(
@@ -94,13 +98,24 @@ describe('ContractRenewalService', () => {
 
   it.each([
     ['contrato inexistente', { contract: null }, 'CONTRACT_NOT_FOUND'],
-    ['contrato no activo', { contract: { id: 'c1', status: 'Vencido' } }, 'CONTRACT_NOT_ACTIVE'],
+    ['contrato rescindido', { contract: { id: 'c1', status: 'Rescindido' } }, 'CONTRACT_NOT_ACTIVE'],
     ['inicio anterior al del período', { last: { seq: 1, startDate: utc(2027, 6, 1) } }, 'RENEWAL_BEFORE_PERIOD_START'],
     ['reglas posteriores', { laterTerms: 1 }, 'TERMS_VERSION_EXISTS'],
   ])('rechaza: %s', async (_name, over, code) => {
     const { service, rules } = build(over as any);
     await expect(service.renew('c1', input)).rejects.toMatchObject({ response: { error: code } });
     expect(rules.createAgreement).not.toHaveBeenCalled();
+  });
+
+  it('renueva un contrato vencido: lo reactiva con el fin nuevo y lo audita', async () => {
+    const expired = { id: 'c1', status: 'Vencido', endDate: utc(2026, 12, 31), actualEndDate: null, rentAmount: '100000' };
+    const { service, tx, contracts, audit } = build({ contract: expired });
+    await service.renew('c1', input);
+    expect(contracts.reactivateExpired).toHaveBeenCalledWith(tx, expired, utc(2028, 12, 31));
+    const entry = audit.record.mock.calls[0][1];
+    expect(entry.before.status).toBe('Vencido');
+    expect(entry.after.status).toBe('Activo');
+    expect(entry.metadata.reactivated).toBe(true);
   });
 
   it('valida el cuerpo', async () => {

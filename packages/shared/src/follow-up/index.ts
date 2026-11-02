@@ -14,6 +14,8 @@ export interface FollowUpTaskTemplate {
 export const FOLLOW_UP_CHECKLISTS: Record<FollowUpKind, readonly FollowUpTaskTemplate[]> = {
   [FollowUpKind.Devolucion]: [
     { code: 'VISITA', label: 'Visita previa de inspección' },
+    { code: 'FECHA_ENTREGA', label: 'Fecha de entrega acordada' },
+    { code: 'PUBLICAR', label: 'Publicar la unidad con anticipación' },
     { code: 'LIBRE_DEUDA', label: 'Libre deuda de servicios' },
     { code: 'PINTURA', label: 'Pintura y estado de la unidad' },
     { code: 'LLAVES', label: 'Entrega de llaves' },

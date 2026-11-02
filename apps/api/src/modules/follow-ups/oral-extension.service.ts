@@ -36,8 +36,9 @@ export class OralExtensionService {
     const input = parseOrThrow(OralExtensionSchema, data, 'Invalid extension data');
     const contract = await this.prisma.client.contract.findFirst({ where: { id: contractId } });
     if (!contract) throw notFound('CONTRACT_NOT_FOUND', 'Contract not found');
-    if (contract.status !== ContractStatus.Activo) {
-      throw conflict('CONTRACT_NOT_ACTIVE', 'Only an active contract can be extended');
+    const wasExpired = contract.status === ContractStatus.Vencido;
+    if (contract.status !== ContractStatus.Activo && !wasExpired) {
+      throw conflict('CONTRACT_NOT_ACTIVE', 'Only an active or expired contract can be extended');
     }
 
     const until = dayStart(input.until);
@@ -59,15 +60,26 @@ export class OralExtensionService {
           createdById: this.tenantContext.getUserId() ?? null,
         },
       });
+      if (wasExpired) await this.contracts.reactivateExpired(tx, contract, until);
       await tx.contract.update({ where: { id: contractId }, data: { actualEndDate: until } });
       const closed = await this.followUps.closeOpenForContract(tx, contractId, FollowUpOutcome.Prorrogado);
       await this.audit.record(tx, {
         action: 'UPDATE',
         entity: 'Contract',
         entityId: contractId,
-        before: auditJson({ actualEndDate: contract.actualEndDate, endDate: contract.endDate }),
-        after: auditJson({ actualEndDate: until, endDate: contract.endDate }),
-        metadata: { operation: 'oral-extension', agreementId: created.id, note: input.note, followUpsClosed: closed },
+        before: auditJson({ status: contract.status, actualEndDate: contract.actualEndDate, endDate: contract.endDate }),
+        after: auditJson({
+          status: wasExpired ? ContractStatus.Activo : contract.status,
+          actualEndDate: until,
+          endDate: contract.endDate,
+        }),
+        metadata: {
+          operation: 'oral-extension',
+          agreementId: created.id,
+          note: input.note,
+          followUpsClosed: closed,
+          reactivated: wasExpired,
+        },
       });
       return created;
     });

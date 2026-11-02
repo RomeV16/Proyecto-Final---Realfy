@@ -117,7 +117,12 @@ describe('FollowUpsService.openDueFollowUps', () => {
   it('la ventana llega hasta yellowDays días desde hoy', async () => {
     const { prisma } = await run([], []);
     const where = prisma.client.contract.findMany.mock.calls[0][0].where;
-    expect(where.OR[0].actualEndDate.lte).toEqual(utc(2027, 1, 31));
+    expect(where.AND[0].OR[0].actualEndDate.lte).toEqual(utc(2027, 1, 31));
+    // También los vencidos que siguen sin decisión: sin renovación, sin cierre y sin resumen.
+    expect(where.AND[1].OR).toEqual([
+      { status: 'Activo' },
+      { status: 'Vencido', closedAt: null, closureSummary: null, renewals: { none: {} } },
+    ]);
   });
 });
 
@@ -174,7 +179,11 @@ describe('OralExtensionService', () => {
       },
     };
     const audit = { record: jest.fn() };
-    const contracts = { rebuildPendingSchedule: jest.fn(), findOne: jest.fn().mockResolvedValue({ id: 'c1' }) };
+    const contracts = {
+      rebuildPendingSchedule: jest.fn(),
+      findOne: jest.fn().mockResolvedValue({ id: 'c1' }),
+      reactivateExpired: jest.fn(),
+    };
     const followUps = { closeOpenForContract: jest.fn().mockResolvedValue(1) };
     const tenantContext = { getTenantId: () => 't1', getUserId: () => 'u1' };
     const service = new OralExtensionService(
@@ -212,7 +221,23 @@ describe('OralExtensionService', () => {
     });
   });
 
-  it('exige contrato activo', async () => {
+  it('regulariza un contrato vencido: lo reactiva con el nuevo fin y lo audita', async () => {
+    const { service, tx, contracts, audit } = build({ ...active, status: 'Vencido' });
+    await service.extend('c1', { until: '2027-03-31', note: 'Sigue de palabra' });
+    expect(contracts.reactivateExpired).toHaveBeenCalledWith(tx, expect.objectContaining({ status: 'Vencido' }), utc(2027, 3, 31));
+    const entry = audit.record.mock.calls[0][1];
+    expect(entry.before.status).toBe('Vencido');
+    expect(entry.after.status).toBe('Activo');
+    expect(entry.metadata.reactivated).toBe(true);
+  });
+
+  it('un contrato activo no pasa por la reactivación', async () => {
+    const { service, contracts } = build(active);
+    await service.extend('c1', { until: '2027-03-31', note: 'x' });
+    expect(contracts.reactivateExpired).not.toHaveBeenCalled();
+  });
+
+  it('exige contrato activo o vencido', async () => {
     const { service } = build({ ...active, status: 'Rescindido' });
     await expect(service.extend('c1', { until: '2027-03-31', note: 'x' })).rejects.toMatchObject({
       response: { error: 'CONTRACT_NOT_ACTIVE' },

@@ -43,8 +43,9 @@ export class ContractRenewalService {
     const input = parseOrThrow(RenewContractSchema, data, 'Invalid renewal data');
     const contract = await this.prisma.client.contract.findFirst({ where: { id: contractId } });
     if (!contract) throw notFound('CONTRACT_NOT_FOUND', 'Contract not found');
-    if (contract.status !== ContractStatus.Activo) {
-      throw conflict('CONTRACT_NOT_ACTIVE', 'Only an active contract can be renewed');
+    const wasExpired = contract.status === ContractStatus.Vencido;
+    if (contract.status !== ContractStatus.Activo && !wasExpired) {
+      throw conflict('CONTRACT_NOT_ACTIVE', 'Only an active or expired contract can be renewed');
     }
 
     const start = dayStart(input.start);
@@ -93,6 +94,7 @@ export class ContractRenewalService {
             guarantorPersonIds: input.guarantorPersonIds ?? [],
           },
         });
+        if (wasExpired) await this.contracts.reactivateExpired(tx, contract, end);
         // El fin pactado pasa a ser el del período; la prórroga de palabra queda absorbida.
         await tx.contract.update({
           where: { id: contractId },
@@ -104,12 +106,25 @@ export class ContractRenewalService {
           entity: 'Contract',
           entityId: contractId,
           before: auditJson({
+            status: contract.status,
             endDate: contract.endDate,
             actualEndDate: contract.actualEndDate,
             rentAmount: contract.rentAmount,
           }),
-          after: auditJson({ endDate: end, actualEndDate: null, rent: input.rent, start }),
-          metadata: { operation: 'renewal', agreementId, followUpsClosed: closed, fee: input.fee ?? null },
+          after: auditJson({
+            status: wasExpired ? ContractStatus.Activo : contract.status,
+            endDate: end,
+            actualEndDate: null,
+            rent: input.rent,
+            start,
+          }),
+          metadata: {
+            operation: 'renewal',
+            agreementId,
+            followUpsClosed: closed,
+            fee: input.fee ?? null,
+            reactivated: wasExpired,
+          },
         });
       },
     );

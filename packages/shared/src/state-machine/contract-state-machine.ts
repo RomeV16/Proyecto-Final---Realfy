@@ -7,7 +7,7 @@ import { defineStateMachine } from './define';
  * States:
  *   Borrador   → Activo | Rescindido | Archivado
  *   Activo     → Vencido | Rescindido | Renovado
- *   Vencido    → Renovado | Rescindido | Archivado
+ *   Vencido    → Activo | Renovado | Rescindido | Archivado
  *   Rescindido → Archivado
  *   Renovado   → Archivado
  *   Archivado  → (terminal)
@@ -15,6 +15,8 @@ import { defineStateMachine } from './define';
  * Borrador → Activo es la activación: la hace POST /contracts/:id/activate,
  * que además valida partes, fechas y superposición con otros contratos.
  * Rescindido se alcanza con POST /contracts/:id/terminate.
+ * Vencido → Activo regulariza un contrato que en la práctica sigue corriendo: solo
+ * lo hacen la prórroga de palabra y la renovación (ni el PATCH ni /activate).
  */
 
 const { Borrador, Activo, Vencido, Rescindido, Renovado, Archivado } =
@@ -23,7 +25,7 @@ const { Borrador, Activo, Vencido, Rescindido, Renovado, Archivado } =
 export const contractMachine = defineStateMachine<ContractStatus>([
   [Borrador, [Activo, Rescindido, Archivado]],
   [Activo, [Vencido, Rescindido, Renovado]],
-  [Vencido, [Renovado, Rescindido, Archivado]],
+  [Vencido, [Activo, Renovado, Rescindido, Archivado]],
   [Rescindido, [Archivado]],
   [Renovado, [Archivado]],
   [Archivado, []], // terminal
