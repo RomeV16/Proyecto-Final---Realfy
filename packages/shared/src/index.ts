@@ -1033,3 +1033,24 @@ export type {
   ImportRowErrorDetail,
   ImportErrorCode,
 } from './schemas/import-batch.schema';
+
+export {
+  DATA_QUALITY_CHECKS,
+  DATA_QUALITY_CHECK_IDS,
+  DataQualityFindingsQuerySchema,
+  MergePersonsSchema,
+} from './schemas/data-quality.schema';
+export type {
+  DataQualityCheckId,
+  DataQualityGroup,
+  DataQualitySeverity,
+  DataQualityEntityType,
+  DataQualityFinding,
+  DataQualitySummaryItem,
+  DataQualitySummary,
+  DataQualityPage,
+  MergePersonsInput,
+  MergePersonsPlanItem,
+  MergePersonsPlan,
+  MergePersonsResult,
+} from './schemas/data-quality.schema';
