@@ -26,6 +26,8 @@ export class PaymentsService {
               contract: { select: { id: true } },
             },
           },
+          account: { select: { id: true, name: true, kind: true } },
+          receipt: { select: { id: true, series: true, number: true } },
         },
       }),
       this.prisma.client.payment.count(),

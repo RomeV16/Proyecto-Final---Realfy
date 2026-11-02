@@ -1,6 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
+  AgencyExpenseSchema,
   BulkPendingChargesSchema,
+  CashCategory,
+  CashDirection,
   ChargeTarget,
   CommissionType,
   CreatePendingChargeSchema,
@@ -16,6 +19,7 @@ import {
   requiresUpfront,
   signedChargeAmount,
   splitInstallments,
+  todayInAR,
 } from '@realfy/shared';
 import type { CreatePendingChargeInput, LiquidationExtraLine } from '@realfy/shared';
 import { randomUUID } from 'crypto';
@@ -25,6 +29,8 @@ import { TenantContextService } from '../../common/tenant/tenant-context.service
 import { parseOrThrow } from '../../common/validation/zod';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
+import { CashService } from '../cash/cash.service';
+import Decimal from 'decimal.js';
 
 type Db = any;
 
@@ -65,6 +71,7 @@ export class ChargesService {
     private readonly tenantContext: TenantContextService,
     private readonly audit: AuditService,
     private readonly operationalDefaults: OperationalDefaultsService,
+    private readonly cash: CashService,
   ) {}
 
   // ─── Lectura ────────────────────────────────────────
@@ -286,6 +293,9 @@ export class ChargesService {
     if (current.imputedStatementId) {
       throw conflict('CHARGE_IN_STATEMENT', 'The charge was deducted in a lessor statement');
     }
+    if (current.chargedTo === ChargeTarget.Inmobiliaria) {
+      throw conflict('CHARGE_PAID_BY_AGENCY', 'The charge was closed as an agency expense');
+    }
     if (current.imputedLiquidacionId) {
       const liquidacion = await this.prisma.client.liquidacion.findFirst({
         where: { id: current.imputedLiquidacionId },
@@ -301,6 +311,58 @@ export class ChargesService {
       { status: PendingChargeStatus.Pendiente, imputedLiquidacionId: null, imputedAt: null },
       PendingChargeStatus.Imputado,
     );
+  }
+
+  /**
+   * Cierra un cargo a la inmobiliaria como egreso de una de sus cuentas: un
+   * movimiento Gasto (o un ingreso, si el cargo es un crédito) con origen en el
+   * cargo, y el cargo pasa a Imputado, todo en una transacción (ADR-0012). Es una
+   * acción explícita porque al cargarlo no se sabe de qué cuenta sale el dinero.
+   */
+  async closeAsAgencyExpense(id: string, data: unknown) {
+    const input = parseOrThrow(AgencyExpenseSchema, data, 'Invalid agency expense');
+    const tenantId = this.tenantContext.getTenantId()!;
+    const current = await this.findOne(id);
+    if (current.chargedTo !== ChargeTarget.Inmobiliaria) {
+      throw badRequest('CHARGE_NOT_AGENCY', 'Only a charge to the agency closes as an agency expense');
+    }
+    this.assertPending(current, 'CHARGE_NOT_PENDING');
+    return this.prisma.client.$transaction(async (tx: Db) => {
+      const account = await this.cash.findAccount(tx, input.accountId);
+      this.cash.assertOperational(account);
+      if (account.currency !== current.currency) {
+        throw badRequest('CURRENCY_MISMATCH', `The account is in ${account.currency}, the charge in ${current.currency}`);
+      }
+      const closed = await tx.pendingCharge.updateMany({
+        where: { id, status: PendingChargeStatus.Pendiente },
+        data: { status: PendingChargeStatus.Imputado, imputedAt: new Date() },
+      });
+      if (closed.count !== 1) throw conflict('CHARGE_NOT_PENDING', 'The charge is no longer pending');
+      const amount = new Decimal(current.amount.toString());
+      const movement = await this.cash.recordMovement(tx, {
+        tenantId,
+        accountId: account.id,
+        date: input.date ? dayStart(input.date) : todayInAR(),
+        direction: amount.isNegative() ? CashDirection.In : CashDirection.Out,
+        amount: amount.abs(),
+        currency: account.currency,
+        category: CashCategory.Gasto,
+        contractId: current.contractId,
+        sourceType: 'PendingCharge',
+        sourceId: id,
+        note: input.note ?? current.description,
+      });
+      const updated = await tx.pendingCharge.findFirst({ where: { id }, include: INCLUDE });
+      await this.audit.record(tx, {
+        action: 'UPDATE',
+        entity: 'PendingCharge',
+        entityId: id,
+        before: snapshot(current),
+        after: snapshot(updated),
+        metadata: { operation: 'agency-expense', movementId: movement.id },
+      });
+      return { charge: updated, movement };
+    });
   }
 
   // ─── Liquidación ────────────────────────────────────

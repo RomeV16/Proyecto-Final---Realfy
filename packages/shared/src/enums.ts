@@ -18,6 +18,7 @@ export enum TenantTier {
 export enum Currency {
   ARS = 'ARS',
   USD = 'USD',
+  EUR = 'EUR',
 }
 
 export enum AuditAction {
@@ -421,6 +422,40 @@ export enum PendingChargeStatus {
   Imputado = 'Imputado',
   CobradoAnticipado = 'CobradoAnticipado',
   Anulado = 'Anulado',
+}
+
+// ─── Caja y cobros ──────────────────────────────────────
+
+export enum FinancialAccountKind {
+  Caja = 'Caja',
+  Banco = 'Banco',
+  Custodia = 'Custodia',
+}
+
+export enum CashDirection {
+  In = 'In',
+  Out = 'Out',
+}
+
+/** Categoría de un movimiento del libro de la inmobiliaria. `Sena` es la seña. */
+export enum CashCategory {
+  AlquilerCobrado = 'AlquilerCobrado',
+  PagoLocador = 'PagoLocador',
+  PagoEnte = 'PagoEnte',
+  PagoProveedor = 'PagoProveedor',
+  Honorario = 'Honorario',
+  Gasto = 'Gasto',
+  ComisionEmpleado = 'ComisionEmpleado',
+  Sena = 'Sena',
+  Custodia = 'Custodia',
+  Compensacion = 'Compensacion',
+  Conversion = 'Conversion',
+}
+
+/** Quién recibió un cobro: la inmobiliaria o el locador directamente. */
+export enum PaymentReceiver {
+  Inmobiliaria = 'Inmobiliaria',
+  Locador = 'Locador',
 }
 
 // ─── Notification Enums ─────────────────────────────────

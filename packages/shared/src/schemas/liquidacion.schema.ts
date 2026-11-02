@@ -5,6 +5,7 @@ import {
   LineItemType,
   LineBeneficiary,
   Currency,
+  PaymentReceiver,
 } from '../enums';
 
 // ─── Helpers ────────────────────────────────────────────
@@ -45,18 +46,33 @@ export const TransitionLiquidacionSchema = z.object({
 
 // ─── Payment Schema ─────────────────────────────────────
 
-export const CreatePaymentSchema = z.object({
-  amount: decimalString,
-  method: z.nativeEnum(PaymentMethod),
-  reference: z.string().max(200).optional(),
-  notes: z.string().max(1000).optional(),
-  paidAt: dateString,
-  /**
-   * Cobrar junto con los punitorios devengados a la fecha del pago: se agregan
-   * a la liquidación como un renglón Multa y el pago tiene que cubrir el total.
-   */
-  settlePenalties: z.boolean().optional(),
-});
+export const CreatePaymentSchema = z
+  .object({
+    amount: decimalString,
+    method: z.nativeEnum(PaymentMethod),
+    reference: z.string().max(200).optional(),
+    notes: z.string().max(1000).optional(),
+    paidAt: dateString,
+    /**
+     * Cobrar junto con los punitorios devengados a la fecha del pago: se agregan
+     * a la liquidación como un renglón Multa y el pago tiene que cubrir el total.
+     */
+    settlePenalties: z.boolean().optional(),
+    /** Quién recibió el dinero; sin valor, según el flujo de pago del contrato. */
+    receivedBy: z.nativeEnum(PaymentReceiver).optional(),
+    /** Cuenta de la inmobiliaria donde entró; sin valor, la caja (efectivo) o el banco de la moneda. */
+    accountId: z.string().uuid().optional().nullable(),
+    /** La parte de los locadores queda en custodia de la inmobiliaria hasta entregarla. */
+    inCustody: z.boolean().optional(),
+    /** Persona del personal que recibió el dinero en la oficina; por defecto, quien registra. */
+    receivedByUserId: z.string().uuid().optional(),
+    /** Referencia del sistema anterior o del banco; única por inmobiliaria. */
+    externalRef: z.string().trim().min(1).max(100).optional(),
+  })
+  .refine((v) => v.receivedBy !== PaymentReceiver.Locador || (!v.accountId && !v.inCustody), {
+    message: 'A payment received by the lessor has no agency account nor custody',
+    path: ['receivedBy'],
+  });
 
 // ─── Filter Schema ──────────────────────────────────────
 

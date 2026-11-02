@@ -53,6 +53,10 @@ export {
   PendingChargeStatus,
   UpfrontBasis,
   BillPaidBy,
+  FinancialAccountKind,
+  CashDirection,
+  CashCategory,
+  PaymentReceiver,
   NotificationType,
   PipelineType,
   LeadSource,
@@ -603,7 +607,62 @@ export type { LineItemInput, LineItemsTotalResult, PaymentInput } from './liquid
 export { calculateCommission, InvalidCommissionError } from './commission-engine';
 export type { CommissionConfig, CommissionResult } from './commission-engine';
 
-// Rendicion engine
+// Settlement engine: reparto de un cobro entre inmobiliaria, entes y locadores
+export {
+  settlePayment,
+  settlementBuckets,
+  checkCompensation,
+  convertAmount,
+  accountBalance,
+  SettlementError,
+  LessorDirectOwes,
+  PartialAllocation,
+  CompensationScope,
+  DEFAULT_SETTLEMENT_OPTIONS,
+} from './settlement-engine';
+export type {
+  SettlementInput,
+  SettlementResult,
+  SettlementLine,
+  SettlementLessor,
+  SettlementPosition,
+  SettlementCompensation,
+  SettlementBuckets,
+  SettlementOptions,
+  SettlementFlow,
+  SettlementErrorCode,
+} from './settlement-engine';
+
+// Caja: series de recibos y categorías manuales
+export {
+  ReceiptSeriesMode,
+  PAYMENT_RECEIPT_SERIES,
+  receiptSeriesFor,
+  MANUAL_CASH_CATEGORIES,
+  defaultDirectionFor,
+} from './cash';
+
+// Schemas — caja y cobros
+export {
+  CreateFinancialAccountSchema,
+  UpdateFinancialAccountSchema,
+  FinancialAccountFilterSchema,
+  CashMovementFilterSchema,
+  CreateCashMovementSchema,
+  CreateConversionSchema,
+  DeliverCustodySchema,
+  CreateCompensationSchema,
+  ReceiptFilterSchema,
+  AgencyExpenseSchema,
+} from './schemas/cash.schema';
+export type {
+  CreateFinancialAccountInput,
+  CreateCashMovementInput,
+  CreateConversionInput,
+  CreateCompensationInput,
+} from './schemas/cash.schema';
+
+// Rendicion engine (histórico: lo usa solo la rendición vieja; el reparto de cobros es settlement-engine)
 export {
   buildRendicionFromPayments,
   splitRendicionAmongLessors,

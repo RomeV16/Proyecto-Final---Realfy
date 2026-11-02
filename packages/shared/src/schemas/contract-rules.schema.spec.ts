@@ -34,6 +34,14 @@ describe('OperationalDefaultsSchema', () => {
       upfrontBasis: 'ComisionPactada',
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
       expiryLight: { redDays: 0, yellowDays: 60 },
+      cash: {
+        lessorDirectOwes: 'TodoLoAjeno',
+        partialAllocation: 'Proporcional',
+        custodyInAgencyBalance: false,
+        receiptSeries: 'Unica',
+        receiptWhenLessorReceives: false,
+        compensationScope: 'CualquierLocador',
+      },
     });
   });
 

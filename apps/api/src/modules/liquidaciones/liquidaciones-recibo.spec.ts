@@ -72,6 +72,7 @@ function build(liq: any, nextSeq = 6) {
     {} as any,
     { pendingLines: jest.fn().mockResolvedValue({ lines: [], rowIds: [] }), markSettled: jest.fn().mockResolvedValue(0), release: jest.fn().mockResolvedValue(0) } as any,
     { pendingLines: jest.fn().mockResolvedValue([]), markImputed: jest.fn().mockResolvedValue(0), releaseFromLiquidation: jest.fn() } as any,
+    { record: jest.fn(async (_tx: any, ctx: any) => ctx.payment) } as any,
   );
   return { service, client, tx };
 }

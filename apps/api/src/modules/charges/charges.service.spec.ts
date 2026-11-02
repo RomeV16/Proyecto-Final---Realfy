@@ -45,13 +45,19 @@ function build(opts: { contract?: any; charge?: any; liquidacion?: any; updated?
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const defaults = { get: jest.fn().mockResolvedValue({ commissionPct: 7, upfrontThresholdFees: 2, upfrontBasis: 'ComisionPactada' }) };
   const tenantContext = { getTenantId: jest.fn().mockReturnValue('tenant-1'), getUserId: jest.fn().mockReturnValue('user-1') };
+  const cash = {
+    findAccount: jest.fn(async (_tx: any, id: string) => ({ id, kind: 'Caja', currency: 'ARS', isActive: true })),
+    assertOperational: jest.fn(),
+    recordMovement: jest.fn(async (_tx: any, input: any) => ({ id: 'mov-1', ...input })),
+  };
   const service = new ChargesService(
     { client } as unknown as PrismaService,
     tenantContext as unknown as TenantContextService,
     audit as any,
     defaults as any,
+    cash as any,
   );
-  return { service, client, audit, defaults, store };
+  return { service, client, audit, defaults, store, cash };
 }
 
 const input = (over: Record<string, unknown> = {}) => ({
@@ -449,5 +455,70 @@ describe('ChargesService: imputación en la liquidación', () => {
     client.pendingCharge.updateMany.mockClear();
     await expect(service.releaseFromLiquidation(client, {})).resolves.toBe(0);
     expect(client.pendingCharge.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('ChargesService: cargo a la inmobiliaria como gasto', () => {
+  const ACCOUNT_ID = '44444444-4444-4444-8444-444444444444';
+  const agencyCharge = (over: Record<string, unknown> = {}) => ({
+    id: 'pc-9',
+    status: 'Pendiente',
+    chargedTo: 'Inmobiliaria',
+    amount: money('15000'),
+    currency: 'ARS',
+    contractId: CONTRACT_ID,
+    description: 'Arreglo a cargo de la inmobiliaria',
+    ...over,
+  });
+
+  it('escribe un Gasto en la cuenta, imputa el cargo y deja auditoría', async () => {
+    const { service, client, cash, audit } = build({ charge: agencyCharge() });
+    const res: any = await service.closeAsAgencyExpense('pc-9', { accountId: ACCOUNT_ID, date: '2026-02-11' });
+    expect(cash.recordMovement).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({
+        direction: 'Out',
+        category: 'Gasto',
+        sourceType: 'PendingCharge',
+        sourceId: 'pc-9',
+        date: d('2026-02-11'),
+        note: 'Arreglo a cargo de la inmobiliaria',
+      }),
+    );
+    expect(String(cash.recordMovement.mock.calls[0][1].amount)).toBe('15000');
+    expect(client.pendingCharge.updateMany).toHaveBeenCalledWith({
+      where: { id: 'pc-9', status: 'Pendiente' },
+      data: { status: 'Imputado', imputedAt: expect.any(Date) },
+    });
+    expect(res.movement.id).toBe('mov-1');
+    expect(audit.record).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({ metadata: expect.objectContaining({ operation: 'agency-expense' }) }),
+    );
+  });
+
+  it('un crédito a favor de la inmobiliaria entra como ingreso', async () => {
+    const { service, cash } = build({ charge: agencyCharge({ amount: money('-500') }) });
+    await service.closeAsAgencyExpense('pc-9', { accountId: ACCOUNT_ID });
+    expect(cash.recordMovement.mock.calls[0][1]).toMatchObject({ direction: 'In' });
+    expect(String(cash.recordMovement.mock.calls[0][1].amount)).toBe('500');
+  });
+
+  it('solo cargos a la inmobiliaria, pendientes, de la moneda de la cuenta y una sola vez', async () => {
+    const close = (charge: any, updated?: number) =>
+      build({ charge, updated }).service.closeAsAgencyExpense('pc-9', { accountId: ACCOUNT_ID });
+    await expect(close(agencyCharge({ chargedTo: 'Inquilino' }))).rejects.toMatchObject({
+      response: { error: 'CHARGE_NOT_AGENCY' },
+    });
+    await expect(close(agencyCharge({ status: 'Anulado' }))).rejects.toBeInstanceOf(ConflictException);
+    await expect(close(agencyCharge({ currency: 'USD' }))).rejects.toMatchObject({
+      response: { error: 'CURRENCY_MISMATCH' },
+    });
+    await expect(close(agencyCharge(), 0)).rejects.toMatchObject({ response: { error: 'CHARGE_NOT_PENDING' } });
+  });
+
+  it('un cargo cerrado como gasto no se libera', async () => {
+    const { service } = build({ charge: agencyCharge({ status: 'Imputado' }) });
+    await expect(service.release('pc-9')).rejects.toMatchObject({ response: { error: 'CHARGE_PAID_BY_AGENCY' } });
   });
 });

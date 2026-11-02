@@ -90,6 +90,7 @@ function build(
     serviceBills as any,
     penalties as any,
     charges as any,
+    { record: jest.fn(async (_tx: any, ctx: any) => ctx.payment) } as any,
   );
   return { service, client, audit, defaults, adjustments, serviceBills, penalties, charges };
 }

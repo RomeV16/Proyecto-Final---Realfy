@@ -9,9 +9,10 @@ import { IndexDataModule } from '../index-data/index-data.module';
 import { ServicesModule } from '../services/services.module';
 import { PenaltiesModule } from '../penalties/penalties.module';
 import { ChargesModule } from '../charges/charges.module';
+import { CashModule } from '../cash/cash.module';
 
 @Module({
-  imports: [TenantsModule, IndexDataModule, ServicesModule, PenaltiesModule, ChargesModule],
+  imports: [TenantsModule, IndexDataModule, ServicesModule, PenaltiesModule, ChargesModule, CashModule],
   controllers: [LiquidacionesController],
   providers: [
     LiquidacionesService,

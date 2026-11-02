@@ -131,6 +131,42 @@ describe('OperationalDefaultsManager', () => {
     expect(screen.getByLabelText(/Descuento de monto fijo en un mes parcial/)).toHaveValue('Proporcional');
   });
 
+  it('muestra las opciones de caja y cobros con su valor de fábrica y las guarda', async () => {
+    const user = userEvent.setup();
+    renderEs(<OperationalDefaultsManager />);
+
+    expect(await screen.findByText('Caja y cobros')).toBeInTheDocument();
+    const owes = screen.getByLabelText(/Si el inquilino le paga al locador/);
+    expect(owes).toHaveValue('TodoLoAjeno');
+    expect(screen.getByLabelText(/^Pago parcial\*?$/)).toHaveValue('Proporcional');
+    expect(screen.getByLabelText(/Numeración de los recibos de cobro/)).toHaveValue('Unica');
+    expect(screen.getByLabelText(/Compensaciones entre locadores/)).toHaveValue('CualquierLocador');
+    expect(screen.getByText(/de fábrica: Todo lo que no es suyo/)).toBeInTheDocument();
+    const custody = screen.getByLabelText(/Sumar la custodia al total de la caja/);
+    const lessorReceipt = screen.getByLabelText(/Recibo cuando cobra el locador/);
+    expect(custody).not.toBeChecked();
+    expect(lessorReceipt).not.toBeChecked();
+
+    await user.selectOptions(owes, 'SoloInmobiliaria');
+    await user.selectOptions(screen.getByLabelText(/^Pago parcial\*?$/), 'InmobiliariaPrimero');
+    await user.selectOptions(screen.getByLabelText(/Numeración de los recibos de cobro/), 'PorMoneda');
+    await user.selectOptions(screen.getByLabelText(/Compensaciones entre locadores/), 'MismoContrato');
+    await user.click(custody);
+    await user.click(lessorReceipt);
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(put[1].body).cash).toEqual({
+      lessorDirectOwes: 'SoloInmobiliaria',
+      partialAllocation: 'InmobiliariaPrimero',
+      custodyInAgencyBalance: true,
+      receiptSeries: 'PorMoneda',
+      receiptWhenLessorReceives: true,
+      compensationScope: 'MismoContrato',
+    });
+  });
+
   it('un valor inválido se marca en el campo y no se envía', async () => {
     const user = userEvent.setup();
     renderEs(<OperationalDefaultsManager />);

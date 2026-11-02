@@ -41,6 +41,7 @@ import { ContractPendingCharges } from './contract-pending-charges';
 
 const CONTRACT_ID = '11111111-1111-4111-8111-111111111111';
 const PROPERTY_ID = '22222222-2222-4222-8222-222222222222';
+const CAJA_ID = '66666666-6666-4666-8666-666666666666';
 
 const charge = (id: string, o: Record<string, unknown> = {}) => ({
   id,
@@ -90,6 +91,16 @@ function setup({ list = [], post, failList }: Setup = {}) {
           { personId: '55555555-5555-4555-8555-555555555555', validTo: '2020-01-01T00:00:00.000Z', person: { firstName: 'Vera', lastName: 'Anterior' } },
           { personId: '44444444-4444-4444-8444-444444444444', validTo: null, person: { firstName: 'Luis', lastName: 'Vigente' } },
         ],
+      };
+    }
+    if (path === '/financial-accounts') {
+      return {
+        items: [
+          { id: CAJA_ID, kind: 'Caja', name: 'Caja ARS', currency: 'ARS', ownerPersonId: null, isActive: true, owner: null, balance: '0.00' },
+          { id: 'usd', kind: 'Banco', name: 'Banco Dólares', currency: 'USD', ownerPersonId: null, isActive: true, owner: null, balance: '0.00' },
+        ],
+        totals: [],
+        custodyInAgencyBalance: false,
       };
     }
     if (init?.method === 'POST' || init?.method === 'PATCH') {
@@ -201,6 +212,58 @@ describe('Centro de carga: lista', () => {
     const dialog = await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'));
     await user.click(within(dialog).getByRole('button', { name: 'Cobrado por adelantado' }));
     await waitFor(() => expect(toastError).toHaveBeenCalledWith('No se pudo completar la acción'));
+  });
+
+  it('un gasto de la inmobiliaria se registra como egreso de una de sus cuentas', async () => {
+    setup({ list: [charge('ag', { chargedTo: 'Inmobiliaria', description: 'Cerrajero de la oficina' })], post: () => ({}) });
+    const user = userEvent.setup();
+    await screen.findAllByText('Cerrajero de la oficina');
+    expect(screen.queryAllByRole('button', { name: 'Cobrado por adelantado' })).toHaveLength(0);
+    await user.click(screen.getAllByRole('button', { name: 'Registrar como gasto' })[0]);
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/«Cerrajero de la oficina» sale de una cuenta de la inmobiliaria/)).toBeInTheDocument();
+    // Solo las cuentas de la moneda del gasto; se propone la primera.
+    await waitFor(() => expect(within(dialog).getByLabelText(/^Cuenta/)).toHaveValue(CAJA_ID));
+    expect(within(dialog).queryByRole('option', { name: /Banco Dólares/ })).not.toBeInTheDocument();
+    await user.clear(within(dialog).getByLabelText(/^Fecha/));
+    await user.type(within(dialog).getByLabelText('Nota'), 'Factura 0001');
+    await user.click(within(dialog).getByRole('button', { name: 'Registrar gasto' }));
+
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0][0]).toBe('/charges/ag/agency-expense');
+    expect(JSON.parse(writes()[0][1].body)).toEqual({ accountId: CAJA_ID, note: 'Factura 0001' });
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Gasto registrado en la caja'));
+  });
+
+  it('un error de la API al registrar el gasto queda en el diálogo', async () => {
+    setup({
+      list: [charge('ag3', { chargedTo: 'Inmobiliaria' })],
+      post: () => {
+        throw new ApiRequestError(409, 'CHARGE_NOT_PENDING', 'Charge not pending');
+      },
+    });
+    const user = userEvent.setup();
+    await screen.findAllByText('Gasto ag3');
+    await user.click(screen.getAllByRole('button', { name: 'Registrar como gasto' })[0]);
+    const dialog = await screen.findByRole('dialog');
+    await waitFor(() => expect(within(dialog).getByLabelText(/^Cuenta/)).toHaveValue(CAJA_ID));
+    await user.click(within(dialog).getByRole('button', { name: 'Registrar gasto' }));
+    expect(await within(dialog).findByText('El cargo ya no está pendiente.')).toBeInTheDocument();
+    expect(JSON.parse(writes()[0][1].body)).toEqual({ accountId: CAJA_ID, date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
+  });
+
+  it('sin una cuenta de la moneda no se puede registrar el gasto', async () => {
+    setup({ list: [charge('ag2', { chargedTo: 'Inmobiliaria', currency: 'EUR' })] });
+    const user = userEvent.setup();
+    await screen.findAllByText('Gasto ag2');
+    await user.click(screen.getAllByRole('button', { name: 'Registrar como gasto' })[0]);
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText('No hay cuentas activas en EUR. Creá una en Caja.')).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Registrar gasto' }));
+    expect(await within(dialog).findByText('Elegí la cuenta de donde sale el gasto')).toBeInTheDocument();
+    expect(writes()).toHaveLength(0);
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('los filtros se mandan a la API', async () => {

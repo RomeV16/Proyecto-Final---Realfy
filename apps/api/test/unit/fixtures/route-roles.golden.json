@@ -22,6 +22,64 @@
   "src/modules/auth/auth.controller.ts#AuthController.requestPasswordReset": null,
   "src/modules/auth/auth.controller.ts#AuthController.confirmPasswordReset": null,
   "src/modules/auth/auth.controller.ts#AuthController.logout": null,
+  "src/modules/cash/cash.controller.ts#FinancialAccountsController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/cash/cash.controller.ts#FinancialAccountsController.create": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/cash/cash.controller.ts#FinancialAccountsController.update": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/cash/cash.controller.ts#CashMovementsController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/cash/cash.controller.ts#CashMovementsController.create": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/cash/cash.controller.ts#CashMovementsController.conversion": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/cash/cash.controller.ts#CustodyController.deliver": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/cash/cash.controller.ts#CompensationsController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/cash/cash.controller.ts#CompensationsController.create": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/cash/cash.controller.ts#ReceiptsController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/cash/cash.controller.ts#ReceiptsController.pdf": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
   "src/modules/charges/charges.controller.ts#ChargesController.findAll": null,
   "src/modules/charges/charges.controller.ts#ChargesController.findOne": null,
   "src/modules/charges/charges.controller.ts#ChargesController.create": [
@@ -45,6 +103,11 @@
     "Liquidaciones"
   ],
   "src/modules/charges/charges.controller.ts#ChargesController.markPaidUpfront": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/charges/charges.controller.ts#ChargesController.agencyExpense": [
     "Admin",
     "Gerente",
     "Liquidaciones"

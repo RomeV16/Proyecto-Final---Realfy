@@ -112,7 +112,8 @@
   "notifications": "Notificaciones",
   "permissions": "Permissions",
   "serviceBills": "Monthly bills",
-  "charges": "Charge center"
+  "charges": "Charge center",
+  "cash": "Cash"
  },
  "dataTable": {
   "pagination": {
@@ -194,7 +195,23 @@
    "BANK_ACCOUNT_NOT_OF_LESSOR": "The chosen account does not belong to the lessor.",
    "BANK_ACCOUNT_DEFAULT_REQUIRED": "There must be one default account per currency: mark another one before removing this one.",
    "POWER_SELF": "A person cannot grant a power of attorney to themselves.",
-   "POWER_IN_USE": "The power of attorney is in use: a lessor relies on it for their agent to collect."
+   "POWER_IN_USE": "The power of attorney is in use: a lessor relies on it for their agent to collect.",
+   "ACCOUNT_EXISTS": "There is already an account with that name in that currency.",
+   "ACCOUNT_HAS_BALANCE": "The account has a balance: empty it before deactivating it.",
+   "ACCOUNT_INACTIVE": "The account is deactivated.",
+   "ACCOUNT_NOT_CUSTODY": "The account is not a custody account.",
+   "ACCOUNT_NOT_FOUND": "The account does not exist.",
+   "CONVERSION_SAME_CURRENCY": "A conversion needs two accounts in different currencies.",
+   "CURRENCY_MISMATCH": "The account currency does not match the movement currency.",
+   "CUSTODY_ACCOUNT_RESERVED": "Custody only moves through a delivery to the lessor or a compensation.",
+   "CUSTODY_EMPTY": "There is no cash in custody to deliver.",
+   "CUSTODY_INSUFFICIENT": "The amount exceeds the cash in custody.",
+   "CHARGE_NOT_AGENCY": "Only a charge borne by the agency can be recorded as an agency expense.",
+   "PAYMENT_EXTERNAL_REF_EXISTS": "There is already a payment with that external reference.",
+   "COMPENSATION_EXCEEDS_PAYMENT": "The compensation exceeds that lessor's share of the payment.",
+   "COMPENSATION_OUT_OF_SCOPE": "That compensation is not allowed: the lessor is not on the contract or the agency only allows compensations between lessors of the same contract.",
+   "COMPENSATION_REQUIRES_LESSOR_RECEIPT": "Only a payment received by a lessor can be compensated.",
+   "COMPENSATION_SAME_LESSOR": "A lessor cannot compensate themselves."
   },
   "segment": {
    "loading": "Loading…",
@@ -235,6 +252,11 @@
    "title": "Something went wrong",
    "message": "Something went wrong. Please try again.",
    "retry": "Retry"
+  },
+  "currencies": {
+   "ARS": "$ (Argentine peso)",
+   "USD": "US$ (Dollar)",
+   "EUR": "€ (Euro)"
   }
  },
  "dashboard": {
@@ -1477,7 +1499,22 @@
    "amountPlaceholder": "0.00",
    "amountRequired": "El monto es obligatorio",
    "methodRequired": "El método de pago es obligatorio",
-   "invalidAmount": "El monto debe ser mayor a 0"
+   "invalidAmount": "El monto debe ser mayor a 0",
+   "receivedBy": "Who received the payment?",
+   "receivedByContract": "As the contract says",
+   "account": "Account it went into",
+   "accountAuto": "Automatic: the {currency} cash box or bank",
+   "inCustody": "Keep the lessors' share in custody",
+   "inCustodyHint": "The lessors' cash stays with the agency until it is delivered to them.",
+   "externalRef": "External reference",
+   "externalRefPlaceholder": "Number from the previous system or the bank",
+   "externalRefExists": "There is already a payment with that external reference.",
+   "receiptIssued": "Receipt No. {number} was issued.",
+   "printReceipt": "Print receipt",
+   "done": "Done",
+   "receivedByLabel": "Received by: {who}",
+   "inCustodyShort": "in custody",
+   "printReceiptNumber": "Receipt {number}"
   },
   "paymentMethods": {
    "Transferencia": "Transferencia bancaria",
@@ -1604,6 +1641,26 @@
    "addManualMulta": "Add manual fine",
    "manualMultaDescription": "Fine description",
    "manualMultaAmount": "Amount"
+  },
+  "compensations": {
+   "register": "Record compensation",
+   "title": "Record compensation",
+   "intro": "The tenant paid another lessor: whoever received the payment covers the contract lessor's share.",
+   "from": "Who received the payment",
+   "to": "Which lessor it belonged to",
+   "chooseLessor": "Choose a lessor",
+   "amount": "Amount ({currency})",
+   "amountHint": "Empty: their share of the payment.",
+   "fromCustody": "Pay with the custody of whoever received it",
+   "fromCustodyHint": "It comes out of the cash the agency keeps in custody for them and goes into the currency's cash box.",
+   "note": "Note",
+   "confirm": "Record",
+   "saving": "Recording...",
+   "saved": "Compensation recorded",
+   "error": "The compensation could not be recorded",
+   "listLabel": "Payment compensations",
+   "item": "Compensation: {from} covers {to} for {amount}",
+   "otherLessor": "another lessor"
   }
  },
  "services": {
@@ -4522,6 +4579,10 @@
    "liquidation": {
     "title": "Billing conventions",
     "description": "Proration, mid-month adjustments, first month and fixed discounts. Each contract can agree its own."
+   },
+   "cash": {
+    "title": "Cash and collections",
+    "description": "How a payment is split, how receipts are numbered and what the agency does with the lessors' cash."
    }
   },
   "fields": {
@@ -4584,6 +4645,47 @@
    "yellowDays": {
     "label": "Yellow up to (days to end)",
     "hint": "Factory value {value}."
+   },
+   "cashLessorDirectOwes": {
+    "label": "If the tenant pays the lessor",
+    "hint": "What the lessor owes the agency (factory default: {value}).",
+    "options": {
+     "TodoLoAjeno": "Everything that is not theirs (commission, agency and third parties)",
+     "SoloInmobiliaria": "Only commission and agency (they pay third parties)"
+    }
+   },
+   "cashPartialAllocation": {
+    "label": "Partial payment",
+    "hint": "How a payment that does not cover everything is split (factory default: {value}).",
+    "options": {
+     "Proporcional": "Proportionally to each share",
+     "InmobiliariaPrimero": "Agency first, the rest proportionally"
+    }
+   },
+   "cashReceiptSeries": {
+    "label": "Payment receipt numbering",
+    "hint": "Factory default: {value}.",
+    "options": {
+     "Unica": "A single series",
+     "PorMoneda": "One series per currency",
+     "PorCuenta": "One series per account"
+    }
+   },
+   "cashCompensationScope": {
+    "label": "Compensations between lessors",
+    "hint": "Who can cover a lessor of the contract (factory default: {value}).",
+    "options": {
+     "CualquierLocador": "Any lessor of the agency",
+     "MismoContrato": "Only lessors of the same contract"
+    }
+   },
+   "cashCustodyInAgencyBalance": {
+    "label": "Add custody to the cash total",
+    "hint": "The cash the agency keeps for the lessors counts in each currency total. Off, it is shown separately."
+   },
+   "cashReceiptWhenLessorReceives": {
+    "label": "Receipt when the lessor collects",
+    "hint": "A numbered receipt is also issued when the tenant pays the lessor directly."
    }
   }
  },
@@ -4924,7 +5026,8 @@
     "forceImpute": "Impute in the settlement",
     "markPaidUpfront": "Paid in advance",
     "cancel": "Cancel",
-    "release": "Release"
+    "release": "Release",
+    "agencyExpense": "Record as expense"
    },
    "confirm": {
     "cancel": {
@@ -5025,6 +5128,22 @@
    "contract": {
     "title": "Pending charges",
     "viewAll": "See the charge center"
+   },
+   "agencyExpense": {
+    "title": "Record as an agency expense",
+    "body": "“{description}” is paid from an agency account for",
+    "account": "Account",
+    "chooseAccount": "Choose an account",
+    "accountRequired": "Choose the account the expense is paid from",
+    "accountsError": "The accounts could not be loaded",
+    "noAccounts": "There are no active {currency} accounts. Create one in Cash.",
+    "date": "Date",
+    "dateHint": "Empty means today.",
+    "note": "Note",
+    "confirm": "Record expense",
+    "saving": "Recording...",
+    "done": "Expense recorded in the cash book",
+    "error": "The expense could not be recorded"
    }
   },
  "chargeRules": {
@@ -5128,5 +5247,225 @@
   "saved": "Rule saved",
   "saveError": "The rule could not be saved",
   "agreementKept": "The agreement was recorded; fix the rule and save again."
+ },
+ "cash": {
+  "title": "Cash",
+  "subtitle": "The agency accounts (cash box, bank and each lessor's custody) with their balances, the movement book and the payment receipts.",
+  "forbidden": "You do not have permission to see the cash book.",
+  "loadError": "The accounts could not be loaded",
+  "actionError": "The action could not be completed",
+  "saving": "Saving...",
+  "tabs": {
+   "accounts": "Accounts",
+   "movements": "Movements",
+   "custody": "Custody",
+   "receipts": "Receipts"
+  },
+  "kinds": {
+   "Caja": "Cash box",
+   "Banco": "Bank",
+   "Custodia": "Custody"
+  },
+  "categories": {
+   "AlquilerCobrado": "Rent collected",
+   "PagoLocador": "Payment to lessor",
+   "PagoEnte": "Payment to authority",
+   "PagoProveedor": "Payment to supplier",
+   "Honorario": "Fee",
+   "Gasto": "Expense",
+   "ComisionEmpleado": "Employee commission",
+   "Sena": "Deposit",
+   "Custodia": "Custody",
+   "Compensacion": "Compensation",
+   "Conversion": "Conversion"
+  },
+  "directions": {
+   "In": "In",
+   "Out": "Out"
+  },
+  "receivers": {
+   "Inmobiliaria": "Agency",
+   "Locador": "Lessor"
+  },
+  "sources": {
+   "Payment": "Settlement payment",
+   "Conversion": "Currency conversion",
+   "CustodyDelivery": "Custody delivery",
+   "Compensation": "Compensation between lessors",
+   "PendingCharge": "Charge center expense"
+  },
+  "errors": {
+   "name": "Enter a name (up to 120 characters)",
+   "kind": "Choose the account kind",
+   "currency": "Choose the currency",
+   "ownerPersonId": "A custody account needs the lessor who owns the money",
+   "accountId": "Choose an account",
+   "date": "Enter a valid date",
+   "direction": "Choose in or out",
+   "amount": "Enter an amount above zero with up to 2 decimals (comma allowed)",
+   "category": "Choose a category",
+   "counterpartyId": "Choose a valid person",
+   "contractId": "Choose a valid contract",
+   "note": "The note is too long",
+   "fromAccountId": "Choose the source account",
+   "toAccountId": "Choose a target account in another currency",
+   "rate": "Enter an exchange rate above zero (up to 6 decimals)",
+   "paymentId": "The payment is not valid",
+   "fromLessorId": "Choose who received the payment",
+   "toLessorId": "Choose the lessor it belonged to (not the one who received it)"
+  },
+  "filters": {
+   "account": "Account",
+   "allAccounts": "All",
+   "category": "Category",
+   "allCategories": "All",
+   "contract": "Contract",
+   "allContracts": "All",
+   "from": "From",
+   "to": "To"
+  },
+  "totals": {
+   "label": "{currency} totals",
+   "agency": "Agency",
+   "custody": "In custody",
+   "includesCustody": "Each currency total includes the lessors' cash in custody (as the agency chose in Defaults).",
+   "excludesCustody": "Each currency total is the agency's only: the lessors' cash in custody is shown separately. It can be changed in Defaults."
+  },
+  "accounts": {
+   "title": "Accounts",
+   "add": "New account",
+   "inactive": "Deactivated",
+   "rename": "Rename",
+   "deactivate": "Deactivate",
+   "activate": "Reactivate",
+   "deactivated": "Account deactivated",
+   "activated": "Account reactivated",
+   "created": "Account created",
+   "renamed": "Account renamed",
+   "columns": {
+    "name": "Account",
+    "kind": "Kind",
+    "currency": "Currency",
+    "owner": "Lessor",
+    "balance": "Balance",
+    "actions": "Actions"
+   },
+   "empty": {
+    "title": "No accounts",
+    "subtitle": "The cash box of each currency is created with the first payment; you can also create bank accounts."
+   },
+   "confirmDeactivate": {
+    "title": "Deactivate the account?",
+    "body": "“{name}” will no longer be offered for payments and movements. An account with a balance cannot be deactivated."
+   },
+   "form": {
+    "createTitle": "New account",
+    "renameTitle": "Rename the account",
+    "saveError": "The account could not be saved",
+    "kind": "Kind",
+    "kindHints": {
+     "Caja": "Cash at the office.",
+     "Banco": "An agency bank account.",
+     "Custodia": "Cash the agency keeps for a lessor."
+    },
+    "currency": "Currency",
+    "name": "Name",
+    "owner": "Lessor who owns the money"
+   }
+  },
+  "movements": {
+   "title": "Movements",
+   "add": "Add movement",
+   "saved": "Movement added",
+   "rate": "rate {rate}",
+   "columns": {
+    "date": "Date",
+    "account": "Account",
+    "category": "Category",
+    "direction": "Direction",
+    "amount": "Amount",
+    "counterparty": "Person",
+    "note": "Note or source"
+   },
+   "empty": {
+    "title": "No movements",
+    "subtitle": "Payments, expenses and conversions show up here."
+   },
+   "form": {
+    "title": "Add a movement",
+    "saveError": "The movement could not be added",
+    "noAccounts": "There are no active agency accounts. Create one in Accounts.",
+    "account": "Account",
+    "chooseAccount": "Choose an account",
+    "date": "Date",
+    "category": "Category",
+    "direction": "Direction",
+    "directionHint": "Suggested from the category.",
+    "amount": "Amount",
+    "amountIn": "Amount ({currency})",
+    "counterparty": "Person (optional)",
+    "contract": "Contract (optional)",
+    "noContract": "No contract",
+    "note": "Note"
+   }
+  },
+  "conversion": {
+   "open": "Currency conversion",
+   "title": "Currency conversion",
+   "saved": "Conversion recorded",
+   "saveError": "The conversion could not be recorded",
+   "from": "From",
+   "to": "Into",
+   "amount": "Amount out {currency}",
+   "rate": "Exchange rate",
+   "rateHint": "Target currency units per source currency unit.",
+   "date": "Date",
+   "result": "Goes in",
+   "resultPending": "Choose the target account, the amount and the rate to see how much goes in."
+  },
+  "custody": {
+   "title": "Custody",
+   "subtitle": "Lessors' cash the agency keeps until it is delivered to them.",
+   "deliver": "Deliver",
+   "columns": {
+    "owner": "Lessor",
+    "account": "Account",
+    "currency": "Currency",
+    "balance": "In custody",
+    "actions": "Actions"
+   },
+   "empty": {
+    "title": "No custody",
+    "subtitle": "When a payment keeps the lessors' share in custody it shows up here."
+   },
+   "delivered": "Delivery recorded. {balance} remains in custody.",
+   "dialogTitle": "Deliver to {owner}",
+   "deliverError": "The delivery could not be recorded",
+   "available": "In custody:",
+   "amount": "Amount to deliver ({currency})",
+   "amountHint": "Empty delivers everything.",
+   "date": "Date",
+   "confirmDeliver": "Record delivery"
+  },
+  "receipts": {
+   "title": "Payment receipts",
+   "subtitle": "Every payment the agency receives gets a numbered receipt.",
+   "print": "Print",
+   "inCustody": "In custody",
+   "columns": {
+    "number": "Number",
+    "date": "Date",
+    "tenant": "Tenant",
+    "property": "Property",
+    "amount": "Amount",
+    "method": "Method",
+    "receivedBy": "Received by",
+    "actions": "Actions"
+   },
+   "empty": {
+    "title": "No receipts",
+    "subtitle": "Receipts are issued when a payment is registered."
+   }
+  }
  }
 }

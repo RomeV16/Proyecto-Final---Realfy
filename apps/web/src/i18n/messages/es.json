@@ -112,7 +112,8 @@
   "notifications": "Notificaciones",
   "permissions": "Permisos",
   "serviceBills": "Boletas del mes",
-  "charges": "Centro de carga"
+  "charges": "Centro de carga",
+  "cash": "Caja"
  },
  "dataTable": {
   "pagination": {
@@ -194,7 +195,23 @@
    "BANK_ACCOUNT_NOT_OF_LESSOR": "La cuenta elegida no pertenece al locador.",
    "BANK_ACCOUNT_DEFAULT_REQUIRED": "Tiene que haber una cuenta predeterminada por moneda: marcá otra antes de quitar esta.",
    "POWER_SELF": "Una persona no puede darse poder a sí misma.",
-   "POWER_IN_USE": "El poder está en uso: un locador lo usa para que cobre su apoderado."
+   "POWER_IN_USE": "El poder está en uso: un locador lo usa para que cobre su apoderado.",
+   "ACCOUNT_EXISTS": "Ya hay una cuenta con ese nombre en esa moneda.",
+   "ACCOUNT_HAS_BALANCE": "La cuenta tiene saldo: vaciala antes de darla de baja.",
+   "ACCOUNT_INACTIVE": "La cuenta está dada de baja.",
+   "ACCOUNT_NOT_CUSTODY": "La cuenta no es de custodia.",
+   "ACCOUNT_NOT_FOUND": "La cuenta no existe.",
+   "CONVERSION_SAME_CURRENCY": "Una conversión necesita dos cuentas de distinta moneda.",
+   "CURRENCY_MISMATCH": "La moneda de la cuenta no coincide con la del movimiento.",
+   "CUSTODY_ACCOUNT_RESERVED": "La custodia solo se mueve con la entrega al locador o una compensación.",
+   "CUSTODY_EMPTY": "No hay efectivo en custodia para entregar.",
+   "CUSTODY_INSUFFICIENT": "El importe supera el efectivo en custodia.",
+   "CHARGE_NOT_AGENCY": "Solo un gasto a cargo de la inmobiliaria se registra como gasto propio.",
+   "PAYMENT_EXTERNAL_REF_EXISTS": "Ya hay un pago con esa referencia externa.",
+   "COMPENSATION_EXCEEDS_PAYMENT": "La compensación supera lo que le correspondía en ese cobro.",
+   "COMPENSATION_OUT_OF_SCOPE": "Esa compensación no está permitida: el locador no es del contrato o la inmobiliaria solo admite compensaciones entre locadores del mismo contrato.",
+   "COMPENSATION_REQUIRES_LESSOR_RECEIPT": "Solo se compensa un cobro que recibió un locador.",
+   "COMPENSATION_SAME_LESSOR": "Un locador no se compensa consigo mismo."
   },
   "segment": {
    "loading": "Cargando…",
@@ -235,6 +252,11 @@
    "title": "Algo salió mal",
    "message": "Algo salió mal. Intentá de nuevo.",
    "retry": "Reintentar"
+  },
+  "currencies": {
+   "ARS": "$ (Peso argentino)",
+   "USD": "US$ (Dólar)",
+   "EUR": "€ (Euro)"
   }
  },
  "dashboard": {
@@ -1477,7 +1499,22 @@
    "amountPlaceholder": "0.00",
    "amountRequired": "El monto es obligatorio",
    "methodRequired": "El método de pago es obligatorio",
-   "invalidAmount": "El monto debe ser mayor a 0"
+   "invalidAmount": "El monto debe ser mayor a 0",
+   "receivedBy": "¿Quién recibió el cobro?",
+   "receivedByContract": "Según el contrato",
+   "account": "Cuenta donde entró",
+   "accountAuto": "Automática: la caja o el banco en {currency}",
+   "inCustody": "Guardar la parte de los locadores en custodia",
+   "inCustodyHint": "El efectivo de los locadores queda en la inmobiliaria hasta que se les entregue.",
+   "externalRef": "Referencia externa",
+   "externalRefPlaceholder": "Nro. del sistema anterior o del banco",
+   "externalRefExists": "Ya hay un pago con esa referencia externa.",
+   "receiptIssued": "Se emitió el recibo Nº {number}.",
+   "printReceipt": "Imprimir recibo",
+   "done": "Listo",
+   "receivedByLabel": "Recibió: {who}",
+   "inCustodyShort": "en custodia",
+   "printReceiptNumber": "Recibo {number}"
   },
   "paymentMethods": {
    "Transferencia": "Transferencia bancaria",
@@ -1604,6 +1641,26 @@
    "addManualMulta": "Agregar multa manual",
    "manualMultaDescription": "Descripción de la multa",
    "manualMultaAmount": "Importe"
+  },
+  "compensations": {
+   "register": "Registrar compensación",
+   "title": "Registrar compensación",
+   "intro": "El inquilino le pagó a otro locador: quien recibió el cobro cubre la parte del locador del contrato.",
+   "from": "Quién recibió el cobro",
+   "to": "A qué locador le correspondía",
+   "chooseLessor": "Elegí un locador",
+   "amount": "Importe ({currency})",
+   "amountHint": "Vacío: su parte en el cobro.",
+   "fromCustody": "Pagar con la custodia de quien recibió",
+   "fromCustodyHint": "Sale del efectivo que la inmobiliaria le guarda en custodia y entra en la caja de la moneda.",
+   "note": "Nota",
+   "confirm": "Registrar",
+   "saving": "Registrando...",
+   "saved": "Compensación registrada",
+   "error": "No se pudo registrar la compensación",
+   "listLabel": "Compensaciones del pago",
+   "item": "Compensación: {from} cubre a {to} por {amount}",
+   "otherLessor": "otro locador"
   }
  },
  "services": {
@@ -4522,6 +4579,10 @@
    "liquidation": {
     "title": "Convenciones de liquidación",
     "description": "Prorrateo, ajustes a mitad de mes, primer mes y descuentos fijos. Cada contrato puede pactar las suyas."
+   },
+   "cash": {
+    "title": "Caja y cobros",
+    "description": "Cómo se reparte un cobro, cómo se numeran los recibos y qué hace la inmobiliaria con el efectivo de los locadores."
    }
   },
   "fields": {
@@ -4584,6 +4645,47 @@
    "yellowDays": {
     "label": "Amarillo hasta (días al fin)",
     "hint": "De fábrica {value}."
+   },
+   "cashLessorDirectOwes": {
+    "label": "Si el inquilino le paga al locador",
+    "hint": "Qué le debe el locador a la inmobiliaria (de fábrica: {value}).",
+    "options": {
+     "TodoLoAjeno": "Todo lo que no es suyo (comisión, inmobiliaria y entes)",
+     "SoloInmobiliaria": "Solo comisión e inmobiliaria (los entes los paga él)"
+    }
+   },
+   "cashPartialAllocation": {
+    "label": "Pago parcial",
+    "hint": "Cómo se reparte un pago que no cubre todo (de fábrica: {value}).",
+    "options": {
+     "Proporcional": "En proporción a lo de cada uno",
+     "InmobiliariaPrimero": "Primero la inmobiliaria, el resto en proporción"
+    }
+   },
+   "cashReceiptSeries": {
+    "label": "Numeración de los recibos de cobro",
+    "hint": "De fábrica: {value}.",
+    "options": {
+     "Unica": "Una sola serie",
+     "PorMoneda": "Una serie por moneda",
+     "PorCuenta": "Una serie por cuenta"
+    }
+   },
+   "cashCompensationScope": {
+    "label": "Compensaciones entre locadores",
+    "hint": "Quién puede cubrir a un locador del contrato (de fábrica: {value}).",
+    "options": {
+     "CualquierLocador": "Cualquier locador de la inmobiliaria",
+     "MismoContrato": "Solo locadores del mismo contrato"
+    }
+   },
+   "cashCustodyInAgencyBalance": {
+    "label": "Sumar la custodia al total de la caja",
+    "hint": "El efectivo que la inmobiliaria guarda para los locadores entra en el total de cada moneda. Apagado, se muestra aparte."
+   },
+   "cashReceiptWhenLessorReceives": {
+    "label": "Recibo cuando cobra el locador",
+    "hint": "Se emite un recibo numerado también cuando el inquilino le paga directamente al locador."
    }
   }
  },
@@ -4924,7 +5026,8 @@
     "forceImpute": "Imputar en la liquidación",
     "markPaidUpfront": "Cobrado por adelantado",
     "cancel": "Anular",
-    "release": "Liberar"
+    "release": "Liberar",
+    "agencyExpense": "Registrar como gasto"
    },
    "confirm": {
     "cancel": {
@@ -5025,6 +5128,22 @@
    "contract": {
     "title": "Cargos pendientes",
     "viewAll": "Ver el centro de carga"
+   },
+   "agencyExpense": {
+    "title": "Registrar como gasto de la inmobiliaria",
+    "body": "«{description}» sale de una cuenta de la inmobiliaria por",
+    "account": "Cuenta",
+    "chooseAccount": "Elegí una cuenta",
+    "accountRequired": "Elegí la cuenta de donde sale el gasto",
+    "accountsError": "No se pudieron cargar las cuentas",
+    "noAccounts": "No hay cuentas activas en {currency}. Creá una en Caja.",
+    "date": "Fecha",
+    "dateHint": "Vacía, la del día.",
+    "note": "Nota",
+    "confirm": "Registrar gasto",
+    "saving": "Registrando...",
+    "done": "Gasto registrado en la caja",
+    "error": "No se pudo registrar el gasto"
    }
   },
  "chargeRules": {
@@ -5128,5 +5247,225 @@
   "saved": "Regla guardada",
   "saveError": "No se pudo guardar la regla",
   "agreementKept": "El acuerdo quedó registrado; corregí la regla y volvé a guardar."
+ },
+ "cash": {
+  "title": "Caja",
+  "subtitle": "Las cuentas de la inmobiliaria (caja, banco y la custodia de cada locador) con sus saldos, el libro de movimientos y los recibos de cobro.",
+  "forbidden": "No tenés permiso para ver la caja.",
+  "loadError": "No se pudieron cargar las cuentas",
+  "actionError": "No se pudo completar la acción",
+  "saving": "Guardando...",
+  "tabs": {
+   "accounts": "Cuentas",
+   "movements": "Movimientos",
+   "custody": "Custodia",
+   "receipts": "Recibos"
+  },
+  "kinds": {
+   "Caja": "Caja",
+   "Banco": "Banco",
+   "Custodia": "Custodia"
+  },
+  "categories": {
+   "AlquilerCobrado": "Alquiler cobrado",
+   "PagoLocador": "Pago a locador",
+   "PagoEnte": "Pago a ente",
+   "PagoProveedor": "Pago a proveedor",
+   "Honorario": "Honorario",
+   "Gasto": "Gasto",
+   "ComisionEmpleado": "Comisión de empleado",
+   "Sena": "Seña",
+   "Custodia": "Custodia",
+   "Compensacion": "Compensación",
+   "Conversion": "Conversión"
+  },
+  "directions": {
+   "In": "Entrada",
+   "Out": "Salida"
+  },
+  "receivers": {
+   "Inmobiliaria": "Inmobiliaria",
+   "Locador": "Locador"
+  },
+  "sources": {
+   "Payment": "Cobro de una liquidación",
+   "Conversion": "Conversión de moneda",
+   "CustodyDelivery": "Entrega de custodia",
+   "Compensation": "Compensación entre locadores",
+   "PendingCharge": "Gasto del centro de carga"
+  },
+  "errors": {
+   "name": "Escribí un nombre (hasta 120 caracteres)",
+   "kind": "Elegí la clase de cuenta",
+   "currency": "Elegí la moneda",
+   "ownerPersonId": "Una cuenta de custodia necesita el locador dueño del dinero",
+   "accountId": "Elegí una cuenta",
+   "date": "Ingresá una fecha válida",
+   "direction": "Elegí si entra o sale",
+   "amount": "Ingresá un importe mayor a cero con hasta 2 decimales (podés usar coma)",
+   "category": "Elegí una categoría",
+   "counterpartyId": "Elegí una persona válida",
+   "contractId": "Elegí un contrato válido",
+   "note": "La nota es demasiado larga",
+   "fromAccountId": "Elegí la cuenta de origen",
+   "toAccountId": "Elegí una cuenta de destino de otra moneda",
+   "rate": "Ingresá un tipo de cambio mayor a cero (hasta 6 decimales)",
+   "paymentId": "El cobro no es válido",
+   "fromLessorId": "Elegí quién recibió el cobro",
+   "toLessorId": "Elegí a qué locador le correspondía (distinto de quien lo recibió)"
+  },
+  "filters": {
+   "account": "Cuenta",
+   "allAccounts": "Todas",
+   "category": "Categoría",
+   "allCategories": "Todas",
+   "contract": "Contrato",
+   "allContracts": "Todos",
+   "from": "Desde",
+   "to": "Hasta"
+  },
+  "totals": {
+   "label": "Totales en {currency}",
+   "agency": "Inmobiliaria",
+   "custody": "En custodia",
+   "includesCustody": "El total de cada moneda incluye el efectivo en custodia de los locadores (así lo eligió la inmobiliaria en Valores por defecto).",
+   "excludesCustody": "El total de cada moneda es solo de la inmobiliaria: el efectivo en custodia de los locadores se muestra aparte. Se puede cambiar en Valores por defecto."
+  },
+  "accounts": {
+   "title": "Cuentas",
+   "add": "Nueva cuenta",
+   "inactive": "Dada de baja",
+   "rename": "Renombrar",
+   "deactivate": "Dar de baja",
+   "activate": "Reactivar",
+   "deactivated": "Cuenta dada de baja",
+   "activated": "Cuenta reactivada",
+   "created": "Cuenta creada",
+   "renamed": "Cuenta renombrada",
+   "columns": {
+    "name": "Cuenta",
+    "kind": "Clase",
+    "currency": "Moneda",
+    "owner": "Locador",
+    "balance": "Saldo",
+    "actions": "Acciones"
+   },
+   "empty": {
+    "title": "No hay cuentas",
+    "subtitle": "La caja de cada moneda se crea sola con el primer cobro; también podés crear cuentas de banco."
+   },
+   "confirmDeactivate": {
+    "title": "¿Dar de baja la cuenta?",
+    "body": "«{name}» deja de ofrecerse para cobros y movimientos. Una cuenta con saldo no se puede dar de baja."
+   },
+   "form": {
+    "createTitle": "Nueva cuenta",
+    "renameTitle": "Renombrar la cuenta",
+    "saveError": "No se pudo guardar la cuenta",
+    "kind": "Clase",
+    "kindHints": {
+     "Caja": "Efectivo en la oficina.",
+     "Banco": "Una cuenta bancaria de la inmobiliaria.",
+     "Custodia": "Efectivo que la inmobiliaria guarda para un locador."
+    },
+    "currency": "Moneda",
+    "name": "Nombre",
+    "owner": "Locador dueño del dinero"
+   }
+  },
+  "movements": {
+   "title": "Movimientos",
+   "add": "Cargar movimiento",
+   "saved": "Movimiento cargado",
+   "rate": "cambio {rate}",
+   "columns": {
+    "date": "Fecha",
+    "account": "Cuenta",
+    "category": "Categoría",
+    "direction": "Sentido",
+    "amount": "Importe",
+    "counterparty": "Persona",
+    "note": "Nota u origen"
+   },
+   "empty": {
+    "title": "No hay movimientos",
+    "subtitle": "Los cobros, pagos, gastos y conversiones aparecen acá."
+   },
+   "form": {
+    "title": "Cargar un movimiento",
+    "saveError": "No se pudo cargar el movimiento",
+    "noAccounts": "No hay cuentas activas de la inmobiliaria. Creá una en Cuentas.",
+    "account": "Cuenta",
+    "chooseAccount": "Elegí una cuenta",
+    "date": "Fecha",
+    "category": "Categoría",
+    "direction": "Sentido",
+    "directionHint": "Se propone según la categoría.",
+    "amount": "Importe",
+    "amountIn": "Importe ({currency})",
+    "counterparty": "Persona (opcional)",
+    "contract": "Contrato (opcional)",
+    "noContract": "Sin contrato",
+    "note": "Nota"
+   }
+  },
+  "conversion": {
+   "open": "Conversión de moneda",
+   "title": "Conversión de moneda",
+   "saved": "Conversión registrada",
+   "saveError": "No se pudo registrar la conversión",
+   "from": "Sale de",
+   "to": "Entra en",
+   "amount": "Importe que sale {currency}",
+   "rate": "Tipo de cambio",
+   "rateHint": "Unidades de la moneda de destino por cada unidad de la de origen.",
+   "date": "Fecha",
+   "result": "Entran",
+   "resultPending": "Elegí la cuenta de destino, el importe y el tipo de cambio para ver cuánto entra."
+  },
+  "custody": {
+   "title": "Custodia",
+   "subtitle": "Efectivo de los locadores que la inmobiliaria guarda hasta entregárselo.",
+   "deliver": "Entregar",
+   "columns": {
+    "owner": "Locador",
+    "account": "Cuenta",
+    "currency": "Moneda",
+    "balance": "En custodia",
+    "actions": "Acciones"
+   },
+   "empty": {
+    "title": "No hay custodias",
+    "subtitle": "Cuando un cobro guarda la parte de los locadores en custodia aparece acá."
+   },
+   "delivered": "Entrega registrada. Queda en custodia {balance}.",
+   "dialogTitle": "Entregar a {owner}",
+   "deliverError": "No se pudo registrar la entrega",
+   "available": "En custodia:",
+   "amount": "Importe a entregar ({currency})",
+   "amountHint": "Vacío entrega todo.",
+   "date": "Fecha",
+   "confirmDeliver": "Registrar entrega"
+  },
+  "receipts": {
+   "title": "Recibos de cobro",
+   "subtitle": "Cada cobro que recibe la inmobiliaria lleva un recibo numerado.",
+   "print": "Imprimir",
+   "inCustody": "En custodia",
+   "columns": {
+    "number": "Número",
+    "date": "Fecha",
+    "tenant": "Inquilino",
+    "property": "Propiedad",
+    "amount": "Importe",
+    "method": "Medio",
+    "receivedBy": "Recibió",
+    "actions": "Acciones"
+   },
+   "empty": {
+    "title": "No hay recibos",
+    "subtitle": "Los recibos se emiten al registrar un cobro."
+   }
+  }
  }
 }
