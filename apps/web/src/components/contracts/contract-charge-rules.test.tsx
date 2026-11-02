@@ -43,7 +43,9 @@ const rule = (o: Record<string, unknown> = {}) => ({
   fixedAmount: null,
   paymentPlan: 'Mensual',
   annualRecovery: 'Prorrateado',
-  annualDiscountToTenant: true,
+  annualInstallments: 12,
+  annualDiscountBeneficiary: 'Inquilino',
+  remainingInstallmentsOnEnd: 'CobrarEnLiquidacionFinal',
   validFrom: '2026-01-01T00:00:00.000Z',
   validTo: null,
   agreementId: null,
@@ -209,8 +211,10 @@ describe('ContractChargeRules: editor', () => {
     await user.selectOptions(screen.getByLabelText('Cómo se reparte'), 'Fijo');
     await user.type(screen.getByLabelText(/Importe fijo por boleta/), '3000,50');
     await user.selectOptions(screen.getByLabelText('Plan de pago'), 'Anual');
-    await user.selectOptions(screen.getByLabelText('Recupero de la boleta anual'), 'Unico');
-    await user.click(screen.getByLabelText('El descuento por pago anual es para el inquilino'));
+    // Prorrateado (por defecto): cuotas a elección y qué hacer si el contrato termina antes.
+    await user.selectOptions(screen.getByLabelText(/Cantidad de cuotas/), '10');
+    await user.selectOptions(screen.getByLabelText('Si el contrato termina antes'), 'Descartar');
+    await user.selectOptions(screen.getByLabelText('A quién va el descuento por pago anual'), 'Locador');
     await user.click(screen.getByRole('button', { name: 'Guardar regla' }));
 
     await waitFor(() => expect(sent).toBeDefined());
@@ -219,11 +223,25 @@ describe('ContractChargeRules: editor', () => {
       splitMode: 'Fijo',
       fixedAmount: '3000.50',
       paymentPlan: 'Anual',
-      annualRecovery: 'Unico',
-      annualDiscountToTenant: false,
+      annualRecovery: 'Prorrateado',
+      annualInstallments: 10,
+      annualDiscountBeneficiary: 'Locador',
+      remainingInstallmentsOnEnd: 'Descartar',
     });
     expect(sent.agreementId).toBeUndefined();
     expect(apiClient).not.toHaveBeenCalledWith('/contracts/c-1/agreements', expect.anything());
+  });
+
+  it('con recupero de una vez no pide cuotas ni qué hacer al terminar, y valida las cuotas', async () => {
+    serve();
+    const user = await openEditor();
+    await user.selectOptions(screen.getByLabelText(/^Servicio/), 's2');
+    await user.selectOptions(screen.getByLabelText('Plan de pago'), 'Anual');
+    expect(screen.getByLabelText(/Cantidad de cuotas/)).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Recupero de la boleta anual'), 'Unico');
+    expect(screen.queryByLabelText(/Cantidad de cuotas/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Si el contrato termina antes')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('A quién va el descuento por pago anual')).toBeInTheDocument();
   });
 
   it('quien paga directo no pide reparto ni plan', async () => {

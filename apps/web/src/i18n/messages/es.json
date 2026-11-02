@@ -4585,7 +4585,7 @@
    "Mensual": "pago mensual",
    "Anual": {
     "Unico": "pago anual, se cobra de una vez",
-    "Prorrateado": "pago anual, en 12 cuotas"
+    "Prorrateado": "pago anual, en {count, plural, one {# cuota} other {# cuotas}}"
    }
   },
   "splitModes": {
@@ -4599,11 +4599,30 @@
   },
   "recoveries": {
    "Unico": "Cobrar de una vez",
-   "Prorrateado": "Prorratear en 12 meses"
+   "Prorrateado": "Prorratear en cuotas"
   },
   "recoveryHints": {
    "Unico": "El inquilino paga toda su parte en la liquidación del mes de la boleta.",
-   "Prorrateado": "La parte del inquilino se reparte en 12 cuotas mensuales iguales."
+   "Prorrateado": "La parte del inquilino se reparte en cuotas mensuales iguales (lo habitual)."
+  },
+  "installmentsHint": "De 1 a 12 cuotas mensuales, desde el mes de la boleta.",
+  "discountBeneficiaries": {
+   "Inquilino": "Inquilino (se le cobra lo pagado)",
+   "Locador": "Locador (se cobra el importe sin descuento)",
+   "Inmobiliaria": "Inmobiliaria (se cobra el importe sin descuento)"
+  },
+  "discountHints": {
+   "Inquilino": "El inquilino paga lo que efectivamente se pagó, con el descuento.",
+   "Locador": "El inquilino paga el importe sin descuento y la diferencia se acredita al locador.",
+   "Inmobiliaria": "El inquilino paga el importe sin descuento y la diferencia es de la inmobiliaria, sin comisión."
+  },
+  "onEnd": {
+   "CobrarEnLiquidacionFinal": "Cobrar lo que queda en la liquidación final",
+   "Descartar": "Descartar las cuotas restantes"
+  },
+  "onEndHints": {
+   "CobrarEnLiquidacionFinal": "Las cuotas posteriores al fin del contrato se suman a la del último mes.",
+   "Descartar": "Esas cuotas no se cobran al inquilino."
   },
   "editorLabel": "Regla de impuestos y servicios",
   "draftNotice": "El contrato es un borrador: la regla rige desde la fecha indicada.",
@@ -4616,7 +4635,9 @@
    "fixed": "Importe fijo por boleta",
    "plan": "Plan de pago",
    "recovery": "Recupero de la boleta anual",
-   "discountToTenant": "El descuento por pago anual es para el inquilino",
+   "installments": "Cantidad de cuotas",
+   "discountBeneficiary": "A quién va el descuento por pago anual",
+   "onEnd": "Si el contrato termina antes",
    "validFrom": "Rige desde",
    "documentUrl": "Documento del acuerdo (enlace)",
    "agreementNotes": "Notas del acuerdo",
@@ -4627,6 +4648,7 @@
    "date": "Ingresá una fecha válida",
    "pct": "El porcentaje va de 0 a 100",
    "fixed": "Ingresá un importe mayor a cero",
+   "installments": "Las cuotas van de 1 a 12",
    "url": "Ingresá un enlace que empiece con http:// o https://"
   },
   "save": "Guardar regla",

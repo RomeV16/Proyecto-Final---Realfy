@@ -4585,7 +4585,7 @@
    "Mensual": "monthly payment",
    "Anual": {
     "Unico": "annual payment, charged at once",
-    "Prorrateado": "annual payment, in 12 installments"
+    "Prorrateado": "annual payment, in {count, plural, one {# installment} other {# installments}}"
    }
   },
   "splitModes": {
@@ -4599,11 +4599,30 @@
   },
   "recoveries": {
    "Unico": "Charge at once",
-   "Prorrateado": "Spread over 12 months"
+   "Prorrateado": "Spread over installments"
   },
   "recoveryHints": {
    "Unico": "The tenant pays their whole share in the settlement of the bill's month.",
-   "Prorrateado": "The tenant's share is split into 12 equal monthly installments."
+   "Prorrateado": "The tenant's share is split into equal monthly installments (the usual choice)."
+  },
+  "installmentsHint": "From 1 to 12 monthly installments, starting in the bill's month.",
+  "discountBeneficiaries": {
+   "Inquilino": "Tenant (charged what was paid)",
+   "Locador": "Lessor (charged the amount without discount)",
+   "Inmobiliaria": "Agency (charged the amount without discount)"
+  },
+  "discountHints": {
+   "Inquilino": "The tenant pays what was actually paid, discount included.",
+   "Locador": "The tenant pays the amount without discount and the difference is credited to the lessor.",
+   "Inmobiliaria": "The tenant pays the amount without discount and the difference goes to the agency, without commission."
+  },
+  "onEnd": {
+   "CobrarEnLiquidacionFinal": "Charge the rest in the final settlement",
+   "Descartar": "Discard the remaining installments"
+  },
+  "onEndHints": {
+   "CobrarEnLiquidacionFinal": "Installments after the contract end are added to the last month's.",
+   "Descartar": "Those installments are not charged to the tenant."
   },
   "editorLabel": "Tax and utility rule",
   "draftNotice": "The contract is a draft: the rule applies from the date entered.",
@@ -4616,7 +4635,9 @@
    "fixed": "Fixed amount per bill",
    "plan": "Payment plan",
    "recovery": "Recovery of the annual bill",
-   "discountToTenant": "The annual payment discount goes to the tenant",
+   "installments": "Number of installments",
+   "discountBeneficiary": "Who gets the annual payment discount",
+   "onEnd": "If the contract ends early",
    "validFrom": "Applies from",
    "documentUrl": "Agreement document (link)",
    "agreementNotes": "Agreement notes",
@@ -4627,6 +4648,7 @@
    "date": "Enter a valid date",
    "pct": "The percentage goes from 0 to 100",
    "fixed": "Enter an amount greater than zero",
+   "installments": "Installments go from 1 to 12",
    "url": "Enter a link starting with http:// or https://"
   },
   "save": "Save rule",

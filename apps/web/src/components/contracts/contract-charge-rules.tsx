@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
-import { AnnualRecovery, ChargePayer, ChargeSplitMode, ServicePaymentPlan } from '@realfy/shared';
+import {
+  AnnualDiscountBeneficiary,
+  AnnualRecovery,
+  ChargePayer, ChargeSplitMode,
+  RemainingInstallmentsOnEnd,
+  ServicePaymentPlan,
+} from '@realfy/shared';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
 import { useCan } from '@/lib/permissions';
@@ -33,7 +39,9 @@ interface ChargeRule {
   fixedAmount: string | null;
   paymentPlan: string;
   annualRecovery: string;
-  annualDiscountToTenant: boolean;
+  annualInstallments: number;
+  annualDiscountBeneficiary: string;
+  remainingInstallmentsOnEnd: string;
   validFrom: string;
   validTo: string | null;
   agreementId: string | null;
@@ -126,7 +134,9 @@ export function ContractChargeRules({ contractId, propertyId, contractStatus, cu
         : t('modes.Consumo');
 
   const describePlan = (rule: ChargeRule) =>
-    rule.paymentPlan === 'Anual' ? t(`plans.Anual.${rule.annualRecovery}`) : t('plans.Mensual');
+    rule.paymentPlan === 'Anual'
+      ? t(`plans.Anual.${rule.annualRecovery}`, { count: rule.annualInstallments })
+      : t('plans.Mensual');
 
   const past = (rules?.versions ?? []).filter((v) => !(rules?.current ?? []).some((c) => c.id === v.id));
 
@@ -224,7 +234,9 @@ function RuleEditor({
   const [fixed, setFixed] = useState('');
   const [plan, setPlan] = useState<string>(ServicePaymentPlan.Mensual);
   const [recovery, setRecovery] = useState<string>(AnnualRecovery.Prorrateado);
-  const [discountToTenant, setDiscountToTenant] = useState(true);
+  const [installments, setInstallments] = useState('12');
+  const [beneficiary, setBeneficiary] = useState<string>(AnnualDiscountBeneficiary.Inquilino);
+  const [onEnd, setOnEnd] = useState<string>(RemainingInstallmentsOnEnd.CobrarEnLiquidacionFinal);
   const [validFrom, setValidFrom] = useState(today);
   const [documentUrl, setDocumentUrl] = useState('');
   const [notes, setNotes] = useState('');
@@ -236,6 +248,7 @@ function RuleEditor({
   const direct = payer === ChargePayer.Inquilino;
   const showAnnual = !direct && (service?.hasAnnualOption ?? false);
   const annual = showAnnual && plan === ServicePaymentPlan.Anual;
+  const prorated = annual && recovery === AnnualRecovery.Prorrateado;
 
   function validate(): Record<string, string> {
     const found: Record<string, string> = {};
@@ -244,6 +257,10 @@ function RuleEditor({
     if (!direct && splitMode === ChargeSplitMode.Porcentaje) {
       const value = Number(pct.replace(',', '.'));
       if (pct.trim() === '' || Number.isNaN(value) || value < 0 || value > 100) found.pct = t('validation.pct');
+    }
+    if (prorated) {
+      const n = Number(installments);
+      if (!Number.isInteger(n) || n < 1 || n > 12) found.installments = t('validation.installments');
     }
     if (!direct && splitMode === ChargeSplitMode.Fijo) {
       const amount = parseAmountInput(fixed);
@@ -290,7 +307,9 @@ function RuleEditor({
           fixedAmount: !direct && splitMode === ChargeSplitMode.Fijo ? parseAmountInput(fixed) : undefined,
           paymentPlan: annual ? ServicePaymentPlan.Anual : ServicePaymentPlan.Mensual,
           annualRecovery: annual ? recovery : undefined,
-          annualDiscountToTenant: annual ? discountToTenant : undefined,
+          annualInstallments: prorated ? Number(installments) : undefined,
+          annualDiscountBeneficiary: annual ? beneficiary : undefined,
+          remainingInstallmentsOnEnd: prorated ? onEnd : undefined,
           validFrom: from,
           agreementId,
           notes: needsAgreement ? undefined : notes.trim() || undefined,
@@ -439,15 +458,50 @@ function RuleEditor({
       </div>
 
       {annual && (
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            className="h-4 w-4 accent-[var(--color-brand-500)]"
-            checked={discountToTenant}
-            onChange={(e) => setDiscountToTenant(e.target.checked)}
-          />
-          {t('fields.discountToTenant')}
-        </label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {prorated && (
+            <FormField label={t('fields.installments')} error={errors.installments} hint={t('installmentsHint')} required>
+              {(control) => (
+                <select
+                  {...control}
+                  value={installments}
+                  onChange={(e) => setInstallments(e.target.value)}
+                  className={inputStyles({ invalid: !!errors.installments })}
+                >
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={String(n)}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </FormField>
+          )}
+          <FormField label={t('fields.discountBeneficiary')} hint={t(`discountHints.${beneficiary}`)}>
+            {(control) => (
+              <select {...control} value={beneficiary} onChange={(e) => setBeneficiary(e.target.value)} className={inputStyles()}>
+                {Object.values(AnnualDiscountBeneficiary).map((b) => (
+                  <option key={b} value={b}>
+                    {t(`discountBeneficiaries.${b}`)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </FormField>
+          {prorated && (
+            <FormField label={t('fields.onEnd')} hint={t(`onEndHints.${onEnd}`)}>
+              {(control) => (
+                <select {...control} value={onEnd} onChange={(e) => setOnEnd(e.target.value)} className={inputStyles()}>
+                  {Object.values(RemainingInstallmentsOnEnd).map((o) => (
+                    <option key={o} value={o}>
+                      {t(`onEnd.${o}`)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </FormField>
+          )}
+        </div>
       )}
 
       <FormField label={needsAgreement ? t('fields.agreementNotes') : t('fields.notes')}>
