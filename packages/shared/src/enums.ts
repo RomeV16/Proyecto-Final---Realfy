@@ -394,6 +394,29 @@ export enum BillPaidBy {
   Propietario = 'Propietario',
 }
 
+/** Quién soporta un cargo puntual del centro de carga. */
+export enum ChargeTarget {
+  Inquilino = 'Inquilino',
+  Locador = 'Locador',
+  Inmobiliaria = 'Inmobiliaria',
+}
+
+export enum PendingChargeKind {
+  Reparacion = 'Reparacion',
+  ExpensaExtra = 'ExpensaExtra',
+  Devolucion = 'Devolucion',
+  HonorarioGestion = 'HonorarioGestion',
+  AjusteRetroactivo = 'AjusteRetroactivo',
+  Otro = 'Otro',
+}
+
+export enum PendingChargeStatus {
+  Pendiente = 'Pendiente',
+  Imputado = 'Imputado',
+  CobradoAnticipado = 'CobradoAnticipado',
+  Anulado = 'Anulado',
+}
+
 // ─── Notification Enums ─────────────────────────────────
 
 export enum NotificationType {

@@ -44,6 +44,7 @@ const TENANT_SCOPED_MODELS = new Set([
   'ServiceBill',
   'ServiceBillAllocation',
   'ContractChargeRule',
+  'PendingCharge',
   'Notification',
   'Lead',
   'LeadInteraction',
