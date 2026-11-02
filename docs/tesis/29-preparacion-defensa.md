@@ -231,7 +231,10 @@ por varias rompe ese invariante en el lugar exacto donde no conviene romperlo. L
 forma correcta de resolverlo, si el negocio lo pide, es un modelo explícito de
 operación compartida —una entidad propia que vincule dos inmobiliarias con su
 reparto pactado— y no relajar el filtro. Queda como trabajo futuro, y es preferible
-a haberlo resuelto haciendo una excepción en el aislamiento.
+a haberlo resuelto haciendo una excepción en el aislamiento. El piloto no lo cambia:
+el coorretaje que pide la inmobiliaria piloto (ítem 41, planificado) es el registro
+del honorario repartido con otra inmobiliaria dentro de la operación propia, sin
+filas compartidas.
 
 **Evidencia.** `apps/api/prisma/schema.prisma`, modelo `Property` (columna de
 inmobiliaria, índices por inmobiliaria, sin unicidad por dirección);
@@ -388,8 +391,15 @@ las deducciones, así que ese número se seguía calculando por fuera. Está ano
 como próximo paso en el documento del Hito 2, en esos términos, y se construyó en
 el Hito 3.
 
+**Lo que conviene agregar.** El patrón se repitió con el piloto, y esta vez se
+detectó antes de construir: el documento que más trabajo le cuesta a la
+inmobiliaria no es la rendición por contrato sino el estado de cuenta consolidado
+de cada locador, que no estaba en ningún documento de la tesis. Salió del
+relevamiento (FB-10) y es el ítem 37.
+
 **Evidencia.** `04-backlog.md`; `02-roles-y-casos-uso.md`, CU-13; `hito-02.md`,
-próximos pasos; `hito-03.md`, alcance entregado; sección 5 del informe final.
+próximos pasos; `hito-03.md`, alcance entregado; sección 5 del informe final;
+`31-registro-de-feedback.md`, FB-10.
 
 ### 1.17. ¿El panel puede mostrar un número desactualizado?
 
@@ -539,6 +549,56 @@ y no una particularidad de este.
 **Evidencia.** ADR-0006 y el módulo de asistencia sobre el modelo de lenguaje;
 sección 8 del informe final.
 
+### Preguntas sobre el piloto
+
+Se agregaron el 2 de noviembre de 2026, con el piloto en curso. Las respuestas dicen lo que hay a esa fecha y se actualizan con el anexo de validación después de cada ciclo; en la defensa se contesta con el estado del último ciclo cerrado, no con el plan.
+
+### 1.25. ¿Por qué el locador no es el propietario? ¿No es lo mismo?
+
+**Corto.** No, y suponerlo era un error del modelo original. El propietario es quien figura como dueño del inmueble; el locador es quien tiene la potestad de alquilarlo y firma el contrato en ese carácter. Suelen coincidir, pero el relevamiento mostró que el locador puede ser el titular, un usufructuario, un sublocador o un acreedor, que un inmueble puede tener varios, que lo que cobra cada uno no coincide necesariamente con su parte como dueño y que hay apoderados que firman o cobran por otro, con firma conjunta o indistinta. Por eso un contrato tiene uno o más locadores, cada uno con su porcentaje de cobro y su vigencia, que en cada fecha suman exactamente cien; la titularidad se registra aparte, es opcional y no decide quién cobra.
+
+**Si insisten.** El cambio salió del relevamiento, no de una preferencia de diseño: el registro lo tiene como FB-01 y FB-02. Se resolvió antes de cargar datos reales, que es lo que lo hizo barato; con la cartera cargada sobre el modelo viejo habría sido una migración de datos con reparto dudoso en cada contrato compartido. Los contratos que el sistema anterior no distinguía se cargaron marcados para revisar el reparto. La rendición, la activación del contrato y las plantillas leen ahora de los locadores, en el mismo cambio, para que no convivan dos fuentes.
+
+**Evidencia.** `../adr/0007-locadores-apoderados-y-titularidad.md`; `31-registro-de-feedback.md`, FB-01 y FB-02; `02-roles-y-casos-uso.md`, CU-25 y CU-26; `../calidad/05-casos-de-prueba.md`, CP-110 a CP-119 y CP-244 a CP-256.
+
+### 1.26. ¿Cómo se validó el sistema en uso real?
+
+**Corto.** Con una inmobiliaria real y su ciclo mensual, en cuatro escalones que no se saltean: una línea base que mide cómo trabaja hoy, un ciclo en sombra en el que el equipo reproduce su mes en Realfy, un ciclo en paralelo en el que la inmobiliaria compara, y un ciclo en el que opera ella con su sistema actual de respaldo. Las metas —diferencia cero en la reconciliación, tiempo del ciclo, atraso del estado de cuenta y valoración de uso— se fijaron antes de medir.
+
+**Lo que hay que decir sin que lo pregunten.** A la entrega del 30/11 el piloto tiene hecho el relevamiento, la carga de la cartera real y, si el calendario se cumple, el primer ciclo en sombra; el feedback de uso real empieza con el segundo ciclo. Los hallazgos registrados hasta la entrega son del relevamiento y así se presentan: el registro distingue los dos orígenes con etiquetas distintas y no mezcla uno con el otro.
+
+**Evidencia.** `30-piloto.md`, «Objetivos y métricas» y «Fases y fechas»; `31-registro-de-feedback.md`, «Relevamiento y uso real»; `../calidad/12-piloto.md`; el anexo de validación en campo del informe final.
+
+### 1.27. Hay datos personales reales. ¿Cómo se protegen, y qué hay en un repositorio público?
+
+**Corto.** En el repositorio no hay ningún dato real: ni nombres, ni documentos, ni montos, ni el nombre de la inmobiliaria. Los datos reales viven solo en el ambiente `piloto`, que tiene base, almacenamiento y secretos propios, separados del de demostración; los scripts de migración, las listas de corrección y la evidencia de cada ciclo se guardan fuera del repositorio con acceso restringido al equipo. La demostración de la defensa usa datos sintéticos.
+
+**Si insisten.** La base legal del tratamiento es la ejecución de los contratos de locación, que la Ley 25.326 exceptúa del consentimiento; lo que excede el contrato, como la mensajería instantánea, exige consentimiento y baja, y por eso está planificado y no habilitado. Las cifras agregadas del piloto no se publican mientras la inmobiliaria no dé su consentimiento, que sigue pendiente. Las lecturas sensibles —documento, cuentas bancarias, comisiones, rendiciones, reportes, facturas y auditoría— tienen una política por rol que se puede cerrar sin desarrollo, y la API falla cerrado si no la puede cargar.
+
+**Evidencia.** `../privacidad-datos.md`; `../adr/0014-ambiente-piloto-con-datos-reales.md`; `../operacion-piloto.md`; `02-roles-y-casos-uso.md`, «Matriz de lectura de datos sensibles».
+
+### 1.28. ¿Qué pasó con la reconciliación?
+
+**Corto.** El criterio es diferencia cero por contrato —total del recibo, comisión y neto al locador— y por locador —total del estado de cuenta—, o cada diferencia explicada y registrada como hallazgo o como defecto. La respuesta concreta depende del ciclo: la primera reconciliación es la del ciclo en sombra, alrededor del 20/11/2026, y cubre recibos; la de estados de cuenta empieza con el segundo ciclo. En la defensa se informa el resultado del último ciclo cerrado, con las diferencias encontradas y su destino, aunque no sean cero.
+
+**Si insisten.** La reconciliación tiene dos mitades. La que corre en la integración continua usa casos sintéticos con la forma real y se puede repetir en el momento; la que usa los datos reales corre fuera del repositorio y solo se publica agregada. Una diferencia que viene de algo que el sistema anterior hacía implícitamente se registra como hallazgo; una que viene de un error de Realfy, como defecto, con su prueba primero en rojo.
+
+**Evidencia.** `../calidad/12-piloto.md`; `30-piloto.md`, «Criterio de reconciliación»; `32-migracion.md`.
+
+### 1.29. ¿Por qué tantas reglas configurables por contrato? ¿No complica el sistema?
+
+**Corto.** Lo complica, y es el costo de que sirva. Con la normativa de alquileres vigente casi todo es pactable, y el relevamiento lo confirmó regla por regla: el vencimiento, el prorrateo, el rezago y la base del ajuste, el punitorio, quién paga cada impuesto, el umbral de anticipo. Cada vez que el equipo supuso una regla «de la inmobiliaria», apareció un contrato que la pactaba distinto. La solución es una sola y se aplica igual en todas partes: un valor por defecto de la inmobiliaria, una versión de reglas del contrato que lo pisa y acuerdos fechados para los cambios posteriores, que crean una versión nueva sin reescribir la anterior.
+
+**Si insisten.** La complejidad está contenida en dos lugares: la resolución de la regla vigente a una fecha, que es una sola función, y los motores de cálculo, que son puros, viven en el paquete compartido y se prueban con valores calculados a mano. Lo que se evitó es la alternativa: reglas fijas en el código, que obligan a cambiar el sistema por cada contrato distinto, o a cambiarlo para todos cuando cambia uno.
+
+**Evidencia.** `../adr/0010-reglas-versionadas-y-valores-por-defecto.md`; `../adr/0011-ajuste-con-rezago-estimacion-y-correccion.md`; `02-roles-y-casos-uso.md`, CU-32 y CU-37.
+
+### 1.30. ¿Por qué se reabrió el Hito 4 y se amplió el alcance tan cerca de la entrega?
+
+**Corto.** Porque la validación con usuarios reales era la limitación más seria que el propio informe declaraba, y la oportunidad de hacerla apareció con una inmobiliaria dispuesta. El Hito 4 ya tenía fecha 30/11 en el cronograma; lo que se reabrió fue el documento que lo daba por cerrado en agosto. Se eligió reabrirlo y no abrir un hito nuevo para contar una sola historia, y la ampliación del alcance se declara como desvío, con el hallazgo que motivó cada parte.
+
+**Evidencia.** `hito-04.md`, «Por qué se reabre»; `01-alcance-y-objetivos.md`, «Revisión del alcance por el piloto»; `04-plan-sprints.md`, «Fases del piloto».
+
 ---
 
 ## 2. Puntos fuertes
@@ -556,7 +616,8 @@ Los que conviene poner adelante, con lo que los respalda.
 3. **El aislamiento entre inmobiliarias se revisó como problema de seguridad y no
    como funcionalidad.** Encontró dos fugas reales en código ya revisado, y la
    corrección fue estructural. Está documentada con alternativas y consecuencias.
-4. **Las decisiones están registradas.** Seis registros de decisión con contexto,
+4. **Las decisiones están registradas.** Seis registros de decisión al cierre de la
+   primera versión, y los del piloto después (índice en `../adr/README.md`), con contexto,
    alternativas descartadas y consecuencias negativas asumidas. El ADR-0003 está
    fechado antes del primer módulo de dominio; el ADR-0006 documenta la corrección
    de un riesgo que ese mismo ADR había anotado.
@@ -574,6 +635,16 @@ Los que conviene poner adelante, con lo que los respalda.
 8. **La documentación de operación existe y es usable.** Referencia de API, manual
    de pruebas, manual de usuario por rol, guía de despliegue y guion de la
    demostración.
+9. **El sistema se validó con una inmobiliaria real.** No con un usuario de prueba
+   sino con una cartera real cargada, su ciclo mensual reproducido y reconciliado
+   contra su sistema actual, y cada fricción llevada por el mismo camino hasta una
+   corrección verificada. El relevamiento cambió el modelo —locadores, reglas
+   pactables, tres flujos de cobro— antes de cargar datos, que es cuando cambiarlo
+   es barato.
+
+Las cifras de los puntos 4 y 5 son las de la primera versión del Hito 4; para la
+defensa se usan las de la tabla de cifras del informe final, con su fecha de
+medición.
 
 ---
 
@@ -596,6 +667,11 @@ Cada uno con lo que hay que contestar. La regla es adelantarlos.
 | El aislamiento depende de la aplicación y no del motor | La alternativa está evaluada y descartada por razones escritas, no por comodidad, y queda como el camino natural si el proyecto crece (1.11). |
 | No se puede representar una propiedad administrada por dos inmobiliarias | Es la consecuencia aceptada del invariante que sostiene toda la seguridad del sistema, con la forma correcta de resolverlo identificada y sin relajar el filtro (1.8). |
 | Las tareas programadas no están probadas como tales | Hueco reconocido, con antecedente concreto y con la razón por la que ahora importa más (1.21). |
+| El piloto no terminó al momento de la defensa | Se dice qué ciclos se cerraron y cuáles no. El cuarto ciclo cae alrededor del 20/02/2027 y puede quedar después de la defensa; si es así, se informa como cierre posterior, sin adelantar resultados (1.26). |
+| El feedback de uso real es de pocos ciclos | A la entrega del 30/11 todos los hallazgos son del relevamiento, y se presentan así; el uso real empieza con el segundo ciclo. Lo que se muestra es el mecanismo y lo que produjo hasta la fecha, no una validación estadística (1.26). |
+| Hay datos personales reales en un ambiente operado por el equipo | Ambiente separado con secretos propios, copias fuera del proveedor, restauración medida, despliegue controlado y nada en el repositorio. El consentimiento para cifras agregadas está pendiente y por eso no se muestran (1.27). |
+| La reconciliación con datos reales no se puede reproducir desde el repositorio | Es a propósito: los datos no pueden estar ahí. Se reproduce la suite con casos sintéticos de la misma forma y se muestran los resultados agregados de cada ciclo (1.28). |
+| El correo no está configurado en el piloto | Depende del dominio propio, pendiente. Mientras tanto los documentos se descargan, los enlaces los comparte el Admin y el sistema no marca como enviado lo que no se envió. |
 
 ---
 
@@ -674,6 +750,18 @@ una base vacía, y el despliegue.
 
 **Preguntas que le tocan.** 1.5, 1.12, 1.13, 1.14, 1.20, 1.21, 1.22.
 
+### El piloto en el reparto
+
+Los ítems del piloto siguen el mismo criterio: cada uno defiende lo que construyó.
+Manuel es dueño de los ítems 30, 35, 37, 38, 40, 41 y 45 y coordina el piloto:
+expone el relevamiento, el ciclo mensual y la liquidación completa, y contesta
+1.26, 1.28 y 1.30. Mariano es dueño de los ítems 33, 34, 36, 39 y 42: expone el
+modelo de locadores y apoderados, las reglas versionadas y el ajuste con rezago,
+la caja y los cobros, y la migración de la cartera real, y contesta 1.25 y 1.29.
+Romeo es dueño de los ítems 31, 32, 43 y 44: expone la base de proceso, los
+usuarios y la política de lectura por rol, el ambiente piloto con su despliegue
+y sus copias, y contesta 1.27. El ítem 46, la documentación, es de los tres.
+
 ### Preguntas que contesta quien la reciba
 
 Las de alcance y método —1.6, 1.8, 1.15, 1.23— las puede tomar cualquiera, porque
@@ -701,3 +789,10 @@ falta agregar es lo que corresponde a la preparación y no al recorrido:
   medidos en un ensayo completo y no estimados.
 - **Ninguna credencial en pantalla.** Los accesos van en una hoja aparte, no en el
   repositorio, y las variables de configuración no se muestran.
+- **La defensa es en febrero de 2027.** Antes, el anexo de validación en campo se
+  actualiza con el segundo y el tercer ciclo, y las respuestas de 1.25 a 1.30 se
+  repasan con el resultado del último ciclo cerrado.
+- **El piloto no se muestra en vivo.** La demostración corre en el ambiente de
+  demostración con datos sintéticos; del ambiente `piloto` no se abre ninguna
+  pantalla ni se proyecta ninguna captura. Lo que se muestra del piloto son cifras
+  agregadas y solo si la inmobiliaria dio su consentimiento.

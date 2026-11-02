@@ -14,34 +14,42 @@ equipo.
 
 1. Confirmar que el cambio está en `main` y que la integración continua de ese
    commit está en verde.
-2. Desplegar a `production`:
+2. Armar una copia limpia del commit, fuera de cualquier copia de trabajo, y
+   desplegar desde ahí (`railway up` sube el directorio entero, versionado o no):
+   ```bash
+   rm -rf /tmp/realfy-deploy && mkdir /tmp/realfy-deploy
+   git archive <commit> | tar -x -C /tmp/realfy-deploy
+   cd /tmp/realfy-deploy
+   ```
+3. Desplegar a `production`:
    ```bash
    railway up --service api --environment production --detach
    railway up --service web --environment production --detach
    ```
-3. Verificar en `production`: `/api/health` responde `ok` con `db: connected`,
+4. Verificar en `production`: `/api/health` responde `ok` con `db: connected`,
    se puede iniciar sesión y abre al menos una pantalla.
-4. Si el cambio incluye una migración con relleno de datos, hacer antes la copia
-   previa (ver la sección siguiente).
-5. Desplegar a `piloto` con los mismos comandos y `--environment piloto`.
-6. Repetir la verificación del paso 3 en `piloto`.
-7. Si algo falla en `piloto`, ir a «Incidentes» antes de intentar corregir sobre
+5. Tomar la copia previa de `piloto` y, si el commit trae migraciones, ensayarlas
+   sobre su restauración (ver la sección siguiente).
+6. Desplegar a `piloto` con los mismos comandos y `--environment piloto`.
+7. Repetir la verificación del paso 4 en `piloto` y comparar las migraciones
+   aplicadas con las del commit. Si hubo migraciones, tomar una segunda copia.
+8. Si algo falla en `piloto`, ir a «Incidentes» antes de intentar corregir sobre
    la marcha.
 
 No se despliega en horario de uso de la inmobiliaria ni en los días de cierre de
 mes, salvo para corregir un incidente.
 
-## Copia previa a una migración con relleno
+## Copia previa y ensayo de migraciones
 
-Una migración que reescribe o rellena datos existentes no se aplica por primera
-vez sobre los datos reales.
+Ningún despliegue a `piloto` se hace sin una copia tomada justo antes, y ninguna
+migración se aplica por primera vez sobre los datos reales.
 
 1. Tomar una copia lógica con `pg_dump -Fc` a través de `railway ssh`, guardarla
    en el servidor del equipo con permisos 600 y verificarla con `pg_restore -l`
-   y un `sha256`.
-2. Restaurar esa copia en un PostgreSQL local.
-3. Aplicar la migración sobre la copia local con `prisma migrate deploy` y
-   revisar los resultados: conteos antes y después, filas que el relleno debía
+   y un `sha256`. Esta copia se toma siempre, haya o no migraciones.
+2. Si el commit trae migraciones, restaurar esa copia en un PostgreSQL local.
+3. Aplicar las migraciones sobre la copia local con `prisma migrate deploy` y
+   revisar los resultados: conteos antes y después, filas que un relleno debía
    tocar, ninguna fila huérfana.
 4. Solo si el ensayo sale limpio, desplegar a `piloto`.
 
@@ -64,23 +72,38 @@ antes se intenta el retroceso del despliegue (ver «Incidentes»).
 6. Verificar con `/api/health`, iniciar sesión y revisar con la inmobiliaria
    los últimos movimientos, porque los posteriores a la copia hay que volver a
    cargarlos.
-7. Registrar el tiempo total: es la medición del RTO (meta de 2 horas o menos).
+7. Registrar el tiempo total: es la medición del RTO del servicio (meta de 2 horas
+   o menos).
 
-La restauración se ensaya en local después de cargar los datos reales y antes de
-cada cierre de ciclo, no solo cuando hace falta.
+La restauración se ensaya en local antes de cada cierre de ciclo, no solo cuando
+hace falta. El 2026-11-02, con la copia tomada después de cargar la cartera real,
+los pasos 2 a 4 tardaron unos 3 segundos (la copia pesa alrededor de 1 MB): con este
+volumen el tiempo de recuperación lo dominan los pasos manuales 5 y 6, que todavía
+no se midieron de punta a punta. El detalle de RPO y RTO está en `despliegue.md`.
 
 ## Cierre de mes
 
-Lista de verificación, en el orden del ciclo (ver `tesis/30-piloto.md`):
+Lista de verificación, en el orden del ciclo (ver `tesis/30-piloto.md`). Mientras
+el ciclo sea en sombra o en paralelo, cada paso se hace en Realfy además de en el
+sistema actual de la inmobiliaria, y la reconciliación sigue
+`calidad/12-piloto.md`.
 
+- [ ] Copia de la base tomada antes de empezar el ciclo.
+- [ ] Índices del mes: el IPC con el rezago pactado está publicado, o los ajustes
+  que lo usen quedan como provisorios y se anotan.
 - [ ] Ajustes: previsualizados, revisados y aplicados.
 - [ ] Boletas de impuestos y servicios del período cargadas.
-- [ ] Liquidaciones generadas.
+- [ ] Cargos del mes cargados en el centro de carga, con los que piden anticipo
+  resueltos.
+- [ ] Liquidaciones generadas, con los punitorios pendientes incluidos.
 - [ ] Liquidaciones aprobadas y enviadas a los inquilinos.
-- [ ] Cobros registrados.
-- [ ] Estado de cuenta de cada locador generado.
+- [ ] Cobros registrados en caja, con quién recibió cada pago y en qué cuenta.
+- [ ] Estado de cuenta de cada locador generado (desde el ítem 37; hasta entonces,
+  la rendición por contrato repartida entre los locadores).
 - [ ] Reconciliación contra el método actual de la inmobiliaria, con las
-  diferencias anotadas.
+  diferencias anotadas y convertidas en FB o defecto dentro de las 24 horas.
+- [ ] Evidencia del ciclo guardada fuera del repositorio; en el repositorio, solo
+  los totales agregados que autorice la inmobiliaria.
 - [ ] Copia de seguridad: confirmar que la copia semanal más reciente existe y
   verificarla; si el cierre cae lejos de un lunes, tomar una copia manual.
 

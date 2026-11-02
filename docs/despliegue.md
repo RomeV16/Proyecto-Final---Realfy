@@ -259,7 +259,18 @@ ya construida, con lo cual no toma los cambios de `NEXT_PUBLIC_API_URL`.
 ## Despliegue controlado
 
 Los despliegues no se disparan por un empuje al repositorio. Se hacen a mano con
-la línea de comandos de Railway, para cada servicio y cada ambiente:
+la línea de comandos de Railway, para cada servicio y cada ambiente, desde una
+copia limpia del commit integrado en `main` y no desde una copia de trabajo:
+
+```bash
+rm -rf /tmp/realfy-deploy && mkdir /tmp/realfy-deploy
+git archive <commit> | tar -x -C /tmp/realfy-deploy
+cd /tmp/realfy-deploy
+```
+
+`railway up` sube el directorio en el que se corre, incluidos los archivos que no
+están versionados; desde la copia limpia sube exactamente lo que está en el commit,
+y nada más. Desde ese directorio:
 
 ```bash
 railway up --service api --environment <ambiente> --detach
@@ -271,9 +282,15 @@ Reglas:
 - Solo se despliega desde `main`, y con la integración continua en verde.
 - Primero `production`. Se verifica allí (punto de salud, ingreso y una
   pantalla) y recién después se despliega a `piloto`, con la misma verificación.
-- Una migración con relleno de datos (backfill) en `piloto` exige antes una copia
-  de la base y un ensayo de la migración sobre una restauración local de esa
-  copia (ver «Copias de seguridad y restauración»).
+- Antes de cada despliegue a `piloto` se toma una copia lógica de la base, haya o
+  no migraciones (ver «Copias de seguridad y restauración»).
+- Si el despliegue trae migraciones, se ensayan antes sobre una restauración local
+  de esa copia: se aplican con `prisma migrate deploy` y se comparan conteos antes y
+  después. Las que reescriben o rellenan datos (backfill) además se revisan fila por
+  fila en lo que tocan. Solo con el ensayo limpio se despliega.
+- Después del despliegue se verifica la salud, el ingreso y que las migraciones
+  aplicadas coincidan con las del commit; si hubo migraciones, se toma una segunda
+  copia como punto de partida del estado nuevo.
 
 El paso a paso está en `operacion-piloto.md`.
 
@@ -302,18 +319,29 @@ reinició la base una vez. Cubren el borrado o la corrupción del volumen con un
 granularidad de un día.
 
 **Copia lógica fuera del proveedor.** Una vez por semana, los lunes a las 06:30
-UTC, se corre `pg_dump -Fc` a través de `railway ssh` y el archivo se guarda en
-el servidor del equipo con permisos 600. Cada copia se verifica con
-`pg_restore -l` y se le calcula un `sha256`. Se conservan las últimas 12. Cubre
-la pérdida de la cuenta o del proyecto en el proveedor.
+UTC, una tarea programada corre `pg_dump -Fc` a través de `railway ssh` y el
+archivo se guarda en el servidor del equipo con permisos 600. Cada copia se
+verifica con `pg_restore -l` y se le calcula un `sha256`. Se conservan las
+últimas 12 copias semanales. Además, se toma una copia con el mismo procedimiento
+antes de cada despliegue a `piloto` y antes de cada carga de datos. Cubre la
+pérdida de la cuenta o del proyecto en el proveedor, y es la que se restaura para
+ensayar las migraciones.
 
 Objetivos declarados:
 
 | Objetivo | Valor |
 |---|---|
 | RPO con la copia nativa diaria | 24 horas |
-| RPO con la copia externa | 7 días |
-| RTO | A medir con datos reales; meta de 2 horas o menos |
+| RPO con la copia externa | 7 días como máximo; cero respecto del estado previo a cada despliegue, porque se copia justo antes |
+| RTO de la base (restauración de la copia) | Medido el 2026-11-02: unos 3 segundos en local para la copia completa de la base del piloto con sus datos reales, de alrededor de 1 MB |
+| RTO total del servicio | Meta de 2 horas o menos; sin medir de punta a punta |
+
+El RTO medido es el de restaurar la copia sobre una base vacía y verificarla; no
+incluye crear la base nueva en el proveedor, apuntar la API a ella y volver a
+desplegar, que son pasos manuales y dominan el tiempo total. Con el volumen de una
+inmobiliaria del tamaño del piloto la restauración en sí es prácticamente
+instantánea, así que la meta de 2 horas depende del procedimiento y no del tamaño
+de los datos. Se vuelve a medir antes de cada cierre de ciclo.
 
 **Restauración**, de forma genérica:
 
@@ -325,19 +353,32 @@ Objetivos declarados:
 4. Solo si se está recuperando: apuntar `DATABASE_URL` del servicio `api` a la
    base restaurada y desplegar la configuración.
 
-La prueba de restauración se hizo el 2026-10-31, sobre un PostgreSQL local. La
-base del piloto todavía no tiene datos de negocio, solo las 21 migraciones
-aplicadas, así que la prueba demuestra el procedimiento y no el volumen ni el
-tiempo. Se repite después de cargar los datos reales y antes de cada cierre de
-ciclo.
+La primera prueba de restauración se hizo el 2026-10-31, sobre un PostgreSQL
+local, cuando la base del piloto todavía no tenía datos de negocio: demostró el
+procedimiento y no el volumen ni el tiempo. La segunda se hizo el 2026-11-02, con
+la copia tomada después de cargar la cartera real: la restauración completa tardó
+unos 3 segundos, y los conteos de personas y contratos de la base restaurada
+coincidieron con los de la carga. Se repite antes de cada cierre
+de ciclo.
 
 ## Reglas para el ambiente piloto
 
-- Nunca `prisma migrate reset` en `piloto`.
+`piloto` tiene datos reales de personas y de una cartera en uso. Todo lo que en
+`production` se puede rehacer, ahí no.
+
+- Nunca `prisma migrate reset` en `piloto`, ni borrar y recrear su base: con datos
+  reales no hay foja cero.
 - Nunca correr scripts de prueba ni cargas iniciales (seeds) contra `piloto`.
 - Nunca borrar el servicio `db` de `piloto`.
-- Antes de una migración con relleno de datos: copia de la base y ensayo local
+- Antes de cada despliegue: copia de la base. Si hay migraciones, ensayo local
   sobre su restauración.
+- Solo se despliega un commit integrado en `main`, desde su copia limpia, y después
+  de verificarlo en `production`.
+- El correo (`RESEND_API_KEY` y `RESEND_FROM_ADDRESS`) es necesario en `piloto` para
+  invitaciones, recuperos y envío de documentos, y se configura junto con el dominio
+  propio, que está pendiente. Mientras falte, el Admin comparte los enlaces a mano,
+  los documentos se descargan en PDF y el sistema no marca como enviado lo que no se
+  envió.
 - Ningún dato, dominio, contraseña ni identificador de recursos del ambiente
   piloto se escribe en el repositorio.
 

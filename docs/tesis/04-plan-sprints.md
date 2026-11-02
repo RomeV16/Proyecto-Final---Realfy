@@ -1,6 +1,6 @@
 # Plan de Sprints
 
-El desarrollo se organiza en sprints quincenales entre mayo y noviembre de 2026. La cadencia de dos semanas se elige por la disponibilidad parcial de los tres tesistas y por la necesidad de tener cierres frecuentes para validar entregables con el director de tesis.
+El desarrollo se organiza en sprints quincenales entre mayo y noviembre de 2026, y desde el piloto en una inmobiliaria real se extiende hasta febrero de 2027 con los sprints S17 a S22 (ver «Fases del piloto»). La cadencia de dos semanas se elige por la disponibilidad parcial de los tres tesistas y por la necesidad de tener cierres frecuentes para validar entregables con el director de tesis.
 
 Los sprints se solapan parcialmente con los ítems del Gantt: un sprint puede arrancar mientras otro está pasando por su ventana de control de calidad, y un mismo ítem del Gantt puede atravesar dos sprints si su ventana en el cronograma así lo dispone. Cuando un sprint coincide con un hito, su revisión final se extiende para producir los artefactos del hito.
 
@@ -9,7 +9,9 @@ Los sprints se solapan parcialmente con los ítems del Gantt: un sprint puede ar
 - **Hito 1**: 15/05/2026. Aprobación de planificación: alcance, casos de uso, modelo de datos, arquitectura, backlog y plan de sprints.
 - **Hito 2**: 14/08/2026. MVP operativo demostrable con flujo end-to-end (alta de propiedad, contrato, liquidación, pago, comprobante).
 - **Hito 3**: 30/10/2026. Plataforma completa con portal del inquilino, CRM, ARCA, dashboard y notificaciones.
-- **Hito 4**: 30/11/2026. Entrega final con pruebas integrales, documentación y defensa preparada.
+- **Hito 4**: 30/11/2026. Entrega final con pruebas integrales, documentación y defensa preparada. Desde el piloto incluye además el capítulo de validación en campo con el relevamiento, el plan, la línea base y el primer ciclo en sombra (ver `hito-04.md`, reabierto el 2 de noviembre de 2026).
+- **Anexo de validación en campo**: se actualiza después del C2 (≈ 20/12/2026) y del C3 (≈ 20/01/2027), sin reescribir lo entregado el 30/11.
+- **Defensa**: febrero de 2027. Si el C4 (≈ 20/02/2027) cae después, su resultado se informa como cierre posterior del piloto.
 
 ## Detalle por sprint
 
@@ -93,6 +95,66 @@ Los sprints se solapan parcialmente con los ítems del Gantt: un sprint puede ar
 
 - Ítems: cierre de 27, cierre de 28, 29 (informe final y defensa).
 - Entregable de hito: Hito 4. Informe final, demo, manuales y defensa lista.
+
+## Fases del piloto
+
+### Estado real del plan original
+
+Los sprints S1 a S16 son el plan aprobado en el Hito 1 y se conservan como tal. La ejecución real fue más rápida que el plan: la versión beta del informe final y la documentación del Hito 4 se cerraron el 18/08/2026, con desvíos que el informe declara (entre ellos, que la suite de navegador del ítem 27 no se construyó). Por eso el contenido original de S15 y S16 ya estaba hecho cuando empezaron, y esos dos sprints se reasignan al piloto. El cambio es un desvío declarado: el plan no preveía una validación en uso real y se incorporó el 30/10/2026, a partir del relevamiento de la inmobiliaria.
+
+### Calendario por ciclos reales
+
+Desde S15 el ritmo lo marca el ciclo mensual de la inmobiliaria y no la quincena: la liquidación se prepara alrededor del día 20 del mes anterior y los pagos entran en los primeros días del mes. Cada ciclo exige que esté integrado lo que ese ciclo necesita, y los sprints se ordenan para llegar a cada fecha con eso listo.
+
+| Ciclo | Fecha de liquidación | Modo | Debe estar listo | Evidencia |
+|---|---|---|---|---|
+| Línea base | ≈ 20/11/2026 | La inmobiliaria opera con su sistema actual y se mide | — | Tiempos por tarea, errores y atrasos |
+| C1 | ≈ 20/11/2026 | En sombra: el equipo replica el ciclo en `piloto` | Oleadas 0 a 2 y la cartera importada | Reconciliación de recibos |
+| C2 | ≈ 20/12/2026 | En paralelo: la inmobiliaria mira y compara | Oleada 3 (caja y cobros, cuenta corriente del locador) | Reconciliación de recibos y estados de cuenta; primer feedback de uso |
+| C3 | ≈ 20/01/2027 | La inmobiliaria opera en Realfy con su sistema actual de respaldo | Oleada 4 | Métricas antes y después; feedback y defectos del uso |
+| C4 | ≈ 20/02/2027 | Realfy es el sistema principal | Oleada 5 | Cierre del piloto |
+
+### S15 replanificado: 02/11/2026 a 13/11/2026
+
+- Ítems: 36 (caja y cobros), 37 (cuenta corriente del locador), 39 (carga de la cartera real en `piloto` y su revisión con la inmobiliaria), 45 (suite de reconciliación con casos sintéticos), 46 (documentación del piloto).
+- Entregable: oleada 3 integrada en lo que necesita el C1; cartera real cargada y restauración de su copia medida.
+
+### S16 replanificado: 16/11/2026 a 30/11/2026
+
+- Ítems: 45 (línea base y C1 en sombra, ≈ 20/11), correcciones que salgan de la reconciliación, 46 (capítulo del piloto e informe final).
+- Entregable de hito: Hito 4 el 30/11, con el piloto en curso: relevamiento, plan, línea base, C1 y registro de feedback hasta esa fecha.
+
+### S17: 01/12/2026 a 11/12/2026
+
+- Ítems: cierre de 37 si quedara pendiente, 38 (facturación por cuenta del locador), inicio de 40 (vencimientos y renovaciones).
+- Entregable: todo lo que el C2 necesita, desplegado en `piloto` antes del 18/12.
+
+### S18: 14/12/2026 a 23/12/2026
+
+- Ítems: 45 (C2 en paralelo, ≈ 20/12), 40, 41 (honorarios).
+- Entregable: reconciliación de recibos y estados de cuenta del C2; primeros FB de uso real en el registro.
+
+### S19: 04/01/2027 a 15/01/2027
+
+- Ítems: 40, 41 y 42 (incidencias), inicio de 43 (correo con dominio propio y cola de salida).
+- Entregable: oleada 4 integrada y desplegada antes del C3. Anexo de validación actualizado con el C2.
+
+### S20: 18/01/2027 a 29/01/2027
+
+- Ítems: 45 (C3, ≈ 20/01, con la inmobiliaria operando), 43, correcciones del uso real.
+- Entregable: métricas antes y después del C3; feedback y defectos del uso real.
+
+### S21: 01/02/2027 a 12/02/2027
+
+- Ítems: 43 y 44 (ventas, llaves y publicación) según lo que permita el calendario de la defensa, 46 (anexo de validación con el C3 y preparación de la defensa).
+- Entregable: anexo de validación final para la defensa y ensayo completo.
+
+### S22: 15/02/2027 a 26/02/2027
+
+- Ítems: 45 (C4, ≈ 20/02), defensa.
+- Entregable: defensa; cierre del piloto con el C4, o su informe posterior si la defensa es antes.
+
+Las fechas de los ciclos son las de la inmobiliaria y no se mueven; lo que se ajusta es el contenido de cada sprint. Si un ítem no llega a su ciclo, el ciclo corre con lo que hay y la falta se registra como desvío del piloto.
 
 ## Notas operativas
 

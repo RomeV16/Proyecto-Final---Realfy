@@ -2,15 +2,76 @@
 
 ## Fecha
 
-2026-08-18.
+2026-11-30. El hito se reabrió el 2026-11-02; su primera versión se cerró el 2026-08-18 y se conserva más abajo sin cambios de contenido.
+
+## Por qué se reabre
+
+El cronograma fijaba el Hito 4 el 30/11/2026, pero este documento lo daba por cerrado el 18/08/2026, cuando se terminó la versión beta del informe final. Esa contradicción ya existía antes del piloto, y el piloto la volvió imposible de sostener: la validación en una inmobiliaria real empezó el 30/10/2026 y cambia lo que la entrega final tiene que mostrar. Se evaluaron dos caminos: mantener el hito como estaba y abrir un hito nuevo para el piloto, o reabrirlo con la fecha que el cronograma siempre tuvo. Se eligió reabrirlo, para que la entrega y la defensa cuenten una sola historia: el hito se fecha el 30/11/2026 y se entrega con el piloto en curso; lo cerrado el 18/08 pasa a ser su primera versión, y lo que ocurra en los ciclos posteriores se agrega como anexo de validación en campo, sin reescribir lo entregado. Es un desvío declarado respecto del plan del Hito 1, no una corrección silenciosa.
 
 ## Resumen del hito
+
+El Hito 4 cierra el trabajo con dos partes. La primera, cerrada el 18/08/2026, es el sistema probado, endurecido y documentado, con el informe final escrito y la demostración preparada. La segunda es el piloto: la puesta del sistema en manos de una inmobiliaria real que administra alquileres, con su cartera cargada, su ciclo mensual reproducido en Realfy y los resultados reconciliados contra su sistema actual. El criterio para dar por cumplida la primera parte fue que un lector externo pudiera entender, desplegar, probar y evaluar el sistema sin ayuda; el de la segunda es que el ciclo mensual de una cartera real cierre con diferencia cero, o con cada diferencia explicada y registrada.
+
+## Capítulo del piloto (estado al 2026-11-02)
+
+El capítulo completo está en `30-piloto.md`; el registro de hallazgos, en `31-registro-de-feedback.md`; la migración, en `32-migracion.md`, y la trazabilidad, en `33-matriz-de-trazabilidad.md`. Lo que sigue resume dónde está cada parte a la fecha de la reapertura.
+
+**Relevamiento.** Se revisaron los archivos que la inmobiliaria entregó de su operación —la base de escritorio, las planillas de ajustes y de estados de cuenta, los recibos y los modelos de contrato— y se le hicieron preguntas por escrito, respondidas el 30/10/2026. De ahí salieron los hallazgos FB-01 a FB-28, todos con origen en el relevamiento y ninguno todavía de uso real, porque nadie de la inmobiliaria operó el sistema aún. Los que más pesaron en el diseño son tres: el locador no es necesariamente el propietario y un contrato puede tener varios, con su porcentaje de cobro; casi todas las reglas son pactables por contrato y cambian por acuerdos fechados, y el dinero llega por tres caminos distintos.
+
+**Plan.** El piloto se organizó en los ítems 30 a 46 del cronograma, en seis oleadas, cada ítem con su issue, su dueño y su revisión cruzada, y con un calendario que no fija el equipo sino el ciclo de la inmobiliaria: la línea base y el primer ciclo en sombra alrededor del 20/11/2026, y los siguientes alrededor del 20 de cada mes hasta febrero de 2027 (`04-plan-sprints.md`, «Fases del piloto»).
+
+**Lo entregado.** Las oleadas 0 a 2 están integradas: la base de proceso (protección de la rama principal, plantillas, pruebas de la web, controles de código muerto y duplicación, ensayo de migraciones sobre datos), los usuarios con invitación, recupero de contraseña y política de lectura por rol, el modelo de locadores, apoderados y titularidad, las reglas versionadas del contrato con acuerdos y valores por defecto, el ajuste con rezago y su aplicación mensual, y la liquidación completa con boletas, reglas de traslado, cargos, punitorios y recibo numerado. De la oleada 3 están integradas la importación idempotente, el panel de calidad de datos y la caja con el cobro en tres flujos, la custodia y las compensaciones. Faltan la cuenta corriente y el estado de cuenta del locador, en curso para el segundo ciclo, y las oleadas 4 y 5.
+
+**Carga real de datos.** La cartera de la inmobiliaria se cargó en el ambiente `piloto` el 2026-11-02 con el importador, después de un ensayo sin escritura que dio el mismo resultado, sin filas con error. Se cargaron también los contratos no vigentes, como historial, y el historial de ajustes de los vigentes. Las inconsistencias del origen que el importador no puede resolver solo —repartos entre locadores que el sistema anterior no distingue, reglas inferidas, datos faltantes— quedaron en una lista de revisión para la inmobiliaria, fuera del repositorio, y se corrigen reenviando el lote. Antes y después de la carga se tomaron copias de la base y se probó su restauración (ver `../despliegue.md`). Este repositorio no publica cifras de la cartera: el consentimiento de la inmobiliaria para usar cifras agregadas sigue pendiente.
+
+**Pendiente con fecha.** La línea base del ciclo de la inmobiliaria y el primer ciclo en sombra (C1), alrededor del 20/11/2026, con la reconciliación de los recibos de diciembre; su resultado se incorpora a este documento y al informe final antes del 30/11. El segundo ciclo (C2, ≈ 20/12/2026) agrega los estados de cuenta, y el tercero (C3, ≈ 20/01/2027) es el primero en el que la inmobiliaria opera el sistema.
+
+## Estado del sistema al 2026-11-02
+
+Medido sobre `main` el 2026-11-02, después de integrar la caja y los cobros: el esquema tiene setenta y cuatro modelos y cuarenta y una migraciones; hay catorce decisiones de arquitectura aceptadas (índice en `../adr/README.md`), contra seis de la primera versión; la integración continua corre nueve trabajos en cada cambio, ocho de ellos obligatorios para integrar a `main`, que está protegida desde el 2026-10-30. Las cifras de pruebas y de cobertura cambian con cada integración y se remiden para el informe final, en una sola tabla de cifras con su fecha de medición, para no repetir números que ya no coinciden entre documentos.
+
+## Lecciones aprendidas del piloto
+
+- **El relevamiento cambió el modelo antes de que lo cambiara el uso.** La distinción entre locador, titular y apoderado no estaba en ningún documento de la tesis y salió de leer cómo trabaja una inmobiliaria real. Haberla resuelto antes de cargar datos evitó migrar una cartera real sobre un modelo equivocado.
+- **Una regla fija en el código es una deuda con fecha.** Cada vez que el relevamiento mostró una regla «de la inmobiliaria» —prorrateo, vencimiento, punitorio, reparto de impuestos, anticipo—, apareció un contrato que la pactaba distinto. La respuesta fue la misma en todos los casos: un valor por defecto de la inmobiliaria que cada contrato puede pisar, y los cambios como acuerdos fechados que no reescriben la historia.
+- **La carga se pudo hacer antes de tener los datos perfectos porque es repetible.** Que la importación sea idempotente permitió cargar la cartera y corregirla después, en lugar de esperar a que la inmobiliaria revisara cada dato antes de empezar.
+- **La lección de la primera versión se cumplió.** Esa versión decía que un cambio de seguridad hecho sin datos reales habría costado mucho más con ellos. Con el piloto, cada migración se ensaya sobre una copia restaurada de los datos reales antes de desplegarla, y cada despliegue a `piloto` va precedido de una copia; el costo de cambiar algo creció exactamente como se había anticipado.
+- **No se presenta el relevamiento como uso.** El registro de feedback separa los hallazgos del relevamiento de los del uso real, y a la fecha todos son del relevamiento. La validación de uso empieza con el C2 y se informa como tal.
+
+## Riesgos del piloto
+
+| Riesgo | Mitigación |
+|---|---|
+| El ciclo no reconcilia a tiempo para la entrega del 30/11 | El C1 es en sombra y su resultado se informa como esté, con cada diferencia registrada como FB o defecto; la entrega no depende de que la diferencia sea cero |
+| Pérdida o corrupción de los datos reales | Copias nativas diarias y semanales, copia lógica fuera del proveedor semanal y antes de cada despliegue, restauración probada con los datos reales (R-12) |
+| Un despliegue rompe el ciclo mensual | Despliegue manual: primero `production`, después `piloto`, con ensayo de migraciones sobre una copia (R-13) |
+| Adopción: la inmobiliaria no deja sus planillas | Paralelo obligatorio antes de operar y empezar por lo que más le cuesta, los estados de cuenta |
+| Fuente del índice de precios | CSV del INDEC con el BCRA de respaldo, carga manual y estimado con corrección |
+| Reglas legales y fiscales no confirmadas | Valores configurables con vigencia y consulta al contador y al abogado |
+| Correo sin configurar en `piloto` | Los documentos se descargan en PDF mientras se configuran el dominio y Resend; el sistema no marca como enviado lo que no se envió |
+| Consentimiento para publicar cifras agregadas | Nada de cifras del piloto en el repositorio hasta tenerlo |
+
+El registro completo de riesgos del proyecto está en `../calidad/04-riesgos.md`.
+
+## Próximos pasos
+
+- Integrar la cuenta corriente y el estado de cuenta del locador y la suite de reconciliación con casos sintéticos.
+- Medir la línea base y correr el C1 en sombra alrededor del 20/11/2026; reconciliar recibos y registrar cada diferencia.
+- Incorporar el resultado del C1 a este documento y al informe final antes del 30/11/2026.
+- Configurar el dominio propio y el correo en `piloto`, y obtener el consentimiento para cifras agregadas.
+- Actualizar el anexo de validación en campo tras el C2 y el C3, y preparar la defensa de febrero de 2027 con el piloto como evidencia (`29-preparacion-defensa.md`).
+
+## Primera versión (cerrada el 2026-08-18)
+
+Lo que sigue es el contenido del hito tal como se cerró el 18/08/2026. Las cifras son las de esa fecha y no se actualizan acá: las vigentes están en «Estado del sistema al 2026-11-02».
+
+### Resumen del hito
 
 El Hito 4 cierra el trabajo. A diferencia de los anteriores, su entregable no es funcionalidad nueva: es el sistema probado, endurecido y documentado, con el informe final escrito y la demostración preparada. Lo que se agregó desde el Hito 3 fueron las dos funciones con modelo de lenguaje, la infraestructura de pruebas y las correcciones de seguridad, y toda la documentación técnica y de usuario.
 
 El criterio para considerar el hito cumplido fue que un lector externo pudiera, sin ayuda del equipo, entender qué hace el sistema, desplegarlo, probarlo y evaluarlo. De ahí que la etapa final haya producido más documentación que código.
 
-## Entregado desde el Hito 3
+### Entregado desde el Hito 3
 
 - **Panel de priorización diaria** y **resumen de gestión al cierre de contrato**, las dos funciones con modelo de lenguaje. Se construyeron con el proveedor como valor de configuración, sin datos personales saliendo del sistema, con la respuesta del modelo validada contra un esquema y con respaldo determinista, de manera que la funcionalidad no depende de que el proveedor esté disponible.
 - **Pruebas integrales**: se arreglaron las suites que no cargaban, se incorporaron las pruebas de integración que corren contra una base creada desde cero, y la integración continua pasó de compilar a cinco trabajos, incluido uno que aplica todas las migraciones sobre una base vacía.
@@ -19,13 +80,13 @@ El criterio para considerar el hito cumplido fue que un lector externo pudiera, 
 - **Documentación**: manual de usuario por rol, guía de despliegue, referencia de API, manual de pruebas, guion de la demostración y dos decisiones de arquitectura nuevas. Y la corrección de la documentación de etapas anteriores, que en varios puntos describía un sistema distinto al entregado.
 - **Informe final y material de preparación de la defensa.**
 
-## Estado final del sistema
+### Estado final del sistema
 
 El backend expone treinta y un módulos sobre un modelo de cincuenta y cinco entidades, con dieciocho migraciones. La interfaz cubre dieciocho secciones internas, más el portal del inquilino y el portal público por inmobiliaria. Las pruebas son seiscientas noventa y siete unitarias en sesenta y cinco suites y cuatrocientas sesenta y cinco de integración en treinta suites, estas últimas contra una base creada desde cero. La cobertura de líneas es del cuarenta y dos por ciento, con un piso exigido del treinta y ocho en integración continua. Hay seis decisiones de arquitectura registradas.
 
 El repositorio acumula algo más de trescientos commits de los tres integrantes, con cincuenta y una integraciones revisadas de forma cruzada, y las cuatro etapas del cronograma quedaron cerradas con su documento y su etiqueta.
 
-## Lecciones aprendidas
+### Lecciones aprendidas
 
 - **Verificar la documentación existente rindió más que escribir documentación nueva.** Al contrastar el modelo de datos documentado contra el esquema, veintiuna de las treinta y dos entidades descriptas tenían al menos un campo que no existía, y había una sección entera dedicada a un módulo que nunca se implementó. La documentación escrita en la etapa de planificación envejeció sin que nadie volviera sobre ella.
 - **Un riesgo declarado no es un riesgo controlado.** La lista de modelos alcanzados por el filtro de inmobiliaria estaba anotada como deuda desde su decisión de arquitectura, y aun así se le escapó un modelo. Corregirlo no bastaba: hizo falta una prueba que compare la lista contra el esquema para que el olvido rompa la suite en lugar de pasar inadvertido.
@@ -33,6 +94,6 @@ El repositorio acumula algo más de trescientos commits de los tres integrantes,
 - **Un trabajo con un modelo de lenguaje se sostiene por lo que el modelo no hace.** La decisión de calcular todas las cifras en el sistema y dejarle al modelo únicamente la redacción, verificando además que no introduzca números propios, es lo que hace defendible el resultado sobre datos financieros de un contrato.
 - **Declarar los desvíos fortalece el trabajo.** El informe final dice qué se planificó y no se entregó, cuál es la cobertura real y qué limitaciones quedan abiertas. Un plan que coincide perfectamente con el resultado es menos creíble que uno que explica en qué se desvió y por qué.
 
-## Cierre
+### Cierre
 
 Las cuatro etapas del cronograma están cerradas: planificación aprobada, MVP operativo demostrable, beta integrada y entrega final. El sistema queda desplegado en un ambiente de demostración, con la documentación necesaria para operarlo, desplegarlo y evaluarlo, y con sus limitaciones escritas.

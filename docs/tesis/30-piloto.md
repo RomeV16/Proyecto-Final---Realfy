@@ -105,41 +105,55 @@ Cada ítem lo firma su dueño, se integra por un PR revisado por otro integrante
 
 ## Ciclo mensual
 
-El diagrama muestra el ciclo que Realfy debe reproducir. El tiempo corre de arriba hacia abajo; el día 20 es el punto de partida y las transferencias a los locadores cierran el ciclo.
+El diagrama muestra el ciclo que Realfy debe reproducir y distingue lo que ya está integrado en `main` de lo que falta. El tiempo corre de arriba hacia abajo: alrededor del día 20 del mes anterior se aplican los ajustes, se cargan las boletas y los cargos, y se generan las liquidaciones con los punitorios pendientes; en los primeros días del mes se cobra; al cierre se arma el estado de cuenta de cada locador y se le transfiere. Los bloques verdes son los pasos implementados: la preparación del mes, de las oleadas 0 a 2, y el cobro con la caja, la custodia y las compensaciones, del ítem 36 de la oleada 3. El anaranjado es lo planificado para el resto de la oleada 3, la cuenta corriente y el estado de cuenta del locador (ítem 37), que es lo que el C2 necesita.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Dir as Dirección
     participant R as Realfy
-    participant IDX as Índices (INDEC / BCRA)
+    participant IDX as Índices INDEC y BCRA
     actor Inq as Inquilino
     actor Loc as Locador
 
-    Note over Dir,R: Aproximadamente el día 20 del mes anterior
-    Dir->>R: Revisa los contratos con ajuste en el mes
-    R->>IDX: Obtiene el índice de dos meses antes
-    IDX-->>R: Valor publicado (o carga manual / estimado)
-    R-->>Dir: Previsualización de ajustes
-    Dir->>R: Aplica los ajustes
+    rect rgba(46, 160, 67, 0.12)
+    Note over Dir,IDX: Implementado. Alrededor del día 20 del mes anterior
+    Dir->>R: Pide los ajustes que vencen en el mes
+    R->>IDX: Busca el índice con el rezago pactado, dos meses por defecto
+    IDX-->>R: Valor publicado, carga manual o estimado a corregir
+    R-->>Dir: Previsualización por contrato, con los provisorios marcados
+    Dir->>R: Aplica los ajustes elegidos
     Dir->>R: Carga las boletas de impuestos y servicios del período
-    Dir->>R: Genera las liquidaciones
-    R-->>Dir: Liquidaciones con alquiler, cargos y comisión
+    R->>R: Reparte cada boleta según la regla de traslado del contrato
+    Dir->>R: Carga los cargos del mes al inquilino o al locador
+    Dir->>R: Genera las liquidaciones del mes
+    R->>R: Suma alquiler vigente, partes de boletas, cargos y punitorios pendientes
+    R-->>Dir: Liquidaciones con renglones con destino y comisión sobre lo comisionable
     Dir->>R: Aprueba y envía
-    R-->>Inq: Recibo con vencimiento y forma de pago
+    R-->>Inq: Recibo numerado con monto en letras y vencimiento
+    end
 
-    Note over Inq,R: Primeros días del mes
-    Inq->>R: Paga (repartido, todo a la inmobiliaria o todo al locador)
-    R-->>Inq: Recibo de pago
-    R->>R: Asienta caja y cuenta corriente del locador
-    R-->>Dir: Estado de cobros y morosos
+    rect rgba(46, 160, 67, 0.12)
+    Note over Inq,R: Implementado. Primeros días del mes
+    Inq->>R: Paga a la inmobiliaria, en caja o banco, o directo al locador
+    R->>R: Reparte el cobro entre inmobiliaria, entes y cada locador
+    R->>R: Asienta el ingreso en caja o la parte de los locadores en custodia
+    R-->>Inq: Recibo de cobro numerado si cobró la inmobiliaria
+    R-->>Dir: Cobros y morosos, con el punitorio a la fecha
+    Dir->>R: Registra compensaciones y entregas de custodia
+    end
 
-    Note over Dir,Loc: Cierre del mes
-    R-->>Dir: Estado de cuenta por locador con saldo arrastrado
+    rect rgba(255, 140, 0, 0.14)
+    Note over Dir,Loc: Planificado en la oleada 3, ítem 37. Cierre del mes
+    R->>R: Asienta cada movimiento en la cuenta corriente del locador
+    R-->>Dir: Estado de cuenta consolidado por locador con saldo arrastrado
     Dir->>Loc: Envía el estado de cuenta
-    Dir->>Loc: Transfiere el neto, o compensa y entrega en efectivo
-    Dir->>R: Registra la transferencia o la entrega
+    Dir->>Loc: Transfiere el neto
+    Dir->>R: Registra la transferencia
+    end
 ```
+
+Hay tres matices que el diagrama no alcanza a mostrar. El primero es que el cobro ya registra quién recibió el dinero y cómo se reparte, pero lo que cada locador tiene a favor o en contra todavía no se acumula en una cuenta corriente: eso llega con el ítem 37. El segundo es que la rendición por contrato que existe hoy ya reparte el neto entre los locadores según su porcentaje de cobro, pero no es el estado de cuenta consolidado de todas sus unidades que la inmobiliaria arma a mano; ese documento llega con la cuenta corriente. El tercero es que el envío por correo necesita la credencial de Resend en el ambiente `piloto`, que sigue pendiente junto con el dominio propio; hasta entonces los documentos se descargan en PDF y se envían por fuera del sistema. La mensajería instantánea y la cobranza escalonada son de las oleadas 4 y 5 (ítem 43).
 
 ## Criterio de reconciliación
 
@@ -157,7 +171,7 @@ Antes de la importación al ambiente `piloto`, el procedimiento de carga se ensa
 - **Ambiente separado.** El piloto corre en un ambiente `piloto`, con su base de datos y su almacenamiento propios, distinto del de demostración. No se reinicia ni se recrea la base con datos reales.
 - **Nada real en el repositorio.** Ni datos, ni capturas, ni cifras derivadas. Los casos de prueba, los ejemplos y los documentos usan datos sintéticos. Las fuentes del relevamiento y los datos reales se guardan fuera del repositorio, con acceso restringido al equipo.
 - **Aislamiento entre inmobiliarias.** Se mantiene lo decidido en ADR-0006; todo modelo nuevo se registra en el filtro por inmobiliaria.
-- **Copias de respaldo.** Copias nativas diarias y semanales del proveedor y una copia semanal de la base fuera del proveedor de alojamiento, con prueba de restauración (ver `../despliegue.md`).
+- **Copias de respaldo.** Copias nativas diarias y semanales del proveedor y una copia lógica de la base fuera del proveedor de alojamiento, semanal y además antes de cada despliegue, con prueba de restauración repetida sobre los datos reales (ver `../despliegue.md`).
 - **Cifras en la tesis.** Los resultados del piloto se reportan agregados, con la fecha de medición, y solo con consentimiento de la inmobiliaria, que se decide más adelante y sigue pendiente.
 
 La decisión está registrada en `../adr/0014-ambiente-piloto-con-datos-reales.md`, y el procedimiento de despliegue, copias, restauración e incidentes en `../operacion-piloto.md`.
