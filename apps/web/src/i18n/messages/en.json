@@ -1546,7 +1546,8 @@
    "Transferencia": "Transferencia bancaria",
    "Efectivo": "Efectivo",
    "MercadoPago": "MercadoPago",
-   "Cheque": "Cheque"
+   "Cheque": "Cheque",
+   "AplicacionDeposito": "Deposit application"
   },
   "pdf": {
    "download": "Descargar PDF",
@@ -6105,7 +6106,7 @@
    "finish": "Confirm settlement",
    "confirm": {
     "title": "Confirm the move-out settlement",
-    "body": "{currency} {refund} are refunded to the tenant and {currency} {owed} remain owed. The included charges are applied and the deposit step is closed. This cannot be undone.",
+    "body": "{currency} {refund} are refunded to the tenant and {currency} {owed} remain owed. The deposit is applied as a payment to the open invoices included, the included charges are applied and the deposit step is closed. This cannot be undone.",
     "action": "Confirm"
    },
    "confirmed": "Settlement confirmed",

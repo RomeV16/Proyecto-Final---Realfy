@@ -30,6 +30,7 @@ const METHOD_LABELS: Record<string, string> = {
   Efectivo: 'Efectivo',
   MercadoPago: 'Mercado Pago',
   Cheque: 'Cheque',
+  AplicacionDeposito: 'Aplicación del depósito',
 };
 
 export default function PagosPage() {

@@ -1311,6 +1311,8 @@ enum PaymentMethod {
   Efectivo
   MercadoPago
   Cheque
+  /// Pago interno: el depósito del contrato aplicado a las deudas de la liquidación de egreso.
+  AplicacionDeposito
 }
 
 enum LineItemType {

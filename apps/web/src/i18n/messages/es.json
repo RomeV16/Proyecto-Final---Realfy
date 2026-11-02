@@ -1546,7 +1546,8 @@
    "Transferencia": "Transferencia bancaria",
    "Efectivo": "Efectivo",
    "MercadoPago": "MercadoPago",
-   "Cheque": "Cheque"
+   "Cheque": "Cheque",
+   "AplicacionDeposito": "Aplicación del depósito"
   },
   "pdf": {
    "download": "Descargar PDF",
@@ -6105,7 +6106,7 @@
    "finish": "Confirmar liquidación",
    "confirm": {
     "title": "Confirmar la liquidación de egreso",
-    "body": "Se devuelven {currency} {refund} al inquilino y quedan {currency} {owed} a su cargo. Se imputan los cargos incluidos y se cierra el paso del depósito. No se puede deshacer.",
+    "body": "Se devuelven {currency} {refund} al inquilino y quedan {currency} {owed} a su cargo. El depósito se aplica como pago a las liquidaciones abiertas incluidas, se imputan los cargos incluidos y se cierra el paso del depósito. No se puede deshacer.",
     "action": "Confirmar"
    },
    "confirmed": "Liquidación confirmada",

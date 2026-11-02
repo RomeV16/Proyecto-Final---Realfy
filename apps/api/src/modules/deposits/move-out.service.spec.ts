@@ -22,6 +22,7 @@ const deposit = (over: Record<string, unknown> = {}) => ({
 
 const contract = {
   id: 'c1',
+  tenantId: 't1',
   propertyId: 'p1',
   startDate: utc(2024, 3, 1),
   rentAmount: '182000',
@@ -52,7 +53,8 @@ function build(over: { deposit?: any; settlement?: any; followUps?: any[]; defau
     },
     pendingCharge: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn(), create: jest.fn() },
     serviceBillAllocation: { findMany: jest.fn().mockResolvedValue([]), updateMany: jest.fn() },
-    liquidacion: { findMany: jest.fn().mockResolvedValue([]) },
+    liquidacion: { findMany: jest.fn().mockResolvedValue([]), findFirst: jest.fn().mockResolvedValue({ id: 'billed' }) },
+    contractTermsVersion: { findFirst: jest.fn().mockResolvedValue(null) },
     contractFollowUp: { findMany: jest.fn().mockResolvedValue(over.followUps ?? [{ id: 'f1' }]) },
     followUpTask: { updateMany: jest.fn() },
     ownerLedgerEntry: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
@@ -70,9 +72,11 @@ function build(over: { deposit?: any; settlement?: any; followUps?: any[]; defau
       over.defaults ?? {
         deposits: { defaultHeldBy: 'Locador', refundDueDays: 30, deductionsNeedLessorApproval: false },
         ownerAccounts: { statementCloseDay: null },
+        prorationMode: 'DiasReales',
       },
     ),
   };
+  const liquidaciones = { applyPaymentInTx: jest.fn(async () => ({ payment: { id: 'pay1' } })) };
   const service = new MoveOutService(
     prisma as any,
     { getTenantId: () => 't1', getUserId: () => 'u1' } as any,
@@ -81,8 +85,9 @@ function build(over: { deposit?: any; settlement?: any; followUps?: any[]; defau
     deposits as any,
     penalties as any,
     defaults as any,
+    liquidaciones as any,
   );
-  return { service, tx, audit, cash, deposits, penalties };
+  return { service, tx, audit, cash, deposits, penalties, liquidaciones };
 }
 
 const settlement = (over: Record<string, unknown> = {}) => ({
@@ -127,6 +132,20 @@ describe('MoveOutService.preview', () => {
     expect(res.refundToTenant).toBe('68700.00');
     expect(res.owedByTenant).toBe('0.00');
     expect(tx.moveOutSettlement.create).not.toHaveBeenCalled();
+  });
+
+  it('propone el alquiler del último mes con el prorrateo del contrato y es editable', async () => {
+    const { service, tx } = build();
+    tx.liquidacion.findFirst.mockResolvedValue(null);
+    const res: any = await service.preview('c1', { date: '2025-06-10' });
+    expect(res.items[0]).toMatchObject({ kind: 'AlquilerPendiente', amount: '60666.67', included: true, sourceType: 'LastMonthRent', sourceId: '2025-06-01' });
+    expect(res.items[0].description).toContain('10 de 30 días');
+  });
+
+  it('el mes de egreso ya liquidado no se propone otra vez', async () => {
+    const { service } = build();
+    const res: any = await service.preview('c1', { date: '2025-06-10' });
+    expect(res.items.find((i: any) => i.sourceType === 'LastMonthRent')).toBeUndefined();
   });
 
   it('sin depósito todo lo adeudado queda a cargo del inquilino', async () => {
@@ -240,12 +259,63 @@ describe('MoveOutService.confirm', () => {
     expect(tx.contractDeposit.update.mock.calls[0][0].data.refundedAmount).toBe('0.00');
   });
 
-  it('si lo guarda el locador registra lo retenido en su cuenta corriente y no mueve caja', async () => {
-    const { service, tx, cash } = build({ settlement: settlement(), deposit: deposit({ heldBy: 'Locador' }) });
+  const liqRows = [
+    { id: 'l1', dueDate: utc(2025, 4, 10), status: 'Vencida', currency: 'ARS' },
+    { id: 'l2', dueDate: utc(2025, 5, 10), status: 'Enviada', currency: 'ARS' },
+  ];
+  const liqItems = [
+    { kind: 'AlquilerPendiente', description: 'Liq 04', amount: '60000.00', included: true, sourceType: 'Liquidacion', sourceId: 'l1' },
+    { kind: 'Punitorio', description: 'Pun 04', amount: '1000.00', included: true, sourceType: 'Liquidacion', sourceId: 'l1' },
+    { kind: 'AlquilerPendiente', description: 'Liq 05', amount: '50000.00', included: true, sourceType: 'Liquidacion', sourceId: 'l2' },
+  ];
+
+  it('aplica el depósito como pagos reales a las liquidaciones, de la más antigua a la más nueva, sacándolo antes de la custodia', async () => {
+    const { service, tx, cash, liquidaciones, audit } = build({ settlement: settlement({ items: liqItems }) });
+    tx.liquidacion.findMany.mockResolvedValue(liqRows);
+    await service.confirm('mo1', {});
+    const calls = liquidaciones.applyPaymentInTx.mock.calls as any[];
+    expect(calls.map((c) => [c[2], c[3].amount, c[3].settlePenalties, c[3].method, c[3].receivedBy])).toEqual([
+      ['l1', '61000.00', true, 'AplicacionDeposito', 'Inmobiliaria'],
+      ['l2', '50000.00', false, 'AplicacionDeposito', 'Inmobiliaria'],
+    ]);
+    expect(calls[0][3].accountId).toBeNull();
+    // Dos salidas de la custodia por lo aplicado y una por la devolución del resto.
+    const outs = cash.recordMovement.mock.calls.map((c: any[]) => c[1].amount);
+    expect(outs).toEqual(['61000.00', '50000.00', '71000.00']);
+    expect(audit.record.mock.calls[0][1].metadata).toMatchObject({ paymentIds: ['pay1', 'pay1'], appliedToLiquidaciones: '111000.00' });
+    expect(tx.pendingCharge.create).not.toHaveBeenCalled();
+  });
+
+  it('si lo guarda el locador el pago entra como cobro directo del locador, sin movimientos de caja', async () => {
+    const { service, tx, cash, liquidaciones } = build({ settlement: settlement({ items: liqItems }), deposit: deposit({ heldBy: 'Locador' }) });
+    tx.liquidacion.findMany.mockResolvedValue(liqRows);
     await service.confirm('mo1', {});
     expect(cash.recordMovement).not.toHaveBeenCalled();
-    const [{ data }] = tx.ownerLedgerEntry.createMany.mock.calls[0];
-    expect(data[0]).toMatchObject({ personId: PERSON, type: 'CobroDirecto', amount: '-25000.00', sourceType: 'MoveOutSettlement', sourceId: 'mo1', propertyId: 'p1' });
+    const first = (liquidaciones.applyPaymentInTx.mock.calls as any[])[0][3];
+    expect(first).toMatchObject({ receivedBy: 'Locador', accountId: null });
+  });
+
+  it('si el depósito no alcanza paga el alquiler más antiguo y deja lo demás en cobro normal sin duplicarlo', async () => {
+    const small = deposit({ refundRule: 'MismaMoneda', amount: '70000', installmentRows: [{ id: 'i1', number: 1, amount: '70000', paidAt: utc(2024, 3, 1) }] });
+    const { service, tx, liquidaciones } = build({ settlement: settlement({ items: liqItems }), deposit: small });
+    tx.liquidacion.findMany.mockResolvedValue(liqRows);
+    await service.confirm('mo1', {});
+    const calls = liquidaciones.applyPaymentInTx.mock.calls as any[];
+    expect(calls.map((c) => [c[2], c[3].amount, c[3].settlePenalties])).toEqual([['l1', '61000.00', true], ['l2', '9000.00', false]]);
+    // Lo que falta (41000) sigue siendo el saldo de las liquidaciones: no se duplica como cargo.
+    expect(tx.pendingCharge.create).not.toHaveBeenCalled();
+  });
+
+  it('una liquidación sin enviar no se paga con el depósito', async () => {
+    const { service, tx } = build({ settlement: settlement({ items: liqItems }) });
+    tx.liquidacion.findMany.mockResolvedValue([{ ...liqRows[0], status: 'Borrador' }, liqRows[1]]);
+    await expect(service.confirm('mo1', {})).rejects.toMatchObject({ response: { error: 'LIQUIDACION_NOT_PAYABLE' } });
+  });
+
+  it('una liquidación en otra moneda no se paga con el depósito', async () => {
+    const { service, tx } = build({ settlement: settlement({ items: liqItems }) });
+    tx.liquidacion.findMany.mockResolvedValue([{ ...liqRows[0], currency: 'USD' }, liqRows[1]]);
+    await expect(service.confirm('mo1', {})).rejects.toMatchObject({ response: { error: 'LIQUIDACION_CURRENCY_MISMATCH' } });
   });
 
   it('rechaza una liquidación ya confirmada o tomada por otro', async () => {

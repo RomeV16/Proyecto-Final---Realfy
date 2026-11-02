@@ -1,4 +1,5 @@
-import { ChargeTarget, ChargePayer, Money, MoveOutItemKind, OVERDUE_STATUSES, PendingChargeKind, PendingChargeStatus, RECEIVABLE_STATUSES, formatPeriodAR, round2 } from '@realfy/shared';
+import { ChargeTarget, ChargePayer, LiquidacionStatus, Money, MoveOutItemKind, OVERDUE_STATUSES, PendingChargeKind, PendingChargeStatus, RECEIVABLE_STATUSES, formatPeriodAR, lastMonthRent, rentAt, round2 } from '@realfy/shared';
+import type { ProrationMode, RentStep } from '@realfy/shared';
 import type { MoveOutItem } from '@realfy/shared';
 import { badRequest } from '../cash/cash.errors';
 import { outstandingBalance } from '../liquidaciones/receivables';
@@ -34,7 +35,15 @@ const item = (
 export async function collectMoveOutItems(
   db: Db,
   penalties: PenaltiesService,
-  input: { tenantId: string; contractId: string; date: Date; currency: string; rate?: string | null },
+  input: {
+    tenantId: string;
+    contractId: string;
+    date: Date;
+    currency: string;
+    rate?: string | null;
+    /** Para el alquiler del último mes: el contrato, sus escalones de alquiler y su convención de prorrateo. */
+    lastMonth?: { startDate: Date; rentCurrency: string; rentSteps: readonly RentStep[]; prorationMode: ProrationMode | `${ProrationMode}` };
+  },
 ): Promise<MoveOutItem[]> {
   const { tenantId, contractId, date, currency, rate } = input;
   const items: MoveOutItem[] = [];
@@ -71,6 +80,31 @@ export async function collectMoveOutItems(
             convertItemAmount(due, liq.currency, currency, rate),
             'Liquidacion',
             liq.id,
+          ),
+        );
+      }
+    }
+  }
+
+  // El último mes, el del egreso, si todavía no tiene liquidación: del día 1 al día de egreso con la
+  // convención de prorrateo del contrato. Es una propuesta editable.
+  const lm = input.lastMonth;
+  if (lm && date.getTime() >= lm.startDate.getTime()) {
+    const monthStart = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+    const billed = await db.liquidacion.findFirst({
+      where: { contractId, period: monthStart, status: { not: LiquidacionStatus.Anulada } },
+      select: { id: true },
+    });
+    if (!billed) {
+      const part = lastMonthRent({ monthlyRent: rentAt(lm.rentSteps, date).toFixed(2), moveOutDate: date, prorationMode: lm.prorationMode });
+      if (part.amount.gt(0)) {
+        items.push(
+          item(
+            MoveOutItemKind.AlquilerPendiente,
+            `Alquiler de ${formatPeriodAR(monthStart)} (${part.coveredDays} de ${part.baseDays} días)`,
+            convertItemAmount(part.amount, lm.rentCurrency, currency, rate),
+            'LastMonthRent',
+            monthStart.toISOString().slice(0, 10),
           ),
         );
       }

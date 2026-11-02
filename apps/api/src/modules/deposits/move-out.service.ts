@@ -12,7 +12,8 @@ import {
   MoveOutItemKind,
   MoveOutPreviewQuerySchema,
   MoveOutStatus,
-  OwnerLedgerEntryType,
+  PaymentMethod,
+  PaymentReceiver,
   PendingChargeKind,
   PendingChargeStatus,
   ChargeTarget,
@@ -21,7 +22,7 @@ import {
   refundDueDate,
   todayInAR,
 } from '@realfy/shared';
-import type { MoveOutItem } from '@realfy/shared';
+import type { MoveOutItem, ProrationMode } from '@realfy/shared';
 import { AuditService } from '../../common/audit/audit.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -29,11 +30,13 @@ import { parseOrThrow } from '../../common/validation/zod';
 import { auditJson, badRequest, conflict, dayStart, notFound } from '../cash/cash.errors';
 import { CashService } from '../cash/cash.service';
 import { getParty } from '../contracts/contract-parties';
-import { writeEntries } from '../owner-accounts/ledger-posting';
+import { LiquidacionesService } from '../liquidaciones/liquidaciones.service';
 import { PenaltiesService } from '../penalties/penalties.service';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 import { collectedOf, DepositsService } from './deposits.service';
 import { rentStepsOf } from './deposit-rent';
+import { getTermsAt, resolveRule } from '../contracts/contract-terms';
+import { planDepositApplication } from './deposit-application';
 import { collectMoveOutItems } from './move-out-items';
 
 type Db = any;
@@ -61,6 +64,7 @@ export class MoveOutService {
     private readonly deposits: DepositsService,
     private readonly penalties: PenaltiesService,
     private readonly defaults: OperationalDefaultsService,
+    private readonly liquidaciones: LiquidacionesService,
   ) {}
 
   /** `POST /contracts/:id/move-out/preview?date=&rate=`: renglones y totales a esa fecha. No persiste nada. */
@@ -74,6 +78,7 @@ export class MoveOutService {
       date,
       currency: base.currency,
       rate: q.rate,
+      lastMonth: await this.lastMonthInput(this.prisma.client, base.contract, date),
     });
     return { ...base.summary, rate: q.rate ?? null, items, ...this.totals(items, base) };
   }
@@ -140,7 +145,7 @@ export class MoveOutService {
     const input = parseOrThrow(ConfirmMoveOutSchema, data ?? {}, 'Invalid move-out confirmation');
     const tenantId = this.tenantContext.getTenantId()!;
     const userId = this.tenantContext.getUserId() ?? null;
-    const { deposits: depositDefaults, ownerAccounts } = await this.defaults.get(tenantId);
+    const { deposits: depositDefaults } = await this.defaults.get(tenantId);
     return this.prisma.client.$transaction(async (tx: Db) => {
       const settlement = await tx.moveOutSettlement.findFirst({ where: { id } });
       if (!settlement) throw notFound('MOVE_OUT_NOT_FOUND', 'Move-out settlement not found');
@@ -174,21 +179,85 @@ export class MoveOutService {
       });
       const deposit = base.deposit;
 
-      let movementId: string | null = null;
-      if (result.refundToTenant.gt(0) && deposit?.heldBy === DepositHolder.Inmobiliaria) {
-        const account = await this.deposits.holdingAccount(tx, tenantId, deposit, {
-          accountId: input.accountId,
-          method: input.method,
-        });
-        if (account.kind === FinancialAccountKind.Custodia) {
-          const balance = (await this.cash.balances(tx, [account.id])).get(account.id) ?? new Money(0);
-          if (new Money(balance.toString()).lt(result.refundToTenant)) {
-            throw conflict('CUSTODY_INSUFFICIENT', 'The custody account does not hold enough to refund the deposit');
+      // 1) El depósito se aplica como pagos reales a las liquidaciones abiertas: saldan, emiten recibo y
+      // pasan por el reparto y la cuenta corriente del locador por el camino normal.
+      const liqIds = [...new Set(items.filter((i) => i.included && i.sourceType === 'Liquidacion' && i.sourceId).map((i) => i.sourceId as string))];
+      const liquidaciones: any[] = liqIds.length
+        ? await tx.liquidacion.findMany({
+            where: { id: { in: liqIds }, contractId },
+            select: { id: true, dueDate: true, status: true, currency: true },
+          })
+        : [];
+      const plan = planDepositApplication(items, result.depositAvailable.toFixed(2), liquidaciones);
+      for (const step of plan.steps) {
+        const liq = liquidaciones.find((l) => l.id === step.liquidacionId);
+        if (!['Enviada', 'Vencida'].includes(liq.status)) {
+          throw conflict('LIQUIDACION_NOT_PAYABLE', 'A liquidación must be sent before the deposit can be applied to it');
+        }
+        if (liq.currency !== base.currency) {
+          throw conflict('LIQUIDACION_CURRENCY_MISMATCH', 'The deposit cannot be applied to a liquidación in another currency');
+        }
+      }
+
+      const holdsAgency = deposit?.heldBy === DepositHolder.Inmobiliaria;
+      let holding: any = null;
+      if (holdsAgency && (plan.applied.gt(0) || result.refundToTenant.gt(0))) {
+        holding = await this.deposits.holdingAccount(tx, tenantId, deposit, { accountId: input.accountId, method: input.method });
+        if (holding.kind === FinancialAccountKind.Custodia) {
+          const balance = (await this.cash.balances(tx, [holding.id])).get(holding.id) ?? new Money(0);
+          if (new Money(balance.toString()).lt(plan.applied.plus(result.refundToTenant))) {
+            throw conflict('CUSTODY_INSUFFICIENT', 'The custody account does not hold enough to apply and refund the deposit');
           }
         }
+      }
+      const paymentIds: string[] = [];
+      for (const step of plan.steps) {
+        if (holding) {
+          await this.cash.recordMovement(tx, {
+            tenantId,
+            accountId: holding.id,
+            date: settlement.date,
+            direction: CashDirection.Out,
+            amount: step.amount.toFixed(2),
+            currency: base.currency,
+            category: CashCategory.Deposito,
+            counterpartyId: getParty<any>(contract, 'Inquilino')?.person?.id ?? null,
+            contractId,
+            sourceType: 'MoveOutSettlement',
+            sourceId: id,
+            note: 'Aplicación del depósito a una liquidación',
+          });
+        }
+        const penaltyCtx = await this.penalties.loadContext(tenantId, contractId, settlement.date);
+        const applied = await this.liquidaciones.applyPaymentInTx(
+          tx,
+          tenantId,
+          step.liquidacionId,
+          {
+            amount: step.amount.toFixed(2),
+            method: PaymentMethod.AplicacionDeposito,
+            reference: 'Liquidación de egreso',
+            notes: 'Aplicación del depósito en la liquidación de egreso',
+            paidAt: settlement.date.toISOString(),
+            settlePenalties: step.settlePenalties,
+            receivedBy: holdsAgency ? PaymentReceiver.Inmobiliaria : PaymentReceiver.Locador,
+            // La caja de la inmobiliaria recupera el importe donde ya estaba; el dinero en custodia entra a su cuenta por defecto.
+            accountId: holding && holding.kind !== FinancialAccountKind.Custodia ? holding.id : null,
+            inCustody: false,
+          },
+          penaltyCtx,
+          settlement.date,
+        );
+        paymentIds.push(applied.payment.id);
+      }
+
+      // 2) La devolución al inquilino sale de lo que queda del depósito.
+      let movementId: string | null = null;
+      if (result.refundToTenant.gt(0) && holdsAgency) {
+        holding ??= await this.deposits.holdingAccount(tx, tenantId, deposit, { accountId: input.accountId, method: input.method });
         const movement = await this.cash.recordMovement(tx, {
           tenantId,
-          accountId: account.id,
+          accountId: holding.id,
           date: settlement.date,
           direction: CashDirection.Out,
           amount: result.refundToTenant.toFixed(2),
@@ -201,27 +270,6 @@ export class MoveOutService {
           note: input.note ?? 'Devolución del depósito en la liquidación de egreso',
         });
         movementId = movement.id;
-      }
-
-      if (deposit?.heldBy === DepositHolder.Locador && deposit.heldByPersonId && result.retained.gt(0)) {
-        await writeEntries(
-          tx,
-          { tenantId, closeDay: ownerAccounts.statementCloseDay, userId },
-          [
-            {
-              personId: deposit.heldByPersonId,
-              type: OwnerLedgerEntryType.CobroDirecto,
-              amount: result.retained.negated().toFixed(2),
-              currency: base.currency,
-              date: settlement.date,
-              description: 'Depósito retenido por el locador, aplicado a las deudas del egreso',
-              sourceType: 'MoveOutSettlement',
-              sourceId: id,
-              contractId,
-              propertyId: contract?.propertyId ?? null,
-            },
-          ],
-        );
       }
 
       const included = items.filter((i) => i.included);
@@ -240,7 +288,8 @@ export class MoveOutService {
           data: { billedAt: new Date() },
         });
       }
-      if (result.owedByTenant.gt(0)) {
+      const saldo = Money.max(result.owedByTenant.minus(plan.uncovered), new Money(0));
+      if (saldo.gt(0)) {
         await tx.pendingCharge.create({
           data: {
             tenantId,
@@ -249,7 +298,7 @@ export class MoveOutService {
             chargedTo: ChargeTarget.Inquilino,
             kind: PendingChargeKind.Otro,
             description: `Saldo de la liquidación de egreso al ${dayKey(settlement.date)}`,
-            amount: result.owedByTenant.toFixed(2),
+            amount: saldo.toFixed(2),
             currency: base.currency,
             incurredAt: settlement.date,
             sourceType: 'MoveOutSettlement',
@@ -299,6 +348,8 @@ export class MoveOutService {
           refundToTenant: result.refundToTenant.toFixed(2),
           owedByTenant: result.owedByTenant.toFixed(2),
           movementId,
+          paymentIds,
+          appliedToLiquidaciones: plan.applied.toFixed(2),
         },
       });
       this.logger.log('Move-out confirmed', { contractId, id });
@@ -349,6 +400,7 @@ export class MoveOutService {
         : new Money(0);
     }
     return {
+      contract,
       deposit,
       currency,
       refundable,
@@ -371,6 +423,18 @@ export class MoveOutService {
             }
           : null,
       },
+    };
+  }
+
+  /** Datos para proponer el alquiler del último mes: escalones del alquiler y prorrateo vigente a la fecha. */
+  private async lastMonthInput(db: Db, contract: any, date: Date) {
+    const terms = await getTermsAt(db, contract, date);
+    const defaults = await this.defaults.get(contract.tenantId);
+    return {
+      startDate: contract.startDate as Date,
+      rentCurrency: contract.rentCurrency as string,
+      rentSteps: rentStepsOf(contract, contract.adjustments),
+      prorationMode: resolveRule(defaults, terms, 'prorationMode') as ProrationMode,
     };
   }
 

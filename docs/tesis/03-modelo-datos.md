@@ -306,7 +306,7 @@ Depósito en garantía y liquidación de egreso. `Contract.depositAmount` y `dep
 - `ContractDepositInstallment`: `depositId`, `number`, `dueDate`, `amount`, `paidAt`, `cashMovementId`; `@@unique([depositId, number])`. Se eligió una tabla (y no un cronograma en JSON) porque cada cuota se cobra por separado y deja su movimiento de caja.
 - `MoveOutSettlement`: `contractId` (único: una liquidación por contrato), `date`, `currency`, `status` (`Borrador`, `Confirmada`), `items` (JSON, lista de renglones `{ kind, description, amount, included, sourceType, sourceId }`; el tipo y los totales los fija el motor `computeMoveOut`), `totalOwed`, `depositAvailable`, `netAmount` (positivo se devuelve, negativo lo debe el inquilino), `rate`, `notes`, `cashMovementId`, `confirmedAt`, `confirmedById`. Los renglones van en JSON porque se editan juntos y no se consultan por separado.
 - Backfill de la migración: un depósito por contrato con `depositAmount`, en la moneda del depósito (o la del alquiler), guardado por el `Locador` sin persona asignada, con una cuota cobrada en la fecha de inicio y la regla pesos actualizado si es en pesos. Es el valor más seguro: no genera movimientos ni deudas de la inmobiliaria.
-- Categoría de caja nueva `Deposito`. Las tres tablas llevan `tenantId` y están en la lista de modelos con filtro por inmobiliaria.
+- Categoría de caja nueva `Deposito` y método de pago nuevo `AplicacionDeposito` (pago interno de la liquidación de egreso; la API de cobros no lo acepta). Las tres tablas llevan `tenantId` y están en la lista de modelos con filtro por inmobiliaria.
 
 ### ContractGuarantee
 

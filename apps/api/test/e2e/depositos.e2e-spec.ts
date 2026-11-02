@@ -16,7 +16,7 @@ const DAY_MS = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const inDays = (n: number) => new Date(todayInAR().getTime() + n * DAY_MS);
 
-/** CP-560 a CP-570: depósitos de los contratos y liquidación de egreso. */
+/** CP-560 a CP-583: depósitos de los contratos y liquidación de egreso. */
 describe('Depósitos y liquidación de egreso (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -230,9 +230,11 @@ describe('Depósitos y liquidación de egreso (e2e)', () => {
         .post(`/api/contracts/${a.c.id}/move-out/preview?date=${iso(inDays(0))}`)
         .set(auth(a.tokens[UserRole.Lectura]))
         .expect(200);
-      expect(res.body.items).toHaveLength(1);
-      expect(res.body.items[0]).toMatchObject({ kind: 'Reparacion', amount: '8000.00', included: true });
-      expect(res.body).toMatchObject({ totalOwed: '8000.00', depositAvailable: '100000.00', refundToTenant: '92000.00', owedByTenant: '0.00' });
+      const repair = res.body.items.filter((i: any) => i.sourceType !== 'LastMonthRent');
+      expect(repair).toHaveLength(1);
+      expect(repair[0]).toMatchObject({ kind: 'Reparacion', amount: '8000.00', included: true });
+      expect(res.body.items.find((i: any) => i.sourceType === 'LastMonthRent')).toBeDefined();
+      expect(res.body).toMatchObject({ depositAvailable: '100000.00', owedByTenant: '0.00' });
       expect(res.body.deposit).toMatchObject({ heldBy: 'Inmobiliaria', refundable: '100000.00' });
       expect(await prisma.baseClient.moveOutSettlement.count()).toBe(0);
       await http().post(`/api/contracts/${a.c.id}/move-out/preview`).set(auth(a.tokens[UserRole.Ventas])).expect(403);
@@ -266,7 +268,10 @@ describe('Depósitos y liquidación de egreso (e2e)', () => {
         },
       });
       const preview = await http().post(`/api/contracts/${a.c.id}/move-out/preview?date=${iso(inDays(0))}`).set(auth(a.token)).expect(200);
-      const items = [...preview.body.items, { kind: 'Deduccion', description: 'Pintura', amount: '12000.00', included: true }];
+      const items = [
+        ...preview.body.items.filter((i: any) => i.sourceType !== 'LastMonthRent'),
+        { kind: 'Deduccion', description: 'Pintura', amount: '12000.00', included: true },
+      ];
       await http().post(`/api/contracts/${a.c.id}/move-out`).set(auth(a.tokens[UserRole.Liquidaciones])).send({ date: iso(inDays(0)), items }).expect(403);
       const draft = await http().post(`/api/contracts/${a.c.id}/move-out`).set(auth(a.token)).send({ date: iso(inDays(0)), items, notes: 'Entrega ok' }).expect(201);
       expect(draft.body).toMatchObject({ status: 'Borrador', totalOwed: '20000', netAmount: '80000' });
@@ -310,7 +315,7 @@ describe('Depósitos y liquidación de egreso (e2e)', () => {
       expect(pending.amount.toString()).toBe('30000');
     });
 
-    it('CP-568: si lo guarda el locador, lo retenido queda en su cuenta corriente', async () => {
+    it('CP-568: si lo guarda el locador, un descuento no genera movimientos de caja ni asientos propios', async () => {
       const a = await withDeposit('m568', { heldBy: 'Locador' });
       const draft = await http()
         .post(`/api/contracts/${a.c.id}/move-out`)
@@ -319,10 +324,90 @@ describe('Depósitos y liquidación de egreso (e2e)', () => {
         .expect(201);
       await http().post(`/api/move-outs/${draft.body.id}/confirm`).set(auth(a.token)).send({}).expect(200);
       expect(await prisma.baseClient.cashMovement.count({ where: { contractId: a.c.id } })).toBe(0);
-      const entries = await prisma.baseClient.ownerLedgerEntry.findMany({ where: { personId: a.c.owner } });
-      expect(entries).toHaveLength(1);
-      expect(entries[0]).toMatchObject({ type: 'CobroDirecto', sourceType: 'MoveOutSettlement', sourceId: draft.body.id });
-      expect(entries[0].amount.toString()).toBe('-20000');
+      expect(await prisma.baseClient.ownerLedgerEntry.count({ where: { personId: a.c.owner } })).toBe(0);
+    });
+
+    /** Liquidación enviada y vencida de `rent` pesos, con su renglón de alquiler, lista para cobrar. */
+    const openLiquidacion = (a: { tenantId: string }, c: { id: string }, period: Date, rent: string) =>
+      prisma.baseClient.liquidacion.create({
+        data: {
+          tenantId: a.tenantId,
+          contractId: c.id,
+          period,
+          status: 'Vencida',
+          dueDate: inDays(-40),
+          subtotal: rent,
+          total: rent,
+          lineItems: {
+            create: [{ tenantId: a.tenantId, type: 'Alquiler', description: 'Alquiler', amount: rent, commissionable: true, beneficiary: 'Locador' }],
+          },
+        },
+      });
+
+    it('CP-581: el depósito cubre una liquidación abierta como pago real: Pagada, con recibo y la cuenta corriente acreditada una sola vez', async () => {
+      const a = await withDeposit('m581');
+      const liq = await openLiquidacion(a, a.c, new Date(Date.UTC(2026, 0, 1)), '60000.00');
+      const preview = await http().post(`/api/contracts/${a.c.id}/move-out/preview?date=${iso(inDays(0))}`).set(auth(a.token)).expect(200);
+      const rentItem = preview.body.items.find((i: any) => i.sourceId === liq.id && i.kind === 'AlquilerPendiente');
+      expect(rentItem.amount).toBe('60000.00');
+      const items = preview.body.items.filter((i: any) => i.sourceType !== 'LastMonthRent' && i.kind !== 'Punitorio');
+      const draft = await http().post(`/api/contracts/${a.c.id}/move-out`).set(auth(a.token)).send({ date: iso(inDays(0)), items }).expect(201);
+      await http().post(`/api/move-outs/${draft.body.id}/confirm`).set(auth(a.token)).send({}).expect(200);
+
+      const after = await prisma.baseClient.liquidacion.findUniqueOrThrow({ where: { id: liq.id } });
+      expect(after.status).toBe('Pagada');
+      const payments = await prisma.baseClient.payment.findMany({ where: { liquidacionId: liq.id } });
+      expect(payments).toHaveLength(1);
+      expect(payments[0]).toMatchObject({ method: 'AplicacionDeposito', receivedBy: 'Inmobiliaria' });
+      expect(payments[0].amount.toString()).toBe('60000');
+      expect(payments[0].receiptId).not.toBeNull();
+      const ledger = await prisma.baseClient.ownerLedgerEntry.findMany({ where: { personId: a.c.owner, sourceId: payments[0].id } });
+      expect(ledger.length).toBeGreaterThan(0);
+      expect(ledger.find((e) => e.type === 'Alquiler')?.amount.toString()).toBe('60000');
+      const types = ledger.map((e) => `${e.sourceId}:${e.type}`);
+      expect(new Set(types).size).toBe(types.length);
+      // El depósito salió de la custodia por lo aplicado y por la devolución del resto: 100.000 en total.
+      const outs = await prisma.baseClient.cashMovement.findMany({ where: { contractId: a.c.id, direction: 'Out' } });
+      expect(outs.map((m) => m.amount.toString()).sort((x, y) => Number(x) - Number(y))).toEqual(['40000', '60000']);
+
+      // Con la liquidación saldada ya no se puede cobrar de nuevo.
+      await http()
+        .post(`/api/liquidaciones/${liq.id}/payments`)
+        .set(auth(a.token))
+        .send({ amount: '1000.00', method: 'Efectivo', paidAt: new Date().toISOString() })
+        .expect(400);
+      await http()
+        .post(`/api/liquidaciones/${liq.id}/payments`)
+        .set(auth(a.token))
+        .send({ amount: '1000.00', method: 'AplicacionDeposito', paidAt: new Date().toISOString() })
+        .expect(400);
+    });
+
+    it('CP-582: si lo guarda el locador, el pago entra como cobro directo de ese locador sin movimientos de caja', async () => {
+      const a = await withDeposit('m582', { heldBy: 'Locador' });
+      const liq = await openLiquidacion(a, a.c, new Date(Date.UTC(2026, 0, 1)), '60000.00');
+      const preview = await http().post(`/api/contracts/${a.c.id}/move-out/preview?date=${iso(inDays(0))}`).set(auth(a.token)).expect(200);
+      const items = preview.body.items.filter((i: any) => i.sourceType !== 'LastMonthRent' && i.kind !== 'Punitorio');
+      const draft = await http().post(`/api/contracts/${a.c.id}/move-out`).set(auth(a.token)).send({ date: iso(inDays(0)), items }).expect(201);
+      await http().post(`/api/move-outs/${draft.body.id}/confirm`).set(auth(a.token)).send({}).expect(200);
+      expect((await prisma.baseClient.liquidacion.findUniqueOrThrow({ where: { id: liq.id } })).status).toBe('Pagada');
+      const payment = await prisma.baseClient.payment.findFirstOrThrow({ where: { liquidacionId: liq.id } });
+      expect(payment).toMatchObject({ method: 'AplicacionDeposito', receivedBy: 'Locador', accountId: null });
+      expect(await prisma.baseClient.cashMovement.count({ where: { contractId: a.c.id } })).toBe(0);
+      const direct = await prisma.baseClient.ownerLedgerEntry.findMany({ where: { personId: a.c.owner, sourceId: payment.id, type: 'CobroDirecto' } });
+      expect(direct).toHaveLength(1);
+    });
+
+    it('CP-583: el alquiler del último mes se propone con el prorrateo del contrato y no se repite si el mes ya tiene liquidación', async () => {
+      const a = await withDeposit('m583');
+      const day = new Date(Date.UTC(2026, 5, 10));
+      const res = await http().post(`/api/contracts/${a.c.id}/move-out/preview?date=2026-06-10`).set(auth(a.token)).expect(200);
+      const last = res.body.items.find((i: any) => i.sourceType === 'LastMonthRent');
+      expect(last).toMatchObject({ kind: 'AlquilerPendiente', sourceId: '2026-06-01', included: true });
+      expect(last.amount).toBe('33333.33');
+      await openLiquidacion(a, a.c, new Date(Date.UTC(2026, 5, 1)), '100000.00');
+      const again = await http().post(`/api/contracts/${a.c.id}/move-out/preview?date=${iso(day)}`).set(auth(a.token)).expect(200);
+      expect(again.body.items.find((i: any) => i.sourceType === 'LastMonthRent')).toBeUndefined();
     });
 
     it('CP-569: la liquidación de egreso se baja en PDF', async () => {

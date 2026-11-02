@@ -4,8 +4,9 @@
 -- usar en la misma transacción que lo agrega).
 -- Rollback: DROP TYPE "MoveOutStatus", "DepositStatus", "DepositRefundRule",
 -- "DepositHolder" (después de revertir la migración siguiente). Postgres no quita un
--- valor de un enum: para sacar 'Deposito' de "CashCategory" hay que recrear el tipo
--- sin él, y solo si ningún movimiento de caja lo usa.
+-- valor de un enum: para sacar 'Deposito' de "CashCategory" y 'AplicacionDeposito' de
+-- "PaymentMethod" hay que recrear los tipos sin ellos, y solo si ningún movimiento de caja
+-- ni pago los usa.
 
 -- CreateEnum
 CREATE TYPE "DepositHolder" AS ENUM ('Locador', 'Inmobiliaria');
@@ -21,3 +22,6 @@ CREATE TYPE "MoveOutStatus" AS ENUM ('Borrador', 'Confirmada');
 
 -- AlterEnum
 ALTER TYPE "CashCategory" ADD VALUE 'Deposito';
+
+-- AlterEnum
+ALTER TYPE "PaymentMethod" ADD VALUE 'AplicacionDeposito';

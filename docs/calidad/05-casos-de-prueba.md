@@ -645,7 +645,7 @@ requisito funcional.
 
 ## Depósitos y liquidación de egreso
 
-Banda CP-560 a CP-580. Origen: FB-14 (el depósito lo guarda el dueño, en la moneda que elija, con devolución según acuerdo) y la planilla de egreso («chequeo») de la inmobiliaria piloto. Contratos de alquiler activos de 100.000 en pesos; los datos son sintéticos y el resultado esperado se fijó antes de implementar.
+Banda CP-560 a CP-583. Origen: FB-14 (el depósito lo guarda el dueño, en la moneda que elija, con devolución según acuerdo) y la planilla de egreso («chequeo») de la inmobiliaria piloto. Contratos de alquiler activos de 100.000 en pesos; los datos son sintéticos y el resultado esperado se fijó antes de implementar.
 
 | ID | Caso | Resultado esperado | Dónde corre | Estado |
 |---|---|---|---|---|
@@ -657,7 +657,7 @@ Banda CP-560 a CP-580. Origen: FB-14 (el depósito lo guarda el dueño, en la mo
 | CP-565 | Pesos actualizado | con ajustes de 100.000 a 130.000 y a 182.000, un depósito de 100.000 cobrado al inicio se devuelve en 182.000 a hoy y en 130.000 entre ambos ajustes | `e2e/depositos.e2e-spec.ts::CP-565`; `shared/deposit-engine` | verde (2 nov) |
 | CP-566 | Confirmar una sola vez | el borrador se edita; al confirmar sale la devolución de la custodia, el cargo se imputa, el depósito queda `Devuelto`, el paso del depósito del seguimiento se tilda y hay auditoría; confirmar o guardar de nuevo es 409 | `e2e/depositos.e2e-spec.ts::CP-566` | verde (2 nov) |
 | CP-567 | Deuda mayor que el depósito | no sale dinero y el saldo queda como cargo pendiente del inquilino | `e2e/depositos.e2e-spec.ts::CP-567` | verde (2 nov) |
-| CP-568 | Depósito en manos del locador | lo retenido queda como cobro directo en su cuenta corriente y no hay movimiento de caja | `e2e/depositos.e2e-spec.ts::CP-568` | verde (2 nov) |
+| CP-568 | Descuento con el depósito en manos del locador | no hay movimientos de caja ni asientos propios: lo descontado no pasa por la inmobiliaria | `e2e/depositos.e2e-spec.ts::CP-568` | verde (2 nov) |
 | CP-569 | PDF de la liquidación | `application/pdf`; 404 para una liquidación inexistente | `e2e/depositos.e2e-spec.ts::CP-569` | verde (2 nov) |
 | CP-570 | Depósito declarado al crear el contrato | nace pendiente, en una cuota, con la regla habitual (pesos actualizado en pesos, misma moneda en los demás) | `e2e/depositos.e2e-spec.ts::CP-570` | verde (2 nov) |
 | CP-571 | Motor: devolución según la regla | misma moneda devuelve el nominal; dólares igual; pesos actualizado sigue los escalones del alquiler, redondea a centavos y no baja del nominal | `packages/shared/src/deposit-engine/deposit-engine.spec.ts` (24 casos) | verde (2 nov) |
@@ -670,3 +670,7 @@ Banda CP-560 a CP-580. Origen: FB-14 (el depósito lo guarda el dueño, en la mo
 | CP-578 | Tarjeta de depósito | muestra titular, regla y cuotas; carga y edita con la regla propuesta; con cuotas cobradas bloquea el importe; cobra una cuota; roles sin acciones | `apps/web/src/components/deposits/contract-deposit.test.tsx` (15 casos) | verde (2 nov) |
 | CP-579 | Asistente de liquidación de egreso | fecha, vista previa, casillas e importes editables, descuentos a mano, totales, guardar borrador, confirmar con diálogo, PDF, retomar un borrador y ver una confirmada | `apps/web/src/components/deposits/move-out-wizard.test.tsx` (19 casos) | verde (2 nov) |
 | CP-580 | Enlace desde el seguimiento | el seguimiento de una devolución enlaza a la liquidación de egreso; el de una renovación no | `apps/web/src/components/follow-ups/follow-up-drawer.move-out.test.tsx` | verde (2 nov) |
+| CP-581 | El depósito cubre una liquidación abierta | la liquidación vencida de 60.000 queda `Pagada` con un pago real `AplicacionDeposito` (recibo emitido, reparto y cuenta corriente del locador por el camino normal, una sola vez por concepto); el depósito sale de la custodia por lo aplicado y por la devolución del resto (60.000 y 40.000); un cobro posterior, normal o con ese método, es 400 | `e2e/depositos.e2e-spec.ts::CP-581` | verde (2 nov) |
+| CP-582 | Depósito en manos del locador cubre una liquidación | el pago es del locador (`receivedBy` Locador, sin cuenta), no hay movimientos de caja y la cuenta corriente recibe un cobro directo | `e2e/depositos.e2e-spec.ts::CP-582` | verde (2 nov) |
+| CP-583 | Alquiler del último mes | se propone del día 1 al día de egreso con el prorrateo del contrato (10 de 30 días de 100.000 = 33.333,33), editable, y no se repite si el mes ya tiene liquidación | `e2e/depositos.e2e-spec.ts::CP-583`; `shared/liquidation-builder` (`lastMonthRent`, 5 casos) | verde (2 nov) |
+| CP-584 | Plan de aplicación del depósito | de la liquidación más antigua a la más nueva; el punitorio solo si el depósito cubre todo; lo que no alcanza queda sin cubrir y no se duplica como cargo; ignora renglones destildados | `deposits/deposit-application.spec.ts` (6 casos); `deposits/move-out.service.spec.ts` | verde (2 nov) |

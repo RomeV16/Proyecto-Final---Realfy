@@ -334,6 +334,8 @@ export enum PaymentMethod {
   Efectivo = 'Efectivo',
   MercadoPago = 'MercadoPago',
   Cheque = 'Cheque',
+  /** Pago interno de la liquidación de egreso: el depósito aplicado a las deudas; no se elige a mano. */
+  AplicacionDeposito = 'AplicacionDeposito',
 }
 
 export enum LineItemType {

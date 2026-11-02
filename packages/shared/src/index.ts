@@ -1172,7 +1172,7 @@ export type ContractClosureMetrics = z.infer<typeof _ContractClosureMetricsSchem
 export type AiClosureSummaryResponse = z.infer<typeof _AiClosureSummaryResponseSchema>;
 
 // Liquidation builder
-export { buildLiquidation, onBehalfOfText } from './liquidation-builder';
+export { buildLiquidation, lastMonthRent, onBehalfOfText } from './liquidation-builder';
 export {
   accruePenalty,
   splitPayments,

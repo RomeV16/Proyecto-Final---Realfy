@@ -116,8 +116,7 @@ export const UpdateContractSchema = z.object({
   actualEndDate: dateString.optional().nullable(),
   rentAmount: positiveDecimalString.optional(),
   rentCurrency: z.nativeEnum(Currency).optional(),
-  depositAmount: decimalStringOptional,
-  depositCurrency: z.nativeEnum(Currency).optional(),
+  // El depósito ya no se edita acá: se carga y cambia en `PUT /contracts/:id/deposit`.
   adjustmentType: z.nativeEnum(AdjustmentType).optional(),
   adjustmentPeriod: z.nativeEnum(AdjustmentPeriod).optional(),
   customAdjustmentPct: decimalStringOptional,

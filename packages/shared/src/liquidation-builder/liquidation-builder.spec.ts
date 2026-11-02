@@ -1,4 +1,4 @@
-import { buildLiquidation, onBehalfOfText } from './index';
+import { buildLiquidation, lastMonthRent, onBehalfOfText } from './index';
 import type { BuiltLiquidation, LiquidationBuilderInput } from './index';
 import {
   ContractStatus,
@@ -582,5 +582,35 @@ describe('convenciones pactables', () => {
     expect(r.lines.map((l) => l.amount)).toEqual(['40000.00', '121000.00', '5000.00']);
     expect(r.total).toBe('156000.00');
     expect(r.dueDate).toEqual(d('2026-11-16'));
+  });
+});
+
+describe('lastMonthRent: el alquiler del mes de egreso', () => {
+  const out = (day: number) => new Date(Date.UTC(2026, 5, day));
+  const rent = (day: number, prorationMode: ProrationMode) =>
+    lastMonthRent({ monthlyRent: '30000', moveOutDate: out(day), prorationMode });
+
+  it('días reales: del 1 al día de egreso sobre los días del mes', () => {
+    const r = rent(10, ProrationMode.DiasReales);
+    expect(r.amount.toFixed(2)).toBe('10000.00');
+    expect([r.coveredDays, r.baseDays]).toEqual([10, 30]);
+  });
+
+  it('mes comercial de 30 días: el último día del mes real cuenta como 30', () => {
+    expect(rent(15, ProrationMode.Mes30).amount.toFixed(2)).toBe('15000.00');
+    expect(rent(30, ProrationMode.Mes30).amount.toFixed(2)).toBe('30000.00');
+  });
+
+  it('sin prorrateo se cobra el mes completo', () => {
+    expect(rent(3, ProrationMode.SinProrrateo).amount.toFixed(2)).toBe('30000.00');
+  });
+
+  it('egresar el último día del mes cobra el mes completo', () => {
+    expect(rent(30, ProrationMode.DiasReales).amount.toFixed(2)).toBe('30000.00');
+  });
+
+  it('redondea a centavos', () => {
+    const r = lastMonthRent({ monthlyRent: '100000', moveOutDate: new Date(Date.UTC(2026, 6, 10)), prorationMode: ProrationMode.DiasReales });
+    expect(r.amount.toFixed(2)).toBe('32258.06');
   });
 });
