@@ -29,7 +29,7 @@ export function useChargeTargets(enabled = true) {
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const [c, p] = await Promise.all([
           apiClient<{ items: ContractItem[] }>('/contracts?status=Activo&limit=100'),
@@ -80,7 +80,7 @@ export function useChargeLessors(contractId: string, propertyId: string, enabled
       return;
     }
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const rows = contractId
           ? ((await apiClient<{ lessors?: LessorRow[] }>(`/contracts/${contractId}`)).lessors ?? [])
