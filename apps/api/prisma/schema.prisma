@@ -29,6 +29,7 @@ enum TenantTier {
 enum Currency {
   ARS
   USD
+  EUR
 }
 
 enum AuditAction {
@@ -345,6 +346,7 @@ model User {
   visitsConducted    LeadVisit[]       @relation("VisitUser")
 
   scoredTenantScores TenantScore[] @relation("ScoredByUser")
+  paymentsReceived   Payment[]     @relation("PaymentReceivedBy")
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -606,6 +608,10 @@ model Person {
   portalInvitations      PortalInvitation[]
   tenantScores           TenantScore[]
   pendingCharges         PendingCharge[]
+  custodyAccounts        FinancialAccount[]   @relation("CustodyOwner")
+  cashMovements          CashMovement[]       @relation("CashCounterparty")
+  compensationsFrom      Compensation[]       @relation("CompensationFrom")
+  compensationsTo        Compensation[]       @relation("CompensationTo")
 
   @@unique([tenantId, cuit])
   @@unique([tenantId, externalRef])
@@ -861,6 +867,7 @@ model Contract {
   billAllocations ServiceBillAllocation[]
   termsVersions   ContractTermsVersion[]
   pendingCharges  PendingCharge[]
+  cashMovements   CashMovement[]
 
   @@unique([tenantId, externalRef])
   @@index([previousContractId])
@@ -1330,23 +1337,169 @@ model DocumentSequence {
 }
 
 model Payment {
-  id            String        @id @default(uuid())
-  tenantId      String
-  liquidacionId String
-  amount        Decimal       @db.Decimal(15, 2)
-  currency      Currency      @default(ARS)
-  method        PaymentMethod
-  reference     String?
-  notes         String?
-  paidAt        DateTime
-  createdAt     DateTime      @default(now())
+  id               String          @id @default(uuid())
+  tenantId         String
+  liquidacionId    String
+  amount           Decimal         @db.Decimal(15, 2)
+  currency         Currency        @default(ARS)
+  method           PaymentMethod
+  reference        String?
+  notes            String?
+  paidAt           DateTime
+  /// Quién recibió el dinero: la inmobiliaria (caja, banco o custodia) o el locador directamente.
+  receivedBy       PaymentReceiver @default(Inmobiliaria)
+  /// Cuenta de la inmobiliaria donde entró (vacía si lo recibió el locador).
+  accountId        String?
+  /// Persona del personal que lo recibió en la oficina.
+  receivedByUserId String?
+  /// La parte de los locadores quedó en custodia hasta entregarla.
+  inCustody        Boolean         @default(false)
+  receiptId        String?         @unique
+  externalRef      String?
+  /// Reparto del cobro (settlement-engine) al momento de registrarlo.
+  settlement       Json?
+  createdAt        DateTime        @default(now())
 
-  liquidacion  Liquidacion   @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
-  comprobantes Comprobante[]
+  liquidacion    Liquidacion       @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
+  account        FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  receivedByUser User?             @relation("PaymentReceivedBy", fields: [receivedByUserId], references: [id], onDelete: SetNull)
+  receipt        Receipt?          @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  comprobantes   Comprobante[]
+  compensations  Compensation[]
 
+  @@unique([tenantId, externalRef])
   @@index([tenantId])
   @@index([liquidacionId])
   @@map("payments")
+}
+
+/// Recibo de un cobro, numerado por serie con DocumentSequence.
+model Receipt {
+  id        String   @id @default(uuid())
+  tenantId  String
+  series    String
+  number    Int
+  issuedAt  DateTime
+  amount    Decimal  @db.Decimal(15, 2)
+  currency  Currency
+  createdAt DateTime @default(now())
+
+  payment Payment?
+
+  @@unique([tenantId, series, number])
+  @@index([tenantId, issuedAt])
+  @@map("receipts")
+}
+
+// ─── Caja y cobros ──────────────────────────────────────
+
+enum FinancialAccountKind {
+  Caja
+  Banco
+  Custodia
+}
+
+enum CashDirection {
+  In
+  Out
+}
+
+enum CashCategory {
+  AlquilerCobrado
+  PagoLocador
+  PagoEnte
+  PagoProveedor
+  Honorario
+  Gasto
+  ComisionEmpleado
+  Sena
+  Custodia
+  Compensacion
+  Conversion
+}
+
+/// Quién recibió un cobro.
+enum PaymentReceiver {
+  Inmobiliaria
+  Locador
+}
+
+/// Cuenta de la inmobiliaria: caja (efectivo), banco o custodia de un locador.
+/// Una cuenta tiene una sola moneda; no hay conversión implícita.
+model FinancialAccount {
+  id            String               @id @default(uuid())
+  tenantId      String
+  kind          FinancialAccountKind
+  name          String
+  currency      Currency
+  /// Locador dueño del dinero en custodia (solo kind = Custodia).
+  ownerPersonId String?
+  isActive      Boolean              @default(true)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  owner     Person?        @relation("CustodyOwner", fields: [ownerPersonId], references: [id], onDelete: Restrict)
+  movements CashMovement[]
+  payments  Payment[]
+
+  @@unique([tenantId, kind, ownerPersonId, currency])
+  @@index([tenantId, kind, currency])
+  @@map("financial_accounts")
+}
+
+/// Libro de la inmobiliaria: cada entrada o salida de dinero de una cuenta.
+/// `amount` es siempre positivo; el sentido lo da `direction`.
+model CashMovement {
+  id             String        @id @default(uuid())
+  tenantId       String
+  accountId      String
+  date           DateTime      @db.Date
+  direction      CashDirection
+  amount         Decimal       @db.Decimal(15, 2)
+  currency       Currency
+  category       CashCategory
+  counterpartyId String?
+  contractId     String?
+  /// Tipo de cambio explícito de una conversión (moneda destino por unidad de origen).
+  rate           Decimal?      @db.Decimal(18, 6)
+  sourceType     String?
+  sourceId       String?
+  note           String?
+  createdById    String?
+  createdAt      DateTime      @default(now())
+
+  account      FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  counterparty Person?          @relation("CashCounterparty", fields: [counterpartyId], references: [id], onDelete: SetNull)
+  contract     Contract?        @relation(fields: [contractId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, accountId, date])
+  @@index([tenantId, category, date])
+  @@index([tenantId, sourceType, sourceId])
+  @@index([contractId])
+  @@map("cash_movements")
+}
+
+/// Compensación entre locadores: `fromLessor` recibió (o cubre con su saldo)
+/// dinero de un cobro que le corresponde a `toLessor`.
+model Compensation {
+  id           String   @id @default(uuid())
+  tenantId     String
+  paymentId    String
+  fromLessorId String
+  toLessorId   String
+  amount       Decimal  @db.Decimal(15, 2)
+  currency     Currency
+  note         String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  payment    Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  fromLessor Person  @relation("CompensationFrom", fields: [fromLessorId], references: [id], onDelete: Restrict)
+  toLessor   Person  @relation("CompensationTo", fields: [toLessorId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId])
+  @@index([paymentId])
+  @@map("compensations")
 }
 
 // ─── Service Enums ──────────────────────────────────────
