@@ -18,7 +18,7 @@ export interface PenaltyRuleForm {
   yearDays: string;
 }
 
-export const DEFAULT_PENALTY_RULE_FORM: PenaltyRuleForm = {
+const DEFAULT_PENALTY_RULE_FORM: PenaltyRuleForm = {
   mode: 'max_bna_or_daily',
   value: '0.3',
   graceDays: '0',

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
-import type { PenaltyConfig } from '@realfy/shared';
+import { PenaltyConfigSchema, type PenaltyConfig } from '@realfy/shared';
 import { apiClient } from '@/lib/api-client';
 import { useCan } from '@/lib/permissions';
 import { toast } from '@/lib/toast';
@@ -31,10 +31,15 @@ export function PenaltyConfigForm() {
   useEffect(() => {
     let cancelled = false;
     apiClient<PenaltyConfig>('/tenants/me/penalty-config')
-      .then((config) => {
+      .then((raw) => {
         if (cancelled) return;
-        setSaved(config);
-        setForm(ruleToForm(config));
+        const parsed = PenaltyConfigSchema.safeParse(raw);
+        if (!parsed.success) {
+          setLoadError(parsed.error);
+          return;
+        }
+        setSaved(parsed.data);
+        setForm(ruleToForm(parsed.data));
       })
       .catch((err) => {
         if (!cancelled) setLoadError(err);
