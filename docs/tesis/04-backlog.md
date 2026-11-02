@@ -2,7 +2,7 @@
 
 El backlog refleja los ítems 05 a 46 del cronograma Gantt del proyecto: los ítems 05 a 29 son el desarrollo original de la tesis y los ítems 30 a 46 son el piloto en una inmobiliaria real (ver `30-piloto.md`). Los ítems 01 a 04 corresponden a actividades académicas previas (definición de tema, anteproyecto, marco teórico, plan de trabajo) y no se enumeran aquí. Cada entrada incluye un identificador, una descripción funcional acotada, prioridad estimada para el MVP y dependencias respecto de ítems previos.
 
-La prioridad se expresa como alta (bloqueante para el MVP operativo), media (necesaria para Hito 3) y baja (mejora o ítem habilitante de Hito 4).
+La prioridad se expresa como alta (bloqueante para el MVP operativo), media (necesaria para Hito 3) y baja (mejora o ítem habilitante de Hito 4). En los ítems del piloto la escala se redefine según cuánto bloquea el uso real, con la misma clasificación de `30-piloto.md`: alta corresponde a P0 (sin esto la inmobiliaria no puede dejar sus planillas en el ciclo mensual) o a un ítem de proceso del que dependen todos; media, a P1 (necesario para operar todo el ciclo dentro de Realfy), y baja, a P2 (ventas y crecimiento).
 
 ## Plataforma base
 
@@ -56,6 +56,7 @@ Alta de contratos con partes, garantías, plantillas y generación del documento
 
 - Prioridad: alta.
 - Dependencias: 09, 10.
+- Ampliado por el piloto: activación validada, locadores por contrato, reglas versionadas y fin real (ítems 33 y 34); renovación como período del contrato (ítem 40).
 
 ### 12. Actualizacion de alquiler por IPC, UVA o valor manual
 
@@ -63,6 +64,7 @@ Modelar `ContractAdjustment`, `AdjustmentSchedule` y `IndexData`. Calcular el pr
 
 - Prioridad: alta.
 - Dependencias: 11.
+- Ampliado por el piloto: rezago del índice, base del ajuste, estimado con corrección, UVA y escalonado, y aplicación de los ajustes del mes (ítem 34).
 
 ## Ciclo financiero
 
@@ -72,6 +74,7 @@ Generar `Liquidacion` con sus líneas (alquiler, expensas, servicios, impuestos,
 
 - Prioridad: alta.
 - Dependencias: 12.
+- Ampliado por el piloto: renglones con destino y marca de comisionable, boletas con reglas de traslado, cargos y punitorios dentro de la liquidación (ítem 35).
 
 ### 14. Registro de pagos y estados de deuda
 
@@ -79,6 +82,7 @@ Registrar pagos totales o parciales contra una liquidación. Actualizar el saldo
 
 - Prioridad: alta.
 - Dependencias: 13.
+- Ampliado por el piloto: cobro en tres flujos, caja, custodia y compensaciones (ítem 36).
 
 ### 15. Morosidad, punitorios y derivacion legal
 
@@ -86,6 +90,7 @@ Calcular punitorios automáticos al pasar la fecha de vencimiento. Cambiar el es
 
 - Prioridad: alta.
 - Dependencias: 14.
+- Ampliado por el piloto: punitorio por contrato dentro de la liquidación (ítem 35) y cobranza escalonada (ítem 43).
 
 ## Operación y soporte
 
@@ -95,6 +100,7 @@ CRUD de tickets con categoría, prioridad, comentarios y adjuntos. Asignación d
 
 - Prioridad: alta.
 - Dependencias: 10, 09.
+- Ampliado por el piloto: incidencias con preautorización, presupuesto e imputación (ítem 42).
 
 ### 17. Portal de autogestion para inquilinos
 
@@ -109,6 +115,7 @@ Cola de `Notification`, plantillas reutilizables `EmailTemplate`, envío por SMT
 
 - Prioridad: media.
 - Dependencias: 14, 15, 16.
+- Corrección: el envío de correo se implementó con Resend, no con SMTP. Ampliado por el piloto: cola de salida y mensajería instantánea (ítem 43).
 
 ## Comercial y público
 
@@ -134,6 +141,7 @@ Configurar el emisor y el punto de venta en ARCA (`ArcaIssuer`, `ArcaPuntoDeVent
 
 - Prioridad: alta.
 - Dependencias: 13.
+- Ampliado por el piloto: facturación por cuenta del locador (ítem 38).
 
 ### 22. Scoring interno de inquilinos y tasaciones
 
@@ -148,6 +156,7 @@ Permitir cargar masivamente personas, propiedades y contratos desde CSV/Excel co
 
 - Prioridad: media.
 - Dependencias: 09, 10, 11.
+- Ampliado por el piloto: importación idempotente de contratos, locadores, reglas e historial de ajustes desde el sistema anterior, y panel de calidad de datos (ítem 39).
 
 ### 24. Dashboard de KPIs, ocupacion, rentabilidad y flujo de caja
 
@@ -206,6 +215,7 @@ Documentar el contexto anonimizado del piloto, sus objetivos y métricas, el alc
 - Dependencias: ninguna.
 - Oleada: 0.
 - Issue: #88.
+- Estado al 2026-11-02: En curso. Relevamiento, plan, registro de feedback, matriz de trazabilidad, privacidad e índice de decisiones integrados (#107); el registro de feedback se mantiene durante todo el piloto.
 
 ### 31. Base de proceso: protección de rama, plantillas, pruebas web, CI
 
@@ -216,6 +226,7 @@ Plantillas de PR y de issues (requisito, defecto, feedback), etiquetas `piloto` 
 - Dependencias: ninguna.
 - Oleada: 0.
 - Issue: #89.
+- Estado al 2026-11-02: Hecho (cerrado el 2026-10-31). PR #105, #106, #108, #110, #113, #114, #115, #116, #134, #135 y #137.
 
 ### 32. Usuarios, invitaciones, contraseñas y permisos por rol
 
@@ -226,6 +237,7 @@ Pantalla de usuarios (invitar, rol, desactivar), aceptación de invitación, cam
 - Dependencias: 31.
 - Oleada: 1.
 - Issue: #90.
+- Estado al 2026-11-02: Hecho (cerrado el 2026-10-31). PR #140 (usuarios, invitaciones y contraseñas) y #142 (grupos de roles y política de lectura).
 
 ### 33. Personas, locadores, apoderados y titularidad
 
@@ -236,6 +248,7 @@ Ficha de persona ampliada con varias cuentas bancarias; locadores por contrato c
 - Dependencias: 31.
 - Oleada: 1.
 - Issue: #91.
+- Estado al 2026-11-02: Hecho (cerrado el 2026-10-31). PR #136 (datos de persona y cuentas), #139 (locadores, apoderados y titularidad) y #141 (pantallas de las partes).
 
 ### 34. Reglas del contrato, acuerdos y ajustes con rezago
 
@@ -246,6 +259,7 @@ Valores por defecto de la inmobiliaria, reglas versionadas del contrato y acuerd
 - Dependencias: 33.
 - Oleada: 2.
 - Issue: #92.
+- Estado al 2026-11-02: Hecho. PR #109 (índice de precios desde el INDEC con el BCRA de respaldo), #112 (activación), #148 (un solo camino de ajuste), #150 (reglas versionadas y acuerdos) y #153 (motor de ajuste con rezago).
 
 ### 35. Liquidación mensual completa: boletas, cargos, punitorios, recibo
 
@@ -256,6 +270,7 @@ Líneas con destino y marca de comisionable, generación anticipada, boletas de 
 - Dependencias: 34.
 - Oleada: 2.
 - Issue: #93.
+- Estado al 2026-11-02: Hecho. PR #117 y #133 (correcciones de fechas, dinero y deuda), #151 (generador de liquidaciones), #156 (boletas y reglas de traslado), #158 (punitorios en la liquidación) y #159 (centro de carga).
 
 ### 36. Cobros, caja, efectivo, custodia y compensaciones
 
@@ -266,6 +281,7 @@ Caja y cuentas, pago en tres flujos (repartido, todo a la inmobiliaria, todo al 
 - Dependencias: 35.
 - Oleada: 3.
 - Issue: #94.
+- Estado al 2026-11-02: Integrado. PR #161 (caja y cuentas, cobro en tres flujos, custodia, compensaciones y recibos de cobro). Pendiente su despliegue en `piloto` y su uso en el C2.
 
 ### 37. Cuenta corriente y estado de cuenta del locador
 
@@ -276,16 +292,18 @@ Asientos por locador, estado de cuenta mensual consolidado de todas sus unidades
 - Dependencias: 36.
 - Oleada: 3.
 - Issue: #95.
+- Estado al 2026-11-02: En curso (PR 3.2 de la oleada 3), para el C2.
 
 ### 38. Facturación por cuenta del locador
 
 Emisor delegado por persona, emisión desde el pago o el estado de cuenta, configurable según qué y cuánto se factura.
 
-- Prioridad: alta.
+- Prioridad: media.
 - Dueño: Manuel.
 - Dependencias: 37.
 - Oleada: 4.
 - Issue: #96.
+- Estado al 2026-11-02: En curso. Comprobante sin pago y emisión recuperable integrados (#125); la emisión por cuenta del locador está planificada para la oleada 4.
 
 ### 39. Migración desde el sistema anterior y calidad de datos
 
@@ -296,56 +314,62 @@ Importación idempotente de contratos, locadores, reglas, servicios, ajustes y s
 - Dependencias: 33 a 37.
 - Oleada: 3.
 - Issue: #97.
+- Estado al 2026-11-02: En curso. Importación ligada a la inmobiliaria (#110), importación idempotente (#155) y panel de calidad de datos (#160) integrados; la cartera real se cargó en `piloto` el 2026-11-02 y su revisión con la inmobiliaria sigue abierta.
 
 ### 40. Vencimientos, renovaciones, prórrogas y depósitos
 
 Semáforo de vencimientos y seguimientos con lista de verificación, renovación como período del contrato, prórroga de palabra con fin real, depósito con moneda, custodio y regla de devolución, y liquidación de egreso.
 
-- Prioridad: alta.
+- Prioridad: media.
 - Dueño: Manuel.
 - Dependencias: 34.
 - Oleada: 4.
 - Issue: #98.
+- Estado al 2026-11-02: Planificado (oleada 4). El fin real y la prórroga de palabra ya existen como parte del ítem 34.
 
 ### 41. Honorarios: alta, renovación, venta, tasación, comisiones del personal
 
 Honorarios por operación con valores por defecto configurables, cuotas con ajuste, coorretaje y comisiones del personal.
 
-- Prioridad: alta.
+- Prioridad: media.
 - Dueño: Manuel.
 - Dependencias: 36.
 - Oleada: 4.
 - Issue: #99.
+- Estado al 2026-11-02: Planificado (oleada 4). Los porcentajes de honorarios por defecto ya son valores configurables de la inmobiliaria (ítem 34).
 
 ### 42. Incidencias y reparaciones con imputación
 
 Incidencia con preautorización, presupuesto, ejecución, pago e imputación al inquilino o al locador, con honorario de gestión opcional.
 
-- Prioridad: alta.
+- Prioridad: media.
 - Dueño: Mariano.
 - Dependencias: 36.
 - Oleada: 4.
 - Issue: #100.
+- Estado al 2026-11-02: Planificado (oleada 4). El centro de carga del ítem 35 ya imputa reparaciones al inquilino o al locador.
 
 ### 43. Mensajería, bandeja de consultas y cobranza escalonada
 
 Envío de mail, mensajería instantánea con consentimiento y baja a través de una cola de salida, bandeja unificada de consultas con autorrespuesta y cobranza escalonada hasta la etapa prejudicial.
 
-- Prioridad: alta.
+- Prioridad: media.
 - Dueño: Romeo.
 - Dependencias: 32, 35.
 - Oleada: 4 y 5.
 - Issue: #101.
+- Estado al 2026-11-02: Planificado (oleadas 4 y 5). Depende del dominio propio y de la configuración del correo, pendientes.
 
 ### 44. Ventas, llaves y publicación
 
 Operación de venta (reserva, seña, boleto), registro de llaves y sus movimientos, y publicación asistida con estado por portal.
 
-- Prioridad: alta.
+- Prioridad: baja.
 - Dueño: Romeo.
 - Dependencias: 41.
 - Oleada: 5.
 - Issue: #102.
+- Estado al 2026-11-02: Planificado (oleada 5).
 
 ### 45. Validación en campo: ciclos en paralelo, reconciliación y métricas
 
@@ -356,6 +380,7 @@ Ciclos en sombra, paralelo y propio, suite de reconciliación, línea base y mé
 - Dependencias: 39.
 - Oleada: 3 a 5.
 - Issue: #103.
+- Estado al 2026-11-02: Pendiente. Línea base y C1 alrededor del 20/11/2026; la suite de reconciliación con casos sintéticos es el PR 3.5.
 
 ### 46. Documentación, informe y defensa con el piloto
 
@@ -366,5 +391,6 @@ Actualización de la documentación, el informe final y la preparación de la de
 - Dependencias: todos los ítems anteriores.
 - Oleada: Continuo.
 - Issue: #104.
+- Estado al 2026-11-02: En curso. Documentación en el mismo PR de cada cambio; capítulo del piloto en el Hito 4 (30/11/2026) y anexo tras C2 y C3.
 
 <!-- Cierre item 04 — backlog priorizado -->
