@@ -498,7 +498,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** la liquidación guarda el descuento en positivo y lo resta al calcular el total; el reparto sumaba todos los renglones sin mirar el tipo.
 - **Corrección:** el renglón lleva su tipo al motor de reparto y un `Descuento` resta del total, de la base de la comisión y de la parte de su destino.
 - **Prueba de regresión:** CP-660 en `apps/api/src/modules/cash/payment-settlement.service.spec.ts` y `packages/shared/src/settlement-engine/settlement-engine.spec.ts`; CP-663 en `packages/shared/src/reconciliation/reconciliation.characterization.spec.ts`.
-- **Evidencia rojo/verde:** regresión `38433e8` en rojo (1 prueba falla y 12 pasan); corrección en `4027bef`. Contra el reparto anterior, la suite de reconciliación da 18 diferencias en recibos y estados.
+- **Evidencia rojo/verde:** regresión `058a4c6` en rojo (1 prueba falla y 12 pasan); corrección en `8b50778`. Contra el reparto anterior, la suite de reconciliación da 18 diferencias en recibos y estados.
 
 ## DEF-71 — La compensación sin importe deja corto al locador compensado
 
@@ -512,7 +512,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el importe por defecto era la parte neta de A en el reparto, sin la deuda que el cobro le había dejado.
 - **Corrección:** `compensationDefault` en el motor de reparto: la parte del locador más lo que debía por ese cobro (su parte menos su saldo); el servicio lo usa como importe por defecto. Se corrigen los esperados de CP-401 y CP-468 y el ejemplo de ADR-0009.
 - **Prueba de regresión:** CP-661 en `apps/api/src/modules/cash/compensations.service.spec.ts` y `packages/shared/src/settlement-engine/settlement-engine.spec.ts`; CP-401 y CP-468 en la suite e2e.
-- **Evidencia rojo/verde:** regresión `dcb7bba` en rojo (1 prueba falla y 6 pasan: 46.500 en lugar de 50.000); corrección en `1bf49f3`.
+- **Evidencia rojo/verde:** regresión `9e20cbe` en rojo (1 prueba falla y 6 pasan: 46.500 en lugar de 50.000); corrección en `a3a30ef`.
 
 ## DEF-72 — La compensación se asienta el día en que se carga
 
@@ -526,7 +526,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el servicio tomaba siempre `todayInAR()` y el alta no aceptaba fecha.
 - **Corrección:** `POST /compensations` acepta `date`; sin ella, los asientos van con la fecha del cobro. La entrega de custodia sigue con la del día salvo que se indique otra.
 - **Prueba de regresión:** CP-662 en `apps/api/src/modules/cash/compensations.service.spec.ts`; CP-667 en `apps/api/test/e2e/reconciliacion.e2e-spec.ts`.
-- **Evidencia rojo/verde:** regresión `547ef9a` en rojo (1 prueba falla y 7 pasan: los asientos salen con la fecha de hoy); corrección en `e8dc96a`.
+- **Evidencia rojo/verde:** regresión `df2744d` en rojo (1 prueba falla y 7 pasan: los asientos salen con la fecha de hoy); corrección en `13d8da3`.
 
 ## DEF-73 — El primer mes de un contrato que empieza a mitad de mes no se reparte
 
@@ -540,4 +540,4 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el reparto, la compensación, la boleta pagada por la inmobiliaria y los locadores del recibo en PDF leían los locadores el día 1 del mes; los del contrato rigen desde su inicio. Solo el generador de liquidaciones contemplaba el caso.
 - **Corrección:** `lessorsDateFor` (el día 1 o, si el contrato empieza después, su inicio), usado en esos cuatro lugares y en el generador.
 - **Prueba de regresión:** CP-668 en `apps/api/src/modules/cash/payment-settlement.service.spec.ts` y `contracts/contract-parties.spec.ts`; C11 de `apps/api/test/e2e/reconciliacion.e2e-spec.ts`.
-- **Evidencia rojo/verde:** regresión `613e98c` en rojo (1 prueba falla y 13 pasan: `SETTLEMENT_LESSOR_SHARES`); corrección en `392936f`.
+- **Evidencia rojo/verde:** regresión `d2a7af9` en rojo (1 prueba falla y 13 pasan: `SETTLEMENT_LESSOR_SHARES`); corrección en `0fae979`.
