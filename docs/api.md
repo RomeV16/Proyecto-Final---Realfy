@@ -276,7 +276,7 @@ de plantillas y el de comisiones.
 | GET | `/services` | Listado de servicios asociados a propiedades y contratos. | Autenticado |
 | GET | `/services/:id` | Detalle. | Autenticado |
 | POST | `/services` | Alta. Además del tipo (incluye `ImpuestoInmobiliario`), acepta `billingFrequency` (`Mensual` por defecto, `Bimestral`, `Trimestral`, `Anual`) y `hasAnnualOption` (falso por defecto). | Admin, Gerente, Ventas |
-| PATCH | `/services/:id` | Edición. | Admin, Gerente, Ventas |
+| PATCH | `/services/:id` | Edición. Acepta `isActive: true` para reactivar un servicio dado de baja; con `providerKey` valida y normaliza la cuenta (`INVALID_PROVIDER_ACCOUNT`, `PROVIDER_SERVICE_TYPE_MISMATCH`). | Admin, Gerente, Ventas |
 | DELETE | `/services/:id` | Baja. | Admin, Gerente |
 | POST | `/services/:id/payments` | Registra el pago de un servicio. | Admin, Gerente, Ventas |
 
