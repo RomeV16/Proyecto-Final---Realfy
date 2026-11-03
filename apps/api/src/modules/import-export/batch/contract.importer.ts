@@ -12,7 +12,14 @@ import {
 import type { ImportContractRow } from '@realfy/shared';
 import { ensureRole } from '../../persons/person-roles.service';
 import { occupyRentalOperation, releaseRentalOperation } from '../../contracts/property-occupancy';
-import { adjustmentPercentage, assertContractRow, importedSchedule } from './contract-import-rules';
+import {
+  IMPORTED_NOTE,
+  adjustmentPercentage,
+  assertContractRow,
+  importedSchedule,
+  misplacedImportedAdjustments,
+  planScheduleSync,
+} from './contract-import-rules';
 import {
   changedKeys,
   dayIso,
@@ -215,8 +222,15 @@ async function syncCommission(db: Db, ctx: ImportContext, contractId: string, ro
   return true;
 }
 
-async function syncAdjustments(db: Db, ctx: ImportContext, contractId: string, row: ImportContractRow, history: History, existing: any[]) {
+async function syncAdjustments(db: Db, ctx: ImportContext, contractId: string, row: ImportContractRow, history: History, current: any[]) {
   let changed = false;
+  // Un ajuste cargado antes con otro número de período que el de su fecha se rehace en el que le toca.
+  const misplaced = new Set(misplacedImportedAdjustments(current, history));
+  if (misplaced.size > 0) {
+    await db.contractAdjustment.deleteMany({ where: { id: { in: [...misplaced] } } });
+    changed = true;
+  }
+  const existing = current.filter((e) => !misplaced.has(e.id));
   for (const h of history) {
     const data = {
       adjustmentDate: new Date(h.appliedAt),
@@ -231,7 +245,7 @@ async function syncAdjustments(db: Db, ctx: ImportContext, contractId: string, r
     const found = existing.find((e) => e.periodNumber === h.periodNumber && !e.isProvisional);
     if (!found) {
       await db.contractAdjustment.create({
-        data: { tenantId: ctx.tenantId, contractId, periodNumber: h.periodNumber, calculatedAt: data.appliedAt, notes: 'Imported', ...data },
+        data: { tenantId: ctx.tenantId, contractId, periodNumber: h.periodNumber, calculatedAt: data.appliedAt, notes: IMPORTED_NOTE, ...data },
       });
       changed = true;
       continue;
@@ -246,23 +260,38 @@ async function syncAdjustments(db: Db, ctx: ImportContext, contractId: string, r
   return changed;
 }
 
-/** Agrega los períodos de ajuste que falten; los ya guardados no se tocan. */
-async function addMissingSchedule(db: Db, ctx: ImportContext, contractId: string, row: ImportContractRow, history: History) {
-  const existing = await db.adjustmentSchedule.findMany({ where: { contractId }, select: { periodNumber: true } });
-  const have = new Set(existing.map((s: { periodNumber: number }) => s.periodNumber));
-  const entries = importedSchedule(
+/**
+ * Deja el cronograma como lo indica el lote: crea los períodos que faltan,
+ * corrige fecha y estado de los pendientes y salteados (un período con ajuste
+ * pasa a aplicado, uno atrasado a pendiente, uno de otro período de ajuste a su
+ * fecha nueva) y quita los pendientes que sobran. Los aplicados con ajuste no se tocan.
+ */
+async function syncSchedule(db: Db, ctx: ImportContext, contractId: string, row: ImportContractRow) {
+  const adjustments = await db.contractAdjustment.findMany({ where: { contractId }, select: { periodNumber: true } });
+  const applied = new Set<number>(adjustments.map((a: { periodNumber: number }) => a.periodNumber));
+  const desired = importedSchedule(
     new Date(row.startDate),
     new Date(row.actualEndDate ?? row.endDate),
     row.terms.adjustmentPeriod,
-    new Set(history.map((h) => h.periodNumber)),
+    applied,
     new Date(),
-  ).filter((e) => !have.has(e.periodNumber));
-  for (const e of entries) {
+  );
+  const existing = await db.adjustmentSchedule.findMany({
+    where: { contractId },
+    select: { id: true, periodNumber: true, nextAdjustmentDate: true, status: true },
+  });
+  const plan = planScheduleSync(existing, desired, applied);
+
+  if (plan.remove.length > 0) await db.adjustmentSchedule.deleteMany({ where: { id: { in: plan.remove } } });
+  for (const u of plan.update) {
+    await db.adjustmentSchedule.update({ where: { id: u.id }, data: { nextAdjustmentDate: u.date, status: u.status } });
+  }
+  for (const e of plan.create) {
     await db.adjustmentSchedule.create({
       data: { tenantId: ctx.tenantId, contractId, nextAdjustmentDate: e.date, periodNumber: e.periodNumber, status: e.status },
     });
   }
-  return entries.length > 0;
+  return plan.create.length + plan.update.length + plan.remove.length > 0;
 }
 
 async function upsertContract(db: Db, ctx: ImportContext, row: ImportContractRow): Promise<RowOutcome> {
@@ -327,7 +356,7 @@ async function upsertContract(db: Db, ctx: ImportContext, row: ImportContractRow
     row.lessors ? await syncLessors(db, ctx, contractId, start, lessors, existing?.lessors ?? []) : false,
     await syncCommission(db, ctx, contractId, row, existing?.commission ?? null),
     await syncAdjustments(db, ctx, contractId, row, history, existing?.adjustments ?? []),
-    row.status === ContractStatus.Activo ? await addMissingSchedule(db, ctx, contractId, row, history) : false,
+    row.status === ContractStatus.Activo ? await syncSchedule(db, ctx, contractId, row) : false,
   ];
   if (created || steps.some(Boolean)) changed = true;
 
