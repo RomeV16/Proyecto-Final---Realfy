@@ -842,7 +842,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** para el ICL y la UVA el cálculo tomaba el primer y el último valor existentes dentro de la ventana, aunque no estuvieran en sus extremos (inicio y fin de la ventana). Las series mensuales ya exigían cada mes (DEF-27); las diarias solo exigían dos valores.
 - **Corrección:** el valor de una fecha en las series diarias (el BCRA las publica todos los días corridos, feriados incluidos) es el de esa fecha: si falta el de la fecha de inicio o el de la fecha de fin de la ventana, el ajuste responde `MISSING_INDEX_DATA` con esas fechas, en el cálculo manual, la previsualización y la aplicación. El IPC no tenía el problema.
 - **Prueba de regresión:** CP-1220 a CP-1226 en `apps/api/src/modules/index-data/contract-adjustment-rules.spec.ts`; CP-1227 y CP-1228 en `apps/api/test/e2e/ajuste-masivo.e2e-spec.ts`.
-- **Evidencia rojo/verde:** pendiente de completar con las confirmaciones.
+- **Evidencia rojo/verde:** regresión `270541b` en rojo (7 pruebas unitarias y 1 e2e fallan: el ajuste se calcula o se aplica con la serie incompleta); corrección en `3e2d564`.
 
 ## DEF-121 — No hay carga del histórico de ICL y UVA de la serie de sistema
 
@@ -854,5 +854,5 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Resultado esperado:** una operación de administración, idempotente por (tipo, fecha), que cargue la serie de sistema para un rango y avise de los días sin dato.
 - **Resultado obtenido:** no existe.
 - **Corrección:** `POST /api/index-data/backfill` (solo Admin) con `indexType`, `from` y `to`: pide el rango al BCRA por tramos, inserta solo los días que faltan en la serie de sistema y devuelve cuántos insertó, cuántos ya estaban, cuántos difieren y los días que el BCRA no devolvió.
-- **Prueba de regresión:** CP-1230 a CP-1236 en `index-scraper.service.spec.ts`, `index-data.controller.spec.ts` y `apps/api/test/e2e/index-data-backfill.e2e-spec.ts`.
-- **Evidencia rojo/verde:** pendiente de completar con las confirmaciones.
+- **Prueba de regresión:** CP-1230 a CP-1239 en `index-scraper.service.spec.ts`, `index-data.controller.spec.ts` y `apps/api/test/e2e/index-data-backfill.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `4df8c34` en rojo (las pruebas del lector, del controlador y del flujo completo no compilan: la operación no existe); corrección en `9f46698`.

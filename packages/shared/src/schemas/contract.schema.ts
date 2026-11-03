@@ -168,7 +168,10 @@ const BACKFILL_MAX_DAYS = 3660;
 const calendarDay = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be a date as YYYY-MM-DD')
-  .refine((v) => new Date(`${v}T00:00:00.000Z`).toISOString().slice(0, 10) === v, 'Must be a real calendar date');
+  .refine((v) => {
+    const t = Date.parse(`${v}T00:00:00.000Z`);
+    return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
+  }, 'Must be a real calendar date');
 
 /**
  * Carga del histórico de una serie diaria de sistema (ICL, UVA) por rango de

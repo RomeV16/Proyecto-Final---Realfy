@@ -146,6 +146,18 @@ Si las dos fuentes fallaran a la vez, la pantalla **Configuración → Índices*
 permite cargar el IPC a mano, de a un mes o pegando varios desde una planilla.
 La carga manual tiene prioridad sobre el valor de sistema del mismo mes.
 
+## Histórico de ICL y UVA por rango (DEF-121)
+
+`POST /api/index-data/backfill` usa las mismas variables del BCRA que el lector
+diario (40 para el ICL, 31 para la UVA), pero pide el rango en tramos de 365 días
+para quedar lejos del tope de 1.000 filas de la respuesta. Las respuestas de las
+dos series traen una fila por día corrido, feriados incluidos (61 filas en 61 días
+en las respuestas grabadas del 19 de octubre), y de eso depende la regla de
+ADR-0011 de exigir el valor de la fecha. A diferencia del lector diario, un fallo
+del BCRA no se traga: se informa con 502. Las pruebas (CP-1230 a CP-1239) usan un
+doble de `fetch`; no hay prueba contra el entorno real para esta operación y CP-52
+no cambia.
+
 ## Mensajería: Resend y WhatsApp Business Cloud API (3 nov 2026)
 
 La mensajería saliente (ADR-0013) habla con dos plataformas más. El contrato que

@@ -24,7 +24,7 @@ Términos del dominio inmobiliario y técnicos utilizados a lo largo de la docum
 - **Ajuste CCP**: Actualización tomando como referencia el Coeficiente Casa Propia.
 - **Ajuste por porcentaje fijo**: Modalidad donde el contrato pacta de antemano el porcentaje de aumento de cada período, sin atarse a un índice publicado.
 - **Ajuste personalizado**: Modalidad donde las partes acuerdan el nuevo valor en cada período y se carga a mano.
-- **UVA**: Unidad de Valor Adquisitivo publicada por el BCRA. El sistema la registra como tipo de índice —igual que el CVS y el CER— y, desde el piloto, también como modalidad de ajuste: el cálculo la resuelve como el ICL, con el cociente entre el primer y el último valor diario de la ventana (ADR-0011).
+- **UVA**: Unidad de Valor Adquisitivo publicada por el BCRA. El sistema la registra como tipo de índice —igual que el CVS y el CER— y, desde el piloto, también como modalidad de ajuste: el cálculo la resuelve como el ICL, con el cociente entre el valor del día en que termina la ventana y el del día en que empieza, que deben estar publicados (ADR-0011).
 - **Ajuste escalonado**: Modalidad donde el contrato pacta porcentajes de aumento por tramos, cada uno desde un mes de contrato; se aplica el porcentaje del último tramo que ya empezó.
 - **Comprobante ARCA**: Documento fiscal electrónico (factura A, B o C, recibo, nota de crédito) emitido contra los servicios web de ARCA (ex AFIP).
 - **CAE**: Código de Autorización Electrónico devuelto por ARCA al aprobar un comprobante. Sin CAE, el comprobante no tiene validez fiscal.

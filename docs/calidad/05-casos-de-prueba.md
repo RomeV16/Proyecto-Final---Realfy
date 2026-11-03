@@ -984,3 +984,28 @@ Banda CP-1280 a CP-1299 (usados CP-1280 a CP-1288). Origen: ensayo general del c
 | CP-1286 | Cronograma pendiente y errores del lote | los pendientes parten del período más reciente entre el cronograma y el historial; un error no HTTP del lote se informa por contrato (`CONFLICT`, `ADJUSTMENT_FAILED`) y uno de la modalidad sigue siendo `skipped` | `contracts/contract-rules-lifecycle.spec.ts`; `index-data/adjustment-batch.service.spec.ts`; `index-data/adjustments-run.spec.ts` | verde (3 nov) |
 | CP-1287 | Convención en los esquemas compartidos | el valor por defecto de la inmobiliaria (golden de reglas), el formulario, la creación del contrato y el convenio aceptan `NoRecuperar` y `Recuperar` y rechazan otro valor | `packages/shared/src/schemas/contract-rules.schema.spec.ts` | verde (3 nov) |
 | CP-1288 | Convención en la pantalla | *Valores por defecto* edita y restablece la convención; el formulario del contrato la ofrece y la ficha de reglas la muestra | `operational-defaults-form.test.tsx`; `contract-form.test.tsx`; `contract-rules.test.tsx` | verde (3 nov) |
+## Cobertura de ICL y UVA e histórico de la serie de sistema (DEF-120, DEF-121)
+
+Banda CP-1220 a CP-1239. El valor de una fecha en las series diarias es el de esa fecha (ADR-0011): sin el de la fecha de inicio o el de la de fin de la ventana no hay ajuste.
+
+| ID | Caso | Esperado | Prueba | Estado |
+|---|---|---|---|---|
+| CP-1220 | ICL sin el valor de la fecha de inicio | 400 `MISSING_INDEX_DATA` con esa fecha; no el cociente de los dos primeros valores | `index-data/contract-adjustment-rules.spec.ts::CP-1220` | verde (3 nov) |
+| CP-1221 | ICL sin el valor de la fecha de fin, o sin los dos | `MISSING_INDEX_DATA` con la fecha (o las dos) | `contract-adjustment-rules.spec.ts::CP-1221` | verde (3 nov) |
+| CP-1222 | UVA con base Original y la serie desde después del inicio | `MISSING_INDEX_DATA`; el alquiler no baja | `contract-adjustment-rules.spec.ts::CP-1222` | verde (3 nov) |
+| CP-1223 | Con los dos extremos, los días intermedios no hacen falta | el ajuste se calcula con el cociente de los extremos | `contract-adjustment-rules.spec.ts::CP-1223` | verde (3 nov) |
+| CP-1224 | Ventana tras un ajuste anterior y ventana corrida por el rezago | la fecha del ajuste anterior y la fecha corrida exigen su valor | `contract-adjustment-rules.spec.ts::CP-1224` | verde (3 nov) |
+| CP-1225 | Inicio y fin en el mismo día | `MISSING_INDEX_DATA`, no 0 % | `contract-adjustment-rules.spec.ts::CP-1225` | verde (3 nov) |
+| CP-1226 | Aplicar con la serie incompleta | no se escribe ajuste ni alquiler y el cronograma sigue pendiente | `contract-adjustment-rules.spec.ts::CP-1226` | verde (3 nov) |
+| CP-1227 | Previsualizar y aplicar ICL con la serie de sistema desde después del inicio | `missing_data` con la fecha y `skipped MISSING_INDEX_DATA`; el alquiler no cambia | `e2e/ajuste-masivo.e2e-spec.ts::CP-1227` | verde (3 nov) |
+| CP-1228 | ICL con los dos extremos en la serie de sistema | «listo» con el cociente de los extremos y los dos días usados | `e2e/ajuste-masivo.e2e-spec.ts::CP-1228` | verde (3 nov) |
+| CP-1230 | Carga del histórico: tramos y variables | un pedido por tramo de hasta 365 días; variable 40 (ICL) y 31 (UVA) | `index-data/index-scraper.service.spec.ts::CP-1230` | verde (3 nov) |
+| CP-1231 | Carga del histórico: solo lo que falta | inserta en la serie de sistema los días ausentes e informa insertados, existentes y fuente | `index-scraper.service.spec.ts::CP-1231` | verde (3 nov) |
+| CP-1232 | Carga del histórico idempotente | con todos los días cargados no escribe nada | `index-scraper.service.spec.ts::CP-1232` | verde (3 nov) |
+| CP-1233 | Un valor cargado que difiere no se pisa | se cuenta en `differing` y queda como estaba | `index-scraper.service.spec.ts::CP-1233` | verde (3 nov) |
+| CP-1234 | Días sin dato y filas fuera del rango | se informan `missingDays`; lo de afuera del rango se ignora | `index-scraper.service.spec.ts::CP-1234` | verde (3 nov) |
+| CP-1235 | Fallo del BCRA y filas inválidas | el error se propaga sin escribir; fechas o valores inválidos se descartan | `index-scraper.service.spec.ts::CP-1235` | verde (3 nov) |
+| CP-1236 | Validación del cuerpo | rechaza índice mensual, rango invertido, de más de diez años, futuro o fecha inexistente con 400; delega al lector con el cuerpo válido | `index-data.controller.spec.ts::CP-1236` | verde (3 nov) |
+| CP-1237 | Carga del histórico de punta a punta | el Admin carga el rango bajo `__system__`, repetirlo no duplica, todas las inmobiliarias lo ven y un valor ya cargado no se pisa | `e2e/index-data-backfill.e2e-spec.ts::CP-1237` | verde (3 nov) |
+| CP-1238 | Roles | solo Admin; el resto 403 y sin sesión 401, sin llamar al BCRA | `e2e/index-data-backfill.e2e-spec.ts::CP-1238` | verde (3 nov) |
+| CP-1239 | Rango inválido y BCRA caído | 400 con el rango o el índice inválidos; 502 `INDEX_SOURCE_UNAVAILABLE` sin dejar datos | `e2e/index-data-backfill.e2e-spec.ts::CP-1239` | verde (3 nov) |
