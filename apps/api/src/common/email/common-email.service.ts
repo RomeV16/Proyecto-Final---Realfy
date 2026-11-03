@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import { normalizeEmail } from '@realfy/shared';
+import { MessagingConfigService } from '../messaging/messaging-config.service';
 
 export interface EmailParams {
   to: string;
@@ -15,8 +17,23 @@ export interface EmailParams {
  */
 export type EmailResult =
   | { status: 'sent'; id: string }
-  | { status: 'skipped' }
+  | { status: 'skipped'; reason?: 'MESSAGING_OFF' | 'NOT_IN_ALLOWLIST' }
   | { status: 'failed'; error: string };
+
+/**
+ * Para qué se manda (ADR-0013):
+ * - `outbox`: lo manda el despacho de la bandeja de salida, que ya aplicó el
+ *   modo del ambiente, la lista permitida y el consentimiento.
+ * - `transactional`: lo pidió la misma persona que lo recibe (recupero de
+ *   contraseña); no depende del modo.
+ * - `direct` (por defecto): cualquier otro mail. Respeta MESSAGING_MODE: con
+ *   `off` no sale y con `allowlist` solo sale a las direcciones de la lista.
+ */
+export interface EmailSendOptions {
+  purpose?: 'outbox' | 'transactional' | 'direct';
+  /** Clave de idempotencia de Resend: el mismo envío repetido en 24 h sale una vez. */
+  idempotencyKey?: string;
+}
 
 /** Único transporte de mail de la API (Resend). */
 @Injectable()
@@ -24,8 +41,10 @@ export class CommonEmailService {
   private readonly logger = new Logger(CommonEmailService.name);
   private readonly resend: Resend | null;
   private readonly fromAddress: string;
+  private readonly messaging: MessagingConfigService;
 
   constructor(private readonly config: ConfigService) {
+    this.messaging = new MessagingConfigService(config);
     const apiKey = this.config.get<string>('RESEND_API_KEY');
     if (apiKey) {
       this.resend = new Resend(apiKey);
@@ -35,9 +54,7 @@ export class CommonEmailService {
         'RESEND_API_KEY not configured — email delivery disabled. Set the env var to enable.',
       );
     }
-    this.fromAddress =
-      this.config.get<string>('RESEND_FROM_ADDRESS') ??
-      'noreply@realfy.com.ar';
+    this.fromAddress = this.messaging.resend.from;
   }
 
   /** Whether the email service is configured and ready to send. */
@@ -52,7 +69,17 @@ export class CommonEmailService {
    * Optional `attachments` are passed through to Resend v6 as
    * `{ filename: string; content: Buffer }[]`.
    */
-  async send(params: EmailParams): Promise<EmailResult> {
+  async send(params: EmailParams, options: EmailSendOptions = {}): Promise<EmailResult> {
+    const purpose = options.purpose ?? 'direct';
+    if (purpose === 'direct') {
+      const address = normalizeEmail(params.to) ?? params.to;
+      if (!this.messaging.allowsAddress(address)) {
+        const reason = this.messaging.mode === 'off' ? 'MESSAGING_OFF' : 'NOT_IN_ALLOWLIST';
+        this.logger.warn('Email held by MESSAGING_MODE', { to: params.to, subject: params.subject, reason });
+        return { status: 'skipped', reason };
+      }
+    }
+
     if (!this.resend) {
       this.logger.warn('Email skipped — Resend not configured', {
         to: params.to,
@@ -68,7 +95,7 @@ export class CommonEmailService {
         subject: params.subject,
         html: params.html,
         ...(params.attachments?.length ? { attachments: params.attachments } : {}),
-      });
+      }, options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined);
 
       // El SDK no lanza cuando la API rechaza el envío: devuelve `error` (DEF-65).
       if (result.error || !result.data?.id) {
@@ -99,8 +126,8 @@ export class CommonEmailService {
    * Same as `send` for callers that only need to know whether it went out:
    * returns `{ id }` on success, null when skipped or failed.
    */
-  async sendEmail(params: EmailParams): Promise<{ id: string } | null> {
-    const result = await this.send(params);
+  async sendEmail(params: EmailParams, options?: EmailSendOptions): Promise<{ id: string } | null> {
+    const result = await this.send(params, options);
     return result.status === 'sent' ? { id: result.id } : null;
   }
 }

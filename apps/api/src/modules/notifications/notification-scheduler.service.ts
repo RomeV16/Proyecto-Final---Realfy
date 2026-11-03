@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { AR_TIME_ZONE, formatDateAR, personName, todayInAR } from '@realfy/shared';
+import { AR_TIME_ZONE, MessageChannel, formatDateAR, personName, todayInAR } from '@realfy/shared';
 import { CronBaseService } from '../../common/scheduler/cron.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantCron } from '../../common/scheduler/tenant-cron';
 import { NotificationsService } from './notifications.service';
-import { NotificationEmailService } from './notification-email.service';
+import { OutboxService } from '../../common/messaging/outbox.service';
 import { findStaff } from '../../common/auth/find-staff';
 import { BILLING_ROLES, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
 import { getEffectiveEndDate } from '../contracts/contract-terms';
@@ -43,7 +43,7 @@ export class NotificationSchedulerService extends CronBaseService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
-    private readonly emailService: NotificationEmailService,
+    private readonly outbox: OutboxService,
     private readonly tenantCron: TenantCron,
   ) {
     super();
@@ -173,8 +173,8 @@ export class NotificationSchedulerService extends CronBaseService {
             if (!created) continue;
             notificationsCreated++;
 
-            // Send email for critical contract expiry
-            await this.emailService.sendNotificationEmail({
+            // El mail del aviso va por la bandeja de salida, uno por notificación.
+            await this.mailStaff(created.id, {
               to: user.email,
               subject: `Contrato por vencer — ${contract.property.title}`,
               title,
@@ -230,7 +230,7 @@ export class NotificationSchedulerService extends CronBaseService {
           });
 
           for (const user of users) {
-            await this.notificationsService.createNotification({
+            const created = await this.notificationsService.createNotification({
               tenantId,
               userId: user.id,
               type: 'LiquidacionOverdue',
@@ -239,10 +239,11 @@ export class NotificationSchedulerService extends CronBaseService {
               entityType: 'Liquidacion',
               entityId: liq.id,
             });
+            if (!created) continue;
             notificationsCreated++;
 
-            // Send email for overdue liquidaciones
-            await this.emailService.sendNotificationEmail({
+            // El mail del aviso va por la bandeja de salida, uno por notificación.
+            await this.mailStaff(created.id, {
               to: user.email,
               subject: `Liquidación vencida — ${liq.contract.property.title}`,
               title: `Liquidación vencida: ${periodStr}`,
@@ -346,5 +347,28 @@ export class NotificationSchedulerService extends CronBaseService {
         `Cron job completed: stale-lead-alerts in ${Date.now() - start}ms — tenants=${tenantsProcessed}, notifications=${notificationsCreated}`,
       );
     }, 'stale-lead-alerts');
+  }
+
+  /**
+   * Encola el mail de un aviso al personal (plantilla `staff_alert`) con una
+   * clave por notificación. Un error al encolar no corta el barrido.
+   */
+  private async mailStaff(
+    notificationId: string,
+    m: { to: string; subject: string; title: string; message: string; tenantName: string },
+  ): Promise<void> {
+    try {
+      await this.outbox.enqueue(this.prisma.client, {
+        channel: MessageChannel.Email,
+        templateKey: 'staff_alert',
+        vars: { subject: m.subject, title: m.title, message: m.message, agency: m.tenantName },
+        to: m.to,
+        relatedType: 'Notification',
+        relatedId: notificationId,
+        idempotencyKey: `Notification:${notificationId}:Email`,
+      });
+    } catch (err) {
+      this.logger.error(`Staff alert email not queued: notificationId=${notificationId} error=${(err as Error).message}`);
+    }
   }
 }

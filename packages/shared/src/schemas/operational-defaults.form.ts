@@ -77,10 +77,16 @@ export const operationalDefaultsFormSchema = z
     }),
     repairPreauthLimit: numberText({ min: 0 }),
     repairMgmtFeePct: numberText({ min: 0, max: 100 }),
+    messagingFromHour: numberText({ int: true, min: 0, max: 23 }),
+    messagingUntilHour: numberText({ int: true, min: 1, max: 24 }),
   })
   .refine((v) => Number(v.yellowDays) >= Number(v.redDays) || !/^\d+$/.test(v.yellowDays), {
     message: 'validation.outOfRange',
     path: ['yellowDays'],
+  })
+  .refine((v) => Number(v.messagingUntilHour) > Number(v.messagingFromHour) || !/^\d+$/.test(v.messagingUntilHour), {
+    message: 'validation.outOfRange',
+    path: ['messagingUntilHour'],
   });
 
 export type OperationalDefaultsFormInput = z.infer<typeof operationalDefaultsFormSchema>;
@@ -132,6 +138,8 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     invoicingVatPct: String(d.invoicing.vatPct),
     repairPreauthLimit: String(d.repairs.preauthLimit),
     repairMgmtFeePct: String(d.repairs.managementFeePct),
+    messagingFromHour: String(d.messaging.fromHour),
+    messagingUntilHour: String(d.messaging.untilHour),
   };
 }
 
@@ -181,5 +189,6 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
     },
     invoicing: { scope: f.invoicingScope, when: f.invoicingWhen, vatPct: num(f.invoicingVatPct) },
     repairs: { preauthLimit: num(f.repairPreauthLimit), managementFeePct: num(f.repairMgmtFeePct) },
+    messaging: { fromHour: num(f.messagingFromHour), untilHour: num(f.messagingUntilHour) },
   };
 }

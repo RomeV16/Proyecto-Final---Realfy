@@ -3,15 +3,13 @@ import { NotificationSchedulerService } from './notification-scheduler.service';
 import { makeTenantCron } from '../../common/scheduler/tenant-cron.testing';
 
 const mockCreateNotification = jest.fn();
-const mockSendNotificationEmail = jest.fn();
+const mockEnqueue = jest.fn().mockResolvedValue({ id: 'm', status: 'Pending', statusReason: null, created: true });
 
 const mockNotificationsService = {
   createNotification: mockCreateNotification,
 } as any;
 
-const mockEmailService = {
-  sendNotificationEmail: mockSendNotificationEmail,
-} as any;
+const mockOutbox = { enqueue: mockEnqueue } as any;
 
 function createMockPrismaService() {
   return {
@@ -40,7 +38,7 @@ describe('NotificationSchedulerService', () => {
     scheduler = new NotificationSchedulerService(
       prisma,
       mockNotificationsService,
-      mockEmailService,
+      mockOutbox,
       makeTenantCron([], prisma).tenantCron,
     );
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
@@ -137,8 +135,9 @@ describe('NotificationSchedulerService', () => {
         ),
       };
       mockCreateNotification.mockImplementation(async (params: any) => {
-        stored.push(params);
-        return params;
+        const row = { id: `n${stored.length + 1}`, ...params };
+        stored.push(row);
+        return row;
       });
       prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 't1', name: 'Inmo Uno' }]);
       prisma.baseClient.user.findMany.mockResolvedValue(users);
@@ -161,7 +160,7 @@ describe('NotificationSchedulerService', () => {
       await scheduler.handleContractExpiryWarnings();
 
       expect(stored).toHaveLength(2); // uno por usuario
-      expect(mockSendNotificationEmail).toHaveBeenCalledTimes(2);
+      expect(mockEnqueue).toHaveBeenCalledTimes(2);
     });
 
     it('en días consecutivos avisa una vez por umbral: 30, 15 y 7 días', async () => {
@@ -186,7 +185,7 @@ describe('NotificationSchedulerService', () => {
       expect(ofUser[1].title).toContain('15 días');
       expect(ofUser[2].title).toContain('7 días');
       expect(stored).toHaveLength(6);
-      expect(mockSendNotificationEmail).toHaveBeenCalledTimes(6);
+      expect(mockEnqueue).toHaveBeenCalledTimes(6);
     });
 
     it('un contrato que entra directo al último umbral recibe un solo aviso', async () => {
@@ -226,6 +225,50 @@ describe('NotificationSchedulerService', () => {
       await scheduler.handleContractExpiryWarnings();
 
       expect(stored).toHaveLength(0);
+    });
+  });
+
+  describe('overdue-liquidaciones: el mail va por la bandeja de salida', () => {
+    beforeEach(() => {
+      process.env.NODE_ENV = 'production';
+      prisma.baseClient.tenant.findMany.mockResolvedValue([{ id: 't1', name: 'Inmo Uno' }]);
+      prisma.baseClient.user.findMany.mockResolvedValue([{ id: 'u1', email: 'liq@inmo.test' }]);
+      prisma.client.liquidacion.findMany.mockResolvedValue([
+        {
+          id: 'l1',
+          period: new Date('2026-10-01T12:00:00.000Z'),
+          dueDate: new Date('2026-10-10T12:00:00.000Z'),
+          contract: { property: { title: 'Depto Centro' } },
+        },
+      ]);
+    });
+
+    it('encola un aviso al personal por notificación creada, con su clave', async () => {
+      mockCreateNotification.mockResolvedValueOnce({ id: 'n-77' });
+      await scheduler.handleOverdueLiquidaciones();
+      expect(mockEnqueue).toHaveBeenCalledTimes(1);
+      const [, input] = mockEnqueue.mock.calls[0];
+      expect(input).toMatchObject({
+        channel: 'Email',
+        templateKey: 'staff_alert',
+        to: 'liq@inmo.test',
+        relatedType: 'Notification',
+        relatedId: 'n-77',
+        idempotencyKey: 'Notification:n-77:Email',
+      });
+      expect(input.vars).toMatchObject({ subject: 'Liquidación vencida — Depto Centro', agency: 'Inmo Uno' });
+    });
+
+    it('si el aviso ya existía (no se creó otro) tampoco se encola el mail', async () => {
+      mockCreateNotification.mockResolvedValueOnce(null);
+      await scheduler.handleOverdueLiquidaciones();
+      expect(mockEnqueue).not.toHaveBeenCalled();
+    });
+
+    it('un error al encolar no corta el barrido', async () => {
+      mockCreateNotification.mockResolvedValueOnce({ id: 'n-1' });
+      mockEnqueue.mockRejectedValueOnce(new Error('NO_CONTACT_ADDRESS'));
+      await expect(scheduler.handleOverdueLiquidaciones()).resolves.toBeUndefined();
     });
   });
 

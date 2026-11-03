@@ -93,7 +93,7 @@ export class PasswordResetService {
         `<p>Para elegir una contraseña nueva entrá a este enlace. Sirve una sola vez y vence en 1 hora:</p>` +
         `<p><a href="${this.link(token)}">${this.link(token)}</a></p>` +
         `<p>Si no lo pediste, ignorá este mensaje.</p>`,
-    });
+    }, { purpose: 'transactional' });
     this.logger.log(`Password reset mail sent: userId=${user.id}`);
   }
 
@@ -144,7 +144,7 @@ export class PasswordResetService {
       expiresAt: expiresAt.toISOString(),
       token,
       link: this.link(token),
-      emailSent: false,
+      emailQueued: false,
     };
   }
 
