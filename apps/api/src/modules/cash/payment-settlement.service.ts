@@ -137,6 +137,7 @@ export class PaymentSettlementService {
           beneficiary: li.beneficiary,
           commissionable: li.commissionable,
           currency: li.currency,
+          type: li.type,
         })),
         commission: commissionFor(contract, liquidacion.currency, defaults),
         lessors: lessors.map((l: any) => ({ personId: l.personId, payoutPct: l.payoutPct.toString() })),

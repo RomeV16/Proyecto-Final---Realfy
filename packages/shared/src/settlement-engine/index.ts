@@ -1,6 +1,6 @@
 import { Money, allocateLargestRemainder, round2, sumMoney } from '../money';
 import type { MoneyInput } from '../money';
-import { LessorDirectOwes, LineBeneficiary, PaymentReceiver } from '../enums';
+import { LessorDirectOwes, LineBeneficiary, LineItemType, PaymentReceiver } from '../enums';
 import { calculateCommission, InvalidCommissionError } from '../commission-engine';
 import type { CommissionConfig } from '../commission-engine';
 
@@ -38,10 +38,19 @@ export const DEFAULT_SETTLEMENT_OPTIONS: SettlementOptions = {
 // ─── Tipos ──────────────────────────────────────────────
 
 export interface SettlementLine {
+  /** Con signo; un renglón `Descuento` resta aunque venga en positivo, como lo guarda la liquidación. */
   amount: MoneyInput;
   beneficiary: LineBeneficiary | `${LineBeneficiary}`;
   commissionable: boolean;
   currency?: string | null;
+  /** Tipo del renglón (`LineItemType`); solo cambia el signo de un `Descuento`. */
+  type?: LineItemType | `${LineItemType}` | string | null;
+}
+
+/** Importe con signo de un renglón: el descuento resta (DEF-70). */
+function signedAmount(line: SettlementLine): Money {
+  const amount = round2(line.amount);
+  return line.type === LineItemType.Descuento ? amount.abs().negated() : amount;
 }
 
 export interface SettlementLessor {
@@ -158,8 +167,7 @@ export function settlementBuckets(
       );
     }
   }
-  const sumOf = (pick: (l: SettlementLine) => boolean) =>
-    sumMoney(lines.filter(pick).map((l) => round2(l.amount)));
+  const sumOf = (pick: (l: SettlementLine) => boolean) => sumMoney(lines.filter(pick).map(signedAmount));
   const total = sumOf(() => true);
   const commissionBase = sumOf((l) => l.commissionable);
   const agencyLines = sumOf((l) => l.beneficiary === LineBeneficiary.Inmobiliaria);

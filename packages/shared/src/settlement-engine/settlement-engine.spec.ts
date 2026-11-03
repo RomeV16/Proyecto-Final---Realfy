@@ -97,6 +97,21 @@ describe('settlement-engine — destinos de la liquidación', () => {
     expect([b.agency.toFixed(2), b.lessors.toFixed(2)]).toEqual(['2000.00', '104500.00']);
   });
 
+  it('un renglón Descuento resta aunque venga en positivo, como lo guarda la liquidación (DEF-70)', () => {
+    const lines = [
+      { amount: '100000', beneficiary: B.Locador, commissionable: true, type: 'Alquiler' },
+      { amount: '10000', beneficiary: B.Locador, commissionable: true, type: 'Descuento' },
+      { amount: '-2000', beneficiary: B.Locador, commissionable: false, type: 'Descuento' },
+    ];
+    const b = settlementBuckets(lines, PCT7, 'ARS');
+    expect([b.total, b.commissionBase, b.commission, b.lessors].map((v) => v.toFixed(2))).toEqual([
+      '88000.00',
+      '90000.00',
+      '6300.00',
+      '81700.00',
+    ]);
+  });
+
   it('rechaza una parte negativa (descuento mayor que el alquiler)', () => {
     const lines = [
       { amount: '100', beneficiary: B.Locador, commissionable: true },
