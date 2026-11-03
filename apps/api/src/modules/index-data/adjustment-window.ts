@@ -47,7 +47,7 @@ export async function resolveAdjustmentWindow(
   });
   const appliedDates: Date[] = [previous?.nextAdjustmentDate, adjusted?.adjustmentDate].filter(Boolean);
   if (appliedDates.length > 0) {
-    const from = appliedDates.reduce((a, b) => (b > a ? b : a));
+    const from = new Date(Math.max(...appliedDates.map((d) => d.getTime())));
     return { from, until, afterPrevious: true };
   }
 
