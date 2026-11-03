@@ -8,8 +8,9 @@ estaban: muestran el antes y el después de ese trabajo.
 
 ## Medición del 3 de noviembre de 2026 (piloto)
 
-Medición sobre `main` en el commit `ba78a78` (integración de la cobranza
-escalonada, #181), con el piloto en una inmobiliaria real en curso. Es la misma
+Medición sobre `main` en el commit `a2ea7d9` (integración de la bandeja de
+consultas, #183, con la que quedaron entregadas las seis oleadas de desarrollo), con
+el piloto en una inmobiliaria real en curso. Es la misma
 medición de la tabla única de cifras del informe final
 (`../tesis/29-informe-final.md`, sección 9.10); acá se agregan las métricas de
 calidad que el informe no detalla. La referencia «antes» es el cierre del TP
@@ -17,24 +18,32 @@ calidad que el informe no detalla. La referencia «antes» es el cierre del TP
 
 ### Pruebas y cobertura (integración continua)
 
-Fuente: ejecución [41588355933](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41588355933),
-trabajos «Unit Tests & Coverage» y «API E2E Tests», en verde.
+Fuente: ejecución [41591721662](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41591721662)
+del pedido #183, sobre `5c6ca93`, cuyo árbol es idéntico al de `a2ea7d9`; todos sus
+trabajos en verde. La ejecución sobre `main`
+([41595020268](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41595020268))
+falló en una prueba de pantalla de la web que en el pedido había pasado (ver
+«Métrica de proyecto»), y por eso no corrieron la integración ni SonarCloud; sus
+unitarias de la API y del paquete compartido coinciden con las de esta tabla.
 
-| Métrica | Antes (`ac07cdf`, 28 oct) | Ahora (`ba78a78`, 3 nov) | Interpretación |
+| Métrica | Antes (`ac07cdf`, 28 oct) | Ahora (`a2ea7d9`, 3 nov) | Interpretación |
 |---|---|---|---|
-| Pruebas unitarias de la API | 807 | 2.314 en 179 archivos | Crecieron con cada ítem del piloto; cada motor de dinero tiene pruebas de valores conocidos |
-| Pruebas del paquete compartido | 48 | 1.017 en 44 archivos | Incluyen los motores puros y la reconciliación con los motores (CP-663 a CP-665) |
-| Pruebas de la aplicación web | No había | 1.574 en 139 archivos | vitest, con pantallas renderizadas en jsdom |
-| Pruebas de integración de la API | 491 | 815 en 59 archivos | Incluyen la reconciliación por la API (CP-666 y CP-667) |
-| Cobertura de la API: líneas, sentencias, funciones, ramas | 44,48 %, 44,36 %, 45,77 %, 34,50 % | 79,74 %, 79,79 %, 81,12 %, 70,96 % | El piso de CI sigue en 38 % y 27 %: es una alarma contra regresiones, no una meta |
-| Cobertura de líneas de la web | — | 77,97 % | Medida desde que la web tiene pruebas (#106) |
-| Cobertura de líneas del paquete compartido | — | 72,88 % | Primera medición con el paquete en el análisis (#106) |
+| Pruebas unitarias de la API | 807 | 2.419 en 186 archivos | Crecieron con cada ítem del piloto; cada motor de dinero tiene pruebas de valores conocidos |
+| Pruebas del paquete compartido | 48 | 1.040 en 45 archivos | Incluyen los motores puros y la reconciliación con los motores (CP-663 a CP-665) |
+| Pruebas de la aplicación web | No había | 1.611 en 141 archivos | vitest, con pantallas renderizadas en jsdom |
+| Pruebas de integración de la API | 491 | 829 en 60 archivos | Incluyen la reconciliación por la API (CP-666 y CP-667) |
+| Cobertura de la API: líneas, sentencias, funciones, ramas | 44,48 %, 44,36 %, 45,77 %, 34,50 % | 80,30 %, 80,35 %, 81,56 %, 71,79 % | El piso de CI sigue en 38 % y 27 %: es una alarma contra regresiones, no una meta |
+| Cobertura de líneas de la web | — | 78,52 % | Medida desde que la web tiene pruebas (#106) |
+| Cobertura de líneas del paquete compartido | — | 73,37 % | Primera medición con el paquete en el análisis (#106) |
 | Cobertura del módulo `index-data` | 96,63 % de líneas, 92,70 % de ramas | 96,98 % de líneas, 88,62 % de ramas | Sigue sobre la meta del TP (80 % y 70 %); las ramas bajaron cuatro puntos con el código que el piloto sumó al módulo, como la aplicación masiva de ajustes |
 
 ### SonarCloud
 
-Fuente: análisis de `main` sobre `ba78a78` del 3 de noviembre de 2026, 06:35 UTC,
-que combina la cobertura de las pruebas unitarias y de integración.
+Fuente: último análisis de `main`, sobre `ba78a78` (el commit anterior, con la
+cobranza escalonada), del 3 de noviembre de 2026, 06:35 UTC, que combina la
+cobertura de las pruebas unitarias y de integración. El análisis de `a2ea7d9` no
+corrió porque la ejecución de `main` falló antes; el del pedido #183 pasó el quality
+gate.
 
 | Métrica | 19 oct (`2eb2fa7`) | 3 nov (`ba78a78`) | Interpretación |
 |---|---|---|---|
@@ -49,14 +58,14 @@ que combina la cobertura de las pruebas unitarias y de integración.
 
 ### Código muerto y duplicación por paquete
 
-Fuente: ejecución 41588355933, trabajo «Gates: código muerto y duplicación»
+Fuente: ejecución 41591721662, trabajo «Gates: código muerto y duplicación»
 (jscpd 4.3.0 con 70 tokens y 5 líneas mínimas, sin pruebas; knip 5.88.1).
 
 | Paquete | 31 oct: duplicado (clones) | 3 nov: duplicado (clones, archivos) | Umbral del gate |
 |---|---|---|---|
-| api | 2,32 % (42) | 1,02 % (38, 327) | 2,6 % |
-| web | 1,93 % (60) | 1,79 % (98, 631) | 2,3 % |
-| shared | 1,11 % (6) | 0,55 % (9, 96) | 1,8 % |
+| api | 2,32 % (42) | 1,01 % (39, 334) | 2,6 % |
+| web | 1,93 % (60) | 1,74 % (98, 651) | 2,3 % |
+| shared | 1,11 % (6) | 0,54 % (9, 99) | 1,8 % |
 
 knip: sin hallazgos nuevos y con la línea base vacía. Los umbrales del gate no se
 bajaron todavía aunque la duplicación medida quedó muy por debajo; bajarlos es la
@@ -64,8 +73,8 @@ forma de que la mejora no se pierda.
 
 ### Métrica de proceso: defectos del piloto
 
-Del 30 de octubre al 3 de noviembre se registraron veintiocho defectos en `main`
-(DEF-09 a DEF-80): once de severidad alta, catorce media y tres baja. Ninguno
+Del 30 de octubre al 3 de noviembre se registraron veintinueve defectos en `main`
+(DEF-09 a DEF-95): once de severidad alta, catorce media y cuatro baja. Ninguno
 proviene del uso real. Todos se cerraron con su prueba de regresión en rojo primero,
 y la evidencia de DEF-09 a DEF-23 (commits y ejecuciones en rojo y en verde) está en
 el PR #138.
@@ -73,7 +82,7 @@ el PR #138.
 La métrica del TP —días entre la detección y la regresión en verde— no se puede
 calcular igual para el piloto, y conviene decir por qué: el issue de cada defecto se
 abrió junto con el pedido que lo corrige, así que la diferencia entre su apertura y
-su cierre mide el ciclo de revisión (entre 0 y 2 horas en los veintiocho casos) y no
+su cierre mide el ciclo de revisión (entre 0 y 2 horas en los veintinueve casos) y no
 el tiempo desde la detección. La fecha de detección no quedó registrada aparte. Se
 corrige desde el C1: cada diferencia de la reconciliación en campo se registra
 dentro de las 24 horas con su fecha de detección (`12-piloto.md`, sección 5), y esa
@@ -82,13 +91,13 @@ es la fecha contra la que se mide la corrección.
 ### Métrica de proyecto: el pipeline
 
 Fuente: historial de ejecuciones del flujo CI por empuje a `main` desde el 30 de
-octubre (23:16 UTC) hasta la ejecución medida del 3 de noviembre.
+octubre (23:16 UTC) hasta la de `a2ea7d9` del 3 de noviembre.
 
 | Métrica | Valor | Meta | Interpretación |
 |---|---|---|---|
-| Ejecuciones sobre `main` | 49: 38 en verde, 11 canceladas por un empuje posterior, ninguna en rojo | Toda ejecución en rojo explicada | Cumplida: los rojos aparecieron en los pedidos, antes de integrar |
+| Ejecuciones sobre `main` | 50: 38 en verde, 11 canceladas por un empuje posterior y 1 en rojo | Toda ejecución en rojo explicada | Cumplida, con una salvedad: el rojo de `a2ea7d9` es una prueba de pantalla de la web (`contract-parties.test.tsx`, «sin poderes vigentes muestra el vacío») que pasó en el pedido sobre el mismo árbol. Es una prueba inestable, no un defecto del producto, y queda para corregir: una prueba que falla al azar entrena a ignorar el rojo |
 | Duración del pipeline completo | De 11 a 14 minutos el 31 de octubre; de 23 a 30 minutos el 3 de noviembre | < 15 minutos | **No cumplida.** La duración creció con la suite de integración, que corre en un solo trabajador contra una base compartida |
-| Duración del trabajo de integración | 16,5 minutos en la ejecución medida y 21 en la del pedido #181 | Tope declarado de 25 minutos | Margen chico: con el ritmo de crecimiento actual, el tope se alcanza en pocas oleadas |
+| Duración del trabajo de integración | 16,5 minutos en `ba78a78`, 21 en el pedido #181 y 22 en el #183 | Tope declarado de 25 minutos | Margen chico: con el ritmo de crecimiento actual, el tope se alcanza en pocas oleadas |
 
 La duración es el hallazgo de esta medición. Las opciones son repartir la suite de
 integración en varios trabajos con una base cada uno, o acotar la limpieza entre

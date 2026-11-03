@@ -20,7 +20,7 @@
 | [0010](0010-reglas-versionadas-y-valores-por-defecto.md) | Reglas versionadas del contrato y valores por defecto de la inmobiliaria | Aceptado, con dos addenda (numeración de recibos y convenciones de liquidación pactables, 2026-11-01) | 2026-10-31 | Piloto, ítem 34 |
 | [0011](0011-ajuste-con-rezago-estimacion-y-correccion.md) | Ajuste con rezago, estimación y corrección | Aceptado | 2026-10-31 | Piloto, ítem 34 |
 | [0012](0012-flujos-de-cobro-caja-y-custodia.md) | Flujos de cobro, caja y custodia | Aceptado | 2026-11-02 | Piloto, ítem 36 |
-| [0013](0013-mensajeria-saliente-con-outbox-y-cobranza-escalonada.md) | Mensajería saliente con outbox y cobranza escalonada | Aceptado; las decisiones legales de la cobranza, pendientes de revisión por el abogado de la inmobiliaria | 2026-11-03 | Piloto, ítem 43 |
+| [0013](0013-mensajeria-saliente-con-outbox-y-cobranza-escalonada.md) | Mensajería saliente con outbox y cobranza escalonada | Aceptado; cubre también la bandeja de consultas entrante (PR 5.3). Las decisiones legales de la cobranza siguen pendientes de revisión por el abogado de la inmobiliaria | 2026-11-03 | Piloto, ítem 43 |
 | [0014](0014-ambiente-piloto-con-datos-reales.md) | Ambiente piloto con datos reales | Aceptado | 2026-10-31 | Piloto, ítem 31 |
 | [0015](0015-importacion-idempotente-desde-el-sistema-anterior.md) | Importación idempotente desde el sistema anterior | Aceptado | 2026-11-01 | Piloto, ítem 39 |
 | [0016](0016-diagramas-como-codigo.md) | Diagramas como código (mermaid) | Aceptado | 2026-10-30 | Piloto, ítem 31 |
