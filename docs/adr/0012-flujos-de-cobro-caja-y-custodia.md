@@ -99,6 +99,26 @@ entrega todo el saldo o una parte, bloqueando la fila de la cuenta para que dos
 entregas no saquen más de lo que hay. Por defecto la custodia no suma en el total
 de la inmobiliaria: es dinero de terceros.
 
+### Saldo inicial de una cuenta
+
+Para cargar los saldos de apertura de la migración (paso M10) cada cuenta (caja,
+banco o custodia) admite un único asiento `SaldoInicial` en su libro:
+`POST /financial-accounts/:id/opening-balance`, con la misma semántica que el saldo
+inicial del locador (ADR-0009). Es un movimiento de categoría `SaldoInicial` y origen
+`OpeningBalance` con el id de la cuenta, uno por cuenta, y por eso uno por locador y
+moneda en la custodia; toma la moneda de la cuenta (pesos, dólares o euros), la fecha
+de corte (por defecto hoy) y el motivo, que queda en la auditoría. Se crea o se
+corrige: reenviar lo mismo no cambia nada y un importe distinto corrige el mismo
+asiento. Admin y Gerente, como el del locador.
+
+Dos reglas propias del libro: un importe negativo es una salida (descubierto) y no se
+admite en una custodia, y cero quita el asiento. La custodia de un locador es parte de
+su saldo (ADR-0009): el dinero que se le debe por ella se carga en su saldo inicial de
+cuenta corriente, y el saldo inicial de la cuenta de custodia sólo registra el respaldo
+físico. Por eso este asiento no escribe nada en su cuenta corriente: hacerlo contaría
+dos veces la misma deuda. Entregar esa custodia después es un pago normal y baja el
+saldo del locador.
+
 ### Compensaciones
 
 `Compensation(paymentId, fromLessorId, toLessorId, amount)` registra que un

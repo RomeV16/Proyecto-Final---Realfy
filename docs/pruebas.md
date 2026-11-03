@@ -229,6 +229,7 @@ con las suites de la primera versión y sigue con las que sumó el piloto.
 | `e2e/centro-de-carga.e2e-spec.ts` | Cargos al inquilino o al locador, cuotas, devoluciones y anticipo. |
 | `e2e/punitorios-en-la-liquidacion.e2e-spec.ts` | Punitorio en la liquidación siguiente, cobro con punitorios al instante y condonación. |
 | `e2e/caja-y-cobros.e2e-spec.ts` | Cobro en los tres flujos, caja y banco, recibo numerado, custodia, compensaciones y conversiones. |
+| `e2e/saldo-inicial-custodia.e2e-spec.ts` | Saldo inicial de caja, banco y custodia (pesos, dólares y euros): permisos, idempotencia, corrección con auditoría, validaciones y aislamiento. |
 | `e2e/cuenta-corriente.e2e-spec.ts` | Cuenta corriente del locador, estado de cuenta mensual, saldo inicial y pago al locador. |
 | `e2e/import-batches.e2e-spec.ts` | Importación por lotes desde el sistema anterior: ensayo sin escritura, idempotencia y registro por fila. |
 | `e2e/data-quality.e2e-spec.ts` | Panel de calidad de datos y unión auditada de personas. |

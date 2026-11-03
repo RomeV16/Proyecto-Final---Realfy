@@ -37,7 +37,7 @@ El plan numera doce pasos (M0 a M12). El importador cubre M3 a M8; los demás se
 | M7 | Historial de alquileres y ajustes de los vigentes | `adjustmentsHistory` de cada contrato | El monto vigente reproduce el del mes de corte (`RENT_MISMATCH` si no); la fecha de cada ajuste cae en el calendario del contrato (`ADJUSTMENT_HISTORY_INVALID` si no) y de ella sale el período; los períodos posteriores al último ajuste quedan pendientes |
 | M8 | Servicios y reglas de traslado (quién paga y en qué porcentaje) | `services[]` (uno por servicio o impuesto de cada propiedad o edificio) y `chargeRules[]` (una por contrato, servicio y fecha de inicio) | Por contrato, igual al recibo |
 | M9 | Boletas del primer período en paralelo | Carga del mes en pantalla | Los totales coinciden con la planilla |
-| M10 | Saldos iniciales por locador, efectivo en custodia, deudas y adelantos | Cuando exista su modelo (ADR-0009 y ADR-0012) | La administración confirma cada saldo |
+| M10 | Saldos iniciales por locador (cuenta corriente), efectivo en custodia y de cada caja o banco, deudas y adelantos | Cuenta corriente: `POST /owners/:personId/opening-balance` (ADR-0009). Caja, banco y custodia: `POST /financial-accounts/:id/opening-balance`, pantalla Caja, Cuentas, *Saldo inicial* (ADR-0012). Un asiento por cuenta, con fecha de corte y motivo; reenviar lo mismo no cambia nada | La administración confirma cada saldo; la caja de cada moneda coincide con el arqueo del corte y la custodia con la suma de lo que se debe a los locadores en efectivo |
 | M11 | Plantillas de contrato | Pantalla de plantillas | Contratos de prueba generados y comparados con los reales |
 | M12 | Ventas en curso y documentación | Cuando exista su modelo | Estado confirmado |
 
