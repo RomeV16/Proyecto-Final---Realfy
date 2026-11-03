@@ -111,6 +111,20 @@ extracciones y los mapeos se quedan en scripts externos.**
   dar el monto vigente de la fila (`rentAmount`). Si no, la fila falla con
   `ADJUSTMENT_HISTORY_INVALID` o `RENT_MISMATCH`: "el monto vigente reproduce el
   de octubre" es una condición de la carga y no una comprobación posterior.
+- **El período de cada ajuste sale de su fecha, y el cronograma sigue al historial.**
+  El `periodNumber` del lote es informativo: el período se cuenta en meses
+  calendario desde el inicio del contrato sobre la duración del período de ajuste
+  (el día del mes no cuenta). Un ajuste con fecha fuera de ese calendario o futura
+  falla con `ADJUSTMENT_HISTORY_INVALID`. Los períodos con ajuste quedan
+  `Applied`; los posteriores al último ajuste, `Pending` aunque estén vencidos
+  (atrasados, aplicables: el cobro retroactivo lo resuelve el flujo de ajuste,
+  ADR-0011); los vencidos anteriores al último ajuste sin historial, y todos los
+  vencidos de un contrato sin historial, `Skipped`. Reenviar el lote reconcilia el
+  cronograma guardado con esa regla (estado y fecha de pendientes y salteados,
+  pendientes que ya no existen con otro período de ajuste, aplicados sin ajuste
+  detrás) y reubica los ajustes importados antes con otro número de período; los
+  períodos aplicados con un ajuste detrás, también los que aplicó el sistema, no
+  se tocan.
 - **Aislamiento.** El importador es solo para el administrador. Todo se lee y
   escribe con la inmobiliaria del usuario: un lote de otra inmobiliaria no se ve
   (404 y no 403, como el resto de la API, ADR-0006), y una referencia externa no

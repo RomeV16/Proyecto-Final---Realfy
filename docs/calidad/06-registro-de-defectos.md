@@ -49,6 +49,11 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-106 | El consumo de las unidades sin contrato con regla se ignora y las demás pagan de más | Alta | RF de boletas (ítem 35) | CP-1133, CP-1148 | [#189](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/189) | Corregido (3 nov) |
 | DEF-107 | Corregir una boleta en la planilla del mes borra su consumo por unidad, importe sin descuento y notas | Alta | RF de boletas (ítem 35) | CP-1139 | [#190](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/190) | Corregido (3 nov) |
 | DEF-115 | Aplicar un ajuste no ve los índices de sistema: la previsualización lo da por listo y la aplicación lo saltea | Bloqueante | RF-12, RF-14 | CP-1200 a CP-1204 | [#200](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/200) | Corregido (3 nov) |
+| DEF-125 | El importador empareja historial y cronograma por número de período sin mirar la fecha del ajuste | Alta | — | CP-1240 a CP-1245 | [#207](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/207) | Corregido (3 nov) |
+| DEF-126 | Los períodos vencidos sin historial quedan salteados y no se pueden aplicar nunca | Alta | — | CP-1246 a CP-1248 | [#208](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/208) | Corregido (3 nov) |
+| DEF-127 | Reenviar el lote con el ajuste en el historial no pasa el período del cronograma a aplicado | Alta | — | CP-1249, CP-1250 | [#209](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/209) | Corregido (3 nov) |
+| DEF-128 | Reenviar el lote con otro período de ajuste no reconstruye el cronograma pendiente | Media | — | CP-1251 a CP-1253 | [#210](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/210) | Corregido (3 nov) |
+| DEF-129 | Reenviar el lote no corrige los ajustes ya cargados con el número de período equivocado | Media | — | CP-1254, CP-1256 | [#211](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/211) | Corregido (3 nov) |
 
 ---
 
@@ -631,3 +636,73 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** la extensión conserva, en los modelos con filas de sistema (`SYSTEM_SHARED_MODELS`, hoy solo `IndexData`), un filtro de lectura que pide la inmobiliaria actual y/o `__system__` y nada más; cualquier otro valor se sigue reemplazando por la inmobiliaria actual y las escrituras no cambian (ADR-0006). Se revisaron los demás lectores de datos de sistema: el listado, el último valor por índice, los estimados reemplazados, los punitorios con tasa BNA y la previsualización leen por el cliente base con el filtro explícito y no estaban afectados.
 - **Prueba de regresión:** CP-1200 a CP-1203 en `apps/api/test/e2e/ajuste-masivo.e2e-spec.ts` y CP-1204 en `apps/api/test/unit/prisma-tenant.extension.spec.ts`.
 - **Evidencia rojo/verde:** regresión `082a069` en rojo (4 e2e fallan: tres `MISSING_INDEX_DATA` y una corrección en espera; 2 unitarias fallan: el filtro de sistema se pisa); corrección en `f42b4d2`.
+
+## DEF-125 — El importador empareja historial y cronograma por número de período sin mirar la fecha
+
+- **Requisito afectado:** ninguno funcional; importación desde el sistema anterior (ítem 39, paso M7) y ajustes del mes.
+- **Origen:** ensayo general del ciclo C1 sobre una copia de los datos de la inmobiliaria piloto.
+- **Caso que lo detecta:** CP-1243; regresión CP-1240 a CP-1245.
+- **Severidad:** alta. Quedaban aplicados períodos futuros o desalineados con la fecha de sus ajustes: el ajuste de un mes que correspondía no aparecía en "Ajustes del mes" y la ventana del siguiente arrancaba en una fecha sin ajuste.
+- **Pasos para reproducir:** lote con un contrato trimestral que empieza el 1/9 y un ajuste en el historial con fecha 1/10 y `periodNumber` 1.
+- **Resultado esperado:** el período se deriva de la fecha del ajuste; si la fecha no cae en el calendario del contrato (o todavía no llegó) la fila falla con `ADJUSTMENT_HISTORY_INVALID`.
+- **Resultado obtenido:** el período 1 del cronograma (1/12) quedaba `Applied` y la vista previa de diciembre no lo listaba.
+- **Causa raíz:** `importedSchedule` marcaba aplicados los períodos cuyo número figuraba en el historial y `checkAdjustmentHistory` sólo validaba el encadenado de montos, nunca la fecha.
+- **Corrección:** `adjustmentPeriodFor` cuenta los meses calendario desde el inicio sobre la duración del período; `checkAdjustmentHistory` reemplaza el número del lote por el derivado y rechaza fechas fuera del calendario, futuras o repetidas.
+- **Prueba de regresión:** CP-1240 a CP-1242 en `apps/api/src/modules/import-export/batch/contract-import-rules.spec.ts`; CP-1243 a CP-1245 en `apps/api/test/e2e/import-batches-cronograma.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `6bb3b19` en rojo (5 pruebas unitarias y 3 e2e fallan); corrección en `aa6f561`.
+
+## DEF-126 — Los períodos vencidos sin historial quedan salteados y no se pueden aplicar nunca
+
+- **Requisito afectado:** ninguno funcional; importación (paso M7) y ajuste masivo del mes (FB-23).
+- **Origen:** ensayo general del ciclo C1.
+- **Caso que lo detecta:** CP-1246; regresión CP-1246 a CP-1248.
+- **Severidad:** alta. Un contrato cuyo ajuste ya había vencido al importarlo no podía ajustarse: `calculate` responde `SCHEDULE_NOT_PENDING`, la vista previa del mes no lo lista y el ajuste siguiente juntaba dos períodos.
+- **Pasos para reproducir:** contrato trimestral con historial hasta el segundo ajuste y el tercer período ya vencido; consultar la vista previa de ese mes.
+- **Resultado esperado:** los períodos posteriores al último ajuste del historial quedan pendientes (atrasados y aplicables); los anteriores sin historial, y todos los de un contrato sin historial, quedan como estaban definidos.
+- **Resultado obtenido:** todo período vencido sin historial quedaba `Skipped`.
+- **Causa raíz:** `importedSchedule` salteaba todo período vencido que no estuviera en el historial, sin distinguir los posteriores al último ajuste.
+- **Corrección:** `importedSchedule` deja `Pending` lo posterior al último ajuste aunque esté vencido. El cobro retroactivo de un ajuste atrasado no se decide en la importación: lo resuelve el flujo de ajuste (ADR-0011).
+- **Prueba de regresión:** CP-1246 a CP-1248 en `contract-import-rules.spec.ts` y `import-batches-cronograma.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `6bb3b19` en rojo (2 pruebas unitarias y 2 e2e fallan; CP-1248 es una guarda que ya pasaba); corrección en `aa6f561`.
+
+## DEF-127 — Reenviar el lote con el ajuste en el historial no pasa el período del cronograma a aplicado
+
+- **Requisito afectado:** ninguno funcional; importación idempotente (ADR-0015).
+- **Origen:** ensayo general del ciclo C1.
+- **Caso que lo detecta:** CP-1249; regresión CP-1249 y CP-1250.
+- **Severidad:** alta. La corrección del dato en el lote (agregar el ajuste que faltaba) no llegaba al cronograma: el ajuste figuraba en el historial y el período seguía salteado o pendiente.
+- **Pasos para reproducir:** importar un contrato con el último período vencido sin historial y reenviar el lote con ese ajuste agregado.
+- **Resultado esperado:** el período queda `Applied` y los siguientes `Pending`; reenviar otra vez es `SinCambios`.
+- **Resultado obtenido:** el cronograma guardado no se tocaba.
+- **Causa raíz:** `addMissingSchedule` sólo agregaba los períodos que faltaban.
+- **Corrección:** `syncSchedule` y `planScheduleSync` reconcilian el cronograma con el que sale del lote: corrigen estado y fecha de pendientes y salteados, y no tocan los aplicados que tienen un ajuste detrás ni los calculados.
+- **Prueba de regresión:** CP-1249 y CP-1250 en `import-batches-cronograma.e2e-spec.ts`; CP-1255 en `contract-import-rules.spec.ts`.
+- **Evidencia rojo/verde:** regresión `6bb3b19` en rojo (CP-1249 falla; CP-1250 es una guarda que ya pasaba); corrección en `aa6f561`.
+
+## DEF-128 — Reenviar el lote con otro período de ajuste no reconstruye el cronograma pendiente
+
+- **Requisito afectado:** ninguno funcional; importación idempotente (ADR-0015).
+- **Origen:** ensayo general del ciclo C1.
+- **Caso que lo detecta:** CP-1251; regresión CP-1251 a CP-1253.
+- **Severidad:** media. Se mezclaban fechas viejas y nuevas y quedaba el mismo mes duplicado, uno aplicado y otro pendiente.
+- **Pasos para reproducir:** importar un contrato con ajuste cuatrimestral o semestral y reenviarlo como trimestral.
+- **Resultado esperado:** se reconstruyen los pendientes con el período nuevo, sin tocar los aplicados.
+- **Resultado obtenido:** los períodos existentes conservaban su fecha y sólo se agregaban los que faltaban.
+- **Causa raíz:** la misma que DEF-127: el cronograma existente no se reconciliaba.
+- **Corrección:** `planScheduleSync` actualiza la fecha de los pendientes y salteados, quita los pendientes que el calendario nuevo ya no tiene y no toca los aplicados con ajuste ni los aplicados por el flujo de ajuste.
+- **Prueba de regresión:** CP-1251 a CP-1253 en `import-batches-cronograma.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `6bb3b19` en rojo (CP-1251 a CP-1253 fallan); corrección en `aa6f561`.
+
+## DEF-129 — Reenviar el lote no corrige los ajustes ya cargados con el número de período equivocado
+
+- **Requisito afectado:** ninguno funcional; importación idempotente (ADR-0015).
+- **Origen:** ensayo general del ciclo C1; sale de corregir DEF-125 sobre los contratos que ya estaban cargados.
+- **Caso que lo detecta:** CP-1254; regresión CP-1254 y CP-1256.
+- **Severidad:** media. Con el período derivado de la fecha, reenviar el lote habría creado un ajuste nuevo por cada fecha y dejado los viejos, con el cronograma de la carga anterior.
+- **Pasos para reproducir:** contrato importado antes con números de período que no corresponden a las fechas de sus ajustes; reenviar el lote.
+- **Resultado esperado:** los ajustes importados pasan al período de su fecha sin duplicarse y el cronograma queda como el calendario indica.
+- **Resultado obtenido:** los ajustes viejos se conservaban en el período equivocado.
+- **Causa raíz:** los ajustes se emparejaban por número de período.
+- **Corrección:** `misplacedImportedAdjustments` detecta los ajustes importados (nota `Imported`, no provisorios) cuya fecha figura en el historial con otro período; se quitan y se vuelven a crear en el período que corresponde.
+- **Prueba de regresión:** CP-1254 en `import-batches-cronograma.e2e-spec.ts`; CP-1256 en `contract-import-rules.spec.ts`.
+- **Evidencia rojo/verde:** regresión `6bb3b19` en rojo (CP-1254 falla); corrección en `aa6f561`.
