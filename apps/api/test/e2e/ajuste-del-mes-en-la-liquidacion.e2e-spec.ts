@@ -202,7 +202,7 @@ describe('El ajuste del mes en la liquidación (e2e)', () => {
       expect(listed.warnings.map((w: any) => w.code)).toEqual(['ADJUSTMENT_PENDING']);
 
       // Se puede pasar a revisión, pero no aprobar (ni en lote) mientras el ajuste siga pendiente.
-      await transition(admin, dec.id, 'Revision').expect(201);
+      await transition(admin, dec.id, 'Revision').expect(200);
       const blocked = await transition(admin, dec.id, 'Aprobada').expect(409);
       expect(blocked.body).toMatchObject({ error: 'ADJUSTMENT_PENDING', adjustmentDate: '2026-12-01' });
       const bulk = await post(admin, '/liquidaciones/bulk-approve', { ids: [dec.id] }).expect(201);
@@ -250,8 +250,8 @@ describe('El ajuste del mes en la liquidación (e2e)', () => {
       await generate(admin, 12, 2026);
       const dec = await liquidacionOf(admin, contract.id, '2026-12');
       expect(dec.warnings).toEqual([]);
-      await transition(admin, dec.id, 'Revision').expect(201);
-      await transition(admin, dec.id, 'Aprobada').expect(201);
+      await transition(admin, dec.id, 'Revision').expect(200);
+      await transition(admin, dec.id, 'Aprobada').expect(200);
 
       await generate(admin, 1, 2027);
       const jan = await liquidacionOf(admin, contract.id, '2027-01');

@@ -41,6 +41,7 @@ import {
   onBehalfOfText,
   formatDateAR,
   MessageChannel,
+  ScheduleStatus,
 } from '@realfy/shared';
 import type { LineItemInput, OperationalDefaults, PaymentInput } from '@realfy/shared';
 import { PdfService } from './pdf.service';
@@ -51,6 +52,14 @@ import type { AdjustmentApplied, AdjustmentSkipped } from '../index-data/contrac
 import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
 import { rentAtDate, rentChangeInMonth } from './rent-at';
 import { scheduledPeriod } from './generation-window';
+import {
+  ADJUSTMENT_PENDING,
+  adjustmentHorizon,
+  isEditableStatus,
+  lastInstantOfMonth,
+  pendingAdjustmentWarning,
+} from './adjustment-pending';
+import type { LiquidacionWarning } from './adjustment-pending';
 import { OutboxService } from '../../common/messaging/outbox.service';
 import { liquidacionMessageVars } from './liquidacion-message';
 import { ServiceBillsService } from '../services/service-bills.service';
@@ -80,6 +89,8 @@ export interface GenerationResult {
   status: 'created' | 'skipped' | 'out_of_range' | 'not_billed' | 'failed';
   reason?: string;
   liquidacionId?: string;
+  /** `ADJUSTMENT_PENDING`: un ajuste que cambia el alquiler del mes sigue sin aplicar y la liquidación no se aprueba. */
+  warnings?: string[];
 }
 
 export interface GenerationSummary {
@@ -91,6 +102,8 @@ export interface GenerationSummary {
   notBilled: number;
   failed: number;
   total: number;
+  /** Liquidaciones del mes (nuevas o ya generadas, todavía editables) con un ajuste pendiente que las bloquea. */
+  adjustmentPending: number;
   results: GenerationResult[];
   /**
    * Ajustes que vencen hasta el fin del mes, aplicados antes de liquidarlo
@@ -146,8 +159,11 @@ export class LiquidacionesService {
     // desde el 1, cuyo índice (con el rezago del contrato) ya está publicado. Se
     // aplican antes de leer los contratos, cada uno en su transacción; los que no
     // tienen índice siguen pendientes y se informan (ADR-0011).
-    const lastInstant = new Date(Date.UTC(year, month, 1) - 1);
-    const adjustmentRun = await this.adjustments.applyDueAdjustments(tenantId, lastInstant, 'generation');
+    const adjustmentRun = await this.adjustments.applyDueAdjustments(
+      tenantId,
+      lastInstantOfMonth(period),
+      'generation',
+    );
 
     // Contratos que pueden regir en el mes. El generador decide cada caso (un
     // contrato que ya no está Activo solo liquida hasta su fin real).
@@ -185,6 +201,7 @@ export class LiquidacionesService {
       }
     }
 
+    const adjustmentPending = await this.attachWarnings(results);
     const created = results.filter((r) => r.status === 'created').length;
     const skipped = results.filter((r) => r.status === 'skipped').length;
     const outOfRange = results.filter((r) => r.status === 'out_of_range').length;
@@ -203,6 +220,7 @@ export class LiquidacionesService {
       failed,
       adjustmentsApplied: adjustmentRun.applied.length,
       adjustmentsPending: adjustmentRun.skipped.length,
+      blockedByAdjustment: adjustmentPending,
     });
 
     return {
@@ -212,6 +230,7 @@ export class LiquidacionesService {
       notBilled,
       failed,
       total: contracts.length,
+      adjustmentPending,
       results,
       adjustments: { applied: adjustmentRun.applied, pending: adjustmentRun.skipped },
     };
@@ -488,8 +507,9 @@ export class LiquidacionesService {
       this.prisma.client.liquidacion.count({ where }),
     ]);
 
+    const warnings = await this.warningsFor(items);
     return {
-      items,
+      items: items.map((item: any, i: number) => ({ ...item, warnings: warnings[i] })),
       total,
       page: filters.page,
       limit: filters.limit,
@@ -522,8 +542,10 @@ export class LiquidacionesService {
       });
     }
 
+    const [warnings] = await this.warningsFor([liquidacion]);
     return {
       ...liquidacion,
+      warnings,
       payments: (liquidacion.payments ?? []).map(withReceiptLabel),
       receiptNumber: liquidacion.receiptSeq != null ? formatReceiptNumber(liquidacion.receiptSeq) : null,
     };
@@ -682,6 +704,19 @@ export class LiquidacionesService {
     const toStatus = validated.status as LiquidacionStatus;
 
     assertTransition(liquidacionMachine, fromStatus, toStatus);
+
+    // Con un ajuste del mes sin aplicar el alquiler no es el que rige: no se aprueba (DEF-132).
+    if (toStatus === LiquidacionStatus.Aprobada) {
+      const [pending] = (await this.warningsFor([liquidacion]))[0];
+      if (pending) {
+        throw new ConflictException({
+          error: ADJUSTMENT_PENDING,
+          message: `The rent adjustment of ${pending.adjustmentDate} is still pending: apply it before approving`,
+          adjustmentDate: pending.adjustmentDate,
+          scheduleId: pending.scheduleId,
+        });
+      }
+    }
 
     const updateData: any = { status: toStatus };
 
@@ -1115,6 +1150,71 @@ export class LiquidacionesService {
     });
 
     return this.findOne(id);
+  }
+
+  // ─── Advertencias ───────────────────────────────────
+
+  /**
+   * Advertencias de cada liquidación. Solo las editables (Borrador o Revisión) pueden
+   * tenerlas: `ADJUSTMENT_PENDING` si el contrato tiene un ajuste sin aplicar (pendiente o
+   * calculado) que cambia el alquiler del período según su convención de ajuste a mitad de
+   * mes. Se calcula al leer, así que desaparece sola al aplicarse el ajuste.
+   */
+  async warningsFor(
+    rows: { contractId: string; period: Date; status: string }[],
+  ): Promise<LiquidacionWarning[][]> {
+    const editable = rows.filter((r) => isEditableStatus(r.status));
+    if (editable.length === 0) return rows.map(() => []);
+    const latest = Math.max(...editable.map((r) => lastInstantOfMonth(r.period).getTime()));
+    const schedules = await this.prisma.client.adjustmentSchedule.findMany({
+      where: {
+        contractId: { in: [...new Set(editable.map((r) => r.contractId))] },
+        status: { in: [ScheduleStatus.Pending, ScheduleStatus.Calculated] },
+        nextAdjustmentDate: { lte: new Date(latest) },
+        // Los mismos contratos cuyos ajustes aplica el proceso diario.
+        contract: { status: ContractStatus.Activo, isActive: true },
+      },
+      select: { id: true, contractId: true, nextAdjustmentDate: true },
+      orderBy: { nextAdjustmentDate: 'asc' },
+    });
+    if (schedules.length === 0) return rows.map(() => []);
+
+    const defaults = await this.operationalDefaults.get(this.tenantContext.getTenantId()!);
+    const versions = await this.prisma.client.contractTermsVersion.findMany({
+      where: { contractId: { in: [...new Set(schedules.map((s: { contractId: string }) => s.contractId))] } },
+      select: { contractId: true, validFrom: true, midMonthAdjustmentMode: true },
+    });
+    return rows.map((row) => {
+      if (!isEditableStatus(row.status)) return [];
+      const terms = pickTermsAt(
+        versions.filter((v: { contractId: string }) => v.contractId === row.contractId),
+        row.period,
+      );
+      const mode = resolveRule(defaults, terms, 'midMonthAdjustmentMode') as string;
+      const warning = pendingAdjustmentWarning(schedules, row.contractId, adjustmentHorizon(row.period, mode));
+      return warning ? [warning] : [];
+    });
+  }
+
+  /** Completa las advertencias de los resultados de una generación y devuelve cuántas quedaron bloqueadas. */
+  private async attachWarnings(results: GenerationResult[]): Promise<number> {
+    const ids = results.flatMap((r) => (r.liquidacionId ? [r.liquidacionId] : []));
+    if (ids.length === 0) return 0;
+    const rows = await this.prisma.client.liquidacion.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, contractId: true, period: true, status: true },
+    });
+    const warnings = await this.warningsFor(rows);
+    const byId = new Map<string, string[]>(
+      rows.map((row: { id: string }, i: number) => [row.id, warnings[i].map((w) => w.code)]),
+    );
+    let blocked = 0;
+    for (const result of results) {
+      const codes = result.liquidacionId ? byId.get(result.liquidacionId) ?? [] : [];
+      if (result.liquidacionId) result.warnings = codes;
+      if (codes.length > 0) blocked++;
+    }
+    return blocked;
   }
 
   // ─── Private Helpers ────────────────────────────────

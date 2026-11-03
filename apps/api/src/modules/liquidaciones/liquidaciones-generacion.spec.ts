@@ -44,7 +44,9 @@ function build(
     liquidacion: {
       findFirst: opts.findFirst ?? jest.fn().mockResolvedValue(opts.existing ?? null),
       create: jest.fn().mockResolvedValue({ id: 'liq-new' }),
+      findMany: jest.fn().mockResolvedValue([]),
     },
+    adjustmentSchedule: { findMany: jest.fn().mockResolvedValue([]) },
     auditLog: { create: jest.fn().mockResolvedValue({}) },
   };
   client.$transaction = jest.fn((fn: (tx: any) => unknown) => fn(client));
