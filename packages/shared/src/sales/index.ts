@@ -37,9 +37,9 @@ export function hasUnresolvedMoney(d: DepositLike): boolean {
   return Boolean(d.receivedAt) && !d.resolvedAt && d.status !== SalesDepositStatus.Aplicada;
 }
 
-/** Una reserva o seña bloquea volver atrás de la etapa: sigue pendiente de cobro o con dinero sin resolver. */
+/** Una reserva o seña bloquea volver atrás o cancelar mientras tenga dinero recibido sin resolver (una pendiente de cobro no: nunca entró plata). */
 export function blocksLeavingStage(d: DepositLike): boolean {
-  return d.status === SalesDepositStatus.Pendiente || hasUnresolvedMoney(d);
+  return hasUnresolvedMoney(d);
 }
 
 /** Una reserva vence el día siguiente a `expiresAt` (el último día vale todavía). */

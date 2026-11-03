@@ -1165,6 +1165,86 @@
     "Gerente",
     "Liquidaciones"
   ],
+  "src/modules/sales/sales.controller.ts#PropertySalesController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.findAll": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.pendingDeposits": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.findOne": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.create": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.update": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.setParties": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.updateDoc": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.transition": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.createDeposit": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.updateDeposit": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.receive": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.refund": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.forfeit": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.feeProposal": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/sales/sales.controller.ts#SalesController.createFee": [
+    "Admin",
+    "Gerente"
+  ],
   "src/modules/scoring/scoring.controller.ts#ScoringController.getConfig": [
     "Admin",
     "Gerente"
@@ -1425,5 +1505,46 @@
     "Admin",
     "Gerente",
     "Liquidaciones"
+  ],
+  "src/modules/keys/keys.controller.ts#PropertyKeysController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/keys/keys.controller.ts#PropertyKeysController.create": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/keys/keys.controller.ts#KeysController.out": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/keys/keys.controller.ts#KeysController.findOne": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/keys/keys.controller.ts#KeysController.update": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/keys/keys.controller.ts#KeysController.checkOut": [
+    "Admin",
+    "Gerente",
+    "Ventas"
+  ],
+  "src/modules/keys/keys.controller.ts#KeysController.checkIn": [
+    "Admin",
+    "Gerente",
+    "Ventas"
   ]
 }

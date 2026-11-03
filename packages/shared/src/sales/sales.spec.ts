@@ -25,8 +25,8 @@ describe('ventas', () => {
     expect(hasUnresolvedMoney({ status: D.Pendiente })).toBe(false);
   });
 
-  it('bloquean volver atrás las pendientes y las que tienen dinero sin resolver', () => {
-    expect(blocksLeavingStage({ status: D.Pendiente })).toBe(true);
+  it('bloquea volver atrás solo el dinero recibido sin resolver', () => {
+    expect(blocksLeavingStage({ status: D.Pendiente })).toBe(false);
     expect(blocksLeavingStage({ status: D.Recibida, receivedAt: new Date() })).toBe(true);
     expect(blocksLeavingStage({ status: D.Retenida, receivedAt: new Date(), resolvedAt: new Date() })).toBe(false);
     expect(blocksLeavingStage({ status: D.Vencida })).toBe(false);

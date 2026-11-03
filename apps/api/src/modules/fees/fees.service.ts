@@ -219,6 +219,7 @@ export class FeesService {
           contractPeriodId: scope.contractPeriodId,
           propertyId: scope.propertyId,
           valuationId: input.valuationId ?? null,
+          salesOpId: scope.salesOpId,
           payerPersonId: payer.personId,
           payerRole: payer.role,
           basis: input.basis,
@@ -343,10 +344,17 @@ export class FeesService {
       if (!valuation) throw notFound('VALUATION_NOT_FOUND', 'Valuation not found');
       propertyId = propertyId ?? valuation.propertyId;
     }
+    const salesOpId = input.salesOpId ?? null;
+    if (salesOpId) {
+      if (input.kind !== FeeKind.Venta) throw badRequest('SALES_OPERATION_ONLY_FOR_SALE', 'Only a sale fee belongs to a sales operation');
+      const operation = await tx.salesOperation.findFirst({ where: { id: salesOpId }, select: { propertyId: true } });
+      if (!operation) throw notFound('SALES_OPERATION_NOT_FOUND', 'Sales operation not found');
+      propertyId = propertyId ?? operation.propertyId;
+    }
     if (propertyId && !(await tx.property.findFirst({ where: { id: propertyId }, select: { id: true } }))) {
       throw notFound('PROPERTY_NOT_FOUND', 'Property not found');
     }
-    return { contractId, contractPeriodId: input.contractPeriodId ?? null, propertyId };
+    return { contractId, contractPeriodId: input.contractPeriodId ?? null, propertyId, salesOpId };
   }
 
   /** Quienes pagan y quienes cobran comisión existen en la inmobiliaria. */
