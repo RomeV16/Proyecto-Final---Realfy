@@ -382,6 +382,10 @@ model User {
   staffCommissions StaffCommission[] @relation("StaffCommissionUser")
   propertyListings PropertyListing[] @relation("ListingUpdatedBy")
 
+  salesOperationsAgent SalesOperation[] @relation("SalesOperationAgent")
+  keySetsHeld          KeySet[]         @relation("KeySetHolderUser")
+  keyMovementsHeld     KeyMovement[]    @relation("KeyMovementHolderUser")
+
   @@unique([email, tenantId])
   @@index([tenantId])
   @@map("users")
@@ -529,6 +533,9 @@ model Property {
   ownerLedger    OwnerLedgerEntry[]
 
   fees Fee[]
+
+  salesOperations SalesOperation[]
+  keySets         KeySet[]
 
   @@unique([tenantId, externalRef])
   @@index([tenantId])
@@ -693,6 +700,12 @@ model Person {
   outboxMessages  MessageOutbox[]
   contactConsents ContactConsent[]
   inboundMessages InboundMessage[]
+
+  salesParties      SalesParty[]
+  salesDepositsHeld SalesDeposit[] @relation("SalesDepositHolder")
+  salesDepositsPaid SalesDeposit[] @relation("SalesDepositPayer")
+  keySetsHeld       KeySet[]       @relation("KeySetHolder")
+  keyMovementsHeld  KeyMovement[]  @relation("KeyMovementHolder")
 
   @@unique([tenantId, cuit])
   @@unique([tenantId, externalRef])
@@ -1824,6 +1837,7 @@ model Fee {
   contractPeriodId   String?
   propertyId         String?
   valuationId        String?
+  salesOpId          String?
   payerPersonId      String
   payerRole          FeePayerRole
   basis              FeeBasis
@@ -1849,6 +1863,7 @@ model Fee {
   contractPeriod   ContractPeriod?    @relation(fields: [contractPeriodId], references: [id], onDelete: Restrict)
   property         Property?          @relation(fields: [propertyId], references: [id], onDelete: Restrict)
   valuation        PropertyValuation? @relation(fields: [valuationId], references: [id], onDelete: SetNull)
+  salesOperation   SalesOperation?    @relation(fields: [salesOpId], references: [id], onDelete: Restrict)
   payer            Person             @relation("FeePayer", fields: [payerPersonId], references: [id], onDelete: Restrict)
   installmentRows  FeeInstallment[]
   staffCommissions StaffCommission[]
@@ -1860,6 +1875,7 @@ model Fee {
   @@index([contractPeriodId])
   @@index([propertyId])
   @@index([valuationId])
+  @@index([salesOpId])
   @@index([groupId])
   @@map("fees")
 }
@@ -3330,4 +3346,222 @@ model InboundMessage {
 
   @@index([tenantId, receivedAt])
   @@map("inbound_messages")
+}
+
+// ─── Ventas y llaves ────────────────────────────────────
+
+/// Etapa de una operación de venta. La escritura queda como estado final y fecha.
+enum SalesOperationStatus {
+  Captacion
+  Publicada
+  Reservada
+  SenaRecibida
+  Boleto
+  Escriturada
+  Cancelada
+}
+
+enum SalesPartyRole {
+  Comprador
+  Vendedor
+}
+
+enum SalesDepositKind {
+  Reserva
+  Sena
+}
+
+enum SalesDepositHolder {
+  Inmobiliaria
+  Vendedor
+  Escribano
+}
+
+enum SalesDepositStatus {
+  Pendiente
+  Recibida
+  Devuelta
+  Retenida
+  Vencida
+  Aplicada
+}
+
+enum KeyHolder {
+  Oficina
+  Propietario
+  Inquilino
+  Empleado
+  Tercero
+}
+
+/// Operación de venta de una propiedad: de la captación a la escritura (solo se registra su fecha).
+/// Una propiedad tiene a lo sumo una operación abierta (lo controla el servicio).
+model SalesOperation {
+  id            String               @id @default(uuid())
+  tenantId      String
+  propertyId    String
+  status        SalesOperationStatus @default(Captacion)
+  exclusive     Boolean              @default(false)
+  /// Precio de publicación.
+  price         Decimal?             @db.Decimal(15, 2)
+  /// Precio pactado en la reserva, la seña o el boleto.
+  agreedPrice   Decimal?             @db.Decimal(15, 2)
+  currency      Currency             @default(USD)
+  agentUserId   String?
+  boletoDate    DateTime?            @db.Date
+  escrituraDate DateTime?            @db.Date
+  cancelReason  String?
+  closedAt      DateTime?
+  notes         String?
+  createdById   String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  property Property        @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  agent    User?           @relation("SalesOperationAgent", fields: [agentUserId], references: [id], onDelete: SetNull)
+  parties  SalesParty[]
+  deposits SalesDeposit[]
+  docs     SalesDocCheck[]
+  fees     Fee[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, propertyId])
+  @@index([agentUserId])
+  @@map("sales_operations")
+}
+
+/// Comprador o vendedor de la operación, con su parte del lado (los porcentajes de un lado suman 100).
+model SalesParty {
+  id        String         @id @default(uuid())
+  tenantId  String
+  salesOpId String
+  role      SalesPartyRole
+  personId  String
+  sharePct  Decimal        @default(100) @db.Decimal(7, 4)
+  createdAt DateTime       @default(now())
+
+  salesOperation SalesOperation @relation(fields: [salesOpId], references: [id], onDelete: Cascade)
+  person         Person         @relation(fields: [personId], references: [id], onDelete: Restrict)
+
+  @@unique([salesOpId, role, personId])
+  @@index([tenantId])
+  @@index([personId])
+  @@map("sales_parties")
+}
+
+/// Reserva (con vencimiento) o seña de una venta. El dinero que guarda la inmobiliaria pasa por la caja
+/// (categoría Sena); devolverlo o retenerlo se registra a mano, nunca solo.
+model SalesDeposit {
+  id                   String             @id @default(uuid())
+  tenantId             String
+  salesOpId            String
+  kind                 SalesDepositKind
+  amount               Decimal            @db.Decimal(15, 2)
+  currency             Currency
+  holder               SalesDepositHolder
+  holderPersonId       String?
+  payerPersonId        String?
+  status               SalesDepositStatus @default(Pendiente)
+  expiresAt            DateTime?          @db.Date
+  receivedAt           DateTime?          @db.Date
+  receivedMovementId   String?
+  resolvedAt           DateTime?          @db.Date
+  resolvedAmount       Decimal?           @db.Decimal(15, 2)
+  resolutionMovementId String?
+  resolutionNote       String?
+  notes                String?
+  createdById          String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  salesOperation SalesOperation @relation(fields: [salesOpId], references: [id], onDelete: Cascade)
+  holderPerson   Person?        @relation("SalesDepositHolder", fields: [holderPersonId], references: [id], onDelete: SetNull)
+  payerPerson    Person?        @relation("SalesDepositPayer", fields: [payerPersonId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status])
+  @@index([tenantId, expiresAt])
+  @@index([salesOpId])
+  @@index([holderPersonId])
+  @@index([payerPersonId])
+  @@map("sales_deposits")
+}
+
+/// Un renglón de la documentación del inmueble (informe de dominio, inhibición, libre deuda...).
+model SalesDocCheck {
+  id        String    @id @default(uuid())
+  tenantId  String
+  salesOpId String
+  code      String
+  required  Boolean   @default(true)
+  done      Boolean   @default(false)
+  doneAt    DateTime?
+  doneById  String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  salesOperation SalesOperation @relation(fields: [salesOpId], references: [id], onDelete: Cascade)
+
+  @@unique([salesOpId, code])
+  @@index([tenantId])
+  @@map("sales_doc_checks")
+}
+
+/// Juego de llaves de una propiedad: quién las tiene hoy y dónde se guardan en la oficina.
+model KeySet {
+  id             String    @id @default(uuid())
+  tenantId       String
+  propertyId     String
+  label          String
+  copies         Int       @default(1)
+  holder         KeyHolder @default(Oficina)
+  holderPersonId String?
+  holderUserId   String?
+  holderName     String?
+  location       String?
+  notes          String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  property     Property      @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  holderPerson Person?       @relation("KeySetHolder", fields: [holderPersonId], references: [id], onDelete: SetNull)
+  holderUser   User?         @relation("KeySetHolderUser", fields: [holderUserId], references: [id], onDelete: SetNull)
+  movements    KeyMovement[]
+
+  @@index([tenantId, holder])
+  @@index([tenantId, propertyId])
+  @@index([holderPersonId])
+  @@index([holderUserId])
+  @@map("key_sets")
+}
+
+/// Salida de un juego de llaves (a quién, cuándo, para qué, cuándo deberían volver) y su devolución.
+/// Mientras `returnedAt` es nulo, la salida sigue abierta.
+model KeyMovement {
+  id               String    @id @default(uuid())
+  tenantId         String
+  keySetId         String
+  holder           KeyHolder
+  holderPersonId   String?
+  holderUserId     String?
+  holderName       String?
+  reason           String?
+  outAt            DateTime  @db.Date
+  expectedReturnAt DateTime? @db.Date
+  returnedAt       DateTime? @db.Date
+  outById          String?
+  returnedById     String?
+  notes            String?
+  createdAt        DateTime  @default(now())
+
+  keySet       KeySet  @relation(fields: [keySetId], references: [id], onDelete: Cascade)
+  holderPerson Person? @relation("KeyMovementHolder", fields: [holderPersonId], references: [id], onDelete: SetNull)
+  holderUser   User?   @relation("KeyMovementHolderUser", fields: [holderUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, returnedAt])
+  @@index([keySetId, outAt])
+  @@index([holderPersonId])
+  @@index([holderUserId])
+  @@map("key_movements")
 }

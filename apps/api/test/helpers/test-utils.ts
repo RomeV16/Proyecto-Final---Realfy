@@ -64,9 +64,16 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
   await prisma.baseClient.lessorInvoiceJob.deleteMany();
   await prisma.baseClient.ownerLedgerEntry.deleteMany();
   await prisma.baseClient.staffCommission.deleteMany();
+  // Ventas y llaves (antes que los honorarios, las personas y las propiedades)
+  await prisma.baseClient.keyMovement.deleteMany();
+  await prisma.baseClient.keySet.deleteMany();
+  await prisma.baseClient.salesDocCheck.deleteMany();
+  await prisma.baseClient.salesDeposit.deleteMany();
+  await prisma.baseClient.salesParty.deleteMany();
   await prisma.baseClient.feeShare.deleteMany();
   await prisma.baseClient.feeInstallment.deleteMany();
   await prisma.baseClient.fee.deleteMany();
+  await prisma.baseClient.salesOperation.deleteMany();
   await prisma.baseClient.ownerStatement.deleteMany();
   await prisma.baseClient.compensation.deleteMany();
   await prisma.baseClient.cashMovement.deleteMany();
