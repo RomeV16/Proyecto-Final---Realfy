@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { parseDocumentText } from '@realfy/shared';
 import {
   Document,
   Packer,
@@ -24,14 +25,13 @@ export class ContractDocxService {
 
   /**
    * Generate a DOCX buffer from already-interpolated text.
-   * Splits text on newlines and renders each line as a docx Paragraph.
+   * Each line is a paragraph (justified); `# Title` is a centered heading and
+   * `**text**` is bold.
    */
   async generateDocx(
     resolvedText: string,
     metadata: DocumentMetadata,
   ): Promise<Buffer> {
-    const lines = resolvedText.split('\n');
-
     const children: Paragraph[] = [];
 
     // Title paragraph
@@ -68,20 +68,26 @@ export class ContractDocxService {
     }
 
     // Body paragraphs
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed === '') {
+    for (const line of parseDocumentText(resolvedText)) {
+      if (line.kind === 'blank') {
         // Empty line → blank paragraph for spacing
         children.push(new Paragraph({ children: [] }));
+      } else if (line.kind === 'heading') {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            heading: HeadingLevel.HEADING_2,
+            children: [new TextRun({ text: line.text, bold: true, size: 24 })],
+            spacing: { before: 160, after: 80 },
+          }),
+        );
       } else {
         children.push(
           new Paragraph({
-            children: [
-              new TextRun({
-                text: trimmed,
-                size: 22, // 11pt
-              }),
-            ],
+            alignment: AlignmentType.JUSTIFIED,
+            children: line.segments.map(
+              (seg) => new TextRun({ text: seg.text, bold: seg.bold, size: 22 }), // 11pt
+            ),
             spacing: { after: 80 },
           }),
         );

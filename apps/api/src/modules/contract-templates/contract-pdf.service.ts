@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { parseDocumentText } from '@realfy/shared';
 import { PdfRendererService, pageFooter } from '../../common/pdf/pdf-renderer.service';
 
 interface DocumentMetadata {
@@ -15,14 +16,13 @@ export class ContractPdfService {
 
   /**
    * Generate a PDF buffer from already-interpolated text.
-   * Splits text on newlines and renders each line as a pdfmake Paragraph.
+   * Each line is a paragraph (justified); `# Title` is a centered heading and
+   * `**text**` is bold.
    */
   async generatePdf(
     resolvedText: string,
     metadata: DocumentMetadata,
   ): Promise<Buffer> {
-    const lines = resolvedText.split('\n');
-
     const content: any[] = [
       // Header: tenant name if available
       ...(metadata.tenantName
@@ -44,12 +44,23 @@ export class ContractPdfService {
     ];
 
     // Render each line — blank lines get a smaller spacer
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed === '') {
+    for (const line of parseDocumentText(resolvedText)) {
+      if (line.kind === 'blank') {
         content.push({ text: ' ', fontSize: 6, margin: [0, 2, 0, 2] as [number, number, number, number] });
+      } else if (line.kind === 'heading') {
+        content.push({
+          text: line.text,
+          bold: true,
+          fontSize: 12,
+          alignment: 'center' as const,
+          margin: [0, 8, 0, 4] as [number, number, number, number],
+        });
       } else {
-        content.push({ text: trimmed, margin: [0, 1, 0, 1] as [number, number, number, number] });
+        content.push({
+          text: line.segments.map((s) => (s.bold ? { text: s.text, bold: true } : { text: s.text })),
+          alignment: 'justify' as const,
+          margin: [0, 1, 0, 1] as [number, number, number, number],
+        });
       }
     }
 

@@ -9,14 +9,20 @@ import { TenantContextService } from '../../common/tenant/tenant-context.service
 import { ContractsService } from '../contracts/contracts.service';
 import { ContractPdfService } from './contract-pdf.service';
 import { ContractDocxService } from './contract-docx.service';
-import { buildContractVariables } from './contract-variable-builder';
+import { buildContractTemplateData, type ContractTemplateContext } from './contract-variable-builder';
+import { rentAtDate } from '../liquidaciones/rent-at';
 import {
   CreateContractTemplateSchema,
   UpdateContractTemplateSchema,
   ContractTemplateFilterSchema,
   GenerateDocumentSchema,
 } from '@realfy/shared';
-import { renderTemplatePlain, extractVariableNames } from '@realfy/shared';
+import {
+  renderTemplatePlain,
+  extractTemplateVariables,
+  TemplateSyntaxError,
+  TEMPLATE_LIST_NAMES,
+} from '@realfy/shared';
 import { DEFAULT_TEMPLATES } from './default-templates';
 import { parseOrThrow } from '../../common/validation/zod';
 
@@ -30,6 +36,29 @@ function isUniqueConstraintError(err: unknown): boolean {
     'code' in err &&
     (err as any).code === 'P2002'
   );
+}
+
+/** Una plantilla mal formada es un error del pedido (400), con la línea y la columna donde falla. */
+function templateSyntaxToHttp(err: unknown): never {
+  if (err instanceof TemplateSyntaxError) {
+    throw new BadRequestException({
+      error: 'TEMPLATE_SYNTAX_ERROR',
+      message: err.message,
+      details: { code: err.code, line: err.line, column: err.column },
+    });
+  }
+  throw err;
+}
+
+const TEMPLATE_OPTIONS = { lists: TEMPLATE_LIST_NAMES };
+
+/** Revisa la sintaxis del cuerpo y devuelve las variables que usa. */
+function checkedVariables(body: string): string[] {
+  try {
+    return extractTemplateVariables(body, TEMPLATE_OPTIONS);
+  } catch (err) {
+    return templateSyntaxToHttp(err);
+  }
 }
 
 @Injectable()
@@ -51,11 +80,9 @@ export class ContractTemplatesService {
 
     const tenantId = this.tenantContext.getTenantId()!;
 
-    // Auto-extract variables from body if not provided
-    const variables =
-      validated.variables.length > 0
-        ? validated.variables
-        : extractVariableNames(validated.body);
+    // Rechaza una plantilla mal formada y, si no vienen, extrae las variables del cuerpo
+    const detected = checkedVariables(validated.body);
+    const variables = validated.variables.length > 0 ? validated.variables : detected;
 
     try {
       const template = await this.prisma.client.contractTemplate.create({
@@ -166,9 +193,10 @@ export class ContractTemplatesService {
       });
     }
 
-    // Auto-update variables if body changed and variables not explicitly provided
-    if (validated.body && !validated.variables) {
-      validated.variables = extractVariableNames(validated.body);
+    // Rechaza una plantilla mal formada y, si cambió el cuerpo sin variables, las vuelve a extraer
+    if (validated.body) {
+      const detected = checkedVariables(validated.body);
+      if (!validated.variables) validated.variables = detected;
     }
 
     try {
@@ -266,8 +294,47 @@ export class ContractTemplatesService {
       });
     }
 
-    const variables = buildContractVariables(contract as any, tenant);
+    const { variables } = await this.templateData(contract, tenant);
     return variables;
+  }
+
+  /**
+   * Variables y listas de un contrato. Suma lo que el contrato no trae en sí:
+   * cuentas de Rentas y de Aguas (servicios de la propiedad), canon inicial y
+   * firma del período original.
+   */
+  private async templateData(contract: any, tenant: any, signingDate?: string) {
+    const [services, period, termsVersions] = await Promise.all([
+      this.prisma.client.service.findMany({
+        where: { propertyId: contract.propertyId, isActive: true },
+        orderBy: { createdAt: 'asc' },
+        select: { serviceType: true, accountNumber: true },
+      }),
+      this.prisma.client.contractPeriod.findFirst({
+        where: { contractId: contract.id, seq: 1 },
+        select: { initialRent: true, signedAt: true },
+      }),
+      this.prisma.client.contractTermsVersion.findMany({
+        where: { contractId: contract.id },
+        orderBy: { validFrom: 'asc' },
+        select: { validFrom: true, rentOverride: true },
+      }),
+    ]);
+
+    const context: ContractTemplateContext = {
+      services,
+      initialRent:
+        period?.initialRent ??
+        rentAtDate({
+          contractRent: contract.rentAmount,
+          adjustments: contract.adjustments ?? [],
+          termsVersions,
+          date: new Date(contract.startDate),
+        }).amount,
+      signedAt: period?.signedAt,
+      signingDate,
+    };
+    return buildContractTemplateData(contract, tenant, context);
   }
 
   // ─── Generate Document ────────────────────────────────
@@ -305,8 +372,13 @@ export class ContractTemplatesService {
     }
 
     // Build variables and interpolate
-    const variables = buildContractVariables(contract as any, tenant);
-    const resolvedText = renderTemplatePlain(template.body, variables);
+    const { variables, lists } = await this.templateData(contract, tenant, validated.signingDate);
+    let resolvedText: string;
+    try {
+      resolvedText = renderTemplatePlain(template.body, variables, lists, TEMPLATE_OPTIONS);
+    } catch (err) {
+      return templateSyntaxToHttp(err);
+    }
 
     const metadata = {
       title: template.name,
@@ -374,7 +446,7 @@ export class ContractTemplatesService {
             name: tmpl.name,
             contractType: tmpl.contractType as any,
             body: tmpl.body,
-            variables: extractVariableNames(tmpl.body),
+            variables: checkedVariables(tmpl.body),
             isDefault: true,
             isActive: true,
           },
