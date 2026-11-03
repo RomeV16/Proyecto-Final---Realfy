@@ -272,7 +272,10 @@
    "AGREEMENT_DATE_OUT_OF_RANGE": "La fecha del acuerdo debe ser de hoy en adelante y dentro del año.",
    "LETTER_NOT_FOUND": "La carta documento no pertenece a este caso.",
    "LETTER_ALREADY_SENT": "La carta ya se confirmó como enviada: no se puede editar ni confirmar de nuevo.",
-   "LETTER_SENT_DATE_INVALID": "La fecha de envío no puede ser futura ni anterior al borrador."
+   "LETTER_SENT_DATE_INVALID": "La fecha de envío no puede ser futura ni anterior al borrador.",
+   "INVALID_PROVIDER_ACCOUNT": "El número de cuenta no tiene el formato del proveedor elegido. Revisalo tal como figura en la boleta.",
+   "PROVIDER_SERVICE_TYPE_MISMATCH": "Ese proveedor no emite boletas de este tipo de servicio.",
+   "SERVICE_NOT_FOUND": "El servicio no existe o es de otra inmobiliaria."
   },
   "segment": {
    "loading": "Cargando…",
@@ -5658,8 +5661,69 @@
     "error": "No se pudo registrar el gasto"
    }
   },
+ "propertyServices": {
+  "title": "Servicios e impuestos",
+  "subtitle": "Las cuentas de luz, gas, agua, tasas e impuestos de la propiedad. Con el proveedor y la cuenta correctos, las boletas se obtienen solas.",
+  "loadError": "No se pudieron cargar los servicios",
+  "empty": "Todavía no hay servicios ni impuestos cargados.",
+  "add": "Agregar servicio",
+  "edit": "Editar",
+  "deactivate": "Dar de baja",
+  "reactivate": "Reactivar",
+  "inactive": "De baja",
+  "noProvider": "Sin proveedor",
+  "account": "Cuenta {account}",
+  "noAccount": "Sin cuenta",
+  "dueDay": "vence el día {day}",
+  "inherited": "Del edificio",
+  "inheritedHint": "Estos servicios son del edificio; se editan desde su ficha.",
+  "openBuilding": "Abrir el edificio",
+  "createTitle": "Nuevo servicio o impuesto",
+  "editTitle": "Editar servicio o impuesto",
+  "create": "Crear",
+  "saveChanges": "Guardar cambios",
+  "created": "Servicio creado",
+  "updated": "Servicio actualizado",
+  "reactivated": "Servicio reactivado",
+  "deactivated": "Servicio dado de baja",
+  "saveError": "No se pudo guardar el servicio",
+  "actionError": "No se pudo completar la acción",
+  "deactivateConfirm": "¿Dar de baja este servicio? Deja de proponerse en las reglas de los contratos nuevos; el historial y las reglas existentes se conservan.",
+  "fields": {
+   "serviceType": "Tipo de servicio",
+   "providerKey": "Proveedor",
+   "providerKeyHint": "Los proveedores de la lista permiten obtener las boletas automáticamente; la cuenta se valida y se guarda con su formato.",
+   "providerName": "Nombre del proveedor",
+   "accountNumber": "Número de cuenta o cliente",
+   "accountNumberHint": "Tal como figura en la boleta. Si elegiste un proveedor de la lista, se valida con su formato.",
+   "amount": "Importe vigente",
+   "currency": "Moneda",
+   "dueDay": "Día de vencimiento",
+   "billingFrequency": "Frecuencia de la boleta",
+   "hasAnnualOption": "Tiene opción de pago anual",
+   "notes": "Notas"
+  },
+  "providers": {
+   "aguas-cordobesas": "Aguas Cordobesas",
+   "ecogas": "Ecogas",
+   "epec": "EPEC",
+   "muni-cordoba": "Municipalidad de Córdoba",
+   "rentas-cordoba": "Rentas de Córdoba",
+   "generico": "Otro proveedor (lector genérico)"
+  },
+  "frequencies": {
+   "Mensual": "Mensual",
+   "Bimestral": "Bimestral",
+   "Trimestral": "Trimestral",
+   "Anual": "Anual"
+  },
+  "yes": "Sí",
+  "no": "No",
+  "annualOption": "opción anual"
+ },
  "chargeRules": {
-  "title": "Impuestos y servicios",
+  "title": "Quién paga cada servicio",
+  "noServices": "Esta propiedad todavía no tiene servicios activos. Cargalos en la ficha de la propiedad (Servicios e impuestos) para poder asignarles una regla.",
   "loadError": "No se pudieron cargar las reglas de impuestos y servicios",
   "none": "El contrato todavía no tiene reglas de impuestos y servicios.",
   "edit": "Agregar o cambiar regla",

@@ -26,6 +26,7 @@ import {
 } from '@/components/properties/property-detail-sections';
 import { PriceHistory } from '@/components/properties/price-history';
 import { PropertyValuations } from '@/components/properties/property-valuations';
+import { PropertyServices } from '@/components/properties/property-services';
 import { PersonRoleBadge } from '@/components/persons/person-role-badge';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Avatar } from '@/components/ui/avatar';
@@ -95,6 +96,8 @@ interface PropertyDetail {
   currency?: string;
   amenities?: string[];
   isActive: boolean;
+  /** Edificio al que pertenece la unidad. */
+  parentPropertyId?: string | null;
   operations: PropertyOperation[];
   media: PropertyMedia[];
   priceHistory: PriceHistoryEntry[];
@@ -209,6 +212,7 @@ function DetailView({
 }) {
   const t = useTranslations('properties');
   const tPub = useTranslations('publication');
+  const tSvc = useTranslations('propertyServices');
   const tCommon = useTranslations('common');
 
   const [transitionLoading, setTransitionLoading] = useState<string | null>(null);
@@ -480,6 +484,10 @@ function DetailView({
                 ))}
               </div>
             )}
+          </DetailSection>
+
+          <DetailSection title={tSvc('title')} icon="wallet">
+            <PropertyServices propertyId={property.id} parentPropertyId={property.parentPropertyId} />
           </DetailSection>
 
           <DetailSection title={t('valuations.title')} icon="wallet">

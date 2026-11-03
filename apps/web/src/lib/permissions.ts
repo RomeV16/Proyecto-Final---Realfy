@@ -16,6 +16,9 @@ export const ACTION_ROLES = {
   // Propiedades, personas y leads: el equipo comercial
   'properties.manage': [Admin, Gerente, Ventas],
   'properties.delete': [Admin, Gerente],
+  /** Servicios e impuestos de una propiedad: alta, edición y reactivación; la baja es de `services.delete`. */
+  'services.manage': [Admin, Gerente, Ventas],
+  'services.delete': [Admin, Gerente],
   /** Publicación: cambiar el estado de un aviso en un portal o en el micrositio y pausar lo que ya no corresponde. */
   'listings.manage': [Admin, Gerente, Ventas, UserRole.Marketing],
   'persons.manage': [Admin, Gerente, Ventas],
