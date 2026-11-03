@@ -126,7 +126,7 @@ el registro del servidor, junto con el método, la ruta, el estado, el
 | POST | `/users/:id/password-reset-link` | Genera un enlace de un solo uso para que ese usuario elija una contraseña nueva. 400 `USER_INACTIVE` si está dado de baja. | Admin |
 | GET | `/audit-logs` | Traza de las operaciones sensibles, con filtros. | Admin, Gerente |
 
-**Enlaces de invitación y de recupero.** `invite`, `invitation/resend` y `password-reset-link` devuelven `{ id, email, role?, expiresAt, token, link, emailSent }`. El `token` tiene 256 bits aleatorios, en base de datos solo queda su hash SHA-256, y el valor en claro se ve una única vez, en esa respuesta. La invitación vence a los 7 días y el enlace de recupero a la hora; ambos se consumen al usarse. `link` apunta a `WEB_BASE_URL` (o, si falta, al primer origen de `CORS_ORIGINS`) y se comparte a mano. `emailSent` es `true` solo si el servicio de correo está configurado y el envío salió bien; un fallo de correo nunca corta la operación. Un token inexistente, ajeno o de otra inmobiliaria responde como inexistente. Una llamada sobre un usuario (o una invitación) de otra inmobiliaria responde 404 `USER_NOT_FOUND` (`INVITATION_NOT_FOUND`).
+**Enlaces de invitación y de recupero.** `invite`, `invitation/resend` y `password-reset-link` devuelven `{ id, email, role?, expiresAt, token, link, emailQueued }`. El `token` tiene 256 bits aleatorios, en base de datos solo queda su hash SHA-256, y el valor en claro se ve una única vez, en esa respuesta. La invitación vence a los 7 días y el enlace de recupero a la hora; ambos se consumen al usarse. `link` apunta a `WEB_BASE_URL` (o, si falta, al primer origen de `CORS_ORIGINS`) y se comparte a mano. `emailQueued` es `true` si el servicio de correo está configurado y la invitación quedó en la bandeja de salida (plantilla `user_invitation`); sale según `MESSAGING_MODE` y su estado se ve en `GET /outbox?relatedType=UserInvitation`. Un reenvío cancela el mensaje anterior, que lleva un enlace que ya no sirve. Un problema de correo nunca corta la operación. Un token inexistente, ajeno o de otra inmobiliaria responde como inexistente. Una llamada sobre un usuario (o una invitación) de otra inmobiliaria responde 404 `USER_NOT_FOUND` (`INVITATION_NOT_FOUND`).
 
 La baja y el cambio de rol rigen desde el pedido siguiente: el token de acceso se contrasta con el estado vigente del usuario. En la traza (`/audit-logs`), las operaciones de usuarios llevan `changes.operation` (`role-change`, `deactivate`, `reactivate`, `invitation-resend`, `password-reset-link`); contraseñas y tokens se registran como `[REDACTED]` o no se registran.
 
@@ -189,6 +189,8 @@ Cuelgan de la propiedad.
 | PATCH | `/persons/:id/powers/:powerId` | Cambia alcances, firma, vigencia o documento. 404 `POWER_NOT_FOUND`; 409 `POWER_IN_USE` si dejaría sin poder de cobro a un cobrador en uso. | Admin, Gerente, Ventas |
 | DELETE | `/persons/:id/powers/:powerId` | Revoca el poder (409 `POWER_IN_USE` si un locador lo usa para su cobrador). | Admin, Gerente, Ventas |
 | POST | `/persons/:id/portal-invite` | Genera la invitación al portal del inquilino. | Admin, Gerente |
+| GET | `/persons/:id/consents` | Consentimiento de mensajes por canal (`Email`, `WhatsApp`): el último registro (`status` `OptIn`/`OptOut` o `null`, `source` `Manual`/`Inbound`/`Complaint`, `at`, `note`), la dirección actual de la persona en ese canal y el historial. 404 `PERSON_NOT_FOUND`. | Admin, Gerente, Liquidaciones, Lectura, Ventas, Soporte |
+| PUT | `/persons/:id/consents` | Registra un alta o una baja: `{ channel, status, note? }`. Agrega un registro al historial con quién lo cargó y la dirección actual; vale el último (ver «Mensajería»). | Admin, Gerente, Ventas, Liquidaciones |
 
 ## Proveedores
 
@@ -756,6 +758,50 @@ Unión de personas: `{ keepId, mergeIds[1..10] }` (UUID, sin repetir ni incluir 
 | DELETE | `/email-templates/:id` | Baja. | Admin, Gerente, Marketing |
 | POST | `/email-templates/:id/preview` | Previsualiza la plantilla con datos reales. | Admin, Gerente, Ventas, Marketing |
 
+## Mensajería
+
+Mensajes salientes por mail y WhatsApp a través de la bandeja de salida
+(ADR-0013). Ninguna operación manda un mensaje en el momento: lo encola con una
+clave de idempotencia (`<tipo>:<id>:<canal>`) y un proceso programado lo despacha
+cada minuto según el modo del ambiente (`MESSAGING_MODE`: `off` por defecto,
+`allowlist` o `live`), el consentimiento y el horario permitido
+(`operationalDefaults.messaging`, por defecto `{ fromHour: 9, untilHour: 20 }`
+en hora de Buenos Aires, solo para los mensajes a la cartera). Encolan mensajes:
+la liquidación al pasar a `Enviada` (mail al inquilino), las invitaciones de
+usuarios, los avisos al personal de los procesos diarios (mail), los cambios de
+estado y comentarios del personal en un ticket del portal (al inquilino, por
+WhatsApp si dio el alta o si no por mail) y `POST /outbox/send`.
+
+Estados (`status`): `Pending`, `Sending`, `Sent`, `Delivered`, `Read`, `Failed`,
+`Blocked`, `Cancelled`. `statusReason` dice por qué uno sigue pendiente o quedó
+bloqueado: `MESSAGING_OFF`, `PROVIDER_NOT_CONFIGURED`, `QUIET_HOURS`,
+`NOT_IN_ALLOWLIST`, `OPTED_OUT`, `NO_OPT_IN`. `error` trae el rechazo del
+proveedor de un `Failed` (`ATTACHMENT_UNAVAILABLE: …` si el PDF ya no se puede
+generar; `INTERRUPTED: …` si el despacho se cortó mientras lo mandaba). Las
+variables con secretos (el enlace de una invitación) se devuelven como
+`[oculto]`.
+
+| Método | Ruta | Para qué | Acceso |
+|---|---|---|---|
+| GET | `/outbox` | Bandeja de salida paginada, del más nuevo al más viejo, con filtros `status`, `channel`, `personId`, `relatedType` (`Receipt`, `OwnerStatement`, `Liquidacion`, `UserInvitation`, `Notification`, `Ticket`, `TicketComment`) y `relatedId`. Cada mensaje: canal, persona, dirección, plantilla, variables, estado, motivo, error, intentos, próximo intento y fechas. | Admin, Gerente, Liquidaciones, Lectura, Ventas, Soporte |
+| POST | `/outbox/send` | Manda un documento a su destinatario: `{ kind: 'Receipt' \| 'OwnerStatement', id, channel: 'Email' \| 'WhatsApp' }`. Un recibo va al inquilino del contrato o a quien pagó el honorario; un estado de cuenta, al locador, solo emitido (400 `OWNER_STATEMENT_NOT_ISSUED`). Pedirlo dos veces devuelve el mismo mensaje. 400 `NO_CONTACT_ADDRESS` (la persona no tiene mail o celular válido), `NO_RECIPIENT`; 404 `RECEIPT_NOT_FOUND`, `OWNER_STATEMENT_NOT_FOUND`. El estado de cuenta pasa a `Enviado` cuando el mensaje sale. | Admin, Gerente, Liquidaciones |
+| POST | `/outbox/:id/retry` | Vuelve a encolar un `Failed`, `Blocked` o `Cancelled` desde cero (se revisan otra vez el modo, el consentimiento y el horario). 400 `MESSAGE_NOT_RETRYABLE`; 400 `MESSAGE_EXPIRED` si llevaba un enlace de un solo uso ya borrado (se reenvía la invitación). | Admin, Gerente |
+| POST | `/outbox/:id/cancel` | Cancela un `Pending` o `Blocked`. 400 `MESSAGE_NOT_CANCELLABLE` si ya salió o el despacho lo está mandando. | Admin, Gerente |
+| POST | `/outbox/_run-now` | Una vuelta del despacho para la inmobiliaria del pedido. Solo con `NODE_ENV=test` o `E2E_TEST_MODE=1`. | Admin |
+| GET | `/messaging/settings` | Modo del ambiente, cantidad de direcciones permitidas, proveedores (`configured`, remitente, webhook configurado), horario permitido y catálogo de plantillas (canales, destinatarios, plantilla de WhatsApp y su texto propuesto). Nunca devuelve credenciales. | Admin, Gerente |
+
+**Webhooks** (públicos, sin sesión; el pedido se rechaza con 401
+`INVALID_SIGNATURE` si la firma no coincide, y sin el secreto configurado se
+rechaza todo):
+
+| Método | Ruta | Para qué |
+|---|---|---|
+| GET | `/webhooks/whatsapp` | Verificación de la suscripción de Meta: con `hub.mode=subscribe` y `hub.verify_token` igual a `WHATSAPP_VERIFY_TOKEN` devuelve `hub.challenge` en texto; si no, 403. |
+| POST | `/webhooks/whatsapp` | Firmado con `X-Hub-Signature-256` (HMAC-SHA256 del cuerpo con `WHATSAPP_APP_SECRET`). Estados `sent`, `delivered`, `read` y `failed` por el id del mensaje (sin retroceder); mensajes entrantes guardados para la bandeja de consultas; `BAJA` o `STOP` registran la baja de WhatsApp. |
+| POST | `/webhooks/resend` | Firmado por svix (`svix-id`, `svix-timestamp` a menos de 5 minutos, `svix-signature`, con `RESEND_WEBHOOK_SECRET`). `email.sent`, `email.delivered`, `email.bounced` y `email.failed` actualizan el estado; `email.complained` registra la baja del mail. |
+
+Ambos responden `{ received: true }`.
+
 ## Notificaciones
 
 | Método | Ruta | Para qué | Acceso |
@@ -765,6 +811,8 @@ Unión de personas: `{ keepId, mergeIds[1..10] }` (UUID, sin repetir ni incluir 
 | PATCH | `/notifications/:id/read` | Marca una como leída. | Autenticado |
 | PATCH | `/notifications/mark-all-read` | Marca todas como leídas. | Autenticado |
 | POST | `/notifications/run` | Dispara la corrida de generación de avisos. | Admin |
+
+Tipos nuevos (ADR-0013): `MessageFailed` (un mensaje no se pudo enviar), `ContactOptedOut` (una persona pidió la baja por WhatsApp) e `InboundMessageReceived` (llegó un WhatsApp); `SystemAlert` avisa de mensajes trabados por falta de proveedor. `TicketCreated` y `TicketCommentAdded` avisan al personal de los tickets del portal. `PaymentReceived` y `TicketStatusChanged` quedan sin emisor: el aviso al cliente es un mensaje de la bandeja de salida.
 
 ## Asistencia sobre el modelo de lenguaje
 

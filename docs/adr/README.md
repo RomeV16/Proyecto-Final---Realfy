@@ -18,6 +18,7 @@
 | [0010](0010-reglas-versionadas-y-valores-por-defecto.md) | Reglas versionadas del contrato y valores por defecto de la inmobiliaria | Aceptado | 2026-10-31 |
 | [0011](0011-ajuste-con-rezago-estimacion-y-correccion.md) | Ajuste con rezago, estimación y corrección | Aceptado | 2026-10-31 |
 | [0012](0012-flujos-de-cobro-caja-y-custodia.md) | Flujos de cobro, caja y custodia | Aceptado | 2026-11-02 |
+| [0013](0013-mensajeria-saliente-con-outbox-y-cobranza-escalonada.md) | Mensajería saliente con outbox y cobranza escalonada (la cobranza, planificada para el PR 5.4) | Aceptado | 2026-11-03 |
 | [0014](0014-ambiente-piloto-con-datos-reales.md) | Ambiente piloto con datos reales | Aceptado | 2026-10-31 |
 | [0015](0015-importacion-idempotente-desde-el-sistema-anterior.md) | Importación idempotente desde el sistema anterior | Aceptado | 2026-11-01 |
 | [0017](0017-facturacion-por-cuenta-del-locador-con-emisor-delegado.md) | Facturación por cuenta del locador con emisor delegado | Aceptado | 2026-11-02 |
@@ -30,7 +31,6 @@ Las decisiones que el piloto vuelve necesarias (ver `../tesis/30-piloto.md`) se 
 | Número | Título | Estado | Se decide en |
 |---|---|---|---|
 | 0011 | Ajuste con rezago, estimación y corrección; fuente del índice de precios | Planificada | Ítem 34, PR del motor de ajuste |
-| 0013 | Mensajería saliente con outbox y cobranza escalonada | Planificada | Ítem 43, PR de mensajería |
 
 ## Ajustes previstos a decisiones existentes
 

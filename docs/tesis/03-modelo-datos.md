@@ -885,6 +885,35 @@ Envío periódico de un reporte.
 
 - `id`, `tenantId`, `reportType`, `frequency`, `filters`, `recipients`, `format`, `isActive`, `lastRunAt`, `nextRunAt`.
 
+## Mensajería saliente
+
+Tres tablas por inmobiliaria, en el filtro de aislamiento y en la unión de personas (ADR-0013).
+
+### MessageOutbox
+
+Un mensaje saliente por fila (`message_outbox`).
+
+- `id`, `tenantId`, `channel` (`Email` o `WhatsApp`), `personId` (opcional; queda vacío si la persona se borra), `to` (dirección normalizada: mail en minúsculas o teléfono en dígitos con código de país), `templateKey`, `vars` (JSON con las variables ya formateadas), `status`, `statusReason`, `providerMsgId`, `error`, `attempts`, `nextAttemptAt`, `scheduledAt`, `sentAt`, `deliveredAt`, `relatedType`, `relatedId`, `idempotencyKey`, `createdByUserId`.
+- `status`: `Pending`, `Sending`, `Sent`, `Delivered`, `Read`, `Failed`, `Blocked`, `Cancelled`. `statusReason` dice por qué uno sigue pendiente o quedó bloqueado (`MESSAGING_OFF`, `PROVIDER_NOT_CONFIGURED`, `QUIET_HOURS`, `NOT_IN_ALLOWLIST`, `OPTED_OUT`, `NO_OPT_IN`).
+- `idempotencyKey` es única: la misma operación encola un solo mensaje. `providerMsgId` también es única y es la que usan los webhooks para ubicar el mensaje sin depender de la inmobiliaria.
+- `relatedType`/`relatedId` apuntan al documento (`Receipt`, `OwnerStatement`, `Liquidacion`, `UserInvitation`, `Notification`, `Ticket`, `TicketComment`) sin clave foránea: el PDF se genera desde ahí al despachar.
+- Índices `[tenantId, status, scheduledAt]` (despacho), `[tenantId, relatedType, relatedId]`, `[tenantId, personId]` y `[tenantId, createdAt]`.
+
+### ContactConsent
+
+Historial de consentimiento por canal (`contact_consents`, Ley 25.326). Vale el último registro.
+
+- `id`, `tenantId`, `personId` (opcional), `channel`, `address` (la dirección a la que aplica), `status` (`OptIn` u `OptOut`), `source` (`Manual`, `Inbound`, `Complaint`), `note`, `recordedByUserId`, `at`.
+- Una baja de un número que no es de ninguna persona se guarda con `personId` vacío y se respeta por la dirección. Si la persona se borra, el registro queda (`SET NULL`).
+
+### InboundMessage
+
+Mensaje de WhatsApp recibido (`inbound_messages`), mínimo, para la bandeja de consultas.
+
+- `id`, `tenantId`, `channel`, `from`, `personId` (opcional), `body`, `providerMsgId` (único: un aviso repetido no se guarda dos veces), `receivedAt`.
+
+`Tenant.operationalDefaults.messaging` guarda el horario permitido (`fromHour`, `untilHour`, por defecto 9 y 20, hora de Buenos Aires). `Notification.type` suma `MessageFailed`, `ContactOptedOut` e `InboundMessageReceived`.
+
 ## Importación desde el sistema anterior
 
 Las dos tablas que registran cada corrida del importador (ADR-0015). Ambas son por inmobiliaria y están en el filtro de aislamiento.
@@ -914,6 +943,7 @@ El resultado de cada fila de un lote.
 - `Property` 1-N `Contract` a lo largo del tiempo.
 - `Contract` N-M `Person` mediante `ContractPerson` (inquilino, garante, comprador) y mediante `ContractLessor` (locadores, con porcentaje de cobro y vigencia).
 - `Person` N-M `Person` mediante `PowerOfAttorney` (poderdante y apoderado), con alcance general o acotado a un contrato o una propiedad.
+- `Person` 1-N `MessageOutbox`, `ContactConsent` e `InboundMessage`: los mensajes y el consentimiento de una persona, que pasan a la conservada al unir dos personas.
 - `Contract` 1-N `AdjustmentSchedule` (lo pendiente) y 1-N `ContractAdjustment` (lo calculado y aplicado).
 - `Contract` 1-N `Liquidacion` 1-N `LiquidacionLineItem`.
 - `Liquidacion` 1-N `Payment` 1-N `Comprobante` (opcional), y 1-N `Penalty`.

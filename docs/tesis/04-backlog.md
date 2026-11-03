@@ -115,7 +115,7 @@ Cola de `Notification`, plantillas reutilizables `EmailTemplate`, envío por SMT
 
 - Prioridad: media.
 - Dependencias: 14, 15, 16.
-- Corrección: el envío de correo se implementó con Resend, no con SMTP. Ampliado por el piloto: cola de salida y mensajería instantánea (ítem 43).
+- Corrección: el envío de correo se implementó con Resend, no con SMTP. Ampliado por el piloto: bandeja de salida con modos por ambiente, consentimiento y WhatsApp (ítem 43, PR 5.1 y 5.2, hecho); bandeja de consultas y cobranza escalonada (PR 5.3 y 5.4).
 
 ## Comercial y público
 

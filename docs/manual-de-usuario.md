@@ -814,8 +814,10 @@ anterior.
   unidad.
 - *Emitir* cierra el mes: los movimientos quedan fijos en ese estado y el mes
   siguiente arranca de su saldo al cierre. Un estado emitido no se vuelve a generar.
-- *Descargar PDF* baja el estado para imprimirlo o mandarlo por WhatsApp o por mail.
-  El envío automático desde el sistema llega más adelante.
+- *Descargar PDF* baja el estado para imprimirlo o compartirlo a mano.
+- *Enviar* (Admin, Gerente y Liquidaciones), en un estado emitido, se lo manda al
+  locador **por mail** o **por WhatsApp** con el PDF adjunto (ver «Enviar recibos y
+  estados de cuenta»). Pasa a *Enviado* recién cuando el mensaje sale.
 - *Anular* (Admin y Gerente) pide un motivo y libera los movimientos, que vuelven a
   entrar en el próximo estado que se genere. Solo se anula el último emitido de cada
   locador y moneda. Los gastos que ya se descontaron siguen en la cuenta corriente.
@@ -862,6 +864,64 @@ honorarios y comisiones de la inmobiliaria se siguen facturando con su emisor pr
 - Al **anular un estado de cuenta**, sus facturas quedan en cola para la nota de
   crédito, que se emite sola o con *Emitir pendientes*. Un alquiler en dólares todavía
   no se factura.
+
+### Enviar recibos y estados de cuenta
+
+Un recibo de cobro (en *Caja → Recibos*) y un estado de cuenta emitido (en su
+detalle) tienen el botón **Enviar**, que abre una ventana con *Enviar por mail* y
+*Enviar por WhatsApp*. El recibo va al inquilino del contrato (o a quien pagó, si
+es una cuota de honorarios) y el estado de cuenta, al locador. El PDF va adjunto.
+
+El sistema no lo manda en el momento: lo pone en la **bandeja de salida** y lo
+despacha en el minuto siguiente. La ventana muestra el *Último envío* con su estado
+y el motivo, y la lista de *Mensajes de este documento* (con *Ver en la bandeja de
+salida*):
+
+| Estado | Qué significa |
+|---|---|
+| Pendiente | Todavía no salió. El motivo dice por qué: el envío de mensajes está apagado en este ambiente, falta configurar el servicio de mail o de WhatsApp, o es fuera del horario permitido (sale a la mañana siguiente). |
+| Enviado | El servicio de mail o de WhatsApp lo aceptó. |
+| Entregado / Leído | Llegó (y, en WhatsApp, se leyó). |
+| Bloqueado | No se manda: la persona pidió la baja, no dio el alta de WhatsApp o, en un ambiente de prueba, su dirección no está en la lista permitida. |
+| Fallido | El servicio lo rechazó o se agotaron los reintentos. La gerencia recibe un aviso. |
+| Cancelado | Alguien lo canceló antes de que saliera. |
+
+Pedir el envío dos veces por el mismo canal no lo manda dos veces: muestra el
+mismo mensaje. Si la persona no tiene mail o celular cargado, el sistema avisa y no encola
+nada: corregí la ficha y volvé a intentar. Por WhatsApp solo sale si la persona dio
+el **alta** (ver «Consentimiento de mensajes»).
+
+La liquidación del mes le llega al inquilino por mail cuando pasa a *Enviada*,
+también por la bandeja de salida.
+
+### Mensajería: bandeja de salida
+
+*Mensajería* (`/mensajeria`, todos los roles salvo Marketing) lista los mensajes de
+la inmobiliaria, del más nuevo al más viejo, con la persona, la dirección, el canal, qué se mandó, el estado y el motivo.
+Se filtra por estado y canal; desde la ficha de una persona, *Ver mensajes* abre la
+bandeja filtrada por ella. Admin y Gerente pueden **reintentar** uno fallido,
+bloqueado o cancelado (se revisan otra vez el modo, el consentimiento y el horario)
+y **cancelar** uno pendiente o bloqueado. Un mensaje con un enlace de un solo uso
+(una invitación) no se reintenta: se reenvía la invitación.
+
+### Consentimiento de mensajes
+
+La ficha de cada persona tiene la tarjeta **Consentimiento de mensajes**, con el
+estado de cada canal (mail y WhatsApp): *Alta*, *Baja* o *Sin registrar*, de dónde
+salió, la fecha, la nota y la dirección a la que aplica.
+
+- **WhatsApp necesita un alta.** Antes del primer mensaje registrá el alta con
+  *Registrar alta*, con una nota de dónde quedó (por ejemplo, «firmó la cláusula del
+  contrato» o «lo pidió por escrito el 3/11»). Sin alta, los mensajes por WhatsApp
+  quedan bloqueados.
+- **El mail con documentos del contrato** sale mientras la persona no pida la baja.
+- **La baja se respeta siempre.** Si la persona lo pide, tocá *Registrar baja*.
+  También queda registrada sola cuando responde BAJA o STOP a un WhatsApp, o cuando
+  marca un mail como spam; en ese caso la gerencia recibe un aviso.
+- Cada cambio queda en el historial con quién lo cargó: es la prueba de cuándo la
+  persona dio o retiró su consentimiento.
+
+Registran el consentimiento Admin, Gerente, Ventas y Liquidaciones.
 
 ### Honorarios
 
@@ -1111,7 +1171,8 @@ las etapas del embudo (`/configuracion/pipeline`), los pesos del puntaje de
 inquilinos (`/configuracion/scoring`) y los índices de ajuste
 (`/configuracion/indices`) y los valores por defecto
 (`/configuracion/valores-por-defecto`); y, además, la del equipo
-(`/configuracion/usuarios`) y la de permisos de lectura (`/configuracion/permisos`).
+(`/configuracion/usuarios`), la de permisos de lectura (`/configuracion/permisos`) y
+la de mensajería (`/configuracion/mensajeria`).
 
 ### Valores por defecto
 
@@ -1145,6 +1206,28 @@ formulario (hay que guardar para aplicarlo).
 Cambiar un valor por defecto no toca los contratos que ya existen: rige para los
 que se carguen desde ese momento, y cada contrato o acuerdo puede después fijar
 el suyo.
+
+La sección *Mensajería* fija el **horario permitido** para los mensajes a la cartera
+(de fábrica, de 9 a 20, hora de Buenos Aires): fuera de ese horario quedan
+pendientes y salen cuando abre. Los avisos al personal y las invitaciones salen a
+cualquier hora.
+
+### Mensajería
+
+`/configuracion/mensajeria` (Admin y Gerente) muestra cómo está configurado el envío
+de mensajes en este ambiente. No se cambia desde la pantalla: lo fija quien despliega
+el sistema.
+
+- **Modo de envío.** *Apagado* (no sale nada; los mensajes quedan en la bandeja con
+  el motivo), *Solo la lista de prueba* (solo salen a las direcciones de prueba del
+  equipo; se ve cuántas son) o *Activo* (salen a quien corresponda, respetando el
+  consentimiento). El ambiente de la inmobiliaria piloto queda apagado o en lista
+  permitida hasta que el dueño apruebe el envío a sus clientes.
+- **Proveedores.** Si el mail (Resend, con el remitente) y WhatsApp (Cloud API) están
+  configurados, y si reciben los avisos de entrega (webhook).
+- **Horario de envío**, con el enlace a *Valores por defecto* para cambiarlo.
+- **Plantillas.** Qué mensajes existen, por qué canal salen, a quién van y, para
+  WhatsApp, el nombre y el texto de la plantilla que hay que aprobar en Meta.
 
 ### Importaciones desde el sistema anterior
 
@@ -1187,9 +1270,10 @@ equipo; el Gerente lo ve en solo lectura y los demás roles no tienen la pantall
 Se llega desde *Usuarios* en el menú o desde la tarjeta en `/configuracion`.
 
 **Invitar a alguien.** *Invitar usuario*, correo y rol. Al crear la invitación se
-abre una ventana con el **enlace para compartir**. Mientras la plataforma no
-envíe correos, es el Admin quien lo manda a mano —por WhatsApp o el medio que
-prefiera— con *Copiar enlace*. El enlace sirve **una sola vez**, vence a los
+abre una ventana con el **enlace para compartir**. Si el servicio de correo está
+configurado, la invitación además queda en la bandeja de salida y sale por mail
+según el modo de envío del ambiente (se ve en *Mensajería*). Si no, es el Admin
+quien lo manda a mano —por WhatsApp o el medio que prefiera— con *Copiar enlace*. El enlace sirve **una sola vez**, vence a los
 7 días y se muestra en esa ventana una única vez: no queda guardado en claro, así
 que si se pierde hay que usar *Reenviar invitación* en la fila, que genera uno
 nuevo e invalida el anterior. La persona abre el enlace, escribe nombre, apellido

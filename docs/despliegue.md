@@ -129,8 +129,14 @@ Las que habilitan funcionalidad que, sin ellas, queda apagada en silencio:
 | `S3_ACCESS_KEY` | vacío | Cualquier proveedor real rechaza credenciales vacías. |
 | `S3_SECRET_KEY` | vacío | Ídem. |
 | `S3_BUCKET` | `realfy-media` | — |
-| `RESEND_API_KEY` | — | No se envía ningún correo. Los servicios lo registran como advertencia y siguen andando. |
-| `RESEND_FROM_ADDRESS` | remitente por defecto según el tipo de correo | Los correos salen con el remitente por defecto. |
+| `RESEND_API_KEY` | — | No se envía ningún correo: los mensajes por mail quedan pendientes en la bandeja de salida con el motivo «falta configurar el proveedor» y la gerencia recibe un aviso por día. |
+| `RESEND_FROM` | `noreply@realfy.com.ar` | Remitente de los correos; tiene que ser del dominio verificado en Resend. Se acepta también el nombre anterior, `RESEND_FROM_ADDRESS`. |
+| `RESEND_WEBHOOK_SECRET` | — | Secreto `whsec_…` del webhook de Resend. Sin él, `POST /api/webhooks/resend` rechaza todo y no se registran entregas, rebotes ni quejas. |
+| `WHATSAPP_TOKEN` | — | Token de acceso permanente de un usuario del sistema de la cuenta de WhatsApp Business. Sin él (o sin el número), los mensajes por WhatsApp quedan pendientes con el motivo del proveedor. |
+| `WHATSAPP_PHONE_NUMBER_ID` | — | Identificador del número de WhatsApp de la API (no es el número de teléfono). También se usa para descartar avisos de otro número. |
+| `WHATSAPP_APP_SECRET` | — | Secreto de la app de Meta, con el que se verifica `X-Hub-Signature-256`. Sin él, `POST /api/webhooks/whatsapp` rechaza todo. |
+| `WHATSAPP_VERIFY_TOKEN` | — | Texto que se elige al suscribir el webhook en Meta; la verificación `GET /api/webhooks/whatsapp` lo compara. |
+| `WHATSAPP_GRAPH_VERSION` | `v21.0` | Versión de la Graph API. |
 | `ARCA_MASTER_KEY` | — | Clave de 32 bytes en base64 que protege los certificados fiscales. Se valida recién cuando se sube o se usa un certificado, así que la API levanta igual: una inmobiliaria que no factura electrónicamente no depende de ella. |
 | `ARCA_MOCK` | vacío | En `1` responde las llamadas a los servicios de ARCA desde el simulador del repositorio, en lugar de ir al organismo. Para desarrollo y pruebas. |
 | `ARCA_ACCESS_TOKEN` | — | El PDF fiscal se genera con la plantilla local en lugar de la del servicio externo. |
@@ -140,8 +146,75 @@ Las que habilitan funcionalidad que, sin ellas, queda apagada en silencio:
 | `AI_API_KEY` | vacío | Sin credencial la API levanta igual y las funciones que consultan al modelo resuelven por sus propias reglas. |
 | `AI_TIMEOUT_MS` | `20000` | Espera máxima por respuesta del modelo. |
 
-El sistema no usa Redis ni ninguna cola de trabajos, así que no hace falta
-provisionarlo ni definir `REDIS_URL`. Un secreto propio para los tokens de
+### Mensajería: modo de envío por ambiente
+
+Todo mail o WhatsApp a una persona pasa por la bandeja de salida (ADR-0013). Si
+un mensaje sale o no lo decide el ambiente, no una pantalla:
+
+| Variable | Por defecto | Para qué |
+|---|---|---|
+| `MESSAGING_MODE` | `off` | `off`: los mensajes se encolan y se ven en Mensajería, pero no sale ninguno. `allowlist`: solo salen a las direcciones de `MESSAGING_ALLOWLIST`; los demás quedan bloqueados. `live`: salen a quien corresponda, respetando el consentimiento y el horario. Un valor desconocido cuenta como `off`. |
+| `MESSAGING_ALLOWLIST` | vacío | Mails y teléfonos permitidos en modo `allowlist`, separados por coma o punto y coma. Los teléfonos se escriben con código de país (`+54 9 351 …`) o como celular argentino de 10 dígitos. |
+
+- `production` (demo con datos sintéticos) puede estar en `allowlist` con las
+  direcciones del equipo, o en `live` si los destinatarios son ficticios.
+- **`piloto` queda en `off` o en `allowlist` (solo direcciones del equipo)
+  hasta que el dueño de la inmobiliaria apruebe por escrito el envío a su
+  cartera.** El paso a `live` se registra como decisión del piloto.
+- El modo también se aplica a los informes programados que se mandan por mail.
+  El recupero de contraseña, que pide la misma persona, sale igual.
+- Sin credenciales del proveedor los mensajes quedan pendientes con el motivo a
+  la vista, aunque el modo sea `live`.
+
+### Dominio de correo (Resend): SPF y DKIM
+
+Resend solo manda desde un dominio verificado. Una vez por dominio:
+
+1. En Resend, **Domains → Add domain**, con el dominio de la inmobiliaria o un
+   subdominio dedicado al envío (por ejemplo, `avisos.<dominio>`), en la región
+   más cercana.
+2. Copiar en el DNS del dominio los registros que muestra Resend: el **TXT de
+   SPF** (`v=spf1 include:amazonses.com ~all` en el subdominio de rebote que
+   indica), el **TXT de DKIM** (`resend._domainkey…`, la clave pública) y el
+   **MX** del subdominio de rebote. Si el dominio ya tiene un SPF, se suma el
+   `include` al registro existente en lugar de crear otro.
+3. Agregar un **DMARC** (`_dmarc`, TXT `v=DMARC1; p=none; rua=mailto:…`) para
+   empezar a recibir informes; endurecerlo a `quarantine` cuando los envíos
+   estén estables.
+4. Esperar a que Resend marque el dominio como verificado y crear una **API
+   key** con permiso solo de envío. Cargarla en `RESEND_API_KEY` y el remitente
+   en `RESEND_FROM`.
+5. En **Webhooks**, apuntar a `https://<api>/api/webhooks/resend` con los
+   eventos `email.sent`, `email.delivered`, `email.bounced`,
+   `email.complained` y `email.failed`, y cargar el secreto en
+   `RESEND_WEBHOOK_SECRET`.
+6. Probar con `MESSAGING_MODE=allowlist` y una dirección del equipo: el
+   mensaje tiene que pasar a «Entregado» en Mensajería.
+
+### WhatsApp Business Cloud API
+
+Con un **número nuevo**, que no se use en la aplicación de WhatsApp:
+
+1. Crear la cuenta de Meta Business de la inmobiliaria y completar la
+   verificación de la empresa.
+2. En Meta for Developers, crear una app de tipo *Business* con el producto
+   WhatsApp y registrar el número nuevo. Anotar el **Phone number ID**
+   (`WHATSAPP_PHONE_NUMBER_ID`).
+3. Crear un usuario del sistema con permiso sobre la cuenta de WhatsApp y
+   generar un **token permanente** (`WHATSAPP_TOKEN`). El **secreto de la app**
+   (configuración básica) va en `WHATSAPP_APP_SECRET`.
+4. Dar de alta las plantillas de **utilidad** en `es_AR` con los nombres y
+   textos de ADR-0013 (`recibo_de_cobro` y `estado_de_cuenta` con encabezado de
+   documento; `incidencia_estado` e `incidencia_respuesta`) y esperar la
+   aprobación.
+5. Suscribir el webhook a `https://<api>/api/webhooks/whatsapp` con el campo
+   `messages` y el token de verificación elegido (`WHATSAPP_VERIFY_TOKEN`).
+6. Registrar el alta de WhatsApp en la ficha de una persona del equipo, ponerla
+   en `MESSAGING_ALLOWLIST` y probar con `MESSAGING_MODE=allowlist`.
+
+El sistema no usa Redis ni ninguna cola de trabajos externa (la bandeja de
+salida es una tabla de la base que despacha un proceso programado de la API),
+así que no hace falta provisionarlo ni definir `REDIS_URL`. Un secreto propio para los tokens de
 refresco tampoco hace falta: esos tokens no son JWT sino identificadores
 aleatorios opacos guardados en la base, de modo que no hay nada que firmar.
 
@@ -374,11 +447,14 @@ de ciclo.
   sobre su restauración.
 - Solo se despliega un commit integrado en `main`, desde su copia limpia, y después
   de verificarlo en `production`.
-- El correo (`RESEND_API_KEY` y `RESEND_FROM_ADDRESS`) es necesario en `piloto` para
+- El correo (`RESEND_API_KEY` y `RESEND_FROM`) es necesario en `piloto` para
   invitaciones, recuperos y envío de documentos, y se configura junto con el dominio
   propio, que está pendiente. Mientras falte, el Admin comparte los enlaces a mano,
   los documentos se descargan en PDF y el sistema no marca como enviado lo que no se
   envió.
+- `MESSAGING_MODE` queda en `off` (o `allowlist` con direcciones del equipo) hasta
+  que el dueño de la inmobiliaria apruebe el envío a su cartera. Pasar a `live` sin
+  esa aprobación está prohibido, aunque el proveedor esté configurado.
 - Ningún dato, dominio, contraseña ni identificador de recursos del ambiente
   piloto se escribe en el repositorio.
 
@@ -394,8 +470,9 @@ cd apps/api && npx prisma migrate deploy && cd ../..
 pnpm dev
 ```
 
-Al copiar el archivo de ejemplo hay que tener en cuenta dos cosas. Le faltan las
-variables `S3_*` y `RESEND_*`, que se agregan a mano; para MinIO,
+Al copiar el archivo de ejemplo hay que tener en cuenta dos cosas. Las
+variables `S3_*`, `RESEND_*` y `WHATSAPP_*` vienen vacías y se completan a mano
+(la mensajería arranca en `MESSAGING_MODE=off`: no sale nada); para MinIO,
 `S3_ENDPOINT=http://localhost:9000` con las credenciales que declara
 `docker-compose.yml`. Y su valor de `CORS_ORIGINS` apunta al puerto de la propia
 API en lugar del de la web: en desarrollo el frontend corre en el 3000 y la API

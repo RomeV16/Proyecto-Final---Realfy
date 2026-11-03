@@ -1,4 +1,4 @@
-# Integración externa: BCRA e INDEC
+# Integración externa: BCRA, INDEC y mensajería
 
 Versión 1.1 — 30 de octubre de 2026. Documenta el contrato con las dos
 plataformas externas que consume el módulo, cómo se prueba ese contrato con
@@ -145,3 +145,23 @@ hallazgo 1 (CP-50).
 Si las dos fuentes fallaran a la vez, la pantalla **Configuración → Índices**
 permite cargar el IPC a mano, de a un mes o pegando varios desde una planilla.
 La carga manual tiene prioridad sobre el valor de sistema del mismo mes.
+
+## Mensajería: Resend y WhatsApp Business Cloud API (3 nov 2026)
+
+La mensajería saliente (ADR-0013) habla con dos plataformas más. El contrato que
+espera cada proveedor está fijado en sus pruebas con dobles; todavía no hay una
+prueba contra el entorno real porque las cuentas (dominio verificado en Resend,
+cuenta de WhatsApp Business con número nuevo y plantillas aprobadas) están
+pendientes.
+
+| Plataforma | Llamada | Lo que se espera | Doble de prueba |
+|---|---|---|---|
+| Resend | `POST /emails` por el SDK, con `Idempotency-Key` | `{ data: { id } }` si lo acepta; `{ data: null, error: { name, message } }` si lo rechaza, sin lanzar (DEF-65). Se reintentan los límites y los errores de red; no se reintentan `validation_error`, `invalid_*`, `missing_*` ni `restricted_api_key` | SDK simulado en `common-email.service.spec.ts` y `test/unit/characterization/mail.spec.ts` |
+| Resend (webhook) | `POST /api/webhooks/resend` firmado por svix | `email.sent`, `email.delivered`, `email.bounced`, `email.failed`, `email.complained` con `data.email_id` | firmas armadas en `webhook-signatures.spec.ts` y en el e2e (CP-635) |
+| WhatsApp | `POST https://graph.facebook.com/v21.0/<phone-number-id>/messages` (plantilla) y `/media` (PDF) | `{ messages: [{ id }] }` y `{ id }`; errores `{ error: { code, message } }`. Se reintentan 5xx, 429 y los códigos de límite (4, 80007, 130429, 131048, 131056) | `fetch` simulado en `whatsapp-cloud.provider.spec.ts` |
+| WhatsApp (webhook) | `POST /api/webhooks/whatsapp` con `X-Hub-Signature-256` | `entry[].changes[].value` con `metadata.phone_number_id`, `statuses[]` (`sent`, `delivered`, `read`, `failed`) y `messages[]` (texto o botón) | cuerpos firmados en `webhooks.service.spec.ts` y en el e2e (CP-635) |
+
+Con `NODE_ENV=test` la API usa un proveedor de prueba por canal (`FakeProvider`):
+ninguna prueba unitaria ni e2e sale de la máquina. La primera prueba real se hace
+en `production` con `MESSAGING_MODE=allowlist` y direcciones del equipo, una vez
+creadas las cuentas, y su resultado se agrega a esta sección.
