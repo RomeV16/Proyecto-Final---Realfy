@@ -33,8 +33,7 @@ export async function latestConsent(
       : null,
   ]);
   const rows = [byPerson, byAddress].filter(Boolean) as ConsentRow[];
-  if (rows.length === 0) return null;
-  return rows.reduce((a, b) => (b.at.getTime() > a.at.getTime() ? b : a));
+  return rows.reduce<ConsentRow | null>((a, b) => (a && a.at.getTime() >= b.at.getTime() ? a : b), null);
 }
 
 /**
