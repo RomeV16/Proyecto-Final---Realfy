@@ -368,13 +368,22 @@ describe('Obtención automática de boletas (e2e)', () => {
       expect(docs.total).toBe(0);
     });
 
-    it('inmobiliaria desconocida 404, cuerpo inválido 400, remitente automático ignorado', async () => {
+    it('inmobiliaria desconocida 404 y cuerpo inválido 400', async () => {
       const { slug, token } = await agency('a');
       await mail({ tenantSlug: 'no-existe', messageId: '<m5>', from: 'a@b.test', attachments: [] }).expect(404);
       await mail({ tenantSlug: slug }).expect(400);
-      const ignored = await mail({ tenantSlug: slug, messageId: '<m6>', from: 'no-reply@proveedor.test', attachments: [] }).expect(200);
-      expect(ignored.body).toMatchObject({ ignored: 'automatic' });
       expect((await get(token, '/bills-intake/documents')).body.total).toBe(0);
+    });
+
+    it('CP-1434 el PDF de un remitente no-reply entra al circuito aunque venga marcado automatic', async () => {
+      const { slug, token } = await agency('a');
+      const pdf = currentCedulon().pdf.toString('base64');
+      const res = await mail({ tenantSlug: slug, messageId: '<m6>', from: 'no-reply@proveedor.test', automatic: true, attachments: [{ filename: 'c.pdf', contentBase64: pdf }] }).expect(200);
+      expect(res.body.ignored).toBeUndefined();
+      expect(res.body.documents).toHaveLength(1);
+      const docs = (await get(token, '/bills-intake/documents')).body;
+      expect(docs.total).toBe(1);
+      expect(docs.items[0].origin).toBe('no-reply@proveedor.test');
     });
 
     it('el aislamiento se mantiene: el PDF cae en la inmobiliaria de la casilla', async () => {
