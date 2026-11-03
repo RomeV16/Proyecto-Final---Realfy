@@ -371,13 +371,19 @@ export function LiquidacionList() {
   async function handleGenerate(month: number, year: number) {
     setFeedback(null);
     try {
-      const res = await apiClient<{ created: number; skipped: number; outOfRange?: number }>('/liquidaciones/generate', {
+      const res = await apiClient<{
+        created: number;
+        skipped: number;
+        outOfRange?: number;
+        adjustmentPending?: number;
+      }>('/liquidaciones/generate', {
         method: 'POST',
         body: JSON.stringify({ month, year }),
       });
       setShowGenerate(false);
       const parts = [t('generatedCount', { count: res.created ?? 0 })];
       if (res.outOfRange) parts.push(t('outOfRangeCount', { count: res.outOfRange }));
+      if (res.adjustmentPending) parts.push(t('adjustmentPendingCount', { count: res.adjustmentPending }));
       setFeedback({ type: 'success', msg: parts.join(' · ') });
       fetchData(filters);
     } catch (err) {

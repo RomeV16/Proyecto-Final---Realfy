@@ -36,6 +36,7 @@ function build(
     chargeLines?: any[];
     penaltyLines?: any[];
     penaltyRowIds?: string[];
+    adjustmentRun?: { applied: any[]; skipped: any[] };
   } = {},
 ) {
   const client: any = {
@@ -43,11 +44,14 @@ function build(
     liquidacion: {
       findFirst: opts.findFirst ?? jest.fn().mockResolvedValue(opts.existing ?? null),
       create: jest.fn().mockResolvedValue({ id: 'liq-new' }),
+      findMany: jest.fn().mockResolvedValue([]),
     },
+    adjustmentSchedule: { findMany: jest.fn().mockResolvedValue([]) },
     auditLog: { create: jest.fn().mockResolvedValue({}) },
   };
   client.$transaction = jest.fn((fn: (tx: any) => unknown) => fn(client));
   const adjustments = {
+    applyDueAdjustments: jest.fn().mockResolvedValue(opts.adjustmentRun ?? { applied: [], skipped: [] }),
     getPendingTrueUps: jest.fn().mockResolvedValue(opts.trueUps ?? []),
     markTrueUpBilled: jest.fn().mockResolvedValue(0),
   };
@@ -550,6 +554,31 @@ describe('LiquidacionesService.generateScheduled: diez días antes', () => {
     const { service, client } = build([contract()], { defaults: { leadDays: 20 } });
     await service.generateScheduled(d('2026-10-12'));
     expect(createdData(client).period).toEqual(d('2026-11-01'));
+  });
+
+  it('CP-1260 — antes de liquidar aplica los ajustes que vencen hasta el último instante del mes y los informa', async () => {
+    const applied = { contractId: 'c-1', appliedPeriod: '2026-11', newRent: '330000', status: 'applied' };
+    const pending = { contractId: 'c-2', appliedPeriod: '2026-11', reason: 'MISSING_INDEX_DATA', missingPeriods: ['2026-09'] };
+    const { service, adjustments, audit, client } = build([contract()], {
+      existing: { id: 'liq-old' },
+      adjustmentRun: { applied: [applied], skipped: [pending] },
+    });
+    const summary = await service.generateScheduled(d('2026-10-25'));
+    expect(adjustments.applyDueAdjustments).toHaveBeenCalledWith(
+      'tenant-1',
+      new Date('2026-11-30T23:59:59.999Z'),
+      'generation',
+    );
+    // Los ajustes se aplican antes de leer los contratos, para que el alquiler los incluya.
+    expect(adjustments.applyDueAdjustments.mock.invocationCallOrder[0]).toBeLessThan(
+      client.contract.findMany.mock.invocationCallOrder[0],
+    );
+    expect(summary?.adjustments).toEqual({ applied: [applied], pending: [pending] });
+    // Aplicó un ajuste aunque no creó liquidaciones: queda auditado.
+    expect(audit.record).toHaveBeenCalledWith(
+      client,
+      expect.objectContaining({ after: expect.objectContaining({ adjustmentsApplied: 1, adjustmentsPending: 1 }) }),
+    );
   });
 
   it('si ya estaba generado no vuelve a auditar', async () => {

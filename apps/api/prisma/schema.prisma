@@ -1247,6 +1247,8 @@ model ContractTermsVersion {
   midMonthAdjustmentMode     MidMonthAdjustmentMode @default(DesdePeriodoSiguiente)
   firstDueMode               FirstDueMode           @default(DiaDeInicio)
   fixedDiscountProration     FixedDiscountProration @default(Proporcional)
+  /// Ajuste aplicado después de emitir un mes en que ya regía: Retroactivo cobra la diferencia en la próxima.
+  lateAdjustmentBilling      LateAdjustmentBilling  @default(Retroactivo)
   /// Umbral de anticipo del centro de carga, en comisiones mensuales; null = el de la inmobiliaria.
   upfrontThresholdFees       Int?
   /// Sobre qué comisión mensual se mide el umbral de anticipo.
@@ -1443,6 +1445,11 @@ enum FirstDueMode {
 enum FixedDiscountProration {
   Proporcional
   Completo
+}
+
+enum LateAdjustmentBilling {
+  Retroactivo
+  SinRetroactivo
 }
 
 enum LiquidacionKind {

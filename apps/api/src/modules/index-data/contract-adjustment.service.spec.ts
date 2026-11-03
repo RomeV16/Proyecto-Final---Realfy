@@ -532,6 +532,40 @@ describe('ContractAdjustmentService', () => {
     });
   });
 
+  // ── Aviso a las liquidaciones (CP-1266, DEF-133) ──────────────────────────
+
+  describe('aviso de ajuste aplicado', () => {
+    it('CP-1266: después de confirmar el ajuste avisa a quien escucha, con el origen de la generación', async () => {
+      const listener = jest.fn().mockResolvedValue(undefined);
+      service.onApplied(listener);
+      mockFindManyDueSchedules.mockResolvedValueOnce([makeDue()]);
+
+      const result = await service.applyDueAdjustments('tenant-1', new Date('2026-12-31T23:59:59.999Z'), 'generation');
+
+      expect(result.applied).toHaveLength(1);
+      expect(listener).toHaveBeenCalledWith({
+        tenantId: 'tenant-1',
+        contractId: 'contract-1',
+        adjustmentId: result.applied[0].adjustmentId,
+        adjustmentDate: makeDue().nextAdjustmentDate,
+      });
+      expect(mockAuditRecord.mock.calls[0][1].metadata.source).toBe('generation');
+    });
+
+    it('CP-1266: un error de quien escucha no deshace ni corta el ajuste', async () => {
+      service.onApplied(jest.fn().mockRejectedValue(new Error('boom')));
+      const second = jest.fn().mockResolvedValue(undefined);
+      service.onApplied(second);
+      mockFindManyDueSchedules.mockResolvedValueOnce([makeDue()]);
+
+      const result = await service.applyDueAdjustments('tenant-1');
+
+      expect(result.applied).toHaveLength(1);
+      expect(result.skipped).toEqual([]);
+      expect(second).toHaveBeenCalledTimes(1);
+    });
+  });
+
   // ── Índices faltantes (CP-240, DEF-20) ────────────────────────────────────
 
   describe('applyDueAdjustments sin datos de índice (DEF-20)', () => {

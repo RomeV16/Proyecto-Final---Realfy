@@ -355,17 +355,19 @@ describe('Caminos de cálculo del ajuste (caracterización)', () => {
               id: 'adj-1',
               periodNumber: 1,
               newAmount: '110000.00',
+              adjustmentDate: new Date('2026-04-01T00:00:00.000Z'),
               appliedAt: null,
             })),
           },
           $transaction: jest.fn(async (cb: any) => cb(txClient)),
         },
       };
+      const adjustments = { notifyApplied: jest.fn() };
       const service = new ContractsService(
         prisma,
         { getTenantId: () => 'tenant-1' } as any,
         {} as any,
-        {} as any,
+        adjustments as any,
         {} as any,
       );
       jest.spyOn(service, 'findOne').mockResolvedValue({} as any);
@@ -377,6 +379,13 @@ describe('Caminos de cálculo del ajuste (caracterización)', () => {
       expect(txClient.adjustmentSchedule.updateMany).toHaveBeenCalledWith({
         where: { contractId: 'contract-1', periodNumber: 1 },
         data: { status: ScheduleStatus.Applied },
+      });
+      // CP-1268: los borradores del contrato se enteran del alquiler nuevo (DEF-133).
+      expect(adjustments.notifyApplied).toHaveBeenCalledWith({
+        tenantId: 'tenant-1',
+        contractId: 'contract-1',
+        adjustmentId: 'adj-1',
+        adjustmentDate: new Date('2026-04-01T00:00:00.000Z'),
       });
     });
   });

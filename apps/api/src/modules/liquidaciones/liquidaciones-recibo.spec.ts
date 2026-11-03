@@ -59,6 +59,7 @@ function build(liq: any, nextSeq = 6) {
       findMany: jest.fn().mockResolvedValue([]),
     },
     tenant: { findFirst: jest.fn().mockResolvedValue({ name: 'Inmobiliaria Demo', cuit: '30-00000000-1' }) },
+    adjustmentSchedule: { findMany: jest.fn().mockResolvedValue([]) },
     $transaction: jest.fn().mockImplementation((fn: any) => fn(tx)),
   };
   const tenantContext = { getTenantId: jest.fn().mockReturnValue('tenant-1'), getUserId: jest.fn() };

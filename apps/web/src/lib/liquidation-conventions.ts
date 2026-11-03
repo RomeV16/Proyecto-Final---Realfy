@@ -1,6 +1,7 @@
 import {
   FirstDueMode,
   FixedDiscountProration,
+  LateAdjustmentBilling,
   MidMonthAdjustmentMode,
   ProrationMode,
   UpfrontBasis,
@@ -12,6 +13,7 @@ export const CONVENTION_FIELDS = [
   'midMonthAdjustmentMode',
   'firstDueMode',
   'fixedDiscountProration',
+  'lateAdjustmentBilling',
   'upfrontBasis',
 ] as const;
 
@@ -25,6 +27,7 @@ export const CONVENTION_OPTIONS: Record<ConventionField, readonly string[]> = {
   midMonthAdjustmentMode: Object.values(MidMonthAdjustmentMode),
   firstDueMode: Object.values(FirstDueMode),
   fixedDiscountProration: Object.values(FixedDiscountProration),
+  lateAdjustmentBilling: Object.values(LateAdjustmentBilling),
   upfrontBasis: Object.values(UpfrontBasis),
 };
 

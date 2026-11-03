@@ -58,6 +58,7 @@ describe('LiquidacionesService: períodos independientes de la zona horaria', ()
       { get: jest.fn().mockResolvedValue({ dueDay: 10, leadDays: 10 }) } as any,
       {} as any,
       {
+        applyDueAdjustments: jest.fn().mockResolvedValue({ applied: [], skipped: [] }),
         getPendingTrueUps: jest.fn().mockResolvedValue([]),
         markTrueUpBilled: jest.fn().mockResolvedValue(0),
       } as any,

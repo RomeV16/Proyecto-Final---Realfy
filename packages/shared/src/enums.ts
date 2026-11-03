@@ -502,6 +502,17 @@ export enum PendingChargeKind {
   Otro = 'Otro',
 }
 
+/**
+ * Ajuste aplicado después de emitir la liquidación de un mes en que ya regía
+ * (DEF-134): `Retroactivo` deja la diferencia de cada mes emitido como cargo
+ * `AjusteRetroactivo` para la próxima liquidación; `SinRetroactivo`, el ajuste
+ * rige desde la próxima y los meses emitidos quedan como se cobraron.
+ */
+export enum LateAdjustmentBilling {
+  Retroactivo = 'Retroactivo',
+  SinRetroactivo = 'SinRetroactivo',
+}
+
 /** Comisión mensual con la que se mide el umbral de anticipo del centro de carga. */
 export enum UpfrontBasis {
   ComisionPactada = 'ComisionPactada',

@@ -97,6 +97,23 @@ describe('LiquidacionDetail', () => {
     expect(screen.getByRole('link', { name: /Volver/ })).toHaveAttribute('href', '/es/liquidaciones');
   });
 
+  it('CP-1263 — avisa el ajuste pendiente que bloquea la aprobación', async () => {
+    mockApi(() =>
+      liquidacion({ warnings: [{ code: 'ADJUSTMENT_PENDING', adjustmentDate: '2026-12-01', scheduleId: 's-1' }] }),
+    );
+    await mount();
+    expect(screen.getByText('Ajuste pendiente')).toBeInTheDocument();
+    const notice = screen.getByText(/Falta aplicar el ajuste del alquiler del/);
+    expect(notice).toHaveAttribute('role', 'alert');
+    expect(nb(notice.textContent)).toMatch(/del 1 de diciembre de 2026:/);
+  });
+
+  it('sin advertencias no muestra el aviso', async () => {
+    mockApi(() => liquidacion({ warnings: [] }));
+    await mount();
+    expect(screen.queryByText('Ajuste pendiente')).not.toBeInTheDocument();
+  });
+
   it('formatea importes, fechas y enlaces con locale', async () => {
     mockApi(() =>
       liquidacion({

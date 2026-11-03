@@ -228,6 +228,18 @@ describe('LiquidacionList', () => {
     ).toBeInTheDocument();
   });
 
+  it('CP-1263 — informa las liquidaciones bloqueadas por un ajuste pendiente al generar', async () => {
+    mockList(() => page([item('l-1')]), () => Promise.resolve({ created: 3, skipped: 0, adjustmentPending: 2 }));
+    const user = await mount();
+    await user.click(screen.getByRole('button', { name: 'Generar Mes' }));
+    await user.click(screen.getByRole('button', { name: 'Generar' }));
+    expect(
+      await screen.findByText(
+        '3 liquidaciones generadas · 2 con un ajuste pendiente (falta el índice): no se pueden aprobar hasta aplicarlo',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('marca el pago a cuenta y las liquidaciones provisionales', async () => {
     mockList(() =>
       page([item('l-1', { kind: 'PagoACuenta', isProvisional: true }), item('l-2', { kind: 'Mensual' })]),

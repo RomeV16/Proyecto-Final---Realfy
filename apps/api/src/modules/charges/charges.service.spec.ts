@@ -525,3 +525,42 @@ describe('ChargesService: cargo a la inmobiliaria como gasto', () => {
     await expect(service.release('pc-9')).rejects.toMatchObject({ response: { error: 'CHARGE_PAID_BY_AGENCY' } });
   });
 });
+
+describe('ChargesService: diferencia de un ajuste aplicado después de emitir el mes (DEF-134)', () => {
+  const diff = {
+    tenantId: 'tenant-1',
+    contract: { id: CONTRACT_ID, propertyId: PROPERTY_ID, rentCurrency: 'ARS' },
+    adjustmentId: 'adj-1',
+    description: 'diferencia del ajuste del 01/12/2026 no incluida en la liquidación de 2026-12',
+    amount: '5060.00',
+  };
+
+  it('CP-1269 — deja un cargo AjusteRetroactivo al inquilino, a favor del locador, sin anticipo, y lo audita', async () => {
+    const { service, client, audit, store } = build();
+    expect(await service.recordAdjustmentDifference(diff)).toBe('pc-1');
+    expect(client.pendingCharge.findFirst).toHaveBeenCalledWith({
+      where: { contractId: CONTRACT_ID, sourceType: 'ContractAdjustment', sourceId: 'adj-1', description: diff.description },
+      select: { id: true },
+    });
+    expect(store[0]).toMatchObject({
+      tenantId: 'tenant-1',
+      propertyId: PROPERTY_ID,
+      contractId: CONTRACT_ID,
+      chargedTo: 'Inquilino',
+      kind: 'AjusteRetroactivo',
+      amount: '5060.00',
+      currency: 'ARS',
+      beneficiary: 'Locador',
+      requiresUpfront: false,
+      sourceType: 'ContractAdjustment',
+      sourceId: 'adj-1',
+    });
+    expect(audit.record).toHaveBeenCalledWith(client, expect.objectContaining({ action: 'CREATE', entity: 'PendingCharge' }));
+  });
+
+  it('no repite el cargo del mismo ajuste y mes', async () => {
+    const { service, store } = build({ charge: { id: 'pc-old' } });
+    expect(await service.recordAdjustmentDifference(diff)).toBeNull();
+    expect(store).toEqual([]);
+  });
+});

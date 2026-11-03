@@ -382,6 +382,53 @@ export class ChargesService {
    * sin pedido de anticipo, de la moneda del contrato y cuyo mes ya llegó (o sin
    * mes elegido). Quedan fuera los del locador y los de la inmobiliaria.
    */
+  /**
+   * Diferencia de un ajuste que se aplicó después de emitir la liquidación de un mes en
+   * que ya regía (DEF-134): queda como cargo `AjusteRetroactivo` al inquilino, a favor del
+   * locador, para la próxima liquidación, sin umbral de anticipo. Con importe negativo
+   * sale como descuento. Uno solo por ajuste y mes: si ya existe (activo o no) no se repite.
+   */
+  async recordAdjustmentDifference(input: {
+    tenantId: string;
+    contract: { id: string; propertyId: string; rentCurrency: string };
+    adjustmentId: string;
+    description: string;
+    amount: string;
+  }): Promise<string | null> {
+    const exists = await this.prisma.client.pendingCharge.findFirst({
+      where: {
+        contractId: input.contract.id,
+        sourceType: 'ContractAdjustment',
+        sourceId: input.adjustmentId,
+        description: input.description,
+      },
+      select: { id: true },
+    });
+    if (exists) return null;
+    return this.prisma.client.$transaction(async (tx: Db) => {
+      const row = await tx.pendingCharge.create({
+        data: {
+          tenantId: input.tenantId,
+          propertyId: input.contract.propertyId,
+          contractId: input.contract.id,
+          chargedTo: ChargeTarget.Inquilino,
+          kind: PendingChargeKind.AjusteRetroactivo,
+          description: input.description,
+          amount: input.amount,
+          currency: input.contract.rentCurrency,
+          beneficiary: LineBeneficiary.Locador,
+          incurredAt: todayInAR(),
+          status: PendingChargeStatus.Pendiente,
+          requiresUpfront: false,
+          sourceType: 'ContractAdjustment',
+          sourceId: input.adjustmentId,
+        },
+      });
+      await this.audit.record(tx, { action: 'CREATE', entity: 'PendingCharge', entityId: row.id, after: snapshot(row) });
+      return row.id as string;
+    });
+  }
+
   async pendingLines(contractId: string, period: Date, currency: string): Promise<LiquidationExtraLine[]> {
     const rows = await this.prisma.client.pendingCharge.findMany({
       where: {

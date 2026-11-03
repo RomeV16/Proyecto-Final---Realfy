@@ -68,6 +68,8 @@ interface LiquidacionData {
   kind?: string;
   isProvisional?: boolean;
   receiptNumber?: string | null;
+  /** Advertencias de una liquidación editable; `ADJUSTMENT_PENDING` bloquea la aprobación. */
+  warnings?: { code: string; adjustmentDate?: string }[];
   contract?: {
     id: string;
     property?: { id: string; title: string; street?: string; city?: string };
@@ -301,6 +303,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const month = data.month ?? (periodDate ? periodDate.getUTCMonth() + 1 : undefined);
   const year = data.year ?? (periodDate ? periodDate.getUTCFullYear() : undefined);
   const periodLabel = month ? `${tMonths(String(month))} ${year}` : '—';
+  const pendingAdjustment = data.warnings?.find((w) => w.code === 'ADJUSTMENT_PENDING');
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -319,6 +322,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
               {data.isProvisional && (
                 <Badge variant="warning" title={t('provisionalHint')}>{t('provisional')}</Badge>
               )}
+              {pendingAdjustment && <Badge variant="warning">{t('adjustmentPending')}</Badge>}
               {data.receiptNumber ? (
                 <Badge variant="neutral">{tReceipt('number', { number: data.receiptNumber })}</Badge>
               ) : (
@@ -342,6 +346,11 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
             <p className="text-2xl font-bold text-slate-900 tabular-nums">{formatMoneyFixed(totalAmount)}</p>
           </div>
         </div>
+        {pendingAdjustment && (
+          <p role="alert" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            {t('adjustmentPendingHint', { date: formatLocalDate(pendingAdjustment.adjustmentDate, 'long') })}
+          </p>
+        )}
 
         {data.status !== LiquidacionStatus.Anulada && (
           <div className="mt-4">

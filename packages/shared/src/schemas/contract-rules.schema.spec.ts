@@ -26,6 +26,7 @@ describe('OperationalDefaultsSchema', () => {
       midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
       firstDueMode: 'DiaDeInicio',
       fixedDiscountProration: 'Proporcional',
+      lateAdjustmentBilling: 'Retroactivo',
       ipcLagMonths: 2,
       allowProvisional: true,
       commissionPct: 7,
@@ -342,6 +343,24 @@ describe('convenciones de liquidación', () => {
       upfrontThresholdFees: 1,
       upfrontBasis: 'PorcentajePorDefecto',
     });
+  });
+
+  it('CP-1272 — el ajuste aplicado después de emitir el mes (DEF-134): Retroactivo de fábrica, pactable por contrato y por convenio', () => {
+    expect(OperationalDefaultsSchema.parse({}).lateAdjustmentBilling).toBe('Retroactivo');
+    expect(OperationalDefaultsSchema.parse({ lateAdjustmentBilling: 'SinRetroactivo' }).lateAdjustmentBilling).toBe(
+      'SinRetroactivo',
+    );
+    expect(() => OperationalDefaultsSchema.parse({ lateAdjustmentBilling: 'Otro' })).toThrow();
+    const form = operationalDefaultsToForm(OperationalDefaultsSchema.parse({ lateAdjustmentBilling: 'SinRetroactivo' }));
+    expect(form.lateAdjustmentBilling).toBe('SinRetroactivo');
+    expect(operationalDefaultsFromForm(form).lateAdjustmentBilling).toBe('SinRetroactivo');
+    expect(LiquidationConventionsSchema.parse({ lateAdjustmentBilling: 'Retroactivo' })).toEqual({
+      lateAdjustmentBilling: 'Retroactivo',
+    });
+    expect(TermsPatchSchema.parse({ lateAdjustmentBilling: 'SinRetroactivo' })).toEqual({
+      lateAdjustmentBilling: 'SinRetroactivo',
+    });
+    expect(() => TermsPatchSchema.parse({ lateAdjustmentBilling: null })).toThrow();
   });
 
   it('lo que debe el locador que cobró directamente se pacta por contrato o por convenio; null vuelve al de la inmobiliaria', () => {

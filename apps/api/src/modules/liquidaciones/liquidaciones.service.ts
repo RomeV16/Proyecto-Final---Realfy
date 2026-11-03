@@ -1,6 +1,7 @@
 import {
   Injectable,
   Logger,
+  OnModuleInit,
   BadRequestException,
   ConflictException,
   NotFoundException,
@@ -41,15 +42,36 @@ import {
   onBehalfOfText,
   formatDateAR,
   MessageChannel,
+  ScheduleStatus,
+  LateAdjustmentBilling,
+  MidMonthAdjustmentMode,
 } from '@realfy/shared';
-import type { LineItemInput, OperationalDefaults, PaymentInput } from '@realfy/shared';
+import type {
+  LineItemInput,
+  LiquidationBuilderInput,
+  OperationalDefaults,
+  PaymentInput,
+} from '@realfy/shared';
 import { PdfService } from './pdf.service';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
+import type {
+  AdjustmentApplied,
+  AdjustmentAppliedEvent,
+  AdjustmentSkipped,
+} from '../index-data/contract-adjustment.service';
 import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
 import { rentAtDate, rentChangeInMonth } from './rent-at';
 import { scheduledPeriod } from './generation-window';
+import {
+  ADJUSTMENT_PENDING,
+  adjustmentWindow,
+  isEditableStatus,
+  lastInstantOfMonth,
+  pendingAdjustmentWarning,
+} from './adjustment-pending';
+import type { LiquidacionWarning } from './adjustment-pending';
 import { OutboxService } from '../../common/messaging/outbox.service';
 import { liquidacionMessageVars } from './liquidacion-message';
 import { ServiceBillsService } from '../services/service-bills.service';
@@ -70,6 +92,21 @@ const PAYMENT_INCLUDE = {
   compensations: { select: { id: true, fromLessorId: true, toLessorId: true, amount: true } },
 } as const;
 
+/**
+ * Renglón que sale del alquiler del período (lo rehace el recálculo tras un ajuste): el
+ * alquiler y el primer mes diferido que arma el generador, y las bonificaciones de las
+ * reglas. Un renglón Alquiler cargado a mano no se distingue y también se rehace.
+ */
+/** Primer día del mes de una fecha, a medianoche UTC. */
+function monthOf(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+}
+
+function isRentDependentLine(line: { type: string; sourceType: string | null }): boolean {
+  if (line.sourceType === 'ContractTermsVersion') return true;
+  return line.type === LineItemType.Alquiler && (line.sourceType == null || line.sourceType === 'DeferredFirstMonth');
+}
+
 /** Serie de numeración de los recibos de liquidación (una por inmobiliaria). */
 const RECEIPT_SERIES = 'RECIBO_LIQUIDACION';
 
@@ -79,6 +116,8 @@ export interface GenerationResult {
   status: 'created' | 'skipped' | 'out_of_range' | 'not_billed' | 'failed';
   reason?: string;
   liquidacionId?: string;
+  /** `ADJUSTMENT_PENDING`: un ajuste que cambia el alquiler del mes sigue sin aplicar y la liquidación no se aprueba. */
+  warnings?: string[];
 }
 
 export interface GenerationSummary {
@@ -90,11 +129,19 @@ export interface GenerationSummary {
   notBilled: number;
   failed: number;
   total: number;
+  /** Liquidaciones del mes (nuevas o ya generadas, todavía editables) con un ajuste pendiente que las bloquea. */
+  adjustmentPending: number;
   results: GenerationResult[];
+  /**
+   * Ajustes que vencen hasta el fin del mes, aplicados antes de liquidarlo
+   * (`applied`), y los que quedaron pendientes, con el motivo y los meses de
+   * índice que faltan (`pending`).
+   */
+  adjustments: { applied: AdjustmentApplied[]; pending: AdjustmentSkipped[] };
 }
 
 @Injectable()
-export class LiquidacionesService {
+export class LiquidacionesService implements OnModuleInit {
   private readonly logger = new Logger(LiquidacionesService.name);
 
   constructor(
@@ -110,6 +157,13 @@ export class LiquidacionesService {
     private readonly charges: ChargesService,
     private readonly paymentCash: PaymentSettlementService,
   ) {}
+
+  onModuleInit(): void {
+    this.adjustments.onApplied(async (event) => {
+      await this.refreshDraftsAfterAdjustment(event);
+      await this.chargeLateAdjustment(event);
+    });
+  }
 
   // ─── Auto-Generation ────────────────────────────────
 
@@ -133,6 +187,17 @@ export class LiquidacionesService {
     const monthEnd = new Date(Date.UTC(year, month, 0));
 
     const defaults = await this.operationalDefaults.get(tenantId);
+
+    // El alquiler del mes incluye los ajustes que vencen dentro de él (DEF-130): la
+    // inmobiliaria liquida alrededor del 20 del mes anterior con el ajuste que rige
+    // desde el 1, cuyo índice (con el rezago del contrato) ya está publicado. Se
+    // aplican antes de leer los contratos, cada uno en su transacción; los que no
+    // tienen índice siguen pendientes y se informan (ADR-0011).
+    const adjustmentRun = await this.adjustments.applyDueAdjustments(
+      tenantId,
+      lastInstantOfMonth(period),
+      'generation',
+    );
 
     // Contratos que pueden regir en el mes. El generador decide cada caso (un
     // contrato que ya no está Activo solo liquida hasta su fin real).
@@ -170,6 +235,7 @@ export class LiquidacionesService {
       }
     }
 
+    const adjustmentPending = await this.attachWarnings(results);
     const created = results.filter((r) => r.status === 'created').length;
     const skipped = results.filter((r) => r.status === 'skipped').length;
     const outOfRange = results.filter((r) => r.status === 'out_of_range').length;
@@ -186,9 +252,22 @@ export class LiquidacionesService {
       outOfRange,
       notBilled,
       failed,
+      adjustmentsApplied: adjustmentRun.applied.length,
+      adjustmentsPending: adjustmentRun.skipped.length,
+      blockedByAdjustment: adjustmentPending,
     });
 
-    return { created, skipped, outOfRange, notBilled, failed, total: contracts.length, results };
+    return {
+      created,
+      skipped,
+      outOfRange,
+      notBilled,
+      failed,
+      total: contracts.length,
+      adjustmentPending,
+      results,
+      adjustments: { applied: adjustmentRun.applied, pending: adjustmentRun.skipped },
+    };
   }
 
   private async generateForContract(
@@ -204,47 +283,7 @@ export class LiquidacionesService {
       return { contractId: contract.id, status: 'skipped', reason: 'EXISTS', liquidacionId: existing.id };
     }
 
-    // Las reglas de ese mes: las del primer día del contrato si el mes es el de inicio.
-    const startDate: Date = contract.startDate;
-    const rulesDate = startDate.getTime() > period.getTime() ? startDate : period;
-    const terms = pickTermsAt<any>(contract.termsVersions ?? [], rulesDate);
-    const dueDay = resolveRule(defaults, terms, 'dueDay') as number;
-
-    // Convenciones pactadas (versión vigente en el mes) o, si no hay, las de la inmobiliaria.
-    const conventions = {
-      prorationMode: resolveRule(defaults, terms, 'prorationMode') as any,
-      midMonthAdjustmentMode: resolveRule(defaults, terms, 'midMonthAdjustmentMode') as any,
-      firstDueMode: resolveRule(defaults, terms, 'firstDueMode') as any,
-      fixedDiscountProration: resolveRule(defaults, terms, 'fixedDiscountProration') as any,
-    };
-
-    const rentSource = {
-      contractRent: contract.rentAmount,
-      adjustments: contract.adjustments ?? [],
-      termsVersions: contract.termsVersions ?? [],
-    };
-    const rent = rentAtDate({ ...rentSource, date: period });
-    const monthEnd = new Date(Date.UTC(period.getUTCFullYear(), period.getUTCMonth() + 1, 0));
-    const midMonthChange = rentChangeInMonth({ ...rentSource, periodStart: period, monthEnd });
-
-    // Con VencimientoMesSiguiente, el mes siguiente al de inicio suma el primer mes: hace falta
-    // su alquiler y saber si ese mes ya tiene liquidación (para no cobrarlo dos veces).
-    let firstMonth: { monthlyAmount: string; alreadyBilled: boolean } | null = null;
-    const startMonthStart = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1));
-    const isMonthAfterStart =
-      period.getUTCFullYear() * 12 + period.getUTCMonth() ===
-      startDate.getUTCFullYear() * 12 + startDate.getUTCMonth() + 1;
-    if (conventions.firstDueMode === FirstDueMode.VencimientoMesSiguiente && isMonthAfterStart) {
-      const startRent = rentAtDate({ ...rentSource, date: startMonthStart });
-      const billed = await this.prisma.client.liquidacion.findFirst({
-        where: { contractId: contract.id, period: startMonthStart },
-      });
-      firstMonth = { monthlyAmount: startRent.amount, alreadyBilled: !!billed };
-    }
-
-    const lessors = (contract.lessors ?? [])
-      .filter((l: any) => isLessorActiveAt(l, lessorsDateFor(period, startDate)))
-      .map((l: any) => ({ name: personName(l.person) }));
+    const rentPart = await this.rentInput(contract, period, defaults);
 
     // Correcciones de ajustes provisorios todavía sin facturar: se piden hasta el mes anterior
     // al período, porque el propio período ya sale con el alquiler corregido.
@@ -285,27 +324,7 @@ export class LiquidacionesService {
     const pendingCharges = await this.charges.pendingLines(contract.id, period, contract.rentCurrency);
 
     const built = buildLiquidation({
-      period,
-      currency: contract.rentCurrency,
-      contract: {
-        startDate,
-        endDate: contract.endDate,
-        actualEndDate: contract.actualEndDate,
-        status: contract.status,
-      },
-      rent: {
-        monthlyAmount: rent.amount,
-        isProvisional: rent.isProvisional,
-        midMonthChange,
-      },
-      conventions,
-      firstMonth,
-      terms: {
-        dueDay,
-        discountPct: terms?.discountPct != null ? terms.discountPct.toString() : null,
-        discountAmount: terms?.discountAmount != null ? terms.discountAmount.toString() : null,
-      },
-      lessors,
+      ...rentPart,
       trueUps,
       pendingCharges,
       serviceAllocations,
@@ -385,6 +404,84 @@ export class LiquidacionesService {
   }
 
   /**
+   * Lo que el armado de la liquidación toma del contrato para el alquiler del período:
+   * reglas y convenciones vigentes en el mes, alquiler (con los ajustes aplicados y un
+   * cambio a mitad de mes), primer mes diferido, descuentos y locadores. Lo comparten la
+   * generación y el recálculo de borradores tras un ajuste (DEF-133).
+   */
+  private async rentInput(
+    contract: any,
+    period: Date,
+    defaults: OperationalDefaults,
+  ): Promise<LiquidationBuilderInput> {
+    // Las reglas de ese mes: las del primer día del contrato si el mes es el de inicio.
+    const startDate: Date = contract.startDate;
+    const rulesDate = startDate.getTime() > period.getTime() ? startDate : period;
+    const terms = pickTermsAt<any>(contract.termsVersions ?? [], rulesDate);
+    const dueDay = resolveRule(defaults, terms, 'dueDay') as number;
+
+    // Convenciones pactadas (versión vigente en el mes) o, si no hay, las de la inmobiliaria.
+    const conventions = {
+      prorationMode: resolveRule(defaults, terms, 'prorationMode') as any,
+      midMonthAdjustmentMode: resolveRule(defaults, terms, 'midMonthAdjustmentMode') as any,
+      firstDueMode: resolveRule(defaults, terms, 'firstDueMode') as any,
+      fixedDiscountProration: resolveRule(defaults, terms, 'fixedDiscountProration') as any,
+    };
+
+    const rentSource = {
+      contractRent: contract.rentAmount,
+      adjustments: contract.adjustments ?? [],
+      termsVersions: contract.termsVersions ?? [],
+    };
+    const rent = rentAtDate({ ...rentSource, date: period });
+    const monthEnd = new Date(Date.UTC(period.getUTCFullYear(), period.getUTCMonth() + 1, 0));
+    const midMonthChange = rentChangeInMonth({ ...rentSource, periodStart: period, monthEnd });
+
+    // Con VencimientoMesSiguiente, el mes siguiente al de inicio suma el primer mes: hace falta
+    // su alquiler y saber si ese mes ya tiene liquidación (para no cobrarlo dos veces).
+    let firstMonth: { monthlyAmount: string; alreadyBilled: boolean } | null = null;
+    const startMonthStart = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1));
+    const isMonthAfterStart =
+      period.getUTCFullYear() * 12 + period.getUTCMonth() ===
+      startDate.getUTCFullYear() * 12 + startDate.getUTCMonth() + 1;
+    if (conventions.firstDueMode === FirstDueMode.VencimientoMesSiguiente && isMonthAfterStart) {
+      const startRent = rentAtDate({ ...rentSource, date: startMonthStart });
+      const billed = await this.prisma.client.liquidacion.findFirst({
+        where: { contractId: contract.id, period: startMonthStart },
+      });
+      firstMonth = { monthlyAmount: startRent.amount, alreadyBilled: !!billed };
+    }
+
+    const lessors = (contract.lessors ?? [])
+      .filter((l: any) => isLessorActiveAt(l, lessorsDateFor(period, startDate)))
+      .map((l: any) => ({ name: personName(l.person) }));
+
+    return {
+      period,
+      currency: contract.rentCurrency,
+      contract: {
+        startDate,
+        endDate: contract.endDate,
+        actualEndDate: contract.actualEndDate,
+        status: contract.status,
+      },
+      rent: {
+        monthlyAmount: rent.amount,
+        isProvisional: rent.isProvisional,
+        midMonthChange,
+      },
+      conventions,
+      firstMonth,
+      terms: {
+        dueDay,
+        discountPct: terms?.discountPct != null ? terms.discountPct.toString() : null,
+        discountAmount: terms?.discountAmount != null ? terms.discountAmount.toString() : null,
+      },
+      lessors,
+    };
+  }
+
+  /**
    * Proceso diario de una inmobiliaria: si hoy está a `leadDays` días o menos
    * del mes siguiente, genera sus liquidaciones. Lo llama el cron dentro del
    * contexto de cada inmobiliaria. Deja una fila de auditoría si generó alguna.
@@ -400,7 +497,7 @@ export class LiquidacionesService {
 
     const summary = await this.generateForPeriod(target.year, target.month);
 
-    if (summary.created > 0 || summary.failed > 0) {
+    if (summary.created > 0 || summary.failed > 0 || summary.adjustments.applied.length > 0) {
       await this.audit.record(this.prisma.client as any, {
         action: 'CREATE',
         entity: 'Liquidacion',
@@ -413,6 +510,8 @@ export class LiquidacionesService {
           outOfRange: summary.outOfRange,
           notBilled: summary.notBilled,
           failed: summary.failed,
+          adjustmentsApplied: summary.adjustments.applied.length,
+          adjustmentsPending: summary.adjustments.pending.length,
         },
         metadata: { source, job: 'liquidaciones-generate' },
       });
@@ -460,8 +559,9 @@ export class LiquidacionesService {
       this.prisma.client.liquidacion.count({ where }),
     ]);
 
+    const warnings = await this.warningsFor(items);
     return {
-      items,
+      items: items.map((item: any, i: number) => ({ ...item, warnings: warnings[i] })),
       total,
       page: filters.page,
       limit: filters.limit,
@@ -494,8 +594,10 @@ export class LiquidacionesService {
       });
     }
 
+    const [warnings] = await this.warningsFor([liquidacion]);
     return {
       ...liquidacion,
+      warnings,
       payments: (liquidacion.payments ?? []).map(withReceiptLabel),
       receiptNumber: liquidacion.receiptSeq != null ? formatReceiptNumber(liquidacion.receiptSeq) : null,
     };
@@ -654,6 +756,19 @@ export class LiquidacionesService {
     const toStatus = validated.status as LiquidacionStatus;
 
     assertTransition(liquidacionMachine, fromStatus, toStatus);
+
+    // Con un ajuste del mes sin aplicar el alquiler no es el que rige: no se aprueba (DEF-132).
+    if (toStatus === LiquidacionStatus.Aprobada) {
+      const [pending] = (await this.warningsFor([liquidacion]))[0];
+      if (pending) {
+        throw new ConflictException({
+          error: ADJUSTMENT_PENDING,
+          message: `The rent adjustment of ${pending.adjustmentDate} is still pending: apply it before approving`,
+          adjustmentDate: pending.adjustmentDate,
+          scheduleId: pending.scheduleId,
+        });
+      }
+    }
 
     const updateData: any = { status: toStatus };
 
@@ -1087,6 +1202,245 @@ export class LiquidacionesService {
     });
 
     return this.findOne(id);
+  }
+
+  // ─── Recálculo de borradores tras un ajuste ─────────
+
+  /**
+   * Un ajuste aplicado después de generar el mes (DEF-133): las liquidaciones del contrato
+   * todavía editables (Borrador o Revisión) desde el mes del ajuste pasan al alquiler nuevo.
+   * Se recalculan en el lugar los renglones que dependen del alquiler (alquiler, primer mes
+   * diferido y bonificaciones de las reglas); los demás (cargos, boletas, punitorios,
+   * correcciones y lo cargado a mano) se conservan. Sobre un borrador no hay cobro
+   * retroactivo: sale con el alquiler que rige. Devuelve cuántas cambió.
+   */
+  async refreshDraftsAfterAdjustment(event: AdjustmentAppliedEvent): Promise<number> {
+    const from = monthOf(event.adjustmentDate);
+    const drafts = await this.prisma.client.liquidacion.findMany({
+      where: {
+        contractId: event.contractId,
+        period: { gte: from },
+        status: { in: [LiquidacionStatus.Borrador, LiquidacionStatus.Revision] },
+      },
+      include: { lineItems: { orderBy: { sortOrder: 'asc' } } },
+      orderBy: { period: 'asc' },
+    });
+    if (drafts.length === 0) return 0;
+
+    const contract = await this.loadContractForRent(event.contractId);
+    if (!contract) return 0;
+    const defaults = await this.operationalDefaults.get(event.tenantId);
+
+    let refreshed = 0;
+    for (const draft of drafts) {
+      const built = buildLiquidation(await this.rentInput(contract, draft.period, defaults));
+      if (built.skipped) continue;
+      const kept = draft.lineItems.filter((l: any) => !isRentDependentLine(l));
+      const before = draft.lineItems.filter((l: any) => isRentDependentLine(l));
+      const unchanged =
+        before.length === built.lines.length &&
+        before.every((l: any, i: number) => new Decimal(l.amount.toString()).eq(built.lines[i].amount)) &&
+        draft.isProvisional === built.isProvisional;
+      if (unchanged) continue;
+
+      await this.prisma.client.$transaction(async (tx: any) => {
+        await tx.liquidacionLineItem.deleteMany({
+          where: { liquidacionId: draft.id, id: { in: before.map((l: any) => l.id) } },
+        });
+        await tx.liquidacionLineItem.createMany({
+          data: built.lines.map((l) => ({
+            tenantId: event.tenantId,
+            liquidacionId: draft.id,
+            type: l.type,
+            description: l.description,
+            amount: l.amount,
+            currency: draft.currency,
+            sortOrder: l.sortOrder,
+            commissionable: l.commissionable,
+            beneficiary: l.beneficiary,
+            sourceType: l.sourceType,
+            sourceId: l.sourceId,
+          })),
+        });
+        // Los renglones que se conservan van después, en el orden que tenían.
+        for (const [i, line] of kept.entries()) {
+          await tx.liquidacionLineItem.update({
+            where: { id: line.id },
+            data: { sortOrder: built.lines.length + i },
+          });
+        }
+        await tx.liquidacion.update({
+          where: { id: draft.id },
+          data: { kind: built.kind, isProvisional: built.isProvisional },
+        });
+        const totals = await this.recalculateTotals(draft.id, tx);
+        await this.audit.record(tx, {
+          action: 'UPDATE',
+          entity: 'Liquidacion',
+          entityId: draft.id,
+          tenantId: event.tenantId,
+          before: { total: draft.total.toString() },
+          after: { total: totals.total.toString() },
+          metadata: {
+            operation: 'refresh-after-adjustment',
+            adjustmentId: event.adjustmentId,
+            adjustmentDate: event.adjustmentDate.toISOString().slice(0, 10),
+            period: periodKey(draft.period),
+          },
+        });
+      });
+      refreshed++;
+    }
+    this.logger.log('Drafts refreshed after adjustment', {
+      contractId: event.contractId,
+      adjustmentId: event.adjustmentId,
+      refreshed,
+    });
+    return refreshed;
+  }
+
+  /**
+   * Un ajuste aplicado después de emitir la liquidación de un mes en que ya regía (DEF-134).
+   * Con la convención `Retroactivo` (de fábrica; pactable por contrato, `lateAdjustmentBilling`)
+   * la diferencia de cada mes emitido queda como cargo `AjusteRetroactivo` para la próxima
+   * liquidación. La diferencia es el alquiler del mes (con sus bonificaciones, prorrateo y
+   * convención de mitad de mes) con el ajuste menos el mismo cálculo sin él. Con
+   * `SinRetroactivo` el ajuste rige desde la próxima y no se cobra nada. Devuelve cuántos cargos dejó.
+   */
+  async chargeLateAdjustment(event: AdjustmentAppliedEvent): Promise<number> {
+    const emitted = await this.prisma.client.liquidacion.findMany({
+      where: {
+        contractId: event.contractId,
+        period: { gte: monthOf(event.adjustmentDate) },
+        status: {
+          notIn: [LiquidacionStatus.Borrador, LiquidacionStatus.Revision, LiquidacionStatus.Anulada],
+        },
+      },
+      select: { id: true, period: true },
+      orderBy: { period: 'asc' },
+    });
+    if (emitted.length === 0) return 0;
+    const contract = await this.loadContractForRent(event.contractId);
+    if (!contract) return 0;
+    const defaults = await this.operationalDefaults.get(event.tenantId);
+    const terms = pickTermsAt<any>(contract.termsVersions ?? [], event.adjustmentDate);
+    if (resolveRule(defaults, terms, 'lateAdjustmentBilling') !== LateAdjustmentBilling.Retroactivo) return 0;
+
+    const adjustment = contract.adjustments.find((a: { id: string }) => a.id === event.adjustmentId);
+    if (!adjustment) return 0;
+    // El mismo contrato como estaba antes del ajuste: sin él y con el alquiler anterior.
+    const without = {
+      ...contract,
+      rentAmount: adjustment.previousAmount,
+      adjustments: contract.adjustments.filter((a: { id: string }) => a.id !== event.adjustmentId),
+    };
+    let charged = 0;
+    for (const liq of emitted) {
+      const delta = (await this.rentNet(contract, liq.period, defaults)).minus(
+        await this.rentNet(without, liq.period, defaults),
+      );
+      if (delta.isZero()) continue;
+      const id = await this.charges.recordAdjustmentDifference({
+        tenantId: event.tenantId,
+        contract,
+        adjustmentId: event.adjustmentId,
+        description: `diferencia del ajuste del ${formatDateAR(event.adjustmentDate)} no incluida en la liquidación de ${periodKey(liq.period)}`,
+        amount: delta.toFixed(2),
+      });
+      if (id) charged++;
+    }
+    return charged;
+  }
+
+  /** Alquiler neto del período (alquiler menos bonificaciones de las reglas), o 0 si el contrato no rige. */
+  private async rentNet(contract: any, period: Date, defaults: OperationalDefaults): Promise<Decimal> {
+    const built = buildLiquidation(await this.rentInput(contract, period, defaults));
+    if (built.skipped) return new Decimal(0);
+    return built.lines.reduce(
+      (acc, l) => (l.type === LineItemType.Descuento ? acc.minus(l.amount) : acc.plus(l.amount)),
+      new Decimal(0),
+    );
+  }
+
+  /** El contrato con lo que hace falta para armar su alquiler (locadores, reglas y ajustes aplicados). */
+  private loadContractForRent(contractId: string) {
+    return this.prisma.client.contract.findFirst({
+      where: { id: contractId },
+      include: {
+        lessors: { include: { person: true } },
+        termsVersions: { orderBy: { validFrom: 'asc' } },
+        adjustments: { where: { appliedAt: { not: null } }, orderBy: { adjustmentDate: 'asc' } },
+      },
+    });
+  }
+
+  // ─── Advertencias ───────────────────────────────────
+
+  /**
+   * Advertencias de cada liquidación. Solo las editables (Borrador o Revisión) pueden
+   * tenerlas: `ADJUSTMENT_PENDING` si el contrato tiene un ajuste sin aplicar (pendiente o
+   * calculado) que empieza a regir en el período según su convención de ajuste a mitad de
+   * mes (`adjustmentWindow`). Se calcula al leer, así que desaparece sola al aplicarse el ajuste.
+   */
+  async warningsFor(
+    rows: { contractId: string; period: Date; status: string }[],
+  ): Promise<LiquidacionWarning[][]> {
+    const editable = rows.filter((r) => isEditableStatus(r.status));
+    if (editable.length === 0) return rows.map(() => []);
+    const latest = Math.max(...editable.map((r) => lastInstantOfMonth(r.period).getTime()));
+    // El mes anterior al primero: el comienzo más temprano de una ventana.
+    const earliest = Math.min(
+      ...editable.map((r) => adjustmentWindow(r.period, MidMonthAdjustmentMode.DesdePeriodoSiguiente).after.getTime()),
+    );
+    const schedules = await this.prisma.client.adjustmentSchedule.findMany({
+      where: {
+        contractId: { in: [...new Set(editable.map((r) => r.contractId))] },
+        status: { in: [ScheduleStatus.Pending, ScheduleStatus.Calculated] },
+        nextAdjustmentDate: { gt: new Date(earliest), lte: new Date(latest) },
+        // Los mismos contratos cuyos ajustes aplica el proceso diario.
+        contract: { status: ContractStatus.Activo, isActive: true },
+      },
+      select: { id: true, contractId: true, nextAdjustmentDate: true },
+      orderBy: { nextAdjustmentDate: 'asc' },
+    });
+    if (schedules.length === 0) return rows.map(() => []);
+
+    const defaults = await this.operationalDefaults.get(this.tenantContext.getTenantId()!);
+    const versions = await this.prisma.client.contractTermsVersion.findMany({
+      where: { contractId: { in: [...new Set(schedules.map((s: { contractId: string }) => s.contractId))] } },
+      select: { contractId: true, validFrom: true, midMonthAdjustmentMode: true },
+    });
+    return rows.map((row) => {
+      if (!isEditableStatus(row.status)) return [];
+      const terms = pickTermsAt(
+        versions.filter((v: { contractId: string }) => v.contractId === row.contractId),
+        row.period,
+      );
+      const mode = resolveRule(defaults, terms, 'midMonthAdjustmentMode') as string;
+      const warning = pendingAdjustmentWarning(schedules, row.contractId, adjustmentWindow(row.period, mode));
+      return warning ? [warning] : [];
+    });
+  }
+
+  /** Completa las advertencias de los resultados de una generación y devuelve cuántas quedaron bloqueadas. */
+  private async attachWarnings(results: GenerationResult[]): Promise<number> {
+    const ids = results.flatMap((r) => (r.liquidacionId ? [r.liquidacionId] : []));
+    if (ids.length === 0) return 0;
+    const rows = await this.prisma.client.liquidacion.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, contractId: true, period: true, status: true },
+    });
+    const warnings = await this.warningsFor(rows);
+    const byId = new Map<string, string[]>(
+      rows.map((row: { id: string }, i: number) => [row.id, warnings[i].map((w) => w.code)]),
+    );
+    let blocked = 0;
+    for (const result of results) {
+      const codes = result.liquidacionId ? byId.get(result.liquidacionId) ?? [] : [];
+      if (result.liquidacionId) result.warnings = codes;
+      if (codes.length > 0) blocked++;
+    }
+    return blocked;
   }
 
   // ─── Private Helpers ────────────────────────────────

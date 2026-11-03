@@ -28,8 +28,13 @@ export class LiquidacionesScheduler extends CronBaseService {
     super();
   }
 
-  /** Todos los días a las 06:00 de Buenos Aires. */
-  @Cron('0 6 * * *', { name: 'liquidaciones-generate', timeZone: AR_TIME_ZONE })
+  /**
+   * Todos los días a las 07:30 de Buenos Aires: después de la lectura de índices
+   * (06:00) y de los ajustes del día (07:00), para que la liquidación use el
+   * índice publicado ese día (DEF-131). La generación igual aplica antes los
+   * ajustes que vencen en el mes que liquida.
+   */
+  @Cron('30 7 * * *', { name: 'liquidaciones-generate', timeZone: AR_TIME_ZONE })
   async handleDailyGeneration(): Promise<void> {
     await this.runGuarded(async () => {
       await this.generateForAllTenants();

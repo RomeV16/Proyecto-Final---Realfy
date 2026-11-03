@@ -31,6 +31,7 @@ const TERMS_FIELDS = [
   'midMonthAdjustmentMode',
   'firstDueMode',
   'fixedDiscountProration',
+  'lateAdjustmentBilling',
   'upfrontThresholdFees',
   'upfrontBasis',
   'lessorDirectOwes',

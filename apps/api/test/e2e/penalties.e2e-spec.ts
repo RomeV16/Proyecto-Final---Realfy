@@ -135,7 +135,9 @@ describe('Penalties (e2e)', () => {
         propertyId: property.id,
         contractType: ContractType.Alquiler,
         status: ContractStatus.Activo,
-        startDate: '2023-01-01T00:00:00.000Z',
+        // Empieza en noviembre: el primer ajuste trimestral (febrero de 2024) no cae en el
+        // mes liquidado, que si no quedaría bloqueado con ADJUSTMENT_PENDING por falta de índice.
+        startDate: '2023-11-01T00:00:00.000Z',
         endDate: '2027-01-01T00:00:00.000Z',
         rentAmount: '100000.00',
         rentCurrency: 'ARS',

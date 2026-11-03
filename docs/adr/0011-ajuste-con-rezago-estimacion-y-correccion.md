@@ -153,3 +153,69 @@ Negativas:
   ajuste con varios meses estimados no se corrige parcialmente.
 - El alquiler de un contrato con ajustes posteriores a un provisorio no se corrige
   solo.
+
+## Addendum: el ajuste del mes en la liquidación (3 de noviembre de 2026)
+
+El ensayo general del primer ciclo en sombra sobre una copia de la inmobiliaria
+piloto mostró que la liquidación del mes salía sin el ajuste que rige desde su
+día 1 (DEF-130 a DEF-134). La inmobiliaria liquida alrededor del 20 del mes
+anterior con ese ajuste incluido, y con el rezago de dos meses su índice ya está
+publicado (el IPC de un mes sale alrededor del 12 del siguiente). El proceso
+diario de ajustes, en cambio, solo aplicaba lo vencido a la fecha: el ajuste del
+1 de diciembre se aplicaba el 1 de diciembre, la liquidación de diciembre ya
+estaba generada con el alquiler anterior y nadie cobraba ese mes.
+
+Decisión, sin cambiar las reglas de este ADR:
+
+- **La generación aplica antes los ajustes del mes.** Al generar el período, se
+  aplican primero, con `applyDueAdjustments` hasta el último instante del mes y el
+  mismo motor (rezago, base, estimado y pago a cuenta), los ajustes pendientes con
+  fecha dentro de él; después se arma la liquidación con el alquiler que rige. El
+  alquiler del contrato pasa al nuevo en ese momento, como ya pasaba con la
+  aplicación masiva de *Ajustes del mes*. El proceso diario de generación corre a
+  las 07:30, después de la lectura de índices (06:00) y de los ajustes (07:00).
+- **Sin índice rige este ADR.** Con un estimado y el pago a cuenta activo, el
+  ajuste se aplica provisorio y la liquidación sale a cuenta. Sin estimado (o con
+  el pago a cuenta apagado) el ajuste sigue pendiente; como el ADR no definía qué
+  hace la liquidación, la decisión segura es que no se pueda cobrar un importe
+  equivocado: la liquidación en Borrador o En Revisión lleva la advertencia
+  bloqueante `ADJUSTMENT_PENDING` y aprobarla responde 409. La advertencia se
+  calcula al leer y cuenta los ajustes que empiezan a regir en el período (un
+  ajuste a mitad de mes, según `midMonthAdjustmentMode`); un ajuste atrasado de
+  meses anteriores no bloquea las liquidaciones siguientes, lo informa el proceso
+  diario de ajustes.
+- **Sobre un borrador no hay cobro retroactivo.** Cuando el ajuste se aplica
+  después (aplicación masiva, cálculo manual, el proceso diario o la generación
+  del día siguiente), las liquidaciones del contrato todavía editables desde el mes
+  del ajuste rehacen sus renglones de alquiler y bonificación y conservan los demás.
+- **Liquidación ya emitida: convención pactable.** La corrección de este ADR cubre
+  solo la diferencia entre provisorio y oficial. Para un ajuste que se aplica
+  después de emitido un mes en que ya regía se agregó la convención
+  `lateAdjustmentBilling` (ADR-0010: valor por defecto de la inmobiliaria, pactable
+  por contrato). Con `Retroactivo`, la de fábrica porque reproduce la práctica de
+  cobrar el mes con su ajuste, la diferencia de cada mes emitido (alquiler neto de
+  bonificaciones con el ajuste menos sin él) queda como cargo `AjusteRetroactivo`
+  del centro de carga, comisionable y a favor del locador, que entra en la próxima
+  liquidación; con `SinRetroactivo` el ajuste rige desde la próxima.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant S as Lectura de índices 06:00
+    participant C as Ajustes del día 07:00
+    participant G as Generación 07:30 (día 21)
+    participant A as Motor de ajuste
+    participant L as Liquidación del mes
+    S->>A: IPC del mes anterior (si ya se publicó)
+    C->>A: Aplica lo vencido a hoy
+    G->>A: Aplica lo que vence hasta el fin del mes a liquidar
+    alt Índice disponible o estimado con pago a cuenta
+        A-->>G: Ajuste aplicado (definitivo o provisorio)
+        G->>L: Borrador con el alquiler nuevo
+    else Falta el índice
+        A-->>G: Pendiente (MISSING_INDEX_DATA)
+        G->>L: Borrador con ADJUSTMENT_PENDING (no se aprueba)
+        A->>L: Al aplicarse, los borradores se recalculan
+    end
+    A->>L: Si el mes ya estaba emitido: cargo AjusteRetroactivo para la próxima
+```

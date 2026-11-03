@@ -137,6 +137,17 @@ export interface PendingTrueUp {
   total: string;
 }
 
+/** Un ajuste que cambió el alquiler de un contrato (lo escuchan las liquidaciones, DEF-133). */
+export interface AdjustmentAppliedEvent {
+  tenantId: string;
+  contractId: string;
+  adjustmentId: string;
+  /** Desde cuándo rige el alquiler nuevo. */
+  adjustmentDate: Date;
+}
+
+export type AdjustmentAppliedListener = (event: AdjustmentAppliedEvent) => Promise<unknown>;
+
 export interface AdjustmentRun {
   applied: AdjustmentApplied[];
   skipped: AdjustmentSkipped[];
@@ -180,12 +191,41 @@ const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 @Injectable()
 export class ContractAdjustmentService {
   private readonly logger = new Logger(ContractAdjustmentService.name);
+  private readonly appliedListeners: AdjustmentAppliedListener[] = [];
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly indexData: IndexDataService,
     private readonly audit: AuditService,
   ) {}
+
+  /**
+   * Registra a quien tiene que enterarse de que un ajuste ya cambió el alquiler: las
+   * liquidaciones recalculan sus borradores (DEF-133). Se registra así, y no por
+   * inyección, porque el módulo de liquidaciones ya depende de este.
+   */
+  onApplied(listener: AdjustmentAppliedListener): void {
+    this.appliedListeners.push(listener);
+  }
+
+  /**
+   * Avisa que un ajuste se aplicó, después de confirmada su transacción. Un error de quien
+   * escucha se registra y no deshace el ajuste: el borrador queda con la advertencia
+   * `ADJUSTMENT_PENDING` resuelta y se puede rehacer a mano.
+   */
+  async notifyApplied(event: AdjustmentAppliedEvent): Promise<void> {
+    for (const listener of this.appliedListeners) {
+      try {
+        await listener(event);
+      } catch (err) {
+        this.logger.error('Adjustment applied listener failed', {
+          contractId: event.contractId,
+          adjustmentId: event.adjustmentId,
+          error: (err as Error).message,
+        });
+      }
+    }
+  }
 
   /** Pago a cuenta de la inmobiliaria (FB-13): activo salvo que se apague en sus valores por defecto. */
   async isProvisionalAllowed(tenantId: string): Promise<boolean> {
@@ -658,6 +698,14 @@ export class ContractAdjustmentService {
       scheduleId: schedule.id,
       status: outcome.status,
     });
+    if (outcome.adjustmentId) {
+      await this.notifyApplied({
+        tenantId: context.tenantId,
+        contractId: outcome.contractId,
+        adjustmentId: outcome.adjustmentId,
+        adjustmentDate: schedule.nextAdjustmentDate,
+      });
+    }
     return outcome;
   }
 
@@ -745,8 +793,10 @@ export class ContractAdjustmentService {
   // ─── Barrido de ajustes vencidos ───────────────────────────────────────────
 
   /**
-   * Aplica los ajustes vencidos de contratos activos de la inmobiliaria
-   * `tenantId` (debe correr dentro de su contexto, como lo deja `TenantCron`).
+   * Aplica los ajustes vencidos hasta `until` de contratos activos de la
+   * inmobiliaria `tenantId` (debe correr dentro de su contexto, como lo deja
+   * `TenantCron`). Lo usan el proceso diario (hasta hoy) y la generación de
+   * liquidaciones (hasta el fin del mes que se liquida, DEF-130).
    * Cada contrato en su propia transacción: si falta algún índice que la
    * modalidad necesita, el cronograma se salta (sigue pendiente), no se toca el
    * alquiler y se informa con `MISSING_INDEX_DATA` y los meses que faltan.
@@ -754,6 +804,7 @@ export class ContractAdjustmentService {
   async applyDueAdjustments(
     tenantId: string,
     until: Date = endOfTodayInAR(),
+    source: 'cron' | 'generation' = 'cron',
   ): Promise<AdjustmentRun> {
     const dueSchedules = await this.prisma.client.adjustmentSchedule.findMany({
       where: {
@@ -779,7 +830,7 @@ export class ContractAdjustmentService {
       const appliedPeriod = schedule.nextAdjustmentDate.toISOString().slice(0, 7);
       try {
         run.applied.push(
-          await this.applySchedule(schedule, { tenantId, source: 'cron', allowProvisional }),
+          await this.applySchedule(schedule, { tenantId, source, allowProvisional }),
         );
       } catch (err: unknown) {
         if (err instanceof MissingIndexDataError) {
