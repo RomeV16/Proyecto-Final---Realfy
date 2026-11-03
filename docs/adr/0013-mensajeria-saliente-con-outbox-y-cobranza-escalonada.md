@@ -2,8 +2,9 @@
 
 ## Estado
 
-Aceptado para la mensajería saliente (PR 5.1 y 5.2 del ítem 43). La sección de
-cobranza escalonada queda planificada para el PR 5.4.
+Aceptado para la mensajería saliente (PR 5.1 y 5.2 del ítem 43) y para la
+cobranza escalonada (PR 5.4), con sus decisiones legales pendientes de revisión
+por el abogado de la inmobiliaria.
 
 ## Fecha
 
@@ -175,14 +176,123 @@ emisor y marcados como obsoletos (el aviso al cliente es el mensaje). Se suman
 `MessageFailed`, `ContactOptedOut` e `InboundMessageReceived`; `SystemAlert`
 avisa de un proveedor sin configurar.
 
-### Cobranza escalonada (planificada, PR 5.4)
+### Cobranza escalonada (PR 5.4)
 
-`CollectionCase` (contrato, etapa Recordatorio/Prejudicial/Abogado/Judicial/
-Cerrado, próxima acción) y `CollectionAction`, con el escalamiento de FB-21
-(recordatorio a los 5 días del vencimiento, cada 5 días más firme, prejudicial
-con carta documento al vencer el siguiente, derivación a abogado), se
-decidirán en el PR 5.4 sobre esta bandeja de salida. No forman parte de este
-cambio.
+Un **caso de cobranza** (`collection_cases`) agrupa la mora de un contrato: uno
+abierto por contrato, aunque tenga varias liquidaciones vencidas. Su línea de
+tiempo es `collection_actions` (avisos mandados, carta documento, acuerdos,
+pagos y notas). Una mora nueva después de cerrar un caso abre otro.
+
+**Etapas** (`CollectionStage`), con su máquina de estados
+(`collectionCaseMachine`, validada con `assertTransition`):
+
+```
+Recordatorio → Prejudicial | Abogado | Cerrado
+Prejudicial  → Abogado | Cerrado
+Abogado      → Judicial | Cerrado
+Judicial     → Cerrado
+```
+
+Solo el paso de Recordatorio a Prejudicial lo hace el proceso diario (al preparar
+la carta documento). Derivar a un abogado, pasar a la vía judicial y cerrar a
+mano son decisiones de una persona.
+
+**Política** (`planCollection`, pura y con casos de oro): dado el caso y el día
+devuelve qué toca y cuándo. Con los valores de fábrica, con el vencimiento el
+día D:
+
+| Día | Qué toca |
+|---|---|
+| D+5 | Recordatorio amable (nivel 1) |
+| D+10 | Recordatorio más firme (nivel 2) |
+| D+15 | Recordatorio firme (nivel 3), el último |
+| D'+1 | D' es el vencimiento del alquiler siguiente, impago: **prejudicial**, se prepara la carta documento |
+| E+10 | E es el envío confirmado de la carta: vence el plazo de 10 días corridos y se **sugiere** derivar a un abogado |
+
+Se configura en `Tenant.operationalDefaults`: el ritmo (`collectionCadence`,
+primer recordatorio a los 5 días y luego cada 5) y `collections`
+(`enabled`, `maxLevel` de 1 a 3 y `letterTermDays`, 10). **La cobranza viene
+apagada** (`enabled: false`): hasta que la inmobiliaria la prende, el proceso
+diario no abre casos ni manda nada; desplegar la migración no cambia nada.
+
+Reglas de la política:
+
+- Un **pago total** cierra el caso (motivo `Pagado`); un **pago parcial** lo
+  deja abierto con el mismo ritmo y queda anotado en la línea de tiempo.
+- Un **acuerdo de pago** (con la fecha prometida) pausa los avisos hasta esa
+  fecha; si llega y sigue la deuda, retoma al día siguiente.
+- Los recordatorios no salen más seguido que el ritmo configurado ni se juntan
+  al retomar o si el proceso se atrasó. Después del tercero no se repite: el
+  siguiente paso es la carta, al vencer el alquiler siguiente.
+- Una mora vieja (por ejemplo cargada desde el sistema anterior) cuyo alquiler
+  siguiente ya venció pasa directo a la carta, sin un recordatorio amable de por
+  medio.
+- Si se paga el alquiler más viejo y queda otro, el ritmo vuelve a empezar desde
+  el vencimiento que queda.
+
+**Proceso diario** (`TenantCron`, `runGuarded`, 10:00 de Buenos Aires, después
+de los punitorios de las 02:15). Por inmobiliaria con la cobranza prendida:
+abre un caso por contrato con alquileres vencidos con saldo (`Enviada` o
+`Vencida` con saldo, el mismo criterio que la morosidad) y recorre los abiertos,
+cada uno en su propia transacción con la fila bloqueada (`SELECT … FOR UPDATE`)
+para no pisarse con una acción manual. Un caso que falla se registra y no corta
+a los demás. Es idempotente: correrlo dos veces el mismo día no repite nada
+(clave de la acción por caso, tipo, nivel, día y persona; y clave de la bandeja
+de salida `CollectionReminder:<caso>:<nivel>:<día>:<persona>:<canal>`).
+
+**Recordatorios.** Encolan en la bandeja de salida la plantilla del nivel
+(`payment_reminder_1`, `_2` y `_3`) para cada inquilino del contrato, por
+WhatsApp si dio el alta o por mail si no pidió la baja, con **el importe exacto
+a pagar ese día**: el saldo vencido más los punitorios devengados (el mismo
+cálculo de `GET /liquidaciones/:id/payoff`), y los períodos adeudados. Todo lo
+demás lo decide la bandeja de salida: el modo del ambiente
+(`MESSAGING_MODE`), el consentimiento y el horario. Si nadie tiene un canal
+disponible, queda registrado en la línea de tiempo (el ritmo avanza para no
+reintentar todos los días) y se avisa a la gerencia.
+
+**Carta documento: nada legal sale solo.** Al vencer el alquiler siguiente
+impago el proceso **prepara un borrador**: la acción queda `Preparada` con campos
+editables (destinatario, domicilio, inmueble, períodos, importe al día, plazo y
+un texto libre). El PDF (`GET …/letter.pdf`, de `common/pdf`) se genera de esos
+campos, lleva la marca de agua de borrador y la advertencia de que debe revisarlo
+un profesional. La oficina lo revisa, lo manda en papel por correo certificado y
+recién entonces una persona **confirma el envío con su fecha**: la acción pasa a
+`Realizada`, esa fecha fija el plazo de 10 días corridos y el caso pasa a
+esperar. El sistema no manda ninguna carta, ni por mail ni por WhatsApp.
+
+**Derivación a un abogado: solo manual.** Vencido el plazo, el sistema avisa a
+la gerencia el día del vencimiento y el caso muestra «Derivación a un abogado»
+como lo que toca, pero no deriva. Derivar y pasar a la vía judicial
+(`POST …/derive`, `POST …/judicial`) son de Admin y Gerente; el resto de las
+acciones (nota, acuerdo, editar y confirmar la carta, asignar, cerrar) son de
+Admin, Gerente y Liquidaciones. Cada acción manual se audita.
+
+**Textos propuestos.** Tres niveles, del amable al firme. Son respetuosos y
+legalmente seguros: no amenazan, no mencionan juicios, abogados ni la carta
+documento y no citan plazos legales; el importe es el exacto de hoy y siempre
+ofrecen una salida (responder, acordar una forma de pago). Un caso en una
+etapa posterior no recibe más recordatorios.
+
+| Plantilla | Nivel | Cuerpo (`{{1}}` nombre, `{{2}}` importe de hoy, `{{3}}` períodos, `{{4}}` inmobiliaria) |
+|---|---|---|
+| `recordatorio_de_pago_n1` | 1, amable (D+5) | Hola {{1}}, te escribimos para recordarte que figura pendiente el pago del alquiler de {{3}}. El importe al día de hoy es {{2}}. Si ya lo abonaste, ignorá este mensaje; si tenés alguna dificultad, respondé y lo vemos juntos. {{4}} |
+| `recordatorio_de_pago_n2` | 2, más firme (D+10) | Hola {{1}}, volvemos a comunicarnos: el alquiler de {{3}} sigue sin acreditarse. El importe actualizado al día de hoy es {{2}}. Te pedimos regularizarlo a la brevedad o comunicarte con nosotros para acordar una forma de pago. {{4}} |
+| `recordatorio_de_pago_n3` | 3, firme (D+15) | Hola {{1}}, este es un nuevo aviso: el alquiler de {{3}} continúa pendiente por {{2}} al día de hoy. Necesitamos que lo regularices o te comuniques con nosotros esta semana para acordar el pago. Si no recibimos novedades, seguiremos con las gestiones de cobranza que prevé el contrato. {{4}} |
+
+El mismo texto sale por mail con el asunto «Recordatorio de pago», «Pago
+pendiente de tu alquiler» y «Necesitamos comunicarnos por tu alquiler», cada uno
+con el nombre de la inmobiliaria. Una prueba verifica que ninguna plantilla
+contenga las palabras carta documento, abogado, juicio, desalojo, demanda,
+embargo, denuncia ni policía.
+
+**Pendientes de revisión legal.** Las decisiones legales quedaron en su opción
+más conservadora (borradores, envío manual, nada automático) y se listan como
+preguntas para el abogado de la inmobiliaria en el informe del PR 5.4: contenido
+mínimo de la carta documento y quién la firma, desde cuándo corren los 10 días
+(hoy, desde la fecha de envío confirmada), si el tercer recordatorio puede
+mencionar «las gestiones de cobranza que prevé el contrato», si se informan los
+punitorios en el importe y si el prejudicial arranca el día siguiente al
+vencimiento del alquiler siguiente.
 
 ## Plantillas de WhatsApp propuestas (categoría utilidad, `es_AR`)
 
@@ -198,7 +308,9 @@ BAJA para no recibir más mensajes» es texto fijo del pie.
 | `incidencia_respuesta` | — | Hola {{1}}, hay una respuesta en tu reclamo "{{2}}": {{3}}. {{4}} |
 
 El último parámetro es el nombre de la inmobiliaria. La liquidación, la
-invitación y los avisos al personal van solo por mail.
+invitación y los avisos al personal van solo por mail. Las tres plantillas de
+la cobranza (`recordatorio_de_pago_n1`, `_n2` y `_n3`) están en la sección de
+cobranza escalonada.
 
 ## Consecuencias
 
@@ -214,5 +326,16 @@ invitación y los avisos al personal van solo por mail.
 - Dar de alta el número de WhatsApp, verificar la empresa en Meta, aprobar las
   plantillas y verificar el dominio de mail en Resend son acciones externas,
   pendientes (ver `../despliegue.md`).
-- La bandeja de consultas (5.3) y la cobranza escalonada (5.4) se construyen
-  sobre `inbound_messages` y esta bandeja de salida.
+- La bandeja de consultas (5.3) se construye sobre `inbound_messages` y esta
+  bandeja de salida.
+- La cobranza escalonada nace **apagada** en cada inmobiliaria y manda
+  recordatorios solo por la bandeja de salida: con `MESSAGING_MODE=off` los
+  avisos quedan encolados con su motivo y no sale nada. La carta documento solo
+  existe como borrador hasta que una persona confirma el envío en papel.
+- Hay que dar de alta y aprobar en Meta las tres plantillas de utilidad de la
+  cobranza antes de prender los recordatorios por WhatsApp; sin ellas, el
+  proveedor rechaza el mensaje y queda `Failed`.
+- Un recordatorio puede salir hasta un día después de lo que dice la política
+  (el proceso corre una vez al día) y el importe que informa es el de ese día.
+- La política cierra un caso sin deuda vencida en la pasada siguiente al pago,
+  no en el momento: durante ese lapso el caso sigue abierto con saldo cero.

@@ -1027,6 +1027,56 @@ salió, la fecha, la nota y la dirección a la que aplica.
 
 Registran el consentimiento Admin, Gerente, Ventas y Liquidaciones.
 
+### Cobranza
+
+*Cobranza* (`/cobranza`, Admin, Gerente, Liquidaciones y Lectura) sigue los
+contratos con alquileres vencidos impagos. **Viene apagada**: se prende en
+*Configuración → Valores por defecto → Cobranza* con *Activar la cobranza
+escalonada*. Ahí también se elige cuántos recordatorios se mandan (de 1 a 3), el
+primero a los 5 días del vencimiento y los siguientes cada 5, y el plazo de la
+carta documento (10 días corridos).
+
+Cuando está prendida, todos los días a las 10 el sistema abre **un caso por
+contrato** con alquileres vencidos con saldo y sigue este camino:
+
+1. **Recordatorio.** A los 5 días del vencimiento sale un aviso amable; cada 5 días
+   uno más firme (hasta tres). Salen por WhatsApp si el inquilino dio el alta y por
+   mail si no pidió la baja, con **el importe exacto de ese día** (saldo más
+   punitorios) y el período adeudado. Se ven en *Mensajería* y en la línea de
+   tiempo del caso, con su estado (entregado, bloqueado, etc.). Con el envío apagado
+   en el ambiente quedan encolados y no sale ninguno.
+2. **Prejudicial.** Al vencer el alquiler siguiente sin pagarse, el caso pasa a
+   *Prejudicial* y el sistema **prepara el borrador de la carta documento** y avisa a
+   la gerencia. **No la manda.**
+3. **Con el abogado y judicial.** Pasados los 10 días corridos desde que se mandó la
+   carta, el sistema avisa y sugiere derivar. **Derivar y pasar a la vía judicial los
+   decide una persona** (Admin y Gerente).
+
+La lista muestra cada caso con su etapa, los días de mora, el saldo vencido, lo que
+se debe hoy y lo que toca. Se filtra por etapa, por mora mínima y por *Mis casos*.
+El detalle del contrato muestra su caso abierto.
+
+En el detalle de un caso (Admin, Gerente y Liquidaciones):
+
+- **Agregar una nota** y **asignarte** el caso o quitar el responsable.
+- **Registrar un acuerdo de pago** con la fecha prometida: los avisos se pausan hasta
+  esa fecha y, si sigue la deuda, retoman al día siguiente.
+- **Carta documento (borrador).** Revisá los datos, corregilos con *Editar el
+  borrador* (destinatario, domicilio, períodos, importe, plazo y un texto
+  adicional) y abrí el PDF, que lleva la marca de borrador. Imprimila, hacela
+  revisar por un profesional si hace falta y mandala en papel por correo
+  certificado; recién después tocá *Confirmar que se envió* con la fecha de envío
+  (y la pieza de correo). Desde esa fecha corre el plazo.
+- **Derivar a un abogado** y **Pasar a la vía judicial** (solo Admin y Gerente), cada
+  uno con una nota, y **Cerrar el caso** con un motivo (por ejemplo, un arreglo fuera
+  del sistema).
+
+Un **pago total** cierra el caso solo en la pasada siguiente; un **pago parcial** lo
+deja abierto y queda anotado. Si nadie tiene un mail o un WhatsApp con alta, el aviso
+queda registrado «sin medio de contacto» y la gerencia recibe una notificación: hay
+que avisar por otra vía y, si hace falta, registrar el alta del canal en la ficha de la
+persona. Un caso cerrado no admite más acciones; una mora nueva abre otro.
+
 ### Honorarios
 
 **Honorarios** (`/honorarios`) reúne los honorarios de cada operación —alta de un
@@ -1306,7 +1356,7 @@ liquidación (10, es decir el día 20), el rezago del IPC (2 meses), la comisió
 administración (7 %), los honorarios por alta, renovación y venta (5 %, 5 %, 3 % si
 es construido y 5 % si es lote), la tasación (USD 100), el umbral de anticipo (2
 honorarios), la cadencia de cobranza (primer recordatorio a los 5 días y después
-cada 5), el semáforo de vencimientos de contratos (rojo a los 30 días, amarillo a
+cada 5; la cobranza escalonada viene apagada y se prende ahí), el semáforo de vencimientos de contratos (rojo a los 30 días, amarillo a
 los 60) y las cuatro convenciones de liquidación (prorrateo de un mes parcial, ajuste a
 mitad de mes, primer mes con inicio tardío y descuento de monto fijo; de fábrica, días
 reales, desde el período siguiente, vence el día de inicio y proporcional), el límite de

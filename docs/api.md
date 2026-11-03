@@ -112,7 +112,7 @@ el registro del servidor, junto con el método, la ruta, el estado, el
 | PATCH | `/tenants/:id` | Edita nombre, provincia, colores de marca y logo. | Admin, Gerente |
 | GET | `/tenants/me/read-policy` | Política de lectura por rol: un objeto con un arreglo de roles por recurso (`persons.bankAccounts`, `persons.document`, `contracts.commission`, `renditions`, `reports.financial`, `invoices`, `audit`). Sin configurar devuelve la de por defecto: todos los roles leen todo. | Admin |
 | PUT | `/tenants/me/read-policy` | Reemplaza la política completa. Debe traer los siete recursos, solo roles válidos y al Admin en cada uno; si no, 400 `VALIDATION_ERROR`. Rige desde el pedido siguiente. | Admin |
-| GET | `/tenants/me/operational-defaults` | Valores por defecto de la operación: `dueDay`, `leadDays`, `ipcLagMonths`, `allowProvisional` (pago a cuenta con índice estimado, activo de fábrica), `commissionPct`, `fees` (`alta`, `renovacion`, `ventaConstruido`, `ventaLote`, y para los honorarios: `installments` 1, `adjustInstallments` activo, `payer` `Inquilino`/`Locador`/`Ambos`, `lessorSharePct` 50, `contractTotalMode` `ConAjustesConocidos`/`AlquilerInicial`, `vatMode` `NoAplica`, `vatPct` 21, `staffCommissionPct` 0 y `staffCommissionBase` `Neto`/`Bruto`), `valuationUsd`, `upfrontThresholdFees`, `collectionCadence` (`firstReminderDays`, `everyDays`), `expiryLight` (`redDays`, `yellowDays`) `upfrontBasis` (`ComisionPactada`, `PorcentajePorDefecto`: con qué comisión mensual se mide `upfrontThresholdFees`) y las cuatro convenciones de liquidación: `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`), y `cash` con las convenciones de caja y cobros (ADR-0012): `lessorDirectOwes` (`TodoLoAjeno`, `SoloInmobiliaria`), `partialAllocation` (`Proporcional`, `InmobiliariaPrimero`), `custodyInAgencyBalance` (`false`), `receiptSeries` (`Unica`, `PorMoneda`, `PorCuenta`), `receiptWhenLessorReceives` (`false`) y `compensationScope` (`CualquierLocador`, `MismoContrato`) (`lessorDirectOwes` se puede pactar por contrato), y `ownerAccounts` con las del estado de cuenta del locador (ADR-0009): `statementCloseDay` (`null` = fin de mes, o 1 a 28) y `lessorChargeTiming` (`AlGenerarEstado`, `AlEmitirEstado`). y `repairs` con `preauthLimit` (importe en pesos hasta el que la inmobiliaria actúa sin consultar al locador; de fábrica 0: siempre se consulta) y `managementFeePct` (porcentaje del honorario por gestión de una reparación que se propone al imputar; de fábrica 0). Sin configurar devuelve los del código (10, 10, 2, activo, 7, 5/5/3/5, 100, 2, 5/5, 30/60). | Autenticado |
+| GET | `/tenants/me/operational-defaults` | Valores por defecto de la operación: `dueDay`, `leadDays`, `ipcLagMonths`, `allowProvisional` (pago a cuenta con índice estimado, activo de fábrica), `commissionPct`, `fees` (`alta`, `renovacion`, `ventaConstruido`, `ventaLote`, y para los honorarios: `installments` 1, `adjustInstallments` activo, `payer` `Inquilino`/`Locador`/`Ambos`, `lessorSharePct` 50, `contractTotalMode` `ConAjustesConocidos`/`AlquilerInicial`, `vatMode` `NoAplica`, `vatPct` 21, `staffCommissionPct` 0 y `staffCommissionBase` `Neto`/`Bruto`), `valuationUsd`, `upfrontThresholdFees`, `collectionCadence` (`firstReminderDays`, `everyDays`), `collections` (`enabled` apagado de fábrica, `maxLevel` 3 y `letterTermDays` 10, de la cobranza escalonada), `expiryLight` (`redDays`, `yellowDays`) `upfrontBasis` (`ComisionPactada`, `PorcentajePorDefecto`: con qué comisión mensual se mide `upfrontThresholdFees`) y las cuatro convenciones de liquidación: `prorationMode` (`DiasReales`, `Mes30`, `SinProrrateo`), `midMonthAdjustmentMode` (`DesdePeriodoSiguiente`, `Prorrateado`, `DesdeEsePeriodo`), `firstDueMode` (`DiaDeInicio`, `VencimientoMesSiguiente`, `AlFirmar`) y `fixedDiscountProration` (`Proporcional`, `Completo`), y `cash` con las convenciones de caja y cobros (ADR-0012): `lessorDirectOwes` (`TodoLoAjeno`, `SoloInmobiliaria`), `partialAllocation` (`Proporcional`, `InmobiliariaPrimero`), `custodyInAgencyBalance` (`false`), `receiptSeries` (`Unica`, `PorMoneda`, `PorCuenta`), `receiptWhenLessorReceives` (`false`) y `compensationScope` (`CualquierLocador`, `MismoContrato`) (`lessorDirectOwes` se puede pactar por contrato), y `ownerAccounts` con las del estado de cuenta del locador (ADR-0009): `statementCloseDay` (`null` = fin de mes, o 1 a 28) y `lessorChargeTiming` (`AlGenerarEstado`, `AlEmitirEstado`). y `repairs` con `preauthLimit` (importe en pesos hasta el que la inmobiliaria actúa sin consultar al locador; de fábrica 0: siempre se consulta) y `managementFeePct` (porcentaje del honorario por gestión de una reparación que se propone al imputar; de fábrica 0). Sin configurar devuelve los del código (10, 10, 2, activo, 7, 5/5/3/5, 100, 2, 5/5, 30/60). | Autenticado |
 | PUT | `/tenants/me/operational-defaults` | Reemplaza los valores; lo que falte toma el del código. 400 `VALIDATION_ERROR` ante un valor fuera de rango, un campo desconocido o `yellowDays` menor que `redDays`. Un contrato nuevo nace con `dueDay`, `ipcLagMonths` y las cuatro convenciones de liquidación de acá (una opción desconocida responde 400 `VALIDATION_ERROR`). | Admin, Gerente |
 | GET | `/tenants/me/read-access` | Qué recursos puede leer el rol del usuario actual: `{ role, resources: { <recurso>: boolean } }`. Lo usa la web para ocultar secciones. | Autenticado |
 | GET | `/users` | El equipo: usuarios más invitaciones pendientes, cada uno con `status` (`invited`, `active` o `inactive`). En una invitación, `id` es el de la invitación y vienen `invitationExpiresAt` e `invitationExpired`. | Admin, Gerente |
@@ -868,6 +868,48 @@ rechaza todo):
 | POST | `/webhooks/resend` | Firmado por svix (`svix-id`, `svix-timestamp` a menos de 5 minutos, `svix-signature`, con `RESEND_WEBHOOK_SECRET`). `email.sent`, `email.delivered`, `email.bounced` y `email.failed` actualizan el estado; `email.complained` registra la baja del mail. |
 
 Ambos responden `{ received: true }`.
+
+## Cobranza escalonada
+
+Casos de mora por contrato (ADR-0013, CU-48). Un proceso diario (10:00 de Buenos
+Aires, `TenantCron`) abre un caso por contrato con alquileres vencidos con saldo
+y encola los recordatorios en la bandeja de salida; solo actúa en las
+inmobiliarias que prendieron `operationalDefaults.collections.enabled` (apagado
+de fábrica). El ritmo es `operationalDefaults.collectionCadence` (`firstReminderDays`
+5, `everyDays` 5) y `collections` suma `enabled`, `maxLevel` (de 1 a 3, de fábrica
+3) y `letterTermDays` (10).
+
+Etapas (`stage`): `Recordatorio`, `Prejudicial`, `Abogado`, `Judicial`, `Cerrado`.
+Acciones (`kind`): `Recordatorio`, `RecordatorioFirme` (`level` 2 y 3),
+`CartaDocumento` (`status` `Preparada` hasta confirmar el envío, luego
+`Realizada`), `DerivacionAbogado`, `Nota`, `Pago` y `Acuerdo`. `planStatus` dice
+en qué está el caso: `Scheduled`, `Paused` (acuerdo de pago vigente),
+`AwaitingLetterConfirmation`, `Manual` (derivado o judicial) o `Close`.
+`nextAction` y `nextActionAt` son lo que toca y cuándo; `nextActionManual` indica
+que lo hace una persona (confirmar la carta, derivar). `payoffToday` es el saldo
+vencido más los punitorios a hoy (el mismo cálculo de
+`GET /liquidaciones/:id/payoff`).
+
+Cada acción manual devuelve el caso actualizado (el mismo cuerpo que el detalle) y
+queda auditada. Un caso cerrado no admite acciones (409 `CASE_CLOSED`).
+
+| Método | Ruta | Para qué | Acceso |
+|---|---|---|---|
+| GET | `/collection-cases` | Casos paginados, del vencimiento más viejo al más nuevo, con filtros `stage` (sin él, solo los abiertos), `minDays` (mora mínima), `assigneeId`, `contractId`, `page` y `limit`. Cada caso trae la propiedad, los inquilinos, los días de mora, `balance`, `payoffToday`, lo que toca y el responsable. 400 `VALIDATION_ERROR` ante un filtro inválido. | Admin, Gerente, Liquidaciones, Lectura |
+| GET | `/collection-cases/:id` | El caso con la deuda vencida por liquidación (saldo, punitorios y total) y su línea de tiempo (cada aviso con el estado del mensaje, la carta con sus campos). 404 `COLLECTION_CASE_NOT_FOUND`. | Admin, Gerente, Liquidaciones, Lectura |
+| PATCH | `/collection-cases/:id` | Quién lleva el caso: `{ assigneeId: uuid \| null }`. 400 `ASSIGNEE_NOT_FOUND` si no existe o está inactivo. | Admin, Gerente, Liquidaciones |
+| POST | `/collection-cases/:id/notes` | Agrega una nota `{ note }`. | Admin, Gerente, Liquidaciones |
+| POST | `/collection-cases/:id/agreement` | Acuerdo de pago `{ payOn, amount?, note? }`: pausa los avisos hasta `payOn` (de hoy en adelante, dentro del año; si no, 400 `AGREEMENT_DATE_OUT_OF_RANGE`). Si llega la fecha y sigue la deuda, retoma al día siguiente. | Admin, Gerente, Liquidaciones |
+| PATCH | `/collection-cases/:id/actions/:actionId` | Edita el borrador de la carta documento: `recipientName`, `recipientAddress`, `propertyAddress`, `periods`, `amount`, `termDays`, `extraText` (todos opcionales). 404 `LETTER_NOT_FOUND`; 409 `LETTER_ALREADY_SENT` si ya se confirmó el envío. | Admin, Gerente, Liquidaciones |
+| GET | `/collection-cases/:id/actions/:actionId/letter.pdf` | Borrador de la carta en PDF, con la marca de agua de borrador mientras no se confirme el envío. No se guarda: se genera de los campos cada vez. | Admin, Gerente, Liquidaciones, Lectura |
+| POST | `/collection-cases/:id/actions/:actionId/sent` | Confirma que la carta se mandó en papel: `{ sentOn, note? }`. La fecha no puede ser futura ni anterior al borrador (400 `LETTER_SENT_DATE_INVALID`); desde ella corre el plazo (`letterTermDays`). 409 `LETTER_ALREADY_SENT`. **El sistema nunca envía la carta.** | Admin, Gerente, Liquidaciones |
+| POST | `/collection-cases/:id/derive` | Deriva a un abogado `{ lawyer?, note? }`: etapa `Abogado`. 400 `INVALID_TRANSITION` desde `Abogado`, `Judicial` o `Cerrado`. Solo una persona lo decide: ningún proceso lo hace. | Admin, Gerente |
+| POST | `/collection-cases/:id/judicial` | Pasa a la vía judicial `{ note? }`: etapa `Judicial`, solo desde `Abogado` (400 `INVALID_TRANSITION`). | Admin, Gerente |
+| POST | `/collection-cases/:id/close` | Cierra el caso a mano `{ note }` (motivo obligatorio): `closeReason` `Manual`. | Admin, Gerente, Liquidaciones |
+| POST | `/collection-cases/_run-now` | Una vuelta del proceso diario para la inmobiliaria del pedido, con `{ today?: 'YYYY-MM-DD' }` para simular el día. Solo con `NODE_ENV=test` o `E2E_TEST_MODE=1`. | Admin |
+
+Los recordatorios usan las plantillas `payment_reminder_1`, `_2` y `_3` (ver
+ADR-0013), con `relatedType` `CollectionCase`: se ven en `GET /outbox?relatedType=CollectionCase&relatedId=<caso>`.
 
 ## Notificaciones
 

@@ -182,6 +182,47 @@ flowchart LR
 
 El modo es de cada ambiente y por defecto es `off`: los mensajes se encolan y se ven, pero no sale ninguno. `allowlist` manda solo a direcciones del equipo y `live` a quien corresponda; el ambiente `piloto` queda en `off` o `allowlist` hasta que el dueño de la inmobiliaria apruebe el envío a su cartera. El consentimiento se guarda como historial por persona y dirección: la baja se respeta siempre y WhatsApp necesita el alta explícita. Los PDF de los documentos no se guardan en la bandeja: se generan al despachar. Las pruebas usan un proveedor de prueba y nunca llaman a Resend ni a Meta. En `piloto`, Resend y WhatsApp todavía no tienen credenciales (el dominio verificado y la cuenta de WhatsApp Business están pendientes); sin ellas los mensajes quedan pendientes con el motivo a la vista y el Admin sigue compartiendo los enlaces de invitación a mano.
 
+## Cobranza escalonada
+
+La mora de un contrato se sigue con un caso de cobranza (`collection_cases`) que recorre etapas, con su línea de tiempo en `collection_actions` (ADR-0013). Un proceso diario, apagado de fábrica por inmobiliaria, abre el caso cuando un contrato tiene un alquiler vencido con saldo y encola cada recordatorio en la bandeja de salida con el importe exacto de ese día; la carta documento solo se prepara como borrador y una persona decide cuándo se manda y cuándo se deriva a un abogado.
+
+Diagrama 7. Flujo de cobranza escalonada: de la mora al abogado, con lo que hace el sistema y lo que decide una persona.
+
+```mermaid
+flowchart TD
+    mora["Alquiler vencido con saldo<br/>(proceso diario, 10:00)"]
+    abre["Se abre el caso<br/>etapa Recordatorio"]
+    r1["D+5: recordatorio amable (nivel 1)"]
+    r2["D+10: recordatorio más firme (nivel 2)"]
+    r3["D+15: recordatorio firme (nivel 3)"]
+    outbox[("message_outbox<br/>importe exacto de hoy")]
+    pago{"Pago"}
+    cierra["Caso cerrado"]
+    acuerdo["Acuerdo de pago<br/>pausa hasta su fecha"]
+    prej["Vence el alquiler siguiente impago:<br/>etapa Prejudicial,<br/>borrador de la carta documento"]
+    manual1["Una persona revisa el borrador,<br/>lo manda en papel y confirma el envío"]
+    plazo["10 días corridos desde el envío"]
+    manual2["Una persona decide derivar<br/>a un abogado"]
+    abog["Etapa Abogado"]
+    judi["Etapa Judicial<br/>(juicio o desalojo)"]
+
+    mora --> abre --> r1 --> r2 --> r3 --> prej
+    r1 -.->|enqueue| outbox
+    r2 -.->|enqueue| outbox
+    r3 -.->|enqueue| outbox
+    r1 --> pago
+    r2 --> pago
+    r3 --> pago
+    prej --> pago
+    pago -->|"total"| cierra
+    pago -->|"parcial: sigue abierto"| r1
+    abre -.-> acuerdo
+    acuerdo -.->|"si no se cumple, retoma"| r2
+    prej --> manual1 --> plazo -->|"el sistema avisa y sugiere"| manual2 --> abog --> judi
+```
+
+Nada legal sale solo: la carta documento nunca se manda por el sistema (ni por mail ni por WhatsApp) y la derivación es manual. Con `MESSAGING_MODE` en `off` los recordatorios quedan encolados con su motivo y no sale ninguno. El ritmo y el plazo se configuran en los valores por defecto de la inmobiliaria.
+
 ## Decisiones técnicas clave
 
 - **Monorepo Turborepo + pnpm**: una sola versión de cada dependencia, build incremental con cache (ADR 0001).
