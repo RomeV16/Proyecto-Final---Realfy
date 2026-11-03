@@ -43,7 +43,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-71 | La compensación sin importe deja al locador compensado sin la comisión que ya se le había descontado | Alta | — | CP-661, CP-663 | [#174](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/174) | Corregido (3 nov) |
 | DEF-72 | La compensación se asienta el día en que se carga y no se le puede indicar la fecha | Media | — | CP-662, CP-667 | [#175](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/175) | Corregido (3 nov) |
 | DEF-73 | El cobro del primer mes de un contrato que empieza a mitad de mes no se reparte entre sus locadores | Alta | — | CP-668, CP-666 | [#176](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/176) | Corregido (3 nov) |
-| DEF-80 | Guardar los valores por defecto pisa las convenciones de depósitos con las de fábrica | Media | — | CP-725 | — | Corregido (3 nov) |
+| DEF-80 | Guardar los valores por defecto pisa las convenciones de depósitos con las de fábrica | Media | — | CP-725 | [#179](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/179) | Corregido (3 nov) |
 
 ---
 
@@ -555,4 +555,4 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el formulario no edita `deposits` y el cuerpo que arma (`operationalDefaultsFromForm`) no lo incluye; el `PUT` reemplaza el objeto entero y completa lo que falta con los valores de fábrica.
 - **Corrección:** al guardar, la pantalla reenvía las convenciones de depósitos tal como estaban guardadas.
 - **Prueba de regresión:** CP-725 en `apps/web/src/components/settings/operational-defaults-form.def80.test.tsx`.
-- **Evidencia rojo/verde:** regresión `a6f9397` en rojo (1 prueba falla: el cuerpo llega sin `deposits`); corrección en `469278c`.
+- **Evidencia rojo/verde:** regresión `36132f7` en rojo (1 prueba falla: el cuerpo llega sin `deposits`); corrección en `1be5b3a`.
