@@ -4855,6 +4855,10 @@
     "title": "Cuenta corriente del locador",
     "description": "Cuándo cierra el estado de cuenta mensual y cuándo se descuentan los gastos a cargo del locador."
    },
+   "sales": {
+    "title": "Ventas",
+    "description": "Reservas y señas: plazo, quién guarda el dinero y la documentación exigida para el boleto. El sistema solo registra: nunca devuelve ni retiene una seña por su cuenta."
+   },
    "repairs": {
     "title": "Reparaciones",
     "description": "Hasta qué importe se actúa sin consultar al locador y el honorario por gestión que se propone."
@@ -5035,6 +5039,23 @@
      "AlGenerarEstado": "Al generar el borrador del mes",
      "AlEmitirEstado": "Al emitir el estado (el borrador los muestra como previstos)"
     }
+   },
+   "salesReservationDays": {
+    "label": "Días de vigencia de una reserva",
+    "hint": "Si no se indica vencimiento, la reserva vence a los {value} días (de fábrica {value}). Pasada la fecha, un proceso diario la marca vencida y libera la operación."
+   },
+   "salesDefaultDepositHolder": {
+    "label": "Quién guarda el dinero de una reserva o seña",
+    "hint": "De fábrica: {value}. Lo que guarda la inmobiliaria entra a su caja como seña.",
+    "options": {
+     "Inmobiliaria": "La inmobiliaria",
+     "Vendedor": "El vendedor",
+     "Escribano": "El escribano"
+    }
+   },
+   "salesRequireDocsForBoleto": {
+    "label": "Exigir la documentación obligatoria para pasar a boleto",
+    "hint": "Informes de dominio e inhibición, certificado catastral, libre deuda, título y DNI de los vendedores. Si está apagado, el boleto no la exige. Se puede seguir sin ella dejando el motivo."
    },
    "repairPreauthLimit": {
     "label": "Límite sin consultar al locador ($)",

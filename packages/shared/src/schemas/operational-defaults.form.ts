@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
+import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, SalesDepositHolder, UpfrontBasis } from '../enums';
 import type { OperationalDefaults, OperationalDefaultsInput } from './operational-defaults.schema';
 import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
 import { ReceiptSeriesMode } from '../cash';
@@ -79,6 +79,10 @@ export const operationalDefaultsFormSchema = z
     repairMgmtFeePct: numberText({ min: 0, max: 100 }),
     messagingFromHour: numberText({ int: true, min: 0, max: 23 }),
     messagingUntilHour: numberText({ int: true, min: 1, max: 24 }),
+
+    salesReservationDays: numberText({ int: true, min: 1, max: 90 }),
+    salesDefaultDepositHolder: z.nativeEnum(SalesDepositHolder),
+    salesRequireDocsForBoleto: z.boolean(),
   })
   .refine((v) => Number(v.yellowDays) >= Number(v.redDays) || !/^\d+$/.test(v.yellowDays), {
     message: 'validation.outOfRange',
@@ -140,6 +144,10 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     repairMgmtFeePct: String(d.repairs.managementFeePct),
     messagingFromHour: String(d.messaging.fromHour),
     messagingUntilHour: String(d.messaging.untilHour),
+
+    salesReservationDays: String(d.sales.reservationDays),
+    salesDefaultDepositHolder: d.sales.defaultDepositHolder,
+    salesRequireDocsForBoleto: d.sales.requireDocsForBoleto,
   };
 }
 
@@ -190,5 +198,11 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
     invoicing: { scope: f.invoicingScope, when: f.invoicingWhen, vatPct: num(f.invoicingVatPct) },
     repairs: { preauthLimit: num(f.repairPreauthLimit), managementFeePct: num(f.repairMgmtFeePct) },
     messaging: { fromHour: num(f.messagingFromHour), untilHour: num(f.messagingUntilHour) },
+
+    sales: {
+      reservationDays: num(f.salesReservationDays),
+      defaultDepositHolder: f.salesDefaultDepositHolder,
+      requireDocsForBoleto: f.salesRequireDocsForBoleto,
+    },
   };
 }

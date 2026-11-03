@@ -15,6 +15,7 @@ import {
   LessorInvoiceWhen,
   PartialAllocation,
   ReceiptSeriesMode,
+  SalesDepositHolder,
   StaffCommissionBase,
   operationalDefaultsFormSchema,
   operationalDefaultsFromForm,
@@ -36,7 +37,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PenaltyConfigForm } from './penalty-config-form';
 
 /** Campos que son una casilla (sí / no). */
-type CheckField = 'allowProvisional' | 'feeAdjustInstallments' | 'cashCustodyInAgencyBalance' | 'cashReceiptWhenLessorReceives';
+type CheckField =
+  | 'allowProvisional'
+  | 'feeAdjustInstallments'
+  | 'cashCustodyInAgencyBalance'
+  | 'cashReceiptWhenLessorReceives'
+  | 'salesRequireDocsForBoleto';
 type FieldName = Exclude<keyof OperationalDefaultsFormInput, CheckField>;
 
 /** Opciones de honorarios, de caja y cobros y de la cuenta corriente del locador que se eligen de una lista. */
@@ -53,6 +59,7 @@ const CASH_OPTIONS = {
   invoicingScope: Object.values(LessorInvoiceScope),
   invoicingWhen: Object.values(LessorInvoiceWhen),
   invoicingVatPct: LESSOR_INVOICE_VAT_RATES.map(String),
+  salesDefaultDepositHolder: Object.values(SalesDepositHolder),
 } as const;
 
 /** Campos de texto que pueden quedar vacíos (vacío = el comportamiento de fábrica). */
@@ -98,6 +105,12 @@ const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = 
   { key: 'ownerAccounts', fields: ['ownerStatementCloseDay', 'ownerLessorChargeTiming'] },
   { key: 'invoicing', fields: ['invoicingScope', 'invoicingWhen', 'invoicingVatPct'] },
   { key: 'messaging', fields: ['messagingFromHour', 'messagingUntilHour'] },
+
+  {
+    key: 'sales',
+    fields: ['salesReservationDays', 'salesDefaultDepositHolder'],
+    checks: ['salesRequireDocsForBoleto'],
+  },
 ];
 
 const DEFAULT_FORM = operationalDefaultsToForm(DEFAULT_OPERATIONAL_DEFAULTS);

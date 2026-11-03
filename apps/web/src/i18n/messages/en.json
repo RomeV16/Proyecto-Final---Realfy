@@ -4855,6 +4855,10 @@
     "title": "Lessor account",
     "description": "When the monthly owner statement closes and when the expenses charged to the lessor are deducted."
    },
+   "sales": {
+    "title": "Sales",
+    "description": "Reservations and deposits: period, who holds the money and the paperwork required for the preliminary contract. The system only records: it never refunds or forfeits a deposit by itself."
+   },
    "repairs": {
     "title": "Repairs",
     "description": "Up to which amount the agency acts without asking the lessor, and the management fee that is suggested."
@@ -5035,6 +5039,23 @@
      "AlGenerarEstado": "When the month's draft is generated",
      "AlEmitirEstado": "When the statement is issued (the draft shows them as expected)"
     }
+   },
+   "salesReservationDays": {
+    "label": "Days a reservation lasts",
+    "hint": "Without an expiry date, a reservation expires after {value} days (default {value}). After the date a daily process marks it expired and releases the operation."
+   },
+   "salesDefaultDepositHolder": {
+    "label": "Who holds the money of a reservation or deposit",
+    "hint": "Default: {value}. What the agency holds goes into its cash as a deposit.",
+    "options": {
+     "Inmobiliaria": "The agency",
+     "Vendedor": "The seller",
+     "Escribano": "The notary"
+    }
+   },
+   "salesRequireDocsForBoleto": {
+    "label": "Require the mandatory paperwork to move to the preliminary contract",
+    "hint": "Title and inhibition reports, cadastral certificate, debt-free certificates, title and the sellers ID. When off, the preliminary contract does not require it. It can be skipped by leaving the reason."
    },
    "repairPreauthLimit": {
     "label": "Limit without asking the lessor ($)",

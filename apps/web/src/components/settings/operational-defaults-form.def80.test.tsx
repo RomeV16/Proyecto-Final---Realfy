@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { DEFAULT_OPERATIONAL_DEFAULTS, type OperationalDefaults } from '@realfy/shared';
+import { DEFAULT_OPERATIONAL_DEFAULTS, DepositHolder, type OperationalDefaults } from '@realfy/shared';
 import { renderEs } from '../index-data/test-utils';
 
 const { apiClient, toast } = vi.hoisted(() => ({
@@ -27,7 +27,7 @@ const PENALTY_RULE = { mode: 'daily_percent', value: '0.001', graceDays: 5, maxM
 /** Convenciones que la inmobiliaria cambió y que el formulario no edita. */
 const SAVED: OperationalDefaults = {
   ...DEFAULT_OPERATIONAL_DEFAULTS,
-  deposits: { defaultHeldBy: 'Inmobiliaria', refundDueDays: 45, deductionsNeedLessorApproval: true },
+  deposits: { defaultHeldBy: DepositHolder.Inmobiliaria, refundDueDays: 45, deductionsNeedLessorApproval: true },
 };
 
 describe('DEF-80: guardar los valores por defecto no pisa lo que el formulario no edita', () => {

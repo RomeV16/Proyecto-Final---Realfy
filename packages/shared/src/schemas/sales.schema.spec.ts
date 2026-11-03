@@ -1,3 +1,6 @@
+import { SalesDepositHolder } from '../enums';
+import { DEFAULT_OPERATIONAL_DEFAULTS, OperationalDefaultsSchema } from './operational-defaults.schema';
+import { operationalDefaultsFormSchema, operationalDefaultsFromForm, operationalDefaultsToForm } from './operational-defaults.form';
 import {
   CreateKeySetSchema,
   CreateSalesFeeSchema,
@@ -64,5 +67,19 @@ describe('esquemas de ventas', () => {
     expect(KeyCheckOutSchema.safeParse({ holder: 'Oficina' }).success).toBe(false);
     expect(KeyCheckOutSchema.safeParse({ holder: 'Tercero' }).success).toBe(false);
     expect(KeyCheckOutSchema.safeParse({ holder: 'Tercero', holderName: 'Escribana' }).success).toBe(true);
+  });
+
+  it('las convenciones de ventas: de fábrica conservadoras, ida y vuelta por el formulario y con topes', () => {
+    expect(DEFAULT_OPERATIONAL_DEFAULTS.sales).toEqual({ reservationDays: 7, defaultDepositHolder: 'Inmobiliaria', requireDocsForBoleto: true });
+    const form = operationalDefaultsToForm(DEFAULT_OPERATIONAL_DEFAULTS);
+    expect(form).toMatchObject({ salesReservationDays: '7', salesDefaultDepositHolder: 'Inmobiliaria', salesRequireDocsForBoleto: true });
+    const changed = { ...form, salesReservationDays: '15', salesDefaultDepositHolder: SalesDepositHolder.Escribano, salesRequireDocsForBoleto: false };
+    expect(OperationalDefaultsSchema.parse(operationalDefaultsFromForm(changed)).sales).toEqual({
+      reservationDays: 15,
+      defaultDepositHolder: 'Escribano',
+      requireDocsForBoleto: false,
+    });
+    expect(operationalDefaultsFormSchema.safeParse({ ...form, salesReservationDays: '0' }).success).toBe(false);
+    expect(operationalDefaultsFormSchema.safeParse({ ...form, salesReservationDays: '91' }).success).toBe(false);
   });
 });

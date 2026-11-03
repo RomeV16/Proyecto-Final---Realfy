@@ -289,6 +289,25 @@ describe('OperationalDefaultsManager', () => {
     expect(JSON.parse(put[1].body).messaging).toEqual({ fromHour: 8, untilHour: 21 });
   });
 
+  it('ventas: plazo de la reserva, quién guarda el dinero y la documentación para el boleto, con su valor de fábrica', async () => {
+    const user = userEvent.setup();
+    renderEs(<OperationalDefaultsManager />);
+    const days = await screen.findByLabelText(/Días de vigencia de una reserva/);
+    expect(days).toHaveValue('7');
+    expect(screen.getByLabelText(/Quién guarda el dinero de una reserva o seña/)).toHaveValue('Inmobiliaria');
+    const docs = screen.getByRole('checkbox', { name: /Exigir la documentación obligatoria/ });
+    expect(docs).toBeChecked();
+
+    await user.clear(days);
+    await user.type(days, '15');
+    await user.selectOptions(screen.getByLabelText(/Quién guarda el dinero de una reserva o seña/), 'Escribano');
+    await user.click(docs);
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(put[1].body).sales).toEqual({ reservationDays: 15, defaultDepositHolder: 'Escribano', requireDocsForBoleto: false });
+  });
+
   it('un valor inválido se marca en el campo y no se envía', async () => {
     const user = userEvent.setup();
     renderEs(<OperationalDefaultsManager />);
