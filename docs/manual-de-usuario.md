@@ -557,6 +557,60 @@ no se exige que los porcentajes sumen 100. Si los porcentajes cargados no suman
 100 %, aparece un aviso que no impide guardar. Agregar y quitar titulares es de
 Admin, Gerente y Ventas; quitar pide confirmación.
 
+### Ventas, señas y llaves
+
+**Ventas** (`/ventas`) sigue cada operación de venta desde que se capta la propiedad hasta la
+escritura. La ven Admin, Gerente, Ventas y Lectura; cargan y mueven las operaciones Admin,
+Gerente y Ventas. La escritura **no se gestiona** en el sistema: se registra como estado final
+y fecha.
+
+1. **Abrir la operación.** *Nueva operación de venta* (o *Iniciar venta* en la ficha de la
+   propiedad) pide la propiedad, el precio de publicación y si es exclusiva (por ahora la
+   inmobiliaria no trabaja con exclusividad: se puede marcar a futuro). Una propiedad tiene una
+   sola operación abierta. Se crea sola la lista de **documentación del inmueble**.
+2. **Partes.** En el detalle, *Editar partes* suma compradores y vendedores. Si hay más de uno de
+   un lado, cada uno lleva su parte y el lado suma 100 %.
+3. **Reserva.** *Agregar reserva o seña* carga la reserva con su importe, su moneda, quién guarda
+   el dinero (la inmobiliaria, el vendedor o el escribano) y su **vencimiento** (siete días por
+   defecto, se cambia en *Valores por defecto*). *Recibir* registra que el dinero entró: si lo guarda
+   la inmobiliaria, entra a la caja como movimiento de **seña**; si lo guarda el vendedor o el escribano,
+   solo se anota. Con un comprador y una reserva cargada, *Reservar* pasa la operación a reservada. Una
+   reserva vence al día siguiente de su fecha; se puede **prorrogar** antes de recibir el dinero. Cada
+   noche el sistema marca vencidas las reservas pasadas y, si no queda otra reserva o seña, **libera**
+   la operación (vuelve a publicada).
+4. **Seña.** Se carga igual que la reserva; al recibirla, *Registrar seña recibida* pasa la operación
+   a ese estado.
+5. **Documentación.** Se tilda a medida que llega: informes de dominio y de inhibición, certificado
+   catastral, libre deuda municipal y de Rentas, título y DNI de los vendedores son obligatorios; el
+   libre deuda de expensas, el estado civil y el plano final de obra son opcionales. *Pasar a boleto*
+   pide la fecha de firma y exige la obligatoria; si falta alguna, se puede seguir dejando el motivo
+   (queda en la auditoría).
+6. **Escritura.** *Registrar escritura* pide la fecha (no puede ser futura). Las señas recibidas se
+   aplican al precio y la operación se cierra; la propiedad queda libre para otra operación.
+7. **Honorario.** Desde la reserva, *Pactar honorario* propone el porcentaje de la inmobiliaria según
+   el tipo de inmueble (3 % por parte si es construido, 5 % si es lote) sobre el valor pactado, uno
+   para el comprador y otro para el vendedor, y lo crea vinculado a la operación (solo Admin y
+   Gerente). Se cobra en **Honorarios**.
+
+**Devolver o retener una seña** (solo Admin y Gerente). El sistema **registra, no decide**: *Devolver*
+anota la devolución al comprador (completa o parcial, nunca más de lo recibido) y, si el dinero lo
+guardaba la inmobiliaria, lo saca de la misma cuenta de caja; *Retener* anota la pérdida de la seña
+con su motivo y **no mueve la caja**. Las reglas de la pérdida de la seña y de la devolución en doble
+las define la inmobiliaria con su abogado y se arreglan fuera del sistema. Mientras haya dinero
+recibido sin devolver ni retener, la operación no se puede volver a publicar ni cancelar.
+
+**Señas pendientes** (solapa de Ventas) lista lo prometido y no cobrado, y el dinero recibido que
+todavía no se devolvió ni se aplicó, con el total por moneda y por quién lo guarda, y el aviso
+de vencimiento (vencida, vence hoy, vence pronto).
+
+**Llaves.** La ficha de cada propiedad tiene la sección **Llaves**: cada juego (principal, cochera,
+baulera) con sus copias, el lugar donde se guarda en la oficina y quién lo tiene hoy. *Registrar
+salida* anota a quién se entrega (un empleado, el propietario, el inquilino o un tercero como un
+escribano o un plomero), para qué y cuándo debería volver; *Registrar devolución* lo deja de nuevo en
+la oficina. **Llaves fuera** (`/llaves`) lista todas las salidas abiertas, filtra por quién las tiene
+y marca en rojo las atrasadas con los días de atraso. Cargan y mueven Admin, Gerente y Ventas; ven
+también Soporte y Lectura.
+
 ### Depósito del contrato y liquidación de egreso
 
 En el detalle de cada contrato está la tarjeta **Depósito en garantía**.
@@ -1271,6 +1325,8 @@ con los ajustes que se conocen al firmar, o el alquiler inicial por los meses), 
 honorario completo). Cada campo muestra debajo el valor de fábrica. Cambiá lo que necesites y
 tocá *Guardar valores*; *Volver a los valores de fábrica* los restaura en el
 formulario (hay que guardar para aplicarlo).
+
+La sección **Ventas** fija los **días de vigencia de una reserva** (7), **quién guarda el dinero** de una reserva o seña cuando no se indica (la inmobiliaria) y si el boleto **exige la documentación obligatoria** (sí). Son convenciones conservadoras: el sistema registra las señas pero nunca devuelve ni retiene una por su cuenta.
 
 Cambiar un valor por defecto no toca los contratos que ya existen: rige para los
 que se carguen desde ese momento, y cada contrato o acuerdo puede después fijar

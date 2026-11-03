@@ -359,6 +359,8 @@ La prórroga de palabra, la renovación y la adenda están en [Contratos](#contr
 
 Los valores por defecto (`operationalDefaults.deposits`) son quién guarda el depósito (`defaultHeldBy`, `Locador`), el plazo de devolución (`refundDueDays`, 30 días corridos) y si los descuentos y las reparaciones necesitan la conformidad del locador (`deductionsNeedLessorApproval`, `false`). Un contrato nuevo con `depositAmount` crea su depósito pendiente, en una cuota al inicio; `PATCH /contracts/:id` ya no acepta `depositAmount` ni `depositCurrency` (el depósito se cambia en `PUT /contracts/:id/deposit`). Convenciones: pesos actualizado sigue la evolución del alquiler del contrato (su propio índice) y no devuelve menos que el nominal; el depósito lo guarda por defecto el locador; la conformidad del locador está apagada; el plazo de devolución es de 30 días.
 
+Las convenciones de ventas (`operationalDefaults.sales`) son los días de vigencia de una reserva (`reservationDays`, 7), quién guarda el dinero por defecto (`defaultDepositHolder`, `Inmobiliaria`) y si el boleto exige la documentación obligatoria (`requireDocsForBoleto`, `true`).
+
 ## Liquidaciones
 
 | Método | Ruta | Para qué | Acceso |
@@ -521,6 +523,71 @@ Códigos de error: `FEE_NOT_FOUND`, `FEE_INSTALLMENT_NOT_FOUND`, `FEE_SHARE_NOT_
 `INVALID_STAFF_COMMISSION`, `INVALID_INSTALLMENTS`, `INVALID_TERM` (400);
 `FEE_CANCELLED`, `FEE_HAS_PAYMENTS`, `FEE_HAS_PAID_COMMISSIONS`,
 `FEE_INSTALLMENT_NOT_PENDING`, `STAFF_COMMISSION_PAID` (409).
+
+## Ventas
+
+Operaciones de venta (D14): de la captación a la escritura. La escritura **no se gestiona**:
+queda como estado final (`Escriturada`) y su fecha. Una propiedad tiene a lo sumo una
+operación abierta (409 `SALES_OPERATION_EXISTS`). Las rutas las escriben Admin, Gerente y
+Ventas; las leen además Lectura. Devolver o retener una seña y pactar el honorario son solo
+de Admin y Gerente. Cada alta y cada cambio de etapa, seña o documentación se audita.
+
+| Método | Ruta | Descripción | Roles |
+|---|---|---|---|
+| GET | `/sales-operations` | Embudo paginado. Filtros: `status`, `open=true|false`, `propertyId`, `personId`, `exclusive`, `page`, `limit`. Cada operación trae la propiedad, las partes, las reservas y señas (con `expired` y `unresolvedMoney`), la documentación, los honorarios, `docProgress`, `nextExpiry` y `validTransitions`. | Admin, Gerente, Ventas, Lectura |
+| GET | `/sales-operations/:id` | Una operación. 404 `SALES_OPERATION_NOT_FOUND`. | Ídem |
+| GET | `/properties/:propertyId/sales-operations` | La operación abierta (si hay) y el historial de la propiedad. | Ídem |
+| POST | `/sales-operations` | Alta: `propertyId`, `status` (`Captacion` o `Publicada`), `exclusive`, `price`, `currency` (USD por defecto), `agentUserId`, `parties[]` (`role`, `personId`, `sharePct`; cada lado suma 100), `notes`. Crea la lista de documentación del inmueble. 404 `PROPERTY_NOT_FOUND`, `PERSON_NOT_FOUND`, `USER_NOT_FOUND`; 409 `SALES_OPERATION_EXISTS`. | Admin, Gerente, Ventas |
+| PATCH | `/sales-operations/:id` | Exclusividad, `price`, `agreedPrice`, `currency`, responsable y notas, mientras la operación esté abierta (409 `SALES_OPERATION_CLOSED`). | Ídem |
+| PUT | `/sales-operations/:id/parties` | Reemplaza compradores y vendedores. 400 si un lado no suma 100 o repite a una persona. | Ídem |
+| PATCH | `/sales-operations/:id/docs/:code` | Tilda (`done`) o anota (`notes`) un renglón de la documentación. 404 `DOC_CHECK_NOT_FOUND`. | Ídem |
+| POST | `/sales-operations/:id/transition` | Cambio de etapa: `to` y, según la etapa, `reason` (obligatorio al cancelar), `boletoDate`, `escrituraDate` (no futura), `agreedPrice`, `docsOverrideReason`. | Ídem |
+| GET | `/sales-operations/deposits/pending` | Señas pendientes: pendientes de cobro, recibidas sin resolver y vencidas con dinero. Filtros `holder`, `status`. Trae `held`: el dinero recibido sin resolver por moneda y por quién lo guarda. | Admin, Gerente, Ventas, Lectura |
+| POST | `/sales-operations/:id/deposits` | Alta de una reserva o seña: `kind`, `amount`, `currency` (la de la operación), `holder` (`Inmobiliaria`, `Vendedor` o `Escribano`; por defecto `sales.defaultDepositHolder`), `holderPersonId`, `payerPersonId`, `expiresAt` (una reserva sin fecha vence a los `sales.reservationDays`), `notes`. 409 `INVALID_STAGE_FOR_DEPOSIT`; 400 `EXPIRY_IN_PAST`. | Admin, Gerente, Ventas |
+| PATCH | `/sales-operations/:id/deposits/:depositId` | Prorroga el vencimiento o cambia las notas de una reserva o seña viva. 400 `EXPIRY_REQUIRED`, `EXPIRY_IN_PAST`; 409 `DEPOSIT_CLOSED`. | Ídem |
+| POST | `/sales-operations/:id/deposits/:depositId/receive` | El dinero entró (`receivedAt`, `method`, `accountId`, `note`). Si lo guarda la inmobiliaria escribe un movimiento de caja de categoría `Sena` (entrada, con el comprador de contraparte); si no, solo se anota. 409 `DEPOSIT_NOT_PENDING`, `DEPOSIT_EXPIRED`. | Ídem |
+| POST | `/sales-operations/:id/deposits/:depositId/refund` | Devolución al comprador (`at`, `amount` hasta lo recibido, `method`, `note`). Si lo guarda la inmobiliaria sale un movimiento de caja `Sena` de la misma cuenta. Deja la seña `Devuelta`. 400 `REFUND_EXCEEDS_DEPOSIT`; 409 `NO_MONEY_TO_RESOLVE`. | Admin, Gerente |
+| POST | `/sales-operations/:id/deposits/:depositId/forfeit` | Retención (`at`, `amount`, `note` obligatoria). **Solo se registra**: deja la seña `Retenida` y no mueve la caja. 400 `FORFEIT_EXCEEDS_DEPOSIT`; 409 `NO_MONEY_TO_RESOLVE`. | Admin, Gerente |
+| GET | `/sales-operations/:id/fee-proposal` | Honorario sugerido: porcentaje por defecto según el tipo de inmueble (`fees.ventaConstruido`, 3 %; `fees.ventaLote`, 5 %), base (precio pactado o de publicación) y el pagador principal de cada lado. | Admin, Gerente |
+| POST | `/sales-operations/:id/fee` | Crea el honorario de venta, uno por comprador y vendedor principal (cada parte paga el porcentaje), con `Fee.salesOpId` apuntando a la operación. Cuerpo opcional: `pct`, `baseAmount`, `installments`, `firstDueDate`, `payers[]`, `notes`. 409 `INVALID_STAGE_FOR_FEE`, `SALES_FEE_EXISTS`; 400 `PRICE_REQUIRED`, `PAYERS_REQUIRED`, `PAYER_NOT_PARTY`. El cobro sigue en `/fees`. | Admin, Gerente |
+
+**Etapas.** `Captacion` → `Publicada` → `Reservada` → `SenaRecibida` → `Boleto` →
+`Escriturada`; desde `Reservada` y `SenaRecibida` se vuelve a `Publicada`, y todas las
+abiertas pueden pasar a `Cancelada`. Una transición no permitida da 400 `INVALID_TRANSITION`
+con los destinos válidos. Reservar exige un comprador (409 `BUYER_REQUIRED`) y una reserva
+viva (409 `RESERVATION_REQUIRED`); `SenaRecibida`, una seña recibida (409
+`DEPOSIT_NOT_RECEIVED`); `Boleto`, `boletoDate` y la documentación obligatoria o
+`docsOverrideReason` (409 `DOCS_PENDING`; la exigencia se apaga con
+`sales.requireDocsForBoleto`); `Escriturada`, `escrituraDate` (400 `ESCRITURA_IN_FUTURE`). Volver a
+`Publicada` o cancelar con dinero recibido sin resolver da 409 `DEPOSITS_UNRESOLVED`: primero
+se registra la devolución o la retención. Al salir de la etapa las señas pendientes de cobro
+pasan a `Vencida`; al escriturar las recibidas pasan a `Aplicada`.
+
+**Vencimiento de reservas.** Un proceso diario (05:45, hora de Buenos Aires, por inmobiliaria) marca
+`Vencida` a la reserva viva cuya fecha pasó y, si la operación estaba `Reservada` y no le queda
+otra reserva o seña viva, la vuelve a `Publicada`. No devuelve ni retiene nada: el dinero ya
+recibido sigue en las señas pendientes hasta resolverse. Es idempotente.
+
+**Convenciones** (`operationalDefaults.sales`): `reservationDays` (7), `defaultDepositHolder`
+(`Inmobiliaria`) y `requireDocsForBoleto` (`true`). Son conservadoras: el sistema registra y
+nunca decide por su cuenta las reglas de pérdida de la seña, de devolución en doble ni de
+quién se queda con el dinero.
+
+## Llaves
+
+Juegos de llaves por propiedad (D14). Siempre que un juego no está en la oficina tiene una
+salida abierta; devolverlo la cierra. Cargan y mueven Admin, Gerente y Ventas; ven además
+Soporte y Lectura.
+
+| Método | Ruta | Descripción | Roles |
+|---|---|---|---|
+| GET | `/properties/:propertyId/keys` | Juegos de la propiedad con quién los tiene, `openMovement`, `overdue`, `daysOverdue` y las últimas 20 salidas. | Admin, Gerente, Ventas, Soporte, Lectura |
+| POST | `/properties/:propertyId/keys` | Alta de un juego: `label`, `copies`, `location`, `holder` (`Oficina` por defecto), `holderPersonId`, `holderUserId`, `holderName`, `notes`. Si nace fuera de la oficina queda con su salida abierta. | Admin, Gerente, Ventas |
+| GET | `/keys/:id` | Un juego. 404 `KEY_SET_NOT_FOUND`. | Admin, Gerente, Ventas, Soporte, Lectura |
+| PATCH | `/keys/:id` | Nombre, copias, lugar, notas o baja (`isActive`; 409 `KEY_SET_OUT` si está fuera). | Admin, Gerente, Ventas |
+| POST | `/keys/:id/check-out` | Salida: `holder` (no `Oficina`), `holderPersonId`, `holderUserId` o `holderName`, `reason`, `outAt`, `expectedReturnAt`. 409 `KEY_ALREADY_OUT`, `KEY_SET_INACTIVE`; 400 `DATE_IN_FUTURE`, `RETURN_BEFORE_OUT`. | Ídem |
+| POST | `/keys/:id/check-in` | Devolución: `returnedAt`, `location`, `notes`. El juego vuelve a la oficina. 409 `KEY_NOT_OUT`; 400 `DATE_IN_FUTURE`, `RETURN_BEFORE_OUT`. | Ídem |
+| GET | `/keys/out` | «Llaves fuera»: salidas abiertas, las de fecha de vuelta más antigua primero, con `overdue` y `daysOverdue`. Filtros `holder`, `propertyId`, `overdue=true`, `page`, `limit`. | Admin, Gerente, Ventas, Soporte, Lectura |
 
 ## Rendiciones al propietario (histórico)
 
