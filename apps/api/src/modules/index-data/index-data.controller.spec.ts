@@ -25,8 +25,10 @@ const mockIndexDataService = {
   findLatest: mockFindLatest,
 };
 
+const mockBackfill = jest.fn().mockResolvedValue({ inserted: 2 });
 const mockIndexScraperService = {
   upsertAll: mockUpsertAll,
+  backfillLevelSeries: mockBackfill,
 };
 
 // ─── Configurable auth guard ─────────────────────────────────────────────────
@@ -200,5 +202,24 @@ describe('IndexDataController — delegación', () => {
       counts: { icl: 2, uva: 3, ipc: 4 },
       total: 9,
     });
+  });
+
+  it('CP-1236: POST /index-data/backfill valida el cuerpo y delega el tipo y el rango al lector del BCRA', async () => {
+    await expect(controller.backfill({ indexType: 'UVA', from: '2025-01-01', to: '2025-02-01' })).resolves.toEqual({
+      inserted: 2,
+    });
+    expect(mockBackfill).toHaveBeenCalledWith('UVA', '2025-01-01', '2025-02-01');
+  });
+
+  it.each([
+    ['un índice mensual', { indexType: 'IPC', from: '2025-01-01', to: '2025-02-01' }],
+    ['un rango invertido', { indexType: 'ICL', from: '2025-02-01', to: '2025-01-01' }],
+    ['un rango de más de diez años', { indexType: 'ICL', from: '2010-01-01', to: '2025-01-01' }],
+    ['una fecha futura', { indexType: 'ICL', from: '2025-01-01', to: '2999-01-01' }],
+    ['una fecha que no es de calendario', { indexType: 'ICL', from: '2025-02-30', to: '2025-03-01' }],
+    ['un cuerpo vacío', {}],
+  ])('CP-1236: rechaza %s con 400 y no consulta al BCRA', async (_name, body) => {
+    await expect(controller.backfill(body)).rejects.toMatchObject({ status: 400 });
+    expect(mockBackfill).not.toHaveBeenCalled();
   });
 });
