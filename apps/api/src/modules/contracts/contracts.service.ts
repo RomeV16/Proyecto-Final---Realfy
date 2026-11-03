@@ -1208,6 +1208,13 @@ export class ContractsService {
       adjustmentId,
       newRentAmount: adjustment.newAmount.toString(),
     });
+    // Los borradores de liquidación del contrato pasan al alquiler nuevo (DEF-133).
+    await this.adjustments.notifyApplied({
+      tenantId,
+      contractId,
+      adjustmentId,
+      adjustmentDate: adjustment.adjustmentDate,
+    });
 
     return this.findOne(contractId);
   }
