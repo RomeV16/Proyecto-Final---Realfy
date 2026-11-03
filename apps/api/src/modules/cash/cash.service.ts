@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
+  AccountOpeningBalanceSchema,
   CashCategory,
   CashDirection,
   CashMovementFilterSchema,
@@ -15,6 +16,7 @@ import {
   OwnerLedgerEntryType,
   convertAmount,
   personName,
+  todayInAR,
 } from '@realfy/shared';
 import Decimal from 'decimal.js';
 import { randomUUID } from 'crypto';
@@ -43,6 +45,9 @@ export interface MovementInput {
   sourceId?: string | null;
   note?: string | null;
 }
+
+/** Origen del asiento de apertura de una cuenta (uno por cuenta). */
+const OPENING_SOURCE = 'OpeningBalance';
 
 const PERSON_SELECT = { select: { id: true, firstName: true, lastName: true } } as const;
 const ACCOUNT_SELECT = { select: { id: true, name: true, kind: true, currency: true, ownerPersonId: true } } as const;
@@ -251,6 +256,71 @@ export class CashService {
         metadata: { operation: 'conversion' },
       });
       return { out, in: inbound };
+    });
+  }
+
+  /**
+   * Saldo inicial de una cuenta (caja, banco o custodia): un único asiento de
+   * apertura por cuenta, en la moneda de la cuenta, con fecha de corte y motivo
+   * en la auditoría. Como el del locador, se crea o se corrige; reenviar lo mismo
+   * no cambia nada. No toca la cuenta corriente del locador: la custodia que se le
+   * debe ya está en su propio saldo inicial (ADR-0012).
+   */
+  async setOpeningBalance(accountId: string, data: unknown) {
+    const input = parseOrThrow(AccountOpeningBalanceSchema, data, 'Invalid opening balance');
+    const tenantId = this.tenantContext.getTenantId()!;
+    const date = input.date ? dayStart(input.date) : todayInAR();
+    const signed = new Decimal(input.amount);
+    return this.prisma.client.$transaction(async (tx: Db) => {
+      await this.lockAccount(tx, tenantId, accountId);
+      const account = await this.findAccount(tx, accountId);
+      if (!account.isActive) throw conflict('ACCOUNT_INACTIVE', 'The account is inactive');
+      if (account.kind === FinancialAccountKind.Custodia && signed.isNegative()) {
+        throw badRequest('CUSTODY_OPENING_NEGATIVE', 'A custody account cannot start with a negative balance');
+      }
+      const key = { accountId, category: CashCategory.SaldoInicial, sourceType: OPENING_SOURCE, sourceId: accountId };
+      const current = await tx.cashMovement.findFirst({ where: key });
+      const direction = signed.isNegative() ? CashDirection.Out : CashDirection.In;
+      const amount = signed.abs();
+      const unchanged =
+        current &&
+        current.direction === direction &&
+        new Decimal(String(current.amount)).equals(amount) &&
+        current.date.getTime() === date.getTime();
+      const noop = current ? unchanged : amount.isZero();
+      let movement = current ?? null;
+      if (!noop) {
+        const metadata = { operation: 'account-opening-balance', reason: input.reason, currency: account.currency };
+        if (current && amount.isZero()) {
+          await tx.cashMovement.delete({ where: { id: current.id } });
+          await this.audit.record(tx, { action: 'DELETE', entity: 'CashMovement', entityId: current.id, before: auditJson(current), metadata });
+          movement = null;
+        } else if (current) {
+          movement = await tx.cashMovement.update({
+            where: { id: current.id },
+            data: { direction, amount: amount.toFixed(2), date },
+            include: { account: ACCOUNT_SELECT, counterparty: PERSON_SELECT },
+          });
+          await this.audit.record(tx, { action: 'UPDATE', entity: 'CashMovement', entityId: current.id, before: auditJson(current), after: auditJson(movement), metadata });
+        } else {
+          movement = await this.recordMovement(tx, {
+            tenantId,
+            accountId,
+            date,
+            direction,
+            amount,
+            currency: account.currency,
+            category: CashCategory.SaldoInicial,
+            sourceType: OPENING_SOURCE,
+            sourceId: accountId,
+            note: input.reason,
+          });
+          await this.audit.record(tx, { action: 'CREATE', entity: 'CashMovement', entityId: movement.id, after: auditJson(movement), metadata });
+        }
+        this.logger.log('Account opening balance set', { accountId, currency: account.currency });
+      }
+      const balance = (await this.balances(tx, [accountId])).get(accountId) ?? new Decimal(0);
+      return { movement, changed: !noop, balance: balance.toFixed(2), currency: account.currency };
     });
   }
 

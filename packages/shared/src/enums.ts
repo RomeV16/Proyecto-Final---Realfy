@@ -563,6 +563,8 @@ export enum CashCategory {
   Deposito = 'Deposito',
   Compensacion = 'Compensacion',
   Conversion = 'Conversion',
+  /** Asiento de apertura de una cuenta (migración): uno por cuenta. */
+  SaldoInicial = 'SaldoInicial',
 }
 
 /**
