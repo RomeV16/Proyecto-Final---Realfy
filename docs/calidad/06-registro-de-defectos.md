@@ -62,6 +62,8 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-135 | La prórroga de palabra de un contrato importado crea pendientes ya cubiertos por el historial de ajustes | Alta | RF-12 | CP-1280, CP-1286 | [#212](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/212) | Corregido (3 nov) |
 | DEF-136 | `apply-batch` no aísla los errores no HTTP y un contrato corta el lote con 409 sin informe por contrato | Media | RF-12, FB-23 | CP-1281, CP-1286 | [#213](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/213) | Corregido (3 nov) |
 | DEF-137 | Sin cronograma aplicado, el primer ajuste acumula la inflación desde el inicio del contrato aunque el alquiler importado ya esté actualizado | Alta | RF-12 | CP-1282 a CP-1285, CP-1287, CP-1288 | [#214](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/214) | Corregido (3 nov) |
+| DEF-120 | Los ajustes ICL y UVA se calculan con la serie incompleta, sin aviso | Alta | RF-12, RF-13 | CP-1220 a CP-1228 | [#203](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/203) | En corrección |
+| DEF-121 | No hay carga del histórico de ICL y UVA de la serie de sistema | Alta | RF-14 | CP-1230 a CP-1236 | [#205](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/205) | En corrección |
 
 ---
 
@@ -828,3 +830,29 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** la ventana arranca en el último ajuste aplicado (cronograma o historial) o, sin ninguno, en el último período salteado fuera de los meses fijos iniciales. Recuperar la inflación salteada no estaba definido: se agregó la convención `skippedAdjustmentsMode` (`NoRecuperar` de fábrica, `Recuperar`), pactable por contrato y con valor por defecto de la inmobiliaria (ADR-0010).
 - **Prueba de regresión:** CP-1282 a CP-1285 (`prorroga-y-lote.e2e-spec.ts`, `adjustment-window.spec.ts`).
 - **Evidencia rojo/verde:** regresión `926b33c` en rojo (la prueba unitaria de la ventana y CP-1282 fallan); corrección en `f0ab144`.
+## DEF-120 — Los ajustes ICL y UVA se calculan con la serie incompleta, sin aviso
+
+- **Requisito afectado:** RF-12 y RF-13 (cálculo y aplicación de ajustes), ADR-0011.
+- **Origen:** ensayo general del primer ciclo del piloto sobre una copia de los datos de la inmobiliaria piloto.
+- **Caso que lo detecta:** CP-1220 y CP-1227.
+- **Severidad:** alta. El alquiler se ajusta con un porcentaje sin relación con el período, y la previsualización lo muestra como «listo».
+- **Pasos para reproducir:** cargar el ICL de sistema solo desde una fecha posterior al inicio de la ventana de un ajuste trimestral y previsualizar o aplicar el ajuste del mes.
+- **Resultado esperado:** 400 `MISSING_INDEX_DATA` con la fecha de la ventana que no tiene valor; el cronograma sigue pendiente y el alquiler no cambia.
+- **Resultado obtenido:** «listo» con un porcentaje absurdo (por ejemplo, un trimestre que ajusta una fracción de punto porcentual; una UVA con base Original que baja el alquiler más de la mitad), y la aplicación lo escribe.
+- **Causa raíz:** para el ICL y la UVA el cálculo tomaba el primer y el último valor existentes dentro de la ventana, aunque no estuvieran en sus extremos (inicio y fin de la ventana). Las series mensuales ya exigían cada mes (DEF-27); las diarias solo exigían dos valores.
+- **Corrección:** el valor de una fecha en las series diarias (el BCRA las publica todos los días corridos, feriados incluidos) es el de esa fecha: si falta el de la fecha de inicio o el de la fecha de fin de la ventana, el ajuste responde `MISSING_INDEX_DATA` con esas fechas, en el cálculo manual, la previsualización y la aplicación. El IPC no tenía el problema.
+- **Prueba de regresión:** CP-1220 a CP-1226 en `apps/api/src/modules/index-data/contract-adjustment-rules.spec.ts`; CP-1227 y CP-1228 en `apps/api/test/e2e/ajuste-masivo.e2e-spec.ts`.
+- **Evidencia rojo/verde:** pendiente de completar con las confirmaciones.
+
+## DEF-121 — No hay carga del histórico de ICL y UVA de la serie de sistema
+
+- **Requisito afectado:** RF-14 (índices de sistema).
+- **Origen:** ensayo general del primer ciclo del piloto; la serie de sistema solo tenía los últimos días y varios contratos necesitan el histórico.
+- **Caso que lo detecta:** CP-1230.
+- **Severidad:** alta. Sin el histórico, los ajustes ICL y UVA de esos contratos quedan en `MISSING_INDEX_DATA` (DEF-120) y la carga manual por inmobiliaria taparía los valores futuros de la serie de sistema.
+- **Pasos para reproducir:** buscar una operación que cargue el ICL o la UVA de sistema para un rango de fechas pasado: el lector diario pide siempre los últimos 60 días.
+- **Resultado esperado:** una operación de administración, idempotente por (tipo, fecha), que cargue la serie de sistema para un rango y avise de los días sin dato.
+- **Resultado obtenido:** no existe.
+- **Corrección:** `POST /api/index-data/backfill` (solo Admin) con `indexType`, `from` y `to`: pide el rango al BCRA por tramos, inserta solo los días que faltan en la serie de sistema y devuelve cuántos insertó, cuántos ya estaban, cuántos difieren y los días que el BCRA no devolvió.
+- **Prueba de regresión:** CP-1230 a CP-1236 en `index-scraper.service.spec.ts`, `index-data.controller.spec.ts` y `apps/api/test/e2e/index-data-backfill.e2e-spec.ts`.
+- **Evidencia rojo/verde:** pendiente de completar con las confirmaciones.
