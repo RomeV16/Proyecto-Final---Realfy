@@ -168,4 +168,96 @@ describe('El ajuste del mes en la liquidación (e2e)', () => {
       expect(audit.changes).toMatchObject({ source: 'generation', appliedPeriod: '2026-12', newRent: '105060' });
     });
   });
+
+  describe('sin el índice del ajuste la liquidación queda bloqueada (DEF-132)', () => {
+    const transition = (token: string, id: string, status: string) =>
+      post(token, `/liquidaciones/${id}/transition`, { status });
+
+    it('CP-1263 — sin el IPC de octubre, diciembre sale con la advertencia ADJUSTMENT_PENDING y no se puede aprobar', async () => {
+      const { tenantId, tokens } = await agency('d5-pend-1');
+      const admin = tokens[UserRole.Admin];
+      await ipc(tenantId, '2026-09', '2.000000');
+      const contract = await createContract(admin);
+
+      const res = await generate(admin, 12, 2026);
+
+      expect(res.body).toMatchObject({ created: 1, adjustmentPending: 1 });
+      expect(res.body.adjustments.applied).toEqual([]);
+      expect(res.body.adjustments.pending).toEqual([
+        expect.objectContaining({
+          contractId: contract.id,
+          appliedPeriod: '2026-12',
+          reason: 'MISSING_INDEX_DATA',
+          missingPeriods: ['2026-10'],
+        }),
+      ]);
+      expect(res.body.results[0]).toMatchObject({ status: 'created', warnings: ['ADJUSTMENT_PENDING'] });
+
+      const dec = await liquidacionOf(admin, contract.id, '2026-12');
+      expect(dec.total).toBe('100000');
+      expect(dec.warnings).toEqual([
+        { code: 'ADJUSTMENT_PENDING', adjustmentDate: '2026-12-01', scheduleId: expect.any(String) },
+      ]);
+      const listed = (await get(admin, `/liquidaciones?contractId=${contract.id}`).expect(200)).body.items[0];
+      expect(listed.warnings.map((w: any) => w.code)).toEqual(['ADJUSTMENT_PENDING']);
+
+      // Se puede pasar a revisión, pero no aprobar (ni en lote) mientras el ajuste siga pendiente.
+      await transition(admin, dec.id, 'Revision').expect(201);
+      const blocked = await transition(admin, dec.id, 'Aprobada').expect(409);
+      expect(blocked.body).toMatchObject({ error: 'ADJUSTMENT_PENDING', adjustmentDate: '2026-12-01' });
+      const bulk = await post(admin, '/liquidaciones/bulk-approve', { ids: [dec.id] }).expect(201);
+      expect(bulk.body).toMatchObject({ processed: 0, failed: 1 });
+      const still = await liquidacionOf(admin, contract.id, '2026-12');
+      expect(still).toMatchObject({ status: 'Revision', receiptNumber: null });
+    });
+
+    it('CP-1264 — con octubre estimado rige el pago a cuenta de ADR-0011; con el pago a cuenta apagado queda bloqueada', async () => {
+      const { tenantId, tokens } = await agency('d5-pend-2');
+      const admin = tokens[UserRole.Admin];
+      await ipc(tenantId, '2026-09', '2.000000');
+      await ipc(tenantId, '2026-10', '2.500000', true);
+      const provisional = await createContract(admin);
+
+      await generate(admin, 12, 2026);
+      const dec = await liquidacionOf(admin, provisional.id, '2026-12');
+      expect(dec).toMatchObject({ total: '104550', isProvisional: true, kind: 'PagoACuenta', warnings: [] });
+
+      const other = await agency('d5-pend-3');
+      await http()
+        .put('/api/tenants/me/operational-defaults')
+        .set(auth(other.tokens[UserRole.Admin]))
+        .send({ allowProvisional: false })
+        .expect(200);
+      await ipc(other.tenantId, '2026-09', '2.000000');
+      await ipc(other.tenantId, '2026-10', '2.500000', true);
+      const blocked = await createContract(other.tokens[UserRole.Admin]);
+      const res = await generate(other.tokens[UserRole.Admin], 12, 2026);
+      expect(res.body.adjustments.pending[0]).toMatchObject({ contractId: blocked.id, reason: 'MISSING_INDEX_DATA' });
+      const otherDec = await liquidacionOf(other.tokens[UserRole.Admin], blocked.id, '2026-12');
+      expect(otherDec).toMatchObject({ total: '100000', isProvisional: false });
+      expect(otherDec.warnings.map((w: any) => w.code)).toEqual(['ADJUSTMENT_PENDING']);
+    });
+
+    it('CP-1265 — un ajuste a mitad de mes con DesdePeriodoSiguiente no bloquea ese mes sino el siguiente', async () => {
+      const { tokens } = await agency('d5-pend-4');
+      const admin = tokens[UserRole.Admin];
+      // Sin índices: el ajuste del 15/12 queda pendiente; rige desde enero.
+      const contract = await createContract(admin, {
+        startDate: '2026-09-15T00:00:00.000Z',
+        endDate: '2028-09-14T00:00:00.000Z',
+      });
+
+      await generate(admin, 12, 2026);
+      const dec = await liquidacionOf(admin, contract.id, '2026-12');
+      expect(dec.warnings).toEqual([]);
+      await transition(admin, dec.id, 'Revision').expect(201);
+      await transition(admin, dec.id, 'Aprobada').expect(201);
+
+      await generate(admin, 1, 2027);
+      const jan = await liquidacionOf(admin, contract.id, '2027-01');
+      expect(jan.warnings).toEqual([
+        { code: 'ADJUSTMENT_PENDING', adjustmentDate: '2026-12-15', scheduleId: expect.any(String) },
+      ]);
+    });
+  });
 });
