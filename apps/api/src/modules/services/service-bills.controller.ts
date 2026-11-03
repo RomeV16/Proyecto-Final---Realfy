@@ -55,6 +55,17 @@ export class ServiceBillsController {
   }
 
   /**
+   * POST /service-bills/preview — Reparto que daría una boleta sin guardarla (mismos campos que una fila de la
+   * carga masiva, con el consumo por unidad). Admin, Gerente, Liquidaciones.
+   */
+  @Roles(...BILLING_ROLES)
+  @Post('preview')
+  @HttpCode(200)
+  async preview(@Body() body: unknown) {
+    return this.bills.preview(body);
+  }
+
+  /**
    * PATCH /service-bills/:id — Corrige importe, vencimiento, consumo o registra
    * el pago (quién pagó, cuándo, comprobante). Admin, Gerente, Liquidaciones.
    */
