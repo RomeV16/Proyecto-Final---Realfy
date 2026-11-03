@@ -485,6 +485,35 @@ unidades. Reglas para cargarlo:
 Al corregir una boleta ya cargada se conservan su consumo por unidad, el importe sin
 descuento y las notas.
 
+### Boletas que se leen solas de un PDF
+
+Además de cargarlas a mano, las boletas se pueden **leer de un PDF**: el cedulón de la
+Municipalidad, el cedulón del Impuesto Inmobiliario de Rentas y la factura o el resumen
+de cuenta de Aguas Cordobesas se reconocen y se cargan solos. Los de EPEC y Ecogas se
+reconocen pero, hasta ajustar la lectura con una boleta real, quedan siempre para
+revisión.
+
+Para que una boleta se cargue sola, el servicio de la propiedad tiene que tener su
+**proveedor** y su **número de cuenta** (la Unidad de Facturación del agua, el número de
+cuenta de Rentas, el objeto o la identificación tributaria de la Municipalidad): se
+guardan con el formato del proveedor. El sistema busca el servicio por ese número y,
+si la boleta es del mes (o de los tres meses anteriores o siguientes) y los importes y
+vencimientos son coherentes, da de alta la boleta como pendiente, con el mismo reparto
+al inquilino que una cargada a mano.
+
+Los PDF entran por la API (`POST /bills-intake/documents`), o por mail: la casilla
+`boletas+<inmobiliaria>@...` recibe la factura digital que el proveedor manda por mail y
+procesa el PDF adjunto. Mandar dos veces el mismo PDF no duplica nada. Lo que el sistema
+no puede resolver **queda en una lista de revisión con el motivo** (no encontró el
+servicio, la lectura es dudosa, ya hay una boleta con otro importe, el mail no traía
+PDF); desde ahí se acepta, con las correcciones que hagan falta, o se rechaza con un
+motivo. Una boleta ya cargada con otro importe nunca se pisa: se corrige en la planilla
+del mes. Esta versión no trae todavía la pantalla de revisión; se trabaja con la API
+(`docs/api.md`, «Obtención automática de boletas»).
+
+La consulta directa a los sitios de los proveedores está apagada y todavía no tiene
+conectores: no se consulta nada.
+
 ### Cargar los gastos del mes (centro de carga)
 
 **Centro de carga** (`/cargos`, Admin, Gerente y Liquidaciones). Acá se cargan los gastos
