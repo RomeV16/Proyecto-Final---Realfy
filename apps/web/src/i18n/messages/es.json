@@ -117,6 +117,7 @@
   "cash": "Caja",
   "owners": "Locadores",
   "ownerStatements": "Estados de cuenta",
+  "listings": "Publicaciones",
   "followUps": "Vencimientos",
   "messaging": "Mensajería"
  },
@@ -4455,8 +4456,11 @@
    "operationPlaceholder": "Todas las operaciones",
    "typeLabel": "Tipo",
    "typePlaceholder": "Todos los tipos",
-   "cityLabel": "Ciudad",
-   "cityPlaceholder": "Buscar por ciudad",
+   "cityLabel": "Zona",
+   "cityPlaceholder": "Buscar por zona o ciudad",
+   "minPriceLabel": "Precio desde",
+   "maxPriceLabel": "Precio hasta",
+   "pricePlaceholder": "Sin límite",
    "clear": "Limpiar filtros"
   },
   "pagination": {
@@ -4481,7 +4485,8 @@
    "errorValidation": "Revisá los datos ingresados e intentá de nuevo.",
    "errorClosed": "Esta inmobiliaria no está recibiendo consultas por el momento.",
    "errorRateLimited": "Ya enviaste varias consultas. Probá de nuevo en un rato.",
-   "errorGeneric": "No pudimos enviar tu consulta. Intentá de nuevo más tarde."
+   "errorGeneric": "No pudimos enviar tu consulta. Intentá de nuevo más tarde.",
+   "honeypot": "Dejá este campo vacío"
   },
   "detail": {
    "backToList": "Volver a propiedades",
@@ -4489,7 +4494,15 @@
    "noDescription": "Sin descripción cargada",
    "specsTitle": "Características",
    "amenitiesTitle": "Amenidades",
-   "noAmenities": "Sin amenidades cargadas"
+   "noAmenities": "Sin amenidades cargadas",
+   "locationTitle": "Ubicación",
+   "mapLink": "Ver la zona en el mapa",
+   "mapNote": "Ubicación aproximada: la dirección exacta se informa al coordinar la visita."
+  },
+  "seo": {
+   "homeTitle": "{name} · Propiedades en venta y alquiler",
+   "homeDescription": "Propiedades en venta y alquiler de {name}. Consultá el catálogo actualizado.",
+   "detailTitle": "{title} · {name}"
   }
  },
  "parties": {
@@ -6957,6 +6970,124 @@
     "emailOnly": "Solo mail",
     "empty": "No hay plantillas"
    }
+  }
+ },
+ "publication": {
+  "loadError": "No pudimos cargar las publicaciones.",
+  "statuses": {
+   "NoPublicado": "No publicado",
+   "Publicado": "Publicado",
+   "Pausado": "Pausado",
+   "Vencido": "Vencido"
+  },
+  "card": {
+   "title": "Publicación",
+   "noOperations": "La propiedad todavía no tiene operaciones para publicar.",
+   "expires": "Vence",
+   "open": "Ver aviso",
+   "viewOnSite": "Ver en el micrositio",
+   "copyAd": "Copiar aviso",
+   "edit": "Editar",
+   "updatedBy": "Actualizado por {name}"
+  },
+  "edit": {
+   "title": "Aviso en {portal}",
+   "status": "Estado",
+   "externalUrl": "Dirección del aviso",
+   "externalUrlHint": "Opcional. Empieza con https://",
+   "externalCode": "Código del aviso",
+   "externalCodeHint": "Con el código se arma la dirección del aviso en el portal.",
+   "publishedAt": "Publicado el",
+   "expiresAt": "Vence el",
+   "expiresAtHint": "Opcional. Pasada la fecha, el aviso figura como vencido.",
+   "save": "Guardar",
+   "saving": "Guardando…",
+   "saved": "Aviso actualizado",
+   "saveError": "No pudimos guardar el aviso."
+  },
+  "adCopy": {
+   "title": "Aviso para copiar",
+   "intro": "Texto armado con los datos de la ficha, sin datos de personas. Copiá cada parte y pegala en el portal.",
+   "portal": "Portal",
+   "loadError": "No pudimos armar el aviso.",
+   "warnings": {
+    "title_shortened": "El título se acortó para entrar en el límite del portal.",
+    "description_truncated": "La descripción se recortó para entrar en el límite del portal.",
+    "contact_data_removed": "Se quitaron teléfonos, mails o links del texto libre de la ficha.",
+    "photos_over_limit": "Hay más fotos de las que admite el portal: sólo se listan las primeras.",
+    "no_photos": "La propiedad no tiene fotos cargadas.",
+    "no_price": "La operación no tiene precio cargado.",
+    "exact_address_shown": "El aviso incluye la dirección exacta (así lo permite la configuración)."
+   },
+   "titleField": "Título",
+   "descriptionField": "Descripción",
+   "counter": "{count} de {max} caracteres",
+   "copyTitle": "Copiar título",
+   "copyDescription": "Copiar descripción",
+   "photosField": "Fotos en orden de carga ({count} de {max})",
+   "noPhotos": "Sin fotos.",
+   "photoAlt": "Foto {position}",
+   "copyPhotoLinks": "Copiar enlaces de las fotos",
+   "copyAll": "Copiar título y descripción",
+   "copied": "Copiado",
+   "copyFailed": "No pudimos copiar: seleccioná el texto y copialo a mano."
+  },
+  "overview": {
+   "title": "Publicaciones",
+   "subtitle": "Qué unidades disponibles no están publicadas, qué avisos vencen y qué sigue publicado de lo que ya no está disponible.",
+   "configure": "Portales y privacidad",
+   "pauseTitle": "Pausar avisos",
+   "pauseBody": "Se van a pausar {count} avisos de unidades que ya no están disponibles.",
+   "pauseConfirm": "Pausar",
+   "paused": "Se pausaron {count} avisos",
+   "pauseAll": "Pausar todos",
+   "noOperation": "Sin operación",
+   "none": "Nada para revisar.",
+   "tiles": {
+    "published": "Avisos publicados",
+    "notPublished": "Disponibles sin publicar",
+    "expiring": "Vencidos o por vencer",
+    "shouldPause": "Para pausar"
+   },
+   "shouldPause": {
+    "title": "Publicados pero no disponibles",
+    "hint": "La unidad ya se alquiló, se vendió o se dio de baja: hay que bajar el aviso."
+   },
+   "expired": {
+    "title": "Avisos vencidos",
+    "hint": "Pasó la fecha de vencimiento y nadie renovó o pausó el aviso."
+   },
+   "expiring": {
+    "title": "Por vencer",
+    "hint": "Vencen dentro de los próximos {days} días."
+   },
+   "notPublished": {
+    "title": "Disponibles sin publicar",
+    "hint": "Unidades disponibles que no están publicadas en ningún portal ni en el micrositio."
+   }
+  },
+  "settings": {
+   "title": "Portales y privacidad",
+   "intro": "Los portales donde se publica y qué datos muestran los avisos y el micrositio. El micrositio propio siempre está.",
+   "loadError": "No pudimos cargar la configuración.",
+   "saveError": "No pudimos guardar la configuración.",
+   "saved": "Configuración guardada",
+   "portalName": "Nombre",
+   "urlTemplate": "Plantilla de dirección",
+   "urlTemplateHint": "Opcional. Usá '{code}' donde va el código del aviso.",
+   "enabled": "Se usa para publicar",
+   "remove": "Quitar",
+   "newPortal": "Nuevo portal",
+   "newPortalInvalid": "Ingresá un nombre que no esté repetido.",
+   "addPortal": "Agregar portal",
+   "hideExactAddress": "Ocultar la dirección exacta",
+   "hideExactAddressHint": "Los avisos y el micrositio muestran sólo la zona, sin calle ni altura.",
+   "showMap": "Mostrar un mapa en el micrositio",
+   "showMapHint": "Se muestra la zona con la ubicación aproximada, nunca el punto exacto.",
+   "expiryWarnDays": "Avisar antes del vencimiento (días)",
+   "expiryWarnDaysHint": "Desde cuántos días antes un aviso figura como por vencer.",
+   "save": "Guardar",
+   "saving": "Guardando…"
   }
  }
 }

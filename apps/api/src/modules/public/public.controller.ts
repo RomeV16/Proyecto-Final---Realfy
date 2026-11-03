@@ -35,7 +35,7 @@ export class PublicController {
   }
 
   /**
-   * GET /public/:slug/properties — Paginated listing of available properties.
+   * GET /public/:slug/properties — Paginated listing of the properties published on the microsite.
    */
   @Get(':slug/properties')
   async listProperties(@Req() req: Request, @Query() query: Record<string, any>) {
@@ -44,6 +44,15 @@ export class PublicController {
     if (coerced.page !== undefined) coerced.page = Number(coerced.page);
     if (coerced.limit !== undefined) coerced.limit = Number(coerced.limit);
     return this.publicService.findProperties(tenant.id, coerced);
+  }
+
+  /**
+   * GET /public/:slug/sitemap — Ids y fecha de cambio de lo publicado (para el sitemap.xml).
+   */
+  @Get(':slug/sitemap')
+  async getSitemap(@Req() req: Request) {
+    const tenant = (req as any).publicTenant;
+    return this.publicService.findSitemapEntries(tenant.id);
   }
 
   /**

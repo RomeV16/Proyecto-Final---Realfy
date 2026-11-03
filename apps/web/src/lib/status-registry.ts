@@ -9,6 +9,7 @@ import {
   ImportRowAction,
   LeadStatus,
   LessorInvoiceStatus,
+  ListingStatus,
   LiquidacionStatus,
   MessageStatus,
   OwnerStatementStatus,
@@ -54,7 +55,8 @@ export type StatusDomain =
   | 'cuotaHonorario'
   | 'facturaLocador'
   | 'mensaje'
-  | 'consentimiento';
+  | 'consentimiento'
+  | 'aviso';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -141,6 +143,12 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
       [LessorInvoiceStatus.Omitido]: 'neutral',
     },
   ),
+  aviso: entries('publication.statuses', {
+    [ListingStatus.NoPublicado]: 'neutral',
+    [ListingStatus.Publicado]: 'success',
+    [ListingStatus.Pausado]: 'warning',
+    [ListingStatus.Vencido]: 'danger',
+  }),
   vencimiento: entries('followUps.lights', {
     [ExpirationLight.Green]: 'success',
     [ExpirationLight.Yellow]: 'warning',

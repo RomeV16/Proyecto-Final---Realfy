@@ -257,6 +257,44 @@ plataforma, evitando el problema de CORS y de cookies entre dominios.
 El servicio web no declara punto de salud, así que la plataforma se limita a
 verificar que el puerto responda.
 
+### Dominio propio del micrositio
+
+El micrositio de cada inmobiliaria se sirve siempre por `/es/p/<slug>`. Para
+que además responda en un dominio propio (por ejemplo
+`www.inmobiliariademo.com.ar`), el servicio `web` resuelve la inmobiliaria por el
+host del pedido. Hay dos maneras, que se pueden combinar:
+
+| Variable | Cuándo se aplica | Valor |
+|---|---|---|
+| `MICROSITE_HOST_MAP` | Ejecución | JSON `{"www.inmobiliariademo.com.ar": "inmobiliaria-demo"}`: dominio → `slug` de la inmobiliaria. Se acepta con o sin `www.`. Un JSON roto o un slug inválido se ignoran. |
+| `MICROSITE_BASE_DOMAIN` | Ejecución | Por ejemplo `sitios.realfy.app`: `<slug>.sitios.realfy.app` resuelve a ese slug (un solo nivel). |
+
+Sin ninguna de las dos el sitio sigue entrando por la ruta con el `slug`. En el
+dominio propio las direcciones quedan sin idioma ni `/p/<slug>` (`/` y
+`/propiedades/<id>`), el panel y el ingreso no se alcanzan (dan 404) y el
+`robots.txt` y el `sitemap.xml` salen con ese dominio. En el dominio de la
+aplicación el `robots.txt` solo deja indexar las páginas públicas.
+
+Pasos para dar de alta un dominio propio:
+
+1. **Comprar o elegir el dominio** (cuenta externa de la inmobiliaria; no lo hace
+   el equipo de desarrollo).
+2. **Agregarlo al servicio `web`** de Railway como dominio personalizado.
+   Railway indica el destino al que debe apuntar y emite el certificado TLS solo.
+3. **DNS** en el proveedor del dominio: un `CNAME` de `www` al destino que indicó
+   Railway. Un dominio sin `www` (apex) requiere un registro `ALIAS`/`ANAME` o la
+   redirección del apex a `www` que ofrezca el proveedor. No se tocan los
+   registros de correo (MX, SPF, DKIM) si el dominio ya los tiene.
+4. **Cargar `MICROSITE_HOST_MAP`** en el servicio `web` con el dominio y el `slug`
+   (la inmobiliaria tiene que tener `slug`, que se carga con
+   `PATCH /tenants/:id`) y reiniciar el servicio.
+5. **Verificar**: `https://<dominio>/` muestra la portada, `/robots.txt` anuncia
+   `/sitemap.xml` y una propiedad con el aviso del micrositio en *Publicado*
+   aparece en el sitio.
+
+Hasta que la inmobiliaria elija y compre el dominio queda pendiente; no hace
+falta para usar el micrositio por la ruta con el `slug`.
+
 ## Almacenamiento de imágenes
 
 Las fotos de propiedades y los adjuntos no se guardan en el disco del

@@ -16,6 +16,7 @@ const ALL_ROLES = Object.values(UserRole);
 const EXPECTED: Record<Action, string[]> = {
   'properties.manage': ['Admin', 'Gerente', 'Ventas'],
   'properties.delete': ['Admin', 'Gerente'],
+  'listings.manage': ['Admin', 'Gerente', 'Ventas', 'Marketing'],
   'persons.manage': ['Admin', 'Gerente', 'Ventas'],
   'persons.delete': ['Admin', 'Gerente'],
   'persons.scoring': ['Admin', 'Gerente'],

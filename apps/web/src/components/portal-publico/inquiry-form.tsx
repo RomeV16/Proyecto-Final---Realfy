@@ -28,6 +28,8 @@ export function InquiryForm({ slug, propertyId }: InquiryFormProps) {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
+  // Señuelo anti-bots: una persona no lo ve ni lo completa.
+  const [website, setWebsite] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [errorKey, setErrorKey] = useState<string>('errorGeneric');
   const [contactError, setContactError] = useState(false);
@@ -53,6 +55,7 @@ export function InquiryForm({ slug, propertyId }: InquiryFormProps) {
           phone: phone.trim() || undefined,
           message,
           propertyId,
+          website,
         }),
       });
 
@@ -85,7 +88,19 @@ export function InquiryForm({ slug, propertyId }: InquiryFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+        <label htmlFor="inquiry-website">{t('honeypot')}</label>
+        <input
+          id="inquiry-website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+        />
+      </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Input
           label={t('firstName')}

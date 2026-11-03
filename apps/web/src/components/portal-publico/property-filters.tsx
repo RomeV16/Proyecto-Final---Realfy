@@ -14,10 +14,14 @@ export function PropertyFilters({
   initialOperation,
   initialType,
   initialCity,
+  initialMinPrice = '',
+  initialMaxPrice = '',
 }: {
   initialOperation: string;
   initialType: string;
   initialCity: string;
+  initialMinPrice?: string;
+  initialMaxPrice?: string;
 }) {
   const t = useTranslations('properties');
   const tFilters = useTranslations('portalPublico.filters');
@@ -25,7 +29,8 @@ export function PropertyFilters({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  function applyFilter(key: 'operation' | 'type' | 'city', value: string) {
+  function applyFilter(key: 'operation' | 'type' | 'city' | 'minPrice' | 'maxPrice', value: string) {
+    if ((searchParams.get(key) ?? '') === value) return;
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
@@ -34,11 +39,13 @@ export function PropertyFilters({
     router.push(query ? `${pathname}?${query}` : pathname);
   }
 
-  const hasFilters = Boolean(initialOperation || initialType || initialCity);
+  const hasFilters = Boolean(
+    initialOperation || initialType || initialCity || initialMinPrice || initialMaxPrice,
+  );
 
   return (
     <div className="rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <label htmlFor="filter-operation" className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
             {tFilters('operationLabel')}
@@ -93,6 +100,27 @@ export function PropertyFilters({
             className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]"
           />
         </div>
+
+        {(['minPrice', 'maxPrice'] as const).map((key) => (
+          <div key={key}>
+            <label htmlFor={`filter-${key}`} className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
+              {tFilters(`${key}Label`)}
+            </label>
+            <input
+              id={`filter-${key}`}
+              type="number"
+              min={0}
+              inputMode="numeric"
+              defaultValue={key === 'minPrice' ? initialMinPrice : initialMaxPrice}
+              placeholder={tFilters('pricePlaceholder')}
+              onBlur={(e) => applyFilter(key, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') applyFilter(key, e.currentTarget.value);
+              }}
+              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]"
+            />
+          </div>
+        ))}
 
         <div className="flex items-end">
           {hasFilters && (

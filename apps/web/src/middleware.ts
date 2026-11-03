@@ -1,6 +1,7 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
 import { routing } from './i18n/routing';
+import { micrositeRewritePath, slugForHost } from './lib/microsite-host';
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -46,6 +47,22 @@ function isPortalPath(pathname: string): boolean {
 }
 
 export default function middleware(request: NextRequest) {
+  // Dominio propio de un micrositio: todo el sitio es el portal público de esa inmobiliaria,
+  // sin idioma ni `/p/<slug>` en la dirección, y sin acceso al panel ni a la autenticación.
+  const micrositeSlug = slugForHost(request.headers.get('x-forwarded-host') ?? request.headers.get('host'));
+  if (micrositeSlug) {
+    const target = micrositeRewritePath(
+      request.nextUrl.pathname,
+      micrositeSlug,
+      routing.locales,
+      routing.defaultLocale,
+    );
+    if (!target) return NextResponse.next();
+    const url = request.nextUrl.clone();
+    url.pathname = target;
+    return NextResponse.rewrite(url);
+  }
+
   // Run next-intl middleware first (locale detection + redirect)
   const response = intlMiddleware(request);
   const { pathname } = request.nextUrl;

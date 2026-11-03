@@ -41,6 +41,7 @@ import { PipelinesModule } from './modules/pipelines/pipelines.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
 import { PublicModule } from './modules/public/public.module';
+import { ListingsModule } from './modules/listings/listings.module';
 import { ScoringModule } from './modules/scoring/scoring.module';
 import { ValuationsModule } from './modules/valuations/valuations.module';
 import { ImportExportModule } from './modules/import-export/import-export.module';
@@ -124,6 +125,7 @@ import { ReadPolicyModule } from './common/read-policy/read-policy.module';
     LeadsModule,
     InteractionsModule,
     PublicModule,
+    ListingsModule,
     ScoringModule,
     ValuationsModule,
     ImportExportModule,

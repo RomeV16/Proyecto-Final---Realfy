@@ -37,6 +37,7 @@ import { cn } from '@/lib/cn';
 import { formatMoney, formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 import { PropertyOwnerships } from '@/components/parties/property-ownerships';
+import { PropertyPublication } from '@/components/listings/property-publication';
 
 /* ──────────── Types ──────────── */
 
@@ -205,6 +206,7 @@ function DetailView({
   canDelete: boolean;
 }) {
   const t = useTranslations('properties');
+  const tPub = useTranslations('publication');
   const tCommon = useTranslations('common');
 
   const [transitionLoading, setTransitionLoading] = useState<string | null>(null);
@@ -480,6 +482,10 @@ function DetailView({
 
           <DetailSection title={t('valuations.title')} icon="wallet">
             <PropertyValuations propertyId={property.id} canEdit={canEdit} />
+          </DetailSection>
+
+          <DetailSection title={tPub('card.title')} icon="sparkles">
+            <PropertyPublication propertyId={property.id} />
           </DetailSection>
 
           <DetailSection title={t('detail.ownerships')} icon="persons">

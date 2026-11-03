@@ -56,7 +56,12 @@ describe('Public microsite (e2e)', () => {
     return { token: user.accessToken, slug };
   }
 
-  async function createProperty(token: string, title: string, available: boolean) {
+  async function createProperty(
+    token: string,
+    title: string,
+    available: boolean,
+    publish = available,
+  ) {
     const auth = { Authorization: `Bearer ${token}` };
     const property = await request(app.getHttpServer())
       .post('/api/properties')
@@ -86,6 +91,17 @@ describe('Public microsite (e2e)', () => {
         .patch(`/api/properties/${property.body.id}/operations/${operation.body.id}/state`)
         .set(auth)
         .send({ toState: PropertyState.Disponible })
+        .expect(200);
+    }
+    if (publish) {
+      await request(app.getHttpServer())
+        .put(`/api/properties/${property.body.id}/listings`)
+        .set(auth)
+        .send({
+          listings: [
+            { operationType: PropertyOperationType.Alquiler, portal: 'micrositio', status: 'Publicado' },
+          ],
+        })
         .expect(200);
     }
     return property.body;
@@ -123,6 +139,19 @@ describe('Public microsite (e2e)', () => {
     expect(res.body.total).toBe(1);
     expect(res.body.items[0].id).toBe(published.id);
     expect(res.body.items[0].operationType).toBe(PropertyOperationType.Alquiler);
+  });
+
+  it('una propiedad disponible que nadie marco como publicada no aparece', async () => {
+    const agency = await setupAgency('sin-marcar');
+    const unmarked = await createProperty(agency.token, 'Disponible sin publicar', true, false);
+
+    const list = await request(app.getHttpServer())
+      .get(`/api/public/${agency.slug}/properties`)
+      .expect(200);
+    expect(list.body.total).toBe(0);
+    await request(app.getHttpServer())
+      .get(`/api/public/${agency.slug}/properties/${unmarked.id}`)
+      .expect(404);
   });
 
   it('no muestra la ficha de una propiedad que no esta disponible', async () => {

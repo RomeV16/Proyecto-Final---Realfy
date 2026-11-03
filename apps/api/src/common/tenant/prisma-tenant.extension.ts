@@ -14,6 +14,7 @@ const TENANT_SCOPED_MODELS = new Set([
   'PasswordResetToken',
   'Property',
   'PropertyOperation',
+  'PropertyListing',
   'PropertyMedia',
   'PriceHistory',
   'Person',

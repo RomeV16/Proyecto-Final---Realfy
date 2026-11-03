@@ -150,6 +150,56 @@ tipo y ambientes.
 Borrar una propiedad es una operación de Admin o Gerente; editarla, también de
 Ventas.
 
+### Publicar una propiedad y copiar el aviso
+
+El detalle de la propiedad tiene una tarjeta **Publicación** que dice, para cada
+operación (alquiler, venta, temporario), en qué portales está el aviso. Los
+portales son los que la inmobiliaria cargó (por defecto Zonaprop, Argenprop,
+MercadoLibre y Clasificados La Voz) más el **micrositio propio**, que siempre
+está. Cada fila muestra el estado —*No publicado*, *Publicado*, *Pausado* o
+*Vencido*—, la fecha de vencimiento, quién lo actualizó y, si se cargó, el enlace
+al aviso.
+
+La publicación en los portales sigue siendo manual: el sistema no publica en
+ellos. Lo que hace es ordenar el trabajo y dejar el texto listo.
+
+1. **Copiar el aviso.** El botón *Copiar aviso* de un portal arma el título, la
+   descripción y el orden de las fotos con los datos de la ficha, respetando los
+   límites de caracteres y de fotos del portal. Cada parte tiene su botón
+   *Copiar*, y hay uno para el título y la descripción juntos. El texto sale
+   siempre igual para la misma ficha y **no lleva datos de personas**: no usa el
+   título interno de la ficha, quita teléfonos, mails y links que alguien haya
+   escrito en la descripción y, mientras la inmobiliaria no cambie la
+   configuración, muestra solo la zona y nunca la calle ni la altura. Si algo se
+   acortó o falta (fotos, precio), el diálogo lo avisa arriba.
+2. **Publicar en el portal** con ese texto y esas fotos, a mano.
+3. **Registrar el aviso.** El botón *Editar* de la fila (Admin, Gerente, Ventas y
+   Marketing) pasa el estado a *Publicado* y guarda la dirección del aviso o su
+   código (si el portal tiene plantilla de dirección, con el código alcanza), la
+   fecha de publicación y el vencimiento si el portal lo tiene. Solo se puede
+   publicar una operación *Disponible* o *Reservada*.
+4. **Renovar o pausar.** Pasada la fecha de vencimiento el aviso figura como
+   *Vencido* aunque nadie lo haya tocado; al renovarlo en el portal se carga la
+   nueva fecha.
+
+#### Publicaciones: lo que hay que revisar
+
+La pantalla **Publicaciones** (`/publicaciones`, en el menú) junta todo lo que
+requiere una acción:
+
+- **Publicados pero no disponibles:** avisos de unidades que ya se alquilaron, se
+  vendieron o se dieron de baja. Hay que bajarlos del portal; *Pausar todos* los
+  marca como pausados en el sistema.
+- **Avisos vencidos** y **por vencer** (por defecto, dentro de 7 días).
+- **Disponibles sin publicar:** unidades disponibles que no están publicadas en
+  ningún portal ni en el micrositio.
+
+*Portales y privacidad* (Admin y Gerente) permite agregar, renombrar o dar de baja
+portales, cargar su plantilla de dirección (con `{code}` donde va el código del
+aviso), elegir si los avisos y el micrositio ocultan la dirección exacta (por
+defecto sí), si el micrositio muestra un mapa de la zona (por defecto no) y con
+cuántos días de anticipación se avisa de un vencimiento.
+
 ### Cargar una persona
 
 **Personas** (`/persons`) es el directorio único: propietarios, inquilinos,
@@ -1150,16 +1200,35 @@ a sus contratos, sus liquidaciones y sus reclamos.
 
 ## El sitio público de la inmobiliaria
 
-Cada inmobiliaria tiene un micrositio público en `/p/[slug]`, sin necesidad de
-ninguna sesión. Muestra el nombre y la provincia de la inmobiliaria con sus
-colores y su logo, y una grilla filtrable por operación, tipo y ciudad de las
-propiedades publicadas. Cada propiedad tiene su ficha en
-`/p/[slug]/propiedades/[id]` con la galería, el precio, las características, las
-amenidades y la ficha técnica.
+Cada inmobiliaria tiene un micrositio público, sin necesidad de ninguna sesión.
+Es el portal propio: se entra por `/es/p/[slug]` o, si la inmobiliaria tiene un
+dominio propio (por ejemplo `www.inmobiliariademo.com.ar`), directamente por ese
+dominio (ver `despliegue.md`). Muestra el nombre y la provincia de la
+inmobiliaria con sus colores y su logo, y una grilla filtrable por operación,
+tipo, zona o ciudad y rango de precio. Cada propiedad tiene su ficha con la
+galería, el precio, las características, las amenidades y la ficha técnica.
+
+**Qué aparece.** Solo lo que alguien publicó a propósito: una operación
+*Disponible* cuyo aviso en el portal *Micrositio* está *Publicado* y no venció
+(tarjeta **Publicación** de la ficha, fila *Micrositio*). Una propiedad disponible
+que nadie marcó no se ve. Al alquilarse o venderse la operación, pausar el aviso
+o pasar su vencimiento, sale del sitio.
+
+**Qué no aparece nunca:** propietarios, inquilinos, notas internas, datos
+personales ni la altura. La calle solo se muestra si la inmobiliaria desactivó
+*Ocultar la dirección exacta*, y el mapa solo si activó *Mostrar un mapa*, con la
+ubicación redondeada a unos 100 metros.
 
 Tanto la portada como la ficha tienen un formulario de consulta. Una consulta
-enviada desde ahí entra como lead al embudo comercial de la inmobiliaria, y es la
-puerta de entrada del circuito de CRM.
+enviada desde ahí entra como interesado (lead, origen *Consulta web*) al embudo
+comercial de la inmobiliaria, ligada a la propiedad cuando viene de una ficha, y
+es la puerta de entrada del circuito de CRM. El formulario tiene un campo señuelo
+invisible contra programas automáticos y un límite de 10 consultas por minuto por
+conexión.
+
+Las páginas llevan título, descripción, dirección canónica y vista previa para
+redes (OpenGraph), y el sitio publica su `sitemap.xml` y su `robots.txt` para los
+buscadores.
 
 ## Configuración
 

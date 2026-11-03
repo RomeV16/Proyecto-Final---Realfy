@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ensureRole } from '../persons/person-roles.service';
+import { randomUUID } from 'node:crypto';
 import {
+  ListingStatus,
+  MICROSITE_PORTAL_KEY,
+  resolveOperationalDefaults,
   PublicPropertyFilterSchema,
   CreatePublicInquirySchema,
   PropertyState,
@@ -19,7 +23,11 @@ import {
 } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
 
-/** Property columns exposed on the public portal — no address number, no geo, no relations beyond media/operations. */
+/**
+ * Property columns exposed on the public portal. Never the address number, floor,
+ * owner, tenant or internal notes: street/number/geo are added only when the
+ * agency's publication settings allow them (see `_exposure`).
+ */
 const PROPERTY_LIST_SELECT = {
   id: true,
   title: true,
@@ -28,7 +36,6 @@ const PROPERTY_LIST_SELECT = {
   currency: true,
   city: true,
   province: true,
-  street: true,
   area: true,
   rooms: true,
   bedrooms: true,
@@ -46,15 +53,17 @@ export class PublicService {
 
   async findProperties(tenantId: string, query: unknown) {
     const filters: any = parseOrThrow(PublicPropertyFilterSchema, query, 'Invalid filter parameters');
+    const exposure = await this._exposure(tenantId);
+    const published = await this._publishedOperations(tenantId, {
+      operation: filters.operation,
+      minPrice: filters.minPrice,
+      maxPrice: filters.maxPrice,
+    });
 
-    const availability: any = { state: PropertyState.Disponible };
-    if (filters.operation) availability.operationType = filters.operation;
+    const empty = { items: [], total: 0, page: filters.page, limit: filters.limit };
+    if (!published) return empty;
 
-    const where: any = {
-      tenantId,
-      isActive: true,
-      operations: { some: availability },
-    };
+    const where: any = { tenantId, isActive: true, ...published.propertyWhere };
     if (filters.type) where.type = filters.type;
     if (filters.city) where.city = { contains: filters.city, mode: 'insensitive' };
 
@@ -65,8 +74,9 @@ export class PublicService {
         where,
         select: {
           ...PROPERTY_LIST_SELECT,
+          ...(exposure.showStreet ? { street: true } : {}),
           operations: {
-            where: availability,
+            where: published.operationWhere,
             orderBy: { operationType: 'asc' },
             select: { operationType: true, price: true, currency: true },
           },
@@ -76,7 +86,7 @@ export class PublicService {
           },
           _count: { select: { media: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         skip,
         take: filters.limit,
       }),
@@ -91,31 +101,48 @@ export class PublicService {
     };
   }
 
+  /** Ids y fechas de las propiedades publicadas, para armar el sitemap. */
+  async findSitemapEntries(tenantId: string) {
+    const published = await this._publishedOperations(tenantId, {});
+    if (!published) return { items: [] };
+    const rows = await this.prisma.baseClient.property.findMany({
+      where: { tenantId, isActive: true, ...published.propertyWhere },
+      select: { id: true, updatedAt: true },
+      orderBy: { id: 'asc' },
+      take: 5000,
+    });
+    return { items: rows.map((r: any) => ({ id: r.id, updatedAt: r.updatedAt })) };
+  }
+
   // ─── Properties: Detail ───────────────────────────────
 
   async findProperty(tenantId: string, propertyId: string) {
-    const property = await this.prisma.baseClient.property.findFirst({
-      where: {
-        id: propertyId,
-        tenantId,
-        isActive: true,
-        operations: { some: { state: PropertyState.Disponible } },
-      },
-      select: {
-        ...PROPERTY_LIST_SELECT,
-        description: true,
-        amenities: true,
-        operations: {
-          where: { state: PropertyState.Disponible },
-          orderBy: { operationType: 'asc' },
-          select: { operationType: true, price: true, currency: true },
-        },
-        media: {
-          orderBy: { sortOrder: 'asc' },
-          select: { url: true, thumbnailUrl: true, sortOrder: true, isPrimary: true },
-        },
-      },
-    });
+    const exposure = await this._exposure(tenantId);
+    const published = await this._publishedOperations(tenantId, {});
+    const property = published
+      ? await this.prisma.baseClient.property.findFirst({
+          where: { id: propertyId, tenantId, isActive: true, ...published.propertyWhere },
+          select: {
+            ...PROPERTY_LIST_SELECT,
+            ...(exposure.showStreet ? { street: true, number: true } : {}),
+            ...(exposure.showMap ? { latitude: true, longitude: true } : {}),
+            description: true,
+            amenities: true,
+            age: true,
+            orientation: true,
+            updatedAt: true,
+            operations: {
+              where: published.operationWhere,
+              orderBy: { operationType: 'asc' },
+              select: { operationType: true, price: true, currency: true },
+            },
+            media: {
+              orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+              select: { url: true, thumbnailUrl: true, sortOrder: true, isPrimary: true },
+            },
+          },
+        })
+      : null;
 
     if (!property) {
       throw new NotFoundException({
@@ -125,11 +152,21 @@ export class PublicService {
     }
 
     const item = this._toListItem(property);
+    const p: any = property;
 
     return {
       ...item,
+      number: exposure.showStreet ? (p.number ?? null) : null,
       description: property.description ?? null,
       amenities: property.amenities,
+      age: p.age ?? null,
+      orientation: p.orientation ?? null,
+      updatedAt: p.updatedAt,
+      // Sólo si la inmobiliaria lo permite, y redondeado (~100 m): es la zona, no la puerta.
+      location:
+        exposure.showMap && p.latitude != null && p.longitude != null
+          ? { lat: Math.round(p.latitude * 1000) / 1000, lng: Math.round(p.longitude * 1000) / 1000 }
+          : null,
       media: property.media.map((m: any) => ({
         url: m.url,
         thumbnailUrl: m.thumbnailUrl,
@@ -144,26 +181,31 @@ export class PublicService {
   async createInquiry(tenantId: string, body: unknown) {
     const validated: any = parseOrThrow(CreatePublicInquirySchema, body, 'Invalid inquiry data');
 
+    // Señuelo: un formulario real lo manda vacío. Se responde igual que a una consulta
+    // válida para que el bot no note la diferencia, pero no se guarda nada.
+    if (validated.website?.trim()) {
+      this.logger.warn(`Public inquiry dropped by honeypot: tenantId=${tenantId}`);
+      return { id: randomUUID() };
+    }
+
     // Resolve the linked property, if any — silently drop it if it isn't
     // this tenant's or isn't currently available, rather than failing.
     let property: any = null;
     if (validated.propertyId) {
-      property = await this.prisma.baseClient.property.findFirst({
-        where: {
-          id: validated.propertyId,
-          tenantId,
-          isActive: true,
-          operations: { some: { state: PropertyState.Disponible } },
-        },
-        select: {
-          id: true,
-          operations: {
-            where: { state: PropertyState.Disponible },
-            orderBy: { operationType: 'asc' },
-            select: { operationType: true },
+      const published = await this._publishedOperations(tenantId, {});
+      if (published) {
+        property = await this.prisma.baseClient.property.findFirst({
+          where: { id: validated.propertyId, tenantId, isActive: true, ...published.propertyWhere },
+          select: {
+            id: true,
+            operations: {
+              where: published.operationWhere,
+              orderBy: { operationType: 'asc' },
+              select: { operationType: true },
+            },
           },
-        },
-      });
+        });
+      }
     }
 
     const operationType = property?.operations[0]?.operationType;
@@ -197,6 +239,67 @@ export class PublicService {
     return { id: lead.id };
   }
 
+  // ─── Private: qué se muestra ───────────────────────────
+
+  /**
+   * Qué datos de ubicación admite mostrar la inmobiliaria (publication.hideExactAddress
+   * y publication.showMap). Por defecto: sólo la zona, sin calle ni mapa.
+   */
+  private async _exposure(tenantId: string): Promise<{ showStreet: boolean; showMap: boolean }> {
+    const tenant = await this.prisma.baseClient.tenant.findUnique({
+      where: { id: tenantId },
+      select: { operationalDefaults: true },
+    });
+    const publication = resolveOperationalDefaults(tenant?.operationalDefaults).publication;
+    return { showStreet: !publication.hideExactAddress, showMap: publication.showMap };
+  }
+
+  /**
+   * Sólo se muestra lo que alguien marcó explícitamente: una operación Disponible cuyo
+   * aviso en el portal "micrositio" está Publicado y no venció. Devuelve los filtros de
+   * propiedad y de operación que lo expresan (null si no hay nada publicado).
+   */
+  private async _publishedOperations(
+    tenantId: string,
+    opts: { operation?: PropertyOperationType; minPrice?: number; maxPrice?: number },
+  ): Promise<{ propertyWhere: any; operationWhere: any } | null> {
+    const listings = await this.prisma.baseClient.propertyListing.findMany({
+      where: {
+        tenantId,
+        portal: MICROSITE_PORTAL_KEY,
+        status: ListingStatus.Publicado,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        ...(opts.operation ? { operationType: opts.operation } : {}),
+      },
+      select: { propertyId: true, operationType: true },
+      orderBy: { id: 'asc' },
+      take: 5000,
+    });
+    if (listings.length === 0) return null;
+
+    const idsByType = new Map<string, string[]>();
+    for (const l of listings) {
+      idsByType.set(l.operationType, [...(idsByType.get(l.operationType) ?? []), l.propertyId]);
+    }
+    const price: any = {};
+    if (opts.minPrice !== undefined) price.gte = opts.minPrice;
+    if (opts.maxPrice !== undefined) price.lte = opts.maxPrice;
+    const priceFilter = Object.keys(price).length > 0 ? { price } : {};
+
+    // Una cláusula por tipo de operación: el aviso y el estado Disponible tienen que ser
+    // de la misma operación, no de dos distintas de la misma propiedad.
+    const perType = [...idsByType.entries()].map(([operationType, ids]) => ({
+      operationType: operationType as PropertyOperationType,
+      propertyId: { in: ids },
+      state: PropertyState.Disponible,
+      ...priceFilter,
+    }));
+    return {
+      operationWhere: { OR: perType },
+      propertyWhere: { operations: { some: { OR: perType } } },
+    };
+  }
+
   // ─── Private: shape a property row into the public list/detail item ────
 
   private _toListItem(row: any) {
@@ -212,7 +315,7 @@ export class PublicService {
       currency: availableOp?.currency ?? row.currency,
       city: row.city,
       province: row.province,
-      street: row.street,
+      street: row.street ?? null,
       area: row.area,
       rooms: row.rooms,
       bedrooms: row.bedrooms,
