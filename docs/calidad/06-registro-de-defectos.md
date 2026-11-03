@@ -39,10 +39,10 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-29 | Los cobros devuelven el número del recibo sin la etiqueta impresa | Baja | — | CP-450 | [#163](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/163) | Corregido (2 nov) |
 | DEF-30 | La comisión del contrato no se guarda desde la pantalla y una guardada aparece sin tipo | Media | — | CP-480 | [#164](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/164) | Corregido (2 nov) |
 | DEF-65 | Un mail rechazado por Resend se informa como enviado | Alta | ítem 43 (mensajería) | CP-630 | [#171](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/171) | Corregido (3 nov) |
-| DEF-70 | Un renglón Descuento suma en el reparto del cobro: comisión y neto de los locadores mal y un cobro total repartido como parcial | Alta | — | CP-660, CP-663 | pendiente | Corregido (3 nov) |
-| DEF-71 | La compensación sin importe deja al locador compensado sin la comisión que ya se le había descontado | Alta | — | CP-661, CP-663 | pendiente | Corregido (3 nov) |
-| DEF-72 | La compensación se asienta el día en que se carga y no se le puede indicar la fecha | Media | — | CP-662, CP-667 | pendiente | Corregido (3 nov) |
-| DEF-73 | El cobro del primer mes de un contrato que empieza a mitad de mes no se reparte entre sus locadores | Alta | — | CP-668, CP-666 | pendiente | Corregido (3 nov) |
+| DEF-70 | Un renglón Descuento suma en el reparto del cobro: comisión y neto de los locadores mal y un cobro total repartido como parcial | Alta | — | CP-660, CP-663 | [#173](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/173) | Corregido (3 nov) |
+| DEF-71 | La compensación sin importe deja al locador compensado sin la comisión que ya se le había descontado | Alta | — | CP-661, CP-663 | [#174](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/174) | Corregido (3 nov) |
+| DEF-72 | La compensación se asienta el día en que se carga y no se le puede indicar la fecha | Media | — | CP-662, CP-667 | [#175](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/175) | Corregido (3 nov) |
+| DEF-73 | El cobro del primer mes de un contrato que empieza a mitad de mes no se reparte entre sus locadores | Alta | — | CP-668, CP-666 | [#176](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/176) | Corregido (3 nov) |
 
 ---
 
