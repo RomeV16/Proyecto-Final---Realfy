@@ -244,6 +244,7 @@ export {
   CreateGuaranteeSchema,
   CreateIndexDataSchema,
   IndexDataFilterSchema,
+  BackfillIndexDataSchema,
   ContractPersonSchema,
 } from './schemas/contract.schema';
 

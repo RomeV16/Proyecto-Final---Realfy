@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { todayInAR } from '../date-utils';
 import { externalRefSchema } from './person.schema';
 import { CreateContractLessorSchema } from './party.schema';
 import { LiquidationConventionsSchema } from './contract-rules.schema';
@@ -159,6 +160,34 @@ export const CreateIndexDataSchema = z
   .refine((v) => v.isEstimate || v.estimateSource === undefined, {
     message: 'estimateSource only applies to estimated values',
     path: ['estimateSource'],
+  });
+
+/** Máximo de días que una carga del histórico puede pedir de una vez (diez años). */
+const BACKFILL_MAX_DAYS = 3660;
+
+const calendarDay = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be a date as YYYY-MM-DD')
+  .refine((v) => new Date(`${v}T00:00:00.000Z`).toISOString().slice(0, 10) === v, 'Must be a real calendar date');
+
+/**
+ * Carga del histórico de una serie diaria de sistema (ICL, UVA) por rango de
+ * fechas: inclusive en los dos extremos, de hasta diez años y sin fechas futuras.
+ */
+export const BackfillIndexDataSchema = z
+  .object({
+    indexType: z.enum([IndexType.ICL, IndexType.UVA]),
+    from: calendarDay,
+    to: calendarDay,
+  })
+  .refine((v) => v.from <= v.to, { message: 'from must not be after to', path: ['from'] })
+  .refine(
+    (v) => (Date.parse(`${v.to}T00:00:00.000Z`) - Date.parse(`${v.from}T00:00:00.000Z`)) / 86_400_000 < BACKFILL_MAX_DAYS,
+    { message: `The range must not exceed ${BACKFILL_MAX_DAYS} days`, path: ['to'] },
+  )
+  .refine((v) => v.to <= todayInAR().toISOString().slice(0, 10), {
+    message: 'to must not be in the future',
+    path: ['to'],
   });
 
 export const IndexDataFilterSchema = z.object({
