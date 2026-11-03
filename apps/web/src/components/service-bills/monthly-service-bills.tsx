@@ -10,12 +10,16 @@ import {
   currentMonth,
   defaultInstallment,
   parseAmountInput,
+  checkUnitConsumptions,
+  initialUnitValues,
   parseConsumptionInput,
   parseDateInput,
   proposedDueDate,
   type BulkResponse,
+  type ServiceBill,
   type SheetResponse,
   type SheetRow,
+  type UnitValues,
 } from '@/lib/service-bills';
 import { cellKey, useEditableGrid, type GridColumn, type GridValues } from '@/hooks/use-editable-grid';
 import { Button } from '@/components/ui/button';
@@ -23,6 +27,7 @@ import { EditableDataTable } from '@/components/ui/data-table';
 import { ErrorNotice } from '@/components/ui/error-notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { inputStyles } from '@/components/ui/input';
+import { UnitConsumptionsPanel } from './unit-consumptions-panel';
 
 type Translate = ReturnType<typeof useTranslations>;
 
@@ -107,8 +112,20 @@ function BillsGrid({
   const tErrors = useTranslations('errors');
   const [saving, setSaving] = useState(false);
   const [failures, setFailures] = useState<RowFailure[]>([]);
+  const [submitted, setSubmitted] = useState(false);
 
   const initialRows = useMemo(() => buildRows(sheet, t, tTypes), [sheet, t, tTypes]);
+  const sheetRows = useMemo(() => new Map(sheet.rows.map((r) => [r.service.id, r])), [sheet]);
+  /** La boleta ya cargada de cada fila: de ella se reenvía lo que la planilla no edita. */
+  const loadedBills = useMemo(
+    () => new Map<string, ServiceBill>(sheet.rows.flatMap((r) => r.bills.map((b) => [`bill:${b.id}`, b] as const))),
+    [sheet],
+  );
+  /** Consumo por unidad de cada fila, texto editable; arranca con lo que la boleta ya trae. */
+  const [unitValues, setUnitValues] = useState<Record<string, UnitValues>>(() =>
+    Object.fromEntries(initialRows.map((r) => [r.id, initialUnitValues(loadedBills.get(r.id))])),
+  );
+  const [unitDirty, setUnitDirty] = useState<Set<string>>(new Set());
 
   const columns = useMemo<GridColumn[]>(
     () => [
@@ -155,11 +172,30 @@ function BillsGrid({
   const savable = grid.filledRows.filter(
     (row) =>
       (row.values.amount ?? '').trim() !== '' &&
-      columns.some((c) => !c.readOnly && grid.dirtyCells.has(cellKey(row.id, c.key))),
+      (unitDirty.has(row.id) || columns.some((c) => !c.readOnly && grid.dirtyCells.has(cellKey(row.id, c.key)))),
   );
 
+  const checkOf = (rowId: string, values: GridValues) => {
+    const sheetRow = sheetRows.get(values.serviceId);
+    return sheetRow ? checkUnitConsumptions(sheetRow, unitValues[rowId] ?? {}, values.consumption ?? '') : null;
+  };
+  /** Filas con consumo por unidad (panel), con su estado. */
+  const unitPanels = grid.rows.flatMap((row) => {
+    const sheetRow = sheetRows.get(row.values.serviceId);
+    if (!sheetRow || (sheetRow.units ?? []).length === 0) return [];
+    return [{ row, sheetRow, check: checkOf(row.id, row.values)! }];
+  });
+
+  function setUnit(rowId: string, propertyId: string, value: string) {
+    setUnitValues((prev) => ({ ...prev, [rowId]: { ...prev[rowId], [propertyId]: value } }));
+    setUnitDirty((prev) => new Set(prev).add(rowId));
+  }
+
   async function save() {
-    if (!grid.validateAll() || savable.length === 0) return;
+    setSubmitted(true);
+    const unitErrors = savable.some((row) => Object.keys(checkOf(row.id, row.values)?.errors ?? {}).length > 0);
+    if (!grid.validateAll() || savable.length === 0 || unitErrors) return;
+    setSubmitted(false);
     setSaving(true);
     setFailures([]);
     try {
@@ -167,6 +203,8 @@ function BillsGrid({
         const v = row.values;
         const dueDate = (v.dueDate ?? '').trim();
         const consumption = (v.consumption ?? '').trim();
+        const loaded = loadedBills.get(row.id);
+        const units = checkOf(row.id, v)?.entries ?? [];
         return {
           serviceId: v.serviceId,
           period: sheet.period.slice(0, 7),
@@ -174,6 +212,8 @@ function BillsGrid({
           amount: parseAmountInput(v.amount),
           dueDate: dueDate ? parseDateInput(dueDate) : null,
           consumption: consumption ? parseConsumptionInput(consumption) : null,
+          unitConsumptions: units.length > 0 ? units : null,
+          ...(loaded && { nominalAmount: loaded.nominalAmount ?? null, notes: loaded.notes ?? null }),
         };
       });
       const res = await apiClient<BulkResponse>('/service-bills/bulk', {
@@ -220,6 +260,20 @@ function BillsGrid({
           ) : undefined
         }
       />
+      {unitPanels.map(({ row, sheetRow, check }) => (
+        <UnitConsumptionsPanel
+          key={row.id}
+          row={sheetRow}
+          period={sheet.period.slice(0, 7)}
+          title={`${row.values.property} · ${row.values.service}`}
+          values={unitValues[row.id] ?? {}}
+          check={check}
+          amount={row.values.amount ?? ''}
+          consumption={row.values.consumption ?? ''}
+          showMissing={submitted || check.entries.length > 0}
+          onChange={(propertyId, value) => setUnit(row.id, propertyId, value)}
+        />
+      ))}
       {failures.length > 0 && (
         <div role="alert" className="rounded-lg border border-[var(--color-danger)] p-4 text-sm">
           <p className="mb-2 font-medium text-[var(--color-danger)]">{t('save.failuresTitle')}</p>

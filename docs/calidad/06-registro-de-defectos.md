@@ -45,6 +45,9 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-73 | El cobro del primer mes de un contrato que empieza a mitad de mes no se reparte entre sus locadores | Alta | — | CP-668, CP-666 | [#176](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/176) | Corregido (3 nov) |
 | DEF-80 | Guardar los valores por defecto pisa las convenciones de depósitos con las de fábrica | Media | — | CP-805 | [#179](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/179) | Corregido (3 nov) |
 | DEF-95 | El documento de casos de uso quedó con marcas de conflicto de un merge | Baja | — | `test/unit/docs-integrity.spec.ts` | [#182](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/182) | Corregido (3 nov) |
+| DEF-105 | Una unidad con consumo 0 frena el reparto por consumo de toda la boleta | Media | RF de boletas (ítem 35) | CP-1130, CP-1131 | [#188](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/188) | Corregido (3 nov) |
+| DEF-106 | El consumo de las unidades sin contrato con regla se ignora y las demás pagan de más | Alta | RF de boletas (ítem 35) | CP-1133, CP-1148 | [#189](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/189) | Corregido (3 nov) |
+| DEF-107 | Corregir una boleta en la planilla del mes borra su consumo por unidad, importe sin descuento y notas | Alta | RF de boletas (ítem 35) | CP-1139 | [#190](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/190) | Corregido (3 nov) |
 
 ---
 
@@ -571,3 +574,45 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** se quitaron las marcas y se conservaron las dos secciones.
 - **Prueba de regresión:** `apps/api/test/unit/docs-integrity.spec.ts` (ningún `.md` de `docs/` puede tener marcas de conflicto).
 - **Evidencia rojo/verde:** regresión `00468e8` en rojo (1 prueba falla: tres marcas); corrección en `2720074`.
+
+## DEF-105 — Una unidad con consumo 0 frena el reparto por consumo de toda la boleta
+
+- **Requisito afectado:** reparto de boletas de servicios entre contratos (ítem 35, ADR-0008).
+- **Origen:** al preparar la migración del piloto (edificios con una boleta para varias unidades).
+- **Caso que lo detecta:** CP-1130.
+- **Severidad:** media. Una unidad vacía (consumo 0) hacía que ninguna unidad recibiera su parte y la boleta quedaba sin repartir, con el motivo equivocado (`MissingConsumption`).
+- **Pasos para reproducir:** repartir una boleta de 900 entre dos contratos con regla por consumo y consumos 0 y 100.
+- **Resultado esperado:** la unidad en 0 no paga y la otra paga la boleta (900).
+- **Resultado obtenido:** ninguna parte; las dos reglas figuran como `MissingConsumption`.
+- **Causa raíz:** el motor tomaba "consumo mayor que 0" como "dato conocido", y confundía un 0 declarado con un dato faltante.
+- **Corrección:** un 0 declarado es un dato (la unidad no paga); solo si todo el consumo es 0 no hay con qué repartir y se informa `MissingConsumption`.
+- **Prueba de regresión:** CP-1130 y CP-1131 en `packages/shared/src/charge-split/charge-split.spec.ts`; CP-1148 en `apps/api/test/e2e/boletas-y-reglas.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `b41300a` en rojo (2 pruebas fallan); corrección en `36ddd5a`.
+
+## DEF-106 — El consumo de las unidades sin contrato con regla se ignora y las demás pagan de más
+
+- **Requisito afectado:** reparto de boletas de servicios entre contratos (ítem 35, ADR-0008).
+- **Origen:** al revisar el reparto por consumo para cargarlo desde la pantalla.
+- **Caso que lo detecta:** CP-1133.
+- **Severidad:** alta, es dinero del inquilino. Con una boleta sin consumo total, las unidades con regla se repartían toda la boleta aunque otras unidades (vacías o sin regla) hubieran consumido.
+- **Pasos para reproducir:** cargar una boleta de 1.000 con consumos 100 (unidad con regla) y 100 (unidad sin contrato), sin consumo total.
+- **Resultado esperado:** la unidad con regla paga 500.
+- **Resultado obtenido:** paga 1.000.
+- **Causa raíz:** el total de consumo se calculaba solo con las unidades que tienen regla; el consumo de las demás unidades cargadas no entraba.
+- **Corrección:** el total es el mayor entre el consumo declarado y la suma de todas las unidades cargadas (`billConsumption`). Además, cada unidad debe ser del edificio del servicio (`UNIT_NOT_IN_BUILDING`) y no puede repetirse.
+- **Prueba de regresión:** CP-1133 en `apps/api/src/modules/services/service-bills.service.spec.ts`; CP-1148 y CP-1150 en `apps/api/test/e2e/boletas-y-reglas.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `af9f81e` en rojo (1 prueba falla: 1000.00 en vez de 500.00); corrección en `af3d3ff`.
+
+## DEF-107 — Corregir una boleta en la planilla del mes borra su consumo por unidad, importe sin descuento y notas
+
+- **Requisito afectado:** carga de boletas del mes (ítem 35, 2.4).
+- **Origen:** al agregar el consumo por unidad a la planilla.
+- **Caso que lo detecta:** CP-1139.
+- **Severidad:** alta. La carga masiva reemplaza la fila completa y la planilla enviaba solo importe, vencimiento, cuota y consumo total: al corregir el importe de una boleta ya cargada, la API dejaba en blanco el consumo por unidad, el importe sin descuento y las notas, y el reparto por consumo se perdía.
+- **Pasos para reproducir:** cargar por la API una boleta con `unitConsumptions`, `nominalAmount` y `notes`; en *Boletas del mes* cambiar solo el importe y guardar.
+- **Resultado esperado:** los demás datos de la boleta se conservan.
+- **Resultado obtenido:** quedan en blanco.
+- **Causa raíz:** la planilla no reenviaba los datos que no edita.
+- **Corrección:** la planilla reenvía el consumo por unidad (ahora editable), el importe sin descuento y las notas de la boleta cargada.
+- **Prueba de regresión:** CP-1139 en `apps/web/src/components/service-bills/monthly-service-bills.def107.test.tsx`.
+- **Evidencia rojo/verde:** regresión `60d436f` en rojo (1 prueba falla: el cuerpo no trae esos datos); corrección en `fc17ff0`.

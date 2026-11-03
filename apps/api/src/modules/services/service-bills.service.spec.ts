@@ -2,6 +2,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
   ServiceBillsService,
+  billConsumption,
   defaultInstallmentLabel,
   parsePeriod,
   pickRulesFor,
@@ -10,6 +11,10 @@ import {
 const d = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 const SERVICE_ID = '11111111-1111-4111-8111-111111111111';
 const BILL_ID = 'bill-1';
+const UNIT_A = '22222222-2222-4222-8222-222222222222';
+const UNIT_B = '33333333-3333-4333-8333-333333333333';
+/** Propiedades del edificio del servicio en los dobles de prueba. */
+const UNITS = [UNIT_A, UNIT_B];
 
 function rule(over: Record<string, unknown> = {}) {
   return {
@@ -61,6 +66,7 @@ function build(opts: { rules?: any[]; bill?: any; billed?: number } = {}) {
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     contractChargeRule: { findMany: jest.fn().mockResolvedValue(opts.rules ?? []) },
+    property: { findMany: jest.fn().mockResolvedValue(UNITS.map((id) => ({ id }))) },
     servicePayment: {
       findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
@@ -251,6 +257,30 @@ describe('ServiceBillsService.bulk', () => {
     expect(client.serviceBillAllocation.createMany).not.toHaveBeenCalled();
   });
 
+  it('DEF-106 / CP-1133 — el consumo de una unidad sin contrato con regla entra en el total de la boleta', async () => {
+    const unitA = UNIT_A;
+    const unitB = UNIT_B;
+    const a = rule({
+      id: 'ra',
+      splitMode: 'Consumo',
+      payer: 'Propietario',
+      contract: { ...rule().contract, propertyId: unitA },
+    });
+    const { service, client } = build({ rules: [a] });
+    await service.bulk([
+      row({
+        amount: '1000.00',
+        unitConsumptions: [
+          { propertyId: unitA, consumption: '100' },
+          { propertyId: unitB, consumption: '100' },
+        ],
+      }),
+    ]);
+    // La unidad B (vacía, sin regla) consumió lo mismo: A paga la mitad, no toda la boleta.
+    const parts = client.serviceBillAllocation.createMany.mock.calls[0][0].data;
+    expect(parts).toEqual([expect.objectContaining({ contractId: 'con-1', amount: '500.00' })]);
+  });
+
   it('descarta contratos en borrador, terminados antes del mes y reglas ajenas', async () => {
     const draft = rule({ contract: { ...rule().contract, status: 'Borrador' } });
     const ended = rule({
@@ -269,6 +299,97 @@ describe('ServiceBillsService.bulk', () => {
     ]);
     await service.bulk([row()]);
     expect(client.serviceBillAllocation.createMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('ServiceBillsService.preview y unidades', () => {
+  const water = () => {
+    const a = rule({
+      id: 'ra',
+      splitMode: 'Consumo',
+      payer: 'Propietario',
+      contract: { ...rule().contract, propertyId: UNIT_A },
+    });
+    const b = rule({
+      id: 'rb',
+      contractId: 'con-2',
+      splitMode: 'Consumo',
+      payer: 'Inmobiliaria',
+      contract: { ...rule().contract, id: 'con-2', propertyId: UNIT_B },
+    });
+    return build({ rules: [a, b] });
+  };
+
+  it('CP-1135 — la vista previa reparte por consumo sin guardar nada', async () => {
+    const { service, client } = water();
+    const res = await service.preview({
+      serviceId: SERVICE_ID,
+      period: '2026-11',
+      amount: '900.00',
+      unitConsumptions: [
+        { propertyId: UNIT_A, consumption: '100' },
+        { propertyId: UNIT_B, consumption: '200' },
+      ],
+    });
+    expect(res.allocations.map((a) => [a.contractId, a.amount, a.chargePeriod])).toEqual([
+      ['con-1', '300.00', '2026-11-01'],
+      ['con-2', '600.00', '2026-11-01'],
+    ]);
+    expect(client.serviceBill.create).not.toHaveBeenCalled();
+    expect(client.serviceBillAllocation.createMany).not.toHaveBeenCalled();
+  });
+
+  it('CP-1136 — con una unidad sin consumo la vista previa no reparte y avisa cuál', async () => {
+    const { service } = water();
+    const res = await service.preview({
+      serviceId: SERVICE_ID,
+      period: '2026-11',
+      amount: '900.00',
+      unitConsumptions: [{ propertyId: UNIT_A, consumption: '100' }],
+    });
+    expect(res.allocations).toEqual([]);
+    expect(res.skipped.map((s) => [s.contractId, s.reason])).toEqual([
+      ['con-1', 'MissingConsumption'],
+      ['con-2', 'MissingConsumption'],
+    ]);
+  });
+
+  it('CP-1137 — una unidad que no es del edificio del servicio se rechaza (vista previa y carga)', async () => {
+    const { service, client } = water();
+    client.property.findMany.mockResolvedValue([{ id: UNIT_A }]);
+    const foreign = [{ propertyId: UNIT_B, consumption: '10' }];
+    await expect(
+      service.preview({ serviceId: SERVICE_ID, period: '2026-11', amount: '1.00', unitConsumptions: foreign }),
+    ).rejects.toMatchObject({ response: { error: 'UNIT_NOT_IN_BUILDING' } });
+    const res = await service.bulk([row({ unitConsumptions: foreign })]);
+    expect(res.results[0]).toMatchObject({ status: 'error', error: { code: 'UNIT_NOT_IN_BUILDING' } });
+  });
+
+  it('CP-1138 — el mismo edificio no puede repetirse en los consumos y el servicio debe existir', async () => {
+    const { service, client } = water();
+    const res = await service.bulk([
+      row({
+        unitConsumptions: [
+          { propertyId: UNIT_A, consumption: '1' },
+          { propertyId: UNIT_A, consumption: '2' },
+        ],
+      }),
+    ]);
+    expect(res.results[0]).toMatchObject({ status: 'error' });
+    client.service.findFirst.mockResolvedValue(null);
+    await expect(service.preview({ serviceId: SERVICE_ID, period: '2026-11', amount: '1.00' })).rejects.toMatchObject({
+      response: { error: 'SERVICE_NOT_FOUND' },
+    });
+  });
+});
+
+describe('billConsumption', () => {
+  it('toma el mayor entre el consumo declarado y la suma de las unidades', () => {
+    const units = new Map([['a', '100'], ['b', '50.5']]);
+    expect(billConsumption({ consumption: null }, units)).toBe('150.5');
+    expect(billConsumption({ consumption: { toString: () => '400' } }, units)).toBe('400');
+    expect(billConsumption({ consumption: { toString: () => '100' } }, units)).toBe('150.5');
+    expect(billConsumption({ consumption: null }, new Map())).toBeNull();
   });
 });
 
@@ -379,6 +500,7 @@ describe('ServiceBillsService: lecturas', () => {
         dueDay: 10,
         billingFrequency: 'Mensual',
         hasAnnualOption: false,
+        propertyId: 'prop-1',
         property: { id: 'prop-1', title: 'Depto' },
         bills: [],
         rules: [rule({ fixedAmount: { toString: () => '100' } })],
@@ -390,6 +512,40 @@ describe('ServiceBillsService: lecturas', () => {
       expect.objectContaining({ contractId: 'con-1', payer: 'Inmobiliaria', tenantSharePct: '50', fixedAmount: '100' }),
     ]);
     await expect(service.sheet('')).rejects.toMatchObject({ response: { error: 'VALIDATION_ERROR' } });
+  });
+
+  it('CP-1134 — la planilla lista las unidades del edificio y la propiedad de cada regla por consumo', async () => {
+    const { service, client } = build();
+    const byConsumo = rule({
+      splitMode: 'Consumo',
+      contract: { ...rule().contract, propertyId: 'prop-solo', property: { title: 'Depto solo' } },
+    });
+    client.property.findMany.mockResolvedValue([
+      { id: UNIT_B, title: 'Unidad B', parentPropertyId: 'bld' },
+      { id: UNIT_A, title: 'Unidad A', parentPropertyId: 'bld' },
+      { id: 'otra', title: 'De otro edificio', parentPropertyId: 'otro' },
+    ]);
+    const base = {
+      serviceType: 'Agua',
+      providerName: null,
+      amount: { toString: () => '1' },
+      currency: 'ARS',
+      dueDay: 10,
+      billingFrequency: 'Mensual',
+      hasAnnualOption: false,
+      bills: [],
+    };
+    client.service.findMany.mockResolvedValue([
+      { ...base, id: 'sv-1', propertyId: 'bld', property: { id: 'bld', title: 'Edificio' }, rules: [] },
+      { ...base, id: 'sv-2', propertyId: 'prop-solo', property: { id: 'prop-solo', title: 'Depto solo' }, rules: [byConsumo] },
+    ]);
+    const res = await service.sheet('2026-11');
+    expect(res.rows[0].units).toEqual([
+      { propertyId: UNIT_B, title: 'Unidad B' },
+      { propertyId: UNIT_A, title: 'Unidad A' },
+    ]);
+    expect(res.rows[1].units).toEqual([{ propertyId: 'prop-solo', title: 'Depto solo' }]);
+    expect(res.rows[1].rules[0]).toMatchObject({ propertyId: 'prop-solo', propertyTitle: 'Depto solo' });
   });
 
   it('allocations devuelve lo guardado y el cálculo de hoy', async () => {

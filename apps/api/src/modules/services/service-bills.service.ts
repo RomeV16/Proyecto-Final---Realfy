@@ -3,6 +3,7 @@ import {
   ChargePayer,
   ContractStatus,
   InvalidChargeRuleError,
+  Money,
   ServiceBillFilterSchema,
   ServiceBillRowSchema,
   ServiceBillStatus,
@@ -101,10 +102,20 @@ export class ServiceBillsService {
       include: {
         property: { select: { id: true, title: true } },
         bills: { where: { period: month }, orderBy: { createdAt: 'asc' } },
-        rules: { include: { contract: { select: { id: true, status: true, startDate: true, propertyId: true } } } },
+        rules: {
+          include: {
+            contract: { select: { id: true, status: true, startDate: true, propertyId: true, property: { select: { title: true } } } },
+          },
+        },
       },
       orderBy: [{ propertyId: 'asc' }, { serviceType: 'asc' }],
       take: 1000,
+    });
+    // Las unidades de cada edificio: el consumo de la boleta se carga por unidad.
+    const children = await this.prisma.client.property.findMany({
+      where: { parentPropertyId: { in: services.map((s: any) => s.propertyId) } },
+      select: { id: true, title: true, parentPropertyId: true },
+      orderBy: { title: 'asc' },
     });
 
     const rows = services.map((service: any) => {
@@ -116,7 +127,17 @@ export class ServiceBillsService {
         tenantSharePct: rule.tenantSharePct.toString(),
         fixedAmount: rule.fixedAmount?.toString() ?? null,
         paymentPlan: rule.paymentPlan,
+        propertyId: rule.contract?.propertyId ?? null,
+        propertyTitle: rule.contract?.property?.title ?? null,
       }));
+      const units = new Map<string, string>(
+        children.filter((c: any) => c.parentPropertyId === service.propertyId).map((c: any) => [c.id, c.title]),
+      );
+      for (const rule of rules) {
+        if (rule.splitMode === 'Consumo' && rule.propertyId && !units.has(rule.propertyId)) {
+          units.set(rule.propertyId, rule.propertyTitle ?? '');
+        }
+      }
       return {
         service: {
           id: service.id,
@@ -131,6 +152,7 @@ export class ServiceBillsService {
         },
         bills: service.bills,
         rules,
+        units: [...units].map(([propertyId, title]) => ({ propertyId, title })),
       };
     });
     return { period: month.toISOString().slice(0, 10), rows };
@@ -163,6 +185,49 @@ export class ServiceBillsService {
         warnings: preview.warnings,
       },
     };
+  }
+
+  /**
+   * Vista previa del reparto de una boleta que todavía no se guardó (mismos campos que una fila de la carga
+   * masiva). No escribe: usa el mismo cálculo que `materialize`.
+   */
+  async preview(data: unknown) {
+    const row = parseOrThrow(ServiceBillRowSchema, data, 'Invalid bill data');
+    const service = await this.prisma.client.service.findFirst({ where: { id: row.serviceId } });
+    if (!service) throw notFound('SERVICE_NOT_FOUND', 'Service not found');
+    await this.assertUnitsOfService(this.prisma.client, service, row.unitConsumptions);
+    const virtual = {
+      serviceId: row.serviceId,
+      period: parsePeriod(row.period),
+      amount: row.amount,
+      nominalAmount: row.nominalAmount ?? null,
+      consumption: row.consumption ?? null,
+      unitConsumptions: row.unitConsumptions ?? null,
+    };
+    const result = await this.compute(this.prisma.client, virtual);
+    return {
+      allocations: result.allocations.map((a) => ({ ...a, chargePeriod: a.chargePeriod.toISOString().slice(0, 10) })),
+      skipped: result.skipped,
+      warnings: result.warnings,
+    };
+  }
+
+  /** Las unidades del consumo deben ser la propiedad del servicio o sus unidades (un edificio). */
+  private async assertUnitsOfService(
+    db: Db,
+    service: { propertyId: string },
+    units: { propertyId: string }[] | null | undefined,
+  ) {
+    if (!units || units.length === 0) return;
+    const valid = await db.property.findMany({
+      where: { OR: [{ id: service.propertyId }, { parentPropertyId: service.propertyId }] },
+      select: { id: true },
+    });
+    const ids = new Set<string>(valid.map((p: { id: string }) => p.id));
+    const foreign = units.filter((u) => !ids.has(u.propertyId));
+    if (foreign.length > 0) {
+      throw badRequest('UNIT_NOT_IN_BUILDING', 'Each unit consumption must belong to the service property or its units');
+    }
   }
 
   // ─── Carga masiva ───────────────────────────────────
@@ -207,6 +272,7 @@ export class ServiceBillsService {
     const tenantId = this.tenantContext.getTenantId()!;
     const service = await this.prisma.client.service.findFirst({ where: { id: row.serviceId } });
     if (!service) throw notFound('SERVICE_NOT_FOUND', 'Service not found');
+    await this.assertUnitsOfService(this.prisma.client, service, row.unitConsumptions);
 
     const period = parsePeriod(row.period);
     const installmentLabel = row.installmentLabel ?? defaultInstallmentLabel(period);
@@ -279,6 +345,8 @@ export class ServiceBillsService {
     if (finalStatus === ServiceBillStatus.Pagada && (!paidBy || !paidAt)) {
       throw badRequest('BILL_PAYMENT_DATA_REQUIRED', 'paidBy and paidAt are required to mark a bill as paid');
     }
+
+    await this.assertUnitsOfService(this.prisma.client, bill.service, input.unitConsumptions);
 
     const tenantId = this.tenantContext.getTenantId()!;
     const { ownerAccounts } = await this.operationalDefaults.get(tenantId);
@@ -383,7 +451,7 @@ export class ServiceBillsService {
           amount: bill.amount.toString(),
           nominalAmount: bill.nominalAmount?.toString() ?? null,
           period,
-          consumption: bill.consumption?.toString() ?? null,
+          consumption: billConsumption(bill, units),
         },
         inputs,
       );
@@ -526,6 +594,17 @@ export class ServiceBillsService {
 }
 
 // ─── Helpers ──────────────────────────────────────────
+
+/**
+ * Consumo total de la boleta para el reparto: el declarado o, si es mayor, la suma de los consumos de todas las
+ * unidades cargadas, también las que no tienen contrato con regla por consumo (vacías): ellas ocupan su parte.
+ */
+export function billConsumption(bill: { consumption?: { toString(): string } | null }, units: Map<string, string>): string | null {
+  const declared = bill.consumption != null ? bill.consumption.toString() : null;
+  if (units.size === 0) return declared;
+  const sum = [...units.values()].reduce((acc, c) => acc.plus(c), new Money(0));
+  return declared != null && new Money(declared).gte(sum) ? declared : sum.toString();
+}
 
 /** Por cada contrato, la regla vigente en el mes de la boleta (la de la fecha de inicio si el contrato empieza después). */
 export function pickRulesFor(rules: any[], month: Date): any[] {

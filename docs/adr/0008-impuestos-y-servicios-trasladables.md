@@ -74,6 +74,8 @@ motor puro y se guarda antes de liquidar.**
   - `Consumo`: consumo de la unidad sobre el consumo total de la boleta; las
     unidades suman la boleta por mayor resto y la diferencia (áreas comunes,
     unidades vacías) no se traslada. Una unidad que paga directo ocupa su parte.
+    Una unidad con consumo 0 declarado no paga; el consumo de las unidades
+    cargadas sin regla (vacías) cuenta en el total.
   - `Fijo`: `fixedAmount`, sin superar el importe de la boleta.
 - **Plan anual.** Con `paymentPlan = Anual` el importe de la boleta es el anual.
   `annualRecovery = Prorrateado` (de fábrica, lo habitual) lo reparte en
@@ -168,8 +170,9 @@ Negativas:
   trasladan; con `CobrarEnLiquidacionFinal` se cobran todas juntas en la última
   liquidación, que puede ser un monto alto para el inquilino.
 - Un servicio de un edificio repartido por consumo necesita el consumo de cada
-  unidad (`unitConsumptions`, por la API); la pantalla de carga mensual todavía
-  carga el consumo total de la boleta.
+  unidad (`unitConsumptions`): la pantalla de carga mensual lo pide por unidad,
+  suma y ofrece la vista previa del reparto (`POST /service-bills/preview`) antes
+  de guardar.
 - Se asume la moneda de la boleta igual a la de la liquidación; las partes de
   otra moneda quedan pendientes.
 

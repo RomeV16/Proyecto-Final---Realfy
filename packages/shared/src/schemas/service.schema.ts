@@ -141,6 +141,9 @@ export const ServiceBillRowSchema = z
     unitConsumptions: z
       .array(z.object({ propertyId: z.string().uuid(), consumption: decimal(3) }).strict())
       .max(500)
+      .refine((units) => new Set(units.map((u) => u.propertyId)).size === units.length, {
+        message: 'Each unit can appear only once',
+      })
       .nullable()
       .optional(),
     notes: z.string().max(2000).nullable().optional(),
