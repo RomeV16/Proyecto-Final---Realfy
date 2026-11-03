@@ -62,6 +62,31 @@ const EMAIL: Record<MessageTemplateKey, (vars: MessageVars) => RenderedEmail> = 
       `<p>Podés responder desde el portal.</p>` +
       `<p>Saludos cordiales,<br/>${v(x, 'agency')}</p>`,
   }),
+  // Cobranza escalonada (ADR-0013): del tono amable al firme, sin amenazas ni plazos legales.
+  payment_reminder_1: (x) => ({
+    subject: `Recordatorio de pago - ${x.agency ?? ''}`,
+    html:
+      `<p>Hola ${v(x, 'name')},</p>` +
+      `<p>Te escribimos para recordarte que figura pendiente el pago del alquiler de <strong>${v(x, 'periods')}</strong>. El importe al día de hoy es <strong>${v(x, 'amount')}</strong>.</p>` +
+      `<p>Si ya lo abonaste, ignorá este mensaje. Si tenés alguna dificultad, respondé este mail y lo vemos juntos.</p>` +
+      `<p>Saludos cordiales,<br/>${v(x, 'agency')}</p>`,
+  }),
+  payment_reminder_2: (x) => ({
+    subject: `Pago pendiente de tu alquiler - ${x.agency ?? ''}`,
+    html:
+      `<p>Hola ${v(x, 'name')},</p>` +
+      `<p>Volvemos a comunicarnos: el alquiler de <strong>${v(x, 'periods')}</strong> sigue sin acreditarse. El importe actualizado al día de hoy es <strong>${v(x, 'amount')}</strong>.</p>` +
+      `<p>Te pedimos regularizarlo a la brevedad o comunicarte con nosotros para acordar una forma de pago.</p>` +
+      `<p>Saludos cordiales,<br/>${v(x, 'agency')}</p>`,
+  }),
+  payment_reminder_3: (x) => ({
+    subject: `Necesitamos comunicarnos por tu alquiler - ${x.agency ?? ''}`,
+    html:
+      `<p>Hola ${v(x, 'name')},</p>` +
+      `<p>Este es un nuevo aviso: el alquiler de <strong>${v(x, 'periods')}</strong> continúa pendiente por <strong>${v(x, 'amount')}</strong> al día de hoy.</p>` +
+      `<p>Necesitamos que lo regularices o te comuniques con nosotros esta semana para acordar el pago. Si no recibimos novedades, seguiremos con las gestiones de cobranza que prevé el contrato.</p>` +
+      `<p>Saludos cordiales,<br/>${v(x, 'agency')}</p>`,
+  }),
   // Mismo texto que mandaba la invitación antes de la bandeja de salida.
   user_invitation: (x) => ({
     subject: 'Te invitaron a Realfy',

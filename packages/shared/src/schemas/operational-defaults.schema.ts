@@ -5,6 +5,7 @@ import { ReceiptSeriesMode } from '../cash';
 import { LessorChargeTiming } from '../owner-ledger';
 import { FeeVatMode } from '../enums';
 import { InvoicingSettingsSchema } from '../lessor-invoicing';
+import type { CollectionPolicy } from '../collection-engine';
 import { ContractTotalMode, FeePayerChoice, StaffCommissionBase } from '../fee-engine';
 import { PublicationSettingsSchema } from '../publication/settings';
 
@@ -83,6 +84,19 @@ export const OperationalDefaultsSchema = z
       .object({
         firstReminderDays: days.default(5),
         everyDays: z.number().int().min(1).max(365).default(5),
+      })
+      .strict()
+      .default({}),
+    /**
+     * Cobranza escalonada (ADR-0013). El ritmo de los recordatorios es `collectionCadence`; acá
+     * se prende el proceso, cuántos niveles de tono se usan (1 a 3) y el plazo de la carta
+     * documento. Apagado, el proceso diario no abre casos ni manda avisos.
+     */
+    collections: z
+      .object({
+        enabled: z.boolean().default(false),
+        maxLevel: z.number().int().min(1).max(3).default(3),
+        letterTermDays: z.number().int().min(1).max(60).default(10),
       })
       .strict()
       .default({}),
@@ -216,4 +230,15 @@ export const DEFAULT_OPERATIONAL_DEFAULTS: OperationalDefaults = OperationalDefa
 export function resolveOperationalDefaults(stored: unknown): OperationalDefaults {
   if (stored === null || stored === undefined) return DEFAULT_OPERATIONAL_DEFAULTS;
   return OperationalDefaultsSchema.parse(stored);
+}
+
+/** Política de cobranza vigente: el ritmo (`collectionCadence`) más lo propio de `collections`. */
+export function collectionPolicyOf(defaults: OperationalDefaults): CollectionPolicy {
+  return {
+    enabled: defaults.collections.enabled,
+    firstReminderDays: defaults.collectionCadence.firstReminderDays,
+    everyDays: defaults.collectionCadence.everyDays,
+    maxLevel: defaults.collections.maxLevel,
+    letterTermDays: defaults.collections.letterTermDays,
+  };
 }
