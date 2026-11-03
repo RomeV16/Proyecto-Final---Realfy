@@ -189,3 +189,24 @@ Cuatro reglas de dinero no estaban en lo relevado; se consultaron y quedaron as�
 - **Importe fijo** nunca supera la boleta, y un cambio de regla rige para las
   boletas de los meses siguientes a su fecha (la regla de un mes es la vigente el
   día 1), igual que el alquiler.
+
+## Avisos cuando una parte no llega a una liquidación (3 de noviembre de 2026)
+
+Una boleta en otra moneda que el alquiler del contrato (por ejemplo, pesos sobre un
+contrato en dólares) nunca entraba en una liquidación y nadie se enteraba. No se
+define acá cómo se convierte (moneda del renglón, tipo de cambio, recibo aparte):
+mientras tanto la parte queda guardada sin facturar y se informa. La carga de la
+boleta y `GET /service-bills/:id/allocations` devuelven `BILL_CURRENCY_MISMATCH`
+("boleta en ARS sobre contrato en USD: no se trasladó"), la generación de
+liquidaciones devuelve `UNBILLED_BILL_CURRENCY_MISMATCH` por contrato y
+`GET /service-bills/unbilled` lista todo lo que quedó sin facturar por esa causa. Lo
+mismo para una regla por consumo sin consumo por unidad (`CONSUMPTION_MISSING`) y
+para una liquidación con alquiler en cero (`RENT_IS_ZERO`).
+
+Convenciones a confirmar (decisiones de Manuel, no tomadas acá):
+
+- Qué hacer con una boleta en otra moneda que el contrato: convertirla (con qué tipo
+  de cambio y de qué fecha), cobrarla en un recibo aparte o que la pague el inquilino.
+- Si una liquidación con alquiler en cero debe seguir generándose (hoy se crea y avisa)
+  o quedar en revisión.
+

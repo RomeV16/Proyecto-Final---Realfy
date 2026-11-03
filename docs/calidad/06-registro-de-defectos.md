@@ -66,6 +66,10 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-121 | No hay carga del histórico de ICL y UVA de la serie de sistema | Alta | RF-14 | CP-1230 a CP-1236 | [#205](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/205) | En corrección |
 | DEF-170 | Las boletas de un remitente automático (no-reply) se descartan en silencio | Alta | RF-09 | CP-1430 a CP-1434 | [#235](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/235) | Corregido (3 nov) |
 | DEF-171 | El ingreso de boletas rechaza con 400 la marca automatic del servicio de recepción | Media | RF-09 | CP-1433 a CP-1435 | [#235](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/235) | Corregido (3 nov) |
+| DEF-140 | Una boleta en otra moneda que el contrato nunca se factura y no hay ningún aviso | Media | — | CP-1300, CP-1301, CP-1309 a CP-1312 | [#201](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/201) | Corregido (3 nov) |
+| DEF-141 | La liquidación con alquiler en cero se genera sin ninguna advertencia | Baja | — | CP-1302, CP-1308, CP-1313 | [#202](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/202) | Corregido (3 nov) |
+| DEF-142 | La carga de una boleta con reglas por consumo y sin consumo por unidad responde creada con el reparto vacío | Baja | — | CP-1303, CP-1311 | [#204](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/204) | Corregido (3 nov) |
+| DEF-143 | El importador acepta un ajuste Custom o de porcentaje fijo sin porcentaje y falla recién al calcular el ajuste | Baja | — | CP-1305 a CP-1307 | [#206](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/206) | Corregido (3 nov) |
 
 ---
 
@@ -884,3 +888,59 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** `automatic: z.boolean().optional()` en `BillMailIngestSchema`; el servicio no lo usa para descartar.
 - **Prueba de regresión:** CP-1433 en `bill-mail.service.spec.ts`; CP-1435 en `bills-intake.spec.ts`; CP-1434 en el e2e.
 - **Evidencia rojo/verde:** regresión `1c00276` en rojo; corrección en `dbcbcc6`.
+
+## DEF-140 — Una boleta en otra moneda que el contrato nunca se factura y no hay ningún aviso
+
+- **Requisito afectado:** boletas de servicios e impuestos trasladables (ADR-0008) y generación de liquidaciones.
+- **Origen:** ensayo general del primer ciclo del piloto sobre una copia de los datos de la inmobiliaria piloto.
+- **Caso que lo detecta:** CP-1300.
+- **Severidad:** media. Una parte del reparto que la inmobiliaria tiene que cobrar o pagar quedaba sin facturar para siempre y nadie se enteraba.
+- **Pasos para reproducir:** un contrato con alquiler en dólares, una regla de traslado a cargo del propietario sobre un servicio en pesos y una boleta en pesos de ese servicio. Generar la liquidación del mes.
+- **Resultado esperado:** la parte no se pierde en silencio: la carga, la boleta y la generación lo avisan y la parte aparece en un reporte de pendientes sin facturar.
+- **Resultado obtenido:** la liquidación sale sin la parte y sin ningún aviso; la parte queda guardada, sin facturar, y no se ve en ningún lado.
+- **Causa raíz:** `pendingLines` filtra las partes por la moneda del alquiler; las demás nunca entran y nada las informa.
+- **Corrección:** no se decide ninguna conversión (moneda del renglón y tipo de cambio son una regla de dinero sin definir). La parte queda guardada sin facturar y se informa: la carga masiva y `GET /service-bills/:id/allocations` devuelven `warnings` con `BILL_CURRENCY_MISMATCH` ("boleta en ARS sobre contrato en USD: no se trasladó"), `POST /liquidaciones/generate` devuelve `warnings` por contrato (`UNBILLED_BILL_CURRENCY_MISMATCH`) y `withWarnings`, y `GET /service-bills/unbilled` lista las partes sin facturar por moneda distinta.
+- **Prueba de regresión:** CP-1300 y CP-1301 en `apps/api/test/e2e/boletas-y-reglas.e2e-spec.ts`; CP-1308 a CP-1312 en los unitarios de liquidaciones y boletas.
+- **Evidencia rojo/verde:** regresión `ff7f527` en rojo (CP-1300 a CP-1303 fallan en e2e); corrección en `eab7b04`.
+
+## DEF-141 — La liquidación con alquiler en cero se genera sin ninguna advertencia
+
+- **Requisito afectado:** generación de liquidaciones.
+- **Origen:** ensayo general del primer ciclo del piloto.
+- **Caso que lo detecta:** CP-1302.
+- **Severidad:** baja. Un contrato con el alquiler cargado en 0 (por ejemplo, a la espera del valor en pesos) sale con una liquidación de total 0 sin que la generación lo diga.
+- **Pasos para reproducir:** generar el mes con un contrato activo de alquiler 0.
+- **Resultado esperado:** la liquidación se crea y el resultado del contrato trae el aviso `RENT_IS_ZERO`.
+- **Resultado obtenido:** se crea sin avisos.
+- **Causa raíz:** el generador no mira el alquiler del mes.
+- **Corrección:** el resultado de cada contrato creado lleva `warnings` (`RENT_IS_ZERO`) y el resumen cuenta `withWarnings`; la pantalla lo muestra.
+- **Prueba de regresión:** CP-1302 (e2e), CP-1308 (unitario) y CP-1313 (pantalla).
+- **Evidencia rojo/verde:** regresión `ff7f527` en rojo; corrección en `eab7b04`.
+
+## DEF-142 — La carga de una boleta con reglas por consumo y sin consumo por unidad responde creada con el reparto vacío
+
+- **Requisito afectado:** boletas trasladables con reparto por consumo (ADR-0008).
+- **Origen:** ensayo general del primer ciclo del piloto: un edificio de tres unidades con reparto por consumo.
+- **Caso que lo detecta:** CP-1303.
+- **Severidad:** baja. La boleta quedaba guardada y no repartía nada, y solo se veía abriendo el reparto de esa boleta.
+- **Pasos para reproducir:** `POST /service-bills/bulk` con una boleta de un servicio con dos reglas por consumo y sin `unitConsumptions`.
+- **Resultado esperado:** la fila se guarda (`created`) con un aviso `CONSUMPTION_MISSING` por regla y la respuesta cuenta `withWarnings`; al cargar el consumo (fila `updated`) el aviso desaparece.
+- **Resultado obtenido:** `created` con el reparto vacío y sin avisos.
+- **Causa raíz:** el motor de reparto informaba la regla salteada (`MissingConsumption`) pero la carga masiva no lo devolvía.
+- **Corrección:** cada fila de la carga masiva devuelve `warnings`; `GET /service-bills/:id/allocations` también.
+- **Prueba de regresión:** CP-1303 (e2e) y CP-1311 (unitario).
+- **Evidencia rojo/verde:** regresión `ff7f527` en rojo; corrección en `eab7b04`.
+
+## DEF-143 — El importador acepta un ajuste Custom o de porcentaje fijo sin porcentaje
+
+- **Requisito afectado:** importación de contratos (ADR-0015).
+- **Origen:** ensayo general del primer ciclo del piloto: cuatro contratos con ajuste Custom y sin porcentaje.
+- **Caso que lo detecta:** CP-1305.
+- **Severidad:** baja. El contrato entraba al lote y el cálculo del ajuste fallaba después con `MISSING_ADJUSTMENT_PCT`, lejos del dato que lo causó.
+- **Pasos para reproducir:** una fila de contrato con `terms.adjustmentType` `Custom` y sin `terms.customPct`.
+- **Resultado esperado:** error de la fila con código `MISSING_ADJUSTMENT_PCT` en el campo `terms.customPct`.
+- **Resultado obtenido:** la fila se importa.
+- **Causa raíz:** el esquema de la fila no pedía el porcentaje, aunque el alta manual de contratos sí.
+- **Corrección:** el esquema de la fila exige `customPct` para `Custom` y `FixedPercent`; el lote lo informa con el código estable `MISSING_ADJUSTMENT_PCT`.
+- **Prueba de regresión:** CP-1305 y CP-1306 en `packages/shared/src/schemas/import-batch.schema.spec.ts`; CP-1307 en `import-batch.service.spec.ts`.
+- **Evidencia rojo/verde:** regresión `ff7f527` en rojo; corrección en `f511099`.
