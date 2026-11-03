@@ -153,9 +153,12 @@ en `Tenant.operationalDefaults` (defecto -> contrato -> acuerdo, igual que
 | `fixedDiscountProration` | `Proporcional`, `Completo` |
 | `lateAdjustmentBilling` | `Retroactivo` (la diferencia de un ajuste aplicado después de emitir el mes se cobra en la próxima liquidación como cargo `AjusteRetroactivo`), `SinRetroactivo` (rige desde la próxima). Adenda del 3 de noviembre de 2026, ADR-0011 |
 | `upfrontBasis` | `ComisionPactada` (la comisión del contrato; sin ella, el porcentaje por defecto), `PorcentajePorDefecto` |
+| `skippedAdjustmentsMode` | `NoRecuperar` (de fábrica: el primer ajuste de un contrato importado parte del último período salteado, porque el alquiler importado ya viene actualizado), `Recuperar` (acumula desde el inicio del contrato) |
 | `upfrontThresholdFees` | entero de 0 a 24 comisiones mensuales; `null` = el de la inmobiliaria (2 de fábrica) |
 
 Adenda (2 de noviembre de 2026): el centro de carga suma a las reglas del contrato el umbral de anticipo de un gasto (`upfrontThresholdFees`, opcional) y la comisión con que se mide (`upfrontBasis`), con la misma resolución defecto, contrato y convenio, a la fecha del gasto.
+
+Adenda (3 de noviembre de 2026): `skippedAdjustmentsMode` resuelve una regla que ni el ADR-0011 ni la inmobiliaria habían definido, la de la inflación de los períodos de ajuste salteados al importar. Se tomó como valor de fábrica reproducir la práctica de la inmobiliaria piloto (el alquiler importado ya está actualizado, por lo que no se recupera) y se dejó pactable por contrato. Con cualquier ajuste ya aplicado, del cronograma o del historial importado, la ventana arranca en el último y la convención no interviene; solo decide el primer ajuste de un contrato sin ninguno. Queda pendiente de confirmar con la inmobiliaria.
 
 Decisiones de modelado:
 

@@ -33,6 +33,7 @@ interface TermsVersion {
   lateAdjustmentBilling?: string;
   penaltyConfig?: unknown;
   upfrontBasis?: string;
+  skippedAdjustmentsMode?: string;
   upfrontThresholdFees?: number | null;
   /** Lo que debe el locador que cobra directamente; null = el de la inmobiliaria. */
   lessorDirectOwes?: string | null;

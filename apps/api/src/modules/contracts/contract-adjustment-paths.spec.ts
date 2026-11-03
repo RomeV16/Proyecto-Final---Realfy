@@ -77,9 +77,10 @@ function build(contract: any, series: Series, previous: any = null) {
       isEstimate: false,
     }));
   });
-  const findSchedule = jest.fn(async (args: any) =>
-    args.where.status === ScheduleStatus.Applied ? previous : schedule,
-  );
+  const findSchedule = jest.fn(async (args: any) => {
+    if (args.where.status === ScheduleStatus.Applied) return previous;
+    return args.where.status === ScheduleStatus.Skipped ? null : schedule;
+  });
   const client = {
     contract: { findFirst: jest.fn(async () => contract) },
     adjustmentSchedule: {
@@ -89,7 +90,9 @@ function build(contract: any, series: Series, previous: any = null) {
     },
     contractAdjustment: {
       create: jest.fn(async ({ data }: any) => data),
+      findFirst: jest.fn(async () => null),
     },
+    contractTermsVersion: { findFirst: jest.fn(async () => null) },
     $transaction: jest.fn(async (cb: any) => cb(tx)),
   };
   const tx = {
@@ -98,7 +101,10 @@ function build(contract: any, series: Series, previous: any = null) {
       findFirst: jest.fn(async () => previous),
       update: jest.fn(),
     },
-    contractAdjustment: { create: jest.fn(async ({ data }: any) => ({ id: 'adj-1', ...data })) },
+    contractAdjustment: {
+      create: jest.fn(async ({ data }: any) => ({ id: 'adj-1', ...data })),
+      findFirst: jest.fn(async () => null),
+    },
     contractTermsVersion: { findFirst: jest.fn(async () => null) },
   };
   const prisma: any = {

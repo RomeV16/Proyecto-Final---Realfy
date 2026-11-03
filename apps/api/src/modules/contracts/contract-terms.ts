@@ -37,6 +37,7 @@ export interface TermsLike {
   repairPreauthLimitAmount: unknown;
   repairPreauthLimitCurrency: string | null;
   upfrontBasis: string;
+  skippedAdjustmentsMode: string;
   lessorDirectOwes?: string | null;
 }
 
@@ -92,6 +93,7 @@ const RULE_DEFAULTS = {
   lateAdjustmentBilling: (d: OperationalDefaults) => d.lateAdjustmentBilling,
   upfrontThresholdFees: (d: OperationalDefaults) => d.upfrontThresholdFees,
   upfrontBasis: (d: OperationalDefaults) => d.upfrontBasis,
+  skippedAdjustmentsMode: (d: OperationalDefaults) => d.skippedAdjustmentsMode,
   lessorDirectOwes: (d: OperationalDefaults) => d.cash.lessorDirectOwes,
 } as const;
 

@@ -363,6 +363,9 @@ export class ContractsService {
           // Anticipo del centro de carga: umbral propio (null = el de la inmobiliaria) y su base.
           upfrontThresholdFees: validated.liquidationRules?.upfrontThresholdFees ?? null,
           upfrontBasis: validated.liquidationRules?.upfrontBasis ?? defaults.upfrontBasis,
+          // Períodos de ajuste salteados al importar: la convención pactada o la de la inmobiliaria.
+          skippedAdjustmentsMode:
+            validated.liquidationRules?.skippedAdjustmentsMode ?? defaults.skippedAdjustmentsMode,
           // Qué debe el locador que cobra directamente: null = el de la inmobiliaria.
           lessorDirectOwes: validated.liquidationRules?.lessorDirectOwes ?? null,
           // Reparaciones: límite propio sin consultar al locador (null = el de la inmobiliaria).
@@ -706,17 +709,29 @@ export class ContractsService {
       where: { contractId: id, status: ScheduleStatus.Pending },
     });
 
-    // Get the highest applied/calculated period number
-    const lastApplied = await this.prisma.client.adjustmentSchedule.findFirst({
+    // Último período ya resuelto: el del cronograma (aplicado, calculado o salteado) o el del
+    // historial de ajustes, que en un contrato importado puede seguir después del fin pactado.
+    // Los pendientes arrancan después del más reciente, sin repetir períodos ya aplicados.
+    const lastScheduled = await this.prisma.client.adjustmentSchedule.findFirst({
       where: { contractId: id, status: { not: ScheduleStatus.Pending } },
       orderBy: { periodNumber: 'desc' },
     });
+    const lastAdjustment = await this.prisma.client.contractAdjustment.findFirst({
+      where: { contractId: id },
+      orderBy: { periodNumber: 'desc' },
+    });
+    const anchor =
+      lastAdjustment && (!lastScheduled || lastAdjustment.periodNumber > lastScheduled.periodNumber)
+        ? { date: lastAdjustment.adjustmentDate, periodNumber: lastAdjustment.periodNumber }
+        : lastScheduled
+          ? { date: lastScheduled.nextAdjustmentDate, periodNumber: lastScheduled.periodNumber }
+          : null;
 
     const newEntries = this.generateScheduleEntriesFrom(
-      lastApplied ? lastApplied.nextAdjustmentDate : contract.startDate,
+      anchor ? anchor.date : contract.startDate,
       getEffectiveEndDate(contract),
       contract.adjustmentPeriod as AdjustmentPeriod,
-      lastApplied ? lastApplied.periodNumber + 1 : 1,
+      anchor ? anchor.periodNumber + 1 : 1,
     );
 
     for (const entry of newEntries) {

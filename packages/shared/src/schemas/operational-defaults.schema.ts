@@ -7,6 +7,7 @@ import {
   LateAdjustmentBilling,
   MidMonthAdjustmentMode,
   ProrationMode,
+  SkippedAdjustmentsMode,
   UpfrontBasis,
 } from '../enums';
 import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
@@ -49,6 +50,10 @@ export const OperationalDefaultsSchema = z
       .default(FixedDiscountProration.Proporcional),
     /** Ajuste aplicado después de emitir un mes en que ya regía: la diferencia se cobra en la próxima (DEF-134). */
     lateAdjustmentBilling: z.nativeEnum(LateAdjustmentBilling).default(LateAdjustmentBilling.Retroactivo),
+    /** Períodos de ajuste salteados al importar un contrato: no se recupera su inflación (el alquiler importado ya viene actualizado). */
+    skippedAdjustmentsMode: z
+      .nativeEnum(SkippedAdjustmentsMode)
+      .default(SkippedAdjustmentsMode.NoRecuperar),
     /** Rezago en meses con que se toma el IPC al ajustar. */
     ipcLagMonths: z.number().int().min(0).max(12).default(2),
     /**

@@ -75,7 +75,7 @@ const isVatField = (field: string) => field === 'invoicingVatPct';
 
 /** Campos de cada sección, en el orden en que se muestran; las casillas van debajo. */
 const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = [
-  { key: 'rent', fields: ['dueDay', 'leadDays', 'ipcLagMonths'], checks: ['allowProvisional'] },
+  { key: 'rent', fields: ['dueDay', 'leadDays', 'ipcLagMonths', 'skippedAdjustmentsMode'], checks: ['allowProvisional'] },
   {
     key: 'liquidation',
     fields: ['prorationMode', 'midMonthAdjustmentMode', 'firstDueMode', 'fixedDiscountProration', 'lateAdjustmentBilling'],

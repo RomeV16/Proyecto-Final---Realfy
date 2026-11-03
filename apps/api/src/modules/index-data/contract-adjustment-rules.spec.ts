@@ -76,7 +76,10 @@ function harness(opts: {
   const tx: any = {
     contract: { findUnique: jest.fn(), update: jest.fn() },
     adjustmentSchedule: { findFirst: jest.fn(async () => null), update: jest.fn() },
-    contractAdjustment: { create: jest.fn(async ({ data }: any) => ({ id: 'adj-1', ...data })) },
+    contractAdjustment: {
+      create: jest.fn(async ({ data }: any) => ({ id: 'adj-1', ...data })),
+      findFirst: jest.fn(async () => null),
+    },
     contractTermsVersion: { findFirst: findTerms },
     contractPeriod: { findFirst: findPeriod },
     indexData: { findMany: jest.fn() },

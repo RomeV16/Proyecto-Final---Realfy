@@ -148,6 +148,7 @@ describe('OperationalDefaultsManager', () => {
     await user.selectOptions(screen.getByLabelText(/Primer mes con inicio tardío/), 'AlFirmar');
     await user.selectOptions(screen.getByLabelText(/Descuento de monto fijo en un mes parcial/), 'Completo');
     await user.selectOptions(screen.getByLabelText(/Comisión para el umbral de anticipo/), 'PorcentajePorDefecto');
+    await user.selectOptions(screen.getByLabelText(/Ajustes salteados al importar/), 'Recuperar');
 
     await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
 
@@ -159,9 +160,11 @@ describe('OperationalDefaultsManager', () => {
       firstDueMode: 'AlFirmar',
       fixedDiscountProration: 'Completo',
       upfrontBasis: 'PorcentajePorDefecto',
+      skippedAdjustmentsMode: 'Recuperar',
     });
 
     await user.click(screen.getByRole('button', { name: 'Volver a los valores de fábrica' }));
+    expect(screen.getByLabelText(/Ajustes salteados al importar/)).toHaveValue('NoRecuperar');
     expect(screen.getByLabelText(/Prorrateo de un mes parcial/)).toHaveValue('DiasReales');
     expect(screen.getByLabelText(/Descuento de monto fijo en un mes parcial/)).toHaveValue('Proporcional');
   });

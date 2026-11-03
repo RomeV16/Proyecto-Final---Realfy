@@ -46,6 +46,8 @@ describe('AdjustmentBatchService', () => {
     const prisma: any = {
       client: {
         adjustmentSchedule: { findMany, findFirst: jest.fn(async () => null) },
+        contractAdjustment: { findFirst: jest.fn(async () => null) },
+        contractTermsVersion: { findFirst: jest.fn(async () => null) },
         contract: { findFirst: jest.fn(async ({ where }: any) => (where.id === 'known' ? { id: 'known' } : null)) },
       },
     };
@@ -173,7 +175,7 @@ describe('AdjustmentBatchService', () => {
     ]);
   });
 
-  it('CP-294: un error inesperado al aplicar se propaga y uno de la modalidad se informa', async () => {
+  it('CP-294: un error de la modalidad se informa salteado y uno inesperado, como error', async () => {
     const h = build([schedule()]);
     const { BadRequestException } = jest.requireActual('@nestjs/common');
     h.adjustments.applySchedule.mockRejectedValueOnce(
@@ -182,8 +184,10 @@ describe('AdjustmentBatchService', () => {
     const res = await h.service.apply('2026-04', ['c1']);
     expect(res.results[0]).toMatchObject({ result: 'skipped', reason: 'UNKNOWN_ADJUSTMENT_TYPE' });
 
+    // Un error no HTTP no corta el lote: el contrato se informa como error con su código (DEF-136).
     h.adjustments.applySchedule.mockRejectedValueOnce(new Error('deadlock'));
-    await expect(h.service.apply('2026-04', ['c1'])).rejects.toThrow('deadlock');
+    const failed = await h.service.apply('2026-04', ['c1']);
+    expect(failed.results[0]).toMatchObject({ result: 'error', reason: 'ADJUSTMENT_FAILED' });
   });
 
   it('exige contexto de inmobiliaria', async () => {
@@ -213,6 +217,7 @@ describe('AdjustmentTrueUpService', () => {
         update: jest.fn(),
       },
       adjustmentSchedule: { findFirst: jest.fn(async () => null) },
+      contractTermsVersion: { findFirst: jest.fn(async () => null) },
       contractAdjustment: {
         create: jest.fn(async ({ data }: any) => ({ id: 'adj-f', ...data })),
         findFirst: jest.fn(async () => opts.later ?? null),

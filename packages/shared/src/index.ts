@@ -64,6 +64,7 @@ export {
   PendingChargeStatus,
   UpfrontBasis,
   LateAdjustmentBilling,
+  SkippedAdjustmentsMode,
   BillPaidBy,
   FinancialAccountKind,
   CashDirection,

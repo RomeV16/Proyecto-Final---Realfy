@@ -34,7 +34,7 @@ const tx = {
   indexData: { findMany: jest.fn() },
   contract: { update: mockTxContractUpdate, findUnique: mockTxContractFindUnique },
   adjustmentSchedule: { update: mockTxScheduleUpdate, findFirst: mockTxScheduleFindFirst },
-  contractAdjustment: { create: mockTxAdjustmentCreate },
+  contractAdjustment: { create: mockTxAdjustmentCreate, findFirst: jest.fn(async () => null) },
   contractTermsVersion: { findFirst: mockFindTerms },
 };
 
@@ -42,6 +42,8 @@ const mockPrisma = {
   client: {
     contract: { findFirst: mockFindFirstContract },
     adjustmentSchedule: { findFirst: mockFindFirstSchedule, findMany: mockFindManyDueSchedules },
+    contractAdjustment: { findFirst: jest.fn(async () => null) },
+    contractTermsVersion: { findFirst: mockFindTerms },
     $transaction: mockTransaction,
   },
   baseClient: {

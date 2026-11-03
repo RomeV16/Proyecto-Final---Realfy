@@ -519,6 +519,16 @@ export enum UpfrontBasis {
   PorcentajePorDefecto = 'PorcentajePorDefecto',
 }
 
+/**
+ * Qué se hace con la inflación de los períodos de ajuste que quedaron salteados al importar un
+ * contrato (el alquiler importado ya viene actualizado). `NoRecuperar`: el primer ajuste parte del
+ * último período salteado. `Recuperar`: acumula desde el inicio del contrato.
+ */
+export enum SkippedAdjustmentsMode {
+  NoRecuperar = 'NoRecuperar',
+  Recuperar = 'Recuperar',
+}
+
 export enum PendingChargeStatus {
   Pendiente = 'Pendiente',
   Imputado = 'Imputado',

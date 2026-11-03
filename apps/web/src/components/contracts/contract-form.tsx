@@ -119,6 +119,7 @@ const INITIAL_FORM: FormData = {
     fixedDiscountProration: '',
     lateAdjustmentBilling: '',
     upfrontBasis: '',
+    skippedAdjustmentsMode: '',
   },
   upfrontThresholdFees: '',
   lessorDirectOwes: '',
