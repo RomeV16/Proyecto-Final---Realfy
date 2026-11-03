@@ -272,7 +272,10 @@
    "AGREEMENT_DATE_OUT_OF_RANGE": "The agreement date must be today or later, within a year.",
    "LETTER_NOT_FOUND": "The formal letter does not belong to this case.",
    "LETTER_ALREADY_SENT": "The letter was already confirmed as sent: it can no longer be edited or confirmed again.",
-   "LETTER_SENT_DATE_INVALID": "The sending date cannot be in the future nor before the draft."
+   "LETTER_SENT_DATE_INVALID": "The sending date cannot be in the future nor before the draft.",
+   "INVALID_PROVIDER_ACCOUNT": "The account number does not match the format of the chosen provider. Check it as printed on the bill.",
+   "PROVIDER_SERVICE_TYPE_MISMATCH": "That provider does not issue bills for this service type.",
+   "SERVICE_NOT_FOUND": "The service does not exist or belongs to another agency."
   },
   "segment": {
    "loading": "Loading…",
@@ -5658,8 +5661,69 @@
     "error": "The expense could not be recorded"
    }
   },
+ "propertyServices": {
+  "title": "Utilities and taxes",
+  "subtitle": "The property's electricity, gas, water, rates and taxes accounts. With the right provider and account, bills are fetched automatically.",
+  "loadError": "The services could not be loaded",
+  "empty": "No utilities or taxes have been added yet.",
+  "add": "Add service",
+  "edit": "Edit",
+  "deactivate": "Deactivate",
+  "reactivate": "Reactivate",
+  "inactive": "Inactive",
+  "noProvider": "No provider",
+  "account": "Account {account}",
+  "noAccount": "No account",
+  "dueDay": "due on day {day}",
+  "inherited": "From the building",
+  "inheritedHint": "These services belong to the building; edit them from its page.",
+  "openBuilding": "Open the building",
+  "createTitle": "New utility or tax",
+  "editTitle": "Edit utility or tax",
+  "create": "Create",
+  "saveChanges": "Save changes",
+  "created": "Service created",
+  "updated": "Service updated",
+  "reactivated": "Service reactivated",
+  "deactivated": "Service deactivated",
+  "saveError": "The service could not be saved",
+  "actionError": "The action could not be completed",
+  "deactivateConfirm": "Deactivate this service? It stops being offered in the rules of new contracts; history and existing rules are kept.",
+  "fields": {
+   "serviceType": "Service type",
+   "providerKey": "Provider",
+   "providerKeyHint": "Providers in the list allow bills to be fetched automatically; the account is validated and stored in its format.",
+   "providerName": "Provider name",
+   "accountNumber": "Account or customer number",
+   "accountNumberHint": "As printed on the bill. If you picked a provider from the list, it is validated against its format.",
+   "amount": "Current amount",
+   "currency": "Currency",
+   "dueDay": "Due day",
+   "billingFrequency": "Bill frequency",
+   "hasAnnualOption": "Has an annual payment option",
+   "notes": "Notes"
+  },
+  "providers": {
+   "aguas-cordobesas": "Aguas Cordobesas",
+   "ecogas": "Ecogas",
+   "epec": "EPEC",
+   "muni-cordoba": "Municipalidad de Córdoba",
+   "rentas-cordoba": "Rentas de Córdoba",
+   "generico": "Other provider (generic reader)"
+  },
+  "frequencies": {
+   "Mensual": "Monthly",
+   "Bimestral": "Every two months",
+   "Trimestral": "Quarterly",
+   "Anual": "Yearly"
+  },
+  "yes": "Yes",
+  "no": "No",
+  "annualOption": "annual option"
+ },
  "chargeRules": {
-  "title": "Taxes and utilities",
+  "title": "Who pays each service",
+  "noServices": "This property has no active services yet. Add them on the property page (Utilities and taxes) to assign them a rule.",
   "loadError": "The tax and utility rules could not be loaded",
   "none": "The contract has no tax and utility rules yet.",
   "edit": "Add or change rule",

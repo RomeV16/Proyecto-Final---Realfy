@@ -52,6 +52,10 @@ vi.mock('@/components/properties/property-valuations', () => ({
   ),
 }));
 
+vi.mock('@/components/properties/property-services', () => ({
+  PropertyServices: ({ propertyId }: { propertyId: string }) => <div>Servicios de {propertyId}</div>,
+}));
+
 vi.mock('@/components/listings/property-publication', () => ({
   PropertyPublication: ({ propertyId }: { propertyId: string }) => <div>Publicación de {propertyId}</div>,
 }));

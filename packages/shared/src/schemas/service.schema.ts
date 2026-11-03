@@ -31,9 +31,14 @@ export const CreateServiceSchema = z.object({
   notes: z.string().max(5000).optional().nullable(),
 });
 
-export const UpdateServiceSchema = CreateServiceSchema.partial().omit({
-  propertyId: true,
-});
+export const UpdateServiceSchema = CreateServiceSchema.partial()
+  .omit({
+    propertyId: true,
+  })
+  .extend({
+    /** Reactiva un servicio dado de baja (la baja lógica es `DELETE /services/:id`). */
+    isActive: z.boolean().optional(),
+  });
 
 // ─── Service Filtering ──────────────────────────────────
 

@@ -328,6 +328,11 @@ function RuleEditor({
   return (
     <form onSubmit={submit} noValidate className="mt-4 space-y-4 rounded-lg border border-slate-200 p-4" aria-label={t('editorLabel')}>
       <p className="text-sm text-slate-600">{needsAgreement ? t('agreementNotice') : t('draftNotice')}</p>
+      {services.length === 0 && (
+        <p role="status" className="text-sm text-amber-700">
+          {t('noServices')}
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label={t('fields.service')} error={errors.service} required>

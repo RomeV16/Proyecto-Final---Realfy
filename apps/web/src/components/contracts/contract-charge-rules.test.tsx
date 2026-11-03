@@ -126,6 +126,20 @@ describe('ContractChargeRules: lectura', () => {
     expect(await screen.findByText('El contrato todavía no tiene reglas de impuestos y servicios.')).toBeInTheDocument();
   });
 
+  it('avisa en el editor que la propiedad no tiene servicios activos y dónde cargarlos', async () => {
+    apiClient.mockImplementation(async (path: string) => {
+      if (path === '/contracts/c-1/charge-rules') return RULES;
+      if (path.startsWith('/services?')) return { items: [] };
+      if (path === '/properties/prop-1') return { id: 'prop-1', parentPropertyId: null };
+      throw new Error(`inesperado: ${path}`);
+    });
+    renderRules();
+    await screen.findByText('Electricidad · Ente de prueba');
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Agregar o cambiar regla' }));
+    expect(await screen.findByText(/todavía no tiene servicios activos/)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Quién paga cada servicio' })).toBeInTheDocument();
+  });
+
   it('un error de carga se muestra', async () => {
     apiClient.mockRejectedValue(new ApiRequestError(500, 'INTERNAL_ERROR', 'sin conexión'));
     renderRules();

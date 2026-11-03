@@ -213,6 +213,101 @@ describe('Services (e2e)', () => {
     });
   });
 
+  describe('Reactivación y lista con bajas', () => {
+    async function adminWithService(email: string) {
+      const user = await registerUser(app, { email, password: 'Password123!', firstName: 'Admin', lastName: 'User' });
+      const property = await createProperty(user.accessToken);
+      const created = await request(app.getHttpServer())
+        .post('/api/services')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ ...servicePayload, propertyId: property.id })
+        .expect(201);
+      return { user, property, service: created.body };
+    }
+
+    it('CP-1370 — PATCH /services/:id con isActive reactiva un servicio dado de baja', async () => {
+      const { user, service } = await adminWithService('admin@svc-reactivate.com');
+      await request(app.getHttpServer())
+        .delete(`/api/services/${service.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+
+      const res = await request(app.getHttpServer())
+        .patch(`/api/services/${service.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ isActive: true })
+        .expect(200);
+      expect(res.body.isActive).toBe(true);
+    });
+
+    it('CP-1371 — GET /services?propertyId lista activos y dados de baja; isActive=true solo los activos', async () => {
+      const { user, property, service } = await adminWithService('admin@svc-inactive-list.com');
+      await request(app.getHttpServer())
+        .delete(`/api/services/${service.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+
+      const all = await request(app.getHttpServer())
+        .get(`/api/services?propertyId=${property.id}&limit=100`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+      expect(all.body.items.map((s: any) => [s.id, s.isActive])).toEqual([[service.id, false]]);
+
+      const active = await request(app.getHttpServer())
+        .get(`/api/services?propertyId=${property.id}&isActive=true`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+      expect(active.body.items).toHaveLength(0);
+    });
+
+    it('CP-1372 — PATCH con proveedor del catálogo normaliza la cuenta y rechaza una cuenta o un tipo que no corresponden', async () => {
+      const { user, service } = await adminWithService('admin@svc-provider-patch.com');
+      const bad = await request(app.getHttpServer())
+        .patch(`/api/services/${service.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ providerKey: 'epec', accountNumber: 'no es una cuenta' })
+        .expect(400);
+      expect(bad.body.error).toBe('INVALID_PROVIDER_ACCOUNT');
+
+      const mismatch = await request(app.getHttpServer())
+        .patch(`/api/services/${service.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .send({ providerKey: 'ecogas' })
+        .expect(400);
+      expect(mismatch.body.error).toBe('PROVIDER_SERVICE_TYPE_MISMATCH');
+    });
+
+    it('CP-1373 — Ventas puede reactivar (PATCH) pero Lectura no', async () => {
+      const { user, service } = await adminWithService('admin@svc-reactivate-rbac.com');
+      await request(app.getHttpServer())
+        .delete(`/api/services/${service.id}`)
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .expect(200);
+      await createUserDirect(prisma, user.user.tenantId, {
+        email: 'ventas@svc-reactivate-rbac.com',
+        password: 'Password123!',
+        role: UserRole.Ventas,
+      });
+      await createUserDirect(prisma, user.user.tenantId, {
+        email: 'lectura@svc-reactivate-rbac.com',
+        password: 'Password123!',
+        role: UserRole.Lectura,
+      });
+      const ventasToken = (await loginUser(app, 'ventas@svc-reactivate-rbac.com', 'Password123!')).accessToken;
+      const lecturaToken = (await loginUser(app, 'lectura@svc-reactivate-rbac.com', 'Password123!')).accessToken;
+      await request(app.getHttpServer())
+        .patch(`/api/services/${service.id}`)
+        .set('Authorization', `Bearer ${lecturaToken}`)
+        .send({ isActive: true })
+        .expect(403);
+      await request(app.getHttpServer())
+        .patch(`/api/services/${service.id}`)
+        .set('Authorization', `Bearer ${ventasToken}`)
+        .send({ isActive: true })
+        .expect(200);
+    });
+  });
+
   // ─── Tenant Isolation ────────────────────────────────
 
   describe('Tenant isolation', () => {

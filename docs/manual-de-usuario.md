@@ -402,10 +402,35 @@ adenda corta con el período, el alquiler en números y en letras, la regla de a
 los garantes, los honorarios y las firmas. Una renovación no puede empezar antes del
 inicio del período en curso ni cuando ya hay reglas desde esa fecha o una posterior.
 
+### Servicios e impuestos de una propiedad
+
+En la ficha de una propiedad (o de un edificio), *Servicios e impuestos* lista las
+cuentas de luz, gas, agua, tasas e impuestos con su proveedor, número de cuenta,
+importe vigente, día de vencimiento y frecuencia (mensual, bimestral, trimestral o
+anual). Quien tiene permiso de gestión comercial (Admin, Gerente y Ventas) puede
+**agregar** un servicio, **editarlo** y **reactivarlo**; **dar de baja** es de Admin
+y Gerente. La baja es lógica: el servicio deja de ofrecerse en las reglas de los
+contratos nuevos y se conserva su historial y sus reglas.
+
+- **Proveedor**: si es uno de la lista (Aguas Cordobesas, Ecogas, EPEC, Municipalidad
+  o Rentas de Córdoba), las boletas se obtienen solas. La cuenta se escribe tal como
+  figura en la boleta: el sistema la valida y la guarda con el formato del proveedor
+  (si no corresponde, avisa «El número de cuenta no tiene el formato del proveedor
+  elegido»). Un proveedor solo se acepta para su tipo de servicio (por ejemplo, Ecogas
+  para gas). Con otro proveedor se escribe su nombre y no hay obtención automática.
+- En la ficha de una **unidad** se ven aparte, sin edición, los servicios activos del
+  edificio; se cambian desde la ficha del edificio.
+
+Para corregir la cuenta de un servicio que no encuentra sus boletas: *Editar*,
+revisar el proveedor y el número y guardar.
+
 ### Reglas de impuestos y servicios de un contrato
 
-En el detalle del contrato, *Impuestos y servicios* dice, servicio por servicio,
-quién paga y cómo se reparte:
+En el detalle del contrato, *Quién paga cada servicio* dice, servicio por servicio,
+quién paga y cómo se reparte (las reglas vigentes y, plegado, el historial de versiones;
+*Agregar o cambiar regla* crea una versión nueva desde una fecha, nunca pisa la anterior, y en
+un contrato en vigor registra junto el acuerdo de cambio de cargo). Los servicios se
+cargan antes en la ficha de la propiedad:
 
 - **Inquilino**: paga directo al ente; no pasa por la inmobiliaria y no aparece en
   su liquidación.
