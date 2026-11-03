@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   Controller,
   Get,
   Post,
@@ -11,6 +12,8 @@ import { IndexDataService } from './index-data.service';
 import { IndexScraperService } from './index-scraper.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { ADMIN_ONLY, MANAGEMENT_ROLES } from '../../common/auth/role-groups';
+import { parseOrThrow } from '../../common/validation/zod';
+import { BackfillIndexDataSchema } from '@realfy/shared';
 
 @Controller('index-data')
 export class IndexDataController {
@@ -95,5 +98,25 @@ export class IndexDataController {
   async refresh() {
     const counts = await this.indexScraperService.upsertAll();
     return { counts, total: counts.icl + counts.uva + counts.ipc };
+  }
+
+  /**
+   * POST /index-data/backfill — Carga el histórico de ICL o UVA de la serie de
+   * sistema para un rango de fechas (`{ indexType, from, to }`, YYYY-MM-DD,
+   * inclusive, hasta diez años). Idempotente: solo agrega los días que faltan.
+   * Admin only. Un fallo del BCRA responde 502 (lo ya insertado queda).
+   */
+  @Roles(...ADMIN_ONLY)
+  @Post('backfill')
+  async backfill(@Body() body: unknown) {
+    const { indexType, from, to } = parseOrThrow(BackfillIndexDataSchema, body, 'Invalid backfill parameters');
+    try {
+      return await this.indexScraperService.backfillLevelSeries(indexType as 'ICL' | 'UVA', from, to);
+    } catch (err: unknown) {
+      throw new BadGatewayException({
+        error: 'INDEX_SOURCE_UNAVAILABLE',
+        message: `The BCRA request failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
   }
 }

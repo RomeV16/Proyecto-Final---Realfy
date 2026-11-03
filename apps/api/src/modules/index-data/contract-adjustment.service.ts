@@ -402,15 +402,26 @@ export class ContractAdjustmentService {
       return { estimated };
     };
 
-    /** Serie de nivel (ICL, UVA): el cociente toma el primer y el último valor de la ventana. */
+    /**
+     * Serie de nivel (ICL, UVA): el cociente es el valor de la fecha de fin sobre el de la fecha de inicio
+     * de la ventana (DEF-120). El BCRA las publica todos los días corridos, así que el valor de una fecha es
+     * el de esa fecha: si falta uno de los dos extremos no se toma el más cercano, se informa el día faltante.
+     */
     const level = async (type: IndexType) => {
       const rows = await load(type);
-      // El cociente necesita el valor inicial y el final: con uno solo daría 1/1.
-      if (rows.length < 2) throw new MissingIndexDataError([type], effective);
-      const first = rows[0];
-      const last = rows[rows.length - 1];
-      const used = [toObservation(type, first), toObservation(type, last)];
-      const estimated = used
+      const startDay = isoDay(effective.from);
+      const endDay = isoDay(effective.until);
+      // Sin período entre los dos extremos el cociente daría 1 (0 %): no hay con qué ajustar.
+      if (startDay === endDay) throw new MissingIndexDataError([type], effective);
+      const coverage = assessCoverage(
+        [startDay, endDay],
+        rows.map((r) => toObservation(type, r)),
+      );
+      if (coverage.missingPeriods.length > 0) {
+        throw new MissingIndexDataError([type], effective, coverage.missingPeriods);
+      }
+      const [first, last] = coverage.used;
+      const estimated = coverage.used
         .filter((o) => o.isEstimate)
         .map((o) => ({ indexType: type, period: o.period }));
       if (estimated.length > 0) {
@@ -420,7 +431,7 @@ export class ContractAdjustmentService {
           throw new MissingIndexDataError([type], effective, estimated.map((e) => e.period), true);
         }
       }
-      return { first, last, used, estimated };
+      return { first, last, used: coverage.used, estimated };
     };
 
     switch (adjustmentType) {
@@ -448,8 +459,8 @@ export class ContractAdjustmentService {
           window: effective,
           params: {
             type: adjustmentType,
-            startValue: toDecimal(first),
-            endValue: toDecimal(last),
+            startValue: first.value,
+            endValue: last.value,
             baseRent,
           },
         });

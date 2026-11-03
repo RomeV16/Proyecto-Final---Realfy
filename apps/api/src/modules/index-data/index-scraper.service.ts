@@ -4,6 +4,27 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
+/** Resultado de cargar el histórico de una serie diaria de sistema. */
+export interface BackfillResult {
+  indexType: 'ICL' | 'UVA';
+  from: string;
+  to: string;
+  /** Llamadas hechas al BCRA. */
+  requests: number;
+  /** Días con valor que devolvió el BCRA dentro del rango. */
+  fetched: number;
+  /** Días que no estaban en la serie de sistema y se agregaron. */
+  inserted: number;
+  /** Días que ya estaban y no se tocaron. */
+  existing: number;
+  /** De los que ya estaban, los que tienen un valor distinto del que devuelve el BCRA (no se pisan). */
+  differing: number;
+  /** Días del rango sin valor en la serie de sistema después de la carga. */
+  missingCount: number;
+  /** Los primeros días sin valor, en orden. */
+  missingDays: string[];
+}
+
 export interface IndexDataRow {
   period: string;   // YYYY-MM-DD for ICL/UVA; YYYY-MM for IPC
   value: number;
@@ -18,6 +39,18 @@ const USER_AGENT = 'Mozilla/5.0 (compatible; IndexScraper/1.0)';
 const FETCH_TIMEOUT_MS = 10_000;
 
 const BCRA_BASE = 'https://api.bcra.gob.ar/estadisticas/v4.0/Monetarias';
+
+/** Variable del BCRA y fuente guardada de cada serie diaria de nivel. */
+const LEVEL_SERIES = {
+  ICL: { variable: 40, source: 'bcra-v4-icl' },
+  UVA: { variable: 31, source: 'bcra-v4-uva' },
+} as const;
+
+/** Días que se piden al BCRA en cada llamada de una carga del histórico (cabe con holgura en el límite de 1000 filas). */
+const BACKFILL_CHUNK_DAYS = 365;
+/** Días sin dato que se detallan en la respuesta de una carga del histórico; el total se informa siempre. */
+const BACKFILL_MAX_LISTED_DAYS = 200;
+const DAY_MS = 86_400_000;
 
 /**
  * IPC, fuente principal: la distribución CSV del dataset 145 de datos.gob.ar
@@ -83,6 +116,19 @@ export function spliceIpc(
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
+
+const isoDay = (d: Date): string => d.toISOString().slice(0, 10);
+const dayAt = (day: string): Date => new Date(`${day}T00:00:00.000Z`);
+
+/** Tramos consecutivos de hasta `size` días corridos que cubren de `from` a `to`, ambos inclusive. */
+function dayChunks(from: string, to: string, size: number): { desde: string; hasta: string }[] {
+  const chunks: { desde: string; hasta: string }[] = [];
+  const last = dayAt(to).getTime();
+  for (let start = dayAt(from).getTime(); start <= last; start += size * DAY_MS) {
+    chunks.push({ desde: isoDay(new Date(start)), hasta: isoDay(new Date(Math.min(start + (size - 1) * DAY_MS, last))) });
+  }
+  return chunks;
+}
 
 function dateRange60Days(): { desde: string; hasta: string } {
   return dateRangeDays(60);
@@ -317,6 +363,75 @@ export class IndexScraperService {
       );
       return [];
     }
+  }
+
+  // ── Histórico de ICL y UVA ───────────────────────────────────────────────
+
+  /**
+   * Carga en la serie de sistema los valores diarios de ICL o UVA entre dos
+   * fechas (inclusive), pidiéndolos al BCRA por tramos de un año. Es
+   * idempotente por (tipo, fecha): solo agrega los días que faltan y nunca
+   * pisa uno ya cargado (los que difieren del BCRA se cuentan). A diferencia
+   * del lector diario, un fallo del BCRA se propaga: una carga a medias no
+   * debe parecer completa. Los días del rango sin valor se informan.
+   */
+  async backfillLevelSeries(indexType: 'ICL' | 'UVA', from: string, to: string): Promise<BackfillResult> {
+    const { variable, source } = LEVEL_SERIES[indexType];
+    const fetched = new Map<string, number>();
+    const chunks = dayChunks(from, to, BACKFILL_CHUNK_DAYS);
+    for (const { desde, hasta } of chunks) {
+      const json = (await fetchBcra(`${BCRA_BASE}/${variable}?desde=${desde}&hasta=${hasta}`, this.logger)) as any;
+      const detalle: Array<{ fecha?: unknown; valor?: unknown }> = json?.results?.[0]?.detalle ?? [];
+      for (const d of detalle) {
+        const fecha = String(d.fecha ?? '');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || fecha < from || fecha > to) continue;
+        if (typeof d.valor !== 'number' || !Number.isFinite(d.valor) || d.valor <= 0) continue;
+        fetched.set(fecha, d.valor);
+      }
+    }
+
+    const stored = await this.prisma.baseClient.indexData.findMany({
+      where: { tenantId: SYSTEM_TENANT_ID, indexType: indexType as any, period: { gte: dayAt(from), lte: dayAt(to) } },
+      select: { period: true, value: true },
+    });
+    const existing = new Map(stored.map((r) => [isoDay(r.period), Number(r.value)]));
+
+    const toInsert = [...fetched.entries()]
+      .filter(([day]) => !existing.has(day))
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([day, value]) => ({
+        tenantId: SYSTEM_TENANT_ID,
+        indexType: indexType as any,
+        period: dayAt(day),
+        value,
+        source,
+      }));
+    if (toInsert.length > 0) {
+      await this.prisma.baseClient.indexData.createMany({ data: toInsert, skipDuplicates: true });
+    }
+    const differing = [...existing.entries()].filter(([day, value]) => {
+      const official = fetched.get(day);
+      return official !== undefined && Math.abs(official - value) > 1e-6;
+    }).length;
+
+    const missing = dayChunks(from, to, 1)
+      .map((c) => c.desde)
+      .filter((day) => !existing.has(day) && !fetched.has(day));
+    this.logger.log(
+      `backfill ${indexType} ${from}..${to} — inserted: ${toInsert.length}, existing: ${existing.size}, differing: ${differing}, missing: ${missing.length}`,
+    );
+    return {
+      indexType,
+      from,
+      to,
+      requests: chunks.length,
+      fetched: fetched.size,
+      inserted: toInsert.length,
+      existing: existing.size,
+      differing,
+      missingCount: missing.length,
+      missingDays: missing.slice(0, BACKFILL_MAX_LISTED_DAYS),
+    };
   }
 
   // ── Upsert All ───────────────────────────────────────────────────────────

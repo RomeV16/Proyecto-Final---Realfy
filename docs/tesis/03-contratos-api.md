@@ -132,6 +132,7 @@ en el mismo cuerpo del contrato.
 - `POST /api/index-data` — Carga manual de un valor.
 - `POST /api/index-data/bulk` — Carga manual de varios valores.
 - `POST /api/index-data/refresh` — Dispara la obtención de los índices desde las fuentes publicadas.
+- `POST /api/index-data/backfill` — Carga el histórico de ICL o UVA de la serie de sistema para un rango de fechas (solo Admin, idempotente).
 
 ## Servicios de la propiedad
 

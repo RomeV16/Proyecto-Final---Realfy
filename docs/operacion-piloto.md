@@ -81,6 +81,41 @@ los pasos 2 a 4 tardaron unos 3 segundos (la copia pesa alrededor de 1 MB): con 
 volumen el tiempo de recuperación lo dominan los pasos manuales 5 y 6, que todavía
 no se midieron de punta a punta. El detalle de RPO y RTO está en `despliegue.md`.
 
+## Carga del histórico de ICL y UVA
+
+El lector diario del BCRA trae solo los últimos 60 días de ICL y UVA. Un ajuste
+con esas series necesita el valor del día en que empieza y del día en que termina
+su ventana (ADR-0011): si falta alguno, el ajuste queda como `MISSING_INDEX_DATA`
+con la fecha que falta, y no se aplica. Para los contratos cuya ventana arranca
+antes de lo que hay cargado se completa la serie de sistema, una vez por índice, con una
+cuenta Admin (la serie de sistema es una sola para todas las inmobiliarias; no se
+carga como valores propios de la inmobiliaria, que taparían los valores futuros):
+
+```bash
+API=https://<url-de-la-api-del-ambiente>
+TOKEN=<access token de un Admin; ver POST $API/api/auth/login>
+HOY=$(TZ=America/Argentina/Buenos_Aires date +%F)
+
+curl -sS -X POST "$API/api/index-data/backfill" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d "{\"indexType\":\"ICL\",\"from\":\"2020-07-01\",\"to\":\"$HOY\"}"
+curl -sS -X POST "$API/api/index-data/backfill" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d "{\"indexType\":\"UVA\",\"from\":\"2021-01-01\",\"to\":\"$HOY\"}"
+```
+
+- El rango admite hasta 3.660 días por llamada; para más historia, se divide en
+  tramos. Repetir la carga es seguro: solo agrega los días que faltan y no pisa
+  los ya cargados.
+- La respuesta trae `inserted`, `existing`, `differing` (días ya cargados con otro
+  valor que el del BCRA: se revisan a mano, la carga no los toca) y
+  `missingCount` con `missingDays`. Con el rango completo, `missingCount` debe ser
+  0; si el rango empieza antes de que exista la serie, los primeros días
+  aparecen ahí y no es un problema para los contratos posteriores.
+- Un 502 `INDEX_SOURCE_UNAVAILABLE` es el BCRA caído o lento: se reintenta.
+- Después se vuelve a previsualizar el mes (Ajustes del mes): los contratos ICL y UVA
+  que estaban en `MISSING_INDEX_DATA` por el histórico pasan a «listo».
+
 ## Cierre de mes
 
 Lista de verificación, en el orden del ciclo (ver `tesis/30-piloto.md`). Mientras

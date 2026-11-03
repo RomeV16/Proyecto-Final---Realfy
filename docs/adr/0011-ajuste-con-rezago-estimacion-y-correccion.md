@@ -59,13 +59,23 @@ corrige cuando se publica el oficial.**
   (no ancla la ventana del ajuste siguiente). El escalonado (`customSteps`) aplica
   el porcentaje del último escalón cuyo `fromMonth` ya llegó; antes del primero el
   alquiler no cambia, porque es la regla pactada y no un dato faltante. La UVA se
-  calcula como el ICL, con el cociente entre el primer y el último valor diario de
-  la ventana.
+  calcula como el ICL, con el cociente entre el valor del día en que termina la
+  ventana y el del día en que empieza.
 - **Una ventana incompleta no se ajusta.** Cada mes de las series mensuales debe
   estar. Si falta alguno sin estimado, o hay estimado pero el pago a cuenta está
   apagado, el ajuste responde `MISSING_INDEX_DATA` con el índice y los meses que
   faltan; el cronograma sigue pendiente. Nunca se ajusta con menos meses ni con
   0 % (DEF-20, DEF-25, DEF-26, DEF-27).
+- **Las series diarias exigen sus dos extremos.** El ICL y la UVA se publican todos
+  los días corridos, feriados incluidos, así que el valor de una fecha es el de esa
+  fecha: no se toma el más cercano ni se admite tolerancia. Si falta el valor del
+  día en que empieza o del día en que termina la ventana (ya corrida por el
+  rezago), el ajuste responde `MISSING_INDEX_DATA` con esas fechas (`YYYY-MM-DD`).
+  Los días de en medio no importan: el cociente solo usa los extremos. Antes se
+  tomaban el primer y el último valor existentes dentro de la ventana, y una serie
+  que arrancaba tarde daba porcentajes sin relación con el período (DEF-120). El
+  histórico de la serie de sistema se carga por rango con `POST
+  /index-data/backfill` (DEF-121).
 - **Provisorio.** Con un mes cubierto por un estimado y `allowProvisional` activo
   (valor por defecto de la inmobiliaria, activo de fábrica), el ajuste se aplica y
   se guarda con `isProvisional`, listando en `indexValues` qué meses fueron
@@ -126,6 +136,11 @@ sequenceDiagram
   dato faltante es un error visible, no un valor.
 - **Ajustar con los meses que haya.** Es el DEF-27: el alquiler queda corto sin
   aviso. Se descartó; la ventana completa es una condición del cálculo.
+- **Tomar el valor publicado más cercano a una fecha sin valor en el ICL y la UVA.**
+  Con series que se publican todos los días, un día sin valor es un hueco de datos
+  y no un fin de semana; usar el vecino oculta una carga incompleta, que es lo que
+  dio los porcentajes absurdos del DEF-120. Se descartó; se informa la fecha que
+  falta y se completa la serie.
 - **Aplicar el rezago como un desplazamiento del dato y no de la ventana.** Obliga
   a guardar el índice fechado en el mes de aplicación y rompe la serie publicada.
   Correr la ventana deja los índices fechados como los publicó la fuente.

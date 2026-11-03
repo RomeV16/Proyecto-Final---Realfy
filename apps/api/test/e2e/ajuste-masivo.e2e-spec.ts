@@ -252,6 +252,62 @@ describe('Ajustes del mes: cron, aplicación masiva, provisorios y corrección (
     });
   });
 
+  describe('series diarias con cobertura incompleta (DEF-120)', () => {
+    const SYSTEM = '__system__';
+    const iclDay = (day: string, value: string) =>
+      prisma.baseClient.indexData.create({
+        data: {
+          tenantId: SYSTEM,
+          indexType: 'ICL',
+          period: new Date(`${day}T00:00:00.000Z`),
+          value,
+          source: 'bcra-v4-icl',
+        },
+      });
+
+    it('CP-1227 — con la serie de sistema desde después del inicio de la ventana, previsualizar y aplicar informan los días que faltan', async () => {
+      const { tokens } = await agency('cob-1');
+      const admin = tokens[UserRole.Admin];
+      // Rezago 2: el ajuste de abril usa del 1 de enero al 1 de febrero. La serie arranca el 15 de enero.
+      await iclDay('2026-01-15', '1200');
+      await iclDay('2026-02-01', '1210');
+      const contract = await createContract(admin, { adjustmentType: AdjustmentType.ICL });
+
+      const preview = await post(admin, '/adjustments/preview-batch', { period: PERIOD }).expect(201);
+      expect(previewRow(preview.body, contract.id)).toMatchObject({
+        status: 'missing_data',
+        selectable: false,
+        missing: { indexTypes: ['ICL'], missingPeriods: ['2026-01-01'] },
+      });
+
+      const applied = await post(admin, '/adjustments/apply-batch', {
+        period: PERIOD,
+        contractIds: [contract.id],
+      }).expect(201);
+      expect(applied.body.results[0]).toMatchObject({ result: 'skipped', reason: 'MISSING_INDEX_DATA' });
+      const after = await prisma.baseClient.contract.findUnique({ where: { id: contract.id } });
+      expect(Number(after!.rentAmount)).toBe(100000);
+      expect(await prisma.baseClient.contractAdjustment.count()).toBe(0);
+    });
+
+    it('CP-1228 — con los dos extremos de la ventana en la serie de sistema el ajuste se calcula con ese cociente', async () => {
+      const { tokens } = await agency('cob-2');
+      const admin = tokens[UserRole.Admin];
+      await iclDay('2026-01-01', '1000');
+      await iclDay('2026-01-20', '1100');
+      await iclDay('2026-02-01', '1050');
+      const contract = await createContract(admin, { adjustmentType: AdjustmentType.ICL });
+
+      const preview = await post(admin, '/adjustments/preview-batch', { period: PERIOD }).expect(201);
+
+      expect(previewRow(preview.body, contract.id)).toMatchObject({ status: 'ready', newRent: '105000.00' });
+      expect(previewRow(preview.body, contract.id).indexValues.map((v: any) => v.period)).toEqual([
+        '2026-01-01',
+        '2026-02-01',
+      ]);
+    });
+  });
+
   describe('provisorio y corrección', () => {
     it('CP-289 — con el febrero estimado se aplica a cuenta y al publicarse el oficial se corrige', async () => {
       const { tenantId, tokens } = await agency('prov-1');

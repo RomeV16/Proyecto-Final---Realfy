@@ -270,6 +270,123 @@ describe('meses fijos, escalonado y UVA', () => {
   });
 });
 
+describe('cobertura de las series de nivel (ICL, UVA) en los extremos de la ventana (DEF-120)', () => {
+  const icl = (overrides: Record<string, unknown> = {}) => contract({ adjustmentType: AdjustmentType.ICL, ...overrides });
+  const iclTerms = (overrides: Record<string, unknown> = {}) => terms({ adjustmentType: AdjustmentType.ICL, ...overrides });
+  /** Serie que arranca después del inicio de la ventana: el primer valor existente no es el de la fecha de inicio. */
+  const lateSeries: Point[] = [
+    ['2025-03-01', '1200'],
+    ['2025-03-15', '1210'],
+    ['2025-04-01', '1250'],
+  ];
+  const load = (h: ReturnType<typeof harness>, c: any, window: any) =>
+    h.service.loadParams(c, window, { tenantId: 'tenant-1' });
+
+  it('CP-1220: falta el valor de la fecha de inicio: MISSING_INDEX_DATA con esa fecha, no el cociente de los dos primeros valores', async () => {
+    const h = harness({ terms: iclTerms(), points: { ICL: lateSeries } });
+
+    const err = await load(h, icl(), firstWindow('2025-04-01')).catch((e) => e);
+
+    expect(err).toBeInstanceOf(MissingIndexDataError);
+    expect(err.missingPeriods).toEqual(['2025-01-01']);
+    expect(err.indexTypes).toEqual(['ICL']);
+  });
+
+  it('CP-1221: falta el valor de la fecha de fin: MISSING_INDEX_DATA con esa fecha', async () => {
+    const h = harness({
+      terms: iclTerms(),
+      points: { ICL: [['2025-01-01', '1000'], ['2025-02-01', '1100']] },
+    });
+
+    const err = await load(h, icl(), firstWindow('2025-04-01')).catch((e) => e);
+
+    expect(err).toBeInstanceOf(MissingIndexDataError);
+    expect(err.missingPeriods).toEqual(['2025-04-01']);
+  });
+
+  it('CP-1221: faltan las dos fechas: se informan las dos', async () => {
+    const h = harness({ terms: iclTerms(), points: { ICL: [['2025-02-01', '1100'], ['2025-03-01', '1200']] } });
+
+    const err = await load(h, icl(), firstWindow('2025-04-01')).catch((e) => e);
+
+    expect(err).toBeInstanceOf(MissingIndexDataError);
+    expect(err.missingPeriods).toEqual(['2025-01-01', '2025-04-01']);
+  });
+
+  it('CP-1222: UVA con base Original y la serie desde después del inicio no baja el alquiler: MISSING_INDEX_DATA', async () => {
+    const h = harness({
+      terms: terms({ adjustmentType: AdjustmentType.UVA, adjustmentBase: 'Original' }),
+      points: { UVA: [['2025-03-01', '2000'], ['2025-04-01', '2100']] },
+      period: { startDate: utc('2025-01-01'), initialRent: '100000.00' },
+    });
+
+    await expect(
+      load(h, contract({ adjustmentType: AdjustmentType.UVA }), firstWindow('2025-04-01')),
+    ).rejects.toBeInstanceOf(MissingIndexDataError);
+  });
+
+  it('CP-1223: los días intermedios no hacen falta: con los dos extremos el ajuste se calcula', async () => {
+    const h = harness({
+      terms: iclTerms(),
+      points: { ICL: [['2025-01-01', '1000'], ['2025-04-01', '1250']] },
+    });
+
+    const loaded = await load(h, icl(), firstWindow('2025-04-01'));
+
+    expect(calculateAdjustment(loaded.params).newRent.toFixed(2)).toBe('125000.00');
+    expect(loaded.observations.map((o) => o.period)).toEqual(['2025-01-01', '2025-04-01']);
+  });
+
+  it('CP-1224: tras un ajuste anterior la ventana arranca en su fecha y esa fecha debe tener valor', async () => {
+    const h = harness({
+      terms: iclTerms(),
+      points: { ICL: [['2025-04-02', '1260'], ['2025-07-01', '1400']] },
+    });
+
+    const err = await load(h, icl(), afterWindow('2025-04-01', '2025-07-01')).catch((e) => e);
+
+    expect(err).toBeInstanceOf(MissingIndexDataError);
+    expect(err.missingPeriods).toEqual(['2025-04-01']);
+  });
+
+  it('CP-1224: con el rezago la ventana corrida también exige sus dos extremos', async () => {
+    const h = harness({
+      terms: iclTerms({ indexLagMonths: 1 }),
+      points: { ICL: [['2025-04-01', '1250'], ['2025-06-01', '1400']] },
+    });
+
+    // Con rezago 1, la ventana del ajuste de julio tras el de abril va del 1 de marzo al 1 de junio.
+    const err = await load(h, icl(), afterWindow('2025-04-01', '2025-07-01')).catch((e) => e);
+
+    expect(err).toBeInstanceOf(MissingIndexDataError);
+    expect(err.missingPeriods).toEqual(['2025-03-01']);
+  });
+
+  it('CP-1225: el cálculo no se acepta con el mismo día de inicio y de fin', async () => {
+    const h = harness({ terms: iclTerms(), points: { ICL: [['2025-04-01', '1250']] } });
+
+    await expect(load(h, icl(), firstWindow('2025-04-01', '2025-04-01'))).rejects.toBeInstanceOf(MissingIndexDataError);
+  });
+
+  it('CP-1226: al aplicar un cronograma con la serie incompleta no se escribe nada y el cronograma sigue pendiente', async () => {
+    const h = harness({
+      terms: iclTerms(),
+      points: { ICL: lateSeries },
+    });
+    h.tx.contract.findUnique.mockResolvedValue(icl());
+
+    const outcome = await h.service.applySchedule(
+      { id: 'schedule-1', contractId: 'contract-1', nextAdjustmentDate: utc('2025-04-01'), periodNumber: 1 },
+      { tenantId: 'tenant-1', source: 'cron', allowProvisional: true },
+    ).catch((e) => e);
+
+    expect(outcome).toBeInstanceOf(MissingIndexDataError);
+    expect(h.tx.contractAdjustment.create).not.toHaveBeenCalled();
+    expect(h.tx.contract.update).not.toHaveBeenCalled();
+    expect(h.tx.adjustmentSchedule.update).not.toHaveBeenCalled();
+  });
+});
+
 describe('ajuste provisorio con estimados (pago a cuenta)', () => {
   const start = '2025-03-01';
   const points: Point[] = [

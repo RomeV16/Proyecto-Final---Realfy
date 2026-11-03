@@ -14,9 +14,11 @@ global.fetch = mockFetch as unknown as typeof fetch;
 // ─── Mock PrismaService ─────────────────────────────────────────────────────
 
 const mockUpsert = jest.fn().mockResolvedValue({});
+const mockFindMany = jest.fn().mockResolvedValue([]);
+const mockCreateMany = jest.fn().mockImplementation(async ({ data }: any) => ({ count: data.length }));
 const mockPrisma = {
   baseClient: {
-    indexData: { upsert: mockUpsert },
+    indexData: { upsert: mockUpsert, findMany: mockFindMany, createMany: mockCreateMany },
   },
 } as any;
 
@@ -470,5 +472,142 @@ describe('IndexScraperService — empalme del IPC entre INDEC y BCRA', () => {
     expect(sep.create).toMatchObject({ indexType: 'IPC', value: 1.9, source: IPC_SOURCE_BCRA });
     expect(sep.update).toEqual({});
     expect(aug.update).toEqual({ value: 1.659206, source: IPC_SOURCE_INDEC });
+  });
+
+  // ── backfillLevelSeries (DEF-121) ─────────────────────────────────────────
+
+  describe('backfillLevelSeries', () => {
+    /** Una fila del BCRA por día corrido entre dos fechas, con un valor creciente. */
+    const bcraDays = (from: string, to: string, base = 1000) => {
+      const detalle: { fecha: string; valor: number }[] = [];
+      const day = new Date(`${from}T00:00:00.000Z`);
+      for (let i = 0; day <= new Date(`${to}T00:00:00.000Z`); i++) {
+        detalle.push({ fecha: day.toISOString().slice(0, 10), valor: base + i });
+        day.setUTCDate(day.getUTCDate() + 1);
+      }
+      return makeJsonResponse({ status: 200, results: [{ idVariable: 40, detalle: detalle.reverse() }] });
+    };
+
+    beforeEach(() => {
+      mockFindMany.mockResolvedValue([]);
+    });
+
+    it('CP-1230: pide el rango por tramos de hasta un año, con la variable de cada índice', async () => {
+      mockFetch.mockImplementation(async () => makeJsonResponse({ results: [{ detalle: [] }] }));
+
+      await service.backfillLevelSeries('ICL', '2024-01-01', '2025-03-10');
+      const iclUrls = mockFetch.mock.calls.map((c) => new URL(String(c[0])));
+      mockFetch.mockClear();
+      await service.backfillLevelSeries('UVA', '2025-01-01', '2025-01-31');
+      const uvaUrls = mockFetch.mock.calls.map((c) => new URL(String(c[0])));
+
+      expect(iclUrls.map((u) => u.pathname.split('/').pop())).toEqual(['40', '40']);
+      expect(iclUrls.map((u) => [u.searchParams.get('desde'), u.searchParams.get('hasta')])).toEqual([
+        ['2024-01-01', '2024-12-30'],
+        ['2024-12-31', '2025-03-10'],
+      ]);
+      expect(uvaUrls.map((u) => u.pathname.split('/').pop())).toEqual(['31']);
+      expect(uvaUrls[0].searchParams.get('desde')).toBe('2025-01-01');
+      expect(uvaUrls[0].searchParams.get('hasta')).toBe('2025-01-31');
+    });
+
+    it('CP-1231: inserta en la serie de sistema solo los días que faltan e informa los contadores', async () => {
+      mockFetch.mockResolvedValue(bcraDays('2025-01-01', '2025-01-05'));
+      mockFindMany.mockResolvedValue([{ period: new Date('2025-01-02T00:00:00.000Z'), value: '1001' }]);
+
+      const result = await service.backfillLevelSeries('ICL', '2025-01-01', '2025-01-05');
+
+      expect(mockCreateMany).toHaveBeenCalledTimes(1);
+      const call = mockCreateMany.mock.calls[0][0];
+      expect(call.skipDuplicates).toBe(true);
+      expect(call.data.map((r: any) => r.period.toISOString().slice(0, 10))).toEqual([
+        '2025-01-01',
+        '2025-01-03',
+        '2025-01-04',
+        '2025-01-05',
+      ]);
+      expect(call.data.every((r: any) => r.tenantId === '__system__' && r.indexType === 'ICL')).toBe(true);
+      expect(call.data[0]).toMatchObject({ value: 1000, source: 'bcra-v4-icl' });
+      expect(result).toMatchObject({
+        indexType: 'ICL',
+        from: '2025-01-01',
+        to: '2025-01-05',
+        fetched: 5,
+        inserted: 4,
+        existing: 1,
+        differing: 0,
+        missingCount: 0,
+        missingDays: [],
+      });
+    });
+
+    it('CP-1232: es idempotente: con todos los días cargados no escribe nada', async () => {
+      mockFetch.mockResolvedValue(bcraDays('2025-01-01', '2025-01-03'));
+      mockFindMany.mockResolvedValue(
+        ['2025-01-01', '2025-01-02', '2025-01-03'].map((d, i) => ({
+          period: new Date(`${d}T00:00:00.000Z`),
+          value: String(1000 + i),
+        })),
+      );
+
+      const result = await service.backfillLevelSeries('ICL', '2025-01-01', '2025-01-03');
+
+      expect(mockCreateMany).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ inserted: 0, existing: 3, differing: 0 });
+    });
+
+    it('CP-1233: un valor ya cargado que difiere del BCRA no se pisa y se cuenta', async () => {
+      mockFetch.mockResolvedValue(bcraDays('2025-01-01', '2025-01-02'));
+      mockFindMany.mockResolvedValue([{ period: new Date('2025-01-01T00:00:00.000Z'), value: '999.5' }]);
+
+      const result = await service.backfillLevelSeries('ICL', '2025-01-01', '2025-01-02');
+
+      expect(mockUpsert).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ inserted: 1, existing: 1, differing: 1 });
+    });
+
+    it('CP-1234: los días que el BCRA no devuelve se informan y lo que cae fuera del rango se ignora', async () => {
+      const full = bcraDays('2024-12-30', '2025-01-06');
+      const detalle = (await full.json()).results[0].detalle.filter(
+        (d: any) => d.fecha !== '2025-01-03' && d.fecha !== '2025-01-04',
+      );
+      mockFetch.mockResolvedValue(makeJsonResponse({ results: [{ detalle }] }));
+
+      const result = await service.backfillLevelSeries('UVA', '2025-01-01', '2025-01-05');
+
+      const days = mockCreateMany.mock.calls[0][0].data.map((r: any) => r.period.toISOString().slice(0, 10));
+      expect(days).toEqual(['2025-01-01', '2025-01-02', '2025-01-05']);
+      expect(result).toMatchObject({ fetched: 3, inserted: 3, missingCount: 2, missingDays: ['2025-01-03', '2025-01-04'] });
+    });
+
+    it('CP-1235: si el BCRA falla el error se propaga y no se escribe nada', async () => {
+      mockFetch.mockResolvedValue(makeJsonResponse({}, 503));
+
+      await expect(service.backfillLevelSeries('ICL', '2025-01-01', '2025-01-05')).rejects.toThrow(/BCRA HTTP 503/);
+
+      expect(mockCreateMany).not.toHaveBeenCalled();
+    });
+
+    it('CP-1235: las filas sin fecha ISO o con valor inválido se descartan', async () => {
+      mockFetch.mockResolvedValue(
+        makeJsonResponse({
+          results: [
+            {
+              detalle: [
+                { fecha: '2025-01-01', valor: 10 },
+                { fecha: 'ayer', valor: 11 },
+                { fecha: '2025-01-02', valor: 'x' },
+                { fecha: '2025-01-03', valor: -4 },
+                { fecha: '2025-01-01', valor: 12 },
+              ],
+            },
+          ],
+        }),
+      );
+
+      const result = await service.backfillLevelSeries('ICL', '2025-01-01', '2025-01-03');
+
+      expect(result).toMatchObject({ fetched: 1, inserted: 1, missingCount: 2 });
+    });
   });
 });

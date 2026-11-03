@@ -695,6 +695,9 @@
   "src/modules/index-data/index-data.controller.ts#IndexDataController.refresh": [
     "Admin"
   ],
+  "src/modules/index-data/index-data.controller.ts#IndexDataController.backfill": [
+    "Admin"
+  ],
   "src/modules/interactions/interactions.controller.ts#InteractionsController.createInteraction": [
     "Admin",
     "Gerente",
