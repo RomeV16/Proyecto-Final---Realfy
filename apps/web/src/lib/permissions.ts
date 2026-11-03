@@ -80,6 +80,16 @@ export const ACTION_ROLES = {
   'fees.collect': [Admin, Gerente, Liquidaciones],
   /** Ver y pagar las comisiones del personal. */
   'fees.commissions': [Admin, Gerente],
+  /** Ventas: ver operaciones, reservas y señas. */
+  'sales.view': [Admin, Gerente, Ventas, Lectura],
+  /** Cargar y mover operaciones de venta, partes, documentación y recibir reservas y señas. */
+  'sales.manage': [Admin, Gerente, Ventas],
+  /** Devolver o retener una seña ya recibida y pactar el honorario de la venta. */
+  'sales.money': [Admin, Gerente],
+  /** Llaves: ver quién tiene cada juego y las llaves fuera. */
+  'keys.view': [Admin, Gerente, Ventas, Soporte, Lectura],
+  /** Cargar juegos de llaves y registrar sus salidas y devoluciones. */
+  'keys.manage': [Admin, Gerente, Ventas],
   /** Depósitos de los contratos: ver el depósito y la liquidación de egreso. */
   'deposits.view': [Admin, Gerente, Liquidaciones, Lectura],
   /** Cargar el depósito de un contrato y confirmar la liquidación de egreso. */

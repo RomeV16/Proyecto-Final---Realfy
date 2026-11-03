@@ -38,6 +38,8 @@ import { formatMoney, formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 import { PropertyOwnerships } from '@/components/parties/property-ownerships';
 import { PropertyPublication } from '@/components/listings/property-publication';
+import { PropertyKeysCard } from '@/components/keys/property-keys-card';
+import { PropertySalesCard } from '@/components/sales/property-sales-card';
 
 /* ──────────── Types ──────────── */
 
@@ -490,6 +492,14 @@ function DetailView({
 
           <DetailSection title={t('detail.ownerships')} icon="persons">
             <PropertyOwnerships propertyId={property.id} canEdit={canEdit} />
+          </DetailSection>
+
+          <DetailSection title={t('detail.sales')} icon="wallet">
+            <PropertySalesCard property={property} />
+          </DetailSection>
+
+          <DetailSection title={t('detail.keys')} icon="properties">
+            <PropertyKeysCard propertyId={property.id} />
           </DetailSection>
 
           <DetailSection

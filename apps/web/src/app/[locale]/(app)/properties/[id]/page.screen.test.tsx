@@ -56,6 +56,13 @@ vi.mock('@/components/listings/property-publication', () => ({
   PropertyPublication: ({ propertyId }: { propertyId: string }) => <div>Publicación de {propertyId}</div>,
 }));
 
+vi.mock('@/components/keys/property-keys-card', () => ({
+  PropertyKeysCard: ({ propertyId }: { propertyId: string }) => <div>Llaves de {propertyId}</div>,
+}));
+vi.mock('@/components/sales/property-sales-card', () => ({
+  PropertySalesCard: ({ property }: { property: { id: string } }) => <div>Ventas de {property.id}</div>,
+}));
+
 import { ApiRequestError } from '@/lib/api-client';
 import PropertyDetailPage from './page';
 
