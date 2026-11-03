@@ -1,0 +1,17 @@
+# Worker de recepción de mails (Cloudflare Email Routing -> Worker).
+# La cuenta NO va acá: wrangler la toma de CLOUDFLARE_ACCOUNT_ID al desplegar.
+# El secreto INBOX_EMAIL_INGEST_SECRET se carga con `wrangler secret put`, nunca en este archivo.
+name = "realfy-email-worker"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = false
+preview_urls = false
+
+[vars]
+API_BASE_URL = "https://api.realfy.app"
+# Inmobiliaria por defecto para boletas@ / consultas@ sin "+<slug>". Vacío en el repo:
+# se define al desplegar (por ejemplo `wrangler deploy --var DEFAULT_TENANT_SLUG:<slug>`).
+DEFAULT_TENANT_SLUG = ""
+# Opcional: dirección verificada a la que se reenvía lo que no es boletas@ ni consultas@
+# (`--var FALLBACK_FORWARD_TO:<dirección>`). Sin ella, esos mails se rechazan.
+# FALLBACK_FORWARD_TO = ""
