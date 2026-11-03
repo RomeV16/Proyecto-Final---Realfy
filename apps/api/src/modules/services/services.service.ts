@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
@@ -12,6 +13,7 @@ import {
   CreateServicePaymentSchema,
 } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
+import { getProvider, normalizeAccount } from '../bills-intake/providers';
 
 @Injectable()
 export class ServicesService {
@@ -100,6 +102,7 @@ export class ServicesService {
     const service = await this.prisma.client.service.create({
       data: {
         ...validated,
+        ...this.providerFields(validated),
         tenantId,
       },
       include: {
@@ -132,7 +135,7 @@ export class ServicesService {
 
     const updated = await this.prisma.client.service.update({
       where: { id },
-      data: validated,
+      data: { ...validated, ...this.providerFields(validated, existing) },
       include: {
         property: { select: { id: true, title: true } },
       },
@@ -143,6 +146,37 @@ export class ServicesService {
     );
 
     return updated;
+  }
+
+  /**
+   * Con proveedor del catálogo (ADR-0018) el identificador de cuenta se guarda
+   * normalizado, que es con lo que el circuito de boletas busca el servicio. Si cambia
+   * el proveedor o la cuenta, se valida con lo que ya había en el otro campo.
+   */
+  private providerFields(
+    input: { providerKey?: string | null; accountNumber?: string | null; serviceType?: string },
+    current?: { providerKey: string | null; accountNumber: string | null; serviceType: string },
+  ): { accountNumber?: string | null } {
+    const providerKey = input.providerKey !== undefined ? input.providerKey : (current?.providerKey ?? null);
+    if (!providerKey) return {};
+    const provider = getProvider(providerKey);
+    const serviceType = input.serviceType ?? current?.serviceType;
+    if (provider && serviceType && provider.serviceTypes.length > 0 && !provider.serviceTypes.includes(serviceType as never)) {
+      throw new BadRequestException({
+        error: 'PROVIDER_SERVICE_TYPE_MISMATCH',
+        message: `Provider ${providerKey} does not issue ${serviceType} bills`,
+      });
+    }
+    const raw = input.accountNumber !== undefined ? input.accountNumber : (current?.accountNumber ?? null);
+    if (raw === null || raw === '') return input.accountNumber === undefined ? {} : { accountNumber: null };
+    const normalized = normalizeAccount(providerKey, raw);
+    if (!normalized) {
+      throw new BadRequestException({
+        error: 'INVALID_PROVIDER_ACCOUNT',
+        message: `The account number is not valid for provider ${providerKey}`,
+      });
+    }
+    return { accountNumber: normalized };
   }
 
   // ─── Soft Delete ────────────────────────────────────

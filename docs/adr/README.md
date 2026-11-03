@@ -2,7 +2,7 @@
 
 Índice de las decisiones de arquitectura (ADR) del proyecto. Cada decisión vive en su propio archivo de esta carpeta, con contexto, decisión y consecuencias. Una decisión aceptada no se reescribe: si cambia, se escribe una nueva que la reemplaza y la anterior pasa a «Reemplazada»; las precisiones posteriores que no la cambian se agregan como addendum fechado al final del mismo archivo.
 
-Índice verificado el 3 de noviembre de 2026 contra los archivos de la carpeta: diecisiete decisiones, todas aceptadas. Las seis primeras son del desarrollo original de la tesis; de la 0007 en adelante, del piloto en una inmobiliaria real (`../tesis/30-piloto.md`).
+Índice verificado el 3 de noviembre de 2026 contra los archivos de la carpeta: dieciocho decisiones, todas aceptadas. Las seis primeras son del desarrollo original de la tesis; de la 0007 en adelante, del piloto en una inmobiliaria real (`../tesis/30-piloto.md`).
 
 ## Decisiones
 
@@ -25,6 +25,7 @@
 | [0015](0015-importacion-idempotente-desde-el-sistema-anterior.md) | Importación idempotente desde el sistema anterior | Aceptado | 2026-11-01 | Piloto, ítem 39 |
 | [0016](0016-diagramas-como-codigo.md) | Diagramas como código (mermaid) | Aceptado | 2026-10-30 | Piloto, ítem 31 |
 | [0017](0017-facturacion-por-cuenta-del-locador-con-emisor-delegado.md) | Facturación por cuenta del locador con emisor delegado | Aceptado | 2026-11-02 | Piloto, ítem 38 |
+| [0018](0018-obtencion-automatica-de-boletas.md) | Obtención automática de boletas de servicios e impuestos | Aceptado; los lectores de EPEC y Ecogas quedan a ajustar con la primera boleta real | 2026-11-03 | Piloto, uso real |
 
 La fecha es la de aceptación que figura en cada archivo. El orden de los números no coincide con el de las fechas en el piloto porque los números se reservaron en el plan, antes de implementar, y cada decisión se aceptó en el pedido de incorporación que la implementa.
 
@@ -32,12 +33,13 @@ La fecha es la de aceptación que figura en cada archivo. El orden de los númer
 
 - La 0006 endurece la 0003: el filtro por inmobiliaria falla cerrado. Su addendum agrega que todo modelo nuevo se registra en el filtro, con una prueba que compara la lista contra el esquema, y que los procesos programados corren dentro del contexto de cada inmobiliaria.
 - La 0009 se apoya en la 0012: la cuenta corriente del locador lee el reparto que el cobro guardó, sin recalcularlo.
+- La 0018 se apoya en la 0008 (la boleta que da de alta es la misma `ServiceBill` y sale el mismo reparto) y en la 0013 (el ingreso de boletas por mail reutiliza la firma del ingreso de mails de la bandeja de consultas); su proceso diario corre con el contexto de cada inmobiliaria que fija la 0006.
 - La 0017 extiende la facturación con varios emisores de la primera versión a la emisión por cuenta del locador, con su delegación en ARCA.
 - La 0008, la 0011 y la 0012 se apoyan en las reglas versionadas de la 0010: las reglas de traslado, el rezago del índice y el flujo de cobro se leen a la fecha del período, y sus cambios son acuerdos fechados.
 
 ## Decisiones planificadas
 
-No quedan decisiones planificadas. Las diez que el plan del piloto previó (0007 a 0016) están aceptadas, y la 0017 se sumó al implementar la facturación por cuenta del locador. Una decisión nueva se escribe en el pedido que la implementa y se agrega a esta tabla con su fecha cuando se acepta.
+No quedan decisiones planificadas. Las diez que el plan del piloto previó (0007 a 0016) están aceptadas, y la 0017 y la 0018 se sumaron al implementar la facturación por cuenta del locador y la obtención automática de boletas. Una decisión nueva se escribe en el pedido que la implementa y se agrega a esta tabla con su fecha cuando se acepta.
 
 ## Ajustes pendientes a decisiones existentes
 

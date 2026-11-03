@@ -6,6 +6,7 @@ import {
   Money,
   ServiceBillFilterSchema,
   ServiceBillRowSchema,
+  ServiceBillSource,
   ServiceBillStatus,
   UpdateServiceBillSchema,
   chargeAllocationLines,
@@ -269,7 +270,6 @@ export class ServiceBillsService {
   private async upsertRow(
     row: ServiceBillRowInput,
   ): Promise<{ status: 'created' | 'updated' | 'unchanged'; billId: string }> {
-    const tenantId = this.tenantContext.getTenantId()!;
     const service = await this.prisma.client.service.findFirst({ where: { id: row.serviceId } });
     if (!service) throw notFound('SERVICE_NOT_FOUND', 'Service not found');
     await this.assertUnitsOfService(this.prisma.client, service, row.unitConsumptions);
@@ -291,19 +291,7 @@ export class ServiceBillsService {
       });
 
       if (!existing) {
-        const created = await tx.serviceBill.create({
-          data: {
-            tenantId,
-            serviceId: row.serviceId,
-            period,
-            installmentLabel,
-            currency: service.currency,
-            createdById: this.tenantContext.getUserId() ?? null,
-            ...values,
-            unitConsumptions: values.unitConsumptions ?? undefined,
-          },
-        });
-        await this.materialize(tx, created);
+        const created = await this.createBill(tx, service, { period, installmentLabel, ...values });
         return { status: 'created' as const, billId: created.id as string };
       }
 
@@ -322,6 +310,79 @@ export class ServiceBillsService {
       await this.materialize(tx, updated);
       return { status: 'updated' as const, billId: existing.id as string };
     });
+  }
+
+  /** Crea la boleta y deja guardadas sus partes: lo que comparten la carga manual y la automática. */
+  private async createBill(
+    tx: Db,
+    service: { id: string; currency: string },
+    bill: {
+      period: Date;
+      installmentLabel: string;
+      amount: string;
+      nominalAmount: string | null;
+      dueDate: Date | null;
+      consumption: string | null;
+      unitConsumptions?: ServiceBillRowInput['unitConsumptions'] | null;
+      notes: string | null;
+    },
+    origin: { source: ServiceBillSource; documentId: string | null } = { source: ServiceBillSource.Manual, documentId: null },
+  ) {
+    const created = await tx.serviceBill.create({
+      data: {
+        tenantId: this.tenantContext.getTenantId()!,
+        serviceId: service.id,
+        currency: service.currency,
+        createdById: this.tenantContext.getUserId() ?? null,
+        ...bill,
+        unitConsumptions: bill.unitConsumptions ?? undefined,
+        source: origin.source,
+        documentId: origin.documentId,
+      },
+    });
+    await this.materialize(tx, created);
+    return created;
+  }
+
+  /**
+   * Boleta leída de un documento (ADR-0018): la misma alta que la carga manual, con sus
+   * partes, pero marcada `Automatica` y ligada al documento. Nunca pisa una boleta
+   * existente: si ya está (servicio, período y cuota), 409 `BILL_ALREADY_EXISTS`.
+   * Se llama dentro de la transacción de quien procesa el documento.
+   */
+  async createAutomatic(
+    tx: Db,
+    input: {
+      serviceId: string;
+      period: string;
+      installmentLabel?: string | null;
+      amount: string;
+      nominalAmount?: string | null;
+      dueDate?: string | null;
+      consumption?: string | null;
+      documentId: string;
+    },
+  ) {
+    const service = await tx.service.findFirst({ where: { id: input.serviceId } });
+    if (!service) throw notFound('SERVICE_NOT_FOUND', 'Service not found');
+    const period = parsePeriod(input.period);
+    const installmentLabel = input.installmentLabel ?? defaultInstallmentLabel(period);
+    const existing = await tx.serviceBill.findFirst({ where: { serviceId: service.id, period, installmentLabel } });
+    if (existing) throw conflict('BILL_ALREADY_EXISTS', 'The bill is already loaded for that service, period and installment');
+    return this.createBill(
+      tx,
+      service,
+      {
+        period,
+        installmentLabel,
+        amount: input.amount,
+        nominalAmount: input.nominalAmount ?? null,
+        dueDate: input.dueDate ? dayStart(input.dueDate) : null,
+        consumption: input.consumption ?? null,
+        notes: null,
+      },
+      { source: ServiceBillSource.Automatica, documentId: input.documentId },
+    );
   }
 
   // ─── Cambio ─────────────────────────────────────────

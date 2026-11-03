@@ -12,7 +12,6 @@ import {
   Put,
   Query,
   Req,
-  UnauthorizedException,
   type RawBodyRequest,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
@@ -23,8 +22,8 @@ import { Public } from '../../common/auth/public.decorator';
 import { Roles } from '../../common/auth/roles.decorator';
 import { MessagingConfigService } from '../../common/messaging/messaging-config.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
-import { verifyMetaSignature } from '../messaging/webhook-signatures';
 import { InboxEmailService } from './inbox-email.service';
+import { assertEmailIngestSignature } from './inbox-signature';
 import { InboxSlaScheduler } from './inbox-sla.scheduler';
 import { InboxService } from './inbox.service';
 
@@ -157,10 +156,7 @@ export class InboxEmailController {
     @Body() body: unknown,
   ) {
     // Mismo esquema de firma que Meta (sha256=<hex> sobre el cuerpo crudo), con otro secreto.
-    if (!verifyMetaSignature(req.rawBody, signature, this.config.inbox.emailIngestSecret)) {
-      this.logger.warn('Inbound email rejected: invalid signature');
-      throw new UnauthorizedException({ error: 'INVALID_SIGNATURE', message: 'Invalid signature' });
-    }
+    assertEmailIngestSignature(this.config, req, signature, this.logger);
     return this.email.ingestEmail(body);
   }
 }

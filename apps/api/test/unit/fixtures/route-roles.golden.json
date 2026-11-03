@@ -22,6 +22,40 @@
   "src/modules/auth/auth.controller.ts#AuthController.requestPasswordReset": null,
   "src/modules/auth/auth.controller.ts#AuthController.confirmPasswordReset": null,
   "src/modules/auth/auth.controller.ts#AuthController.logout": null,
+  "src/modules/bills-intake/bills-intake-mail.controller.ts#BillsIntakeMailController.emailIngest": null,
+  "src/modules/bills-intake/bills-intake.controller.ts#BillsIntakeController.upload": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/bills-intake/bills-intake.controller.ts#BillsIntakeController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/bills-intake/bills-intake.controller.ts#BillsIntakeController.get": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/bills-intake/bills-intake.controller.ts#BillsIntakeController.file": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/bills-intake/bills-intake.controller.ts#BillsIntakeController.accept": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/bills-intake/bills-intake.controller.ts#BillsIntakeController.reject": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
   "src/modules/cash/cash.controller.ts#FinancialAccountsController.list": [
     "Admin",
     "Gerente",

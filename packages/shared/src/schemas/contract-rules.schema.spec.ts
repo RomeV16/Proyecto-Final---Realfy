@@ -65,6 +65,7 @@ describe('OperationalDefaultsSchema', () => {
       invoicing: { scope: 'Alquiler', when: 'Manual', vatPct: 0 },
       messaging: { fromHour: 9, untilHour: 20 },
       inbox: InboxSettingsSchema.parse({}),
+      billFetching: { enabled: false, providers: [] },
       publication: {
         portals: [
           { key: 'zonaprop', name: 'Zonaprop', urlTemplate: null, enabled: true },

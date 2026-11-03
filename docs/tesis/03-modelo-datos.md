@@ -478,6 +478,9 @@ erDiagram
     ContractChargeRule |o--o{ ServiceBillAllocation : "regla aplicada"
     Liquidacion |o--o{ ServiceBillAllocation : "la incluye una vez"
     ServiceBill |o--o{ ServicePayment : "pago registrado"
+    Service ||--o{ BillDocument : "documentos leidos"
+    BillDocument |o--o{ ServiceBill : "boletas que dio de alta"
+    Service ||--o{ BillFetchRun : "consultas al proveedor"
     ContractChargeRule {
         string payer
         string splitMode
@@ -503,6 +506,28 @@ erDiagram
         string paidBy
         datetime paidAt
         string receiptUrl
+        string source
+    }
+    BillDocument {
+        string channel
+        string origin
+        string storageKey
+        string sha256
+        string providerKey
+        string accountNumber
+        json data
+        decimal confidence
+        string status
+        string reason
+        datetime reviewedAt
+    }
+    BillFetchRun {
+        string providerKey
+        datetime startedAt
+        datetime finishedAt
+        string result
+        string errorCode
+        int documents
     }
     ServiceBillAllocation {
         string payer
@@ -518,9 +543,12 @@ erDiagram
 ```
 
 - `ContractChargeRule`: `id`, `tenantId`, `contractId`, `serviceId`, `payer` (`Inquilino`, `Inmobiliaria`, `Propietario`), `splitMode` (`Porcentaje`, `Consumo`, `Fijo`), `tenantSharePct` (100 por defecto), `fixedAmount`, `paymentPlan` (`Mensual`, `Anual`), `annualRecovery` (`Prorrateado` por defecto, `Unico`), `annualInstallments` (1 a 12, 12 por defecto), `annualDiscountBeneficiary` (`Inquilino` por defecto, `Locador`, `Inmobiliaria`), `remainingInstallmentsOnEnd` (`CobrarEnLiquidacionFinal` por defecto, `Descartar`), `validFrom`, `validTo`, `agreementId`, `notes`. Única por `[contractId, serviceId, validFrom]`: un cambio cierra la regla vigente y crea otra, no la pisa.
-- `ServiceBill`: `id`, `tenantId`, `serviceId`, `period` (primer día del mes), `installmentLabel`, `amount`, `nominalAmount`, `currency`, `dueDate`, `consumption`, `unitConsumptions` (lista de propiedad y consumo), `status` (`Pendiente`, `Pagada`, `Anulada`), `paidBy` (`Inquilino`, `Inmobiliaria`, `Propietario`), `paidAt`, `receiptUrl`, `notes`, `createdById`. Única por `[serviceId, period, installmentLabel]`.
+- `ServiceBill`: `id`, `tenantId`, `serviceId`, `period` (primer día del mes), `installmentLabel`, `amount`, `nominalAmount`, `currency`, `dueDate`, `consumption`, `unitConsumptions` (lista de propiedad y consumo), `status` (`Pendiente`, `Pagada`, `Anulada`), `paidBy` (`Inquilino`, `Inmobiliaria`, `Propietario`), `paidAt`, `receiptUrl`, `notes`, `source` (`Manual` o `Automatica`: la cargó una persona o la leyó el sistema de un documento), `documentId` (el documento de donde salió, ADR-0018), `createdById`. Única por `[serviceId, period, installmentLabel]`.
 - `ServiceBillAllocation`: `id`, `tenantId`, `billId`, `contractId`, `ruleId`, `payer`, `amount`, `basis` (texto con el cálculo), `surplus` y `surplusBeneficiary` (parte de `amount` que es la diferencia por el descuento anual y a quién va), `chargePeriod` (mes de la liquidación en que se cobra), `installmentNo`, `installmentsTotal`, `liquidacionId`, `billedAt`. Única por `[billId, contractId, chargePeriod]`. Una parte con `billedAt` ya está en una liquidación y no se rehace.
-- Los tres modelos llevan `tenantId` y están registrados en `TENANT_SCOPED_MODELS`. El renglón de liquidación que sale de una parte lleva `sourceType` `ServiceBillAllocation` y el id de la parte como `sourceId`.
+- `Service.providerKey` (clave del catálogo de proveedores de boletas, ADR-0018): con ella, `accountNumber` se guarda normalizado según el proveedor. Hay un índice por `[tenantId, providerKey, accountNumber]`.
+- `BillDocument` (ADR-0018): `id`, `tenantId`, `channel` (`Consulta`, `Mail`, `Portal`, `Archivo`), `origin` (remitente, nombre del archivo o conector), `fileName`, `storageKey` (el PDF en el almacenamiento de objetos), `sizeBytes`, `sha256`, `providerKey` (reconocido por las firmas), `accountNumber` (leído, normalizado), `data` (lo leído: boletas con período, cuota, importe, vencimientos, código de pago y consumo, y avisos; sin nombres ni domicilios), `confidence` (0 a 1), `status` (`Recibida`, `Procesada`, `RequiereRevision`, `Rechazada`, `Duplicada`), `reason`, `serviceId`, `createdById`, `reviewedById`, `reviewedAt`, `processedAt`. Único por `[tenantId, sha256]`: el mismo PDF no se procesa dos veces; un mensaje sin adjunto guarda el resumen del identificador del mensaje. La relación con las boletas es `ServiceBill.documentId`.
+- `BillFetchRun` (ADR-0018): `id`, `tenantId`, `serviceId`, `providerKey`, `channel`, `startedAt`, `finishedAt`, `result` (`Ok`, `SinNovedad`, `Error`, `Bloqueado`), `errorCode`, `errorMessage`, `documents` (documentos nuevos que dejó el intento).
+- Los modelos de boletas, reglas y partes llevan `tenantId` y están registrados en `TENANT_SCOPED_MODELS`, igual que `BillDocument` y `BillFetchRun`. El renglón de liquidación que sale de una parte lleva `sourceType` `ServiceBillAllocation` y el id de la parte como `sourceId`.
 
 ### Centro de carga
 

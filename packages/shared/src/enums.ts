@@ -444,6 +444,41 @@ export enum ServiceBillStatus {
   Anulada = 'Anulada',
 }
 
+/** Cómo se originó una boleta: la cargó una persona o la leyó el sistema de un documento (ADR-0018). */
+export enum ServiceBillSource {
+  Manual = 'Manual',
+  Automatica = 'Automatica',
+}
+
+/** Por dónde llegó una boleta al circuito de obtención automática (ADR-0018). */
+export enum BillChannel {
+  Consulta = 'Consulta',
+  Mail = 'Mail',
+  Portal = 'Portal',
+  Archivo = 'Archivo',
+}
+
+/**
+ * Estado de un documento de boleta. Recibida: guardado y sin procesar; Procesada: se
+ * leyó y dio de alta la boleta; RequiereRevision: una persona decide; Rechazada: una
+ * persona lo descartó; Duplicada: la boleta ya estaba cargada con el mismo importe.
+ */
+export enum BillDocumentStatus {
+  Recibida = 'Recibida',
+  Procesada = 'Procesada',
+  RequiereRevision = 'RequiereRevision',
+  Rechazada = 'Rechazada',
+  Duplicada = 'Duplicada',
+}
+
+/** Resultado de un intento de consulta a un proveedor. */
+export enum BillFetchResult {
+  Ok = 'Ok',
+  SinNovedad = 'SinNovedad',
+  Error = 'Error',
+  Bloqueado = 'Bloqueado',
+}
+
 /** Quién pagó la boleta al ente. */
 export enum BillPaidBy {
   Inquilino = 'Inquilino',
