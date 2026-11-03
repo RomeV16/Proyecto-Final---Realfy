@@ -31,7 +31,8 @@ import type { LiquidationExtraLine } from '../liquidation-builder';
  *   consumo total, las unidades se reparten toda la boleta. Si hay consumo
  *   total y las unidades suman menos, la diferencia (áreas comunes, unidades
  *   vacías) queda sin trasladar. El reparto usa el mayor resto: las partes
- *   suman exactamente la boleta.
+ *   suman exactamente la boleta. Una unidad con consumo 0 declarado no paga; si
+ *   todo el consumo es 0 no hay con qué repartir y se informa `MissingConsumption`.
  * - Plan Anual con recupero Prorrateado: la parte del inquilino se reparte en
  *   `annualInstallments` cuotas mensuales iguales (de 1 a 12, por defecto 12;
  *   mayor resto) desde el mes de la boleta; con Unico se cobra entera en el mes
@@ -159,8 +160,12 @@ export function splitBill(bill: ChargeBillInput, rules: ChargeRuleInput[]): Char
     const consumoIdx = rules.map((r, i) => (r.splitMode === ChargeSplitMode.Consumo ? i : -1)).filter((i) => i >= 0);
     if (consumoIdx.length > 0) {
       const consumptions = consumoIdx.map((i) => rules[i].consumption);
-      const known = consumptions.every((c) => c != null && new Money(c).gt(0));
-      if (!known && consumoIdx.length > 1) {
+      // Un 0 declarado es un dato (unidad vacía, paga 0); lo que falta es el dato.
+      const known = consumptions.every((c) => c != null && new Money(c).gte(0));
+      const weightsOf = () => consumptions.map((c) => new Money(c as MoneyInput));
+      const noConsumption =
+        known && sumMoney(weightsOf()).isZero() && !(bill.consumption != null && new Money(bill.consumption).gt(0));
+      if ((!known && consumoIdx.length > 1) || noConsumption) {
         if (report) {
           for (const i of consumoIdx) {
             if (rules[i].payer !== ChargePayer.Inquilino) {
@@ -173,7 +178,7 @@ export function splitBill(bill: ChargeBillInput, rules: ChargeRuleInput[]): Char
         const i = consumoIdx[0];
         shares.set(i, { amount: round2(baseOf(rules[i])), basis: 'Consumo: única unidad, toda la boleta' });
       } else {
-        const weights = consumptions.map((c) => new Money(c as MoneyInput));
+        const weights = weightsOf();
         const unitsTotal = sumMoney(weights);
         const billTotal = bill.consumption != null ? new Money(bill.consumption) : unitsTotal;
         const total = Money.max(billTotal, unitsTotal);
