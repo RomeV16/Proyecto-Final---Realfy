@@ -117,6 +117,7 @@
   "cash": "Cash",
   "owners": "Lessors",
   "ownerStatements": "Owner statements",
+  "listings": "Listings",
   "followUps": "Expirations",
   "messaging": "Messaging"
  },
@@ -4455,8 +4456,11 @@
    "operationPlaceholder": "All operations",
    "typeLabel": "Type",
    "typePlaceholder": "All types",
-   "cityLabel": "City",
-   "cityPlaceholder": "Search by city",
+   "cityLabel": "Area",
+   "cityPlaceholder": "Search by area or city",
+   "minPriceLabel": "Price from",
+   "maxPriceLabel": "Price up to",
+   "pricePlaceholder": "No limit",
    "clear": "Clear filters"
   },
   "pagination": {
@@ -4481,7 +4485,8 @@
    "errorValidation": "Check the details you entered and try again.",
    "errorClosed": "This agency is not accepting inquiries right now.",
    "errorRateLimited": "You've already sent several inquiries. Try again in a while.",
-   "errorGeneric": "We couldn't send your inquiry. Try again later."
+   "errorGeneric": "We couldn't send your inquiry. Try again later.",
+   "honeypot": "Leave this field empty"
   },
   "detail": {
    "backToList": "Back to properties",
@@ -4489,7 +4494,15 @@
    "noDescription": "No description available",
    "specsTitle": "Features",
    "amenitiesTitle": "Amenities",
-   "noAmenities": "No amenities listed"
+   "noAmenities": "No amenities listed",
+   "locationTitle": "Location",
+   "mapLink": "View the area on the map",
+   "mapNote": "Approximate location: the exact address is given when the visit is arranged."
+  },
+  "seo": {
+   "homeTitle": "{name} · Properties for sale and rent",
+   "homeDescription": "Properties for sale and rent from {name}. Browse the current catalog.",
+   "detailTitle": "{title} · {name}"
   }
  },
  "parties": {
@@ -6957,6 +6970,124 @@
     "emailOnly": "Email only",
     "empty": "No templates"
    }
+  }
+ },
+ "publication": {
+  "loadError": "We could not load the listings.",
+  "statuses": {
+   "NoPublicado": "Not published",
+   "Publicado": "Published",
+   "Pausado": "Paused",
+   "Vencido": "Expired"
+  },
+  "card": {
+   "title": "Publishing",
+   "noOperations": "The property has no operations to publish yet.",
+   "expires": "Expires",
+   "open": "View listing",
+   "viewOnSite": "View on the microsite",
+   "copyAd": "Copy ad",
+   "edit": "Edit",
+   "updatedBy": "Updated by {name}"
+  },
+  "edit": {
+   "title": "Listing on {portal}",
+   "status": "Status",
+   "externalUrl": "Listing URL",
+   "externalUrlHint": "Optional. Starts with https://",
+   "externalCode": "Listing code",
+   "externalCodeHint": "The code is used to build the listing URL on the portal.",
+   "publishedAt": "Published on",
+   "expiresAt": "Expires on",
+   "expiresAtHint": "Optional. After this date the listing shows as expired.",
+   "save": "Save",
+   "saving": "Saving…",
+   "saved": "Listing updated",
+   "saveError": "We could not save the listing."
+  },
+  "adCopy": {
+   "title": "Ad to copy",
+   "intro": "Text built from the property record, with no personal data. Copy each part and paste it into the portal.",
+   "portal": "Portal",
+   "loadError": "We could not build the ad.",
+   "warnings": {
+    "title_shortened": "The title was shortened to fit the portal limit.",
+    "description_truncated": "The description was cut to fit the portal limit.",
+    "contact_data_removed": "Phone numbers, emails or links were removed from the free text.",
+    "photos_over_limit": "There are more photos than the portal accepts: only the first ones are listed.",
+    "no_photos": "The property has no photos.",
+    "no_price": "The operation has no price set.",
+    "exact_address_shown": "The ad includes the exact address (as the settings allow)."
+   },
+   "titleField": "Title",
+   "descriptionField": "Description",
+   "counter": "{count} of {max} characters",
+   "copyTitle": "Copy title",
+   "copyDescription": "Copy description",
+   "photosField": "Photos in upload order ({count} of {max})",
+   "noPhotos": "No photos.",
+   "photoAlt": "Photo {position}",
+   "copyPhotoLinks": "Copy photo links",
+   "copyAll": "Copy title and description",
+   "copied": "Copied",
+   "copyFailed": "We could not copy: select the text and copy it by hand."
+  },
+  "overview": {
+   "title": "Listings",
+   "subtitle": "Which available units are not published, which listings are about to expire and what is still published for units that are no longer available.",
+   "configure": "Portals and privacy",
+   "pauseTitle": "Pause listings",
+   "pauseBody": "{count} listings of units that are no longer available will be paused.",
+   "pauseConfirm": "Pause",
+   "paused": "{count} listings paused",
+   "pauseAll": "Pause all",
+   "noOperation": "No operation",
+   "none": "Nothing to review.",
+   "tiles": {
+    "published": "Published listings",
+    "notPublished": "Available, not published",
+    "expiring": "Expired or expiring",
+    "shouldPause": "To pause"
+   },
+   "shouldPause": {
+    "title": "Published but not available",
+    "hint": "The unit was rented, sold or removed: the listing must come down."
+   },
+   "expired": {
+    "title": "Expired listings",
+    "hint": "The expiry date passed and nobody renewed or paused the listing."
+   },
+   "expiring": {
+    "title": "Expiring soon",
+    "hint": "They expire within the next {days} days."
+   },
+   "notPublished": {
+    "title": "Available, not published",
+    "hint": "Available units that are not published on any portal or on the microsite."
+   }
+  },
+  "settings": {
+   "title": "Portals and privacy",
+   "intro": "The portals used to publish and what the listings and the microsite show. The own microsite is always there.",
+   "loadError": "We could not load the settings.",
+   "saveError": "We could not save the settings.",
+   "saved": "Settings saved",
+   "portalName": "Name",
+   "urlTemplate": "URL template",
+   "urlTemplateHint": "Optional. Use '{code}' where the listing code goes.",
+   "enabled": "Used to publish",
+   "remove": "Remove",
+   "newPortal": "New portal",
+   "newPortalInvalid": "Enter a name that is not repeated.",
+   "addPortal": "Add portal",
+   "hideExactAddress": "Hide the exact address",
+   "hideExactAddressHint": "Listings and the microsite show only the area, with no street or number.",
+   "showMap": "Show a map on the microsite",
+   "showMapHint": "Shows the area at an approximate location, never the exact point.",
+   "expiryWarnDays": "Warn before expiry (days)",
+   "expiryWarnDaysHint": "How many days before expiry a listing shows as expiring.",
+   "save": "Save",
+   "saving": "Saving…"
   }
  }
 }

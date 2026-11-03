@@ -1,7 +1,9 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getRealtorProfile, getPublicProperties } from '@/lib/public-portal';
+import { getSiteContext } from '@/lib/microsite-site';
 import { PropertyFilters } from '@/components/portal-publico/property-filters';
 import { PublicPropertyGrid } from '@/components/portal-publico/property-grid';
 import { InquiryForm } from '@/components/portal-publico/inquiry-form';
@@ -12,7 +14,38 @@ const LIMIT = 12;
 
 interface PortalHomeProps {
   params: Promise<{ locale: string; slug: string }>;
-  searchParams: Promise<{ operation?: string; type?: string; city?: string; page?: string }>;
+  searchParams: Promise<{
+    operation?: string;
+    type?: string;
+    city?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    page?: string;
+  }>;
+}
+
+export async function generateMetadata({ params }: Pick<PortalHomeProps, 'params'>): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const profile = await getRealtorProfile(slug);
+  if (!profile) return {};
+  const t = await getTranslations({ locale, namespace: 'portalPublico.seo' });
+  const site = await getSiteContext(slug, locale);
+  const title = t('homeTitle', { name: profile.name });
+  const description = t('homeDescription', { name: profile.name });
+  const url = `${site.origin}${site.base || '/'}`;
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: 'website',
+      siteName: profile.name,
+      ...(profile.logoUrl ? { images: [profile.logoUrl] } : {}),
+    },
+  };
 }
 
 export default async function PublicPortalHomePage({ params, searchParams }: PortalHomeProps) {
@@ -27,19 +60,23 @@ export default async function PublicPortalHomePage({ params, searchParams }: Por
     operation: sp.operation,
     type: sp.type,
     city: sp.city,
+    minPrice: sp.minPrice,
+    maxPrice: sp.maxPrice,
     page,
     limit: LIMIT,
   });
 
   const t = await getTranslations('portalPublico');
   const totalPages = Math.max(1, Math.ceil(data.total / data.limit));
-  const filtered = Boolean(sp.operation || sp.type || sp.city);
+  const filtered = Boolean(sp.operation || sp.type || sp.city || sp.minPrice || sp.maxPrice);
 
   function pageHref(target: number) {
     const params = new URLSearchParams();
     if (sp.operation) params.set('operation', sp.operation);
     if (sp.type) params.set('type', sp.type);
     if (sp.city) params.set('city', sp.city);
+    if (sp.minPrice) params.set('minPrice', sp.minPrice);
+    if (sp.maxPrice) params.set('maxPrice', sp.maxPrice);
     if (target > 1) params.set('page', String(target));
     const query = params.toString();
     return `/${locale}/p/${slug}${query ? `?${query}` : ''}`;
@@ -63,6 +100,8 @@ export default async function PublicPortalHomePage({ params, searchParams }: Por
           initialOperation={sp.operation || ''}
           initialType={sp.type || ''}
           initialCity={sp.city || ''}
+          initialMinPrice={sp.minPrice || ''}
+          initialMaxPrice={sp.maxPrice || ''}
         />
 
         <PublicPropertyGrid items={data.items} locale={locale} slug={slug} filtered={filtered} />

@@ -47,8 +47,15 @@ export interface PublicPropertyMedia {
 }
 
 export interface PublicPropertyDetail extends PublicPropertyListItem {
+  /** Altura: sólo si la inmobiliaria permite mostrar la dirección exacta. */
+  number?: string | null;
   description?: string | null;
   amenities: string[];
+  age?: number | null;
+  orientation?: string | null;
+  updatedAt?: string | null;
+  /** Ubicación aproximada, sólo si la inmobiliaria permite mostrar el mapa. */
+  location?: { lat: number; lng: number } | null;
   media: PublicPropertyMedia[];
 }
 
@@ -63,6 +70,8 @@ export interface PublicPropertyFilters {
   operation?: string;
   type?: string;
   city?: string;
+  minPrice?: string;
+  maxPrice?: string;
   page?: number;
   limit?: number;
 }
@@ -91,6 +100,8 @@ export async function getPublicProperties(
   if (filters.operation) params.set('operation', filters.operation);
   if (filters.type) params.set('type', filters.type);
   if (filters.city) params.set('city', filters.city);
+  if (filters.minPrice) params.set('minPrice', filters.minPrice);
+  if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
   params.set('page', String(page));
   params.set('limit', String(limit));
 
@@ -117,4 +128,17 @@ export async function getPublicProperty(
     throw new Error(`No se pudo obtener la propiedad (${res.status})`);
   }
   return res.json();
+}
+
+export interface PublicSitemapEntry {
+  id: string;
+  updatedAt?: string | null;
+}
+
+/** Ids y fecha de cambio de lo publicado, para el sitemap.xml. */
+export async function getPublicSitemap(slug: string): Promise<PublicSitemapEntry[]> {
+  const res = await fetch(`${PUBLIC_API_BASE}/${encodeURIComponent(slug)}/sitemap`, { cache: 'no-store' });
+  if (!res.ok) return [];
+  const body = (await res.json()) as { items?: PublicSitemapEntry[] };
+  return body.items ?? [];
 }

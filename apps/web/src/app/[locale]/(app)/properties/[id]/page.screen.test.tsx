@@ -52,6 +52,10 @@ vi.mock('@/components/properties/property-valuations', () => ({
   ),
 }));
 
+vi.mock('@/components/listings/property-publication', () => ({
+  PropertyPublication: ({ propertyId }: { propertyId: string }) => <div>Publicación de {propertyId}</div>,
+}));
+
 import { ApiRequestError } from '@/lib/api-client';
 import PropertyDetailPage from './page';
 
@@ -288,6 +292,13 @@ describe('PropertyDetailPage', () => {
     await user.click(screen.getByRole('button', { name: 'Editar' }));
     await user.click(screen.getByRole('button', { name: 'Guardar edición' }));
     await waitFor(() => expect(screen.getByText('Detalle de propiedad')).toBeInTheDocument());
+  });
+
+  it('la ficha trae la tarjeta de publicación de la propiedad', async () => {
+    mockApi(() => property());
+    await renderPage();
+    expect(await screen.findByText('Publicación de p-1')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Publicación' })).toBeInTheDocument();
   });
 
   it('una ficha mínima muestra los estados vacíos', async () => {

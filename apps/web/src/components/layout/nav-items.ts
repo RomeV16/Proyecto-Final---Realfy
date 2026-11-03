@@ -28,6 +28,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { key: 'dashboard', href: '/dashboard', icon: 'dashboard' },
   { key: 'properties', href: '/properties', icon: 'properties' },
+  { key: 'listings', href: '/publicaciones', icon: 'megaphone' },
   { key: 'persons', href: '/persons', icon: 'persons' },
   { key: 'leads', href: '/leads', icon: 'leads' },
   { key: 'pipeline', href: '/pipeline', icon: 'pipeline', action: 'pipeline.access' },

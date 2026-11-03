@@ -1,7 +1,9 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getRealtorProfile, getPublicProperty } from '@/lib/public-portal';
+import { getSiteContext } from '@/lib/microsite-site';
 import { PropertyGallery, type GalleryPhoto } from '@/components/properties/property-gallery';
 import { PropertyTypeBadge } from '@/components/properties/property-type-badge';
 import {
@@ -22,9 +24,47 @@ interface PropertyDetailProps {
 }
 
 
-/** Calle 1234, Ciudad, Provincia */
-function addressLine(property: { street?: string | null; city?: string | null; province?: string | null }): string {
-  return [property.street, property.city, property.province].filter(Boolean).join(', ');
+/** Calle 1234, Ciudad, Provincia. Sin calle (la inmobiliaria no muestra la dirección exacta): Ciudad, Provincia. */
+function addressLine(property: {
+  street?: string | null;
+  number?: string | null;
+  city?: string | null;
+  province?: string | null;
+}): string {
+  const street = [property.street, property.number].filter(Boolean).join(' ');
+  return [street, property.city, property.province].filter(Boolean).join(', ');
+}
+
+/** Texto plano y corto para la descripción de los buscadores y las vistas previas. */
+function summarize(text: string | null | undefined, max = 160): string {
+  const plain = (text ?? '').replace(/\s+/g, ' ').trim();
+  return plain.length > max ? `${plain.slice(0, max - 1).trimEnd()}…` : plain;
+}
+
+export async function generateMetadata({ params }: PropertyDetailProps): Promise<Metadata> {
+  const { locale, slug, id } = await params;
+  const [profile, property] = await Promise.all([getRealtorProfile(slug), getPublicProperty(slug, id)]);
+  if (!profile || !property) return {};
+  const t = await getTranslations({ locale, namespace: 'portalPublico.seo' });
+  const site = await getSiteContext(slug, locale);
+  const title = t('detailTitle', { title: property.title, name: profile.name });
+  const description =
+    summarize(property.description) || t('homeDescription', { name: profile.name });
+  const url = `${site.origin}${site.base}/propiedades/${property.id}`;
+  const cover = (property.media || []).find((m) => m.isPrimary) ?? property.media?.[0];
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: 'website',
+      siteName: profile.name,
+      ...(cover ? { images: [cover.url] } : {}),
+    },
+  };
 }
 
 export default async function PublicPropertyDetailPage({ params }: PropertyDetailProps) {
@@ -60,7 +100,12 @@ export default async function PublicPropertyDetailPage({ params }: PropertyDetai
 
   const address = addressLine(property);
   const facts: Fact[] = [{ label: t('form.type'), value: t(`types.${property.type}`) }];
-  if (property.street) facts.push({ label: t('form.address'), value: property.street });
+  if (property.street) {
+    facts.push({
+      label: t('form.address'),
+      value: [property.street, property.number].filter(Boolean).join(' '),
+    });
+  }
   if (property.city) facts.push({ label: t('form.city'), value: property.city });
   if (property.province) facts.push({ label: t('form.province'), value: property.province });
 
@@ -117,6 +162,20 @@ export default async function PublicPropertyDetailPage({ params }: PropertyDetai
               {operationLabel && <Badge variant="brand">{operationLabel}</Badge>}
             </div>
           </DetailSection>
+
+          {property.location && (
+            <DetailSection title={tPortal('detail.locationTitle')} icon="mapPin">
+              <p className="text-sm text-[var(--color-muted)]">{tPortal('detail.mapNote')}</p>
+              <a
+                href={`https://www.openstreetmap.org/?mlat=${property.location.lat}&mlon=${property.location.lng}#map=16/${property.location.lat}/${property.location.lng}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block text-sm text-[var(--color-brand-600)] hover:underline"
+              >
+                {tPortal('detail.mapLink')}
+              </a>
+            </DetailSection>
+          )}
 
           <DetailSection title={tPortal('inquiry.title')} icon="mail">
             <p className="mb-4 text-sm text-[var(--color-muted)]">{tPortal('inquiry.subtitle')}</p>
