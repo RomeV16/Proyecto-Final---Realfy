@@ -724,7 +724,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el alquiler del período sale de los ajustes ya aplicados y nadie aplicaba antes los que vencen dentro del mes que se liquida.
 - **Corrección:** la generación aplica primero, cada uno en su transacción, los ajustes pendientes con fecha hasta el fin del mes (`applyDueAdjustments` con origen `generation`) y los informa en `adjustments`.
 - **Prueba de regresión:** CP-1260 y CP-1261 en `apps/api/test/e2e/ajuste-del-mes-en-la-liquidacion.e2e-spec.ts`; CP-1260 en `liquidaciones-generacion.spec.ts`.
-- **Evidencia rojo/verde:** regresión `cb355b2` en rojo (2 pruebas fallan: diciembre sale con 100.000); corrección en `ef0b2d2`.
+- **Evidencia rojo/verde:** regresión `af6442c` en rojo (2 pruebas fallan: diciembre sale con 100.000); corrección en `e6e4187`.
 
 ## DEF-131 — El proceso diario genera las liquidaciones antes de leer los índices y de aplicar los ajustes del día
 
@@ -738,7 +738,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** la hora se fijó sin mirar la dependencia.
 - **Corrección:** la generación pasa a las 07:30 de Buenos Aires.
 - **Prueba de regresión:** CP-1262 en `apps/api/src/modules/liquidaciones/liquidaciones.scheduler.spec.ts`.
-- **Evidencia rojo/verde:** regresión `b662c62` en rojo (1 prueba falla: 360 no es mayor que 420); corrección en `d5f8fa2`.
+- **Evidencia rojo/verde:** regresión `9e5e7ec` en rojo (1 prueba falla: 360 no es mayor que 420); corrección en `bfa318f`.
 
 ## DEF-132 — Sin el índice del ajuste, la liquidación sale con el alquiler anterior sin aviso y se puede aprobar
 
@@ -750,9 +750,9 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Resultado esperado:** la generación informa el ajuste pendiente; la liquidación lleva la advertencia bloqueante `ADJUSTMENT_PENDING` y aprobarla responde 409. Con estimado y pago a cuenta activo rige ADR-0011 (provisorio). Un ajuste a mitad de mes con `DesdePeriodoSiguiente` bloquea el mes siguiente.
 - **Resultado obtenido:** sin advertencia; se aprueba.
 - **Causa raíz:** ADR-0011 no definía qué hace la liquidación con un ajuste pendiente y la generación no lo miraba.
-- **Corrección:** `warnings` calculadas al leer (detalle, listado y resultado de la generación, con `adjustmentPending`) por los ajustes sin aplicar que empiezan a regir en el período, y la aprobación (también en lote) bloqueada con 409 `ADJUSTMENT_PENDING`; un ajuste atrasado de meses anteriores no bloquea (`a565de8`).
+- **Corrección:** `warnings` calculadas al leer (detalle, listado y resultado de la generación, con `adjustmentPending`) por los ajustes sin aplicar que empiezan a regir en el período, y la aprobación (también en lote) bloqueada con 409 `ADJUSTMENT_PENDING`; un ajuste atrasado de meses anteriores no bloquea (`2044134`).
 - **Prueba de regresión:** CP-1263 a CP-1265 en `ajuste-del-mes-en-la-liquidacion.e2e-spec.ts`; `adjustment-pending.spec.ts`; `liquidacion-detail.screen.test.tsx` y `liquidacion-list.screen.test.tsx` en la web.
-- **Evidencia rojo/verde:** regresión `3c74b80` en rojo (3 pruebas fallan: sin `warnings` ni `adjustmentPending`); corrección en `6ba9996`.
+- **Evidencia rojo/verde:** regresión `0f19ba5` en rojo (3 pruebas fallan: sin `warnings` ni `adjustmentPending`); corrección en `a4900de`.
 
 ## DEF-133 — Un ajuste aplicado después de generar el borrador no cambia el borrador
 
@@ -766,7 +766,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** aplicar un ajuste no avisaba a las liquidaciones.
 - **Corrección:** `ContractAdjustmentService.onApplied`/`notifyApplied` después de confirmar el ajuste; las liquidaciones en Borrador o En Revisión desde el mes del ajuste rehacen sus renglones de alquiler, primer mes diferido y bonificación con el mismo armado de la generación y conservan los demás.
 - **Prueba de regresión:** CP-1266 a CP-1268 en `ajuste-del-mes-en-la-liquidacion.e2e-spec.ts`; `liquidaciones-recalculo.spec.ts`, `contract-adjustment.service.spec.ts` y `contract-adjustment-paths.spec.ts`.
-- **Evidencia rojo/verde:** regresión `c4370f5` en rojo (3 pruebas fallan: el borrador queda en 105.000 de total); corrección en `4fa2ecb`.
+- **Evidencia rojo/verde:** regresión `34dc6f5` en rojo (3 pruebas fallan: el borrador queda en 105.000 de total); corrección en `f1c2dd6`.
 
 ## DEF-134 — Un ajuste aplicado después de emitir la liquidación del mes se pierde
 
@@ -780,4 +780,4 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** la corrección retroactiva de ADR-0011 cubre solo provisorio contra oficial; no había regla para un ajuste aplicado tarde.
 - **Corrección:** convención `lateAdjustmentBilling` (valor por defecto de la inmobiliaria, columna en la versión de reglas, migraciones `20261103193255_enums_ajuste_tardio` y `20261103193256_ajuste_tardio`); al aplicarse el ajuste, la diferencia por mes emitido (alquiler neto de bonificaciones con el ajuste menos sin él) va al centro de carga, una vez por ajuste y mes.
 - **Prueba de regresión:** CP-1269 a CP-1271 en `ajuste-del-mes-en-la-liquidacion.e2e-spec.ts`; `liquidaciones-recalculo.spec.ts`, `charges.service.spec.ts`; CP-1272 en `packages/shared/src/schemas/contract-rules.schema.spec.ts`; verificación de ensayo `checks/26_ajuste_tardio.sql`.
-- **Evidencia rojo/verde:** regresión `21a9ad5` en rojo (3 pruebas fallan: no hay cargo y la convención no existe); corrección en `19f6339`.
+- **Evidencia rojo/verde:** regresión `dfa7fb6` en rojo (3 pruebas fallan: no hay cargo y la convención no existe); corrección en `57a9bf2`.
