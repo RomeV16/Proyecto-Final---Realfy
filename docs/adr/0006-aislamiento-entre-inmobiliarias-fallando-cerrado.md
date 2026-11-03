@@ -93,6 +93,16 @@ El guard del micrositio público lleva un comentario que explica por qué lee po
 a existir, porque la petición no tiene sesión—, así que con la extensión la
 búsqueda del `slug` sería rechazada de plano.
 
+**Datos de sistema compartidos** (agregado el 3 de noviembre de 2026, DEF-115):
+los índices que publica el BCRA y el INDEC se guardan una sola vez bajo
+`tenantId = '__system__'` y cada inmobiliaria los lee junto con los propios. Para
+que esa lectura funcione también con el cliente de una transacción, la extensión
+conserva, solo en los modelos de `SYSTEM_SHARED_MODELS` (hoy `IndexData`) y solo
+en lecturas, un filtro que pide la inmobiliaria actual y/o `__system__` y nada
+más. Cualquier otro valor —otra inmobiliaria, un filtro compuesto— se reemplaza
+por la inmobiliaria actual, y las escrituras siguen fijadas a ella: una
+inmobiliaria no ve datos de otra ni puede modificar los de sistema.
+
 Junto con el cambio se corrigieron los dos casos que la revisión había
 encontrado, y se agregaron pruebas: unitarias sobre la extensión
 (`apps/api/test/unit/prisma-tenant.extension.spec.ts`), que verifican la
