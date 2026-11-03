@@ -54,6 +54,10 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
   await prisma.baseClient.ticket.deleteMany();
   await prisma.baseClient.ticketCategory.deleteMany();
 
+  // Cobranza (la línea de tiempo apunta a mensajes y el caso a un contrato)
+  await prisma.baseClient.collectionAction.deleteMany();
+  await prisma.baseClient.collectionCase.deleteMany();
+
   // Mensajería (apuntan a personas)
   await prisma.baseClient.inboundMessage.deleteMany();
   await prisma.baseClient.contactConsent.deleteMany();

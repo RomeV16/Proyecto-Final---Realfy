@@ -685,6 +685,41 @@ export enum ConsentSource {
   Complaint = 'Complaint',
 }
 
+// ─── Cobranza escalonada (ADR-0013) ─────────────────────
+
+/**
+ * Etapa de un caso de cobranza. Recordatorio: avisos amistosos por el canal del
+ * inquilino. Prejudicial: carta documento preparada para el envío físico.
+ * Abogado: derivado a un profesional. Judicial: en juicio o desalojo. Cerrado:
+ * pagado, acordado o dado de baja a mano.
+ */
+export enum CollectionStage {
+  Recordatorio = 'Recordatorio',
+  Prejudicial = 'Prejudicial',
+  Abogado = 'Abogado',
+  Judicial = 'Judicial',
+  Cerrado = 'Cerrado',
+}
+
+/** Qué pasó (o qué toca) en un caso de cobranza. */
+export enum CollectionActionKind {
+  /** Primer aviso, tono amable. */
+  Recordatorio = 'Recordatorio',
+  /** Segundo y tercer aviso, de tono más firme (`level` 2 y 3). */
+  RecordatorioFirme = 'RecordatorioFirme',
+  CartaDocumento = 'CartaDocumento',
+  DerivacionAbogado = 'DerivacionAbogado',
+  Nota = 'Nota',
+  Pago = 'Pago',
+  Acuerdo = 'Acuerdo',
+}
+
+/** Una carta documento se prepara (borrador) y recién queda realizada cuando alguien confirma el envío. */
+export enum CollectionActionStatus {
+  Preparada = 'Preparada',
+  Realizada = 'Realizada',
+}
+
 // ─── Pipeline Enums ─────────────────────────────────────
 
 export enum PipelineType {

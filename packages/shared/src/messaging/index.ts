@@ -163,6 +163,9 @@ export const MESSAGE_TEMPLATE_KEYS = [
   'liquidacion',
   'ticket_status',
   'ticket_comment',
+  'payment_reminder_1',
+  'payment_reminder_2',
+  'payment_reminder_3',
   'user_invitation',
   'staff_alert',
 ] as const;
@@ -214,6 +217,35 @@ export const MESSAGE_TEMPLATES: Record<MessageTemplateKey, MessageTemplateInfo> 
     vars: ['name', 'ticket', 'comment', 'agency'],
     whatsapp: { name: 'incidencia_respuesta', language: WA_LANGUAGE },
     whatsappText: 'Hola {{1}}, hay una respuesta en tu reclamo "{{2}}": {{3}}. {{4}}',
+  },
+  // Cobranza escalonada (ADR-0013): tres niveles de tono, del amable al firme. Ninguno amenaza ni
+  // cita plazos legales; el importe es el exacto de hoy (saldo más punitorios).
+  payment_reminder_1: {
+    key: 'payment_reminder_1',
+    channels: BOTH,
+    audience: 'client',
+    vars: ['name', 'amount', 'periods', 'agency'],
+    whatsapp: { name: 'recordatorio_de_pago_n1', language: WA_LANGUAGE },
+    whatsappText:
+      'Hola {{1}}, te escribimos para recordarte que figura pendiente el pago del alquiler de {{3}}. El importe al día de hoy es {{2}}. Si ya lo abonaste, ignorá este mensaje; si tenés alguna dificultad, respondé y lo vemos juntos. {{4}}',
+  },
+  payment_reminder_2: {
+    key: 'payment_reminder_2',
+    channels: BOTH,
+    audience: 'client',
+    vars: ['name', 'amount', 'periods', 'agency'],
+    whatsapp: { name: 'recordatorio_de_pago_n2', language: WA_LANGUAGE },
+    whatsappText:
+      'Hola {{1}}, volvemos a comunicarnos: el alquiler de {{3}} sigue sin acreditarse. El importe actualizado al día de hoy es {{2}}. Te pedimos regularizarlo a la brevedad o comunicarte con nosotros para acordar una forma de pago. {{4}}',
+  },
+  payment_reminder_3: {
+    key: 'payment_reminder_3',
+    channels: BOTH,
+    audience: 'client',
+    vars: ['name', 'amount', 'periods', 'agency'],
+    whatsapp: { name: 'recordatorio_de_pago_n3', language: WA_LANGUAGE },
+    whatsappText:
+      'Hola {{1}}, este es un nuevo aviso: el alquiler de {{3}} continúa pendiente por {{2}} al día de hoy. Necesitamos que lo regularices o te comuniques con nosotros esta semana para acordar el pago. Si no recibimos novedades, seguiremos con las gestiones de cobranza que prevé el contrato. {{4}}',
   },
   user_invitation: {
     key: 'user_invitation',

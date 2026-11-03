@@ -96,6 +96,22 @@ describe('OperationalDefaultsManager', () => {
     });
   });
 
+  it('la cobranza escalonada viene apagada y se prende con sus niveles y el plazo de la carta', async () => {
+    const user = userEvent.setup();
+    renderEs(<OperationalDefaultsManager />);
+    const toggle = await screen.findByLabelText(/Activar la cobranza escalonada/);
+    expect(toggle).not.toBeChecked();
+    expect(screen.getByLabelText(/Cantidad de recordatorios/)).toHaveValue('3');
+    expect(screen.getByLabelText(/Plazo de la carta documento/)).toHaveValue('10');
+    await user.click(toggle);
+    await user.clear(screen.getByLabelText(/Cantidad de recordatorios/));
+    await user.type(screen.getByLabelText(/Cantidad de recordatorios/), '2');
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(put[1].body).collections).toEqual({ enabled: true, maxLevel: 2, letterTermDays: 10, repeatLastLevel: true });
+  });
+
   it('el pago a cuenta viene activo y se puede apagar', async () => {
     const user = userEvent.setup();
     renderEs(<OperationalDefaultsManager />);

@@ -121,7 +121,8 @@
   "ownerStatements": "Estados de cuenta",
   "listings": "Publicaciones",
   "followUps": "Vencimientos",
-  "messaging": "Mensajería"
+  "messaging": "Mensajería",
+  "collections": "Cobranza"
  },
  "dataTable": {
   "pagination": {
@@ -262,7 +263,13 @@
    "MESSAGE_NOT_FOUND": "El mensaje no existe.",
    "MESSAGE_NOT_RETRYABLE": "Solo se reintenta un mensaje fallido, bloqueado o cancelado.",
    "MESSAGE_NOT_CANCELLABLE": "Solo se cancela un mensaje pendiente o bloqueado.",
-   "MESSAGE_EXPIRED": "El enlace de un solo uso de la invitación ya se borró: generá una invitación nueva desde Usuarios."
+   "MESSAGE_EXPIRED": "El enlace de un solo uso de la invitación ya se borró: generá una invitación nueva desde Usuarios.",
+   "CASE_CLOSED": "El caso de cobranza está cerrado.",
+   "COLLECTION_CASE_NOT_FOUND": "El caso de cobranza no existe.",
+   "AGREEMENT_DATE_OUT_OF_RANGE": "La fecha del acuerdo debe ser de hoy en adelante y dentro del año.",
+   "LETTER_NOT_FOUND": "La carta documento no pertenece a este caso.",
+   "LETTER_ALREADY_SENT": "La carta ya se confirmó como enviada: no se puede editar ni confirmar de nuevo.",
+   "LETTER_SENT_DATE_INVALID": "La fecha de envío no puede ser futura ni anterior al borrador."
   },
   "segment": {
    "loading": "Cargando…",
@@ -5095,6 +5102,22 @@
    "messagingUntilHour": {
     "label": "Mandar hasta las (hora)",
     "hint": "Hora en que se deja de mandar, de 1 a 24 y después de la de inicio (de fábrica {value})."
+   },
+   "collectionsEnabled": {
+    "label": "Activar la cobranza escalonada",
+    "hint": "Apagada de fábrica. Prendida, el proceso diario abre un caso por contrato con alquileres vencidos y manda los recordatorios por la bandeja de salida (que respeta el modo del ambiente y el consentimiento). La carta documento solo se prepara como borrador."
+   },
+   "collectionsRepeatLastLevel": {
+    "label": "Repetir el último recordatorio",
+    "hint": "Agotados los niveles, sigue mandando el último cada vez que toca hasta que el caso pasa a prejudicial. Apagado, después del último nivel no se manda más."
+   },
+   "collectionsMaxLevel": {
+    "label": "Cantidad de recordatorios",
+    "hint": "De 1 a 3 avisos, cada vez más firmes (de fábrica {value}). Después de los recordatorios, al vencer el alquiler siguiente, se prepara la carta documento."
+   },
+   "collectionsLetterTermDays": {
+    "label": "Plazo de la carta documento (días corridos)",
+    "hint": "Desde el envío en papel; al vencer se sugiere derivar a un abogado (de fábrica {value})."
    }
   }
  },
@@ -6818,7 +6841,10 @@
    "ticket_status": "Cambio de estado de un reclamo",
    "ticket_comment": "Respuesta en un reclamo",
    "user_invitation": "Invitación al equipo",
-   "staff_alert": "Aviso al personal"
+   "staff_alert": "Aviso al personal",
+   "payment_reminder_1": "Recordatorio de pago (amable)",
+   "payment_reminder_2": "Recordatorio de pago (firme)",
+   "payment_reminder_3": "Aviso de pago pendiente (último recordatorio)"
   },
   "related": {
    "Receipt": "Recibo",
@@ -6827,7 +6853,8 @@
    "Ticket": "Reclamo",
    "TicketComment": "Respuesta en un reclamo",
    "UserInvitation": "Invitación",
-   "Notification": "Aviso"
+   "Notification": "Aviso",
+   "CollectionCase": "Cobranza"
   },
   "reasons": {
    "MESSAGING_OFF": "El envío está apagado en este ambiente: queda en cola hasta que se active.",
@@ -7460,6 +7487,189 @@
    },
    "empty": "No hay llaves fuera",
    "emptySubtitle": "Todas las llaves están en la oficina."
+  }
+ },
+ "collections": {
+  "title": "Cobranza",
+  "subtitle": "Contratos con alquileres vencidos impagos: la etapa en que está cada uno, lo que se debe hoy con punitorios y lo que toca después. Los recordatorios salen por la bandeja de salida; la carta documento se prepara como borrador y nunca se manda sola.",
+  "forbidden": "Tu rol no tiene acceso a la cobranza.",
+  "noProperty": "Contrato sin propiedad",
+  "noTenant": "Sin inquilino cargado",
+  "days": "{n, plural, one {# día} other {# días}}",
+  "level": "tono {n}",
+  "stages": {
+   "Recordatorio": "Recordatorio",
+   "Prejudicial": "Prejudicial",
+   "Abogado": "Con el abogado",
+   "Judicial": "Judicial",
+   "Cerrado": "Cerrado"
+  },
+  "filters": {
+   "stage": "Etapa",
+   "open": "Abiertos",
+   "minDays": "Mora",
+   "any": "Cualquiera",
+   "moreThan": "Más de {n} días",
+   "assignee": "Responsable",
+   "everyone": "Todos",
+   "mine": "Mis casos"
+  },
+  "summary": "{count, plural, one {# caso} other {# casos}} · se debe hoy",
+  "columns": {
+   "contract": "Contrato",
+   "stage": "Etapa",
+   "overdue": "Mora",
+   "balance": "Saldo vencido",
+   "payoff": "A pagar hoy",
+   "next": "Lo que toca",
+   "assignee": "Responsable"
+  },
+  "plan": {
+   "Paused": "Acuerdo de pago hasta el",
+   "AwaitingLetterConfirmation": "Confirmar el envío de la carta",
+   "Manual": "Lo lleva una persona",
+   "none": "Nada por ahora"
+  },
+  "actionKinds": {
+   "Recordatorio": "Recordatorio",
+   "RecordatorioFirme": "Recordatorio firme",
+   "CartaDocumento": "Carta documento",
+   "DerivacionAbogado": "Derivación a un abogado",
+   "Nota": "Nota",
+   "Pago": "Pago",
+   "Acuerdo": "Acuerdo de pago"
+  },
+  "channels": {
+   "Email": "Mail",
+   "WhatsApp": "WhatsApp"
+  },
+  "statuses": {
+   "Preparada": "Borrador preparado",
+   "Realizada": "Realizada"
+  },
+  "empty": {
+   "title": "No hay casos de cobranza",
+   "subtitle": "Un caso se abre solo cuando un contrato tiene un alquiler vencido con saldo, si la cobranza está activada en Valores por defecto."
+  },
+  "detail": {
+   "loadError": "No se pudo cargar el caso de cobranza",
+   "back": "← Volver a cobranza",
+   "contract": "Ver el contrato",
+   "assignedTo": "a cargo de {name}",
+   "summary": "Resumen del caso",
+   "payoffToday": "A pagar hoy",
+   "payoffHint": "Saldo vencido más punitorios al día de hoy: es el importe que se le informa al inquilino.",
+   "balance": "Saldo vencido",
+   "next": "Lo que toca",
+   "closed": "Caso cerrado",
+   "manualHint": "Lo decide y lo hace una persona: el sistema no lo hace solo.",
+   "assigned": "Responsable actualizado",
+   "assignError": "No se pudo cambiar el responsable"
+  },
+  "closeReasons": {
+   "Pagado": "Cerrado por pago",
+   "Manual": "Cerrado a mano"
+  },
+  "actions": {
+   "note": "Agregar una nota",
+   "agreement": "Registrar un acuerdo de pago",
+   "assignToMe": "Asignarme",
+   "unassign": "Quitar responsable",
+   "derive": "Derivar a un abogado",
+   "judicial": "Pasar a la vía judicial",
+   "close": "Cerrar el caso"
+  },
+  "letter": {
+   "title": "Carta documento (borrador)",
+   "notice": "Es un borrador para revisar: no se envía solo. Revisalo, hacelo revisar por un profesional si hace falta, mandalo en papel por correo certificado y recién después confirmá el envío.",
+   "recipientName": "Destinatario",
+   "recipientAddress": "Domicilio",
+   "propertyAddress": "Inmueble",
+   "periods": "Períodos adeudados",
+   "amount": "Importe adeudado",
+   "termDays": "Plazo (días corridos)",
+   "extraText": "Texto adicional",
+   "pdf": "Ver el PDF",
+   "edit": "Editar el borrador",
+   "markSent": "Confirmar que se envió",
+   "pdfError": "No se pudo generar el PDF"
+  },
+  "debt": {
+   "title": "Deuda vencida",
+   "period": "Período",
+   "due": "Vencimiento",
+   "days": "Días",
+   "balance": "Saldo",
+   "penalty": "Punitorios",
+   "total": "A pagar hoy",
+   "empty": "No hay deuda vencida: el caso se cierra en la próxima pasada diaria."
+  },
+  "timeline": {
+   "title": "Línea de tiempo",
+   "empty": "Todavía no pasó nada en este caso.",
+   "amount": "Importe",
+   "onDate": "Fecha",
+   "noChannel": "No se pudo avisar: la persona no tiene un mail o un WhatsApp con alta registrada.",
+   "by": "Por {name}"
+  },
+  "fields": {
+   "note": "Nota",
+   "payOn": "Fecha prometida de pago",
+   "agreedAmount": "Importe prometido (opcional)",
+   "agreedAmountHint": "Solo para dejar constancia; no cambia la deuda.",
+   "lawyer": "Abogado o estudio (opcional)",
+   "closeReason": "Motivo del cierre",
+   "sentOn": "Fecha de envío",
+   "tracking": "Pieza de correo o nota (opcional)"
+  },
+  "dialogs": {
+   "note": {
+    "title": "Agregar una nota",
+    "submit": "Guardar la nota",
+    "done": "Nota agregada"
+   },
+   "agreement": {
+    "title": "Acuerdo de pago",
+    "description": "Mientras rija el acuerdo no se mandan avisos. Si llega la fecha y sigue la deuda, los avisos se retoman al día siguiente.",
+    "submit": "Registrar el acuerdo",
+    "done": "Acuerdo registrado"
+   },
+   "derive": {
+    "title": "Derivar a un abogado",
+    "description": "Es una decisión de la inmobiliaria: el sistema no deriva solo. El caso pasa a la etapa «Con el abogado» y se dejan de mandar avisos.",
+    "submit": "Derivar",
+    "done": "Caso derivado"
+   },
+   "judicial": {
+    "title": "Pasar a la vía judicial",
+    "description": "El caso queda como judicial (juicio o desalojo). El sistema no hace ninguna gestión: es solo el registro.",
+    "submit": "Pasar a judicial",
+    "done": "El caso pasó a judicial"
+   },
+   "close": {
+    "title": "Cerrar el caso",
+    "description": "Se cierra sin esperar el pago, por ejemplo por un arreglo fuera del sistema. Si hay una mora nueva, se abre otro caso.",
+    "submit": "Cerrar el caso",
+    "done": "Caso cerrado"
+   },
+   "letterSent": {
+    "title": "Confirmar el envío de la carta",
+    "description": "Confirmá solo cuando la carta ya salió en papel. Desde esa fecha empieza a correr el plazo y se sugiere derivar al abogado cuando venza.",
+    "submit": "Confirmar el envío",
+    "done": "Envío confirmado"
+   },
+   "letterEdit": {
+    "title": "Editar el borrador de la carta",
+    "description": "Corregí lo que haga falta antes de imprimirla. Se puede editar hasta confirmar el envío.",
+    "submit": "Guardar el borrador",
+    "done": "Borrador actualizado"
+   }
+  },
+  "contract": {
+   "title": "Cobranza",
+   "viewAll": "Ver toda la cobranza",
+   "payoff": "A pagar hoy",
+   "view": "Ver el caso"
   }
  }
 }

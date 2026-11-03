@@ -26,6 +26,7 @@ vi.mock('./contract-rules', () => ({ ContractRules: () => null }));
 vi.mock('@/components/follow-ups/contract-expiration', () => ({ ContractExpiration: () => null }));
 vi.mock('./contract-charge-rules', () => ({ ContractChargeRules: () => null }));
 vi.mock('@/components/fees/contract-fees', () => ({ ContractFees: () => null }));
+vi.mock('@/components/collections/contract-collection', () => ({ ContractCollection: () => null }));
 vi.mock('./commission-config', () => ({ CommissionConfig: () => null }));
 vi.mock('./generate-document-modal', () => ({ GenerateDocumentModal: () => null }));
 vi.mock('./adjustment-timeline', () => ({ AdjustmentTimeline: () => null }));

@@ -205,8 +205,9 @@ Con un **número nuevo**, que no se use en la aplicación de WhatsApp:
    (configuración básica) va en `WHATSAPP_APP_SECRET`.
 4. Dar de alta las plantillas de **utilidad** en `es_AR` con los nombres y
    textos de ADR-0013 (`recibo_de_cobro` y `estado_de_cuenta` con encabezado de
-   documento; `incidencia_estado` e `incidencia_respuesta`) y esperar la
-   aprobación.
+   documento; `incidencia_estado` e `incidencia_respuesta`; y las tres de la
+   cobranza, `recordatorio_de_pago_n1`, `_n2` y `_n3`) y esperar la aprobación.
+   Sin las de la cobranza aprobadas no se prende la cobranza por WhatsApp.
 5. Suscribir el webhook a `https://<api>/api/webhooks/whatsapp` con el campo
    `messages` y el token de verificación elegido (`WHATSAPP_VERIFY_TOKEN`).
 6. Registrar el alta de WhatsApp en la ficha de una persona del equipo, ponerla

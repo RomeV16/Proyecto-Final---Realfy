@@ -13,6 +13,7 @@ import {
   LeadStatus,
   LiquidacionStatus,
   MessageStatus,
+  CollectionStage,
   OwnerStatementStatus,
   PendingChargeStatus,
   RendicionStatus,
@@ -52,6 +53,7 @@ const ENUMS: Record<StatusDomain, object> = {
   mensaje: MessageStatus,
   consentimiento: ConsentStatus,
   aviso: ListingStatus,
+  cobranza: CollectionStage,
 };
 
 function lookup(messages: unknown, path: string): unknown {

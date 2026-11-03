@@ -117,6 +117,65 @@
     "Gerente",
     "Liquidaciones"
   ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.agreement": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.assign": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.close": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.derive": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.editLetter": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.get": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.judicial": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.letterPdf": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.letterSent": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.note": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/collections/collections.controller.ts#CollectionsController.runNow": [
+    "Admin"
+  ],
   "src/modules/contract-templates/contract-templates.controller.ts#ContractTemplatesController.findAll": [
     "Admin",
     "Gerente"

@@ -924,6 +924,32 @@ Mensaje de WhatsApp recibido (`inbound_messages`), mínimo, para la bandeja de c
 
 `Tenant.operationalDefaults.messaging` guarda el horario permitido (`fromHour`, `untilHour`, por defecto 9 y 20, hora de Buenos Aires). `Notification.type` suma `MessageFailed`, `ContactOptedOut` e `InboundMessageReceived`.
 
+## Cobranza escalonada
+
+Dos tablas por inmobiliaria, en el filtro de aislamiento (ADR-0013). No apuntan a una persona (los avisos van por `MessageOutbox`), así que no entran en la unión de personas.
+
+### CollectionCase
+
+Un caso de cobranza por contrato con mora (`collection_cases`).
+
+- `id`, `tenantId`, `contractId` (borrar el contrato borra sus casos), `stage` (`Recordatorio`, `Prejudicial`, `Abogado`, `Judicial`, `Cerrado`; las transiciones las valida `collectionCaseMachine`), `currency`.
+- `overdueSince`: el vencimiento impago más viejo en la última pasada del proceso diario. `lastBalance`: el saldo vencido de esa pasada; uno menor en la pasada siguiente es un pago parcial.
+- `nextActionKind` y `nextActionAt`: lo que toca y cuándo, según la política (`planCollection`). Se recalculan en cada pasada y después de cada acción manual.
+- `pausedUntil`: último día de un acuerdo de pago vigente. `letterPreparedOn` y `letterSentOn`: cuándo se preparó el borrador de la carta documento y cuándo una persona confirmó el envío en papel (de ahí corre el plazo).
+- `assigneeId` (usuario responsable, sin clave foránea), `closeReason` (`Pagado` o `Manual`), `openedOn`, `closedAt`.
+- `@@unique([contractId, openedOn])`: un caso por contrato y día. Que haya un solo caso abierto por contrato lo asegura el proceso, que abre solo si no hay uno abierto y corre bloqueando cada fila.
+- Índices `[tenantId, stage, nextActionAt]` y `[tenantId, contractId]`.
+
+### CollectionAction
+
+La línea de tiempo de un caso (`collection_actions`).
+
+- `id`, `tenantId`, `caseId` (se borra con el caso), `kind` (`Recordatorio`, `RecordatorioFirme`, `CartaDocumento`, `DerivacionAbogado`, `Nota`, `Pago`, `Acuerdo`), `status` (`Preparada` solo para una carta documento que todavía no se confirmó como enviada; `Realizada` para todo lo demás), `level` (nivel de tono de un recordatorio, 1 a 3), `channel`, `outboxMessageId` (el mensaje encolado; `SET NULL` si se borra), `amount` (importe a pagar ese día, o el prometido en un acuerdo), `onDate` (fecha propia: día del recordatorio, promesa de pago o envío de la carta), `note`, `createdByUserId` (vacío en un proceso programado) y `at`.
+- `data` (JSON) guarda los campos editables del borrador de la carta (`recipientName`, `recipientAddress`, `propertyAddress`, `periods`, `amount`, `issuedOn`, `termDays`, `extraText`) o el destinatario de un recordatorio. El PDF de la carta no se guarda: se genera de estos campos.
+- `key` (única con el caso) evita repetir la acción automática de un día; una acción manual no la lleva.
+
+`Tenant.operationalDefaults.collections` guarda `enabled` (apagado de fábrica), `maxLevel` (3) y `letterTermDays` (10); el ritmo de los recordatorios sigue en `collectionCadence`.
+
 ## Importación desde el sistema anterior
 
 Las dos tablas que registran cada corrida del importador (ADR-0015). Ambas son por inmobiliaria y están en el filtro de aislamiento.
@@ -974,6 +1000,7 @@ Las llaves de una propiedad.
 - `Contract` N-M `Person` mediante `ContractPerson` (inquilino, garante, comprador) y mediante `ContractLessor` (locadores, con porcentaje de cobro y vigencia).
 - `Person` N-M `Person` mediante `PowerOfAttorney` (poderdante y apoderado), con alcance general o acotado a un contrato o una propiedad.
 - `Person` 1-N `MessageOutbox`, `ContactConsent` e `InboundMessage`: los mensajes y el consentimiento de una persona, que pasan a la conservada al unir dos personas.
+- `Contract` 1-N `CollectionCase` 1-N `CollectionAction`: la mora de un contrato y su línea de tiempo; una acción puede apuntar al `MessageOutbox` que encoló.
 - `Contract` 1-N `AdjustmentSchedule` (lo pendiente) y 1-N `ContractAdjustment` (lo calculado y aplicado).
 - `Contract` 1-N `Liquidacion` 1-N `LiquidacionLineItem`.
 - `Liquidacion` 1-N `Payment` 1-N `Comprobante` (opcional), y 1-N `Penalty`.

@@ -42,7 +42,9 @@ type CheckField =
   | 'feeAdjustInstallments'
   | 'cashCustodyInAgencyBalance'
   | 'cashReceiptWhenLessorReceives'
-  | 'salesRequireDocsForBoleto';
+  | 'salesRequireDocsForBoleto'
+  | 'collectionsEnabled'
+  | 'collectionsRepeatLastLevel';
 type FieldName = Exclude<keyof OperationalDefaultsFormInput, CheckField>;
 
 /** Opciones de honorarios, de caja y cobros y de la cuenta corriente del locador que se eligen de una lista. */
@@ -94,7 +96,11 @@ const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = 
     checks: ['feeAdjustInstallments'],
   },
   { key: 'valuation', fields: ['valuationUsd', 'upfrontThresholdFees', 'upfrontBasis'] },
-  { key: 'collection', fields: ['firstReminderDays', 'everyDays'] },
+  {
+    key: 'collection',
+    fields: ['firstReminderDays', 'everyDays', 'collectionsMaxLevel', 'collectionsLetterTermDays'],
+    checks: ['collectionsEnabled', 'collectionsRepeatLastLevel'],
+  },
   { key: 'expiry', fields: ['redDays', 'yellowDays'] },
   { key: 'repairs', fields: ['repairPreauthLimit', 'repairMgmtFeePct'] },
   {

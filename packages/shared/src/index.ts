@@ -76,6 +76,9 @@ export {
   NotificationType,
   MessageChannel,
   MessageStatus,
+  CollectionStage,
+  CollectionActionKind,
+  CollectionActionStatus,
   ConsentStatus,
   ConsentSource,
   PipelineType,
@@ -160,6 +163,7 @@ export {
   OperationalDefaultsSchema,
   DEFAULT_OPERATIONAL_DEFAULTS,
   resolveOperationalDefaults,
+  collectionPolicyOf,
 } from './schemas/operational-defaults.schema';
 export type { OperationalDefaults, OperationalDefaultsInput } from './schemas/operational-defaults.schema';
 export {
@@ -542,6 +546,8 @@ export {
   RECEIVABLE_STATUSES,
   OVERDUE_STATUSES,
 } from './state-machine/liquidacion-state-machine';
+
+export { collectionCaseMachine } from './state-machine/collection-case-state-machine';
 
 export {
   rendicionMachine,
@@ -1453,3 +1459,44 @@ export type {
   CreateKeySetInput,
   KeyCheckOutInput,
 } from './schemas/sales.schema';
+
+// Cobranza escalonada
+export {
+  COLLECTION_MAX_LEVEL,
+  DEFAULT_COLLECTION_POLICY,
+  planCollection,
+  isActionDue,
+  stageAfter,
+  reminderKind,
+  daysOverdue,
+  addDays,
+  joinPeriods,
+} from './collection-engine';
+export type {
+  CollectionPolicy,
+  CollectionCaseInput,
+  CollectionPlan,
+  CollectionPlanStatus,
+  LetterFields,
+} from './collection-engine';
+export {
+  CollectionCaseFilterSchema,
+  AddCollectionNoteSchema,
+  CollectionAgreementSchema,
+  ConfirmLetterSentSchema,
+  UpdateLetterSchema,
+  DeriveToLawyerSchema,
+  CollectionNoteBodySchema,
+  CloseCollectionCaseSchema,
+  AssignCollectionCaseSchema,
+} from './schemas/collection.schema';
+export type {
+  CollectionCaseFilter,
+  CollectionAgreementInput,
+  UpdateLetterInput,
+  CollectionDebtLine,
+  CollectionActionItem,
+  CollectionCaseItem,
+  CollectionCasePage,
+  CollectionCaseDetail,
+} from './schemas/collection.schema';
