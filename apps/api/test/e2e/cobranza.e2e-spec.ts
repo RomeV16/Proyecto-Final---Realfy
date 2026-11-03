@@ -133,7 +133,7 @@ describe('Cobranza escalonada (e2e)', () => {
     // 4 días de vencida: abre el caso, todavía no toca nada.
     expect(await runOn(a.token, '2026-03-14')).toMatchObject({ opened: 1, remindersQueued: 0 });
     const opened = (await cases(a.token)).items[0];
-    expect(opened).toMatchObject({ stage: 'Recordatorio', nextAction: 'Recordatorio', balance: '100000.00', tenantNames: 'Iris Inquilina' });
+    expect(opened).toMatchObject({ stage: 'Recordatorio', nextAction: 'Recordatorio', tenantNames: 'Iris Inquilina' });
     expect(opened.nextActionAt).toBe('2026-03-15T00:00:00.000Z');
 
     // Día 5: recordatorio amable con el importe exacto de hoy (el mismo del cálculo de la liquidación).

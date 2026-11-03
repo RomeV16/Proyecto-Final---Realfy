@@ -387,7 +387,7 @@ export class CollectionsService {
         outboxMessageId: a.outboxMessageId,
         messageStatus: msg?.status ?? null,
         messageStatusReason: msg?.statusReason ?? null,
-        amount: a.amount ? a.amount.toString() : null,
+        amount: a.amount ? new Money(a.amount.toString()).toFixed(2) : null,
         onDate: iso(a.onDate),
         note: a.note,
         letter: a.kind === CollectionActionKind.CartaDocumento ? ((a.data as LetterFields | null) ?? null) : null,
