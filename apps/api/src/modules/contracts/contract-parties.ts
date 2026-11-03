@@ -33,6 +33,15 @@ interface LessorWindow {
   validTo: Date | null;
 }
 
+/**
+ * Día con que se leen los locadores de un mes del contrato: el primero del mes o,
+ * si el contrato empieza después, su día de inicio (DEF-73). Así el mes de inicio
+ * de un contrato que empieza a mitad de mes tiene locadores.
+ */
+export function lessorsDateFor(period: Date, startDate?: Date | null): Date {
+  return startDate && startDate.getTime() > period.getTime() ? startDate : period;
+}
+
 /** Cliente de Prisma o transacción: lo único que se usa es `contractLessor.findMany`. */
 interface LessorDb {
   contractLessor: { findMany(args: any): Promise<any[]> };

@@ -17,7 +17,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { parseOrThrow } from '../../common/validation/zod';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
-import { getLessorsAt } from '../contracts/contract-parties';
+import { getLessorsAt, lessorsDateFor } from '../contracts/contract-parties';
 import { CashService } from './cash.service';
 import { postCompensation } from '../owner-accounts/ledger-posting';
 import { auditJson, badRequest, conflict, dayStart, notFound, rethrowSettlement } from './cash.errors';
@@ -73,7 +73,8 @@ export class CompensationsService {
         throw badRequest('COMPENSATION_OUT_OF_SCOPE', 'Only a lessor of the agency can cover another lessor');
       }
 
-      const lessors = await getLessorsAt(tx, payment.liquidacion.contract, payment.liquidacion.period);
+      const { contract } = payment.liquidacion;
+      const lessors = await getLessorsAt(tx, contract, lessorsDateFor(payment.liquidacion.period, contract.startDate));
       const amount = input.amount ?? this.pendingShare(payment, input.toLessorId);
       let checked: Decimal;
       try {

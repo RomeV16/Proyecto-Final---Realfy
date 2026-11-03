@@ -15,7 +15,7 @@ import { AuditService } from '../../common/audit/audit.service';
 import { nextDocumentNumber } from '../../common/document-sequence/document-sequence';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
-import { getLessorsAt, getParty } from '../contracts/contract-parties';
+import { getLessorsAt, getParty, lessorsDateFor } from '../contracts/contract-parties';
 import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
 import { CashService } from './cash.service';
 import { postPayment } from '../owner-accounts/ledger-posting';
@@ -129,7 +129,7 @@ export class PaymentSettlementService {
     let settlement: SettlementResult | null = null;
     let settlementError: { code: string; message: string } | null = null;
     try {
-      const lessors = await getLessorsAt(tx, contract, liquidacion.period);
+      const lessors = await getLessorsAt(tx, contract, lessorsDateFor(liquidacion.period, contract.startDate));
       settlement = settlePayment({
         currency: liquidacion.currency,
         lines: liquidacion.lineItems.map((li: any) => ({

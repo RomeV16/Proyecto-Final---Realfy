@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { getParty } from '../contracts/contract-parties';
+import { getParty, lessorsDateFor } from '../contracts/contract-parties';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
   GenerateLiquidacionesSchema,
@@ -243,7 +243,7 @@ export class LiquidacionesService {
     }
 
     const lessors = (contract.lessors ?? [])
-      .filter((l: any) => isLessorActiveAt(l, period.getTime() < startDate.getTime() ? startDate : period))
+      .filter((l: any) => isLessorActiveAt(l, lessorsDateFor(period, startDate)))
       .map((l: any) => ({ name: personName(l.person) }));
 
     // Correcciones de ajustes provisorios todavía sin facturar: se piden hasta el mes anterior
@@ -975,7 +975,7 @@ export class LiquidacionesService {
     });
 
     const lessorNames = (liquidacion.contract?.lessors ?? [])
-      .filter((l: any) => isLessorActiveAt(l, liquidacion.period))
+      .filter((l: any) => isLessorActiveAt(l, lessorsDateFor(liquidacion.period, liquidacion.contract?.startDate)))
       .map((l: any) => personName(l.person));
 
     return this.pdfService.generateReceipt(
