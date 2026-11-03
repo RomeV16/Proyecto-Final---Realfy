@@ -105,4 +105,21 @@ describe('usePaginatedList', () => {
     expect(result.current.total).toBe(0);
     expect(result.current.totalPages).toBe(0);
   });
+
+  it('con enabled en falso no consulta nada', async () => {
+    const { result } = renderHook(
+      () =>
+        usePaginatedList<{ id: string }, typeof FILTERS>({
+          key: 'things',
+          path: '/things',
+          limit: 10,
+          initialFilters: FILTERS,
+          enabled: false,
+        }),
+      { wrapper },
+    );
+    await act(async () => {});
+    expect(apiClient).not.toHaveBeenCalled();
+    expect(result.current.items).toEqual([]);
+  });
 });
