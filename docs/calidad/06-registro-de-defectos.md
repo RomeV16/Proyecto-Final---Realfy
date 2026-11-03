@@ -44,7 +44,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-72 | La compensación se asienta el día en que se carga y no se le puede indicar la fecha | Media | — | CP-662, CP-667 | [#175](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/175) | Corregido (3 nov) |
 | DEF-73 | El cobro del primer mes de un contrato que empieza a mitad de mes no se reparte entre sus locadores | Alta | — | CP-668, CP-666 | [#176](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/176) | Corregido (3 nov) |
 | DEF-80 | Guardar los valores por defecto pisa las convenciones de depósitos con las de fábrica | Media | — | CP-725 | [#179](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/179) | Corregido (3 nov) |
-| DEF-95 | El documento de casos de uso quedó con marcas de conflicto de un merge | Baja | — | `test/unit/docs-integrity.spec.ts` | — | Corregido (3 nov) |
+| DEF-95 | El documento de casos de uso quedó con marcas de conflicto de un merge | Baja | — | `test/unit/docs-integrity.spec.ts` | [#182](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/182) | Corregido (3 nov) |
 
 ---
 
