@@ -745,8 +745,10 @@ export class ContractAdjustmentService {
   // ─── Barrido de ajustes vencidos ───────────────────────────────────────────
 
   /**
-   * Aplica los ajustes vencidos de contratos activos de la inmobiliaria
-   * `tenantId` (debe correr dentro de su contexto, como lo deja `TenantCron`).
+   * Aplica los ajustes vencidos hasta `until` de contratos activos de la
+   * inmobiliaria `tenantId` (debe correr dentro de su contexto, como lo deja
+   * `TenantCron`). Lo usan el proceso diario (hasta hoy) y la generación de
+   * liquidaciones (hasta el fin del mes que se liquida, DEF-130).
    * Cada contrato en su propia transacción: si falta algún índice que la
    * modalidad necesita, el cronograma se salta (sigue pendiente), no se toca el
    * alquiler y se informa con `MISSING_INDEX_DATA` y los meses que faltan.
@@ -754,6 +756,7 @@ export class ContractAdjustmentService {
   async applyDueAdjustments(
     tenantId: string,
     until: Date = endOfTodayInAR(),
+    source: 'cron' | 'generation' = 'cron',
   ): Promise<AdjustmentRun> {
     const dueSchedules = await this.prisma.client.adjustmentSchedule.findMany({
       where: {
@@ -779,7 +782,7 @@ export class ContractAdjustmentService {
       const appliedPeriod = schedule.nextAdjustmentDate.toISOString().slice(0, 7);
       try {
         run.applied.push(
-          await this.applySchedule(schedule, { tenantId, source: 'cron', allowProvisional }),
+          await this.applySchedule(schedule, { tenantId, source, allowProvisional }),
         );
       } catch (err: unknown) {
         if (err instanceof MissingIndexDataError) {

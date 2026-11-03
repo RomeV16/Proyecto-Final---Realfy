@@ -47,6 +47,7 @@ import { PdfService } from './pdf.service';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { ContractAdjustmentService } from '../index-data/contract-adjustment.service';
+import type { AdjustmentApplied, AdjustmentSkipped } from '../index-data/contract-adjustment.service';
 import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
 import { rentAtDate, rentChangeInMonth } from './rent-at';
 import { scheduledPeriod } from './generation-window';
@@ -91,6 +92,12 @@ export interface GenerationSummary {
   failed: number;
   total: number;
   results: GenerationResult[];
+  /**
+   * Ajustes que vencen hasta el fin del mes, aplicados antes de liquidarlo
+   * (`applied`), y los que quedaron pendientes, con el motivo y los meses de
+   * índice que faltan (`pending`).
+   */
+  adjustments: { applied: AdjustmentApplied[]; pending: AdjustmentSkipped[] };
 }
 
 @Injectable()
@@ -133,6 +140,14 @@ export class LiquidacionesService {
     const monthEnd = new Date(Date.UTC(year, month, 0));
 
     const defaults = await this.operationalDefaults.get(tenantId);
+
+    // El alquiler del mes incluye los ajustes que vencen dentro de él (DEF-130): la
+    // inmobiliaria liquida alrededor del 20 del mes anterior con el ajuste que rige
+    // desde el 1, cuyo índice (con el rezago del contrato) ya está publicado. Se
+    // aplican antes de leer los contratos, cada uno en su transacción; los que no
+    // tienen índice siguen pendientes y se informan (ADR-0011).
+    const lastInstant = new Date(Date.UTC(year, month, 1) - 1);
+    const adjustmentRun = await this.adjustments.applyDueAdjustments(tenantId, lastInstant, 'generation');
 
     // Contratos que pueden regir en el mes. El generador decide cada caso (un
     // contrato que ya no está Activo solo liquida hasta su fin real).
@@ -186,9 +201,20 @@ export class LiquidacionesService {
       outOfRange,
       notBilled,
       failed,
+      adjustmentsApplied: adjustmentRun.applied.length,
+      adjustmentsPending: adjustmentRun.skipped.length,
     });
 
-    return { created, skipped, outOfRange, notBilled, failed, total: contracts.length, results };
+    return {
+      created,
+      skipped,
+      outOfRange,
+      notBilled,
+      failed,
+      total: contracts.length,
+      results,
+      adjustments: { applied: adjustmentRun.applied, pending: adjustmentRun.skipped },
+    };
   }
 
   private async generateForContract(
@@ -400,7 +426,7 @@ export class LiquidacionesService {
 
     const summary = await this.generateForPeriod(target.year, target.month);
 
-    if (summary.created > 0 || summary.failed > 0) {
+    if (summary.created > 0 || summary.failed > 0 || summary.adjustments.applied.length > 0) {
       await this.audit.record(this.prisma.client as any, {
         action: 'CREATE',
         entity: 'Liquidacion',
@@ -413,6 +439,8 @@ export class LiquidacionesService {
           outOfRange: summary.outOfRange,
           notBilled: summary.notBilled,
           failed: summary.failed,
+          adjustmentsApplied: summary.adjustments.applied.length,
+          adjustmentsPending: summary.adjustments.pending.length,
         },
         metadata: { source, job: 'liquidaciones-generate' },
       });
