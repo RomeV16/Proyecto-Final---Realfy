@@ -1503,3 +1503,4 @@ export type {
   CollectionCasePage,
   CollectionCaseDetail,
 } from './schemas/collection.schema';
+export * from './inbox';

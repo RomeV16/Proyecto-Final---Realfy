@@ -238,12 +238,16 @@ export class TenantsService {
   /** Reemplaza los valores por defecto; lo que falte se completa con los del código. */
   async updateOperationalDefaults(data: unknown) {
     const tenantId = this.requireTenantId();
-    // La publicación (portales, privacidad) se edita en su propia pantalla: el
-    // formulario de valores por defecto no la manda y no debe borrarla.
-    const body =
-      data && typeof data === 'object' && !('publication' in data)
-        ? { ...data, publication: (await this.operationalDefaults.get(tenantId)).publication }
-        : data;
+    // La publicación (portales, privacidad) y la bandeja de consultas se editan en su
+    // propia pantalla: el formulario de valores por defecto no las manda y no debe borrarlas.
+    let body = data;
+    if (data && typeof data === 'object') {
+      const current = await this.operationalDefaults.get(tenantId);
+      const kept: Record<string, unknown> = {};
+      if (!('publication' in data)) kept.publication = current.publication;
+      if (!('inbox' in data)) kept.inbox = current.inbox;
+      body = { ...data, ...kept };
+    }
     const validated = parseOrThrow(OperationalDefaultsSchema, body, 'Invalid operational defaults');
     return this.operationalDefaults.set(tenantId, validated);
   }

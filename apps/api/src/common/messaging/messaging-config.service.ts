@@ -61,6 +61,14 @@ export class MessagingConfigService {
     };
   }
 
+  /** Bandeja de consultas: secreto con que se firma el mail reenviado y inmobiliaria dueña del número de WhatsApp. */
+  get inbox() {
+    return {
+      emailIngestSecret: this.read('INBOX_EMAIL_INGEST_SECRET'),
+      whatsappTenantSlug: this.read('WHATSAPP_TENANT_SLUG'),
+    };
+  }
+
   /** Hay credenciales para mandar por WhatsApp (token y número). */
   whatsappConfigured(): boolean {
     const w = this.whatsapp;

@@ -8,6 +8,7 @@ import { InvoicingSettingsSchema } from '../lessor-invoicing';
 import type { CollectionPolicy } from '../collection-engine';
 import { ContractTotalMode, FeePayerChoice, StaffCommissionBase } from '../fee-engine';
 import { PublicationSettingsSchema } from '../publication/settings';
+import { InboxSettingsSchema } from '../inbox/settings';
 
 const pct = z.number().min(0).max(100);
 const days = z.number().int().min(0).max(365);
@@ -187,6 +188,8 @@ export const OperationalDefaultsSchema = z
       })
       .strict()
       .default({}),
+    /** Bandeja de consultas: SLA, horario de atención, autorrespuesta y respuestas rápidas. */
+    inbox: InboxSettingsSchema.default({}),
     /** Semáforo de vencimiento de contratos: rojo a los N días o menos del fin, amarillo hasta los M días. */
     expiryLight: z
       .object({

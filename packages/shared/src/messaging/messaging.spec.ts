@@ -104,12 +104,21 @@ describe('plantillas', () => {
     for (const key of MESSAGE_TEMPLATE_KEYS) {
       const t = MESSAGE_TEMPLATES[key];
       expect(t.key).toBe(key);
-      if (t.channels.includes(MessageChannel.WhatsApp)) {
+      if (t.channels.includes(MessageChannel.WhatsApp) && !t.freeForm) {
         expect(t.whatsapp?.name).toMatch(/^[a-z0-9_]+$/);
         const params = t.whatsappText?.match(/\{\{\d+\}\}/g) ?? [];
         expect(params).toHaveLength(t.vars.length);
       }
     }
+  });
+
+  it('la respuesta de la bandeja es texto libre: sin plantilla aprobada, sin alta previa y sin horario', () => {
+    const t = MESSAGE_TEMPLATES.inbox_message;
+    expect(t).toMatchObject({ audience: 'reply', freeForm: true });
+    expect(t.whatsapp).toBeUndefined();
+    expect(t.channels).toEqual([MessageChannel.Email, MessageChannel.WhatsApp]);
+    // La persona escribió primero: no necesita el alta de WhatsApp (la baja sí se respeta).
+    expect(requiresOptIn(MessageChannel.WhatsApp, 'inbox_message')).toBe(false);
   });
 
   it('las plantillas del personal van solo por mail', () => {
