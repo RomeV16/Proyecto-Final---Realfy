@@ -232,17 +232,25 @@ describe('Caja y cobros (e2e)', () => {
       .body.registeredPayment;
 
     const toA = (
-      await post(token, '/compensations', { paymentId: payment.id, fromLessorId: x, toLessorId: a, fromCustody: true }).expect(201)
+      await post(token, '/compensations', {
+        paymentId: payment.id,
+        fromLessorId: x,
+        toLessorId: a,
+        amount: '46500',
+        fromCustody: true,
+      }).expect(201)
     ).body;
     expect(toA).toMatchObject({ amount: '46500', currency: 'ARS', fromLessorId: x, toLessorId: a });
     expect(toA.movements.map((m: any) => [m.direction, m.category, m.amount, m.account.kind])).toEqual([
       ['Out', 'Compensacion', '46500', 'Custodia'],
       ['In', 'Compensacion', '46500', 'Caja'],
     ]);
-    await post(token, '/compensations', { paymentId: payment.id, fromLessorId: x, toLessorId: b, amount: '46500' }).expect(201);
+    // Sin importe se compensa lo que B figuraba cobrando en mano: su parte y la comisión que debía (DEF-71).
+    const toB = (await post(token, '/compensations', { paymentId: payment.id, fromLessorId: x, toLessorId: b }).expect(201)).body;
+    expect(toB.amount).toBe('50000');
 
     // No más que el cobro, no a sí mismo, no a quien no es locador del contrato.
-    const over = await post(token, '/compensations', { paymentId: payment.id, fromLessorId: x, toLessorId: b, amount: '7000.01' });
+    const over = await post(token, '/compensations', { paymentId: payment.id, fromLessorId: x, toLessorId: b, amount: '3500.01' });
     expect(over.status).toBe(400);
     expect(over.body.error).toBe('COMPENSATION_EXCEEDS_PAYMENT');
     await post(token, '/compensations', { paymentId: payment.id, fromLessorId: a, toLessorId: a, amount: '1' }).expect(400);

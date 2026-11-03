@@ -6,6 +6,7 @@ import {
   SettlementError,
   accountBalance,
   checkCompensation,
+  compensationDefault,
   convertAmount,
   settlePayment,
   settlementBuckets,
@@ -95,6 +96,21 @@ describe('settlement-engine — destinos de la liquidación', () => {
   it('sin comisión la inmobiliaria solo se queda sus renglones', () => {
     const b = settlementBuckets(LINES, null, 'ARS');
     expect([b.agency.toFixed(2), b.lessors.toFixed(2)]).toEqual(['2000.00', '104500.00']);
+  });
+
+  it('un renglón Descuento resta aunque venga en positivo, como lo guarda la liquidación (DEF-70)', () => {
+    const lines = [
+      { amount: '100000', beneficiary: B.Locador, commissionable: true, type: 'Alquiler' },
+      { amount: '10000', beneficiary: B.Locador, commissionable: true, type: 'Descuento' },
+      { amount: '-2000', beneficiary: B.Locador, commissionable: false, type: 'Descuento' },
+    ];
+    const b = settlementBuckets(lines, PCT7, 'ARS');
+    expect([b.total, b.commissionBase, b.commission, b.lessors].map((v) => v.toFixed(2))).toEqual([
+      '88000.00',
+      '90000.00',
+      '6300.00',
+      '81700.00',
+    ]);
   });
 
   it('rechaza una parte negativa (descuento mayor que el alquiler)', () => {
@@ -323,6 +339,15 @@ describe('settlement-engine — validaciones y monedas', () => {
 });
 
 describe('settlement-engine — compensaciones', () => {
+  it('por defecto se compensa lo que el locador figuraba cobrando en mano: su parte más lo que debía (DEF-71)', () => {
+    const r = settlePayment(base({ receivedBy: PaymentReceiver.Locador }));
+    expect(r.positions.map((p) => compensationDefault(p).toFixed(2))).toEqual(
+      r.positions.map((p) => p.share.minus(p.balance).toFixed(2)),
+    );
+    expect(compensationDefault({ share: '46500', balance: '-3500' }).toFixed(2)).toBe('50000.00');
+    expect(compensationDefault({ share: '46500' }).toFixed(2)).toBe('46500.00');
+  });
+
   const ok = {
     paymentAmount: '1000',
     receivedBy: PaymentReceiver.Locador,

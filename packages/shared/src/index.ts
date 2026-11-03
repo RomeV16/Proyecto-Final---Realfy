@@ -637,6 +637,7 @@ export {
   settlePayment,
   settlementBuckets,
   checkCompensation,
+  compensationDefault,
   convertAmount,
   accountBalance,
   SettlementError,
@@ -1364,3 +1365,40 @@ export {
 } from './lessor-invoicing';
 export type { InvoicingSettings, LessorInvoicingOverride } from './lessor-invoicing';
 export { LessorInvoiceJobFilterSchema, LessorIssuerCreateSchema } from './schemas/lessor-invoicing.schema';
+
+// Reconciliación del ciclo mensual (ítem 45): formato, comparador, ciclo puro y caso de caracterización
+export {
+  CONTRACT_CONCEPTS,
+  STATEMENT_CONCEPTS,
+  LESSOR_NET_PREFIX,
+  contractConcepts,
+  statementConcepts,
+  statementKey,
+  compareReconciliation,
+  formatDifferences,
+} from './reconciliation/format';
+export type {
+  ReconciliationResult,
+  ReconciliationScope,
+  ReconciliationDifference,
+  ContractSnapshot,
+  SnapshotLine,
+} from './reconciliation/format';
+export { runCycle } from './reconciliation/cycle';
+export type {
+  CycleInput,
+  CycleAgency,
+  CycleLessor,
+  CycleContract,
+  CycleAdjustment,
+  CycleCommission,
+  CycleBill,
+  CycleBillRule,
+  CycleCharge,
+  CyclePayment,
+  CycleCompensation,
+  CyclePayout,
+  CycleOpeningBalance,
+  CycleCurrency,
+} from './reconciliation/cycle';
+export { RECONCILIATION_CYCLE, RECONCILIATION_EXPECTED } from './reconciliation/characterization.fixture';

@@ -73,6 +73,24 @@ describe('CompensationsService', () => {
     expect(res).toMatchObject({ amount: '45000.00', fromLessorId: X, toLessorId: A, currency: 'ARS', movements: [] });
   });
 
+  it('DEF-71 — sin importe, compensa lo que el locador figuraba cobrando en mano: su parte más lo que debía (CP-661)', async () => {
+    const { service, payment, tx } = build();
+    // Cobro de 100000 que figura recibido por los locadores: cada uno, su parte (46500) y la comisión que debe (3500).
+    payment.settlement = {
+      positions: [
+        { personId: A, share: '46500.00', received: '50000.00', balance: '-3500.00' },
+        { personId: B, share: '46500.00', received: '50000.00', balance: '-3500.00' },
+      ],
+    };
+    const res = await service.create({ paymentId: PAY, fromLessorId: X, toLessorId: A });
+    expect(res.amount).toBe('50000.00');
+    const { data } = tx.ownerLedgerEntry.createMany.mock.calls[0][0];
+    expect(data.map((e: any) => [e.personId, e.amount])).toEqual([
+      [X, '-50000.00'],
+      [A, '50000.00'],
+    ]);
+  });
+
   it('cuenta corriente: resta a quien cobró y suma a quien le correspondía, con la compensación como origen (CP-454)', async () => {
     const { service, tx } = build();
     await service.create({ paymentId: PAY, fromLessorId: X, toLessorId: A, amount: '1000' });
@@ -84,6 +102,25 @@ describe('CompensationsService', () => {
     ]);
     expect(data[0].description).toContain('Beto Dos');
     expect(data[1].description).toContain('Ana Uno');
+  });
+
+  it('DEF-72 — los asientos llevan la fecha del cobro, no la del día en que se carga la compensación (CP-662)', async () => {
+    const { service, payment, tx } = build();
+    payment.paidAt = new Date('2026-01-08T15:00:00.000Z');
+    await service.create({ paymentId: PAY, fromLessorId: X, toLessorId: A, amount: '1000' });
+    const { data } = tx.ownerLedgerEntry.createMany.mock.calls[0][0];
+    expect(data.map((e: any) => [e.personId, e.date, e.period])).toEqual([
+      [X, D('2026-01-08'), D('2026-01-01')],
+      [A, D('2026-01-08'), D('2026-01-01')],
+    ]);
+  });
+
+  it('una fecha indicada rige los asientos y la entrega de custodia', async () => {
+    const { service, payment, tx } = build({ custody: { id: 'custody-x' }, balance: '50000' });
+    payment.paidAt = new Date('2026-01-08T15:00:00.000Z');
+    const res = await service.create({ paymentId: PAY, fromLessorId: X, toLessorId: A, amount: '1000', fromCustody: true, date: '2026-02-03' });
+    expect(res.movements.map((m: any) => m.date)).toEqual([D('2026-02-03'), D('2026-02-03')]);
+    expect(tx.ownerLedgerEntry.createMany.mock.calls[0][0].data.map((e: any) => e.period)).toEqual([D('2026-02-01'), D('2026-02-01')]);
   });
 
   it('con la custodia de quien cubre: sale de su custodia y entra en la caja', async () => {

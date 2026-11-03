@@ -1,4 +1,4 @@
-import { getApoderadosAt, getLessorsAt, getParties, getParty } from './contract-parties';
+import { getApoderadosAt, getLessorsAt, getParties, getParty, lessorsDateFor } from './contract-parties';
 
 const d = (s: string) => new Date(`${s}T00:00:00.000Z`);
 
@@ -62,6 +62,16 @@ describe('getLessorsAt', () => {
         },
       }),
     );
+  });
+});
+
+describe('lessorsDateFor', () => {
+  it('el día 1 del mes o, si el contrato empieza después, su inicio (DEF-73)', () => {
+    const jul = new Date('2026-07-01T00:00:00.000Z');
+    const mid = new Date('2026-07-15T00:00:00.000Z');
+    expect(lessorsDateFor(jul, mid)).toBe(mid);
+    expect(lessorsDateFor(mid, jul)).toBe(mid);
+    expect(lessorsDateFor(jul, null)).toBe(jul);
   });
 });
 

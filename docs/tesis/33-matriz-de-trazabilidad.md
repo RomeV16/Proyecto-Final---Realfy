@@ -56,3 +56,15 @@ El informe externo de calidad numera tres requisitos funcionales sobre el módul
 Los casos CP-49 a CP-58 son los que cierran los tres requisitos en la versión actual del catálogo: CP-49 pertenece a las pruebas de integración de la API de índices (CRUD, `latest`, `refresh`, permisos, aislamiento y previsualización, CP-40 a CP-49); CP-50 a CP-52 verifican el contrato con las fuentes externas (BCRA e INDEC) con respuestas grabadas y contra el entorno real; CP-53 y CP-54 cubren la obtención automática y el cálculo con lo obtenido; CP-55 a CP-58 cubren los defectos de encadenamiento de ajustes (DEF-07 y DEF-08).
 
 Dentro del piloto, el ítem 34 extiende esos requisitos sin reemplazarlos: el rezago de dos meses del índice, la base del ajuste (original o vigente), la aplicación masiva con previsualización, el estimado con corrección posterior y la fuente alternativa de índices (FB-13, FB-23 y FB-25). Los casos nuevos se numeran en el rango CP-120 a CP-129 y no modifican los resultados esperados de los casos existentes.
+
+## Reconciliación del ciclo y defectos que encontró
+
+La suite de reconciliación del ítem 45 (#103) verifica el objetivo específico 2 del piloto (`30-piloto.md`) con datos sintéticos: el caso de caracterización y su prueba por la API (CP-660 a CP-668, `../calidad/12-piloto.md`, sección 9). Cada defecto que encontró queda unido a su caso, a la operación que corrige y al hallazgo que dio origen a esa operación.
+
+| Defecto | Operación (FB, ítem) | Endpoint | Caso que lo detecta | Regresión |
+|---|---|---|---|---|
+| DEF-70 | Reparto del cobro con descuentos (FB-06 y FB-10; ítems 36 y 37) | `/liquidaciones/:id/payments` | CP-663 | CP-660 |
+| DEF-71 | Compensación entre locadores (FB-06; ítem 36) | `/compensations` | CP-663 | CP-661 |
+| DEF-72 | Compensación en el estado de cuenta (FB-10; ítem 37) | `/compensations` (`date`) | CP-667 | CP-662 |
+| DEF-73 | Cobro del primer mes de un contrato nuevo (FB-06; ítem 36) | `/liquidaciones/:id/payments`, `/compensations` | CP-666 | CP-668 |
+

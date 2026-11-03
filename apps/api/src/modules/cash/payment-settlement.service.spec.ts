@@ -202,6 +202,45 @@ describe('PaymentSettlementService — cuenta corriente del locador (ADR-0009)',
     expect(agencyDefault.ledger.find((e) => e.personId === A && e.type === 'CobroDirecto').amount).toBe('-50500.00');
   });
 
+  it('DEF-70 — un renglón Descuento (guardado en positivo) resta del total, de la comisión y de lo del locador (CP-660)', async () => {
+    const line = (type: string, amount: string, commissionable: boolean) => ({
+      amount,
+      beneficiary: 'Locador',
+      commissionable,
+      currency: 'ARS',
+      type,
+    });
+    // Devolución a favor del inquilino (sin comisión): la liquidación es 330000 - 12000 = 318000.
+    const devolucion = build({ lines: [line('Alquiler', '330000', true), line('Descuento', '12000', false)] });
+    const paid = await devolucion.service.record(devolucion.tx, devolucion.ctx({}, '318000'));
+    expect(paid.settlement).toMatchObject({
+      buckets: { total: '318000.00', commissionBase: '330000.00', commission: '23100.00', lessors: '294900.00' },
+      payment: { agency: '23100.00', lessors: '294900.00' },
+    });
+    expect(rows(devolucion.ledger).filter((r) => r[0] === A)).toEqual([
+      [A, 'Alquiler', '159000.00'],
+      [A, 'Comision', '-11550.00'],
+    ]);
+    // Bonificación del 10 % (con comisión): la comisión corre sobre 90000.
+    const bonificacion = build({ lines: [line('Alquiler', '100000', true), line('Descuento', '10000', true)] });
+    const res = await bonificacion.service.record(bonificacion.tx, bonificacion.ctx({}, '90000'));
+    expect(res.settlement).toMatchObject({ buckets: { total: '90000.00', commission: '6300.00', lessors: '83700.00' } });
+  });
+
+  it('DEF-73 — el cobro del primer mes de un contrato que empieza a mitad de mes se reparte entre sus locadores (CP-668)', async () => {
+    const from15 = { payoutPct: '100', validFrom: D('2026-01-15'), validTo: null };
+    const { service, tx, ledger, ctx } = build({ lessors: [{ personId: A, ...from15 }] });
+    const contract = await tx.contract.findFirst();
+    contract.startDate = D('2026-01-15');
+    const res = await service.record(tx, ctx({}, '100000'));
+    expect(res.settlement.error).toBeUndefined();
+    expect(res.settlement.positions).toEqual([expect.objectContaining({ personId: A, share: '93000.00' })]);
+    expect(rows(ledger)).toEqual([
+      [A, 'Alquiler', '100000.00'],
+      [A, 'Comision', '-7000.00'],
+    ]);
+  });
+
   it('un cobro sin reparto no deja asientos', async () => {
     const { service, tx, ledger, ctx } = build({ lessors: [] });
     await service.record(tx, ctx());

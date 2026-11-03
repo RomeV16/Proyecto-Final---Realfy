@@ -7,6 +7,7 @@ import {
   FinancialAccountKind,
   PaymentMethod,
   checkCompensation,
+  compensationDefault,
   personName,
   todayInAR,
 } from '@realfy/shared';
@@ -16,10 +17,10 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { parseOrThrow } from '../../common/validation/zod';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
-import { getLessorsAt } from '../contracts/contract-parties';
+import { getLessorsAt, lessorsDateFor } from '../contracts/contract-parties';
 import { CashService } from './cash.service';
 import { postCompensation } from '../owner-accounts/ledger-posting';
-import { auditJson, badRequest, conflict, notFound, rethrowSettlement } from './cash.errors';
+import { auditJson, badRequest, conflict, dayStart, notFound, rethrowSettlement } from './cash.errors';
 
 type Db = any;
 
@@ -72,7 +73,8 @@ export class CompensationsService {
         throw badRequest('COMPENSATION_OUT_OF_SCOPE', 'Only a lessor of the agency can cover another lessor');
       }
 
-      const lessors = await getLessorsAt(tx, payment.liquidacion.contract, payment.liquidacion.period);
+      const { contract } = payment.liquidacion;
+      const lessors = await getLessorsAt(tx, contract, lessorsDateFor(payment.liquidacion.period, contract.startDate));
       const amount = input.amount ?? this.pendingShare(payment, input.toLessorId);
       let checked: Decimal;
       try {
@@ -103,8 +105,16 @@ export class CompensationsService {
         },
         include: { fromLessor: PERSON, toLessor: PERSON },
       });
+      // La compensación es parte del cobro: sin fecha indicada, sus asientos van con la del cobro (DEF-72).
+      const date = dayStart(input.date ?? (payment.paidAt ?? todayInAR()).toISOString());
       const movements = input.fromCustody
-        ? await this.payFromCustody(tx, { tenantId, payment, compensation, toAccountId: input.toAccountId ?? null })
+        ? await this.payFromCustody(tx, {
+            tenantId,
+            payment,
+            compensation,
+            toAccountId: input.toAccountId ?? null,
+            date: input.date ? date : todayInAR(),
+          })
         : [];
       // Cuenta corriente: resta a quien cobró y suma a quien le correspondía (ADR-0009).
       await postCompensation(
@@ -114,7 +124,7 @@ export class CompensationsService {
           compensation,
           contract: payment.liquidacion.contract,
           period: payment.liquidacion.period,
-          date: todayInAR(),
+          date,
           names: { from: personName(compensation.fromLessor), to: personName(compensation.toLessor) },
         },
       );
@@ -129,7 +139,10 @@ export class CompensationsService {
     });
   }
 
-  /** Parte de `to` en el cobro (según el reparto guardado) menos lo ya compensado a su favor. */
+  /**
+   * Lo que `to` figuraba cobrando en mano en ese cobro (su parte más lo que debía, según el
+   * reparto guardado; DEF-71) menos lo ya compensado a su favor.
+   */
   private pendingShare(payment: any, toLessorId: string): string {
     const position = payment.settlement?.positions?.find((p: any) => p.personId === toLessorId);
     if (!position) {
@@ -138,7 +151,7 @@ export class CompensationsService {
     const done = payment.compensations
       .filter((c: any) => c.toLessorId === toLessorId)
       .reduce((acc: Decimal, c: any) => acc.plus(c.amount.toString()), new Decimal(0));
-    return new Decimal(position.share).minus(done).toFixed(2);
+    return compensationDefault(position).minus(done).toFixed(2);
   }
 
   /**
@@ -148,7 +161,7 @@ export class CompensationsService {
    */
   private async payFromCustody(
     tx: Db,
-    ctx: { tenantId: string; payment: any; compensation: any; toAccountId: string | null },
+    ctx: { tenantId: string; payment: any; compensation: any; toAccountId: string | null; date: Date },
   ) {
     const { tenantId, payment, compensation } = ctx;
     const custody = await tx.financialAccount.findFirst({
@@ -168,7 +181,7 @@ export class CompensationsService {
     });
     const common = {
       tenantId,
-      date: todayInAR(),
+      date: ctx.date,
       amount,
       currency: payment.currency,
       category: CashCategory.Compensacion,

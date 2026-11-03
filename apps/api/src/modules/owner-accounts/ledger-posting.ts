@@ -9,7 +9,7 @@ import {
 } from '@realfy/shared';
 import type { SettlementResult } from '@realfy/shared';
 import Decimal from 'decimal.js';
-import { getLessorsAt } from '../contracts/contract-parties';
+import { getLessorsAt, lessorsDateFor } from '../contracts/contract-parties';
 
 type Db = any;
 
@@ -280,12 +280,12 @@ export async function syncServiceBillEntries(
   if (bill.status === 'Pagada' && bill.paidBy === 'Inmobiliaria' && bill.paidAt) {
     const allocations = await tx.serviceBillAllocation.findMany({
       where: { billId: bill.id, payer: 'Propietario' },
-      include: { contract: { select: { id: true, propertyId: true } } },
+      include: { contract: { select: { id: true, propertyId: true, startDate: true } } },
       orderBy: { createdAt: 'asc' },
     });
     const byPerson = new Map<string, { amount: Decimal; contractIds: Set<string>; propertyIds: Set<string> }>();
     for (const allocation of allocations) {
-      const lessors = await getLessorsAt(tx, allocation.contractId, bill.period);
+      const lessors = await getLessorsAt(tx, allocation.contractId, lessorsDateFor(bill.period, allocation.contract?.startDate));
       const parts = splitByShare(
         new Decimal(String(allocation.amount)).negated().toFixed(2),
         lessors.map((l: any) => ({ personId: l.personId, pct: String(l.payoutPct) })),
