@@ -1418,6 +1418,11 @@
     "Gerente",
     "Liquidaciones"
   ],
+  "src/modules/services/service-bills.controller.ts#ServiceBillsController.preview": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
   "src/modules/services/service-bills.controller.ts#ServiceBillsController.update": [
     "Admin",
     "Gerente",
