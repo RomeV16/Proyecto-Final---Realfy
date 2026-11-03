@@ -221,27 +221,44 @@ así que no hace falta provisionarlo ni definir `REDIS_URL`. Un secreto propio p
 refresco tampoco hace falta: esos tokens no son JWT sino identificadores
 aleatorios opacos guardados en la base, de modo que no hay nada que firmar.
 
-### Bandeja de consultas: mails entrantes (pendiente de configurar)
+### Mails entrantes: boletas y consultas (Cloudflare Email Worker)
 
-Los WhatsApp entrantes llegan por el webhook ya suscripto. Los **mails** requieren un
-paso externo que queda pendiente hasta tener el dominio y la casilla:
+Los WhatsApp entrantes llegan por el webhook ya suscripto. Los **mails** de
+`boletas@` y `consultas@` entran por **Cloudflare Email Routing**: el DNS de
+`realfy.app` está en Cloudflare, cada casilla tiene una regla que la manda al Worker
+`realfy-email-worker` (`infra/email-worker/`), y el Worker lee el mail, lo firma y
+llama a la API. El Worker reemplaza al "reenvío mínimo" que se pensó al principio.
 
-1. Elegir la casilla de consultas (por ejemplo `consultas@<dominio>`) y apuntar su
-   MX a un servicio de recepción: Resend permite recibir mails (evento
-   `email.received`) o se puede usar el reenvío de la casilla del proveedor de correo.
-2. Armar un reenvío mínimo (una función o un script) que, por cada mail, lea el
-   `Message-ID`, el remitente, el asunto y el texto, y llame a
-   `POST https://<api>/api/inbox/email-ingest` con el cuerpo JSON
-   `{ tenantSlug, messageId, from, fromName, subject, text, receivedAt, automatic }`
-   y el encabezado `X-Realfy-Signature: sha256=<HMAC-SHA256 del cuerpo con el secreto>`.
-   `automatic` va en `true` si el mail trae `Auto-Submitted` distinto de `no` o
-   `Precedence: bulk/auto_reply`.
-3. Definir `INBOX_EMAIL_INGEST_SECRET` en el servicio `api` y el remitente `RESEND_FROM`
-   con esa misma casilla, para que las respuestas de los clientes vuelvan a ella.
-4. Probar con `MESSAGING_MODE=allowlist`: las autorrespuestas solo salen a las
-   direcciones de la lista.
+| Casilla | Endpoint de la API | Cuerpo |
+|---|---|---|
+| `boletas@` y `boletas+<slug>@` | `POST /api/bills-intake/email-ingest` | `tenantSlug`, `to`, `messageId`, `from`, `subject`, `receivedAt`, `attachments` (PDF en base64) |
+| `consultas@` y `consultas+<slug>@` | `POST /api/inbox/email-ingest` | `tenantSlug`, `messageId`, `from`, `fromName`, `subject`, `text`, `receivedAt`, `automatic` |
 
-Sin este paso la bandeja funciona igual con WhatsApp, el micrositio y las llamadas.
+La firma es `X-Realfy-Signature: sha256=<HMAC-SHA256 del cuerpo con el secreto>`; los dos
+ingresos comparten `INBOX_EMAIL_INGEST_SECRET`. `automatic` va en `true` si el mail trae
+`Auto-Submitted` distinto de `no` o `Precedence: bulk/auto_reply`. Una respuesta 5xx hace
+que el Worker falle y el remitente reintente; un 4xx se registra y no se reintenta (salvo
+401/403/408/425/429, que son de configuración o del momento).
+
+Pasos, una vez por ambiente (el detalle con los comandos está en `infra/email-worker/README.md`):
+
+1. Definir `INBOX_EMAIL_INGEST_SECRET` en el servicio `api` y cargar **el mismo valor** en el
+   Worker con `wrangler secret put INBOX_EMAIL_INGEST_SECRET`.
+2. Desplegar el Worker con `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`
+   (`infra/email-worker/scripts/deploy.sh`); la inmobiliaria de las casillas sin `+<slug>` va en
+   `DEFAULT_TENANT_SLUG`. Nada de esto se guarda en el repositorio.
+3. Habilitar Email Routing en la zona `realfy.app`, **activar el subaddressing** (para que
+   `boletas+<slug>@` llegue a la regla de `boletas@`) y crear las reglas `consultas@` y
+   `boletas@` hacia el Worker, por API o desde el panel (Email Routing -> Settings y Routing
+   rules). Un catch-all hacia el Worker es opcional: lo desconocido se rechaza o va a
+   `FALLBACK_FORWARD_TO`.
+4. Definir el remitente `RESEND_FROM` con la casilla de consultas, para que las respuestas de
+   los clientes vuelvan a ella, y probar con `MESSAGING_MODE=allowlist`: las autorrespuestas
+   solo salen a las direcciones de la lista.
+5. Mandar un mail de prueba a cada casilla y mirar `wrangler tail realfy-email-worker`.
+
+Sin este paso la bandeja funciona igual con WhatsApp, el micrositio y las llamadas, y las
+boletas se cargan por archivo.
 
 ## Servicio web
 

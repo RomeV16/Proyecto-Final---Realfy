@@ -1041,8 +1041,6 @@ Banda CP-1430 a CP-1439. ADR-0018. Remitentes y PDF sintéticos.
 | CP-1312 | Reporte de pendientes (unitario) | lista solo las partes sin facturar de moneda distinta; con `contractId` y mes filtra | `service-bills.service.spec.ts::CP-1312` | verde (3 nov) |
 | CP-1313 | Pantalla de liquidaciones | tras generar, muestra cuántas liquidaciones salieron con avisos | `LiquidacionList.screen.test.tsx::CP-1313` | verde (3 nov) |
 
-
-
 ## Proveedor y cuenta normalizada en servicios (piloto, uso real)
 
 Banda CP-1320 a CP-1339. Origen: uso real del piloto (los servicios migrados no tenían proveedor y la cuenta se guardaba como venía de la fuente, distinta de la del PDF). ADR-0018 (cuenta normalizada) y ADR-0015 (servicios del lote). Datos sintéticos.
@@ -1058,7 +1056,6 @@ Banda CP-1320 a CP-1339. Origen: uso real del piloto (los servicios migrados no 
 | CP-1326 | Búsqueda simétrica del servicio | un servicio con cuenta normalizada se encuentra con la cuenta del documento en otro formato (Rentas `1100-0000-0001`, Aguas `123`); sin proveedor reconocido se prueba la cuenta tal cual y la normalizada | `bills-intake/bill-intake.service.spec.ts` | verde (3 nov) |
 | CP-1327 | De punta a punta: servicio importado y boleta | un servicio de la Municipalidad importado con la cuenta ` 0123456789-01200 ` se guarda como `012345678901200`; el PDF sintético trae la cuenta pegada y da de alta la boleta sobre ese servicio (`Procesada`) | `e2e/boletas-automaticas.e2e-spec.ts::CP-1327` | verde (3 nov) |
 | CP-1328 | Forma del campo en el contrato del lote | `providerKey` es opcional, acepta `null` y rechaza texto vacío; la pertenencia al catálogo se valida al importar | `packages/shared/src/schemas/import-batch.schema.spec.ts` | verde (3 nov) |
-
 
 ### Pantalla de boletas recibidas (web)
 
@@ -1097,7 +1094,6 @@ Banda CP-1340 a CP-1369. Origen: la revisión de lo que no se lee solo (ADR-0018
 | CP-1368 | Contador de revisión | se actualiza cada minuto, no pregunta sin permiso y conserva el último valor si falla | `web/src/lib/bill-documents.test.tsx::useBillReviewCount` | verde (3 nov) |
 | CP-1369 | Lista sin permiso no consulta | `usePaginatedList` con `enabled: false` no hace ningún pedido | `web/src/hooks/use-paginated-list.test.tsx::enabled en falso` | verde (3 nov) |
 
-
 ## Saldo inicial de cuentas de caja, banco y custodia (migración M10)
 
 Banda CP-1100 a CP-1129. Misma semántica que el saldo inicial del locador (ADR-0009, ADR-0012). El resultado esperado se fijó antes de implementar.
@@ -1134,3 +1130,30 @@ Banda CP-1160 a CP-1199. Origen: preparación de las plantillas de la inmobiliar
 | CP-1173 | Web: pantalla de plantillas | lista paginada con tipo, estado y predeterminada; alta, edición y baja con confirmación; el cuerpo se valida mientras se escribe (línea y columna) y no deja guardar si está mal formado; el 400 `TEMPLATE_SYNTAX_ERROR` se muestra con su línea; una variable del catálogo se inserta donde está el cursor; sin permiso no hay acciones | `apps/web/src/components/settings/contract-templates-manager.screen.test.tsx` | verde (3 nov) |
 | CP-1174 | Web: catálogo y textos | cada variable, campo de persona, lista, resumen, variable de repetición y bloque del catálogo compartido tiene su descripción en español y en inglés | `apps/web/src/lib/contract-template-catalog.test.ts` | verde (3 nov) |
 | CP-1175 | Web: matrícula, domicilio y fecha de firma | la configuración de la inmobiliaria muestra y guarda matrícula y domicilio y enlaza a las plantillas; el modal de generar documento envía `signingDate` solo si se completó y muestra el error de una plantilla mal formada | `apps/web/src/app/[locale]/(app)/configuracion/page.screen.test.tsx`; `components/contracts/generate-document-modal.test.tsx` | verde (3 nov) |
+
+## Worker de recepción de mails (Cloudflare Email Routing)
+
+Banda CP-1410 a CP-1429. Origen: uso real del piloto (los mails de boletas y consultas no llegaban a la API). ADR-0013 y ADR-0018, CU-49 y CU-50. Mails MIME, direcciones y dominios sintéticos (`proveedor-demo.test`, `realfy.app` para las casillas); el resultado esperado se fijó antes de implementar. Las pruebas corren en vitest, con la API simulada por `fetch`, y verifican la firma con la función real de la API y los cuerpos con los esquemas de `@realfy/shared`.
+
+| ID | Qué | Esperado (fijado antes) | Prueba | Estado |
+|---|---|---|---|---|
+| CP-1410 | Destinatario -> circuito | `boletas@` y `boletas+<slug>@` van a boletas, `consultas@` y `consultas+<slug>@` a la bandeja (sin distinguir mayúsculas, con el slug en minúscula); `info@`, `boletas2@`, `boletas+@`, `boletas+a_b@`, `boletas+a+b@` y vacío no tienen circuito | `infra/email-worker/src/recipient.test.ts::CP-1410` | verde (3 nov) |
+| CP-1411 | Destinatario desconocido | no llama a la API; con `FALLBACK_FORWARD_TO` se reenvía a esa dirección, sin ella se rechaza con error permanente (`Unknown recipient`) | `infra/email-worker/src/index.test.ts::CP-1411` | verde (3 nov) |
+| CP-1412 | Boleta con PDF | `POST /api/bills-intake/email-ingest` con un cuerpo que `BillMailIngestSchema` acepta: `tenantSlug`, `to`, `messageId`, `from`, `subject` y el PDF en base64 idéntico al original; el handler `email(message, env, ctx)` del export hace lo mismo | `infra/email-worker/src/index.test.ts::CP-1412` | verde (3 nov) |
+| CP-1413 | Firma igual a la de la API | `X-Realfy-Signature: sha256=<hex>` coincide con el vector RFC 4231 (clave `Jefe`), con `createHmac` y pasa `verifyMetaSignature` de la API sobre los mismos bytes, también con acentos y emoji; el cuerpo de boletas y el de consultas verifican con el secreto | `infra/email-worker/src/signature.test.ts::CP-1413`; `index.test.ts::CP-1412`; `::CP-1415` | verde (3 nov) |
+| CP-1414 | Firma ajena o cuerpo alterado | la función de la API rechaza la firma del Worker con un cuerpo distinto o con otro secreto | `infra/email-worker/src/signature.test.ts::CP-1414` | verde (3 nov) |
+| CP-1415 | Consulta | `POST /api/inbox/email-ingest` con un cuerpo que `EmailIngestSchema` acepta: `tenantSlug`, `messageId`, `from`, `fromName`, `subject`, `text` (con acentos), `receivedAt` y `automatic: false` | `infra/email-worker/src/index.test.ts::CP-1415` | verde (3 nov) |
+| CP-1416 | Inmobiliaria de la casilla | el `+<slug>` de la dirección gana sobre `DEFAULT_TENANT_SLUG`; sin slug se usa el de por defecto (recortado y en minúscula); sin ninguno el Worker falla antes de llamar a la API, para que el remitente reintente mientras se corrige | `infra/email-worker/src/index.test.ts::CP-1416` | verde (3 nov) |
+| CP-1417 | Automáticos | `Auto-Submitted` distinto de `no` y `Precedence: bulk` o `auto_reply` dan `automatic: true`; `Auto-Submitted: no`, `Precedence: list` y un mail común dan `false`; en boletas no se descarta por esos encabezados | `infra/email-worker/src/index.test.ts::CP-1417` | verde (3 nov) |
+| CP-1418 | Sólo los PDF | de un mail con imagen, PDF y `.PDF` octet-stream se mandan los dos PDF; sin adjuntos llega `attachments: []` | `infra/email-worker/src/index.test.ts::CP-1418` | verde (3 nov) |
+| CP-1419 | Límites de la API | un PDF de más de 10 MiB se salta, el undécimo adjunto no se manda, uno de exactamente 10 MiB entra y el cuerpo total queda por debajo de 25 MiB | `infra/email-worker/src/index.test.ts::CP-1419` | verde (3 nov) |
+| CP-1420 | Identificador y remitente | sin `Message-ID` se usa un identificador derivado del SHA-256 del mensaje, igual en el reintento; sin `From` en el encabezado se usa el del sobre | `infra/email-worker/src/index.test.ts::CP-1420` | verde (3 nov) |
+| CP-1421 | Texto | un mail solo HTML llega como texto sin etiquetas ni estilos; un texto de 50.000 caracteres se corta a 20.000 | `infra/email-worker/src/index.test.ts::CP-1421` | verde (3 nov) |
+| CP-1422 | 5xx y red | 502/503/504/500, o un error de red (el tiempo agotado de 20 s sale por el mismo camino) lanzan, sin rechazar ni reenviar | `infra/email-worker/src/index.test.ts::CP-1422` | verde (3 nov) |
+| CP-1423 | 4xx de momento o de configuración | 401, 403, 408, 425 y 429 también lanzan: un secreto mal cargado no puede hacer perder boletas | `infra/email-worker/src/index.test.ts::CP-1423` | verde (3 nov) |
+| CP-1424 | Otros 4xx | 400 y 422 se registran y no se reintentan (`setReject`, o reenvío si hay `FALLBACK_FORWARD_TO`); 404 se rechaza como destinatario desconocido | `infra/email-worker/src/index.test.ts::CP-1424` | verde (3 nov) |
+| CP-1425 | 200 con `ignored` | el mail automático que la API ignora no se rechaza ni se reenvía; un 200 sin JSON no es un error | `infra/email-worker/src/index.test.ts::CP-1425` | verde (3 nov) |
+| CP-1426 | Configuración incompleta | sin `INBOX_EMAIL_INGEST_SECRET` o sin `API_BASE_URL` lanza sin llamar a la API; una barra final en `API_BASE_URL` no se duplica | `infra/email-worker/src/index.test.ts::CP-1426` | verde (3 nov) |
+| CP-1427 | MIME ilegible | si el mensaje no se puede leer se rechaza (`Message could not be read`) y no se llama a la API | `infra/email-worker/src/index.test.ts::CP-1427` | verde (3 nov) |
+| CP-1428 | Compila para Cloudflare | `npx wrangler@4.149.0 deploy --dry-run` en `infra/email-worker` arma el paquete (157,87 KiB, 40,60 KiB comprimido) con las variables `API_BASE_URL` y `DEFAULT_TENANT_SLUG` vacía | manual, sin tocar la cuenta | verde (3 nov) |
+| CP-1429 | `wrangler.toml` sin cuentas ni secretos | nombre `realfy-email-worker`, `API_BASE_URL` de producción, `DEFAULT_TENANT_SLUG` vacío, sin `account_id`, rutas, secreto ni destino de reenvío | `infra/email-worker/src/wrangler-config.test.ts::CP-1429` | verde (3 nov) |

@@ -253,3 +253,4 @@ revisión.
   de la Municipalidad (el único con consulta pública sin sesión, a tasa baja y
   desactivable, idealmente con un convenio), los mails con enlace, el ajuste de EPEC y
   Ecogas con boletas reales, el OCR de escaneos y el canal de portal.
+- El "servicio de recepción" del canal `mail` es un Cloudflare Email Worker (`infra/email-worker`): `boletas@` y `boletas+<slug>@` llegan a él por Email Routing, y manda los PDF en base64 a `POST /bills-intake/email-ingest` firmados con `INBOX_EMAIL_INGEST_SECRET`.
