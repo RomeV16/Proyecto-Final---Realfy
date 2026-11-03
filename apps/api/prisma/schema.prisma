@@ -2035,6 +2035,39 @@ enum ServiceBillStatus {
   Anulada
 }
 
+/// Cómo se originó una boleta: la cargó una persona o la leyó el sistema de un documento (ADR-0018).
+enum ServiceBillSource {
+  Manual
+  Automatica
+}
+
+/// Por dónde llegó una boleta al circuito de obtención automática (ADR-0018).
+enum BillChannel {
+  Consulta
+  Mail
+  Portal
+  Archivo
+}
+
+/// Estado de un documento de boleta: Recibida (sin procesar), Procesada (dio de alta la
+/// boleta), RequiereRevision (decide una persona), Rechazada (la descartó una persona) o
+/// Duplicada (la boleta ya estaba cargada con el mismo importe).
+enum BillDocumentStatus {
+  Recibida
+  Procesada
+  RequiereRevision
+  Rechazada
+  Duplicada
+}
+
+/// Resultado de un intento de consulta a un proveedor.
+enum BillFetchResult {
+  Ok
+  SinNovedad
+  Error
+  Bloqueado
+}
+
 /// A quién va el descuento por pago anual.
 enum AnnualDiscountBeneficiary {
   Inquilino
@@ -2065,7 +2098,10 @@ model Service {
   propertyId       String
   serviceType      ServiceType
   providerName     String?
+  /// Identificador de cuenta ante el proveedor; con `providerKey`, normalizado según el catálogo.
   accountNumber    String?
+  /// Clave del proveedor en el catálogo de boletas automáticas (ADR-0018).
+  providerKey      String?
   amount           Decimal          @db.Decimal(15, 2)
   currency         Currency         @default(ARS)
   dueDay           Int
@@ -2076,15 +2112,18 @@ model Service {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  property Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  payments ServicePayment[]
-  bills    ServiceBill[]
-  rules    ContractChargeRule[]
+  property  Property             @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  payments  ServicePayment[]
+  bills     ServiceBill[]
+  rules     ContractChargeRule[]
+  documents BillDocument[]
+  fetchRuns BillFetchRun[]
 
   @@unique([tenantId, externalRef])
   @@index([tenantId])
   @@index([tenantId, propertyId])
   @@index([tenantId, isActive])
+  @@index([tenantId, providerKey, accountNumber])
   @@map("services")
 }
 
@@ -2169,17 +2208,86 @@ model ServiceBill {
   paidAt           DateTime?
   receiptUrl       String?
   notes            String?
+  /// Manual: la cargó una persona. Automatica: la leyó el sistema de `document` (ADR-0018).
+  source           ServiceBillSource @default(Manual)
+  documentId       String?
   createdById      String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
   service     Service                 @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  document    BillDocument?           @relation(fields: [documentId], references: [id], onDelete: SetNull)
   allocations ServiceBillAllocation[]
   payments    ServicePayment[]
 
   @@unique([serviceId, period, installmentLabel])
   @@index([tenantId, period])
+  @@index([documentId])
   @@map("service_bills")
+}
+
+/// Documento de boleta que entra al circuito de obtención automática (ADR-0018), venga
+/// del canal que venga. Único por contenido: el mismo PDF no se procesa dos veces. Una
+/// consulta sin adjunto guarda en `sha256` el resumen del identificador del mensaje.
+model BillDocument {
+  id            String             @id @default(uuid())
+  tenantId      String
+  channel       BillChannel
+  /// Remitente del mail, nombre del archivo subido o clave del conector.
+  origin        String?
+  fileName      String?
+  /// Clave del PDF en el almacenamiento de objetos; nula si el mensaje no traía adjunto.
+  storageKey    String?
+  sizeBytes     Int?
+  sha256        String
+  /// Proveedor reconocido por las firmas del texto.
+  providerKey   String?
+  /// Identificador de cuenta leído, normalizado.
+  accountNumber String?
+  /// Lo leído: boletas (período, cuota, importe, vencimientos, código de pago, consumo) y avisos.
+  data          Json?
+  /// 0 a 1: confianza de la lectura.
+  confidence    Decimal?           @db.Decimal(4, 3)
+  status        BillDocumentStatus @default(Recibida)
+  /// Código del motivo por el que quedó en revisión o se rechazó.
+  reason        String?
+  serviceId     String?
+  createdById   String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  processedAt   DateTime?
+  createdAt     DateTime           @default(now())
+
+  service Service?      @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  bills   ServiceBill[]
+
+  @@unique([tenantId, sha256])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, serviceId])
+  @@map("bill_documents")
+}
+
+/// Un intento de consulta a un proveedor para un servicio (conectores de consulta, ADR-0018).
+model BillFetchRun {
+  id           String          @id @default(uuid())
+  tenantId     String
+  serviceId    String?
+  providerKey  String
+  channel      BillChannel     @default(Consulta)
+  startedAt    DateTime
+  finishedAt   DateTime?
+  result       BillFetchResult
+  errorCode    String?
+  errorMessage String?
+  /// Documentos nuevos que dejó el intento.
+  documents    Int             @default(0)
+  createdAt    DateTime        @default(now())
+
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, startedAt])
+  @@index([tenantId, providerKey, startedAt])
+  @@map("bill_fetch_runs")
 }
 
 /// Parte de una boleta que se cobra al inquilino de un contrato, en la

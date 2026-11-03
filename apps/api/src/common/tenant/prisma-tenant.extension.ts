@@ -17,6 +17,8 @@ const TENANT_SCOPED_MODELS = new Set([
   'PropertyListing',
   'Conversation',
   'ConversationMessage',
+  'BillDocument',
+  'BillFetchRun',
   'PropertyMedia',
   'PriceHistory',
   'Person',
