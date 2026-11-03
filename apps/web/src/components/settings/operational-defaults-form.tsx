@@ -78,7 +78,7 @@ const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = 
   { key: 'rent', fields: ['dueDay', 'leadDays', 'ipcLagMonths'], checks: ['allowProvisional'] },
   {
     key: 'liquidation',
-    fields: ['prorationMode', 'midMonthAdjustmentMode', 'firstDueMode', 'fixedDiscountProration'],
+    fields: ['prorationMode', 'midMonthAdjustmentMode', 'firstDueMode', 'fixedDiscountProration', 'lateAdjustmentBilling'],
   },
   { key: 'fees', fields: ['commissionPct', 'feeAlta', 'feeRenovacion', 'feeVentaConstruido', 'feeVentaLote'] },
   {

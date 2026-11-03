@@ -158,6 +158,7 @@
   "copyReference": "Copy reference",
   "copied": "Copied",
   "codes": {
+   "ADJUSTMENT_PENDING": "A rent adjustment in force this month has not been applied yet: apply it from Monthly adjustments (or wait for the index) before approving the liquidación.",
    "CONTRACT_NOT_ACTIVE": "This can only be done with an active or expired contract.",
   "EXPIRED_CONTRACT_NEEDS_EXTENSION_OR_RENEWAL": "An expired contract is reactivated by an oral extension or a renewal.",
    "EXTENSION_NOT_AFTER_END": "The extension must end after the contract's current end.",
@@ -1501,12 +1502,15 @@
   },
   "commissionable": "Commissionable",
   "provisional": "Provisional",
+  "adjustmentPending": "Adjustment pending",
+  "adjustmentPendingHint": "The rent adjustment of {date} has not been applied: the liquidación uses the previous rent and cannot be approved. Once it is applied (from Monthly adjustments, or automatically when the index is published) it is recalculated.",
   "provisionalHint": "The rent uses a provisional adjustment; it is corrected when the official index is published.",
   "receipt": {
    "number": "Receipt No. {number}",
    "print": "Print receipt",
    "pending": "Numbered on approval"
   },
+  "adjustmentPendingCount": "{count} with a pending adjustment (index missing): they cannot be approved until it is applied",
   "outOfRangeCount": "{count} outside the contract period (skipped)",
   "lineItemTypes": {
    "Alquiler": "Alquiler",
@@ -5163,6 +5167,14 @@
    "options": {
     "Proporcional": "Prorated",
     "Completo": "Applied in full"
+   }
+  },
+  "lateAdjustmentBilling": {
+   "label": "Adjustment applied after the month was issued",
+   "hint": "When an adjustment already in force is applied after the month's liquidación was issued, the difference is billed in the next one or the adjustment applies from the next one (factory default: {value}).",
+   "options": {
+    "Retroactivo": "The difference is billed in the next liquidación",
+    "SinRetroactivo": "Applies from the next one, no difference"
    }
   },
   "upfrontBasis": {

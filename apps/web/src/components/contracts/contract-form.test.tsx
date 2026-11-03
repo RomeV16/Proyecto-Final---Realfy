@@ -377,7 +377,7 @@ describe('ContractForm — convenciones de liquidación', () => {
     tenantDefaults = () => Promise.reject(new Error('sin permiso'));
     const user = await toPriceStep();
     expect(await screen.findByLabelText('Prorrateo de un mes parcial')).toHaveValue('');
-    expect(screen.getAllByRole('option', { name: 'Valor por defecto de la inmobiliaria' })).toHaveLength(6);
+    expect(screen.getAllByRole('option', { name: 'Valor por defecto de la inmobiliaria' })).toHaveLength(7);
 
     await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));

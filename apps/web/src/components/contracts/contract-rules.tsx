@@ -30,6 +30,7 @@ interface TermsVersion {
   midMonthAdjustmentMode?: string;
   firstDueMode?: string;
   fixedDiscountProration?: string;
+  lateAdjustmentBilling?: string;
   penaltyConfig?: unknown;
   upfrontBasis?: string;
   upfrontThresholdFees?: number | null;
