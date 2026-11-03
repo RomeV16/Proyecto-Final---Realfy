@@ -1,9 +1,11 @@
 import type { BillProviderKey, FetchedBillData } from '@realfy/shared';
+import { aguasCordobesas } from './aguas-cordobesas';
 import { ecogas } from './ecogas';
 import { epec } from './epec';
 import { generico } from './generico';
 import { muniCordoba } from './muni-cordoba';
 import type { BillProviderDefinition } from './provider.types';
+import { rentasCordoba } from './rentas-cordoba';
 import { normalizeText } from './text-utils';
 
 export type { BillProviderDefinition } from './provider.types';
@@ -12,9 +14,11 @@ export { BillFetchBlockedError } from './bill-fetcher';
 
 /** Catálogo de proveedores: uno por archivo, registrado acá. El genérico va último y es el respaldo. */
 export const BILL_PROVIDERS: readonly BillProviderDefinition[] = [
+  aguasCordobesas,
   ecogas,
   epec,
   muniCordoba,
+  rentasCordoba,
   generico,
 ];
 
