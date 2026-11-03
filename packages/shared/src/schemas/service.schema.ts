@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { BillProviderKeySchema } from '../bills-intake/providers';
 import {
   AnnualDiscountBeneficiary,
   AnnualRecovery,
@@ -20,6 +21,8 @@ export const CreateServiceSchema = z.object({
   serviceType: z.nativeEnum(ServiceType),
   providerName: z.string().max(200).optional().nullable(),
   accountNumber: z.string().max(100).optional().nullable(),
+  /** Proveedor del catálogo de boletas automáticas (ADR-0018); con él, `accountNumber` se normaliza. */
+  providerKey: BillProviderKeySchema.optional().nullable(),
   amount: z.number().positive(),
   currency: z.nativeEnum(Currency).default(Currency.ARS),
   dueDay: z.number().int().min(1).max(31),

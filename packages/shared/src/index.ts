@@ -55,6 +55,10 @@ export {
   AnnualDiscountBeneficiary,
   RemainingInstallmentsOnEnd,
   ServiceBillStatus,
+  ServiceBillSource,
+  BillChannel,
+  BillDocumentStatus,
+  BillFetchResult,
   ChargeTarget,
   PendingChargeKind,
   PendingChargeStatus,
@@ -1508,3 +1512,4 @@ export type {
   CollectionCaseDetail,
 } from './schemas/collection.schema';
 export * from './inbox';
+export * from './bills-intake';
