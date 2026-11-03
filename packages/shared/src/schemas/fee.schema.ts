@@ -82,6 +82,8 @@ export const CreateFeeSchema = z
     contractPeriodId: uuid.optional().nullable(),
     propertyId: uuid.optional().nullable(),
     valuationId: uuid.optional().nullable(),
+    /** Operación de venta a la que pertenece el honorario (solo `Venta`). */
+    salesOpId: uuid.optional().nullable(),
     basis: z.nativeEnum(FeeBasis),
     /** Base del porcentaje (total del contrato, valor real) o el monto fijo. */
     baseAmount: amount,

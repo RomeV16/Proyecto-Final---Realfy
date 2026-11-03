@@ -5,6 +5,8 @@ import {
   FeeInstallmentStatus,
   FeeStatus,
   PendingChargeStatus,
+  SalesDepositStatus,
+  SalesOperationStatus,
   ImportBatchStatus,
   ImportRowAction,
   LeadStatus,
@@ -51,6 +53,8 @@ export type StatusDomain =
   | 'cargo'
   | 'estadoCuenta'
   | 'vencimiento'
+  | 'venta'
+  | 'sena'
   | 'honorario'
   | 'cuotaHonorario'
   | 'facturaLocador'
@@ -114,6 +118,27 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
     },
     [OwnerStatementStatus.Anulado],
   ),
+  venta: entries(
+    'sales.statuses',
+    {
+      [SalesOperationStatus.Captacion]: 'neutral',
+      [SalesOperationStatus.Publicada]: 'info',
+      [SalesOperationStatus.Reservada]: 'warning',
+      [SalesOperationStatus.SenaRecibida]: 'brand',
+      [SalesOperationStatus.Boleto]: 'brand',
+      [SalesOperationStatus.Escriturada]: 'success',
+      [SalesOperationStatus.Cancelada]: 'neutral',
+    },
+    [SalesOperationStatus.Cancelada],
+  ),
+  sena: entries('sales.deposits.statuses', {
+    [SalesDepositStatus.Pendiente]: 'warning',
+    [SalesDepositStatus.Recibida]: 'info',
+    [SalesDepositStatus.Devuelta]: 'neutral',
+    [SalesDepositStatus.Retenida]: 'danger',
+    [SalesDepositStatus.Vencida]: 'danger',
+    [SalesDepositStatus.Aplicada]: 'success',
+  }),
   honorario: entries(
     'fees.statuses',
     {

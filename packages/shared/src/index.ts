@@ -1405,3 +1405,51 @@ export { RECONCILIATION_CYCLE, RECONCILIATION_EXPECTED } from './reconciliation/
 
 // Publicación: portales, avisos por portal y aviso optimizado
 export * from './publication';
+
+// ─── Ventas y llaves ────────────────────────────────────
+export {
+  SalesOperationStatus,
+  SalesPartyRole,
+  SalesDepositKind,
+  SalesDepositHolder,
+  SalesDepositStatus,
+  KeyHolder,
+} from './enums';
+export { salesMachine, OPEN_SALES_STATUSES } from './state-machine/sales-state-machine';
+export {
+  SALES_DOC_TEMPLATE,
+  SALES_DOC_CODES,
+  hasUnresolvedMoney,
+  blocksLeavingStage,
+  isDepositExpired,
+  reservationExpiry,
+} from './sales';
+export type { SalesDocTemplateItem } from './sales';
+export {
+  SalesPartyInputSchema,
+  CreateSalesOperationSchema,
+  UpdateSalesOperationSchema,
+  SetSalesPartiesSchema,
+  SalesFilterSchema,
+  TransitionSalesSchema,
+  CreateSalesDepositSchema,
+  UpdateSalesDepositSchema,
+  ReceiveSalesDepositSchema,
+  RefundSalesDepositSchema,
+  ForfeitSalesDepositSchema,
+  SalesPendingDepositsFilterSchema,
+  UpdateSalesDocCheckSchema,
+  CreateSalesFeeSchema,
+  CreateKeySetSchema,
+  UpdateKeySetSchema,
+  KeyCheckOutSchema,
+  KeyCheckInSchema,
+  KeysOutFilterSchema,
+} from './schemas/sales.schema';
+export type {
+  CreateSalesOperationInput,
+  TransitionSalesInput,
+  CreateSalesDepositInput,
+  CreateKeySetInput,
+  KeyCheckOutInput,
+} from './schemas/sales.schema';

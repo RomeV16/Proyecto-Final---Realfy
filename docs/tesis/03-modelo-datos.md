@@ -643,6 +643,7 @@ erDiagram
     Contract |o--o{ Fee : "alta, renovación"
     ContractPeriod |o--o{ Fee : "período renovado"
     Property |o--o{ Fee : "venta, tasación"
+    SalesOperation |o--o{ Fee : "honorario de la venta"
     PropertyValuation |o--o{ Fee : "tasación"
     Person ||--o{ Fee : "paga"
     Fee ||--o{ FeeInstallment : "cuotas"
@@ -945,11 +946,31 @@ El resultado de cada fila de un lote.
 - `errors` guarda como JSON la lista de `{ code, message, field? }` de la fila.
 - Se borra en cascada con su lote; `@@index([batchId, action])` sirve a la consulta de errores.
 
+## Ventas y llaves
+
+### SalesOperation, SalesParty, SalesDeposit y SalesDocCheck
+
+La operación de venta de una propiedad, de la captación a la escritura. La escritura no se gestiona: queda como estado final (`Escriturada`) y su fecha.
+
+- `SalesOperation`: `id`, `tenantId`, `propertyId`, `status` (`Captacion`, `Publicada`, `Reservada`, `SenaRecibida`, `Boleto`, `Escriturada`, `Cancelada`), `exclusive` (por ahora la inmobiliaria no trabaja con exclusividad; se marca a futuro), `price` (de publicación), `agreedPrice` (pactado en la reserva, la seña o el boleto), `currency` (dólares por defecto), `agentUserId` (responsable, opcional), `boletoDate`, `escrituraDate`, `cancelReason`, `closedAt`, `notes`. Una propiedad tiene a lo sumo **una operación abierta**: lo garantiza el servicio con un bloqueo de la fila de la propiedad (Prisma no expresa un índice único parcial).
+- `SalesParty`: `salesOpId`, `role` (`Comprador` o `Vendedor`), `personId`, `sharePct` (cuatro decimales); `@@unique([salesOpId, role, personId])`. Los porcentajes de cada lado suman 100; lo valida la API. En la unión de personas es un **conflicto**: si las dos personas figuran en el mismo lado de una operación, la unión se rechaza (409) en lugar de dejar un reparto que no suma.
+- `SalesDeposit`: reserva o seña. `kind` (`Reserva` o `Sena`), `amount`, `currency`, `holder` (`Inmobiliaria`, `Vendedor` o `Escribano`: quién guarda el dinero), `holderPersonId` y `payerPersonId` (claves a `Person`, tratadas en la unión), `status` (`Pendiente` de cobro, `Recibida`, `Devuelta`, `Retenida`, `Vencida`, `Aplicada` al precio), `expiresAt` (vencimiento de una reserva), `receivedAt`, `receivedMovementId`, `resolvedAt`, `resolvedAmount`, `resolutionMovementId`, `resolutionNote`. Los movimientos de caja (`CashMovement`, categoría `Sena`) se enlazan por id sin clave foránea, igual que en los depósitos de contratos. El **dinero recibido sin resolver** es el que tiene `receivedAt` y no `resolvedAt`, esté o no vencida la reserva.
+- `SalesDocCheck`: un renglón de la documentación del inmueble (`code` de una lista fija: informe de dominio, de inhibición, certificado catastral, libre deuda municipal y de Rentas, libre deuda de expensas, título, DNI de los vendedores, estado civil y asentimiento conyugal, plano final de obra), `required`, `done`, `doneAt`, `doneById`, `notes`; `@@unique([salesOpId, code])`. Se crea con la operación a partir de la lista del paquete compartido.
+- `Fee.salesOpId` (opcional, clave a `SalesOperation`, `Restrict`) vincula el honorario de venta con su operación. Hasta ahora el honorario de venta colgaba de la propiedad (`propertyId`, que se conserva); no había operaciones, así que la migración no tiene nada que trasladar.
+
+### KeySet y KeyMovement
+
+Las llaves de una propiedad.
+
+- `KeySet`: `propertyId`, `label` (principal, cochera, baulera), `copies`, `holder` (`Oficina`, `Propietario`, `Inquilino`, `Empleado`, `Tercero`), `holderPersonId`, `holderUserId`, `holderName` (nombre libre cuando no es una persona ni un usuario cargado), `location` (dónde se guardan en la oficina), `isActive`, `notes`.
+- `KeyMovement`: una **salida** y su devolución: `keySetId`, `holder`, `holderPersonId`, `holderUserId`, `holderName`, `reason`, `outAt`, `expectedReturnAt`, `returnedAt`, `outById`, `returnedById`, `notes`. Mientras `returnedAt` es nulo la salida sigue abierta. Invariante: un juego está fuera de la oficina si y solo si tiene una salida abierta; el servicio bloquea la fila del juego para que dos salidas simultáneas no abran dos.
+
 ## Relaciones críticas
 
 - `Tenant` 1-N `User`, `Property`, `Person`, `Pipeline`, `Ticket`, `TicketCategory`, `ArcaIssuer`, `ReportSchedule`, con relación declarada. El resto de las tablas del dominio —`Contract`, `Liquidacion`, `Lead`, `Payment` y demás— lleva la columna `tenantId` sin relación inversa.
 - `Property` 1-N `PropertyOperation`, y es la operación la que tiene el estado de disponibilidad. La titularidad se expresa con `PropertyOwnership`, no con una clave foránea en `Property`, y es opcional.
 - `Property` 1-N `Contract` a lo largo del tiempo.
+- `Property` 1-N `SalesOperation` (a lo sumo una abierta); `SalesOperation` 1-N `SalesParty`, `SalesDeposit`, `SalesDocCheck` y `Fee`. `Property` 1-N `KeySet` 1-N `KeyMovement`.
 - `Contract` N-M `Person` mediante `ContractPerson` (inquilino, garante, comprador) y mediante `ContractLessor` (locadores, con porcentaje de cobro y vigencia).
 - `Person` N-M `Person` mediante `PowerOfAttorney` (poderdante y apoderado), con alcance general o acotado a un contrato o una propiedad.
 - `Person` 1-N `MessageOutbox`, `ContactConsent` e `InboundMessage`: los mensajes y el consentimiento de una persona, que pasan a la conservada al unir dos personas.

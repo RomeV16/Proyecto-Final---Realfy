@@ -81,6 +81,8 @@
  "nav": {
   "dashboard": "Panel",
   "properties": "Propiedades",
+  "sales": "Ventas",
+  "keys": "Llaves fuera",
   "persons": "Personas",
   "leads": "Leads",
   "contracts": "Contratos",
@@ -656,6 +658,8 @@
    "noPhotos": "Sin fotos"
   },
   "detail": {
+   "sales": "Ventas",
+   "keys": "Llaves",
    "operations": "Operaciones",
    "priceHistory": "Historial de precios",
    "media": "Fotos",
@@ -4851,6 +4855,10 @@
     "title": "Cuenta corriente del locador",
     "description": "Cuándo cierra el estado de cuenta mensual y cuándo se descuentan los gastos a cargo del locador."
    },
+   "sales": {
+    "title": "Ventas",
+    "description": "Reservas y señas: plazo, quién guarda el dinero y la documentación exigida para el boleto. El sistema solo registra: nunca devuelve ni retiene una seña por su cuenta."
+   },
    "repairs": {
     "title": "Reparaciones",
     "description": "Hasta qué importe se actúa sin consultar al locador y el honorario por gestión que se propone."
@@ -5031,6 +5039,23 @@
      "AlGenerarEstado": "Al generar el borrador del mes",
      "AlEmitirEstado": "Al emitir el estado (el borrador los muestra como previstos)"
     }
+   },
+   "salesReservationDays": {
+    "label": "Días de vigencia de una reserva",
+    "hint": "Si no se indica vencimiento, la reserva vence a los {value} días (de fábrica {value}). Pasada la fecha, un proceso diario la marca vencida y libera la operación."
+   },
+   "salesDefaultDepositHolder": {
+    "label": "Quién guarda el dinero de una reserva o seña",
+    "hint": "De fábrica: {value}. Lo que guarda la inmobiliaria entra a su caja como seña.",
+    "options": {
+     "Inmobiliaria": "La inmobiliaria",
+     "Vendedor": "El vendedor",
+     "Escribano": "El escribano"
+    }
+   },
+   "salesRequireDocsForBoleto": {
+    "label": "Exigir la documentación obligatoria para pasar a boleto",
+    "hint": "Informes de dominio e inhibición, certificado catastral, libre deuda, título y DNI de los vendedores. Si está apagado, el boleto no la exige. Se puede seguir sin ella dejando el motivo."
    },
    "repairPreauthLimit": {
     "label": "Límite sin consultar al locador ($)",
@@ -7088,6 +7113,353 @@
    "expiryWarnDaysHint": "Desde cuántos días antes un aviso figura como por vencer.",
    "save": "Guardar",
    "saving": "Guardando…"
+  }
+ },
+ "fieldsDialog": {
+  "required": "Este dato es obligatorio.",
+  "amountInvalid": "Ingresá un importe mayor a cero, con hasta 2 decimales.",
+  "saving": "Guardando…"
+ },
+ "sales": {
+  "title": "Ventas",
+  "subtitle": "De la captación a la escritura: reservas, señas, boleto y la documentación del inmueble. La escritura se registra como estado final y fecha.",
+  "add": "Nueva operación de venta",
+  "forbidden": "No tenés permiso para ver las ventas.",
+  "exclusive": "Exclusiva",
+  "noParty": "Sin vendedor cargado",
+  "noBuyer": "Sin comprador cargado",
+  "docsProgress": "{done} de {total} obligatorios",
+  "tabs": {
+   "operations": "Operaciones",
+   "deposits": "Señas pendientes"
+  },
+  "columns": {
+   "property": "Propiedad",
+   "parties": "Vendedor y comprador",
+   "status": "Etapa",
+   "price": "Precio",
+   "docs": "Documentación",
+   "expiry": "Reserva"
+  },
+  "filters": {
+   "status": "Etapa",
+   "all": "Todas",
+   "open": "Estado",
+   "openOnly": "Abiertas",
+   "closedOnly": "Cerradas",
+   "exclusive": "Exclusividad",
+   "exclusiveYes": "Exclusivas",
+   "exclusiveNo": "Sin exclusividad"
+  },
+  "empty": {
+   "title": "No hay operaciones de venta",
+   "subtitle": "Cargá una operación para seguir la reserva, la seña y el boleto."
+  },
+  "statuses": {
+   "Captacion": "Captación",
+   "Publicada": "Publicada",
+   "Reservada": "Reservada",
+   "SenaRecibida": "Seña recibida",
+   "Boleto": "Boleto",
+   "Escriturada": "Escriturada",
+   "Cancelada": "Cancelada"
+  },
+  "transitions": {
+   "Captacion": "Volver a captación",
+   "Publicada": "Publicar o liberar",
+   "Reservada": "Reservar",
+   "SenaRecibida": "Registrar seña recibida",
+   "Boleto": "Pasar a boleto",
+   "Escriturada": "Registrar escritura",
+   "Cancelada": "Cancelar operación"
+  },
+  "expiry": {
+   "expired": "Vencida",
+   "today": "Vence hoy",
+   "soon": "Vence pronto",
+   "ok": "Vence"
+  },
+  "pending": {
+   "held": "Dinero recibido sin resolver",
+   "heldBy": "Guarda: {holder}",
+   "empty": "No hay señas pendientes",
+   "emptySubtitle": "Acá aparecen las reservas y señas prometidas y no cobradas, y el dinero recibido que todavía no se devolvió ni se aplicó."
+  },
+  "create": {
+   "title": "Nueva operación de venta",
+   "description": "Una propiedad tiene a lo sumo una operación abierta. La lista de documentación se crea sola.",
+   "status": "Etapa inicial",
+   "price": "Precio de publicación",
+   "currency": "Moneda",
+   "exclusive": "Exclusividad",
+   "exclusiveHint": "Por ahora la inmobiliaria no trabaja con exclusividad; se puede marcar a futuro.",
+   "exclusiveYes": "Exclusiva",
+   "exclusiveNo": "Sin exclusividad",
+   "notes": "Notas",
+   "submit": "Crear operación",
+   "done": "Operación creada.",
+   "error": "No se pudo crear la operación.",
+   "propertyRequired": "Elegí la propiedad.",
+   "changeProperty": "Cambiar",
+   "property": "Propiedad",
+   "propertyHint": "Escribí al menos 2 letras del título o la calle.",
+   "noProperties": "No se encontraron propiedades.",
+   "propertyResults": "Propiedades encontradas"
+  },
+  "property": {
+   "start": "Iniciar venta",
+   "none": "Esta propiedad todavía no tiene operaciones de venta.",
+   "operation": "Operación de venta"
+  },
+  "detail": {
+   "back": "Volver a ventas",
+   "viewProperty": "Ver la propiedad",
+   "summary": "Resumen",
+   "price": "Precio de publicación",
+   "agreedPrice": "Precio pactado",
+   "boletoDate": "Fecha del boleto",
+   "escrituraDate": "Fecha de escritura",
+   "cancelReason": "Motivo de la cancelación",
+   "moveTo": "Cambiar de etapa",
+   "loadError": "No se pudo cargar la operación."
+  },
+  "parties": {
+   "title": "Partes",
+   "edit": "Editar partes",
+   "roles": {
+    "Comprador": "Comprador",
+    "Vendedor": "Vendedor"
+   },
+   "none": "Sin cargar",
+   "shareError": "Cada parte tiene que ser mayor a cero.",
+   "sumError": "Las partes de {role} tienen que sumar 100 %.",
+   "saved": "Partes guardadas.",
+   "error": "No se pudieron guardar las partes.",
+   "share": "Parte de {name}",
+   "remove": "Quitar a {name}",
+   "removeShort": "Quitar",
+   "add": "Agregar {role}",
+   "save": "Guardar partes",
+   "saving": "Guardando…"
+  },
+  "transitionDialog": {
+   "title": "Pasar a {to}",
+   "confirm": "Confirmar",
+   "done": "Etapa actualizada.",
+   "error": "No se pudo cambiar la etapa.",
+   "agreedPrice": "Precio pactado (opcional)",
+   "boletoDate": "Fecha de firma del boleto",
+   "docsOverride": "Motivo para seguir sin la documentación obligatoria",
+   "docsOverrideHint": "Falta documentación obligatoria. Sin un motivo, el sistema no deja pasar a boleto.",
+   "escrituraDate": "Fecha de la escritura",
+   "reason": "Motivo",
+   "descriptions": {
+    "Captacion": "La operación vuelve a captación.",
+    "Publicada": "La operación queda publicada. Si había dinero recibido, tiene que estar devuelto o retenido.",
+    "Reservada": "Requiere un comprador y una reserva cargada.",
+    "SenaRecibida": "Requiere una seña recibida.",
+    "Boleto": "Se registra la firma del boleto de compraventa.",
+    "Escriturada": "Se registra la escritura como estado final y fecha. Las señas recibidas se aplican al precio.",
+    "Cancelada": "La operación se cancela. Si había dinero recibido, tiene que estar devuelto o retenido."
+   }
+  },
+  "deposits": {
+   "title": "Reservas y señas",
+   "note": "El sistema registra lo que pasó; no decide solo quién se queda con el dinero. Devolver o retener se anota a mano.",
+   "add": "Agregar reserva o seña",
+   "empty": "Todavía no hay reservas ni señas.",
+   "from": "De {name}",
+   "receivedOn": "Recibida el",
+   "resolvedOn": "Resuelta el",
+   "unresolved": "Dinero recibido sin resolver",
+   "columns": {
+    "kind": "Tipo",
+    "amount": "Importe",
+    "holder": "Guarda",
+    "payer": "Entrega",
+    "status": "Estado",
+    "actions": "Acciones"
+   },
+   "kinds": {
+    "Reserva": "Reserva",
+    "Sena": "Seña"
+   },
+   "holders": {
+    "Inmobiliaria": "Inmobiliaria",
+    "Vendedor": "Vendedor",
+    "Escribano": "Escribano"
+   },
+   "statuses": {
+    "Pendiente": "Pendiente de cobro",
+    "Recibida": "Recibida",
+    "Devuelta": "Devuelta",
+    "Retenida": "Retenida",
+    "Vencida": "Vencida",
+    "Aplicada": "Aplicada al precio"
+   },
+   "methods": {
+    "Efectivo": "Efectivo",
+    "Transferencia": "Transferencia",
+    "MercadoPago": "Mercado Pago",
+    "Cheque": "Cheque"
+   },
+   "actions": {
+    "receive": "Recibir",
+    "extend": "Prorrogar",
+    "refund": "Devolver",
+    "forfeit": "Retener"
+   },
+   "dialog": {
+    "addTitle": "Nueva reserva o seña",
+    "kind": "Tipo",
+    "amount": "Importe",
+    "currency": "Moneda",
+    "holder": "Quién guarda el dinero",
+    "holderHint": "Si lo guarda la inmobiliaria, entra a su caja como seña.",
+    "payer": "Comprador que lo entrega",
+    "expiresAt": "Vencimiento",
+    "expiresHint": "Sin fecha rige el plazo por defecto de la inmobiliaria.",
+    "note": "Nota",
+    "save": "Guardar",
+    "added": "Registrado.",
+    "error": "No se pudo guardar.",
+    "receiveTitle": "Registrar que el dinero entró",
+    "receiveDescription": "Lo guarda: {holder}.",
+    "date": "Fecha",
+    "confirm": "Confirmar",
+    "received": "Dinero recibido.",
+    "refundTitle": "Devolver al comprador",
+    "refundDescription": "Sale de la misma cuenta donde entró si lo guarda la inmobiliaria. No se calcula ninguna devolución en doble: eso se arregla fuera del sistema.",
+    "refundDone": "Devolución registrada.",
+    "forfeitTitle": "Retener la seña",
+    "forfeitDescription": "Solo se registra, con su motivo. No mueve la caja ni decide a quién le corresponde el dinero.",
+    "forfeitDone": "Retención registrada.",
+    "amountOptional": "Importe (opcional)",
+    "amountHint": "Sin importe se toma todo lo recibido.",
+    "method": "Medio",
+    "reason": "Motivo y fundamento",
+    "extendTitle": "Prorrogar la reserva",
+    "extended": "Vencimiento actualizado."
+   }
+  },
+  "docs": {
+   "title": "Documentación del inmueble",
+   "progress": "{done} de {total} documentos obligatorios reunidos",
+   "required": "Obligatorio",
+   "optional": "Opcional",
+   "error": "No se pudo actualizar el documento.",
+   "items": {
+    "informe_dominio": "Informe de dominio",
+    "informe_inhibicion": "Informe de inhibición de los vendedores",
+    "certificado_catastral": "Certificado catastral",
+    "libre_deuda_municipal": "Libre deuda municipal",
+    "libre_deuda_rentas": "Libre deuda de Rentas (impuesto inmobiliario)",
+    "libre_deuda_expensas": "Libre deuda de expensas",
+    "titulo_propiedad": "Título de propiedad",
+    "dni_vendedores": "DNI de los vendedores",
+    "estado_civil_asentimiento": "Estado civil y asentimiento conyugal",
+    "plano_final_de_obra": "Plano final de obra"
+   }
+  },
+  "fee": {
+   "title": "Honorario de la venta",
+   "agree": "Pactar honorario",
+   "none": "Todavía no hay honorario pactado.",
+   "notYet": "El honorario se pacta una vez que la operación está reservada.",
+   "roles": {
+    "Comprador": "Comprador",
+    "Vendedor": "Vendedor"
+   },
+   "assets": {
+    "Construido": "inmueble construido",
+    "Lote": "lote"
+   },
+   "dialog": {
+    "title": "Honorario de la venta",
+    "description": "Cada parte paga un porcentaje sobre el valor real. Por defecto: {pct} % ({asset}).",
+    "pct": "Porcentaje por parte",
+    "base": "Valor de la operación ({currency})",
+    "installments": "Cuotas",
+    "firstDue": "Vencimiento de la primera cuota",
+    "confirm": "Crear honorario",
+    "done": "Honorario creado.",
+    "error": "No se pudo crear el honorario."
+   }
+  }
+ },
+ "keys": {
+  "forbidden": "No tenés permiso para ver las llaves.",
+  "holders": {
+   "Oficina": "Oficina",
+   "Propietario": "Propietario",
+   "Inquilino": "Inquilino",
+   "Empleado": "Empleado",
+   "Tercero": "Tercero"
+  },
+  "card": {
+   "title": "Llaves",
+   "add": "Agregar juego de llaves",
+   "loadError": "No se pudieron cargar las llaves.",
+   "none": "Todavía no hay llaves cargadas para esta propiedad.",
+   "copies": "{count, plural, one {# copia} other {# copias}}",
+   "inactive": "Dado de baja",
+   "inOffice": "En la oficina",
+   "heldBy": "{holder}: {name}",
+   "overdue": "Atrasadas {days} d",
+   "checkIn": "Registrar devolución",
+   "checkOut": "Registrar salida",
+   "location": "Guardadas en: {location}",
+   "history": "Historial ({count})",
+   "stillOut": "sigue afuera",
+   "since": "Desde el",
+   "expected": "vuelven el"
+  },
+  "dialog": {
+   "label": "Nombre del juego",
+   "labelHint": "Por ejemplo: principal, cochera, baulera.",
+   "copies": "Copias",
+   "location": "Dónde se guardan en la oficina",
+   "locationHint": "Por ejemplo: caja fuerte, gancho 12.",
+   "holder": "Quién las tiene",
+   "holderName": "Nombre de quien las tiene",
+   "addTitle": "Nuevo juego de llaves",
+   "save": "Guardar",
+   "added": "Juego cargado.",
+   "error": "No se pudo guardar.",
+   "staff": "Empleado",
+   "reason": "Para qué",
+   "reasonHint": "Por ejemplo: visita con un interesado, obra, entrega al inquilino.",
+   "outAt": "Fecha de salida",
+   "expectedReturnAt": "Fecha en que deberían volver",
+   "expectedHint": "Pasada esa fecha figuran como atrasadas.",
+   "checkOutTitle": "Salida de {label}",
+   "checkOut": "Registrar salida",
+   "checkedOut": "Salida registrada.",
+   "checkInTitle": "Devolución de {label}",
+   "returnedAt": "Fecha de devolución",
+   "notes": "Notas",
+   "checkIn": "Registrar devolución",
+   "checkedIn": "Devolución registrada."
+  },
+  "out": {
+   "title": "Llaves fuera",
+   "subtitle": "Los juegos que no están en la oficina: quién los tiene, desde cuándo y cuáles están atrasados.",
+   "columns": {
+    "property": "Propiedad",
+    "holder": "Las tiene",
+    "reason": "Para qué",
+    "outAt": "Salida",
+    "expected": "Vuelven",
+    "actions": "Acciones"
+   },
+   "filters": {
+    "holder": "Quién las tiene",
+    "all": "Todos",
+    "overdue": "Atraso",
+    "overdueOnly": "Solo atrasadas"
+   },
+   "empty": "No hay llaves fuera",
+   "emptySubtitle": "Todas las llaves están en la oficina."
   }
  }
 }

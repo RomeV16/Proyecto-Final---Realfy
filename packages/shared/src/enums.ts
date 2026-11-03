@@ -867,3 +867,57 @@ export enum ImportRowAction {
   SinCambios = 'SinCambios',
   Error = 'Error',
 }
+
+// ─── Ventas y llaves ────────────────────────────────────
+
+/** Etapa de una operación de venta. La escritura se registra como estado final y fecha: no se gestiona. */
+export enum SalesOperationStatus {
+  Captacion = 'Captacion',
+  Publicada = 'Publicada',
+  Reservada = 'Reservada',
+  SenaRecibida = 'SenaRecibida',
+  Boleto = 'Boleto',
+  Escriturada = 'Escriturada',
+  Cancelada = 'Cancelada',
+}
+
+/** Lado de la operación al que pertenece una parte. */
+export enum SalesPartyRole {
+  Comprador = 'Comprador',
+  Vendedor = 'Vendedor',
+}
+
+/** Reserva (compromiso con vencimiento) o seña (pago a cuenta del precio). */
+export enum SalesDepositKind {
+  Reserva = 'Reserva',
+  Sena = 'Sena',
+}
+
+/** Quién guarda el dinero de una reserva o seña. */
+export enum SalesDepositHolder {
+  Inmobiliaria = 'Inmobiliaria',
+  Vendedor = 'Vendedor',
+  Escribano = 'Escribano',
+}
+
+/**
+ * Estado de una reserva o seña. `Devuelta` y `Retenida` se registran a mano:
+ * el sistema nunca decide solo quién se queda con el dinero.
+ */
+export enum SalesDepositStatus {
+  Pendiente = 'Pendiente',
+  Recibida = 'Recibida',
+  Devuelta = 'Devuelta',
+  Retenida = 'Retenida',
+  Vencida = 'Vencida',
+  Aplicada = 'Aplicada',
+}
+
+/** Quién tiene un juego de llaves. */
+export enum KeyHolder {
+  Oficina = 'Oficina',
+  Propietario = 'Propietario',
+  Inquilino = 'Inquilino',
+  Empleado = 'Empleado',
+  Tercero = 'Tercero',
+}

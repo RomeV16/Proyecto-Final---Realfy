@@ -37,6 +37,8 @@ import { OwnerAccountsModule } from './modules/owner-accounts/owner-accounts.mod
 import { FollowUpsModule } from './modules/follow-ups/follow-ups.module';
 import { FeesModule } from './modules/fees/fees.module';
 import { DepositsModule } from './modules/deposits/deposits.module';
+import { KeysModule } from './modules/keys/keys.module';
+import { SalesModule } from './modules/sales/sales.module';
 import { PipelinesModule } from './modules/pipelines/pipelines.module';
 import { LeadsModule } from './modules/leads/leads.module';
 import { InteractionsModule } from './modules/interactions/interactions.module';
@@ -114,6 +116,8 @@ import { ReadPolicyModule } from './common/read-policy/read-policy.module';
     FollowUpsModule,
     FeesModule,
     DepositsModule,
+    SalesModule,
+    KeysModule,
     NotificationsModule,
     EmailTemplatesModule,
     PortalAuthModule,

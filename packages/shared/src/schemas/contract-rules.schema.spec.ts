@@ -49,6 +49,7 @@ describe('OperationalDefaultsSchema', () => {
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
       expiryLight: { redDays: 30, yellowDays: 60 },
       repairs: { preauthLimit: 0, managementFeePct: 0 },
+      sales: { reservationDays: 7, defaultDepositHolder: 'Inmobiliaria', requireDocsForBoleto: true },
       deposits: { defaultHeldBy: 'Locador', refundDueDays: 30, deductionsNeedLessorApproval: false },
       cash: {
         lessorDirectOwes: 'TodoLoAjeno',

@@ -81,6 +81,8 @@
  "nav": {
   "dashboard": "Panel",
   "properties": "Propiedades",
+  "sales": "Sales",
+  "keys": "Keys out",
   "persons": "Personas",
   "leads": "Leads",
   "contracts": "Contratos",
@@ -656,6 +658,8 @@
    "noPhotos": "No photos"
   },
   "detail": {
+   "sales": "Sales",
+   "keys": "Keys",
    "operations": "Operaciones",
    "priceHistory": "Historial de precios",
    "media": "Fotos",
@@ -4851,6 +4855,10 @@
     "title": "Lessor account",
     "description": "When the monthly owner statement closes and when the expenses charged to the lessor are deducted."
    },
+   "sales": {
+    "title": "Sales",
+    "description": "Reservations and deposits: period, who holds the money and the paperwork required for the preliminary contract. The system only records: it never refunds or forfeits a deposit by itself."
+   },
    "repairs": {
     "title": "Repairs",
     "description": "Up to which amount the agency acts without asking the lessor, and the management fee that is suggested."
@@ -5031,6 +5039,23 @@
      "AlGenerarEstado": "When the month's draft is generated",
      "AlEmitirEstado": "When the statement is issued (the draft shows them as expected)"
     }
+   },
+   "salesReservationDays": {
+    "label": "Days a reservation lasts",
+    "hint": "Without an expiry date, a reservation expires after {value} days (default {value}). After the date a daily process marks it expired and releases the operation."
+   },
+   "salesDefaultDepositHolder": {
+    "label": "Who holds the money of a reservation or deposit",
+    "hint": "Default: {value}. What the agency holds goes into its cash as a deposit.",
+    "options": {
+     "Inmobiliaria": "The agency",
+     "Vendedor": "The seller",
+     "Escribano": "The notary"
+    }
+   },
+   "salesRequireDocsForBoleto": {
+    "label": "Require the mandatory paperwork to move to the preliminary contract",
+    "hint": "Title and inhibition reports, cadastral certificate, debt-free certificates, title and the sellers ID. When off, the preliminary contract does not require it. It can be skipped by leaving the reason."
    },
    "repairPreauthLimit": {
     "label": "Limit without asking the lessor ($)",
@@ -7088,6 +7113,353 @@
    "expiryWarnDaysHint": "How many days before expiry a listing shows as expiring.",
    "save": "Save",
    "saving": "Saving…"
+  }
+ },
+ "fieldsDialog": {
+  "required": "This field is required.",
+  "amountInvalid": "Enter an amount greater than zero with up to 2 decimals.",
+  "saving": "Saving…"
+ },
+ "sales": {
+  "title": "Sales",
+  "subtitle": "From listing to the deed: reservations, deposits, preliminary contract and the property paperwork. The deed is recorded as a final state and date.",
+  "add": "New sales operation",
+  "forbidden": "You do not have permission to view sales.",
+  "exclusive": "Exclusive",
+  "noParty": "No seller added",
+  "noBuyer": "No buyer added",
+  "docsProgress": "{done} of {total} required",
+  "tabs": {
+   "operations": "Operations",
+   "deposits": "Pending deposits"
+  },
+  "columns": {
+   "property": "Property",
+   "parties": "Seller and buyer",
+   "status": "Stage",
+   "price": "Price",
+   "docs": "Paperwork",
+   "expiry": "Reservation"
+  },
+  "filters": {
+   "status": "Stage",
+   "all": "All",
+   "open": "Status",
+   "openOnly": "Open",
+   "closedOnly": "Closed",
+   "exclusive": "Exclusivity",
+   "exclusiveYes": "Exclusive",
+   "exclusiveNo": "Not exclusive"
+  },
+  "empty": {
+   "title": "No sales operations",
+   "subtitle": "Add an operation to follow the reservation, the deposit and the preliminary contract."
+  },
+  "statuses": {
+   "Captacion": "Listing",
+   "Publicada": "Published",
+   "Reservada": "Reserved",
+   "SenaRecibida": "Deposit received",
+   "Boleto": "Preliminary contract",
+   "Escriturada": "Deed signed",
+   "Cancelada": "Cancelled"
+  },
+  "transitions": {
+   "Captacion": "Back to listing",
+   "Publicada": "Publish or release",
+   "Reservada": "Reserve",
+   "SenaRecibida": "Record deposit received",
+   "Boleto": "Move to preliminary contract",
+   "Escriturada": "Record the deed",
+   "Cancelada": "Cancel operation"
+  },
+  "expiry": {
+   "expired": "Expired",
+   "today": "Expires today",
+   "soon": "Expires soon",
+   "ok": "Expires"
+  },
+  "pending": {
+   "held": "Money received and unresolved",
+   "heldBy": "Held by: {holder}",
+   "empty": "No pending deposits",
+   "emptySubtitle": "Reservations and deposits that were promised but not collected, and money received that has not been refunded or applied yet, show up here."
+  },
+  "create": {
+   "title": "New sales operation",
+   "description": "A property has at most one open operation. The paperwork checklist is created automatically.",
+   "status": "Initial stage",
+   "price": "Listing price",
+   "currency": "Currency",
+   "exclusive": "Exclusivity",
+   "exclusiveHint": "The agency does not work with exclusivity for now; it can be flagged in the future.",
+   "exclusiveYes": "Exclusive",
+   "exclusiveNo": "Not exclusive",
+   "notes": "Notes",
+   "submit": "Create operation",
+   "done": "Operation created.",
+   "error": "The operation could not be created.",
+   "propertyRequired": "Choose the property.",
+   "changeProperty": "Change",
+   "property": "Property",
+   "propertyHint": "Type at least 2 letters of the title or the street.",
+   "noProperties": "No properties found.",
+   "propertyResults": "Properties found"
+  },
+  "property": {
+   "start": "Start a sale",
+   "none": "This property has no sales operations yet.",
+   "operation": "Sales operation"
+  },
+  "detail": {
+   "back": "Back to sales",
+   "viewProperty": "View the property",
+   "summary": "Summary",
+   "price": "Listing price",
+   "agreedPrice": "Agreed price",
+   "boletoDate": "Preliminary contract date",
+   "escrituraDate": "Deed date",
+   "cancelReason": "Cancellation reason",
+   "moveTo": "Change stage",
+   "loadError": "The operation could not be loaded."
+  },
+  "parties": {
+   "title": "Parties",
+   "edit": "Edit parties",
+   "roles": {
+    "Comprador": "Buyer",
+    "Vendedor": "Seller"
+   },
+   "none": "Not added",
+   "shareError": "Each share must be greater than zero.",
+   "sumError": "The {role} shares must add up to 100 %.",
+   "saved": "Parties saved.",
+   "error": "The parties could not be saved.",
+   "share": "Share of {name}",
+   "remove": "Remove {name}",
+   "removeShort": "Remove",
+   "add": "Add {role}",
+   "save": "Save parties",
+   "saving": "Saving…"
+  },
+  "transitionDialog": {
+   "title": "Move to {to}",
+   "confirm": "Confirm",
+   "done": "Stage updated.",
+   "error": "The stage could not be changed.",
+   "agreedPrice": "Agreed price (optional)",
+   "boletoDate": "Preliminary contract signing date",
+   "docsOverride": "Reason to continue without the required paperwork",
+   "docsOverrideHint": "Required paperwork is missing. Without a reason the system will not move to the preliminary contract.",
+   "escrituraDate": "Deed date",
+   "reason": "Reason",
+   "descriptions": {
+    "Captacion": "The operation goes back to listing.",
+    "Publicada": "The operation is published. Any money received must have been refunded or forfeited.",
+    "Reservada": "Requires a buyer and a recorded reservation.",
+    "SenaRecibida": "Requires a received deposit.",
+    "Boleto": "Records the signing of the preliminary contract.",
+    "Escriturada": "Records the deed as a final state and date. Received deposits are applied to the price.",
+    "Cancelada": "The operation is cancelled. Any money received must have been refunded or forfeited."
+   }
+  },
+  "deposits": {
+   "title": "Reservations and deposits",
+   "note": "The system records what happened; it never decides by itself who keeps the money. Refunds and forfeits are recorded by hand.",
+   "add": "Add reservation or deposit",
+   "empty": "No reservations or deposits yet.",
+   "from": "From {name}",
+   "receivedOn": "Received on",
+   "resolvedOn": "Resolved on",
+   "unresolved": "Money received and unresolved",
+   "columns": {
+    "kind": "Type",
+    "amount": "Amount",
+    "holder": "Held by",
+    "payer": "Paid by",
+    "status": "Status",
+    "actions": "Actions"
+   },
+   "kinds": {
+    "Reserva": "Reservation",
+    "Sena": "Deposit"
+   },
+   "holders": {
+    "Inmobiliaria": "Agency",
+    "Vendedor": "Seller",
+    "Escribano": "Notary"
+   },
+   "statuses": {
+    "Pendiente": "Awaiting payment",
+    "Recibida": "Received",
+    "Devuelta": "Refunded",
+    "Retenida": "Forfeited",
+    "Vencida": "Expired",
+    "Aplicada": "Applied to the price"
+   },
+   "methods": {
+    "Efectivo": "Cash",
+    "Transferencia": "Bank transfer",
+    "MercadoPago": "Mercado Pago",
+    "Cheque": "Cheque"
+   },
+   "actions": {
+    "receive": "Receive",
+    "extend": "Extend",
+    "refund": "Refund",
+    "forfeit": "Forfeit"
+   },
+   "dialog": {
+    "addTitle": "New reservation or deposit",
+    "kind": "Type",
+    "amount": "Amount",
+    "currency": "Currency",
+    "holder": "Who holds the money",
+    "holderHint": "If the agency holds it, it goes into its cash as a deposit.",
+    "payer": "Buyer who pays it",
+    "expiresAt": "Expiry",
+    "expiresHint": "Without a date the agency default period applies.",
+    "note": "Note",
+    "save": "Save",
+    "added": "Recorded.",
+    "error": "It could not be saved.",
+    "receiveTitle": "Record that the money came in",
+    "receiveDescription": "Held by: {holder}.",
+    "date": "Date",
+    "confirm": "Confirm",
+    "received": "Money received.",
+    "refundTitle": "Refund to the buyer",
+    "refundDescription": "It leaves from the account it came into if the agency holds it. No double refund is calculated: that is settled outside the system.",
+    "refundDone": "Refund recorded.",
+    "forfeitTitle": "Forfeit the deposit",
+    "forfeitDescription": "It is only recorded, with its reason. It does not move the cash nor decide who is entitled to the money.",
+    "forfeitDone": "Forfeit recorded.",
+    "amountOptional": "Amount (optional)",
+    "amountHint": "Without an amount everything received is taken.",
+    "method": "Method",
+    "reason": "Reason and grounds",
+    "extendTitle": "Extend the reservation",
+    "extended": "Expiry updated."
+   }
+  },
+  "docs": {
+   "title": "Property paperwork",
+   "progress": "{done} of {total} required documents gathered",
+   "required": "Required",
+   "optional": "Optional",
+   "error": "The document could not be updated.",
+   "items": {
+    "informe_dominio": "Title report (informe de dominio)",
+    "informe_inhibicion": "Seller inhibition report",
+    "certificado_catastral": "Cadastral certificate",
+    "libre_deuda_municipal": "Municipal debt-free certificate",
+    "libre_deuda_rentas": "Provincial tax debt-free certificate (property tax)",
+    "libre_deuda_expensas": "Building fees debt-free certificate",
+    "titulo_propiedad": "Property title",
+    "dni_vendedores": "Sellers ID",
+    "estado_civil_asentimiento": "Marital status and spousal consent",
+    "plano_final_de_obra": "Final construction plan"
+   }
+  },
+  "fee": {
+   "title": "Sale fee",
+   "agree": "Agree the fee",
+   "none": "No fee agreed yet.",
+   "notYet": "The fee is agreed once the operation is reserved.",
+   "roles": {
+    "Comprador": "Buyer",
+    "Vendedor": "Seller"
+   },
+   "assets": {
+    "Construido": "built property",
+    "Lote": "lot"
+   },
+   "dialog": {
+    "title": "Sale fee",
+    "description": "Each party pays a percentage of the real value. Default: {pct} % ({asset}).",
+    "pct": "Percentage per party",
+    "base": "Operation value ({currency})",
+    "installments": "Installments",
+    "firstDue": "First installment due date",
+    "confirm": "Create fee",
+    "done": "Fee created.",
+    "error": "The fee could not be created."
+   }
+  }
+ },
+ "keys": {
+  "forbidden": "You do not have permission to view keys.",
+  "holders": {
+   "Oficina": "Office",
+   "Propietario": "Owner",
+   "Inquilino": "Tenant",
+   "Empleado": "Employee",
+   "Tercero": "Third party"
+  },
+  "card": {
+   "title": "Keys",
+   "add": "Add key set",
+   "loadError": "The keys could not be loaded.",
+   "none": "No keys recorded for this property yet.",
+   "copies": "{count, plural, one {# copy} other {# copies}}",
+   "inactive": "Retired",
+   "inOffice": "In the office",
+   "heldBy": "{holder}: {name}",
+   "overdue": "Overdue {days} d",
+   "checkIn": "Record return",
+   "checkOut": "Record check-out",
+   "location": "Kept at: {location}",
+   "history": "History ({count})",
+   "stillOut": "still out",
+   "since": "Since",
+   "expected": "due back"
+  },
+  "dialog": {
+   "label": "Key set name",
+   "labelHint": "For example: main, garage, storage room.",
+   "copies": "Copies",
+   "location": "Where they are kept in the office",
+   "locationHint": "For example: safe, hook 12.",
+   "holder": "Who has them",
+   "holderName": "Name of who has them",
+   "addTitle": "New key set",
+   "save": "Save",
+   "added": "Key set added.",
+   "error": "It could not be saved.",
+   "staff": "Employee",
+   "reason": "Purpose",
+   "reasonHint": "For example: viewing with a prospect, works, handover to the tenant.",
+   "outAt": "Check-out date",
+   "expectedReturnAt": "Date they should be back",
+   "expectedHint": "After that date they show as overdue.",
+   "checkOutTitle": "Check-out of {label}",
+   "checkOut": "Record check-out",
+   "checkedOut": "Check-out recorded.",
+   "checkInTitle": "Return of {label}",
+   "returnedAt": "Return date",
+   "notes": "Notes",
+   "checkIn": "Record return",
+   "checkedIn": "Return recorded."
+  },
+  "out": {
+   "title": "Keys out",
+   "subtitle": "The sets that are not in the office: who has them, since when and which ones are overdue.",
+   "columns": {
+    "property": "Property",
+    "holder": "Held by",
+    "reason": "Purpose",
+    "outAt": "Out",
+    "expected": "Due back",
+    "actions": "Actions"
+   },
+   "filters": {
+    "holder": "Who has them",
+    "all": "All",
+    "overdue": "Overdue",
+    "overdueOnly": "Overdue only"
+   },
+   "empty": "No keys out",
+   "emptySubtitle": "All the keys are in the office."
   }
  }
 }

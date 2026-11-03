@@ -11,6 +11,6 @@ import { FeePaymentsService } from './fee-payments.service';
   imports: [TenantsModule, CashModule],
   controllers: [FeesController, StaffCommissionsController],
   providers: [FeesService, FeeProposalService, FeePaymentsService],
-  exports: [FeesService],
+  exports: [FeesService, FeeProposalService],
 })
 export class FeesModule {}
