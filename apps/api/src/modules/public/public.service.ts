@@ -17,11 +17,15 @@ import {
   PropertyOperationType,
   PipelineType,
   LeadSource,
+  ConversationChannel,
+  normalizeEmail,
+  normalizePhone,
   LeadStatus,
   PersonRole,
   UserRole,
 } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
+import { InboxIngestService } from '../inbox/inbox-ingest.service';
 
 /**
  * Property columns exposed on the public portal. Never the address number, floor,
@@ -47,7 +51,10 @@ const PROPERTY_LIST_SELECT = {
 export class PublicService {
   private readonly logger = new Logger(PublicService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly inbox: InboxIngestService,
+  ) {}
 
   // ─── Properties: List ─────────────────────────────────
 
@@ -235,8 +242,39 @@ export class PublicService {
     });
 
     this.logger.log(`Public inquiry created: leadId=${lead.id} tenantId=${tenantId}`);
+    await this._openConversation(tenantId, validated, { leadId: lead.id, personId, propertyId: property?.id ?? null, assignedToUserId });
 
     return { id: lead.id };
+  }
+
+  /**
+   * La consulta también entra en la bandeja (canal Web), junto al interés. Si no se
+   * puede, la consulta ya quedó guardada como interés: el formulario no falla por eso.
+   */
+  private async _openConversation(
+    tenantId: string,
+    data: { firstName: string; lastName: string; email?: string; phone?: string; message: string },
+    ctx: { leadId: string; personId: string; propertyId: string | null; assignedToUserId: string | null },
+  ): Promise<void> {
+    const address = normalizeEmail(data.email) ?? normalizePhone(data.phone);
+    if (!address) return;
+    try {
+      await this.inbox.receive(tenantId, {
+        channel: ConversationChannel.Web,
+        address,
+        name: `${data.firstName} ${data.lastName}`.trim(),
+        subject: ctx.propertyId ? 'Consulta por una propiedad' : 'Consulta desde el sitio',
+        body: data.message,
+        at: new Date(),
+        personId: ctx.personId,
+        leadId: ctx.leadId,
+        relatedType: ctx.propertyId ? 'Property' : null,
+        relatedId: ctx.propertyId,
+        assigneeUserId: ctx.assignedToUserId,
+      });
+    } catch (err) {
+      this.logger.error(`Inbox hand-off failed for public inquiry: leadId=${ctx.leadId} error=${(err as Error).message}`);
+    }
   }
 
   // ─── Private: qué se muestra ───────────────────────────

@@ -3,11 +3,14 @@ import {
   ConsentSource,
   MessageChannel,
   MessageStatus,
+  ConversationChannel,
   normalizeEmail,
   normalizePhone,
 } from '@realfy/shared';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MessagingConfigService } from '../../common/messaging/messaging-config.service';
+import { InboxIngestService } from '../inbox/inbox-ingest.service';
 import { notifyManagement } from './notify-management';
 import { ConsentsService } from './consents.service';
 
@@ -31,6 +34,7 @@ interface StatusUpdate {
 
 interface WhatsAppValue {
   metadata?: { phone_number_id?: string };
+  contacts?: { wa_id?: string; profile?: { name?: string } }[];
   statuses?: { id?: string; status?: string; timestamp?: string; errors?: { code?: number; title?: string; message?: string }[] }[];
   messages?: { id?: string; from?: string; timestamp?: string; type?: string; text?: { body?: string }; button?: { text?: string } }[];
 }
@@ -69,6 +73,8 @@ export class WebhooksService {
     private readonly prisma: PrismaService,
     private readonly consents: ConsentsService,
     private readonly notifications: NotificationsService,
+    private readonly inbox: InboxIngestService,
+    private readonly config: MessagingConfigService,
   ) {}
 
   async handleWhatsApp(payload: unknown, phoneNumberId: string | undefined): Promise<void> {
@@ -90,7 +96,7 @@ export class WebhooksService {
         });
       }
       for (const m of value.messages ?? []) {
-        await this.inbound(m);
+        await this.inbound(m, value.contacts?.find((c) => normalizePhone(c.wa_id) === normalizePhone(m.from))?.profile?.name);
       }
     }
   }
@@ -140,16 +146,11 @@ export class WebhooksService {
   }
 
   /** Mensaje entrante de WhatsApp: se guarda y, si pide la baja, se registra. */
-  private async inbound(m: NonNullable<WhatsAppValue['messages']>[number]): Promise<void> {
+  private async inbound(m: NonNullable<WhatsAppValue['messages']>[number], profileName?: string): Promise<void> {
     const from = normalizePhone(m.from);
     if (!m.id || !from) return;
     const db = this.prisma.baseClient;
-    // La inmobiliaria es la del último mensaje que se le mandó a ese número.
-    const last = await db.messageOutbox.findFirst({
-      where: { channel: MessageChannel.WhatsApp, to: from, status: { not: MessageStatus.Pending } },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      select: { tenantId: true, personId: true },
-    });
+    const last = await this.resolveTenant(from);
     if (!last) {
       this.logger.warn('Inbound WhatsApp message from an unknown number: discarded');
       return;
@@ -171,10 +172,13 @@ export class WebhooksService {
       ],
       skipDuplicates: true,
     });
-    if (count === 0) return; // Meta reintenta: el mismo mensaje no se procesa dos veces.
-
     const word = body.trim().toUpperCase();
-    if (OPT_OUT_WORDS.has(word)) {
+    const optOut = OPT_OUT_WORDS.has(word);
+    // Meta reintenta: una baja no se procesa dos veces; un mensaje sí se reintenta hasta que
+    // llegue a la bandeja de consultas (ingestar es idempotente).
+    if (count === 0 && optOut) return;
+
+    if (optOut) {
       const ids = [...new Set([...(last.personId ? [last.personId] : []), ...personIds])];
       await this.consents.recordOptOut(db, {
         tenantId: last.tenantId,
@@ -192,13 +196,37 @@ export class WebhooksService {
       });
       return;
     }
-    await notifyManagement(this.prisma, this.notifications, last.tenantId, {
-      type: 'InboundMessageReceived',
-      title: 'Mensaje de WhatsApp recibido',
-      message: `El número ${from} escribió por WhatsApp.`,
-      entityType: 'InboundMessage',
-      entityId: `wa:${from}`,
+    await this.inbox.receiveStored(last.tenantId, m.id, {
+      channel: ConversationChannel.WhatsApp,
+      address: from,
+      name: profileName ?? null,
+      body,
+      at: fromUnix(m.timestamp),
+      personId,
     });
+  }
+
+  /**
+   * La inmobiliaria de un mensaje entrante: la del último mensaje que se le mandó a ese
+   * número; si nunca se le escribió (una consulta nueva), la dueña del número de WhatsApp
+   * del ambiente (WHATSAPP_TENANT_SLUG) o, sin esa variable, la única inmobiliaria activa.
+   */
+  private async resolveTenant(from: string): Promise<{ tenantId: string; personId: string | null } | null> {
+    const db = this.prisma.baseClient;
+    const last = await db.messageOutbox.findFirst({
+      where: { channel: MessageChannel.WhatsApp, to: from, status: { not: MessageStatus.Pending } },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: { tenantId: true, personId: true },
+    });
+    if (last) return last;
+    const slug = this.config.inbox.whatsappTenantSlug;
+    const tenants = await db.tenant.findMany({
+      where: { isActive: true, ...(slug ? { slug } : {}) },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+      take: 2,
+    });
+    return tenants.length === 1 ? { tenantId: tenants[0].id, personId: null } : null;
   }
 
   /** Queja de spam en un mail: es una baja del mail para esa dirección. */

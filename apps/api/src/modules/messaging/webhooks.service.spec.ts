@@ -1,7 +1,7 @@
 import { WebhooksService } from './webhooks.service';
 import { ConsentsService } from './consents.service';
 
-function build(opts: { outbox?: any[]; persons?: any[]; staff?: any[] } = {}) {
+function build(opts: { outbox?: any[]; persons?: any[]; staff?: any[]; tenants?: any[]; slug?: string } = {}) {
   const outbox = opts.outbox ?? [];
   const inbound: any[] = [];
   const consents: any[] = [];
@@ -28,13 +28,16 @@ function build(opts: { outbox?: any[]; persons?: any[]; staff?: any[] } = {}) {
     },
     contactConsent: { createMany: jest.fn(async ({ data }: any) => consents.push(...data)) },
     user: { findMany: jest.fn().mockResolvedValue(opts.staff ?? [{ id: 'u-admin' }]) },
+    tenant: { findMany: jest.fn().mockResolvedValue(opts.tenants ?? []) },
     $queryRaw: jest.fn().mockResolvedValue(opts.persons ?? []),
   };
   const prisma: any = { baseClient: base };
   const notifications = { createNotification: jest.fn().mockResolvedValue({ id: 'n' }) };
   const consentsService = new ConsentsService(prisma, {} as any);
-  const service = new WebhooksService(prisma, consentsService, notifications as any);
-  return { service, outbox, inbound, consents, base, notifications };
+  const inboxIngest = { receiveStored: jest.fn().mockResolvedValue({ conversationId: 'c-1', created: true, reopened: false }) };
+  const config = { inbox: { whatsappTenantSlug: opts.slug } };
+  const service = new WebhooksService(prisma, consentsService, notifications as any, inboxIngest as any, config as any);
+  return { service, outbox, inbound, consents, base, notifications, inboxIngest };
 }
 
 const sent = (over: Record<string, unknown> = {}) => ({
@@ -112,26 +115,65 @@ describe('WebhooksService: WhatsApp', () => {
     expect(consents).toHaveLength(1);
   });
 
-  it('otro texto se guarda para la bandeja de consultas y avisa', async () => {
-    const { service, consents, inbound, notifications } = build({ outbox: [sent()] });
+  it('otro texto se guarda y pasa a la bandeja de consultas, con el nombre del perfil', async () => {
+    const { service, consents, inbound, inboxIngest, notifications } = build({ outbox: [sent()] });
     await service.handleWhatsApp(
-      waPayload({ messages: [{ id: 'wamid.in3', from: '5493515550101', type: 'image' }] }),
+      waPayload({
+        contacts: [{ wa_id: '5493515550101', profile: { name: 'Iris Demo' } }],
+        messages: [{ id: 'wamid.in3', from: '5493515550101', type: 'image', timestamp: '1762100000' }],
+      }),
       '1000000001',
     );
     expect(inbound[0].body).toBe('[image]');
     expect(consents).toHaveLength(0);
-    expect(notifications.createNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'InboundMessageReceived', entityId: 'wa:5493515550101' }),
-    );
+    expect(inboxIngest.receiveStored).toHaveBeenCalledWith('t-1', 'wamid.in3', {
+      channel: 'WhatsApp',
+      address: '5493515550101',
+      name: 'Iris Demo',
+      body: '[image]',
+      at: new Date(1762100000 * 1000),
+      personId: 'p-1',
+    });
+    // El aviso lo da la bandeja de consultas, no el webhook.
+    expect(notifications.createNotification).not.toHaveBeenCalled();
   });
 
-  it('un número al que nunca se le escribió se descarta: no hay inmobiliaria que asignarle', async () => {
-    const { service, inbound } = build({ outbox: [sent({ to: '5491100000000' })] });
+  it('un reintento de Meta vuelve a intentar llegar a la bandeja (es idempotente), pero no repite una baja', async () => {
+    const { service, inboxIngest } = build({ outbox: [sent()] });
+    const text = waPayload({ messages: [{ id: 'wamid.in5', from: '5493515550101', type: 'text', text: { body: 'hola' } }] });
+    await service.handleWhatsApp(text, '1000000001');
+    await service.handleWhatsApp(text, '1000000001');
+    expect(inboxIngest.receiveStored).toHaveBeenCalledTimes(2);
+  });
+
+  it('un número al que nunca se le escribió se descarta si no se sabe de qué inmobiliaria es', async () => {
+    const { service, inbound, inboxIngest } = build({ outbox: [sent({ to: '5491100000000' })], tenants: [{ id: 'a' }, { id: 'b' }] });
     await service.handleWhatsApp(
       waPayload({ messages: [{ id: 'wamid.in4', from: '5493515550101', text: { body: 'BAJA' } }] }),
       '1000000001',
     );
     expect(inbound).toHaveLength(0);
+    expect(inboxIngest.receiveStored).not.toHaveBeenCalled();
+  });
+
+  it('una consulta nueva de un número desconocido va a la única inmobiliaria activa', async () => {
+    const { service, inbound, inboxIngest, base } = build({ tenants: [{ id: 't-solo' }] });
+    await service.handleWhatsApp(
+      waPayload({ messages: [{ id: 'wamid.in6', from: '5493515550199', type: 'text', text: { body: 'Hola, ¿sigue disponible?' } }] }),
+      '1000000001',
+    );
+    expect(inbound[0]).toMatchObject({ tenantId: 't-solo', personId: null });
+    expect(inboxIngest.receiveStored).toHaveBeenCalledWith('t-solo', 'wamid.in6', expect.objectContaining({ address: '5493515550199', name: null }));
+    expect(base.tenant.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { isActive: true } }));
+  });
+
+  it('con WHATSAPP_TENANT_SLUG se busca esa inmobiliaria', async () => {
+    const { service, base } = build({ tenants: [{ id: 't-slug' }], slug: 'demo' });
+    await service.handleWhatsApp(
+      waPayload({ messages: [{ id: 'wamid.in7', from: '5493515550198', type: 'text', text: { body: 'Hola' } }] }),
+      '1000000001',
+    );
+    expect(base.tenant.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { isActive: true, slug: 'demo' } }));
   });
 });
 

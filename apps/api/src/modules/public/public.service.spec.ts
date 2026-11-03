@@ -28,8 +28,9 @@ function build(opts: { publication?: Record<string, unknown>; published?: Array<
     user: { findMany: jest.fn().mockResolvedValue([]) },
     lead: { create: jest.fn().mockResolvedValue({ id: 'lead-1' }), count: jest.fn() },
   };
-  const service = new PublicService({ baseClient } as never);
-  return { service, baseClient };
+  const inbox = { receive: jest.fn().mockResolvedValue({ conversationId: 'c-1', created: true, reopened: false }) };
+  const service = new PublicService({ baseClient } as never, inbox as never);
+  return { service, baseClient, inbox };
 }
 
 describe('PublicService (micrositio)', () => {
@@ -164,6 +165,35 @@ describe('PublicService (micrositio)', () => {
         source: 'WebInquiry',
         notes: 'Hola',
       });
+    });
+
+    it('la consulta también entra en la bandeja (canal Web) junto al interés', async () => {
+      const { service, inbox } = build();
+      await service.createInquiry(TENANT, { ...valid, website: '' });
+      expect(inbox.receive).toHaveBeenCalledWith(
+        TENANT,
+        expect.objectContaining({
+          channel: 'Web',
+          address: 'lucia@correo.test',
+          name: 'Lucía Gómez',
+          body: 'Hola',
+          personId: 'person',
+          leadId: 'lead-1',
+          relatedType: null,
+        }),
+      );
+    });
+
+    it('sin mail, la bandeja usa el teléfono normalizado como dirección', async () => {
+      const { service, inbox } = build();
+      await service.createInquiry(TENANT, { firstName: 'A', lastName: 'B', phone: '351 555-0101', message: 'x' });
+      expect(inbox.receive.mock.calls[0][1].address).toBe('5493515550101');
+    });
+
+    it('si la bandeja falla, el formulario igual responde: la consulta ya quedó como interés', async () => {
+      const { service, inbox } = build();
+      inbox.receive.mockRejectedValueOnce(new Error('boom'));
+      await expect(service.createInquiry(TENANT, { ...valid, website: '' })).resolves.toEqual({ id: 'lead-1' });
     });
 
     it('descarta el vínculo con una propiedad que no está publicada', async () => {

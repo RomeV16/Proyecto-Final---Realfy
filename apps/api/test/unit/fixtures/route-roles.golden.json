@@ -549,6 +549,84 @@
     "Gerente",
     "Ventas"
   ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.list": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.summary": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.getSettings": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.updateSettings": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.registerCall": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.runSla": [
+    "Admin"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.get": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.markRead": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.reply": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.assign": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.changeStatus": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxController.link": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/inbox/inbox.controller.ts#InboxEmailController.emailIngest": null,
   "src/modules/index-data/adjustments.controller.ts#AdjustmentsController.previewBatch": [
     "Admin",
     "Gerente",
