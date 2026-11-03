@@ -122,6 +122,7 @@
   "listings": "Listings",
   "followUps": "Expirations",
   "messaging": "Messaging",
+  "inbox": "Inbox",
   "collections": "Collections"
  },
  "dataTable": {
@@ -4444,7 +4445,8 @@
   "managePermissions": "Manage permissions",
   "manageDefaults": "Configure values",
   "manageImports": "View imports",
-  "manageMessaging": "View messaging"
+  "manageMessaging": "View messaging",
+  "manageInbox": "Configure the inbox"
  },
  "portalPublico": {
   "footer": {
@@ -7017,7 +7019,8 @@
     },
     "audiences": {
      "client": "Clients",
-     "staff": "Staff"
+     "staff": "Staff",
+     "reply": "Whoever wrote first"
     },
     "emailOnly": "Email only",
     "empty": "No templates"
@@ -7670,6 +7673,191 @@
    "viewAll": "View all collections",
    "payoff": "To pay today",
    "view": "View the case"
+  }
+ },
+ "inbox": {
+  "title": "Inquiry inbox",
+  "subtitle": "WhatsApp, emails, microsite inquiries and phone calls in one place, with an owner and a first-response deadline.",
+  "configure": "Settings",
+  "forbidden": "You do not have access to the inquiry inbox.",
+  "loadError": "We could not load the inquiries.",
+  "loadDetailError": "We could not load the inquiry.",
+  "nav": {
+   "unread": "{count, plural, one {# unread inquiry} other {# unread inquiries}}"
+  },
+  "summary": {
+   "unread": "{count} unread",
+   "breached": "{count} past deadline",
+   "unassigned": "{count} unassigned"
+  },
+  "filters": {
+   "label": "Inbox filters",
+   "search": "Search by name, address or subject",
+   "scope": "Status",
+   "open": "Open",
+   "all": "All",
+   "channel": "Channel",
+   "anyChannel": "All channels",
+   "assignee": "Owner",
+   "anyAssignee": "Any owner",
+   "mine": "My inquiries",
+   "unassigned": "Unassigned",
+   "breached": "Past deadline"
+  },
+  "channels": {
+   "WhatsApp": "WhatsApp",
+   "Email": "Email",
+   "Web": "Microsite",
+   "Telefono": "Phone"
+  },
+  "routeChannels": {
+   "WhatsApp": "WhatsApp",
+   "Email": "email"
+  },
+  "statuses": {
+   "Nueva": "New",
+   "Asignada": "Assigned",
+   "EnCurso": "In progress",
+   "Esperando": "Waiting for the customer",
+   "Resuelta": "Resolved",
+   "Archivada": "Archived"
+  },
+  "list": {
+   "label": "Inquiries",
+   "unread": "{count, plural, one {# unread message} other {# unread messages}}",
+   "unassigned": "Unassigned"
+  },
+  "empty": {
+   "title": "No inquiries",
+   "subtitle": "When someone writes by WhatsApp, email or the microsite, it will show up here."
+  },
+  "sla": {
+   "met": "Answered",
+   "dueIn": "Due in {time}",
+   "overdue": "Overdue by {time}"
+  },
+  "thread": {
+   "label": "Inquiry",
+   "select": "Pick an inquiry to see the conversation.",
+   "back": "← Back",
+   "assignee": "Owner",
+   "status": "Status",
+   "take": "Take it",
+   "link": "Link",
+   "person": "Person: {name}",
+   "lead": "View lead",
+   "property": "View property",
+   "contract": "View contract",
+   "noLinks": "No person, property or contract linked.",
+   "messages": "Messages",
+   "autoReply": "Auto-reply",
+   "reply": "Reply",
+   "replyPlaceholder": "Write your reply…",
+   "route": "The reply goes by {channel} to {to}.",
+   "quickReplies": "Quick replies",
+   "quickRepliesPlaceholder": "Quick reply…",
+   "send": "Send",
+   "sending": "Sending…",
+   "sent": "Reply queued in the outbox.",
+   "error": "We could not complete the action."
+  },
+  "blocked": {
+   "CONTACT_OPTED_OUT": "This person asked not to receive messages on the available channels: you cannot reply from here.",
+   "WHATSAPP_WINDOW_CLOSED": "More than 24 hours have passed since their last WhatsApp and we have no email: free text cannot be sent. Call them or wait for them to write again.",
+   "NO_REPLY_CHANNEL": "There is no address to reply to. Link a person with an email or phone, or register a call."
+  },
+  "call": {
+   "open": "Register call",
+   "title": "Register call",
+   "subtitle": "Note who called and what was discussed. If it is left to call back, the first-response deadline runs.",
+   "name": "Name",
+   "phone": "Phone",
+   "phoneInvalid": "Enter a valid phone number.",
+   "summary": "What was discussed",
+   "required": "This field is required.",
+   "answered": "Already handled during the call",
+   "answeredHint": "If not, it is assigned to you with the first-response deadline running.",
+   "save": "Register",
+   "saving": "Registering…",
+   "saved": "Call registered.",
+   "saveError": "We could not register the call."
+  },
+  "link": {
+   "title": "Link the inquiry",
+   "subtitle": "Associate it with a person, a property or a contract.",
+   "kind": "What to link",
+   "kinds": {
+    "person": "Person",
+    "property": "Property",
+    "contract": "Contract"
+   },
+   "search": "Search…",
+   "typeToSearch": "Type at least two letters to search.",
+   "noResults": "No results.",
+   "contractNeedsPerson": "To link a contract, link the person first.",
+   "unlinkPerson": "Unlink person",
+   "unlinkLead": "Unlink lead",
+   "unlinkRelated": "Unlink property or contract",
+   "close": "Close",
+   "saved": "Link saved.",
+   "error": "We could not save the link."
+  },
+  "settings": {
+   "title": "Inquiry inbox",
+   "cardSubtitle": "First-response deadline, business hours, auto-reply and quick replies.",
+   "subtitle": "How inquiries are handled: how long there is for the first response, what is answered automatically and which replies the team has at hand.",
+   "back": "Settings",
+   "readOnly": "Only Admin and Manager can change the inbox settings.",
+   "loadError": "We could not load the settings.",
+   "invalid": "Check the data: some value is invalid.",
+   "saved": "Settings saved.",
+   "save": "Save",
+   "saving": "Saving…",
+   "sla": {
+    "title": "First-response deadline",
+    "hint": "Counts from the moment the inquiry arrives until a person answers. The auto-reply does not stop the deadline.",
+    "minutes": "Minutes"
+   },
+   "hours": {
+    "enabled": "Count the deadline only within business hours",
+    "days": "Business days",
+    "from": "From (hour)",
+    "until": "Until (hour)"
+   },
+   "days": {
+    "0": "Sun",
+    "1": "Mon",
+    "2": "Tue",
+    "3": "Wed",
+    "4": "Thu",
+    "5": "Fri",
+    "6": "Sat"
+   },
+   "routing": {
+    "title": "Threads and owner",
+    "threadWindow": "Thread window (hours)",
+    "threadWindowHint": "A new message from the same contact and channel within this window continues the same inquiry.",
+    "defaultAssignee": "Default owner",
+    "defaultAssigneeHint": "Assigned to inquiries that arrive without a lead that has an owner.",
+    "noDefault": "No default owner"
+   },
+   "autoreply": {
+    "title": "Auto-reply",
+    "hint": "Sent once per inquiry, through the outbox. It respects the contact's opt-out and, on WhatsApp, only goes out within 24 hours of their message.",
+    "enabled": "Reply automatically the first time",
+    "text": "Text for {channel}",
+    "variables": "You can use '{name}' (who wrote) and '{agency}' (the agency)."
+   },
+   "quick": {
+    "title": "Quick replies",
+    "hint": "Texts the team inserts into a reply with one click.",
+    "name": "Name",
+    "body": "Text",
+    "remove": "Remove",
+    "add": "Add quick reply",
+    "newTitle": "New reply",
+    "newBody": "Hi '{name}', "
+   }
   }
  }
 }

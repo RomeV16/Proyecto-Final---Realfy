@@ -18,6 +18,8 @@ export interface NavItem {
   action?: Action;
   /** Recurso sensible: el ítem se oculta a los roles que la política de lectura de la inmobiliaria no deja leerlo. */
   readResource?: ReadResource;
+  /** Contador a la derecha del nombre (hoy sólo la bandeja de consultas). */
+  badge?: 'inbox';
 }
 
 /**
@@ -28,6 +30,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { key: 'dashboard', href: '/dashboard', icon: 'dashboard' },
   { key: 'properties', href: '/properties', icon: 'properties' },
+  { key: 'inbox', href: '/bandeja', icon: 'inbox', action: 'inbox.access', badge: 'inbox' },
   { key: 'listings', href: '/publicaciones', icon: 'megaphone' },
   { key: 'persons', href: '/persons', icon: 'persons' },
   { key: 'leads', href: '/leads', icon: 'leads' },

@@ -122,6 +122,7 @@
   "listings": "Publicaciones",
   "followUps": "Vencimientos",
   "messaging": "Mensajería",
+  "inbox": "Bandeja de consultas",
   "collections": "Cobranza"
  },
  "dataTable": {
@@ -4444,7 +4445,8 @@
   "managePermissions": "Gestionar permisos",
   "manageDefaults": "Configurar valores",
   "manageImports": "Ver importaciones",
-  "manageMessaging": "Ver mensajería"
+  "manageMessaging": "Ver mensajería",
+  "manageInbox": "Configurar la bandeja"
  },
  "portalPublico": {
   "footer": {
@@ -7017,7 +7019,8 @@
     },
     "audiences": {
      "client": "La cartera",
-     "staff": "El personal"
+     "staff": "El personal",
+     "reply": "Quien escribió primero"
     },
     "emailOnly": "Solo mail",
     "empty": "No hay plantillas"
@@ -7670,6 +7673,191 @@
    "viewAll": "Ver toda la cobranza",
    "payoff": "A pagar hoy",
    "view": "Ver el caso"
+  }
+ },
+ "inbox": {
+  "title": "Bandeja de consultas",
+  "subtitle": "WhatsApp, mails, consultas del micrositio y llamadas en un solo lugar, con responsable y plazo de primera respuesta.",
+  "configure": "Configuración",
+  "forbidden": "No tenés acceso a la bandeja de consultas.",
+  "loadError": "No pudimos cargar las consultas.",
+  "loadDetailError": "No pudimos cargar la consulta.",
+  "nav": {
+   "unread": "{count, plural, one {# consulta sin leer} other {# consultas sin leer}}"
+  },
+  "summary": {
+   "unread": "{count, plural, one {# sin leer} other {# sin leer}}",
+   "breached": "{count, plural, one {# con el plazo vencido} other {# con el plazo vencido}}",
+   "unassigned": "{count, plural, one {# sin responsable} other {# sin responsable}}"
+  },
+  "filters": {
+   "label": "Filtros de la bandeja",
+   "search": "Buscar por nombre, dirección o asunto",
+   "scope": "Estado",
+   "open": "Abiertas",
+   "all": "Todas",
+   "channel": "Canal",
+   "anyChannel": "Todos los canales",
+   "assignee": "Responsable",
+   "anyAssignee": "Cualquier responsable",
+   "mine": "Mis consultas",
+   "unassigned": "Sin responsable",
+   "breached": "Plazo vencido"
+  },
+  "channels": {
+   "WhatsApp": "WhatsApp",
+   "Email": "Mail",
+   "Web": "Micrositio",
+   "Telefono": "Teléfono"
+  },
+  "routeChannels": {
+   "WhatsApp": "WhatsApp",
+   "Email": "mail"
+  },
+  "statuses": {
+   "Nueva": "Nueva",
+   "Asignada": "Asignada",
+   "EnCurso": "En curso",
+   "Esperando": "Esperando al cliente",
+   "Resuelta": "Resuelta",
+   "Archivada": "Archivada"
+  },
+  "list": {
+   "label": "Consultas",
+   "unread": "{count, plural, one {# mensaje sin leer} other {# mensajes sin leer}}",
+   "unassigned": "Sin responsable"
+  },
+  "empty": {
+   "title": "No hay consultas",
+   "subtitle": "Cuando alguien escriba por WhatsApp, mail o el micrositio, va a aparecer acá."
+  },
+  "sla": {
+   "met": "Respondida",
+   "dueIn": "Vence en {time}",
+   "overdue": "Vencida hace {time}"
+  },
+  "thread": {
+   "label": "Consulta",
+   "select": "Elegí una consulta para ver la conversación.",
+   "back": "← Volver",
+   "assignee": "Responsable",
+   "status": "Estado",
+   "take": "Tomar",
+   "link": "Vincular",
+   "person": "Persona: {name}",
+   "lead": "Ver interés",
+   "property": "Ver propiedad",
+   "contract": "Ver contrato",
+   "noLinks": "Sin persona, propiedad ni contrato vinculados.",
+   "messages": "Mensajes",
+   "autoReply": "Autorrespuesta",
+   "reply": "Respuesta",
+   "replyPlaceholder": "Escribí la respuesta…",
+   "route": "Se responde por {channel} a {to}.",
+   "quickReplies": "Respuestas rápidas",
+   "quickRepliesPlaceholder": "Respuesta rápida…",
+   "send": "Enviar",
+   "sending": "Enviando…",
+   "sent": "Respuesta enviada a la bandeja de salida.",
+   "error": "No pudimos completar la acción."
+  },
+  "blocked": {
+   "CONTACT_OPTED_OUT": "Esta persona pidió no recibir mensajes por los canales disponibles: no se le puede responder desde acá.",
+   "WHATSAPP_WINDOW_CLOSED": "Pasaron más de 24 horas desde su último WhatsApp y no tenemos su mail: no se puede mandar texto libre. Llamala o esperá a que escriba de nuevo.",
+   "NO_REPLY_CHANNEL": "No hay una dirección a la que responder. Vinculá una persona con mail o teléfono, o registrá una llamada."
+  },
+  "call": {
+   "open": "Registrar llamada",
+   "title": "Registrar llamada",
+   "subtitle": "Anotá quién llamó y qué se habló. Si quedó para devolver, corre el plazo de primera respuesta.",
+   "name": "Nombre",
+   "phone": "Teléfono",
+   "phoneInvalid": "Ingresá un teléfono válido.",
+   "summary": "Qué se habló",
+   "required": "Este dato es obligatorio.",
+   "answered": "Ya se atendió en la llamada",
+   "answeredHint": "Si no, queda asignada a vos con el plazo de primera respuesta corriendo.",
+   "save": "Registrar",
+   "saving": "Registrando…",
+   "saved": "Llamada registrada.",
+   "saveError": "No pudimos registrar la llamada."
+  },
+  "link": {
+   "title": "Vincular la consulta",
+   "subtitle": "Asociala con una persona, una propiedad o un contrato.",
+   "kind": "Qué vincular",
+   "kinds": {
+    "person": "Persona",
+    "property": "Propiedad",
+    "contract": "Contrato"
+   },
+   "search": "Buscar…",
+   "typeToSearch": "Escribí al menos dos letras para buscar.",
+   "noResults": "No hay resultados.",
+   "contractNeedsPerson": "Para vincular un contrato, primero vinculá a la persona.",
+   "unlinkPerson": "Desvincular persona",
+   "unlinkLead": "Desvincular interés",
+   "unlinkRelated": "Desvincular propiedad o contrato",
+   "close": "Cerrar",
+   "saved": "Vínculo guardado.",
+   "error": "No pudimos guardar el vínculo."
+  },
+  "settings": {
+   "title": "Bandeja de consultas",
+   "cardSubtitle": "Plazo de primera respuesta, horario de atención, autorrespuesta y respuestas rápidas.",
+   "subtitle": "Cómo se atienden las consultas: cuánto tiempo hay para la primera respuesta, qué se contesta solo y qué respuestas tiene a mano el equipo.",
+   "back": "Configuración",
+   "readOnly": "Sólo Admin y Gerente pueden cambiar la configuración de la bandeja.",
+   "loadError": "No pudimos cargar la configuración.",
+   "invalid": "Revisá los datos: hay algún valor inválido.",
+   "saved": "Configuración guardada.",
+   "save": "Guardar",
+   "saving": "Guardando…",
+   "sla": {
+    "title": "Plazo de primera respuesta",
+    "hint": "Cuenta desde que llega la consulta hasta que una persona contesta. La autorrespuesta no detiene el plazo.",
+    "minutes": "Minutos"
+   },
+   "hours": {
+    "enabled": "Contar el plazo sólo dentro del horario de atención",
+    "days": "Días de atención",
+    "from": "Desde (hora)",
+    "until": "Hasta (hora)"
+   },
+   "days": {
+    "0": "Dom",
+    "1": "Lun",
+    "2": "Mar",
+    "3": "Mié",
+    "4": "Jue",
+    "5": "Vie",
+    "6": "Sáb"
+   },
+   "routing": {
+    "title": "Hilos y responsable",
+    "threadWindow": "Ventana del hilo (horas)",
+    "threadWindowHint": "Un mensaje nuevo del mismo contacto y canal dentro de esta ventana sigue la misma consulta.",
+    "defaultAssignee": "Responsable por defecto",
+    "defaultAssigneeHint": "Se asigna a las consultas que llegan sin un interés con responsable.",
+    "noDefault": "Sin responsable por defecto"
+   },
+   "autoreply": {
+    "title": "Autorrespuesta",
+    "hint": "Se manda una sola vez por consulta, por la bandeja de salida. Respeta la baja del contacto y, por WhatsApp, sólo sale dentro de las 24 horas de su mensaje.",
+    "enabled": "Responder automáticamente la primera vez",
+    "text": "Texto para {channel}",
+    "variables": "Podés usar '{name}' (quien escribió) y '{agency}' (la inmobiliaria)."
+   },
+   "quick": {
+    "title": "Respuestas rápidas",
+    "hint": "Textos que el equipo inserta en una respuesta con un clic.",
+    "name": "Nombre",
+    "body": "Texto",
+    "remove": "Quitar",
+    "add": "Agregar respuesta rápida",
+    "newTitle": "Nueva respuesta",
+    "newBody": "Hola '{name}', "
+   }
   }
  }
 }

@@ -132,6 +132,11 @@ export const ACTION_ROLES = {
   'collections.manage': [Admin, Gerente, Liquidaciones],
   /** Derivar a un abogado y pasar a la vía judicial: decisiones de la gerencia. */
   'collections.escalate': [Admin, Gerente],
+  // Bandeja de consultas (la API exige los mismos roles en cada ruta)
+  /** Atender la bandeja: leer, responder, tomar, cambiar el estado y vincular las consultas, y registrar llamadas. */
+  'inbox.access': [Admin, Gerente, Ventas, UserRole.Marketing, Soporte],
+  /** Asignar una consulta a otra persona y cambiar el plazo, el horario, la autorrespuesta y las respuestas rápidas. */
+  'inbox.configure': [Admin, Gerente],
 
   // Mensajería saliente (la API exige los mismos roles en cada ruta)
   /** Ver la bandeja de salida y los mensajes de un documento. */

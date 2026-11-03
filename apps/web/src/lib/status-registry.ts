@@ -2,6 +2,7 @@ import {
   CollectionStage,
   ConsentStatus,
   ContractStatus,
+  ConversationStatus,
   ExpirationLight,
   FeeInstallmentStatus,
   FeeStatus,
@@ -62,7 +63,8 @@ export type StatusDomain =
   | 'mensaje'
   | 'consentimiento'
   | 'aviso'
-  | 'cobranza';
+  | 'cobranza'
+  | 'consulta';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -170,6 +172,14 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
       [LessorInvoiceStatus.Omitido]: 'neutral',
     },
   ),
+  consulta: entries('inbox.statuses', {
+    [ConversationStatus.Nueva]: 'warning',
+    [ConversationStatus.Asignada]: 'info',
+    [ConversationStatus.EnCurso]: 'brand',
+    [ConversationStatus.Esperando]: 'neutral',
+    [ConversationStatus.Resuelta]: 'success',
+    [ConversationStatus.Archivada]: 'neutral',
+  }),
   aviso: entries('publication.statuses', {
     [ListingStatus.NoPublicado]: 'neutral',
     [ListingStatus.Publicado]: 'success',

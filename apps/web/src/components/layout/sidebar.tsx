@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
 import { Icon } from '@/components/ui/icon';
+import { InboxNavBadge } from './inbox-nav-badge';
 import { useVisibleNavItems } from './nav-items';
 import {
   RAIL_ASIDE_CLASS,
@@ -47,6 +48,7 @@ function IconRail({ isActive, t }: IconRailProps) {
                 className={railItemClass(isActive(item.href))}
               >
                 <Icon name={item.icon} size={20} />
+                {item.badge === 'inbox' && <InboxNavBadge floating />}
               </Link>
               <span
                 aria-hidden="true"
@@ -105,6 +107,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 {active && <SidebarActiveBar />}
                 <SidebarItemIcon name={item.icon} active={active} />
                 {!collapsed && <span className="flex-1">{t(item.key)}</span>}
+                {item.badge === 'inbox' && <InboxNavBadge floating={collapsed} />}
               </Link>
             );
           })}
