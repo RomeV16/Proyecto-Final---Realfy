@@ -251,6 +251,30 @@ describe('ServiceBillsService.bulk', () => {
     expect(client.serviceBillAllocation.createMany).not.toHaveBeenCalled();
   });
 
+  it('DEF-106 / CP-1133 — el consumo de una unidad sin contrato con regla entra en el total de la boleta', async () => {
+    const unitA = '22222222-2222-4222-8222-222222222222';
+    const unitB = '33333333-3333-4333-8333-333333333333';
+    const a = rule({
+      id: 'ra',
+      splitMode: 'Consumo',
+      payer: 'Propietario',
+      contract: { ...rule().contract, propertyId: unitA },
+    });
+    const { service, client } = build({ rules: [a] });
+    await service.bulk([
+      row({
+        amount: '1000.00',
+        unitConsumptions: [
+          { propertyId: unitA, consumption: '100' },
+          { propertyId: unitB, consumption: '100' },
+        ],
+      }),
+    ]);
+    // La unidad B (vacía, sin regla) consumió lo mismo: A paga la mitad, no toda la boleta.
+    const parts = client.serviceBillAllocation.createMany.mock.calls[0][0].data;
+    expect(parts).toEqual([expect.objectContaining({ contractId: 'con-1', amount: '500.00' })]);
+  });
+
   it('descarta contratos en borrador, terminados antes del mes y reglas ajenas', async () => {
     const draft = rule({ contract: { ...rule().contract, status: 'Borrador' } });
     const ended = rule({
