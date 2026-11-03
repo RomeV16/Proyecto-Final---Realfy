@@ -750,7 +750,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Resultado esperado:** la generación informa el ajuste pendiente; la liquidación lleva la advertencia bloqueante `ADJUSTMENT_PENDING` y aprobarla responde 409. Con estimado y pago a cuenta activo rige ADR-0011 (provisorio). Un ajuste a mitad de mes con `DesdePeriodoSiguiente` bloquea el mes siguiente.
 - **Resultado obtenido:** sin advertencia; se aprueba.
 - **Causa raíz:** ADR-0011 no definía qué hace la liquidación con un ajuste pendiente y la generación no lo miraba.
-- **Corrección:** `warnings` calculadas al leer (detalle, listado y resultado de la generación, con `adjustmentPending`) y la aprobación (también en lote) bloqueada con 409 `ADJUSTMENT_PENDING`.
+- **Corrección:** `warnings` calculadas al leer (detalle, listado y resultado de la generación, con `adjustmentPending`) por los ajustes sin aplicar que empiezan a regir en el período, y la aprobación (también en lote) bloqueada con 409 `ADJUSTMENT_PENDING`; un ajuste atrasado de meses anteriores no bloquea (`a565de8`).
 - **Prueba de regresión:** CP-1263 a CP-1265 en `ajuste-del-mes-en-la-liquidacion.e2e-spec.ts`; `adjustment-pending.spec.ts`; `liquidacion-detail.screen.test.tsx` y `liquidacion-list.screen.test.tsx` en la web.
 - **Evidencia rojo/verde:** regresión `3c74b80` en rojo (3 pruebas fallan: sin `warnings` ni `adjustmentPending`); corrección en `6ba9996`.
 

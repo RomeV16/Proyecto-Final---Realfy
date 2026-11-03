@@ -180,7 +180,10 @@ Decisión, sin cambiar las reglas de este ADR:
   hace la liquidación, la decisión segura es que no se pueda cobrar un importe
   equivocado: la liquidación en Borrador o En Revisión lleva la advertencia
   bloqueante `ADJUSTMENT_PENDING` y aprobarla responde 409. La advertencia se
-  calcula al leer y cuenta un ajuste a mitad de mes según `midMonthAdjustmentMode`.
+  calcula al leer y cuenta los ajustes que empiezan a regir en el período (un
+  ajuste a mitad de mes, según `midMonthAdjustmentMode`); un ajuste atrasado de
+  meses anteriores no bloquea las liquidaciones siguientes, lo informa el proceso
+  diario de ajustes.
 - **Sobre un borrador no hay cobro retroactivo.** Cuando el ajuste se aplica
   después (aplicación masiva, cálculo manual, el proceso diario o la generación
   del día siguiente), las liquidaciones del contrato todavía editables desde el mes
