@@ -147,6 +147,25 @@ describe('charge-split: consumo', () => {
     expect(amounts(r)).toEqual([['c1', '900.00']]);
   });
 
+  it('DEF-105 / CP-1130 — una unidad con consumo 0 declarado paga 0 y las demás se reparten la boleta', () => {
+    // 0 y 100 sin total de boleta: la unidad vacía paga 0 (no hay parte) y la otra, 100/100 x 900 = 900.
+    const r = splitBill({ amount: '900.00', period: JAN }, units(['0', '100']));
+    expect(amounts(r)).toEqual([['c2', '900.00']]);
+    expect(r.skipped).toEqual([{ contractId: 'c1', ruleId: 'r1', reason: 'ZeroShare' }]);
+  });
+
+  it('DEF-105 / CP-1131 — con el consumo de la boleta mayor, la unidad en 0 sigue sin pagar', () => {
+    // total 400; c2 100/400 x 800 = 200; la diferencia (300 de consumo) queda sin trasladar.
+    const r = splitBill({ amount: '800.00', period: JAN, consumption: '400' }, units(['0', '100']));
+    expect(amounts(r)).toEqual([['c2', '200.00']]);
+  });
+
+  it('CP-1132 — todas las unidades en 0 y sin total de boleta no se reparte y se avisa', () => {
+    const r = splitBill({ amount: '900.00', period: JAN }, units(['0', '0']));
+    expect(r.allocations).toEqual([]);
+    expect(r.skipped.map((s) => s.reason)).toEqual(['MissingConsumption', 'MissingConsumption']);
+  });
+
   it('una unidad con su consumo y la boleta con el total: 25 de 100 es la cuarta parte', () => {
     const r = splitBill({ amount: '1234.56', period: JAN, consumption: '100' }, units(['25']));
     // 1234,56 / 4 = 308,64
