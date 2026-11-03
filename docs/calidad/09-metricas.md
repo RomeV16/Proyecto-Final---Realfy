@@ -1,8 +1,118 @@
 # Métricas y análisis estático
 
-Versión 1.1 — 28 de octubre de 2026 (1.0: 20 de octubre). Todos los números salen de una
-ejecución identificable (commit, ejecución del pipeline o análisis de
-SonarCloud). Las filas "después" se completan al cierre de cada día.
+Versión 1.2 — 3 de noviembre de 2026 (1.0: 20 de octubre; 1.1: 28 de octubre). Todos
+los números salen de una ejecución identificable (commit, ejecución del pipeline o
+análisis de SonarCloud). Las secciones que siguen a «Medición del 3 de noviembre de
+2026» son las del TP de calidad sobre el módulo de índices y se conservan como
+estaban: muestran el antes y el después de ese trabajo.
+
+## Medición del 3 de noviembre de 2026 (piloto)
+
+Medición sobre `main` en el commit `a2ea7d9` (integración de la bandeja de
+consultas, #183, con la que quedaron entregadas las seis oleadas de desarrollo), con
+el piloto en una inmobiliaria real en curso. Es la misma
+medición de la tabla única de cifras del informe final
+(`../tesis/29-informe-final.md`, sección 9.10); acá se agregan las métricas de
+calidad que el informe no detalla. La referencia «antes» es el cierre del TP
+(`ac07cdf`, 28 de octubre) o el análisis del 19 de octubre cuando así se indica.
+
+### Pruebas y cobertura (integración continua)
+
+Fuente: ejecución [41591721662](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41591721662)
+del pedido #183, sobre `5c6ca93`, cuyo árbol es idéntico al de `a2ea7d9`; todos sus
+trabajos en verde. La ejecución sobre `main`
+([41595020268](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41595020268))
+falló en una prueba de pantalla de la web que en el pedido había pasado (ver
+«Métrica de proyecto»), y por eso no corrieron la integración ni SonarCloud; sus
+unitarias de la API y del paquete compartido coinciden con las de esta tabla.
+
+| Métrica | Antes (`ac07cdf`, 28 oct) | Ahora (`a2ea7d9`, 3 nov) | Interpretación |
+|---|---|---|---|
+| Pruebas unitarias de la API | 807 | 2.419 en 186 archivos | Crecieron con cada ítem del piloto; cada motor de dinero tiene pruebas de valores conocidos |
+| Pruebas del paquete compartido | 48 | 1.040 en 45 archivos | Incluyen los motores puros y la reconciliación con los motores (CP-663 a CP-665) |
+| Pruebas de la aplicación web | No había | 1.611 en 141 archivos | vitest, con pantallas renderizadas en jsdom |
+| Pruebas de integración de la API | 491 | 829 en 60 archivos | Incluyen la reconciliación por la API (CP-666 y CP-667) |
+| Cobertura de la API: líneas, sentencias, funciones, ramas | 44,48 %, 44,36 %, 45,77 %, 34,50 % | 80,30 %, 80,35 %, 81,56 %, 71,79 % | El piso de CI sigue en 38 % y 27 %: es una alarma contra regresiones, no una meta |
+| Cobertura de líneas de la web | — | 78,52 % | Medida desde que la web tiene pruebas (#106) |
+| Cobertura de líneas del paquete compartido | — | 73,37 % | Primera medición con el paquete en el análisis (#106) |
+| Cobertura del módulo `index-data` | 96,63 % de líneas, 92,70 % de ramas | 96,98 % de líneas, 88,62 % de ramas | Sigue sobre la meta del TP (80 % y 70 %); las ramas bajaron cuatro puntos con el código que el piloto sumó al módulo, como la aplicación masiva de ajustes |
+
+### SonarCloud
+
+Fuente: último análisis de `main`, sobre `ba78a78` (el commit anterior, con la
+cobranza escalonada), del 3 de noviembre de 2026, 06:35 UTC, que combina la
+cobertura de las pruebas unitarias y de integración. El análisis de `a2ea7d9` no
+corrió porque la ejecución de `main` falló antes; el del pedido #183 pasó el quality
+gate.
+
+| Métrica | 19 oct (`2eb2fa7`) | 3 nov (`ba78a78`) | Interpretación |
+|---|---|---|---|
+| Líneas de código | 82.136 | 104.918 | El piloto agregó cinco dominios nuevos; la limpieza de código muerto quitó unas 4.300 líneas (#115) |
+| Cobertura (unitarias e integración) | — | 82,9 % (líneas 81,7 %, ramas 87,1 %) | Es la cifra que usa el quality gate; la de la tabla anterior es solo la unitaria |
+| Bugs | 41, rating C | 38, rating C | Bajaron poco: el gate bloquea los nuevos, pero los heredados no se atacaron. Queda como deuda declarada |
+| Vulnerabilidades | 42, rating E | 1, rating B | Las 40 de `ci.yml` se corrigieron en el TP; queda una abierta por revisar |
+| Code smells | 818, rating A | 1.386, rating A | Crecieron con el tamaño; la deuda estimada sigue en rating A |
+| Duplicación | 5,1 % | 1,2 % | Efecto de la limpieza (L1 a L6) y del gate de jscpd |
+| Puntos sensibles de seguridad revisados | — | 100 % (ninguno abierto) | |
+| Quality gate | en verde sobre el PR #76 | en verde | |
+
+### Código muerto y duplicación por paquete
+
+Fuente: ejecución 41591721662, trabajo «Gates: código muerto y duplicación»
+(jscpd 4.3.0 con 70 tokens y 5 líneas mínimas, sin pruebas; knip 5.88.1).
+
+| Paquete | 31 oct: duplicado (clones) | 3 nov: duplicado (clones, archivos) | Umbral del gate |
+|---|---|---|---|
+| api | 2,32 % (42) | 1,01 % (39, 334) | 2,6 % |
+| web | 1,93 % (60) | 1,74 % (98, 651) | 2,3 % |
+| shared | 1,11 % (6) | 0,54 % (9, 99) | 1,8 % |
+
+knip: sin hallazgos nuevos y con la línea base vacía. Los umbrales del gate no se
+bajaron todavía aunque la duplicación medida quedó muy por debajo; bajarlos es la
+forma de que la mejora no se pierda.
+
+### Métrica de proceso: defectos del piloto
+
+Del 30 de octubre al 3 de noviembre se registraron veintinueve defectos en `main`
+(DEF-09 a DEF-95): once de severidad alta, catorce media y cuatro baja. Ninguno
+proviene del uso real. Todos se cerraron con su prueba de regresión en rojo primero,
+y la evidencia de DEF-09 a DEF-23 (commits y ejecuciones en rojo y en verde) está en
+el PR #138.
+
+La métrica del TP —días entre la detección y la regresión en verde— no se puede
+calcular igual para el piloto, y conviene decir por qué: el issue de cada defecto se
+abrió junto con el pedido que lo corrige, así que la diferencia entre su apertura y
+su cierre mide el ciclo de revisión (entre 0 y 2 horas en los veintinueve casos) y no
+el tiempo desde la detección. La fecha de detección no quedó registrada aparte. Se
+corrige desde el C1: cada diferencia de la reconciliación en campo se registra
+dentro de las 24 horas con su fecha de detección (`12-piloto.md`, sección 5), y esa
+es la fecha contra la que se mide la corrección.
+
+### Métrica de proyecto: el pipeline
+
+Fuente: historial de ejecuciones del flujo CI por empuje a `main` desde el 30 de
+octubre (23:16 UTC) hasta la de `a2ea7d9` del 3 de noviembre.
+
+| Métrica | Valor | Meta | Interpretación |
+|---|---|---|---|
+| Ejecuciones sobre `main` | 50: 38 en verde, 11 canceladas por un empuje posterior y 1 en rojo | Toda ejecución en rojo explicada | Cumplida, con una salvedad: el rojo de `a2ea7d9` es una prueba de pantalla de la web (`contract-parties.test.tsx`, «sin poderes vigentes muestra el vacío») que pasó en el pedido sobre el mismo árbol. Es una prueba inestable, no un defecto del producto, y queda para corregir: una prueba que falla al azar entrena a ignorar el rojo |
+| Duración del pipeline completo | De 11 a 14 minutos el 31 de octubre; de 23 a 30 minutos el 3 de noviembre | < 15 minutos | **No cumplida.** La duración creció con la suite de integración, que corre en un solo trabajador contra una base compartida |
+| Duración del trabajo de integración | 16,5 minutos en `ba78a78`, 21 en el pedido #181 y 22 en el #183 | Tope declarado de 25 minutos | Margen chico: con el ritmo de crecimiento actual, el tope se alcanza en pocas oleadas |
+
+La duración es el hallazgo de esta medición. Las opciones son repartir la suite de
+integración en varios trabajos con una base cada uno, o acotar la limpieza entre
+casos a las tablas que cada archivo usa. Ninguna se aplicó todavía; se registra
+como riesgo del proceso.
+
+### Métricas del piloto
+
+Las métricas de uso real —diferencias de reconciliación, tiempo del ciclo,
+valoración de uso, atraso del estado de cuenta, errores de carga y tiempo de
+detección a corrección— están definidas en `12-piloto.md`, sección 7, con sus
+metas. Sus valores quedan a completar tras el ciclo C1 (≈ 20/11/2026) para la línea
+base y el primer ciclo, y tras el C2 (≈ 20/12/2026) y el C3 (≈ 20/01/2027) para
+la evolución. Se publican agregadas y solo con el consentimiento de la
+inmobiliaria.
 
 ## Métricas de producto (SonarCloud + Jest)
 

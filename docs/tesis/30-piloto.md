@@ -105,7 +105,7 @@ Cada ítem lo firma su dueño, se integra por un PR revisado por otro integrante
 
 ## Ciclo mensual
 
-El diagrama muestra el ciclo que Realfy debe reproducir y distingue lo que ya está integrado en `main` de lo que falta. El tiempo corre de arriba hacia abajo: alrededor del día 20 del mes anterior se aplican los ajustes, se cargan las boletas y los cargos, y se generan las liquidaciones con los punitorios pendientes; en los primeros días del mes se cobra; al cierre se arma el estado de cuenta de cada locador y se le transfiere. Los bloques verdes son los pasos implementados: la preparación del mes, de las oleadas 0 a 2, y el cobro con la caja, la custodia y las compensaciones, del ítem 36 de la oleada 3. El anaranjado es lo planificado para el resto de la oleada 3, la cuenta corriente y el estado de cuenta del locador (ítem 37), que es lo que el C2 necesita.
+El diagrama muestra el ciclo que Realfy debe reproducir. El tiempo corre de arriba hacia abajo: alrededor del día 20 del mes anterior se aplican los ajustes, se cargan las boletas y los cargos, y se generan las liquidaciones con los punitorios pendientes; en los primeros días del mes se cobra; al cierre se arma el estado de cuenta de cada locador y se le transfiere. Al 3 de noviembre de 2026 los tres tramos están integrados en `main`: la preparación del mes, de las oleadas 0 a 2; el cobro con la caja, la custodia y las compensaciones (ítem 36), y la cuenta corriente y el estado de cuenta del locador (ítem 37), los dos de la oleada 3. Lo que falta no es desarrollo sino ejecutarlo con la cartera real en los ciclos C1 y C2.
 
 ```mermaid
 sequenceDiagram
@@ -143,8 +143,8 @@ sequenceDiagram
     Dir->>R: Registra compensaciones y entregas de custodia
     end
 
-    rect rgba(255, 140, 0, 0.14)
-    Note over Dir,Loc: Planificado en la oleada 3, ítem 37. Cierre del mes
+    rect rgba(46, 160, 67, 0.12)
+    Note over Dir,Loc: Implementado. Cierre del mes
     R->>R: Asienta cada movimiento en la cuenta corriente del locador
     R-->>Dir: Estado de cuenta consolidado por locador con saldo arrastrado
     Dir->>Loc: Envía el estado de cuenta
@@ -153,7 +153,61 @@ sequenceDiagram
     end
 ```
 
-Hay tres matices que el diagrama no alcanza a mostrar. El primero es que el cobro ya registra quién recibió el dinero y cómo se reparte, pero lo que cada locador tiene a favor o en contra todavía no se acumula en una cuenta corriente: eso llega con el ítem 37. El segundo es que la rendición por contrato que existe hoy ya reparte el neto entre los locadores según su porcentaje de cobro, pero no es el estado de cuenta consolidado de todas sus unidades que la inmobiliaria arma a mano; ese documento llega con la cuenta corriente. El tercero es que el envío de recibos y estados de cuenta por mail o WhatsApp ya pasa por la bandeja de salida (ítem 43, ADR-0013), pero en el ambiente `piloto` queda apagado (`MESSAGING_MODE=off`) hasta que el dueño de la inmobiliaria apruebe el envío a su cartera, y además faltan la credencial de Resend con el dominio propio y la cuenta de WhatsApp Business; hasta entonces los documentos se descargan en PDF y se envían por fuera del sistema. La bandeja de consultas y la cobranza escalonada son de la oleada 5 (ítem 43).
+Hay dos matices que el diagrama no alcanza a mostrar. El primero es que el estado de cuenta consolidado de todas las unidades del locador reemplaza a la rendición por contrato, que queda como histórico de solo lectura (ADR-0009). El segundo es que el envío de recibos y estados de cuenta por mail o WhatsApp ya pasa por la bandeja de salida (ítem 43, ADR-0013), pero en el ambiente `piloto` queda apagado (`MESSAGING_MODE=off`) hasta que el dueño de la inmobiliaria apruebe el envío a su cartera, y además faltan la credencial de Resend con el dominio propio y la cuenta de WhatsApp Business; hasta entonces los documentos se descargan en PDF y se envían por fuera del sistema. La cobranza escalonada (ítem 43) está integrada y viene apagada de fábrica, y la bandeja de consultas, el último pedido de la oleada 5, también está integrada: junta WhatsApp, mail, el formulario del micrositio y las llamadas, con responsable, plazo de primera respuesta y autorrespuesta por la misma bandeja de salida.
+
+## Flujos de cobro y compensación
+
+El cobro es el punto donde el modelo original más se apartaba de la inmobiliaria: un pago era una fila con importe, medio y fecha, sin decir quién recibió el dinero ni dónde quedó. El relevamiento mostró que el dinero llega por tres caminos —repartido, todo a la inmobiliaria y todo al locador—, que el efectivo de un locador puede quedar guardado en la oficina y que los saldos entre locadores se cruzan con compensaciones. La decisión está en `../adr/0012-flujos-de-cobro-caja-y-custodia.md` y la cuenta corriente que recibe los asientos, en `../adr/0009-cuenta-corriente-y-estado-de-cuenta-del-locador.md`; el diagrama muestra la secuencia de cada flujo.
+
+Todo cobro se aplica a una liquidación y se reparte en el momento en que se registra: la comisión y los renglones de la inmobiliaria son suyos, los renglones de entes son de los entes y el resto se divide entre los locadores del contrato según su porcentaje de cobro, por mayor resto. El reparto queda guardado con el cobro, de modo que el recibo y la cuenta corriente leen lo que se decidió en ese momento y no lo recalculan.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Inq as Inquilino
+    participant Caja as Caja o banco de la inmobiliaria
+    participant Cus as Custodia del locador
+    participant R as Realfy
+    actor L as Locador del contrato
+    actor O as Otro locador
+
+    alt Repartido
+        Inq->>Caja: Paga la comisión y lo que es de la inmobiliaria
+        Inq->>L: Paga el resto directamente
+        R->>R: Registra dos cobros, uno por receptor, cuyos saldos se cruzan
+        R-->>Inq: Recibo numerado por lo que cobró la inmobiliaria
+    else Todo a la inmobiliaria
+        Inq->>Caja: Paga el total
+        R->>R: Asienta el ingreso en la caja o el banco
+        R->>R: Acredita la parte de cada locador en su cuenta corriente
+        R-->>Inq: Recibo numerado
+        Caja->>L: Paga el neto con el estado de cuenta del mes
+    else Todo al locador
+        Inq->>L: Paga el total
+        R->>R: Debita en la cuenta corriente del locador lo que no es suyo
+        Note over R,L: Comisión, renglones de la inmobiliaria y de entes, salvo que la inmobiliaria pacte otra cosa
+    else Cobro a custodia
+        Inq->>Caja: Paga en la oficina, por ejemplo en efectivo
+        R->>Caja: Entra solo lo de la inmobiliaria y lo de los entes
+        R->>Cus: Entra la parte de cada locador, en su moneda
+        R-->>Inq: Recibo numerado
+        Cus->>L: Entrega total o parcial cuando el locador la retira
+    end
+
+    opt Compensación
+        Note over O,L: Otro locador recibió un cobro que le correspondía, en todo o en parte, a este
+        R->>R: Se registra la compensación, con la fecha del cobro si no se indica otra
+        alt Quien recibió tiene efectivo en custodia
+            Cus->>Caja: Sale de su custodia y entra a la caja para el locador que corresponde
+        else Sin custodia
+            R->>R: Queda asentada en las dos cuentas corrientes y se cruza en el estado de cuenta
+        end
+    end
+```
+
+Tres convenciones de este circuito son preguntas abiertas a la inmobiliaria y están configuradas con un valor de fábrica que reproduce lo que hacía el sistema: qué debe el locador cuando cobra él (de fábrica, todo lo que no es suyo), cómo se reparte un pago parcial (de fábrica, en proporción) y si la custodia suma al total de la inmobiliaria (de fábrica, no, porque es dinero de terceros). Una compensación sin importe toma la parte que le tocaba al locador según el reparto guardado, y por defecto se puede compensar con cualquier locador de la inmobiliaria.
+
+Los diagramas de entidades de estos dominios no se repiten acá: los de partes y contrato, reglas versionadas, impuestos y servicios trasladables, centro de carga, caja y cobros, y cuenta corriente del locador están en `03-modelo-datos.md`, en la sección de cada dominio.
 
 ## Criterio de reconciliación
 

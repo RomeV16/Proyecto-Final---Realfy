@@ -204,7 +204,7 @@ Redacción del informe de tesis, preparación de presentación y ensayos de defe
 
 ## Piloto en una inmobiliaria real
 
-Los ítems 30 a 46 incorporan la validación en uso real. Cada uno tiene un issue con criterios de aceptación y las etiquetas `piloto` y `origen:*`. La oleada indica el orden de ejecución.
+Los ítems 30 a 46 incorporan la validación en uso real. Cada uno tiene un issue con criterios de aceptación y las etiquetas `piloto` y `origen:*`. La oleada indica el orden de ejecución. Al 2026-11-03 están hechos los ítems 30 a 44, con lo que las seis oleadas de desarrollo quedaron entregadas; el 45 y el 46 son continuos hasta la defensa, porque dependen de los ciclos de la inmobiliaria.
 
 ### 30. Piloto: relevamiento, plan y registro de feedback
 
@@ -215,7 +215,7 @@ Documentar el contexto anonimizado del piloto, sus objetivos y métricas, el alc
 - Dependencias: ninguna.
 - Oleada: 0.
 - Issue: #88.
-- Estado al 2026-11-02: En curso. Relevamiento, plan, registro de feedback, matriz de trazabilidad, privacidad e índice de decisiones integrados (#107); el registro de feedback se mantiene durante todo el piloto.
+- Estado al 2026-11-03: Hecho. Relevamiento, plan, registro de feedback, matriz de trazabilidad, privacidad e índice de decisiones integrados (#107) y ampliados con los diagramas y el plan de aceptación en campo (#162). El registro de feedback se sigue alimentando durante todo el piloto, con los hallazgos del uso real desde el C2.
 
 ### 31. Base de proceso: protección de rama, plantillas, pruebas web, CI
 
@@ -226,7 +226,7 @@ Plantillas de PR y de issues (requisito, defecto, feedback), etiquetas `piloto` 
 - Dependencias: ninguna.
 - Oleada: 0.
 - Issue: #89.
-- Estado al 2026-11-02: Hecho (cerrado el 2026-10-31). PR #105, #106, #108, #110, #113, #114, #115, #116, #134, #135 y #137.
+- Estado al 2026-11-03: Hecho (cerrado el 2026-10-31). PR #105, #106, #108, #110, #113, #114, #115, #116, #134, #135 y #137; después se sumaron la evidencia en rojo y verde de los defectos (#138) y el ensayo de migraciones con esquema de referencia en la semilla (#154).
 
 ### 32. Usuarios, invitaciones, contraseñas y permisos por rol
 
@@ -237,7 +237,7 @@ Pantalla de usuarios (invitar, rol, desactivar), aceptación de invitación, cam
 - Dependencias: 31.
 - Oleada: 1.
 - Issue: #90.
-- Estado al 2026-11-02: Hecho (cerrado el 2026-10-31). PR #140 (usuarios, invitaciones y contraseñas) y #142 (grupos de roles y política de lectura).
+- Estado al 2026-11-03: Hecho (cerrado el 2026-10-31). PR #140 (usuarios, invitaciones y contraseñas) y #142 (grupos de roles y política de lectura).
 
 ### 33. Personas, locadores, apoderados y titularidad
 
@@ -248,7 +248,7 @@ Ficha de persona ampliada con varias cuentas bancarias; locadores por contrato c
 - Dependencias: 31.
 - Oleada: 1.
 - Issue: #91.
-- Estado al 2026-11-02: Hecho (cerrado el 2026-10-31). PR #136 (datos de persona y cuentas), #139 (locadores, apoderados y titularidad) y #141 (pantallas de las partes).
+- Estado al 2026-11-03: Hecho (cerrado el 2026-10-31). PR #136 (datos de persona y cuentas), #139 (locadores, apoderados y titularidad) y #141 (pantallas de las partes).
 
 ### 34. Reglas del contrato, acuerdos y ajustes con rezago
 
@@ -259,7 +259,7 @@ Valores por defecto de la inmobiliaria, reglas versionadas del contrato y acuerd
 - Dependencias: 33.
 - Oleada: 2.
 - Issue: #92.
-- Estado al 2026-11-02: Hecho. PR #109 (índice de precios desde el INDEC con el BCRA de respaldo), #112 (activación), #148 (un solo camino de ajuste), #150 (reglas versionadas y acuerdos) y #153 (motor de ajuste con rezago).
+- Estado al 2026-11-03: Hecho (cerrado el 2026-11-02). PR #109 (índice de precios desde el INDEC con el BCRA de respaldo), #112 (activación), #148 (un solo camino de ajuste), #150 (reglas versionadas y acuerdos) y #153 (motor de ajuste con rezago).
 
 ### 35. Liquidación mensual completa: boletas, cargos, punitorios, recibo
 
@@ -270,7 +270,7 @@ Líneas con destino y marca de comisionable, generación anticipada, boletas de 
 - Dependencias: 34.
 - Oleada: 2.
 - Issue: #93.
-- Estado al 2026-11-02: Hecho. PR #117 y #133 (correcciones de fechas, dinero y deuda), #151 (generador de liquidaciones), #156 (boletas y reglas de traslado), #158 (punitorios en la liquidación) y #159 (centro de carga).
+- Estado al 2026-11-03: Hecho (cerrado el 2026-11-02). PR #117 y #133 (correcciones de fechas, dinero y deuda), #151 (generador de liquidaciones), #156 (boletas y reglas de traslado), #158 (punitorios en la liquidación) y #159 (centro de carga).
 
 ### 36. Cobros, caja, efectivo, custodia y compensaciones
 
@@ -281,7 +281,7 @@ Caja y cuentas, pago en tres flujos (repartido, todo a la inmobiliaria, todo al 
 - Dependencias: 35.
 - Oleada: 3.
 - Issue: #94.
-- Estado al 2026-11-02: Integrado. PR #161 (caja y cuentas, cobro en tres flujos, custodia, compensaciones y recibos de cobro). Pendiente su despliegue en `piloto` y su uso en el C2.
+- Estado al 2026-11-03: Hecho (cerrado el 2026-11-02). PR #161 (caja y cuentas, cobro en tres flujos, custodia, compensaciones y recibos de cobro). Desplegado en `piloto`; su uso con la cartera real empieza en el C2.
 
 ### 37. Cuenta corriente y estado de cuenta del locador
 
@@ -292,7 +292,7 @@ Asientos por locador, estado de cuenta mensual consolidado de todas sus unidades
 - Dependencias: 36.
 - Oleada: 3.
 - Issue: #95.
-- Estado al 2026-11-02: En curso (PR 3.2 de la oleada 3), para el C2.
+- Estado al 2026-11-03: Hecho (cerrado el 2026-11-02). PR #165 (cuenta corriente, estado de cuenta mensual consolidado, saldo inicial y pago al locador; la rendición por contrato pasa a histórico).
 
 ### 38. Facturación por cuenta del locador
 
@@ -303,7 +303,7 @@ Emisor delegado por persona, emisión desde el pago o el estado de cuenta, confi
 - Dependencias: 37.
 - Oleada: 4.
 - Issue: #96.
-- Estado al 2026-11-02: En curso. Comprobante sin pago y emisión recuperable integrados (#125); la emisión por cuenta del locador está planificada para la oleada 4.
+- Estado al 2026-11-03: Hecho. PR #125 (comprobante sin pago y emisión recuperable) y #170 (facturación por cuenta del locador con emisor delegado, cola con reintentos y notas de crédito). Los criterios fiscales quedan con su valor por defecto hasta la confirmación del contador.
 
 ### 39. Migración desde el sistema anterior y calidad de datos
 
@@ -314,7 +314,7 @@ Importación idempotente de contratos, locadores, reglas, servicios, ajustes y s
 - Dependencias: 33 a 37.
 - Oleada: 3.
 - Issue: #97.
-- Estado al 2026-11-02: En curso. Importación ligada a la inmobiliaria (#110), importación idempotente (#155) y panel de calidad de datos (#160) integrados; la cartera real se cargó en `piloto` el 2026-11-02 y su revisión con la inmobiliaria sigue abierta.
+- Estado al 2026-11-03: Hecho en lo que construye. PR #110 (importación ligada a la inmobiliaria), #155 (importación idempotente) y #160 (panel de calidad de datos). La cartera real se cargó en `piloto` el 2026-11-02; el issue sigue abierto hasta cerrar con la inmobiliaria la lista de revisión de la carga, que se corrige reenviando el lote.
 
 ### 40. Vencimientos, renovaciones, prórrogas y depósitos
 
@@ -325,7 +325,7 @@ Semáforo de vencimientos y seguimientos con lista de verificación, renovación
 - Dependencias: 34.
 - Oleada: 4.
 - Issue: #98.
-- Estado al 2026-11-02: Planificado (oleada 4). El fin real y la prórroga de palabra ya existen como parte del ítem 34.
+- Estado al 2026-11-03: Hecho (cerrado el 2026-11-02). PR #166 (semáforo, seguimientos con checklist, prórroga de palabra y renovación como período) y #169 (depósitos y liquidación de egreso).
 
 ### 41. Honorarios: alta, renovación, venta, tasación, comisiones del personal
 
@@ -336,7 +336,7 @@ Honorarios por operación con valores por defecto configurables, cuotas con ajus
 - Dependencias: 36.
 - Oleada: 4.
 - Issue: #99.
-- Estado al 2026-11-02: Planificado (oleada 4). Los porcentajes de honorarios por defecto ya son valores configurables de la inmobiliaria (ítem 34).
+- Estado al 2026-11-03: Hecho (cerrado el 2026-11-02). PR #168 (honorarios de alta, renovación, venta y tasación, cuotas ajustables, comisiones del personal y coorretaje).
 
 ### 42. Incidencias y reparaciones con imputación
 
@@ -347,7 +347,7 @@ Incidencia con preautorización, presupuesto, ejecución, pago e imputación al 
 - Dependencias: 36.
 - Oleada: 4.
 - Issue: #100.
-- Estado al 2026-11-02: Planificado (oleada 4). El centro de carga del ítem 35 ya imputa reparaciones al inquilino o al locador.
+- Estado al 2026-11-03: Hecho (cerrado el 2026-11-02). PR #167 (preautorización, presupuestos con aprobación, pago al proveedor, imputación y honorario de gestión).
 
 ### 43. Mensajería, bandeja de consultas y cobranza escalonada
 
@@ -358,7 +358,7 @@ Envío de mail, mensajería instantánea con consentimiento y baja a través de 
 - Dependencias: 32, 35.
 - Oleada: 4 y 5.
 - Issue: #101.
-- Estado al 2026-11-02: Planificado (oleadas 4 y 5). Depende del dominio propio y de la configuración del correo, pendientes.
+- Estado al 2026-11-03: Hecho. PR #172 (bandeja de salida idempotente, correo y WhatsApp, modos de envío y consentimiento), #181 (cobranza escalonada, apagada de fábrica) y #183 (bandeja de consultas unificada con responsable, plazo de primera respuesta y autorrespuesta; corrige DEF-95). La mensajería queda apagada en `piloto` hasta verificar el dominio y la cuenta de WhatsApp y hasta que la inmobiliaria apruebe los envíos; las decisiones legales de la cobranza siguen pendientes de revisión por el abogado de la inmobiliaria.
 
 ### 44. Ventas, llaves y publicación
 
@@ -369,7 +369,7 @@ Operación de venta (reserva, seña, boleto), registro de llaves y sus movimient
 - Dependencias: 41.
 - Oleada: 5.
 - Issue: #102.
-- Estado al 2026-11-02: Planificado (oleada 5).
+- Estado al 2026-11-03: Hecho (cerrado el 2026-11-03). PR #178 (publicación asistida y micrositio con dominio propio) y #180 (ventas, señas, documentación y llaves).
 
 ### 45. Validación en campo: ciclos en paralelo, reconciliación y métricas
 
@@ -380,7 +380,7 @@ Ciclos en sombra, paralelo y propio, suite de reconciliación, línea base y mé
 - Dependencias: 39.
 - Oleada: 3 a 5.
 - Issue: #103.
-- Estado al 2026-11-02: Pendiente. Línea base y C1 alrededor del 20/11/2026; la suite de reconciliación con casos sintéticos es el PR 3.5.
+- Estado al 2026-11-03: Continuo. La suite de reconciliación con casos sintéticos está integrada (#177) y encontró DEF-70 a DEF-73; la línea base y el C1 son alrededor del 20/11/2026, el C2 alrededor del 20/12/2026 y el C3 alrededor del 20/01/2027.
 
 ### 46. Documentación, informe y defensa con el piloto
 
@@ -391,6 +391,6 @@ Actualización de la documentación, el informe final y la preparación de la de
 - Dependencias: todos los ítems anteriores.
 - Oleada: Continuo.
 - Issue: #104.
-- Estado al 2026-11-02: En curso. Documentación en el mismo PR de cada cambio; capítulo del piloto en el Hito 4 (30/11/2026) y anexo tras C2 y C3.
+- Estado al 2026-11-03: Continuo. Documentación en el mismo PR de cada cambio, más dos PR propios (#107 y #162) y la actualización del informe final, el Hito 4 y este plan con las oleadas 3 a 5; el anexo de validación se actualiza tras el C2 y el C3.
 
 <!-- Cierre item 04 — backlog priorizado -->

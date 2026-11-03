@@ -1,10 +1,23 @@
 # Manual de pruebas
 
-El proyecto tiene tres suites, con propósitos y requisitos distintos. Las
-unitarias corren en memoria y no necesitan nada instalado; las de integración
-levantan la aplicación NestJS completa y pegan contra una base PostgreSQL real;
-las de la aplicación web prueban funciones puras y los catálogos de mensajes.
-Todas corren en cada cambio contra `main`, junto con el control de tipos.
+Las pruebas se organizan en cuatro niveles, con propósitos y requisitos
+distintos:
+
+| Nivel | Qué prueba | Dónde vive | Necesita |
+|---|---|---|---|
+| Unitarias | Servicios, controladores, guards, utilidades y los motores puros de dinero del paquete compartido, con sus dependencias sustituidas | `apps/api/src/**/*.spec.ts`, `apps/api/test/unit/`, `packages/shared/src/**/*.spec.ts` | Nada |
+| Web | Funciones, hooks, componentes y pantallas de la aplicación web, y la paridad de los catálogos de mensajes | `apps/web/**/*.test.ts(x)` | Nada |
+| Integración | La aplicación NestJS completa por HTTP contra una base PostgreSQL real: permisos, aislamiento, auditoría y cada módulo | `apps/api/test/**/*.e2e-spec.ts` | PostgreSQL 16 |
+| Reconciliación | El ciclo mensual completo de una cartera sintética, comparado al centavo contra lo calculado a mano: primero con los motores encadenados y después cargado por la API | `packages/shared/src/reconciliation/`, `apps/api/test/e2e/reconciliacion.e2e-spec.ts` | Nada para la primera parte; PostgreSQL para la segunda |
+
+A eso se suman el ensayo de migraciones sobre datos sintéticos, los controles de
+código muerto y duplicación, y el control de tipos, que se describen en
+«Integración continua». Todo corre en cada cambio contra `main`.
+
+Este documento no repite cantidades de pruebas ni porcentajes de cobertura: cambian
+con cada integración y ya se contradijeron entre documentos. La medición vigente,
+con su fecha y la ejecución de la que sale, está en la tabla única de cifras de
+`tesis/29-informe-final.md`, sección 9.10.
 
 ## Pruebas unitarias
 
@@ -18,11 +31,12 @@ pnpm --filter @realfy/api test
 La configuración está en `apps/api/jest.config.ts` y toma dos ubicaciones: los
 archivos `*.spec.ts` que viven al lado del código en `apps/api/src`, que son la
 mayoría, y los de `apps/api/test/unit`, que prueban piezas transversales cuya
-ubicación natural no es un módulo. Hoy son sesenta y dos archivos en el primer
-grupo y cuatro en el segundo.
+ubicación natural no es un módulo.
 
-El paquete compartido tiene su propia suite, la del motor de comprobantes, con
-treinta pruebas:
+El paquete compartido tiene su propia suite. Ahí viven los motores puros de dinero
+—ajuste, liquidación, punitorios, reparto del cobro, cuenta corriente y estado de
+cuenta, honorarios, depósitos— con pruebas de valores conocidos calculados a mano,
+las de fechas y dinero (`date-utils`, `money`) y la suite de reconciliación:
 
 ```bash
 pnpm --filter @realfy/shared test
@@ -78,18 +92,25 @@ pnpm --filter @realfy/api test:coverage
 ```
 
 El piso vigente está declarado en `apps/api/jest.config.ts` y es de **38 % de
-líneas, funciones y sentencias, y 27 % de ramas**. Es un piso, no una meta: está
-unos puntos por debajo de lo que las suites cubren hoy —la medición al fijarlo dio
-42,07 % de líneas, 43,22 % de funciones, 31,69 % de ramas y 42,03 % de
-sentencias, y la última medición da 42,44 %, 43,52 %, 32,28 % y 42,40 %—, de modo que la integración continua se pone en rojo cuando la
-cobertura baja, no cuando alguien no llega a un número aspiracional. Si el piso
-se sube, tiene que ser porque la cobertura real subió primero.
+líneas, funciones y sentencias, y 27 % de ramas**. Es un piso, no una meta: se
+fijó unos puntos por debajo de lo que las suites cubrían entonces —42,07 % de
+líneas, 43,22 % de funciones, 31,69 % de ramas y 42,03 % de sentencias—, de modo
+que la integración continua se pone en rojo cuando la cobertura baja, no cuando
+alguien no llega a un número aspiracional. Con el piloto la cobertura real subió
+muy por encima del piso (la medición vigente está en la tabla única citada al
+principio). Si el piso se sube, tiene que ser porque la cobertura real subió
+primero.
+
+El paquete compartido y la web suben su propio informe de cobertura, y SonarCloud
+exige además un 80 % sobre el código nuevo de cada cambio, web incluida.
 
 ## Pruebas de la aplicación web
 
-La web usa [vitest](https://vitest.dev) (entorno `node`, el alias `@/` apunta a
-`src/`). Por ahora prueba solo funciones puras de `src/lib` y los catálogos de
-mensajes; no hay pruebas de componentes ni de navegador.
+La web usa [vitest](https://vitest.dev) (entorno `node` por defecto, el alias `@/`
+apunta a `src/`). Prueba funciones y hooks de `src/lib`, los componentes base y las
+pantallas: un archivo de prueba de una pantalla declara
+`// @vitest-environment jsdom` en su primera línea y la renderiza con Testing
+Library, con la API sustituida. No hay pruebas de navegador.
 
 ```bash
 pnpm --filter @realfy/web test            # una corrida
@@ -156,8 +177,9 @@ trabajo de Sonar espera a que termine el e2e.
 
 ### Qué cubre cada suite
 
-Son treinta y dos archivos. Los que están en la raíz de `apps/api/test` cubren
-comportamientos transversales; los de `apps/api/test/e2e`, un módulo cada uno.
+Los archivos que están en la raíz de `apps/api/test` cubren comportamientos
+transversales; los de `apps/api/test/e2e`, un módulo cada uno. La tabla empieza
+con las suites de la primera versión y sigue con las que sumó el piloto.
 
 | Suite | Qué verifica |
 |---|---|
@@ -193,13 +215,85 @@ comportamientos transversales; los de `apps/api/test/e2e`, un módulo cada uno.
 | `e2e/portal.e2e-spec.ts` | El inquilino ve su contrato y sus liquidaciones, y solo las suyas. |
 | `e2e/portal-tickets.e2e-spec.ts` | El inquilino abre un reclamo, lo comenta y lo ve en su listado. |
 | `e2e/public.e2e-spec.ts` | El micrositio sin sesión: perfil por slug, catálogo con solo las propiedades disponibles, ficha no publicada y consulta que entra como interesado. |
+| `e2e/index-data-scraper.e2e-spec.ts` | Los índices obtenidos automáticamente son visibles para la inmobiliaria y alimentan el ajuste sin carga manual. |
+| `e2e/correlation-id.e2e-spec.ts` | Cada respuesta lleva su identificador de correlación y los errores lo incluyen en el cuerpo. |
+| `e2e/users-management.e2e-spec.ts` | Usuarios, invitaciones, roles, baja, cambio y recupero de contraseña. |
+| `e2e/read-policy.e2e-spec.ts` | La política de lectura por rol: qué datos sensibles ve cada rol y que falla cerrado. |
+| `e2e/persons-datos.e2e-spec.ts` | Datos de persona, cuentas bancarias y referencias externas. |
+| `e2e/locadores-apoderados.e2e-spec.ts` | Locadores con porcentaje de cobro, apoderados y titularidad. |
+| `e2e/contract-activation.e2e-spec.ts` | Activación del contrato, con sus permisos y su aislamiento. |
+| `e2e/reglas-del-contrato.e2e-spec.ts` | Reglas versionadas, acuerdos y valores por defecto de la inmobiliaria. |
+| `e2e/ajuste-masivo.e2e-spec.ts` | Ajustes del mes: proceso diario, aplicación masiva, provisorios y corrección. |
+| `e2e/generador-de-liquidaciones.e2e-spec.ts` | Generación del mes con alquiler a la fecha, fin efectivo, prorrateo y recibo numerado. |
+| `e2e/boletas-y-reglas.e2e-spec.ts` | Boletas de servicios y reglas de traslado a los tres pagadores. |
+| `e2e/centro-de-carga.e2e-spec.ts` | Cargos al inquilino o al locador, cuotas, devoluciones y anticipo. |
+| `e2e/punitorios-en-la-liquidacion.e2e-spec.ts` | Punitorio en la liquidación siguiente, cobro con punitorios al instante y condonación. |
+| `e2e/caja-y-cobros.e2e-spec.ts` | Cobro en los tres flujos, caja y banco, recibo numerado, custodia, compensaciones y conversiones. |
+| `e2e/cuenta-corriente.e2e-spec.ts` | Cuenta corriente del locador, estado de cuenta mensual, saldo inicial y pago al locador. |
+| `e2e/import-batches.e2e-spec.ts` | Importación por lotes desde el sistema anterior: ensayo sin escritura, idempotencia y registro por fila. |
+| `e2e/data-quality.e2e-spec.ts` | Panel de calidad de datos y unión auditada de personas. |
+| `e2e/vencimientos.e2e-spec.ts` | Semáforo y seguimientos, prórroga de palabra y renovación. |
+| `e2e/depositos.e2e-spec.ts` | Depósitos con sus cuotas y liquidación de egreso. |
+| `e2e/honorarios.e2e-spec.ts` | Honorarios de alta, renovación, venta y tasación, cuotas y comisiones del personal. |
+| `e2e/incidencias.e2e-spec.ts` | Reparaciones: preautorización, presupuesto, pago al proveedor e imputación. |
+| `e2e/facturacion-por-cuenta-del-locador.e2e-spec.ts` | Emisión con emisor delegado y ARCA simulado, idempotencia, cola y notas de crédito. |
+| `e2e/mensajeria.e2e-spec.ts` | Bandeja de salida, modos de envío, consentimiento y webhooks, con proveedores de prueba. |
+| `e2e/cobranza.e2e-spec.ts` | Cobranza escalonada en un día simulado: recordatorios, prejudicial y carta documento en borrador. |
+| `e2e/bandeja.e2e-spec.ts` | Bandeja de consultas: ingreso por WhatsApp, mail, micrositio y llamadas, responsable, plazo de primera respuesta y autorrespuesta, con proveedores de prueba. |
+| `e2e/publicacion.e2e-spec.ts` | Estado por portal, aviso para copiar y micrositio sin datos privados. |
+| `e2e/ventas-y-llaves.e2e-spec.ts` | Operaciones de venta, señas, documentación y movimientos de llaves. |
+| `e2e/reconciliacion.e2e-spec.ts` | El ciclo sintético de la reconciliación cargado por la API (ver la sección siguiente). |
 
 Los servicios de ARCA no se consultan de verdad. Las pruebas unitarias simulan
 las llamadas HTTP al organismo, y la suite de facturación corre con `ARCA_MOCK=1`,
 que responde desde el simulador incluido en el repositorio.
 
+Los procesos programados (ajustes, punitorios, vencimientos, mensajería, cobranza)
+se disparan en estas pruebas con su ruta manual `_run-now`, que solo existe para
+Admin y, en algunos casos, con un día simulado; ninguna prueba espera al
+planificador.
+
 No hay pruebas de navegador. Las pruebas que este documento llama de integración
 son de nivel HTTP contra la API real, no recorridos de interfaz.
+
+## Reconciliación del ciclo mensual
+
+Es el criterio de aceptación del piloto llevado a una prueba: que el mes cierre al
+centavo, por contrato (total del recibo, comisión y neto de cada locador) y por
+locador (total del estado de cuenta). Usa un mes sintético con la forma de la
+cartera real —once contratos y nueve locadores, con varias modalidades de ajuste,
+un alquiler en dólares, boletas de los tres pagadores, cargos, un punitorio, un
+cobro parcial, un cobro directo al locador, efectivo en custodia y una
+compensación— y ningún dato de ella. Los resultados esperados se calcularon a mano
+antes de ejecutar.
+
+Corre en dos partes con la misma entrada y el mismo esperado:
+
+- **Con los motores** (`packages/shared/src/reconciliation/`, CP-663 a CP-665):
+  `runCycle` encadena los motores como lo hace la API y un comparador con
+  tolerancia cero informa cada diferencia, por contrato o por locador, por
+  concepto. Un centavo de diferencia es una diferencia.
+- **Por la API** (`apps/api/test/e2e/reconciliacion.e2e-spec.ts`, CP-666 y
+  CP-667): el mismo mes se carga como lo haría la inmobiliaria —índices, personas,
+  unidades, contratos, ajustes, boletas, cargos, liquidaciones, cobros,
+  compensación, pagos a locadores y estados de cuenta— y lo que devuelve la API se
+  compara con el mismo esperado.
+
+```bash
+pnpm --filter @realfy/shared build
+pnpm --filter @realfy/shared exec jest reconciliation      # con los motores
+cd apps/api                                                 # por la API, con la base de integración
+NODE_ENV=test RATE_LIMIT_DISABLED=1 pnpm exec jest --config ./test/jest-e2e.json reconciliacion
+```
+
+Cuando la suite falla, el mensaje lista las diferencias en orden estable con el
+valor esperado y el obtenido. Un cambio que modifica una regla del ciclo y mueve un
+esperado tiene que justificarlo en el pedido de incorporación: el esperado no se
+actualiza para que la prueba pase.
+
+La versión con datos reales de la reconciliación no está en el repositorio: corre
+fuera de él, contra una copia restaurada de la base del ambiente `piloto`, con el
+mismo comparador. El procedimiento está en `calidad/12-piloto.md`.
 
 ## Integración continua
 
@@ -239,9 +333,11 @@ corre el análisis y bloquea el cambio si el quality gate falla
 (`docs/calidad/08-herramienta-sonarcloud.md`).
 
 **External contract (BCRA / INDEC).** Depende de las unitarias y pega a los
-servicios reales para verificar que el contrato asumido siga vigente. Está en
-rojo desde el 28 de octubre por una causa externa documentada en
-`docs/calidad/`.
+servicios reales para verificar que el contrato asumido siga vigente. Estuvo en
+rojo del 28 al 30 de octubre de 2026 por una causa externa, hasta que el índice
+de precios pasó a leerse del archivo del INDEC con el BCRA de respaldo; desde
+entonces está en verde (`docs/calidad/07-integracion-externa.md`). No es un
+trabajo obligatorio para integrar, porque su resultado depende de terceros.
 
 **Ephemeral deploy, smoke & stress.** Construye la imagen de `Dockerfile.api`,
 la arranca contra una base vacía y corre el smoke y las pruebas de carga con k6.
@@ -300,8 +396,10 @@ pasaron. Levanta PostgreSQL 16, aplica las migraciones y corre la suite de
 integración con `NODE_ENV=test`, `RATE_LIMIT_DISABLED=1` y secretos de sesión
 propios del entorno de integración.
 
-Los ocho trabajos tienen tiempo máximo declarado —quince minutos, veinticinco el
-de integración y treinta el del despliegue efímero— para que una prueba colgada no ocupe la cola indefinidamente.
+Los nueve trabajos tienen tiempo máximo declarado —quince minutos, veinticinco el
+de integración y treinta el del despliegue efímero— para que una prueba colgada no
+ocupe la cola indefinidamente. Ocho son obligatorios para integrar a `main`; el
+contrato externo no lo es.
 
 ## Escribir una prueba nueva
 

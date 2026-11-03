@@ -6,12 +6,21 @@ desvió de lo planificado, qué se aprendió en el camino y qué queda pendiente
 
 No repite los documentos que ya están en el repositorio: los referencia. La
 planificación vive en `docs/tesis/01-` a `04-`; el estado del sistema en cada
-etapa, en los tres documentos de hito; las decisiones técnicas, en los seis
-registros de `docs/adr/`; y la documentación de uso y operación, en `docs/api.md`,
-`docs/pruebas.md`, `docs/manual-de-usuario.md`, `docs/despliegue.md` y
-`docs/demo.md`. Todas las cifras de este informe se midieron sobre el repositorio
-al momento de escribirlo, y en cada caso se indica dónde se pueden volver a
-medir.
+etapa, en los documentos de hito; las decisiones técnicas, en los registros de
+`docs/adr/` (índice en `docs/adr/README.md`); y la documentación de uso y
+operación, en `docs/api.md`, `docs/pruebas.md`, `docs/manual-de-usuario.md`,
+`docs/despliegue.md` y `docs/demo.md`.
+
+El informe tiene dos partes, en correspondencia con el Hito 4 reabierto
+(`hito-04.md`). Las secciones 1 a 8 son la primera versión, cerrada como versión
+beta el 18/08/2026 y completada con la revisión de calidad hasta el 28/10/2026:
+describen el sistema antes del piloto y sus cifras son las de esas mediciones, que
+se conservan sin reescribir para que se pueda ver de dónde partió el trabajo. La
+sección 9 es la validación en uso real en una inmobiliaria, que empezó el
+30/10/2026, e incluye la **tabla única de cifras del sistema** con su fecha y su
+fuente de medición (sección 9.10). Donde una cifra de las secciones 1 a 8 difiere de
+esa tabla, vale la de la tabla; los resultados de campo que todavía no existen
+figuran como «a completar» con la fecha del ciclo que los produce.
 
 ---
 
@@ -51,7 +60,9 @@ tampoco captura de dinero por pasarela
 de pago —se registra el pago, no se cobra—, no hay aplicación móvil nativa, no
 hay firma digital con certificación oficial, no hay integración con portales
 externos de publicación más allá de la exportación, no hay liquidación tributaria
-y no hay operaciones de venta con escrituración.
+y no hay operaciones de venta con escrituración. Con el piloto, cuatro de esas
+fronteras se movieron —contabilidad, cobros, portales y ventas— sin levantar las
+exclusiones; la sección 9.2 lo detalla.
 
 En números, al cierre de este informe el sistema son treinta y un módulos en la
 API sobre un modelo de cincuenta y cinco entidades y treinta y nueve
@@ -243,8 +254,9 @@ redactan las plantillas deterministas.
 ## 3. Arquitectura y decisiones
 
 La arquitectura general está en `03-arquitectura.md` y las decisiones, con su
-contexto, sus alternativas y sus consecuencias, en los seis registros de
-`docs/adr/`. El monorepo con Turborepo sobre espacios de trabajo de pnpm es el
+contexto, sus alternativas y sus consecuencias, en los registros de
+`docs/adr/`: seis al cierre de la primera versión, a los que el piloto sumó once
+(sección 9.4). El monorepo con Turborepo sobre espacios de trabajo de pnpm es el
 ADR-0001; la elección de NestJS, Next.js y Prisma sobre PostgreSQL, el ADR-0002;
 el aislamiento por fila, el ADR-0003; el sistema de tarjetas para las pantallas
 con registros repetidos, el ADR-0004; la respuesta uniforme de error, el ADR-0005;
@@ -571,7 +583,10 @@ siguiente.
 ### Otros desvíos menores
 
 El cronograma preveía el Hito 3 para el 30/10/2026 y el Hito 4 para el 30/11/2026;
-el Hito 3 se cerró el 17/08/2026 y este informe es del 18/08/2026. La construcción
+el Hito 3 se cerró el 17/08/2026 y la versión beta de este informe, el 18/08/2026.
+Esa fecha figuró durante dos meses como cierre del Hito 4, cuando en realidad fue
+el cierre de la versión beta del informe; el hito se reabrió con la fecha del
+cronograma, como se explica en la sección 9.8. La construcción
 fue más rápida que lo planificado, lo cual explica en parte por qué la etapa de
 pruebas y documentación quedó comprimida al final en lugar de haber acompañado al
 desarrollo.
@@ -858,3 +873,440 @@ con su piso de cobertura, la aplicación de las veintiuna migraciones sobre una
 base vacía y cuatrocientas ochenta y cinco pruebas de integración contra una base
 real. El recorrido de la demostración está en `docs/demo.md` y el material de
 preparación de la defensa, en `29-preparacion-defensa.md`.
+
+---
+
+## 9. Validación en uso real: el piloto
+
+Esta sección es la segunda parte de la entrega final. Describe la puesta de Realfy
+en manos de una inmobiliaria real que administra alquileres: por qué se hizo, qué
+se construyó para que fuera posible, cómo se verifica y qué falta. Su estado es el
+del 3 de noviembre de 2026. Lo que depende de los ciclos mensuales de la
+inmobiliaria —la línea base y los ciclos C1 a C3— queda marcado como «a completar»
+con la fecha del ciclo que lo produce, y se incorpora al anexo de validación en
+campo sin reescribir lo entregado.
+
+El capítulo completo del piloto está en `30-piloto.md`; el registro de hallazgos,
+en `31-registro-de-feedback.md`; el procedimiento de migración, en
+`32-migracion.md`; la trazabilidad de hallazgo a prueba, en
+`33-matriz-de-trazabilidad.md`; el plan de aceptación en campo, en
+`../calidad/12-piloto.md`, y el tratamiento de datos personales, en
+`../privacidad-datos.md`. Esta sección no repite esos documentos: resume lo que
+un lector del informe necesita para evaluar el trabajo.
+
+### 9.1. Contexto
+
+La inmobiliaria piloto es una empresa familiar de administración de alquileres.
+Su nombre, su ubicación, su personal, sus clientes y sus importes no figuran en
+este informe ni en ningún documento del repositorio, que es público. La operan
+tres personas con funciones distintas —dirección, atención y publicación, y
+muestras e inventarios— y lleva el ciclo mensual completo con una base de datos de
+escritorio y planillas: ajustes, impuestos y servicios, recibos, cobros, rendición
+a cada locador y un estado de cuenta por locador que se arma a mano.
+
+La validación en uso real corrige la limitación más evidente de la primera versión:
+hasta el 30/10/2026 el sistema se había probado con datos sintéticos y en un
+ambiente de demostración, sin usuarios que dependieran de él. La sección 5 de este
+informe declaraba los desvíos respecto de la planificación; el piloto es la primera
+ocasión de contrastar el sistema con una operación que no se diseñó para él.
+
+### 9.2. Objetivo y alcance
+
+Se agregó un objetivo específico, identificado como OE-9 en el informe de la tesis:
+validar el sistema en uso real con una inmobiliaria piloto, reproducir su ciclo
+mensual completo con las reglas pactadas en cada contrato, reconciliar los
+resultados contra su sistema actual hasta que no queden diferencias sin explicar y
+registrar cada fricción del uso hasta una corrección verificada.
+
+Las metas se fijaron antes de medir (`30-piloto.md`, «Objetivos y métricas»):
+cero diferencias sin explicar en la reconciliación por contrato y por locador,
+reducción del 50 % del tiempo del ciclo mensual respecto de la línea base, una
+valoración de uso de 8 o más sobre 10 y un atraso del estado de cuenta al locador
+de 5 días o menos. Los valores de partida se toman en la línea base y quedan a
+completar tras el ciclo C1 (≈ 20/11/2026).
+
+El relevamiento movió cuatro fronteras del alcance sin levantar las exclusiones
+originales. La contabilidad completa sigue fuera, pero entran una caja operativa y
+una cuenta corriente por locador. La captura del cobro por pasarela o recaudadora
+sigue fuera, pero se registra el cobro por los tres caminos por los que llega el
+dinero, incluido el efectivo en la oficina. La integración con portales sigue fuera
+salvo que el portal ofrezca una interfaz, pero entra la publicación asistida. La
+escrituración sigue fuera, pero entran la reserva, la seña, el boleto y los
+honorarios de venta. El detalle está en `30-piloto.md`, «Relación con las
+exclusiones del alcance original».
+
+### 9.3. Método
+
+El piloto siguió cuatro pasos, en este orden.
+
+**Relevamiento.** Se leyeron los archivos que la inmobiliaria entregó de su
+operación —la base de escritorio, las planillas de ajustes y de estados de cuenta,
+los recibos y los modelos de contrato—, verificando que ninguno quedara sin
+revisar, y la dirección respondió un cuestionario escrito el 30/10/2026. De ahí
+salieron veintiocho hallazgos, FB-01 a FB-28, cada uno con su decisión, el ítem que
+lo resuelve y los casos de prueba que lo verifican. Los tres que más pesaron en el
+diseño son que el locador no es necesariamente el propietario y un contrato puede
+tener varios, cada uno con su porcentaje de cobro; que casi todas las reglas son
+pactables por contrato y cambian por acuerdos fechados, y que el dinero llega por
+tres caminos distintos. Según el registro, al 3/11/2026 veintiséis hallazgos están
+implementados por pedidos integrados —cada uno con su número en el estado—, uno sigue
+planificado (FB-16, los pagarés como documento adjunto del contrato) y uno quedó
+fuera de alcance (FB-27, el inventario estructurado). Todos provienen del
+relevamiento: el registro todavía no tiene hallazgos de uso real, y no se presentan
+como tales.
+
+**Plan.** El trabajo se organizó en diecisiete ítems nuevos del cronograma, del 30
+al 46, cada uno con su issue (#88 a #104), criterios de aceptación, la etiqueta
+`piloto`, la etiqueta de origen (`origen:relevamiento` u `origen:uso-real`), un
+integrante responsable y los casos de prueba asignados antes de implementar. Los
+ítems se agruparon en seis oleadas ordenadas por el camino crítico hacia el primer
+ciclo. Tres principios atraviesan todos los cambios: toda regla se resuelve en el
+orden valor de la inmobiliaria, reglas del contrato vigentes a la fecha y acuerdos
+fechados, sin pisar historia; el dinero se calcula con motores puros y exactos en
+el paquete compartido y cada movimiento deja asiento, y cada dato tiene una sola
+fuente de verdad, de modo que el cambio que mueve un dato cambia todos sus lectores.
+
+**Oleadas.** Cada pedido de incorporación cumplió la misma definición de hecho:
+issue enlazado con su origen; pruebas unitarias de la lógica y de integración por
+ruta con casos de permisos y de aislamiento; prueba de regresión en rojo antes de
+corregir un defecto; migración probada sobre una base vacía y sobre datos
+sintéticos con la forma real; textos en los dos idiomas; documentación en el mismo
+pedido, e integración continua en verde con la revisión de otro integrante.
+
+**Ciclos.** El calendario no lo fija el equipo sino el ciclo de la inmobiliaria,
+que prepara la liquidación alrededor del día 20 del mes anterior.
+
+| Ciclo | Fecha de liquidación | Modo | Estado al 3/11/2026 |
+|---|---|---|---|
+| Línea base | ≈ 20/11/2026 | La inmobiliaria opera con su sistema actual y se mide por tarea | A completar tras el ciclo C1 (≈ 20/11/2026) |
+| C1 | ≈ 20/11/2026 | En sombra: el equipo replica el ciclo en el ambiente `piloto` y reconcilia los recibos | A completar (≈ 20/11/2026) |
+| C2 | ≈ 20/12/2026 | En paralelo: la inmobiliaria mira y compara; se suman los estados de cuenta | A completar (≈ 20/12/2026) |
+| C3 | ≈ 20/01/2027 | La inmobiliaria opera en Realfy con su sistema actual de respaldo | A completar (≈ 20/01/2027) |
+| C4 | ≈ 20/02/2027 | Realfy es el sistema principal | Posterior a la entrega; se informa si cae antes de la defensa |
+
+### 9.4. Lo entregado por oleada
+
+Entre el 30/10 y el 3/11/2026 se integraron cincuenta pedidos de incorporación
+(#105 a #183), todos con la revisión de otro integrante y con la rama principal
+protegida. Con ellos quedaron entregadas las seis oleadas de desarrollo. La tabla
+los agrupa por oleada.
+
+| Oleada | Contenido | Ítems | Pedidos | Estado |
+|---|---|---|---|---|
+| 0. Arranque | Base de proceso (protección de la rama principal, plantillas, pruebas de la web, control de tipos de las pruebas, controles de código muerto y duplicación, ensayo de migraciones sobre datos), índice de precios desde el archivo del INDEC con el BCRA de respaldo, activación del contrato, correcciones de fechas, dinero y deuda, fundación de la web, copias de la base, limpieza de código muerto y duplicado | 30, 31 | #105, #106, #108 a #110, #112 a #117, #125, #133 a #135, #137, #138, #143, #145, #148, #149, #154 | Integrada |
+| 1. Acceso y partes | Usuarios con invitación y recupero de contraseña, política de lectura por rol, datos de persona y cuentas bancarias, locadores con porcentaje de cobro, apoderados y titularidad | 32, 33 | #136, #139 a #142 | Integrada |
+| 2. Reglas y liquidación | Reglas versionadas, acuerdos y valores por defecto; motor de ajuste con rezago; generador de liquidaciones; boletas y reglas de traslado; centro de carga; punitorios dentro de la liquidación | 34, 35 | #150, #151, #153, #156, #158, #159 | Integrada |
+| 3. Dinero y datos reales | Importación idempotente, panel de calidad de datos, caja con tres flujos de cobro, custodia y compensaciones, cuenta corriente y estado de cuenta del locador, suite de reconciliación | 36, 37, 39, 45 | #155, #160, #161, #165, #177 | Integrada |
+| 4. Ciclo de vida del contrato | Vencimientos con semáforo y seguimientos, prórroga de palabra y renovación como período, incidencias con preautorización y presupuesto, honorarios, depósitos y liquidación de egreso, facturación por cuenta del locador | 38, 40, 41, 42 | #166 a #170 | Integrada |
+| 5. Mensajería y comercial | Bandeja de salida con correo y WhatsApp, modos de envío y consentimiento; publicación asistida y micrositio con dominio propio; ventas y llaves; cobranza escalonada; bandeja de consultas unificada con responsable, plazo de primera respuesta y autorrespuesta | 43, 44 | #172, #178, #180, #181, #183 | Integrada |
+| Documentación | Capítulo del piloto, registro de hallazgos, migración, trazabilidad, privacidad, diagramas, plan de aceptación en campo | 46 | #107, #162 | Continua |
+
+Las decisiones de arquitectura nuevas son once, del ADR-0007 al ADR-0017
+(`../adr/README.md`): locadores, apoderados y titularidad (0007); impuestos y
+servicios trasladables (0008); cuenta corriente y estado de cuenta del locador, que
+deja la rendición por contrato como histórico (0009); reglas versionadas y valores
+por defecto (0010); ajuste con rezago, estimación y corrección (0011); flujos de
+cobro, caja y custodia (0012); mensajería saliente con bandeja de salida y cobranza
+escalonada (0013); ambiente piloto con datos reales (0014); importación idempotente
+(0015); diagramas como código (0016), y facturación por cuenta del locador con
+emisor delegado (0017).
+
+Tres rasgos de lo entregado conviene destacarlos porque responden a lo que el
+relevamiento mostró y no a una preferencia de diseño:
+
+- **Nada se fija en el código.** Prorrateo, vencimiento, punitorio, reparto de
+  impuestos, anticipo, flujo de cobro, honorarios y depósitos tienen un valor por
+  defecto de la inmobiliaria que cada contrato puede pisar. Las preguntas que la
+  inmobiliaria todavía no respondió no bloquean el desarrollo: quedan como
+  opciones con un valor de fábrica documentado.
+- **El dinero de terceros no se mezcla.** El cobro registra quién recibió el dinero
+  y lo reparte en el momento entre la inmobiliaria, los entes y cada locador por
+  mayor resto; el efectivo de un locador queda en su custodia, que por defecto no
+  suma al total de la inmobiliaria.
+- **Lo que sale hacia afuera es reversible y apagable.** La mensajería pasa por una
+  bandeja de salida idempotente con tres modos de envío (apagado, lista de prueba y
+  activo), el consentimiento por canal se registra y la cobranza escalonada viene
+  apagada de fábrica: prepara la carta documento pero no la envía, y la derivación
+  al abogado la decide una persona.
+
+### 9.5. Evidencia de calidad
+
+Las pruebas crecieron con el piloto en los tres niveles —unitarias de la API y del
+paquete compartido, pruebas de la aplicación web, que antes no existían, e
+integración de la API contra PostgreSQL— y la cobertura de líneas de la API pasó
+del 44,48 % al 80,30 % (sección 9.10). El piso de la integración continua se
+mantuvo en 38 % a propósito: es una alarma contra regresiones, no una meta.
+
+La integración continua sumó controles que la primera versión no tenía: control de
+tipos que incluye las pruebas; zona horaria fija, con una corrida adicional en la
+zona de Buenos Aires para los módulos de fechas; paridad de claves de los dos
+idiomas y de los enumerados entre la base y el paquete compartido; código muerto
+(knip) y duplicación por paquete (jscpd) con umbral bloqueante; un ensayo que
+aplica las migraciones nuevas sobre una semilla de datos sintéticos con la forma
+real y verifica su transformación, y la cobertura de la suite de integración sumada
+al análisis estático. Son nueve trabajos, ocho de ellos obligatorios para integrar
+a la rama principal, que está protegida desde el 30/10/2026.
+
+**Defectos.** El registro de la rama principal tiene veintinueve defectos del piloto
+(DEF-09 a DEF-95; la numeración reserva rangos por área y por eso no es
+correlativa), además de los ocho anteriores (DEF-01 a DEF-08). Todos se cerraron con
+el mismo circuito: prueba de regresión que falla contra el código anterior,
+corrección en un pedido revisado y la misma prueba en verde
+(`../calidad/06-registro-de-defectos.md`).
+
+| Severidad | Defectos del piloto en la rama principal |
+|---|---|
+| Alta | 11 |
+| Media | 14 |
+| Baja | 4 |
+| Total | 29 |
+
+| Origen (uno por defecto, el principal) | Defectos | Identificadores |
+|---|---|---|
+| Revisión de código, incluida la del módulo vecino al construir uno nuevo y la de la integración de dos ramas | 16 | DEF-09 a 11, 15 a 18, 20 a 24, 29, 30, 80 y 95 |
+| Pruebas de caracterización de los motores antes de modificarlos | 3 | DEF-12 a 14 |
+| Análisis de duplicación | 3 | DEF-19, 25 y 26 |
+| Diseño o extracción de un motor compartido | 2 | DEF-27 y 28 |
+| Integración con un proveedor externo | 1 | DEF-65 |
+| Reconciliación del ciclo mensual | 4 | DEF-70 a 73 |
+| Uso real | 0 | — |
+
+Ningún defecto se detectó todavía por uso real, porque ninguna persona de la
+inmobiliaria operó el sistema; la severidad «bloquea el cierre del mes», prevista
+para lo que encuentre la reconciliación en campo, no se usó. Los dos orígenes más
+productivos fueron la revisión de código previa a cada cambio y las pruebas que
+fijan el comportamiento antes de tocarlo (caracterización y reconciliación): en los
+dos casos el defecto aparece al mirar el sistema desde un lugar distinto del que lo
+construyó.
+
+### 9.6. Reconciliación
+
+El criterio de aceptación del piloto no es que cada función ande, sino que el mes
+cierre: que Realfy produzca, para el mes que se liquida, los mismos importes que la
+inmobiliaria obtiene con su sistema actual, por contrato (total del recibo, comisión
+y neto al locador) y por locador (total del estado de cuenta). Como los datos reales
+no pueden estar en el repositorio y la prueba tiene que poder repetirse sin ellos,
+la reconciliación tiene dos niveles.
+
+**Reconciliación sintética.** Un caso de caracterización reproduce un mes con la
+forma de la cartera real y sin ningún dato de ella: once contratos y nueve
+locadores, con ajustes de distintas modalidades y un alquiler en dólares; locadores
+cuyo porcentaje de cobro difiere de su titularidad; boletas de los tres pagadores,
+un impuesto anual en cuotas y un servicio repartido por consumo; cargos con y sin
+anticipo; un punitorio; un cobro parcial, un cobro directo al locador, efectivo en
+custodia y una compensación. Los resultados esperados se calcularon a mano, con
+aritmética decimal exacta, antes de ejecutar. El caso corre en la integración
+continua en dos niveles —encadenando los motores en el paquete compartido y cargando
+el mismo mes por la API— con un comparador de tolerancia cero (CP-660 a CP-668).
+
+La suite encontró cuatro defectos que las pruebas de cada módulo no habían visto,
+porque aparecen sólo al encadenar el ciclo: un descuento que sumaba en el reparto
+del cobro (DEF-70), una compensación sin importe que dejaba corto al locador
+compensado (DEF-71), una compensación que se asentaba el día de la carga y no el del
+cobro (DEF-72) y el primer mes de un contrato iniciado a mitad de mes, cuyo cobro no
+se repartía entre sus locadores (DEF-73). Los cuatro se corrigieron antes de la
+fecha del primer ciclo.
+
+**Reconciliación en campo.** La versión con datos reales vive fuera del
+repositorio. Antes de generar nada se guardan, con su huella, los totales del sistema
+actual para el mes; se generan las liquidaciones en el ambiente piloto, se restaura
+una copia de la base en un entorno de sólo lectura y un comparador con la misma
+regla produce un informe de diferencias por contrato y por concepto. Cada diferencia
+se clasifica —error de Realfy, regla que el sistema actual aplica sin explicitar,
+dato importado incorrecto o error del sistema actual— y se registra como defecto o
+como hallazgo dentro de las 24 horas. Tres reglas pueden diferir de lo que hace la
+inmobiliaria y se verifican en el C1: el primer ajuste con rezago de un contrato
+trimestral, el rezago de los contratos por ICL y la boleta del locador pagada por la
+inmobiliaria con traslado parcial al inquilino.
+
+**Resultado del ciclo C1.** A completar tras el ciclo C1 (≈ 20/11/2026): contratos
+comparados, diferencias por categoría y diferencias abiertas, en forma agregada y
+sujeto al consentimiento de la inmobiliaria para publicar cifras de su operación.
+
+### 9.7. Gobernanza de datos
+
+- **Ambiente separado.** El piloto corre en un ambiente `piloto` con su base y su
+  almacenamiento propios, sin nada compartido con el de demostración (ADR-0014). La
+  base con datos reales no se reinicia ni se recrea.
+- **Nada real en el repositorio.** Ni datos, ni capturas, ni cifras derivadas de la
+  cartera. Las pruebas, los ejemplos y la demostración usan datos inventados; las
+  fuentes del relevamiento, la lista de revisión de la carga y la versión real de la
+  reconciliación se guardan fuera del repositorio, con acceso restringido al equipo.
+- **Carga repetible.** La cartera se cargó el 2/11/2026 con el importador
+  idempotente, después de un ensayo sin escritura que dio el mismo resultado y sin
+  filas con error. Las inconsistencias del origen que el importador no puede resolver
+  solo quedaron en una lista de revisión para la dirección de la inmobiliaria y se
+  corrigen reenviando el lote.
+- **Copias y restauración.** Copias nativas diarias y semanales del proveedor y una
+  copia lógica fuera de él, semanal y antes de cada despliegue. Entre el 31/10 y el
+  3/11/2026 el ambiente recibió siete despliegues, cada uno precedido por su copia y,
+  cuando traía migraciones, por su ensayo sobre una copia restaurada. La
+  restauración se probó el 31/10/2026 sobre la base vacía y el 2/11/2026 con los
+  datos reales cargados: restaurar la base tardó unos 3 segundos en local, que es el
+  RTO de la base medido. El RTO total del servicio, con meta de 2 horas, no se midió
+  de punta a punta (`../despliegue.md`).
+- **Mensajería apagada.** El envío de mensajes está en modo apagado en el ambiente
+  piloto hasta que la inmobiliaria apruebe los envíos a su cartera y se verifiquen
+  el dominio de correo y la cuenta de WhatsApp.
+- **Cifras en la tesis.** Los resultados se reportan agregados, con fecha de
+  medición, y sólo con el consentimiento de la inmobiliaria, que está pendiente.
+
+### 9.8. Desvíos
+
+Los desvíos del piloto se declaran con la misma regla que los de la sección 5. En
+el informe de la tesis figuran como D-15 a D-18; el quinto de esta lista se
+desprende de ellos.
+
+**El Hito 4 se reabrió.** El cronograma fijaba el Hito 4 el 30/11/2026, pero su
+documento lo daba por cerrado el 18/08/2026, cuando terminó la versión beta de este
+informe. La contradicción existía antes del piloto y el piloto la volvió
+insostenible. Se evaluó abrir un hito nuevo y se eligió reabrir el cuarto con la
+fecha que el cronograma siempre tuvo, para que la entrega y la defensa cuenten una
+sola historia: lo cerrado el 18/08 es su primera versión y la entrega del 30/11
+incluye el piloto hasta el primer ciclo.
+
+**El alcance se amplió con diecisiete ítems.** La ampliación no nace de una
+reestimación del equipo sino del relevamiento de una operación real, y cada ítem
+tiene su hallazgo de origen. Las exclusiones originales se mantienen; lo que cambió
+es dónde pasa la frontera en cuatro de ellas (sección 9.2).
+
+**El modelo cambió antes de cargar datos.** La distinción entre locador, titular y
+apoderado, las reglas pactables por contrato y los tres caminos del dinero no
+estaban en ningún documento de la planificación. Resolverlos antes de importar la
+cartera evitó migrar datos reales sobre un modelo equivocado; el costo fue
+reescribir la rendición, que pasó a histórico.
+
+**La validación en campo no llega completa a la entrega.** La entrega del 30/11
+incluye la línea base y el primer ciclo en sombra; los ciclos C2 y C3 se informan en
+el anexo de validación hasta la defensa.
+
+**El desarrollo se adelantó al calendario por ciclos.** El plan ubicaba las oleadas
+4 y 5 entre diciembre de 2026 y febrero de 2027, antes de los ciclos que las
+necesitaban; se integraron antes del primer ciclo. La consecuencia no es sólo
+favorable: buena parte de lo entregado todavía no fue operado por nadie de la
+inmobiliaria, y su validación depende de los ciclos C2 a C4. Es el mismo patrón que
+la sección 5 señaló para la primera versión —construir rápido y verificar al
+final—, mitigado esta vez por la reconciliación sintética y la definición de hecho
+de cada pedido, pero no eliminado.
+
+Dos desvíos de la primera versión se revirtieron en parte: la mensajería por
+WhatsApp que el anteproyecto incluía existe ahora detrás de la bandeja de salida,
+apagada en el piloto, y la derivación de la mora a un abogado, que no se había
+implementado, queda preparada por la cobranza escalonada, que la sugiere sin
+ejecutarla.
+
+### 9.9. Lecciones
+
+- **El relevamiento cambió el modelo antes de que lo cambiara el uso.** Ningún
+  documento de la planificación distinguía al locador del propietario. Leer cómo
+  trabaja una inmobiliaria real lo mostró antes de que un usuario tuviera que
+  sufrirlo.
+- **Una regla fija en el código es una deuda con fecha.** Cada regla «de la
+  inmobiliaria» que mostró el relevamiento apareció pactada distinto en algún
+  contrato. La respuesta fue siempre la misma —valor por defecto, regla del contrato
+  y acuerdo fechado— y por eso las preguntas abiertas al contador y al abogado no
+  frenaron el desarrollo.
+- **El ciclo encadenado encuentra lo que el módulo no ve.** Los cuatro defectos de
+  la reconciliación sintética estaban en módulos con buena cobertura y pruebas en
+  verde. Aparecieron al pasar el resultado de un motor al siguiente, que es lo que
+  hace la inmobiliaria cada mes.
+- **La carga se pudo hacer antes de tener los datos perfectos porque es repetible.**
+  Un importador idempotente permitió cargar la cartera y corregirla después, en
+  lugar de esperar a que cada dato estuviera revisado.
+- **Las cifras repetidas en varios documentos se contradicen.** La primera versión
+  citaba recuentos distintos de pruebas y migraciones en el hito, el informe y el
+  manual de pruebas. Desde el piloto las cifras del sistema se consignan una sola
+  vez, con su fecha y su fuente (sección 9.10), y los demás documentos remiten a esa
+  tabla.
+- **No se presenta el relevamiento como uso.** El registro separa los hallazgos del
+  relevamiento de los del uso real. A la fecha todos son del relevamiento, y la
+  validación de uso se informará como tal desde el C2.
+
+### 9.10. Cifras del sistema
+
+Tabla única de cifras. Medición del **3 de noviembre de 2026** sobre la rama
+principal en el commit `a2ea7d9` (integración de la bandeja de consultas, #183),
+con las seis oleadas de desarrollo entregadas. La columna «Antes del piloto»
+corresponde al commit `ac07cdf` del 28/10/2026.
+
+| Dimensión | Antes del piloto | 3/11/2026 (`a2ea7d9`) | Fuente |
+|---|---|---|---|
+| Módulos de la API | 31 | 44 | Carpetas de `apps/api/src/modules` |
+| Entidades y enumeraciones del modelo | 55 y 39 | 101 y 112 | `model` y `enum` en `apps/api/prisma/schema.prisma` |
+| Migraciones versionadas | 21 | 64 | Carpetas de `apps/api/prisma/migrations` |
+| Controladores y rutas | 34 y 226 | 53 y 426 | Archivos con `@Controller` y decoradores `@Get`, `@Post`, `@Put`, `@Patch` y `@Delete` en `apps/api/src` |
+| Registros de arquitectura | 6 | 17 | `docs/adr/` |
+| Casos de uso | 24 (CU-01 a CU-24) | 49 (CU-01 a CU-49) | Identificadores en `02-roles-y-casos-uso.md` |
+| Casos de prueba del catálogo | 48 | 530, del CP-01 al CP-816, sin identificadores repetidos | Renglones de `../calidad/05-casos-de-prueba.md`, medidos tras la renumeración de #185 (`9f94675`) |
+| Defectos registrados | 8 (DEF-01 a DEF-08) | 37: los 8 anteriores y 29 del piloto (DEF-09 a DEF-95) | `../calidad/06-registro-de-defectos.md` |
+| Pruebas unitarias de la API | 807 | 2.419 en 186 archivos | Integración continua, ejecución 41591721662, trabajo «Unit Tests & Coverage» (ver la nota sobre la fuente) |
+| Pruebas unitarias del paquete compartido | 48 | 1.040 en 45 archivos | Ídem |
+| Pruebas de la aplicación web | No había | 1.611 en 141 archivos | Ídem (vitest) |
+| Pruebas de integración de la API | 491 | 829 en 60 archivos | Ídem, trabajo «API E2E Tests» |
+| Cobertura de la API (líneas, sentencias, funciones, ramas) | 44,48 %, 44,36 %, 45,77 %, 34,50 % | 80,30 %, 80,35 %, 81,56 %, 71,79 % | Ídem; piso de la integración continua: 38 %, y 27 % de ramas |
+| Cobertura de líneas de la web y del paquete compartido | — | 78,52 % y 73,37 % | Ídem |
+| Duplicación por paquete (api, web, shared) | — | 1,01 %, 1,74 % y 0,54 % | Ídem, trabajo de código muerto y duplicación (jscpd) |
+| Cobertura combinada de unitarias e integración, y duplicación del repositorio | — | 82,9 % y 1,2 % | Último análisis de SonarCloud sobre `main`, en el commit anterior `ba78a78` (ver la nota sobre la fuente) |
+| Pedidos de incorporación desde el inicio del piloto | — | 50 (#105 a #183), todos con revisión de otro integrante | Historial de la rama principal |
+
+**Fuente de las pruebas y la cobertura.** La ejecución de la integración continua
+sobre `main` en `a2ea7d9` (41595020268) falló en una prueba de pantalla de la web
+(`contract-parties.test.tsx`, «sin poderes vigentes muestra el vacío»), que pasó en
+la ejecución del pedido sobre el mismo árbol; por esa falla no corrieron la
+integración ni el análisis de SonarCloud de ese commit. Las cifras de pruebas y
+cobertura salen por eso de la ejecución 41591721662 del pedido #183, sobre `5c6ca93`,
+cuyo árbol es idéntico al de `a2ea7d9`, con todos los trabajos en verde; las
+unitarias de la API y del paquete compartido coinciden con las de la ejecución de
+`main`. La cobertura combinada de SonarCloud es la del último análisis de `main`
+(`ba78a78`). La prueba inestable queda registrada para corregirse.
+
+Tres aclaraciones sobre la tabla. La primera: el catálogo de casos de prueba llegó
+a tener dos rangos asignados dos veces —CP-470 a CP-480, a la cuenta corriente y a
+los vencimientos, y CP-720 a CP-725, a la publicación y a las ventas—. El pedido
+#185 los renumeró (vencimientos a CP-806 a CP-816; ventas y llaves a CP-800 a
+CP-805) y agregó una prueba de integridad de la documentación que falla si un
+identificador se repite; la fila del catálogo se midió después de esa
+renumeración. La segunda: el informe de la tesis usa la medición del
+mismo día sobre el commit `1a89e0a`, previa a la cobranza escalonada (#181) y a la
+bandeja de consultas (#183), y se remide en su pasada final; la diferencia con esta
+tabla —dos módulos, cuatro entidades, seis enumeraciones, cuatro migraciones, dos
+controladores y veinticinco rutas, y las pruebas correspondientes— es íntegramente
+esos dos pedidos. La tercera: la tabla ya incluye la bandeja de consultas, el último
+pedido de la oleada 5.
+
+Las cifras de la operación de la inmobiliaria —cartera, tiempos, diferencias de
+reconciliación— no están en esta tabla y no se publican sin su consentimiento. Los
+valores medidos de la línea base y de los ciclos quedan a completar tras el ciclo C1
+(≈ 20/11/2026), el C2 (≈ 20/12/2026) y el C3 (≈ 20/01/2027).
+
+### 9.11. Estado a la fecha y lo que falta
+
+El objetivo general se cumplió en su parte de diseño e implementación, y su
+validación en uso real está en curso. Al 3/11/2026 están integradas las seis
+oleadas de desarrollo completas; la cartera de la inmobiliaria está cargada en el
+ambiente piloto; la reconciliación sintética corre en cada cambio sin diferencias, y
+lo integrado hasta la publicación y las ventas está desplegado en los dos ambientes,
+con la cobranza escalonada y la bandeja de consultas pendientes de despliegue.
+
+Falta lo que no depende del equipo sino del calendario de la inmobiliaria y de
+terceros:
+
+- **Línea base y C1** (≈ 20/11/2026): medir el ciclo actual por tarea y reconciliar
+  los recibos del primer mes en sombra. A completar.
+- **C2 y C3** (≈ 20/12/2026 y ≈ 20/01/2027): estados de cuenta, primeros hallazgos
+  de uso real y métricas antes y después. A completar en el anexo de validación.
+- **Validaciones externas**: los parámetros fiscales y legales (facturación por
+  cuenta del locador, punitorios, sellos, carta documento y señas) con el contador,
+  el abogado y el colegio profesional; hasta entonces rigen como valores
+  configurables con su valor por defecto.
+- **Habilitaciones**: el dominio de correo, la cuenta de WhatsApp y la aprobación de
+  la inmobiliaria para encender la mensajería y la cobranza escalonada.
+- **Consentimiento** de la inmobiliaria para publicar cifras agregadas.
+
+Las limitaciones propias del piloto a esta fecha son seis: la reconciliación con
+datos reales todavía no se ejecutó; nadie de la inmobiliaria operó el sistema, así
+que todos los hallazgos son del relevamiento; los parámetros fiscales y legales no
+están confirmados; la mensajería está implementada pero apagada; el ingreso busca al
+usuario sólo por su correo, que podría repetirse entre inmobiliarias, y el
+consentimiento para publicar cifras está pendiente. En el informe de la tesis
+figuran como L-13 a L-18.
