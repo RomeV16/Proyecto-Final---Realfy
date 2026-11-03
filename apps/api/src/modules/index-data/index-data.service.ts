@@ -16,14 +16,9 @@ import {
   AdjustmentType,
 } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
+import { SYSTEM_TENANT_ID } from '../../common/tenant/system-tenant';
 
-/**
- * Identificador bajo el que el scraper guarda los índices publicados por el
- * BCRA y el INDEC. Son datos públicos, iguales para todas las inmobiliarias:
- * cada una los ve junto con sus propias cargas manuales, y la carga manual
- * tiene prioridad para el mismo tipo y período (DEF-01).
- */
-export const SYSTEM_TENANT_ID = '__system__';
+export { SYSTEM_TENANT_ID };
 
 /** Entidad del registro de auditoría con que se anota un estimado reemplazado por el oficial. */
 const ESTIMATE_REPLACED_ENTITY = 'index_estimate_replaced';
@@ -296,7 +291,9 @@ export class IndexDataService {
    * (`ContractAdjustmentService`, `ContractsService`).
    *
    * `tenantId` se pasa cuando no hay petición en curso (barridos del
-   * sistema); `client` permite leer dentro de una transacción.
+   * sistema); `client` permite leer dentro de una transacción. El cliente de
+   * la transacción pasa por la extensión de aislamiento, que conserva este
+   * filtro (propia + sistema) en las lecturas de IndexData (DEF-115).
    * `startExclusive` deja afuera la fecha de inicio: lo usan los ajustes
    * posteriores al primero, cuyo mes inicial ya entró en el anterior (DEF-07).
    */

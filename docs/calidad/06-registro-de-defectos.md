@@ -48,6 +48,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-105 | Una unidad con consumo 0 frena el reparto por consumo de toda la boleta | Media | RF de boletas (ítem 35) | CP-1130, CP-1131 | [#188](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/188) | Corregido (3 nov) |
 | DEF-106 | El consumo de las unidades sin contrato con regla se ignora y las demás pagan de más | Alta | RF de boletas (ítem 35) | CP-1133, CP-1148 | [#189](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/189) | Corregido (3 nov) |
 | DEF-107 | Corregir una boleta en la planilla del mes borra su consumo por unidad, importe sin descuento y notas | Alta | RF de boletas (ítem 35) | CP-1139 | [#190](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/190) | Corregido (3 nov) |
+| DEF-115 | Aplicar un ajuste no ve los índices de sistema: la previsualización lo da por listo y la aplicación lo saltea | Bloqueante | RF-12, RF-14 | CP-1200 a CP-1204 | [#200](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/200) | Corregido (3 nov) |
 
 ---
 
@@ -616,3 +617,17 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** la planilla reenvía el consumo por unidad (ahora editable), el importe sin descuento y las notas de la boleta cargada.
 - **Prueba de regresión:** CP-1139 en `apps/web/src/components/service-bills/monthly-service-bills.def107.test.tsx`.
 - **Evidencia rojo/verde:** regresión `60d436f` en rojo (1 prueba falla: el cuerpo no trae esos datos); corrección en `fc17ff0`.
+
+## DEF-115 — Aplicar un ajuste no ve los índices de sistema
+
+- **Requisito afectado:** RF-12 (ajuste de alquileres) y RF-14 (índices publicados).
+- **Origen:** ensayo general del primer ciclo sobre la copia de la inmobiliaria piloto, donde todos los índices los carga el lector diario como datos de sistema (`__system__`).
+- **Caso que lo detecta:** CP-1200 a CP-1204.
+- **Severidad:** bloqueante. Con los índices solo de sistema ningún ajuste se podía aplicar: "Ajustes del mes" los daba por listos y al aplicarlos los salteaba con `MISSING_INDEX_DATA`; el barrido diario los dejaba pendientes y la corrección de provisorios esperaba para siempre un oficial ya publicado.
+- **Pasos para reproducir:** cargar el IPC de enero y febrero solo con `tenantId = __system__`; contrato IPC trimestral desde enero con el ajuste de abril vencido; `POST /adjustments/preview-batch` con `2026-04` y después `POST /adjustments/apply-batch` con ese contrato.
+- **Resultado esperado:** la previsualización y la aplicación usan los mismos índices (los propios más los de sistema, con prioridad para los propios) y el ajuste se aplica.
+- **Resultado obtenido:** previsualización `ready`; aplicación `skipped` con `MISSING_INDEX_DATA` y los dos meses como faltantes.
+- **Causa raíz:** la aplicación, el barrido y la corrección calculan dentro de una transacción y leen los índices con ese cliente, que pasa por la extensión de aislamiento. En las lecturas la extensión reemplazaba el filtro `tenantId in [inmobiliaria, __system__]` de `IndexDataService.getForPeriod` por `tenantId = inmobiliaria`. La previsualización lee con el cliente base y por eso sí los veía.
+- **Corrección:** la extensión conserva, en los modelos con filas de sistema (`SYSTEM_SHARED_MODELS`, hoy solo `IndexData`), un filtro de lectura que pide la inmobiliaria actual y/o `__system__` y nada más; cualquier otro valor se sigue reemplazando por la inmobiliaria actual y las escrituras no cambian (ADR-0006). Se revisaron los demás lectores de datos de sistema: el listado, el último valor por índice, los estimados reemplazados, los punitorios con tasa BNA y la previsualización leen por el cliente base con el filtro explícito y no estaban afectados.
+- **Prueba de regresión:** CP-1200 a CP-1203 en `apps/api/test/e2e/ajuste-masivo.e2e-spec.ts` y CP-1204 en `apps/api/test/unit/prisma-tenant.extension.spec.ts`.
+- **Evidencia rojo/verde:** regresión `082a069` en rojo (4 e2e fallan: tres `MISSING_INDEX_DATA` y una corrección en espera; 2 unitarias fallan: el filtro de sistema se pisa); corrección en `f42b4d2`.

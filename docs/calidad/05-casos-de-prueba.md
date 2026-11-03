@@ -899,3 +899,14 @@ Banda CP-1000 a CP-1015. Origen: uso real del piloto (la carga mensual de boleta
 | CP-1014 | Aislamiento | otra inmobiliaria no ve el documento, ni su archivo, ni lo acepta o rechaza (404), ni su lista lo incluye; la cuenta de un servicio ajeno no sirve para dar de alta; aceptar un documento propio con el servicio de otra inmobiliaria da 404 | `e2e::aislamiento entre inmobiliarias`; `e2e::mail` | verde (3 nov) |
 | CP-1015 | Configuración de la consulta | `operationalDefaults.billFetching` es `{ enabled: false, providers: [] }` de fábrica; acepta proveedores del catálogo sin repetir y rechaza el genérico, repetidos y campos de más (400); el formulario de valores por defecto, que no la manda, no la borra al guardar | `shared/src/bills-intake/bills-intake.spec.ts`; `shared/src/schemas/contract-rules.schema.spec.ts`; `e2e::consulta diaria` | verde (3 nov) |
 
+## Índices de sistema al aplicar ajustes (DEF-115)
+
+Banda CP-1200 a CP-1219. Origen: ensayo general del primer ciclo en la copia de la inmobiliaria piloto, donde todos los índices son de sistema. Contratos sintéticos: IPC trimestral de $100.000 desde enero de 2026, rezago de 2 meses (valor de la inmobiliaria).
+
+| ID | Caso | Resultado esperado | Automatización | Estado |
+|---|---|---|---|---|
+| CP-1200 | Ajustes del mes con el IPC solo de sistema | con enero (2 %) y febrero (3 %) cargados solo como `__system__`, la previsualización de abril da `ready` con $105.060 y la aplicación lo aplica: ajuste definitivo, alquiler en $105.060 y los dos meses en las observaciones | `e2e/ajuste-masivo.e2e-spec.ts::CP-1200` | verde (3 nov) |
+| CP-1201 | Barrido diario con el IPC solo de sistema | `_run-now` aplica todos los ajustes vencidos del contrato, no saltea ninguno y no deja cronogramas vencidos pendientes | `e2e/ajuste-masivo.e2e-spec.ts::CP-1201` | verde (3 nov) |
+| CP-1202 | Corrección con el oficial de sistema | un provisorio aplicado con el febrero estimado (2,5 %) se corrige cuando el oficial (2,8 %) llega como dato de sistema: $104.550 → $104.856, sin quedar en espera | `e2e/ajuste-masivo.e2e-spec.ts::CP-1202` | verde (3 nov) |
+| CP-1203 | Aislamiento con índices de sistema | con los de sistema en 2 % y 3 % y la otra inmobiliaria con su propio IPC en 10 %, la primera aplica $105.060 (no ve el de la otra) y la segunda $121.000 (lo propio le gana al de sistema) | `e2e/ajuste-masivo.e2e-spec.ts::CP-1203` | verde (3 nov) |
+| CP-1204 | Extensión de aislamiento y filas de sistema | en lecturas de `IndexData` se conserva un filtro con la inmobiliaria actual y/o `__system__`; uno que nombra a otra inmobiliaria, el mismo filtro en otro modelo y las escrituras se fijan a la inmobiliaria actual | `test/unit/prisma-tenant.extension.spec.ts` (IndexData: lectura de los valores de sistema) | verde (3 nov) |

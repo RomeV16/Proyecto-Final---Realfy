@@ -386,4 +386,109 @@ describe('Ajustes del mes: cron, aplicación masiva, provisorios y corrección (
       expect(pendingSchedules).toBeGreaterThan(0);
     });
   });
+
+  // DEF-115: el lector diario guarda los índices bajo `__system__`. La
+  // previsualización los veía y la aplicación (dentro de una transacción) no.
+  describe('índices de sistema', () => {
+    const SYSTEM = '__system__';
+
+    /** IPC de sistema de 1 % para cada mes desde junio de 2025 hasta el mes en curso. */
+    async function systemIpcUntilNow() {
+      const now = new Date();
+      for (let d = new Date(Date.UTC(2025, 5, 1)); d <= now; d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1))) {
+        await ipc(SYSTEM, d.toISOString().slice(0, 7), '1.000000');
+      }
+    }
+
+    it('CP-1200 — con el IPC solo de sistema, lo que la previsualización da por listo se aplica', async () => {
+      const { tokens } = await agency('sys-1');
+      const admin = tokens[UserRole.Admin];
+      await ipc(SYSTEM, '2026-01', '2.000000');
+      await ipc(SYSTEM, '2026-02', '3.000000');
+      const contract = await createContract(admin);
+
+      const preview = await post(admin, '/adjustments/preview-batch', { period: PERIOD }).expect(201);
+      expect(previewRow(preview.body, contract.id)).toMatchObject({ status: 'ready', newRent: '105060.00' });
+
+      const applied = await post(admin, '/adjustments/apply-batch', {
+        period: PERIOD,
+        contractIds: [contract.id],
+      }).expect(201);
+      expect(applied.body.results[0]).toMatchObject({
+        contractId: contract.id,
+        result: 'applied',
+        newRent: '105060',
+      });
+      const adjustment = await prisma.baseClient.contractAdjustment.findFirstOrThrow({
+        where: { contractId: contract.id },
+      });
+      expect(Number(adjustment.newAmount)).toBe(105060);
+      expect((adjustment.indexValues as any).observations.map((v: any) => v.period)).toEqual(['2026-01', '2026-02']);
+      const rent = await prisma.baseClient.contract.findUnique({ where: { id: contract.id } });
+      expect(Number(rent!.rentAmount)).toBe(105060);
+    });
+
+    it('CP-1201 — el barrido diario aplica todos los vencidos con el IPC de sistema', async () => {
+      const { tokens } = await agency('sys-cron');
+      const contract = await createContract(tokens[UserRole.Admin]);
+      await systemIpcUntilNow();
+      const due = await prisma.baseClient.adjustmentSchedule.count({
+        where: { contractId: contract.id, status: 'Pending', nextAdjustmentDate: { lte: new Date() } },
+      });
+      expect(due).toBeGreaterThan(0);
+
+      const run = await post(tokens[UserRole.Admin], '/adjustments/_run-now').expect(201);
+
+      expect(run.body.skipped.filter((s: any) => s.contractId === contract.id)).toEqual([]);
+      expect(run.body.applied.filter((a: any) => a.contractId === contract.id)).toHaveLength(due);
+      const pending = await prisma.baseClient.adjustmentSchedule.count({
+        where: { contractId: contract.id, status: 'Pending', nextAdjustmentDate: { lte: new Date() } },
+      });
+      expect(pending).toBe(0);
+      const rent = await prisma.baseClient.contract.findUnique({ where: { id: contract.id } });
+      expect(Number(rent!.rentAmount)).toBeGreaterThan(100000);
+    });
+
+    it('CP-1202 — el oficial publicado como dato de sistema corrige el provisorio', async () => {
+      const { tenantId, tokens } = await agency('sys-trueup');
+      const admin = tokens[UserRole.Admin];
+      await ipc(tenantId, '2026-01', '2.000000');
+      await ipc(tenantId, '2026-02', '2.500000', true);
+      const contract = await createContract(admin);
+      await post(admin, '/adjustments/apply-batch', { period: PERIOD, contractIds: [contract.id] }).expect(201);
+
+      // El lector diario publica el oficial de febrero: 2,8 % en lugar del 2,5 % estimado.
+      await ipc(SYSTEM, '2026-02', '2.800000');
+      const run = await post(admin, '/adjustments/_run-now').expect(201);
+
+      expect(run.body.trueUpsWaiting.filter((w: any) => w.contractId === contract.id)).toEqual([]);
+      expect(run.body.trueUps).toEqual([
+        expect.objectContaining({ contractId: contract.id, provisionalRent: '104550', officialRent: '104856' }),
+      ]);
+    });
+
+    it('CP-1203 — cada inmobiliaria suma solo los de sistema: nunca los índices propios de otra', async () => {
+      const a = await agency('sys-iso-a');
+      const b = await agency('sys-iso-b');
+      await ipc(SYSTEM, '2026-01', '2.000000');
+      await ipc(SYSTEM, '2026-02', '3.000000');
+      // B cargó a mano su propio IPC: para B le gana al de sistema; A no lo ve.
+      await ipc(b.tenantId, '2026-01', '10.000000');
+      await ipc(b.tenantId, '2026-02', '10.000000');
+      const contractA = await createContract(a.tokens[UserRole.Admin]);
+      const contractB = await createContract(b.tokens[UserRole.Admin]);
+
+      const applyA = await post(a.tokens[UserRole.Admin], '/adjustments/apply-batch', {
+        period: PERIOD,
+        contractIds: [contractA.id],
+      }).expect(201);
+      const applyB = await post(b.tokens[UserRole.Admin], '/adjustments/apply-batch', {
+        period: PERIOD,
+        contractIds: [contractB.id],
+      }).expect(201);
+
+      expect(applyA.body.results[0]).toMatchObject({ result: 'applied', newRent: '105060' });
+      expect(applyB.body.results[0]).toMatchObject({ result: 'applied', newRent: '121000' });
+    });
+  });
 });
