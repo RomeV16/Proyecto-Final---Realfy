@@ -27,6 +27,8 @@ export function relatedHref(type: string | null, id: string | null): string | nu
       return `/liquidaciones/${id}`;
     case 'Ticket':
       return `/tickets/${id}`;
+    case 'CollectionCase':
+      return `/cobranza/${id}`;
     default:
       return null;
   }

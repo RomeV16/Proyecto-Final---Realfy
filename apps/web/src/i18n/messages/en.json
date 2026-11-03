@@ -121,7 +121,8 @@
   "ownerStatements": "Owner statements",
   "listings": "Listings",
   "followUps": "Expirations",
-  "messaging": "Messaging"
+  "messaging": "Messaging",
+  "collections": "Collections"
  },
  "dataTable": {
   "pagination": {
@@ -262,7 +263,13 @@
    "MESSAGE_NOT_FOUND": "The message does not exist.",
    "MESSAGE_NOT_RETRYABLE": "Only a failed, blocked or cancelled message can be retried.",
    "MESSAGE_NOT_CANCELLABLE": "Only a pending or blocked message can be cancelled.",
-   "MESSAGE_EXPIRED": "The invitation's one-time link was already erased: create a new invitation from Users."
+   "MESSAGE_EXPIRED": "The invitation's one-time link was already erased: create a new invitation from Users.",
+   "CASE_CLOSED": "The collection case is closed.",
+   "COLLECTION_CASE_NOT_FOUND": "The collection case does not exist.",
+   "AGREEMENT_DATE_OUT_OF_RANGE": "The agreement date must be today or later, within a year.",
+   "LETTER_NOT_FOUND": "The formal letter does not belong to this case.",
+   "LETTER_ALREADY_SENT": "The letter was already confirmed as sent: it can no longer be edited or confirmed again.",
+   "LETTER_SENT_DATE_INVALID": "The sending date cannot be in the future nor before the draft."
   },
   "segment": {
    "loading": "Loading…",
@@ -5095,6 +5102,18 @@
    "messagingUntilHour": {
     "label": "Send until (hour)",
     "hint": "Hour at which sending stops, 1 to 24 and after the start hour (default {value})."
+   },
+   "collectionsEnabled": {
+    "label": "Turn on escalating collections",
+    "hint": "Off by default. When on, the daily process opens a case per contract with overdue rent and sends the reminders through the outbox (which respects the environment mode and consent). The formal letter is only prepared as a draft."
+   },
+   "collectionsMaxLevel": {
+    "label": "Number of reminders",
+    "hint": "1 to 3 notices, each firmer than the last (default {value}). After the reminders, when the next rent falls due, the formal letter is prepared."
+   },
+   "collectionsLetterTermDays": {
+    "label": "Formal letter term (calendar days)",
+    "hint": "From the paper mailing; when it expires a referral to a lawyer is suggested (default {value})."
    }
   }
  },
@@ -6818,7 +6837,10 @@
    "ticket_status": "Claim status change",
    "ticket_comment": "Reply on a claim",
    "user_invitation": "Team invitation",
-   "staff_alert": "Staff alert"
+   "staff_alert": "Staff alert",
+   "payment_reminder_1": "Payment reminder (friendly)",
+   "payment_reminder_2": "Payment reminder (firm)",
+   "payment_reminder_3": "Pending payment notice (last reminder)"
   },
   "related": {
    "Receipt": "Receipt",
@@ -6827,7 +6849,8 @@
    "Ticket": "Claim",
    "TicketComment": "Reply on a claim",
    "UserInvitation": "Invitation",
-   "Notification": "Alert"
+   "Notification": "Alert",
+   "CollectionCase": "Collections"
   },
   "reasons": {
    "MESSAGING_OFF": "Sending is off in this environment: it stays queued until it is turned on.",
@@ -7460,6 +7483,189 @@
    },
    "empty": "No keys out",
    "emptySubtitle": "All the keys are in the office."
+  }
+ },
+ "collections": {
+  "title": "Collections",
+  "subtitle": "Contracts with overdue unpaid rent: the stage each one is in, what is owed today with penalties and what comes next. Reminders go through the outbox; the formal letter is prepared as a draft and is never sent automatically.",
+  "forbidden": "Your role has no access to collections.",
+  "noProperty": "Contract without a property",
+  "noTenant": "No tenant on file",
+  "days": "{n, plural, one {# day} other {# days}}",
+  "level": "tone {n}",
+  "stages": {
+   "Recordatorio": "Reminder",
+   "Prejudicial": "Pre-litigation",
+   "Abogado": "With the lawyer",
+   "Judicial": "Judicial",
+   "Cerrado": "Closed"
+  },
+  "filters": {
+   "stage": "Stage",
+   "open": "Open",
+   "minDays": "Overdue",
+   "any": "Any",
+   "moreThan": "More than {n} days",
+   "assignee": "Owner",
+   "everyone": "Everyone",
+   "mine": "My cases"
+  },
+  "summary": "{count, plural, one {# case} other {# cases}} · owed today",
+  "columns": {
+   "contract": "Contract",
+   "stage": "Stage",
+   "overdue": "Overdue",
+   "balance": "Overdue balance",
+   "payoff": "To pay today",
+   "next": "Next step",
+   "assignee": "Owner"
+  },
+  "plan": {
+   "Paused": "Payment agreement until",
+   "AwaitingLetterConfirmation": "Confirm the letter was sent",
+   "Manual": "Handled by a person",
+   "none": "Nothing for now"
+  },
+  "actionKinds": {
+   "Recordatorio": "Reminder",
+   "RecordatorioFirme": "Firm reminder",
+   "CartaDocumento": "Formal letter",
+   "DerivacionAbogado": "Referral to a lawyer",
+   "Nota": "Note",
+   "Pago": "Payment",
+   "Acuerdo": "Payment agreement"
+  },
+  "channels": {
+   "Email": "Email",
+   "WhatsApp": "WhatsApp"
+  },
+  "statuses": {
+   "Preparada": "Draft prepared",
+   "Realizada": "Done"
+  },
+  "empty": {
+   "title": "No collection cases",
+   "subtitle": "A case opens by itself when a contract has an overdue rent with a balance, if collections are turned on in Default values."
+  },
+  "detail": {
+   "loadError": "The collection case could not be loaded",
+   "back": "← Back to collections",
+   "contract": "View the contract",
+   "assignedTo": "owned by {name}",
+   "summary": "Case summary",
+   "payoffToday": "To pay today",
+   "payoffHint": "Overdue balance plus penalties as of today: the amount the tenant is told.",
+   "balance": "Overdue balance",
+   "next": "Next step",
+   "closed": "Case closed",
+   "manualHint": "A person decides and does it: the system does not do it on its own.",
+   "assigned": "Owner updated",
+   "assignError": "The owner could not be changed"
+  },
+  "closeReasons": {
+   "Pagado": "Closed by payment",
+   "Manual": "Closed by hand"
+  },
+  "actions": {
+   "note": "Add a note",
+   "agreement": "Record a payment agreement",
+   "assignToMe": "Assign to me",
+   "unassign": "Remove owner",
+   "derive": "Refer to a lawyer",
+   "judicial": "Move to court proceedings",
+   "close": "Close the case"
+  },
+  "letter": {
+   "title": "Formal letter (draft)",
+   "notice": "This is a draft to review: it is never sent automatically. Review it, have a professional check it if needed, send it on paper by registered mail and only then confirm it was sent.",
+   "recipientName": "Recipient",
+   "recipientAddress": "Address",
+   "propertyAddress": "Property",
+   "periods": "Periods owed",
+   "amount": "Amount owed",
+   "termDays": "Term (calendar days)",
+   "extraText": "Additional text",
+   "pdf": "View the PDF",
+   "edit": "Edit the draft",
+   "markSent": "Confirm it was sent",
+   "pdfError": "The PDF could not be generated"
+  },
+  "debt": {
+   "title": "Overdue debt",
+   "period": "Period",
+   "due": "Due date",
+   "days": "Days",
+   "balance": "Balance",
+   "penalty": "Penalties",
+   "total": "To pay today",
+   "empty": "There is no overdue debt: the case closes in the next daily run."
+  },
+  "timeline": {
+   "title": "Timeline",
+   "empty": "Nothing has happened in this case yet.",
+   "amount": "Amount",
+   "onDate": "Date",
+   "noChannel": "The person could not be notified: no email or opted-in WhatsApp on file.",
+   "by": "By {name}"
+  },
+  "fields": {
+   "note": "Note",
+   "payOn": "Promised payment date",
+   "agreedAmount": "Promised amount (optional)",
+   "agreedAmountHint": "Only for the record; it does not change the debt.",
+   "lawyer": "Lawyer or firm (optional)",
+   "closeReason": "Reason for closing",
+   "sentOn": "Sending date",
+   "tracking": "Mail piece or note (optional)"
+  },
+  "dialogs": {
+   "note": {
+    "title": "Add a note",
+    "submit": "Save the note",
+    "done": "Note added"
+   },
+   "agreement": {
+    "title": "Payment agreement",
+    "description": "No reminders go out while the agreement holds. If the date arrives and the debt remains, reminders resume the next day.",
+    "submit": "Record the agreement",
+    "done": "Agreement recorded"
+   },
+   "derive": {
+    "title": "Refer to a lawyer",
+    "description": "This is the agency's decision: the system never refers on its own. The case moves to \"With the lawyer\" and reminders stop.",
+    "submit": "Refer",
+    "done": "Case referred"
+   },
+   "judicial": {
+    "title": "Move to court proceedings",
+    "description": "The case is marked as judicial (lawsuit or eviction). The system takes no action: it is only the record.",
+    "submit": "Mark as judicial",
+    "done": "The case is now judicial"
+   },
+   "close": {
+    "title": "Close the case",
+    "description": "It closes without waiting for payment, for example after an arrangement outside the system. A new arrear opens another case.",
+    "submit": "Close the case",
+    "done": "Case closed"
+   },
+   "letterSent": {
+    "title": "Confirm the letter was sent",
+    "description": "Confirm only once the letter has gone out on paper. The term starts running from that date and a referral to the lawyer is suggested when it expires.",
+    "submit": "Confirm it was sent",
+    "done": "Sending confirmed"
+   },
+   "letterEdit": {
+    "title": "Edit the letter draft",
+    "description": "Fix whatever is needed before printing it. It can be edited until the sending is confirmed.",
+    "submit": "Save the draft",
+    "done": "Draft updated"
+   }
+  },
+  "contract": {
+   "title": "Collections",
+   "viewAll": "View all collections",
+   "payoff": "To pay today",
+   "view": "View the case"
   }
  }
 }

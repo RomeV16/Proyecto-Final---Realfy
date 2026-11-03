@@ -54,6 +54,7 @@ export const navItems: NavItem[] = [
   { key: 'renditions', href: '/renditions', icon: 'renditions', readResource: 'renditions' },
   { key: 'invoices', href: '/invoices', icon: 'invoices', readResource: 'invoices' },
   { key: 'delinquency', href: '/delinquency', icon: 'delinquency', action: 'delinquency.view' },
+  { key: 'collections', href: '/cobranza', icon: 'delinquency', action: 'collections.view' },
   { key: 'reports', href: '/reports', icon: 'reports', action: 'reports.view', readResource: 'reports.financial' },
   { key: 'tickets', href: '/tickets', icon: 'tickets' },
   { key: 'providers', href: '/providers', icon: 'providers' },

@@ -125,6 +125,14 @@ export const ACTION_ROLES = {
   'indexData.view': [Admin, Gerente],
   'indexData.manage': [Admin],
 
+  // Cobranza escalonada (la API exige los mismos roles en cada ruta)
+  /** Ver los casos de cobranza, su línea de tiempo y el borrador de la carta documento. */
+  'collections.view': [Admin, Gerente, Liquidaciones, Lectura],
+  /** Notas, acuerdos de pago, editar y confirmar la carta documento, asignar y cerrar un caso. */
+  'collections.manage': [Admin, Gerente, Liquidaciones],
+  /** Derivar a un abogado y pasar a la vía judicial: decisiones de la gerencia. */
+  'collections.escalate': [Admin, Gerente],
+
   // Mensajería saliente (la API exige los mismos roles en cada ruta)
   /** Ver la bandeja de salida y los mensajes de un documento. */
   'messaging.view': [Admin, Gerente, Liquidaciones, Lectura, Ventas, Soporte],

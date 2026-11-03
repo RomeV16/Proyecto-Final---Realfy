@@ -23,6 +23,7 @@ import { GenerateDocumentModal } from './generate-document-modal';
 import { CommissionConfig } from './commission-config';
 import { ClosureSummary } from './closure-summary';
 import { ContractExpiration } from '@/components/follow-ups/contract-expiration';
+import { ContractCollection } from '@/components/collections/contract-collection';
 import { ContractDeposit } from '@/components/deposits/contract-deposit';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import {
@@ -878,6 +879,9 @@ export function ContractDetailView({ contractId }: ContractDetailProps) {
 
           {/* Cargos pendientes del centro de carga */}
           <ContractPendingCharges contractId={contract.id} />
+
+          {/* Cobranza: el caso abierto por mora, si hay uno */}
+          <ContractCollection contractId={contract.id} />
 
           {/* Honorarios del contrato: alta, renovaciones y su cobro */}
           <ContractFees contractId={contract.id} />

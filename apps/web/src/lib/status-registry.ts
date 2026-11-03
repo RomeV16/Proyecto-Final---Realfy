@@ -1,4 +1,5 @@
 import {
+  CollectionStage,
   ConsentStatus,
   ContractStatus,
   ExpirationLight,
@@ -60,7 +61,8 @@ export type StatusDomain =
   | 'facturaLocador'
   | 'mensaje'
   | 'consentimiento'
-  | 'aviso';
+  | 'aviso'
+  | 'cobranza';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -260,6 +262,16 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
     [ConsentStatus.OptIn]: 'success',
     [ConsentStatus.OptOut]: 'danger',
   }),
+  cobranza: entries(
+    'collections.stages',
+    {
+      [CollectionStage.Recordatorio]: 'info',
+      [CollectionStage.Prejudicial]: 'warning',
+      [CollectionStage.Abogado]: 'danger',
+      [CollectionStage.Judicial]: 'danger',
+      [CollectionStage.Cerrado]: 'neutral',
+    },
+  ),
   importFila: entries('importBatches.actions', {
     [ImportRowAction.Creado]: 'success',
     [ImportRowAction.Actualizado]: 'info',

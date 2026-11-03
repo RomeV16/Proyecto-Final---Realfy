@@ -24,6 +24,7 @@ describe('mensajería: ayudas de la web', () => {
     expect(relatedHref('OwnerStatement', 'st-1')).toBe('/estados-de-cuenta/st-1');
     expect(relatedHref('Liquidacion', 'l-1')).toBe('/liquidaciones/l-1');
     expect(relatedHref('Ticket', 't-1')).toBe('/tickets/t-1');
+    expect(relatedHref('CollectionCase', 'c-1')).toBe('/cobranza/c-1');
     expect(relatedHref('Receipt', 'r-1')).toBeNull();
     expect(relatedHref(null, 'x')).toBeNull();
     expect(relatedHref('Ticket', null)).toBeNull();
