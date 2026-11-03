@@ -1,4 +1,5 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import Decimal from 'decimal.js';
 import { ContractStatus, ScheduleStatus, calculateAdjustment } from '@realfy/shared';
 import type {
@@ -30,6 +31,8 @@ function endOfMonth(period: string): Date {
  */
 @Injectable()
 export class AdjustmentBatchService {
+  private readonly logger = new Logger(AdjustmentBatchService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
@@ -113,10 +116,8 @@ export class AdjustmentBatchService {
             missingPeriods: err.missingPeriods,
             estimatesOnly: err.estimatesOnly,
           };
-        } else if (err instanceof HttpException) {
-          row.error = this.adjustments.skipReason(err);
         } else {
-          throw err;
+          row.error = this.failure(contract.id, err, tenantId).reason;
         }
       }
       rows.push(row);
@@ -163,18 +164,36 @@ export class AdjustmentBatchService {
           indexTypes: [],
         });
       } catch (err) {
-        const entry = this.skipped(contractId, this.adjustments.skipReason(err));
-        if (err instanceof MissingIndexDataError) {
-          entry.indexTypes = err.indexTypes;
-          entry.missingPeriods = err.missingPeriods;
-          entry.reason = MISSING_INDEX_DATA;
-        } else if (!(err instanceof HttpException)) {
-          throw err;
-        }
-        results.push(entry);
+        results.push(this.failure(contractId, err, tenantId));
       }
     }
     return { period, results };
+  }
+
+  /**
+   * Un contrato que no se pudo aplicar: el error de la modalidad (HTTP) o de
+   * índices faltantes se informa como salteado con su motivo; cualquier otro
+   * (un error de base, por ejemplo) como `error` con su código, sin cortar el
+   * lote ni ocultar los contratos que ya se aplicaron.
+   */
+  private failure(contractId: string, err: unknown, tenantId: string): AdjustmentApplyResult {
+    if (err instanceof MissingIndexDataError) {
+      return {
+        ...this.skipped(contractId, MISSING_INDEX_DATA),
+        indexTypes: err.indexTypes,
+        missingPeriods: err.missingPeriods,
+      };
+    }
+    if (err instanceof HttpException) return this.skipped(contractId, this.adjustments.skipReason(err));
+    const code =
+      err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002' ? 'CONFLICT' : 'ADJUSTMENT_FAILED';
+    this.logger.error('Adjustment batch: contract failed', {
+      contractId,
+      tenantId,
+      code,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return { ...this.skipped(contractId, code), result: 'error' };
   }
 
   private skipped(contractId: string, reason: string): AdjustmentApplyResult {

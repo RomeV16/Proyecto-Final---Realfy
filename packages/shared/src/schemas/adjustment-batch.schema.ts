@@ -67,10 +67,11 @@ export interface AdjustmentPreviewBatch {
 /** Resultado de aplicar un contrato del lote. */
 export interface AdjustmentApplyResult {
   contractId: string;
-  result: 'applied' | 'skipped';
+  /** `error`: falló por un motivo no previsto (por ejemplo un conflicto de base); el resto del lote sigue. */
+  result: 'applied' | 'skipped' | 'error';
   /** `applied`, `provisional` o `fixed_initial` si se aplicó. */
   status: string | null;
-  /** Por qué se salteó: `MISSING_INDEX_DATA`, `NO_DUE_ADJUSTMENT`, `CONTRACT_NOT_FOUND`, etc. */
+  /** Por qué se salteó o falló: `MISSING_INDEX_DATA`, `NO_DUE_ADJUSTMENT`, `CONTRACT_NOT_FOUND`, `CONFLICT`, etc. */
   reason: string | null;
   previousRent: string | null;
   newRent: string | null;
