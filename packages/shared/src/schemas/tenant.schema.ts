@@ -26,8 +26,26 @@ export const CreateTenantSchema = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/)
     .optional(),
   logoUrl: z.string().url().optional(),
+  /** Matrícula profesional de la inmobiliaria (sale en los contratos). */
+  licenseNumber: z.string().trim().min(1).max(60).optional(),
+  /** Domicilio de la inmobiliaria (sale en los contratos). */
+  address: z.string().trim().min(1).max(300).optional(),
 });
 
-export const UpdateTenantSchema = CreateTenantSchema.partial().omit({
-  cuit: true,
-});
+/** En la edición un campo vacío o nulo borra el dato. */
+const clearable = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullish()
+    .transform((v) => (v ? v : null));
+
+export const UpdateTenantSchema = CreateTenantSchema.partial()
+  .omit({
+    cuit: true,
+  })
+  .extend({
+    licenseNumber: clearable(60).optional(),
+    address: clearable(300).optional(),
+  });

@@ -1,4 +1,4 @@
-import { formatMoneyAR, formatPeriodAR, formatPeriodShortAR, personName, propertyLabel, formatReceiptNumber } from './format';
+import { formatMoneyAR, formatPeriodAR, formatPeriodShortAR, personName, propertyLabel, formatReceiptNumber, formatDniAR } from './format';
 
 describe('formatMoneyAR', () => {
   it('separa miles y deja dos decimales', () => {
@@ -60,5 +60,21 @@ describe('formatReceiptNumber', () => {
     expect(formatReceiptNumber(1)).toBe('00000001');
     expect(formatReceiptNumber(42)).toBe('00000042');
     expect(formatReceiptNumber(123456789)).toBe('123456789');
+  });
+});
+
+describe('formatDniAR', () => {
+  it('agrega los puntos de millares', () => {
+    expect(formatDniAR('6678901')).toBe('6.678.901');
+    expect(formatDniAR('30123456')).toBe('30.123.456');
+    expect(formatDniAR(' 30123456 ')).toBe('30.123.456');
+  });
+
+  it('acepta el DNI ya con puntos y deja igual lo que no es un número de documento', () => {
+    expect(formatDniAR('30.123.456')).toBe('30.123.456');
+    expect(formatDniAR('AB123456')).toBe('AB123456');
+    expect(formatDniAR('12')).toBe('12');
+    expect(formatDniAR('')).toBe('');
+    expect(formatDniAR(null)).toBe('');
   });
 });
