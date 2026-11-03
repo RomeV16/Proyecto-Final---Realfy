@@ -60,6 +60,7 @@ describe('OperationalDefaultsSchema', () => {
       },
       ownerAccounts: { statementCloseDay: null, lessorChargeTiming: 'AlGenerarEstado' },
       invoicing: { scope: 'Alquiler', when: 'Manual', vatPct: 0 },
+      messaging: { fromHour: 9, untilHour: 20 },
     });
   });
 
@@ -74,6 +75,8 @@ describe('OperationalDefaultsSchema', () => {
     [{ dueDay: 29 }],
     [{ dueDay: 1.5 }],
     [{ ipcLagMonths: 13 }],
+    [{ messaging: { fromHour: 20, untilHour: 9 } }],
+    [{ messaging: { fromHour: 9, untilHour: 25 } }],
     [{ commissionPct: -1 }],
     [{ fees: { alta: 101 } }],
     [{ collectionCadence: { everyDays: 0 } }],
