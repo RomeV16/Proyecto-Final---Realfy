@@ -1,12 +1,4 @@
-import {
-  KeyHolder,
-  SALES_DOC_TEMPLATE,
-  SalesDepositHolder,
-  SalesDepositKind,
-  SalesDepositStatus,
-  SalesOperationStatus,
-  SalesPartyRole,
-} from '@realfy/shared';
+import { KeyHolder, SalesDepositHolder, SalesDepositKind, SalesOperationStatus } from '@realfy/shared';
 
 /* ──────────── Lo que devuelve la API ──────────── */
 
@@ -144,12 +136,9 @@ export interface KeyOut extends KeyMovement {
 export const SALES_STATUSES = Object.values(SalesOperationStatus);
 export const DEPOSIT_KINDS = Object.values(SalesDepositKind);
 export const DEPOSIT_HOLDERS = Object.values(SalesDepositHolder);
-export const DEPOSIT_STATUSES = Object.values(SalesDepositStatus);
 export const KEY_HOLDERS = Object.values(KeyHolder);
 export const KEY_HOLDERS_OUT = KEY_HOLDERS.filter((h) => h !== KeyHolder.Oficina);
-export const PARTY_ROLES = Object.values(SalesPartyRole);
 export const CURRENCIES = ['USD', 'ARS', 'EUR'] as const;
-export const DOC_CODES = SALES_DOC_TEMPLATE.map((i) => i.code);
 
 /* ──────────── Auxiliares ──────────── */
 
@@ -194,7 +183,7 @@ export function expiryState(d: Pick<SalesDeposit, 'kind' | 'status' | 'expiresAt
 }
 
 /** Etapas a las que se puede ir desde la actual, en el orden en que se ofrecen. */
-export const TRANSITION_ORDER: readonly string[] = ['Reservada', 'SenaRecibida', 'Boleto', 'Escriturada', 'Publicada', 'Captacion', 'Cancelada'];
+const TRANSITION_ORDER: readonly string[] = ['Reservada', 'SenaRecibida', 'Boleto', 'Escriturada', 'Publicada', 'Captacion', 'Cancelada'];
 
 export function orderedTransitions(valid: readonly string[]): string[] {
   return TRANSITION_ORDER.filter((s) => valid.includes(s));
