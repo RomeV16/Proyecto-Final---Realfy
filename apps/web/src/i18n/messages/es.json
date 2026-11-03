@@ -5188,6 +5188,14 @@
     "PorcentajePorDefecto": "El porcentaje por defecto de la inmobiliaria"
    }
   },
+  "skippedAdjustmentsMode": {
+   "label": "Ajustes salteados al importar",
+   "hint": "Qué hacer con la inflación de los períodos de ajuste que quedaron salteados al importar el contrato (de fábrica: {value}).",
+   "options": {
+    "NoRecuperar": "No recuperarla: el alquiler importado ya está actualizado",
+    "Recuperar": "Recuperarla: el primer ajuste acumula desde el inicio"
+   }
+  },
   "upfrontThreshold": {
    "label": "Umbral de anticipo propio",
    "placeholder": "Por defecto: {value}",

@@ -6,6 +6,7 @@ import {
   MidMonthAdjustmentMode,
   ProrationMode,
   SalesDepositHolder,
+  SkippedAdjustmentsMode,
   UpfrontBasis,
 } from '../enums';
 import type { OperationalDefaults, OperationalDefaultsInput } from './operational-defaults.schema';
@@ -60,6 +61,7 @@ export const operationalDefaultsFormSchema = z
     valuationUsd: numberText({ min: 0 }),
     upfrontThresholdFees: numberText({ min: 0 }),
     upfrontBasis: z.nativeEnum(UpfrontBasis),
+    skippedAdjustmentsMode: z.nativeEnum(SkippedAdjustmentsMode),
     firstReminderDays: numberText({ int: true, min: 0, max: 365 }),
     everyDays: numberText({ int: true, min: 1, max: 365 }),
     collectionsEnabled: z.boolean(),
@@ -139,6 +141,7 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     valuationUsd: String(d.valuationUsd),
     upfrontThresholdFees: String(d.upfrontThresholdFees),
     upfrontBasis: d.upfrontBasis,
+    skippedAdjustmentsMode: d.skippedAdjustmentsMode,
     firstReminderDays: String(d.collectionCadence.firstReminderDays),
     everyDays: String(d.collectionCadence.everyDays),
     collectionsEnabled: d.collections.enabled,
@@ -200,6 +203,7 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
     valuationUsd: num(f.valuationUsd),
     upfrontThresholdFees: num(f.upfrontThresholdFees),
     upfrontBasis: f.upfrontBasis,
+    skippedAdjustmentsMode: f.skippedAdjustmentsMode,
     collectionCadence: { firstReminderDays: num(f.firstReminderDays), everyDays: num(f.everyDays) },
     collections: {
       enabled: f.collectionsEnabled,

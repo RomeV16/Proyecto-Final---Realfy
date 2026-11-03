@@ -5188,6 +5188,14 @@
     "PorcentajePorDefecto": "The agency's default percentage"
    }
   },
+  "skippedAdjustmentsMode": {
+   "label": "Adjustments skipped on import",
+   "hint": "What to do with the inflation of the adjustment periods that were skipped when the contract was imported (factory: {value}).",
+   "options": {
+    "NoRecuperar": "Do not recover it: the imported rent is already up to date",
+    "Recuperar": "Recover it: the first adjustment accumulates from the start"
+   }
+  },
   "upfrontThreshold": {
    "label": "Own advance threshold",
    "placeholder": "Default: {value}",

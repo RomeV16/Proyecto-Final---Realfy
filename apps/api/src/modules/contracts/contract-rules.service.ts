@@ -34,6 +34,7 @@ const TERMS_FIELDS = [
   'lateAdjustmentBilling',
   'upfrontThresholdFees',
   'upfrontBasis',
+  'skippedAdjustmentsMode',
   'lessorDirectOwes',
   'repairPreauthLimitAmount',
   'repairPreauthLimitCurrency',

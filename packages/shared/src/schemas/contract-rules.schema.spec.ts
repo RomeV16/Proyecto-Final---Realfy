@@ -48,6 +48,7 @@ describe('OperationalDefaultsSchema', () => {
       valuationUsd: 100,
       upfrontThresholdFees: 2,
       upfrontBasis: 'ComisionPactada',
+      skippedAdjustmentsMode: 'NoRecuperar',
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
       collections: { enabled: false, maxLevel: 3, letterTermDays: 10, repeatLastLevel: true },
       expiryLight: { redDays: 30, yellowDays: 60 },
@@ -322,6 +323,22 @@ describe('convenciones de liquidación', () => {
       liquidationRules: { firstDueMode: 'AlFirmar' },
     });
     expect(created.liquidationRules).toEqual({ firstDueMode: 'AlFirmar' });
+  });
+
+  it('los períodos de ajuste salteados al importar: por defecto no se recupera su inflación, y se pacta por contrato', () => {
+    expect(OperationalDefaultsSchema.parse({}).skippedAdjustmentsMode).toBe('NoRecuperar');
+    expect(OperationalDefaultsSchema.parse({ skippedAdjustmentsMode: 'Recuperar' }).skippedAdjustmentsMode).toBe('Recuperar');
+    expect(() => OperationalDefaultsSchema.parse({ skippedAdjustmentsMode: 'Otra' })).toThrow();
+    const form = operationalDefaultsToForm(OperationalDefaultsSchema.parse({ skippedAdjustmentsMode: 'Recuperar' }));
+    expect(form.skippedAdjustmentsMode).toBe('Recuperar');
+    expect(operationalDefaultsFromForm(form).skippedAdjustmentsMode).toBe('Recuperar');
+    expect(LiquidationConventionsSchema.parse({ skippedAdjustmentsMode: 'Recuperar' })).toEqual({
+      skippedAdjustmentsMode: 'Recuperar',
+    });
+    expect(TermsPatchSchema.parse({ skippedAdjustmentsMode: 'NoRecuperar' })).toEqual({
+      skippedAdjustmentsMode: 'NoRecuperar',
+    });
+    expect(() => TermsPatchSchema.parse({ skippedAdjustmentsMode: 'Otra' })).toThrow();
   });
 
   it('el anticipo por contrato: base elegible, umbral entero de 0 a 24 o null', () => {

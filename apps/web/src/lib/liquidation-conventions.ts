@@ -4,6 +4,7 @@ import {
   LateAdjustmentBilling,
   MidMonthAdjustmentMode,
   ProrationMode,
+  SkippedAdjustmentsMode,
   UpfrontBasis,
 } from '@realfy/shared';
 
@@ -15,6 +16,7 @@ export const CONVENTION_FIELDS = [
   'fixedDiscountProration',
   'lateAdjustmentBilling',
   'upfrontBasis',
+  'skippedAdjustmentsMode',
 ] as const;
 
 export type ConventionField = (typeof CONVENTION_FIELDS)[number];
@@ -29,6 +31,7 @@ export const CONVENTION_OPTIONS: Record<ConventionField, readonly string[]> = {
   fixedDiscountProration: Object.values(FixedDiscountProration),
   lateAdjustmentBilling: Object.values(LateAdjustmentBilling),
   upfrontBasis: Object.values(UpfrontBasis),
+  skippedAdjustmentsMode: Object.values(SkippedAdjustmentsMode),
 };
 
 export function isConventionField(field: string): field is ConventionField {

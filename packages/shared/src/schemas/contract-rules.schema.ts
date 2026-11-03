@@ -12,6 +12,7 @@ import {
   PaymentFlow,
   ProrationMode,
   UpfrontBasis,
+  SkippedAdjustmentsMode,
 } from '../enums';
 import { LessorDirectOwes } from '../settlement-engine';
 import { PenaltyConfigSchema } from './penalty-config.schema';
@@ -51,6 +52,7 @@ const liquidationConventionFields = {
   fixedDiscountProration: z.nativeEnum(FixedDiscountProration),
   upfrontBasis: z.nativeEnum(UpfrontBasis),
   lateAdjustmentBilling: z.nativeEnum(LateAdjustmentBilling),
+  skippedAdjustmentsMode: z.nativeEnum(SkippedAdjustmentsMode),
 };
 
 /** Umbral de anticipo del centro de carga, en comisiones mensuales; null vuelve al valor por defecto de la inmobiliaria. */

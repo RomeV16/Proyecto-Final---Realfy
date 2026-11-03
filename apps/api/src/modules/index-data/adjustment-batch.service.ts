@@ -116,8 +116,10 @@ export class AdjustmentBatchService {
             missingPeriods: err.missingPeriods,
             estimatesOnly: err.estimatesOnly,
           };
+        } else if (err instanceof HttpException) {
+          row.error = this.adjustments.skipReason(err);
         } else {
-          row.error = this.failure(contract.id, err, tenantId).reason;
+          throw err;
         }
       }
       rows.push(row);

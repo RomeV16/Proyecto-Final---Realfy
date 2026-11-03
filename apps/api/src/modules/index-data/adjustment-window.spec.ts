@@ -55,4 +55,33 @@ describe('resolveAdjustmentWindow', () => {
     const w = await resolveAdjustmentWindow(client({}), contract, UNTIL);
     expect(w).toEqual({ from: START, until: UNTIL, afterPrevious: false });
   });
+
+  it('DEF-137: con la convención de recuperar, el primer ajuste acumula desde el inicio del contrato', async () => {
+    const skipped = new Date('2026-07-01T00:00:00.000Z');
+    const w = await resolveAdjustmentWindow(client({ skipped, mode: 'Recuperar' }), contract, UNTIL);
+    expect(w).toEqual({ from: START, until: UNTIL, afterPrevious: false });
+  });
+
+  it('recuperar no pisa un ajuste ya aplicado: el alquiler vigente ya lo incluye', async () => {
+    const history = new Date('2026-07-01T00:00:00.000Z');
+    const w = await resolveAdjustmentWindow(client({ history, mode: 'Recuperar' }), contract, UNTIL);
+    expect(w).toEqual({ from: history, until: UNTIL, afterPrevious: true });
+  });
+
+  it('los períodos salteados dentro de los meses fijos iniciales no anclan la ventana', async () => {
+    const c = client({ fixedInitialMonths: 12 });
+    await resolveAdjustmentWindow(c, contract, UNTIL);
+    const where = c.adjustmentSchedule.findFirst.mock.calls.at(-1)[0].where;
+    expect(where.status).toBe(ScheduleStatus.Skipped);
+    // Los salteados por meses fijos (antes de inicio + 12 meses) quedan afuera de la búsqueda.
+    expect(where.nextAdjustmentDate).toEqual({ lt: UNTIL, gte: new Date('2025-10-01T00:00:00.000Z') });
+  });
+
+  it('los meses fijos se cuentan desde el inicio del tramo vigente', async () => {
+    const c = client({ fixedInitialMonths: 6 });
+    c.contractPeriod = { findFirst: jest.fn(async () => ({ startDate: new Date('2026-01-01T00:00:00.000Z') })) };
+    await resolveAdjustmentWindow(c, contract, UNTIL);
+    const where = c.adjustmentSchedule.findFirst.mock.calls.at(-1)[0].where;
+    expect(where.nextAdjustmentDate.gte).toEqual(new Date('2026-07-01T00:00:00.000Z'));
+  });
 });

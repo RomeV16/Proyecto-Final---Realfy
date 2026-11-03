@@ -45,6 +45,7 @@ describe('Prórroga de palabra y aplicación masiva sobre contratos importados (
     endDate: string,
     adjustmentType: AdjustmentType,
     adjustmentPeriod = AdjustmentPeriod.Trimestral,
+    extra: Record<string, unknown> = {},
   ) {
     const owner = (await post('/persons', { firstName: 'Ana', lastName: 'Sintética' }).expect(201)).body.id;
     const tenantPerson = (await post('/persons', { firstName: 'Ines', lastName: 'Sintética' }).expect(201)).body.id;
@@ -63,6 +64,7 @@ describe('Prórroga de palabra y aplicación masiva sobre contratos importados (
       adjustmentPeriod,
       ...(adjustmentType === AdjustmentType.FixedPercent ? { customAdjustmentPct: '10.00' } : {}),
       guarantees: [],
+      ...extra,
       persons: [
         { personId: owner, role: PersonRole.Propietario },
         { personId: tenantPerson, role: PersonRole.Inquilino },
@@ -147,9 +149,9 @@ describe('Prórroga de palabra y aplicación masiva sobre contratos importados (
     expect(rentOf(c)).toBe('110000');
   });
 
-  it('CP-1282 — sin cronograma aplicado, el primer ajuste no acumula los períodos salteados al importar', async () => {
-    const id = await activeContract('2024-10-01', '2026-09-30', AdjustmentType.IPC);
-    // Importado sin historial: todos los períodos vencidos quedaron salteados.
+  /** Contrato importado sin historial, con todos los períodos vencidos salteados y prorrogado de palabra. */
+  async function importedWithSkippedPeriods(extra: Record<string, unknown> = {}) {
+    const id = await activeContract('2024-10-01', '2026-09-30', AdjustmentType.IPC, AdjustmentPeriod.Trimestral, extra);
     await prisma.baseClient.adjustmentSchedule.updateMany({ where: { contractId: id }, data: { status: 'Skipped' } });
     for (let m = 0; m < 26; m++) {
       const period = new Date(Date.UTC(2024, 7 + m, 1)).toISOString().slice(0, 10);
@@ -158,14 +160,55 @@ describe('Prórroga de palabra y aplicación masiva sobre contratos importados (
       });
     }
     await post(`/contracts/${id}/oral-extension`, { until: '2027-12-31', note: 'Hablado' }).expect(201);
+    return id;
+  }
 
+  const firstAdjustmentPeriods = async (id: string): Promise<string[]> => {
     const preview = await post('/adjustments/preview-batch', { period: '2026-10' }).expect(201);
     const row = preview.body.rows.find((r: any) => r.contractId === id);
-
     expect(row.status).toBe('ready');
-    const periods: string[] = row.indexValues.map((v: any) => v.period);
+    return row.indexValues.map((v: any) => v.period);
+  };
+
+  it('CP-1282 — sin cronograma aplicado, el primer ajuste no acumula los períodos salteados al importar', async () => {
+    const id = await importedWithSkippedPeriods();
+
+    const periods = await firstAdjustmentPeriods(id);
+
     // Un trimestre de variación mensual (con el rezago de la inmobiliaria), no veinticuatro meses.
     expect(periods.length).toBeLessThanOrEqual(3);
     expect(periods.every((p) => p >= '2026-05')).toBe(true);
+  });
+
+  it('CP-1283 — con la convención de recuperar, el primer ajuste acumula desde el inicio del contrato', async () => {
+    const id = await importedWithSkippedPeriods();
+    await prisma.baseClient.contractTermsVersion.updateMany({
+      where: { contractId: id },
+      data: { skippedAdjustmentsMode: 'Recuperar' },
+    });
+
+    const periods = await firstAdjustmentPeriods(id);
+
+    expect(periods.length).toBeGreaterThan(20);
+  });
+
+  it('CP-1284 — la convención nace con la de la inmobiliaria y el contrato puede pactar la suya', async () => {
+    const defaults = (await request(app.getHttpServer()).get('/api/tenants/me/operational-defaults').set({ Authorization: `Bearer ${token}` }).expect(200)).body;
+    expect(defaults.skippedAdjustmentsMode).toBe('NoRecuperar');
+    await request(app.getHttpServer())
+      .put('/api/tenants/me/operational-defaults')
+      .set({ Authorization: `Bearer ${token}` })
+      .send({ ...defaults, skippedAdjustmentsMode: 'Recuperar' })
+      .expect(200);
+
+    const inherited = await activeContract('2026-01-01', '2027-01-01', AdjustmentType.IPC);
+    const own = await activeContract('2026-01-01', '2027-01-01', AdjustmentType.IPC, AdjustmentPeriod.Trimestral, {
+      liquidationRules: { skippedAdjustmentsMode: 'NoRecuperar' },
+    });
+
+    const modeOf = async (contractId: string) =>
+      (await prisma.baseClient.contractTermsVersion.findFirst({ where: { contractId } }))!.skippedAdjustmentsMode;
+    expect(await modeOf(inherited)).toBe('Recuperar');
+    expect(await modeOf(own)).toBe('NoRecuperar');
   });
 });

@@ -1253,6 +1253,8 @@ model ContractTermsVersion {
   upfrontThresholdFees       Int?
   /// Sobre qué comisión mensual se mide el umbral de anticipo.
   upfrontBasis               UpfrontBasis           @default(ComisionPactada)
+  /// Qué se hace con la inflación de los períodos de ajuste salteados al importar el contrato.
+  skippedAdjustmentsMode     SkippedAdjustmentsMode @default(NoRecuperar)
   /// Qué le debe el locador que cobró directamente; null = el de la inmobiliaria.
   lessorDirectOwes           LessorDirectOwes?
   /// Límite de reparaciones sin consultar al locador (importe y moneda); null = el de la inmobiliaria.
@@ -2330,6 +2332,14 @@ model ServiceBillAllocation {
 }
 
 /// Comisión mensual con la que se mide el umbral de anticipo.
+/// Qué se hace con la inflación de los períodos de ajuste salteados al importar un contrato.
+enum SkippedAdjustmentsMode {
+  /// El primer ajuste parte del último período salteado: el alquiler importado ya está actualizado.
+  NoRecuperar
+  /// El primer ajuste acumula desde el inicio del contrato.
+  Recuperar
+}
+
 enum UpfrontBasis {
   /// La comisión pactada en el contrato (o, sin ella, el porcentaje por defecto).
   ComisionPactada

@@ -363,6 +363,9 @@ export class ContractsService {
           // Anticipo del centro de carga: umbral propio (null = el de la inmobiliaria) y su base.
           upfrontThresholdFees: validated.liquidationRules?.upfrontThresholdFees ?? null,
           upfrontBasis: validated.liquidationRules?.upfrontBasis ?? defaults.upfrontBasis,
+          // Períodos de ajuste salteados al importar: la convención pactada o la de la inmobiliaria.
+          skippedAdjustmentsMode:
+            validated.liquidationRules?.skippedAdjustmentsMode ?? defaults.skippedAdjustmentsMode,
           // Qué debe el locador que cobra directamente: null = el de la inmobiliaria.
           lessorDirectOwes: validated.liquidationRules?.lessorDirectOwes ?? null,
           // Reparaciones: límite propio sin consultar al locador (null = el de la inmobiliaria).

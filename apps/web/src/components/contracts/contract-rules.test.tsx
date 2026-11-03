@@ -99,6 +99,14 @@ describe('ContractRules', () => {
     expect(text).toContain('El porcentaje por defecto de la inmobiliaria');
   });
 
+  it('muestra qué se hace con la inflación de los períodos salteados al importar', async () => {
+    const current = version({ skippedAdjustmentsMode: 'Recuperar' });
+    serve({ at: '2026-10-31T00:00:00.000Z', current, versions: [current] });
+    renderEs(<ContractRules contractId="c-1" currency="ARS" />);
+    expect(await screen.findByText('Ajustes salteados al importar')).toBeInTheDocument();
+    expect(norm(document.body.textContent)).toContain('Recuperarla: el primer ajuste acumula desde el inicio');
+  });
+
   it('muestra el límite de reparaciones pactado con su moneda', async () => {
     const current = version({ repairPreauthLimitAmount: '500', repairPreauthLimitCurrency: 'USD' });
     serve({ at: '2026-10-31T00:00:00.000Z', current, versions: [current] });
