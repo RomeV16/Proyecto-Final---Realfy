@@ -948,9 +948,8 @@ lo resuelve y los casos de prueba que lo verifican. Los tres que más pesaron en
 diseño son que el locador no es necesariamente el propietario y un contrato puede
 tener varios, cada uno con su porcentaje de cobro; que casi todas las reglas son
 pactables por contrato y cambian por acuerdos fechados, y que el dinero llega por
-tres caminos distintos. Al 3/11/2026, veinticinco hallazgos están resueltos por
-funciones integradas, uno por una función en revisión (la bandeja de consultas),
-uno sigue planificado y uno quedó fuera del piloto. Todos provienen del
+tres caminos distintos. Al 3/11/2026, veintiséis hallazgos están resueltos por
+funciones integradas, uno sigue planificado y uno quedó fuera del piloto. Todos provienen del
 relevamiento: el registro todavía no tiene hallazgos de uso real, y no se presentan
 como tales.
 
@@ -985,9 +984,10 @@ que prepara la liquidación alrededor del día 20 del mes anterior.
 
 ### 9.4. Lo entregado por oleada
 
-Entre el 30/10 y el 3/11/2026 se integraron cuarenta y nueve pedidos de
-incorporación (#105 a #181), todos con la revisión de otro integrante y con la rama
-principal protegida. La tabla los agrupa por oleada.
+Entre el 30/10 y el 3/11/2026 se integraron cincuenta pedidos de incorporación
+(#105 a #183), todos con la revisión de otro integrante y con la rama principal
+protegida. Con ellos quedaron entregadas las seis oleadas de desarrollo. La tabla
+los agrupa por oleada.
 
 | Oleada | Contenido | Ítems | Pedidos | Estado |
 |---|---|---|---|---|
@@ -996,7 +996,7 @@ principal protegida. La tabla los agrupa por oleada.
 | 2. Reglas y liquidación | Reglas versionadas, acuerdos y valores por defecto; motor de ajuste con rezago; generador de liquidaciones; boletas y reglas de traslado; centro de carga; punitorios dentro de la liquidación | 34, 35 | #150, #151, #153, #156, #158, #159 | Integrada |
 | 3. Dinero y datos reales | Importación idempotente, panel de calidad de datos, caja con tres flujos de cobro, custodia y compensaciones, cuenta corriente y estado de cuenta del locador, suite de reconciliación | 36, 37, 39, 45 | #155, #160, #161, #165, #177 | Integrada |
 | 4. Ciclo de vida del contrato | Vencimientos con semáforo y seguimientos, prórroga de palabra y renovación como período, incidencias con preautorización y presupuesto, honorarios, depósitos y liquidación de egreso, facturación por cuenta del locador | 38, 40, 41, 42 | #166 a #170 | Integrada |
-| 5. Mensajería y comercial | Bandeja de salida con correo y WhatsApp, modos de envío y consentimiento; publicación asistida y micrositio con dominio propio; ventas y llaves; cobranza escalonada | 43, 44 | #172, #178, #180, #181 | Integrada salvo la bandeja de consultas, en revisión |
+| 5. Mensajería y comercial | Bandeja de salida con correo y WhatsApp, modos de envío y consentimiento; publicación asistida y micrositio con dominio propio; ventas y llaves; cobranza escalonada; bandeja de consultas unificada con responsable, plazo de primera respuesta y autorrespuesta | 43, 44 | #172, #178, #180, #181, #183 | Integrada |
 | Documentación | Capítulo del piloto, registro de hallazgos, migración, trazabilidad, privacidad, diagramas, plan de aceptación en campo | 46 | #107, #162 | Continua |
 
 Las decisiones de arquitectura nuevas son once, del ADR-0007 al ADR-0017
@@ -1032,7 +1032,7 @@ relevamiento mostró y no a una preferencia de diseño:
 Las pruebas crecieron con el piloto en los tres niveles —unitarias de la API y del
 paquete compartido, pruebas de la aplicación web, que antes no existían, e
 integración de la API contra PostgreSQL— y la cobertura de líneas de la API pasó
-del 44,48 % al 79,74 % (sección 9.10). El piso de la integración continua se
+del 44,48 % al 80,30 % (sección 9.10). El piso de la integración continua se
 mantuvo en 38 % a propósito: es una alarma contra regresiones, no una meta.
 
 La integración continua sumó controles que la primera versión no tenía: control de
@@ -1045,24 +1045,23 @@ real y verifica su transformación, y la cobertura de la suite de integración s
 al análisis estático. Son nueve trabajos, ocho de ellos obligatorios para integrar
 a la rama principal, que está protegida desde el 30/10/2026.
 
-**Defectos.** El registro de la rama principal tiene veintiocho defectos del piloto
-(DEF-09 a DEF-80; la numeración reserva rangos por área y por eso no es
+**Defectos.** El registro de la rama principal tiene veintinueve defectos del piloto
+(DEF-09 a DEF-95; la numeración reserva rangos por área y por eso no es
 correlativa), además de los ocho anteriores (DEF-01 a DEF-08). Todos se cerraron con
 el mismo circuito: prueba de regresión que falla contra el código anterior,
 corrección en un pedido revisado y la misma prueba en verde
-(`../calidad/06-registro-de-defectos.md`). Un vigésimo noveno, DEF-95, de severidad
-baja, se registró en el pedido de la bandeja de consultas, en revisión a esta fecha.
+(`../calidad/06-registro-de-defectos.md`).
 
 | Severidad | Defectos del piloto en la rama principal |
 |---|---|
 | Alta | 11 |
 | Media | 14 |
-| Baja | 3 |
-| Total | 28 |
+| Baja | 4 |
+| Total | 29 |
 
 | Origen (uno por defecto, el principal) | Defectos | Identificadores |
 |---|---|---|
-| Revisión de código, incluida la del módulo vecino al construir uno nuevo | 15 | DEF-09 a 11, 15 a 18, 20 a 24, 29, 30 y 80 |
+| Revisión de código, incluida la del módulo vecino al construir uno nuevo y la de la integración de dos ramas | 16 | DEF-09 a 11, 15 a 18, 20 a 24, 29, 30, 80 y 95 |
 | Pruebas de caracterización de los motores antes de modificarlos | 3 | DEF-12 a 14 |
 | Análisis de duplicación | 3 | DEF-19, 25 y 26 |
 | Diseño o extracción de un motor compartido | 2 | DEF-27 y 28 |
@@ -1224,39 +1223,52 @@ ejecutarla.
 ### 9.10. Cifras del sistema
 
 Tabla única de cifras. Medición del **3 de noviembre de 2026** sobre la rama
-principal en el commit `ba78a78` (integración de la cobranza escalonada, #181). La
-columna «Antes del piloto» corresponde al commit `ac07cdf` del 28/10/2026.
+principal en el commit `a2ea7d9` (integración de la bandeja de consultas, #183),
+con las seis oleadas de desarrollo entregadas. La columna «Antes del piloto»
+corresponde al commit `ac07cdf` del 28/10/2026.
 
-| Dimensión | Antes del piloto | 3/11/2026 (`ba78a78`) | Fuente |
+| Dimensión | Antes del piloto | 3/11/2026 (`a2ea7d9`) | Fuente |
 |---|---|---|---|
-| Módulos de la API | 31 | 43 | Carpetas de `apps/api/src/modules` |
-| Entidades y enumeraciones del modelo | 55 y 39 | 99 y 109 | `model` y `enum` en `apps/api/prisma/schema.prisma` |
-| Migraciones versionadas | 21 | 62 | Carpetas de `apps/api/prisma/migrations` |
-| Controladores y rutas | 34 y 226 | 52 y 413 | Archivos con `@Controller` y decoradores `@Get`, `@Post`, `@Put`, `@Patch` y `@Delete` en `apps/api/src` |
+| Módulos de la API | 31 | 44 | Carpetas de `apps/api/src/modules` |
+| Entidades y enumeraciones del modelo | 55 y 39 | 101 y 112 | `model` y `enum` en `apps/api/prisma/schema.prisma` |
+| Migraciones versionadas | 21 | 64 | Carpetas de `apps/api/prisma/migrations` |
+| Controladores y rutas | 34 y 226 | 53 y 426 | Archivos con `@Controller` y decoradores `@Get`, `@Post`, `@Put`, `@Patch` y `@Delete` en `apps/api/src` |
 | Registros de arquitectura | 6 | 17 | `docs/adr/` |
-| Casos de uso | 24 (CU-01 a CU-24) | 48 (CU-01 a CU-48) | Identificadores en `02-roles-y-casos-uso.md` |
-| Casos de prueba del catálogo | 48 | 516 renglones, del CP-01 al CP-762, con 499 identificadores distintos | Renglones de `../calidad/05-casos-de-prueba.md` |
-| Defectos registrados | 8 (DEF-01 a DEF-08) | 36: los 8 anteriores y 28 del piloto (DEF-09 a DEF-80) | `../calidad/06-registro-de-defectos.md` |
-| Pruebas unitarias de la API | 807 | 2.314 en 179 archivos | Integración continua, ejecución 41588355933, trabajo «Unit Tests & Coverage» |
-| Pruebas unitarias del paquete compartido | 48 | 1.017 en 44 archivos | Ídem |
-| Pruebas de la aplicación web | No había | 1.574 en 139 archivos | Ídem (vitest) |
-| Pruebas de integración de la API | 491 | 815 en 59 archivos | Ídem, trabajo «API E2E Tests» |
-| Cobertura de la API (líneas, sentencias, funciones, ramas) | 44,48 %, 44,36 %, 45,77 %, 34,50 % | 79,74 %, 79,79 %, 81,12 %, 70,96 % | Ejecución 41588355933; piso de la integración continua: 38 %, y 27 % de ramas |
-| Cobertura de líneas de la web y del paquete compartido | — | 77,97 % y 72,88 % | Ídem |
-| Duplicación por paquete (api, web, shared) | — | 1,02 %, 1,79 % y 0,55 % | Ejecución 41588355933, trabajo de código muerto y duplicación (jscpd) |
-| Cobertura combinada de unitarias e integración, y duplicación del repositorio | — | 82,9 % y 1,2 % | Análisis de SonarCloud sobre `ba78a78`, 3/11/2026 |
-| Pedidos de incorporación desde el inicio del piloto | — | 49 (#105 a #181), todos con revisión de otro integrante | Historial de la rama principal |
+| Casos de uso | 24 (CU-01 a CU-24) | 49 (CU-01 a CU-49) | Identificadores en `02-roles-y-casos-uso.md` |
+| Casos de prueba del catálogo | 48 | 530 renglones, del CP-01 al CP-783, con 513 identificadores distintos | Renglones de `../calidad/05-casos-de-prueba.md` |
+| Defectos registrados | 8 (DEF-01 a DEF-08) | 37: los 8 anteriores y 29 del piloto (DEF-09 a DEF-95) | `../calidad/06-registro-de-defectos.md` |
+| Pruebas unitarias de la API | 807 | 2.419 en 186 archivos | Integración continua, ejecución 41591721662, trabajo «Unit Tests & Coverage» (ver la nota sobre la fuente) |
+| Pruebas unitarias del paquete compartido | 48 | 1.040 en 45 archivos | Ídem |
+| Pruebas de la aplicación web | No había | 1.611 en 141 archivos | Ídem (vitest) |
+| Pruebas de integración de la API | 491 | 829 en 60 archivos | Ídem, trabajo «API E2E Tests» |
+| Cobertura de la API (líneas, sentencias, funciones, ramas) | 44,48 %, 44,36 %, 45,77 %, 34,50 % | 80,30 %, 80,35 %, 81,56 %, 71,79 % | Ídem; piso de la integración continua: 38 %, y 27 % de ramas |
+| Cobertura de líneas de la web y del paquete compartido | — | 78,52 % y 73,37 % | Ídem |
+| Duplicación por paquete (api, web, shared) | — | 1,01 %, 1,74 % y 0,54 % | Ídem, trabajo de código muerto y duplicación (jscpd) |
+| Cobertura combinada de unitarias e integración, y duplicación del repositorio | — | 82,9 % y 1,2 % | Último análisis de SonarCloud sobre `main`, en el commit anterior `ba78a78` (ver la nota sobre la fuente) |
+| Pedidos de incorporación desde el inicio del piloto | — | 50 (#105 a #183), todos con revisión de otro integrante | Historial de la rama principal |
+
+**Fuente de las pruebas y la cobertura.** La ejecución de la integración continua
+sobre `main` en `a2ea7d9` (41595020268) falló en una prueba de pantalla de la web
+(`contract-parties.test.tsx`, «sin poderes vigentes muestra el vacío»), que pasó en
+la ejecución del pedido sobre el mismo árbol; por esa falla no corrieron la
+integración ni el análisis de SonarCloud de ese commit. Las cifras de pruebas y
+cobertura salen por eso de la ejecución 41591721662 del pedido #183, sobre `5c6ca93`,
+cuyo árbol es idéntico al de `a2ea7d9`, con todos los trabajos en verde; las
+unitarias de la API y del paquete compartido coinciden con las de la ejecución de
+`main`. La cobertura combinada de SonarCloud es la del último análisis de `main`
+(`ba78a78`). La prueba inestable queda registrada para corregirse.
 
 Tres aclaraciones sobre la tabla. La primera: el catálogo de casos de prueba tiene
 dos rangos asignados dos veces —CP-470 a CP-480, a la cuenta corriente y a los
 vencimientos, y CP-720 a CP-725, a la publicación y a las ventas—; son casos
 distintos con el mismo identificador, y la renumeración queda pendiente para la
 próxima revisión del catálogo. La segunda: el informe de la tesis usa la medición del
-mismo día sobre el commit anterior, `1a89e0a`, previa a la cobranza escalonada; la
-diferencia con esta tabla —un módulo, dos entidades, tres enumeraciones, dos
-migraciones, un controlador y doce rutas, y las pruebas correspondientes— es
-íntegramente ese pedido. La tercera: la bandeja de consultas, en revisión a esta
-fecha, no está contada.
+mismo día sobre el commit `1a89e0a`, previa a la cobranza escalonada (#181) y a la
+bandeja de consultas (#183), y se remide en su pasada final; la diferencia con esta
+tabla —dos módulos, cuatro entidades, seis enumeraciones, cuatro migraciones, dos
+controladores y veinticinco rutas, y las pruebas correspondientes— es íntegramente
+esos dos pedidos. La tercera: la tabla ya incluye la bandeja de consultas, el último
+pedido de la oleada 5.
 
 Las cifras de la operación de la inmobiliaria —cartera, tiempos, diferencias de
 reconciliación— no están en esta tabla y no se publican sin su consentimiento. Los
@@ -1267,10 +1279,10 @@ valores medidos de la línea base y de los ciclos quedan a completar tras el cic
 
 El objetivo general se cumplió en su parte de diseño e implementación, y su
 validación en uso real está en curso. Al 3/11/2026 están integradas las seis
-oleadas salvo la bandeja de consultas; la cartera de la inmobiliaria está cargada
-en el ambiente piloto; la reconciliación sintética corre en cada cambio sin
-diferencias, y lo integrado hasta la publicación y las ventas está desplegado en los
-dos ambientes, con la cobranza escalonada pendiente de despliegue.
+oleadas de desarrollo completas; la cartera de la inmobiliaria está cargada en el
+ambiente piloto; la reconciliación sintética corre en cada cambio sin diferencias, y
+lo integrado hasta la publicación y las ventas está desplegado en los dos ambientes,
+con la cobranza escalonada y la bandeja de consultas pendientes de despliegue.
 
 Falta lo que no depende del equipo sino del calendario de la inmobiliaria y de
 terceros:

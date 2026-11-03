@@ -114,13 +114,13 @@ Desde S15 el ritmo lo marca el ciclo mensual de la inmobiliaria y no la quincena
 | C3 | ≈ 20/01/2027 | La inmobiliaria opera en Realfy con su sistema actual de respaldo | Oleada 4 | Métricas antes y después; feedback y defectos del uso |
 | C4 | ≈ 20/02/2027 | Realfy es el sistema principal | Oleada 5 | Cierre del piloto |
 
-**Estado real al 3/11/2026.** El desarrollo se adelantó a este calendario: entre el 31/10 y el 3/11/2026 se integraron las oleadas 3, 4 y 5 completas salvo la bandeja de consultas, que está en revisión. Los ciclos C2 a C4 ya no esperan desarrollo nuevo: dependen de los resultados de cada ciclo, de las correcciones que produzca el uso real y de habilitaciones externas (dominio de correo, cuenta de WhatsApp y confirmaciones del contador y del abogado). Los sprints S15 a S22 se reescriben con ese estado; la versión anterior, que ubicaba las oleadas 4 y 5 entre diciembre y febrero, se reemplaza y el adelanto se declara como desvío en `29-informe-final.md`, sección 9.8.
+**Estado real al 3/11/2026.** El desarrollo se adelantó a este calendario: entre el 31/10 y el 3/11/2026 se integraron completas las oleadas 3, 4 y 5, con lo que todas las oleadas de desarrollo quedaron entregadas. Los ciclos C2 a C4 ya no esperan desarrollo nuevo: dependen de los resultados de cada ciclo, de las correcciones que produzca el uso real y de habilitaciones externas (dominio de correo, cuenta de WhatsApp y confirmaciones del contador y del abogado). Los sprints S15 a S22 se reescriben con ese estado; la versión anterior, que ubicaba las oleadas 4 y 5 entre diciembre y febrero, se reemplaza y el adelanto se declara como desvío en `29-informe-final.md`, sección 9.8.
 
 ### S15 replanificado: 02/11/2026 a 13/11/2026
 
 - Plan: 36 (caja y cobros), 37 (cuenta corriente del locador), 39 (carga de la cartera real en `piloto` y su revisión con la inmobiliaria), 45 (suite de reconciliación con casos sintéticos), 46 (documentación del piloto).
-- Estado real al 03/11: hecho, y además las oleadas 4 y 5 salvo la bandeja de consultas. Integrados 36 (#161), 37 (#165), 39 (#155, #160), 45 en su parte sintética (#177), 38 (#170), 40 (#166, #169), 41 (#168), 42 (#167), 43 en parte (#172, #181) y 44 (#178, #180). Cartera real cargada el 02/11 y restauración de su copia medida (unos 3 segundos para la base).
-- Resto del sprint: integrar la bandeja de consultas (43); desplegar en `piloto` lo integrado después del último despliegue, con su copia previa; cerrar con la inmobiliaria la lista de revisión de la carga y reenviar el lote (39); 46 (informe final, Hito 4 y este plan con el estado real).
+- Estado real al 03/11: hecho, y además las oleadas 4 y 5 completas. Integrados 36 (#161), 37 (#165), 39 (#155, #160), 45 en su parte sintética (#177), 38 (#170), 40 (#166, #169), 41 (#168), 42 (#167), 43 (#172, #181, #183) y 44 (#178, #180). Cartera real cargada el 02/11 y restauración de su copia medida (unos 3 segundos para la base).
+- Resto del sprint: desplegar en `piloto` lo integrado después del último despliegue (la cobranza escalonada y la bandeja de consultas), con su copia previa; cerrar con la inmobiliaria la lista de revisión de la carga y reenviar el lote (39); 46 (informe final, Hito 4 y este plan con el estado real).
 
 ### S16 replanificado: 16/11/2026 a 30/11/2026
 

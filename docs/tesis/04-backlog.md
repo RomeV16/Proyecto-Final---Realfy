@@ -204,7 +204,7 @@ Redacción del informe de tesis, preparación de presentación y ensayos de defe
 
 ## Piloto en una inmobiliaria real
 
-Los ítems 30 a 46 incorporan la validación en uso real. Cada uno tiene un issue con criterios de aceptación y las etiquetas `piloto` y `origen:*`. La oleada indica el orden de ejecución. Al 2026-11-03 están hechos los ítems 30 a 42 y 44; el 43 sigue en curso con la bandeja de consultas en revisión, y el 45 y el 46 son continuos hasta la defensa, porque dependen de los ciclos de la inmobiliaria.
+Los ítems 30 a 46 incorporan la validación en uso real. Cada uno tiene un issue con criterios de aceptación y las etiquetas `piloto` y `origen:*`. La oleada indica el orden de ejecución. Al 2026-11-03 están hechos los ítems 30 a 44, con lo que las seis oleadas de desarrollo quedaron entregadas; el 45 y el 46 son continuos hasta la defensa, porque dependen de los ciclos de la inmobiliaria.
 
 ### 30. Piloto: relevamiento, plan y registro de feedback
 
@@ -358,7 +358,7 @@ Envío de mail, mensajería instantánea con consentimiento y baja a través de 
 - Dependencias: 32, 35.
 - Oleada: 4 y 5.
 - Issue: #101.
-- Estado al 2026-11-03: En curso. Integrados #172 (bandeja de salida idempotente, correo y WhatsApp, modos de envío y consentimiento) y #181 (cobranza escalonada, apagada de fábrica); la bandeja de consultas está en revisión. La mensajería queda apagada en `piloto` hasta verificar el dominio y la cuenta de WhatsApp y hasta que la inmobiliaria apruebe los envíos.
+- Estado al 2026-11-03: Hecho. PR #172 (bandeja de salida idempotente, correo y WhatsApp, modos de envío y consentimiento), #181 (cobranza escalonada, apagada de fábrica) y #183 (bandeja de consultas unificada con responsable, plazo de primera respuesta y autorrespuesta; corrige DEF-95). La mensajería queda apagada en `piloto` hasta verificar el dominio y la cuenta de WhatsApp y hasta que la inmobiliaria apruebe los envíos; las decisiones legales de la cobranza siguen pendientes de revisión por el abogado de la inmobiliaria.
 
 ### 44. Ventas, llaves y publicación
 
