@@ -674,8 +674,9 @@ El importe del depósito se carga al crear el contrato y después se cambia solo
 
 ### Generar la liquidación del mes
 
-La inmobiliaria no tiene que acordarse de abrir el mes: todos los días a las 6 de
-la mañana el sistema revisa cada inmobiliaria y, cuando faltan diez días o menos
+La inmobiliaria no tiene que acordarse de abrir el mes: todos los días a las 7:30 de
+la mañana (después de leer los índices y de aplicar los ajustes del día) el sistema
+revisa cada inmobiliaria y, cuando faltan diez días o menos
 para el mes siguiente (los días de anticipación de *Valores por defecto*; de
 fábrica, el día 20), genera las liquidaciones de ese mes. Si ya existían no las
 repite.
@@ -687,6 +688,17 @@ contratos quedaron fuera por no regir (todavía no empezaron o ya terminaron)
 y cuántos primeros meses quedaron sin liquidar porque el contrato los cobra al firmar o
 con el mes siguiente.
 Está disponible para Admin, Gerente y Liquidaciones.
+
+Antes de armar el mes, el sistema aplica los ajustes de alquiler que vencen dentro
+de él: la liquidación de diciembre que se genera el 20 de noviembre ya lleva el
+ajuste del 1 de diciembre, porque su índice (con el rezago del contrato) ya está
+publicado. Si falta el índice y no hay estimado (o el pago a cuenta está apagado),
+el ajuste queda pendiente y la liquidación sale con el alquiler anterior, marcada
+**Ajuste pendiente**: no se puede aprobar hasta aplicar el ajuste. Al generar se
+informa cuántas quedaron así. Cuando el ajuste se aplica (desde *Ajustes del mes*,
+desde el contrato o solo, en la corrida del día siguiente si ya se publicó el
+índice), las liquidaciones del contrato todavía en Borrador o En Revisión se
+recalculan solas con el alquiler nuevo y conservan los renglones agregados a mano.
 
 Cada liquidación se arma con las reglas de ese mes y no con las de hoy: el
 alquiler es el que regía entonces, vence el día de vencimiento del contrato, y si
@@ -713,6 +725,11 @@ son una regla del contrato (con un valor por defecto de la inmobiliaria):
   mes no se liquida; el sistema lo informa como «sin liquidar» al generar).
 - **Descuento de monto fijo en un mes parcial.** *Se prorratea* como el alquiler (de
   fábrica) o *se descuenta completo*; nunca supera el alquiler del mes.
+- **Ajuste aplicado después de emitir el mes.** Si un ajuste que ya regía se aplica
+  cuando la liquidación de ese mes ya estaba aprobada o enviada: *la diferencia se
+  cobra en la próxima liquidación* (de fábrica: queda un cargo *Ajuste retroactivo*
+  en el centro de carga, comisionable y a favor del locador, que entra solo en la
+  próxima) o *rige desde la próxima, sin diferencia*.
 
 Cuando un ajuste de alquiler se calculó con un índice estimado (REM) y después se
 publica el oficial, la primera liquidación posterior suma la diferencia de los meses
@@ -1454,9 +1471,10 @@ administración (7 %), los honorarios por alta, renovación y venta (5 %, 5 %, 3
 es construido y 5 % si es lote), la tasación (USD 100), el umbral de anticipo (2
 honorarios), la cadencia de cobranza (primer recordatorio a los 5 días y después
 cada 5; la cobranza escalonada viene apagada y se prende ahí), el semáforo de vencimientos de contratos (rojo a los 30 días, amarillo a
-los 60) y las cuatro convenciones de liquidación (prorrateo de un mes parcial, ajuste a
-mitad de mes, primer mes con inicio tardío y descuento de monto fijo; de fábrica, días
-reales, desde el período siguiente, vence el día de inicio y proporcional), el límite de
+los 60) y las convenciones de liquidación (prorrateo de un mes parcial, ajuste a
+mitad de mes, primer mes con inicio tardío, descuento de monto fijo y ajuste aplicado
+después de emitir el mes; de fábrica, días reales, desde el período siguiente, vence
+el día de inicio, proporcional y la diferencia se cobra en la próxima), el límite de
 reparaciones sin consultar al locador (de fábrica 0: siempre se consulta) y el porcentaje
 del honorario por gestión de una reparación (0: no se propone). La sección
 *Cuenta corriente del locador* fija el **día de cierre** del estado (vacío = fin de

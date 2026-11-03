@@ -54,6 +54,11 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-127 | Reenviar el lote con el ajuste en el historial no pasa el período del cronograma a aplicado | Alta | — | CP-1249, CP-1250 | [#209](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/209) | Corregido (3 nov) |
 | DEF-128 | Reenviar el lote con otro período de ajuste no reconstruye el cronograma pendiente | Media | — | CP-1251 a CP-1253 | [#210](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/210) | Corregido (3 nov) |
 | DEF-129 | Reenviar el lote no corrige los ajustes ya cargados con el número de período equivocado | Media | — | CP-1254, CP-1256 | [#211](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/211) | Corregido (3 nov) |
+| DEF-130 | La liquidación generada antes del día del ajuste sale con el alquiler anterior | Alta | RF-12 | CP-1260, CP-1261 | [#215](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/215) | Corregido (3 nov) |
+| DEF-131 | El proceso diario genera las liquidaciones antes de leer los índices y de aplicar los ajustes del día | Media | RF-12 | CP-1262 | [#216](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/216) | Corregido (3 nov) |
+| DEF-132 | Sin el índice del ajuste, la liquidación sale con el alquiler anterior sin aviso y se puede aprobar | Alta | RF-12 | CP-1263 a CP-1265 | [#217](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/217) | Corregido (3 nov) |
+| DEF-133 | Un ajuste aplicado después de generar el borrador no cambia el borrador | Alta | RF-12 | CP-1266 a CP-1268 | [#218](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/218) | Corregido (3 nov) |
+| DEF-134 | Un ajuste aplicado después de emitir la liquidación del mes se pierde | Alta | RF-12 | CP-1269 a CP-1272 | [#219](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/219) | Corregido (3 nov) |
 
 ---
 
@@ -706,3 +711,73 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** `misplacedImportedAdjustments` detecta los ajustes importados (nota `Imported`, no provisorios) cuya fecha figura en el historial con otro período; se quitan y se vuelven a crear en el período que corresponde.
 - **Prueba de regresión:** CP-1254 en `import-batches-cronograma.e2e-spec.ts`; CP-1256 en `contract-import-rules.spec.ts`.
 - **Evidencia rojo/verde:** regresión `6bb3b19` en rojo (CP-1254 falla); corrección en `aa6f561`.
+
+## DEF-130 — La liquidación generada antes del día del ajuste sale con el alquiler anterior
+
+- **Requisito afectado:** RF-12 (ajuste del alquiler) y la generación de liquidaciones (ADR-0010, ADR-0011).
+- **Origen:** ensayo general del primer ciclo en sombra (liquidación de diciembre) sobre una copia local de la base de la inmobiliaria piloto; la regresión usa un contrato sintético (IPC trimestral desde el 1/9/2026, $100.000, rezago 2).
+- **Caso que lo detecta:** CP-1260 y CP-1261.
+- **Severidad:** alta. La inmobiliaria liquida alrededor del 20 del mes anterior con el ajuste que rige desde el 1; el sistema generaba ese mes con el alquiler anterior y aplicaba el ajuste recién el día 1, así que el mes del ajuste no se cobraba nunca.
+- **Pasos para reproducir:** cargar el IPC de septiembre y octubre; generar diciembre (`POST /liquidaciones/generate` o el proceso diario del 21/11).
+- **Resultado esperado:** diciembre con el alquiler ajustado (105.060) y el cronograma del 1/12 aplicado.
+- **Resultado obtenido:** diciembre con 100.000 y el ajuste pendiente.
+- **Causa raíz:** el alquiler del período sale de los ajustes ya aplicados y nadie aplicaba antes los que vencen dentro del mes que se liquida.
+- **Corrección:** la generación aplica primero, cada uno en su transacción, los ajustes pendientes con fecha hasta el fin del mes (`applyDueAdjustments` con origen `generation`) y los informa en `adjustments`.
+- **Prueba de regresión:** CP-1260 y CP-1261 en `apps/api/test/e2e/ajuste-del-mes-en-la-liquidacion.e2e-spec.ts`; CP-1260 en `liquidaciones-generacion.spec.ts`.
+- **Evidencia rojo/verde:** regresión `cb355b2` en rojo (2 pruebas fallan: diciembre sale con 100.000); corrección en `ef0b2d2`.
+
+## DEF-131 — El proceso diario genera las liquidaciones antes de leer los índices y de aplicar los ajustes del día
+
+- **Requisito afectado:** RF-12; procesos diarios.
+- **Origen:** el mismo ensayo, al revisar la hora de los procesos.
+- **Caso que lo detecta:** CP-1262.
+- **Severidad:** media. El día en que se publica el índice la generación (06:00) corría a la par de la lectura de índices (06:00) y antes de los ajustes (07:00).
+- **Pasos para reproducir:** leer la expresión `@Cron` de los tres procesos.
+- **Resultado esperado:** la generación corre después de la lectura de índices y de los ajustes del día.
+- **Resultado obtenido:** 06:00, la misma hora que la lectura de índices.
+- **Causa raíz:** la hora se fijó sin mirar la dependencia.
+- **Corrección:** la generación pasa a las 07:30 de Buenos Aires.
+- **Prueba de regresión:** CP-1262 en `apps/api/src/modules/liquidaciones/liquidaciones.scheduler.spec.ts`.
+- **Evidencia rojo/verde:** regresión `b662c62` en rojo (1 prueba falla: 360 no es mayor que 420); corrección en `d5f8fa2`.
+
+## DEF-132 — Sin el índice del ajuste, la liquidación sale con el alquiler anterior sin aviso y se puede aprobar
+
+- **Requisito afectado:** RF-12; ADR-0011 (un dato faltante es un error visible).
+- **Origen:** ensayo general del primer ciclo en sombra (liquidación de diciembre) sobre una copia local de la base de la inmobiliaria piloto; la regresión usa un contrato sintético (IPC trimestral desde el 1/9/2026, $100.000, rezago 2).
+- **Caso que lo detecta:** CP-1263 a CP-1265.
+- **Severidad:** alta. Con el índice todavía sin publicar el mes salía con el alquiler anterior, sin ninguna advertencia, y se podía aprobar y enviar.
+- **Pasos para reproducir:** cargar solo el IPC de septiembre; generar diciembre; pasar a revisión y aprobar.
+- **Resultado esperado:** la generación informa el ajuste pendiente; la liquidación lleva la advertencia bloqueante `ADJUSTMENT_PENDING` y aprobarla responde 409. Con estimado y pago a cuenta activo rige ADR-0011 (provisorio). Un ajuste a mitad de mes con `DesdePeriodoSiguiente` bloquea el mes siguiente.
+- **Resultado obtenido:** sin advertencia; se aprueba.
+- **Causa raíz:** ADR-0011 no definía qué hace la liquidación con un ajuste pendiente y la generación no lo miraba.
+- **Corrección:** `warnings` calculadas al leer (detalle, listado y resultado de la generación, con `adjustmentPending`) y la aprobación (también en lote) bloqueada con 409 `ADJUSTMENT_PENDING`.
+- **Prueba de regresión:** CP-1263 a CP-1265 en `ajuste-del-mes-en-la-liquidacion.e2e-spec.ts`; `adjustment-pending.spec.ts`; `liquidacion-detail.screen.test.tsx` y `liquidacion-list.screen.test.tsx` en la web.
+- **Evidencia rojo/verde:** regresión `3c74b80` en rojo (3 pruebas fallan: sin `warnings` ni `adjustmentPending`); corrección en `6ba9996`.
+
+## DEF-133 — Un ajuste aplicado después de generar el borrador no cambia el borrador
+
+- **Requisito afectado:** RF-12.
+- **Origen:** ensayo general del primer ciclo en sombra (liquidación de diciembre) sobre una copia local de la base de la inmobiliaria piloto; la regresión usa un contrato sintético (IPC trimestral desde el 1/9/2026, $100.000, rezago 2).
+- **Caso que lo detecta:** CP-1266 a CP-1268.
+- **Severidad:** alta. Después de aplicar el ajuste había que borrar y regenerar a mano cada borrador (el procedimiento del ensayo lo pedía antes del cron del 21/11).
+- **Pasos para reproducir:** generar diciembre sin el IPC de octubre; cargar un cargo a mano; cargar octubre y aplicar el ajuste (Ajustes del mes, la corrida del día siguiente o calcular y aplicar desde el contrato).
+- **Resultado esperado:** el borrador pasa a 105.060 de alquiler, conserva el cargo y no lleva cobro retroactivo.
+- **Resultado obtenido:** sigue con 100.000.
+- **Causa raíz:** aplicar un ajuste no avisaba a las liquidaciones.
+- **Corrección:** `ContractAdjustmentService.onApplied`/`notifyApplied` después de confirmar el ajuste; las liquidaciones en Borrador o En Revisión desde el mes del ajuste rehacen sus renglones de alquiler, primer mes diferido y bonificación con el mismo armado de la generación y conservan los demás.
+- **Prueba de regresión:** CP-1266 a CP-1268 en `ajuste-del-mes-en-la-liquidacion.e2e-spec.ts`; `liquidaciones-recalculo.spec.ts`, `contract-adjustment.service.spec.ts` y `contract-adjustment-paths.spec.ts`.
+- **Evidencia rojo/verde:** regresión `c4370f5` en rojo (3 pruebas fallan: el borrador queda en 105.000 de total); corrección en `4fa2ecb`.
+
+## DEF-134 — Un ajuste aplicado después de emitir la liquidación del mes se pierde
+
+- **Requisito afectado:** RF-12; ADR-0010 (convenciones pactables) y ADR-0011.
+- **Origen:** ensayo general del primer ciclo en sombra (liquidación de diciembre) sobre una copia local de la base de la inmobiliaria piloto; la regresión usa un contrato sintético (IPC trimestral desde el 1/9/2026, $100.000, rezago 2). En el ensayo, tres contratos quedaban con diciembre sin ajuste y enero ajustado.
+- **Caso que lo detecta:** CP-1269 a CP-1272.
+- **Severidad:** alta. El mes emitido con el alquiler anterior no se recuperaba nunca.
+- **Pasos para reproducir:** diciembre emitido a 100.000; aplicar el ajuste del 1/12; generar enero.
+- **Resultado esperado:** con la convención `Retroactivo` (de fábrica) la diferencia de diciembre queda como cargo `AjusteRetroactivo` y entra en enero (110.120 = 105.060 + 5.060), comisionable y a favor del locador; con `SinRetroactivo` enero sale ajustado sin cargo.
+- **Resultado obtenido:** ningún cargo; enero sale ajustado sin la diferencia.
+- **Causa raíz:** la corrección retroactiva de ADR-0011 cubre solo provisorio contra oficial; no había regla para un ajuste aplicado tarde.
+- **Corrección:** convención `lateAdjustmentBilling` (valor por defecto de la inmobiliaria, columna en la versión de reglas, migraciones `20261103193255_enums_ajuste_tardio` y `20261103193256_ajuste_tardio`); al aplicarse el ajuste, la diferencia por mes emitido (alquiler neto de bonificaciones con el ajuste menos sin él) va al centro de carga, una vez por ajuste y mes.
+- **Prueba de regresión:** CP-1269 a CP-1271 en `ajuste-del-mes-en-la-liquidacion.e2e-spec.ts`; `liquidaciones-recalculo.spec.ts`, `charges.service.spec.ts`; CP-1272 en `packages/shared/src/schemas/contract-rules.schema.spec.ts`; verificación de ensayo `checks/26_ajuste_tardio.sql`.
+- **Evidencia rojo/verde:** regresión `21a9ad5` en rojo (3 pruebas fallan: no hay cargo y la convención no existe); corrección en `19f6339`.
