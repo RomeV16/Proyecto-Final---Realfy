@@ -26,7 +26,9 @@ import { OperationalDefaultsManager } from './operational-defaults-form';
 
 const PENALTY_RULE = { mode: 'daily_percent', value: '0.001', graceDays: 5, maxMultiplier: '2.0' };
 
-describe('OperationalDefaultsManager', () => {
+// El formulario reúne todas las convenciones de la inmobiliaria y crece con cada sección: en los
+// runners de CI un caso con varios campos supera los 5 s por defecto.
+describe('OperationalDefaultsManager', { timeout: 20_000 }, () => {
   beforeEach(() => {
     apiClient.mockReset();
     toast.success.mockReset();
@@ -54,7 +56,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('la facturación por cuenta del locador arranca en lo conservador y se guarda en el cuerpo', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
     expect(await screen.findByLabelText(/Qué se factura/)).toHaveValue('Alquiler');
     expect(screen.getByLabelText(/Cuándo se factura/)).toHaveValue('Manual');
@@ -71,7 +73,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('guarda los valores editados con el cuerpo anidado de la API', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
     const dueDay = await screen.findByLabelText(/Día de vencimiento/);
     await user.clear(dueDay);
@@ -97,7 +99,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('la cobranza escalonada viene apagada y se prende con sus niveles y el plazo de la carta', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
     const toggle = await screen.findByLabelText(/Activar la cobranza escalonada/);
     expect(toggle).not.toBeChecked();
@@ -113,7 +115,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('el pago a cuenta viene activo y se puede apagar', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
     const toggle = await screen.findByLabelText(/Pago a cuenta si falta el índice/);
     expect(toggle).toBeChecked();
@@ -141,7 +143,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('guarda las convenciones elegidas y volver a fábrica las restaura', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
     await user.selectOptions(await screen.findByLabelText(/Prorrateo de un mes parcial/), 'Mes30');
     await user.selectOptions(screen.getByLabelText(/Ajuste a mitad de mes/), 'Prorrateado');
@@ -170,7 +172,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('muestra las opciones de caja y cobros con su valor de fábrica y las guarda', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
 
     expect(await screen.findByText('Caja y cobros')).toBeInTheDocument();
@@ -206,7 +208,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('cuenta corriente del locador: día de cierre (vacío = fin de mes) y cuándo se descuentan los gastos (CP-478)', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
 
     expect(await screen.findByText('Cuenta corriente del locador')).toBeInTheDocument();
@@ -232,7 +234,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('cómo se cobran los honorarios: quién paga, cuotas, IVA y comisión del personal, con su valor de fábrica', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
 
     expect(await screen.findByText('Cómo se cobran los honorarios')).toBeInTheDocument();
@@ -281,7 +283,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('mensajería: el horario de envío viene de 9 a 20, se valida y se guarda anidado', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
 
     expect(await screen.findByText('Mensajería')).toBeInTheDocument();
@@ -309,7 +311,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('ventas: plazo de la reserva, quién guarda el dinero y la documentación para el boleto, con su valor de fábrica', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
     const days = await screen.findByLabelText(/Días de vigencia de una reserva/);
     expect(days).toHaveValue('7');
@@ -328,7 +330,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('un valor inválido se marca en el campo y no se envía', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
     const dueDay = await screen.findByLabelText(/Día de vencimiento/);
     await user.clear(dueDay);
@@ -342,7 +344,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('volver a los valores de fábrica restaura los campos', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderEs(<OperationalDefaultsManager />);
     const dueDay = await screen.findByLabelText(/Día de vencimiento/);
     await user.clear(dueDay);
@@ -354,7 +356,7 @@ describe('OperationalDefaultsManager', () => {
   });
 
   it('un error de la API al guardar se muestra con ErrorNotice', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     apiClient.mockImplementation(async (path: string, init?: RequestInit) => {
       if (path.includes('penalty-config')) return PENALTY_RULE;
       if (init?.method === 'PUT') throw new ApiRequestError(403, 'FORBIDDEN', 'No autorizado');
