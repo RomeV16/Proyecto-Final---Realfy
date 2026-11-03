@@ -25,7 +25,8 @@
           "skipLibCheck": true,
           "resolveJsonModule": true,
           "sourceMap": true
-        }
+        },
+        "isolatedModules": true
       }
     ]
   },

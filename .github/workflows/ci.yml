@@ -468,7 +468,8 @@ jobs:
   e2e-api:
     name: API E2E Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # 60 suites contra Postgres con cobertura tardan 17–21 minutos: el margen evita cortes por carga del runner.
+    timeout-minutes: 40
     needs: unit
 
     services:
