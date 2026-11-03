@@ -41,6 +41,7 @@ function build(existing: Record<string, unknown> = EXISTING, versions = 1) {
       findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
     },
+    contractAdjustment: { findFirst: jest.fn().mockResolvedValue(null) },
     property: { findFirst: jest.fn().mockResolvedValue({ id: 'prop-1' }) },
   };
   client.$transaction = jest.fn((fn: (tx: any) => unknown) => fn(client));
@@ -187,5 +188,51 @@ describe('ContractsService — fin real y reglas al editar', () => {
       [2, '2027-01-01'],
       [3, '2027-07-01'],
     ]);
+  });
+
+  it('DEF-135: los pendientes arrancan después del último ajuste del historial, no del último período del cronograma', async () => {
+    const { service, client } = build({
+      ...EXISTING,
+      startDate: new Date('2025-01-01T00:00:00.000Z'),
+      endDate: new Date('2025-12-31T00:00:00.000Z'),
+      actualEndDate: new Date('2027-06-30T00:00:00.000Z'),
+    });
+    // El cronograma pactado llega al período 3; el historial siguió hasta el 6 (julio de 2026).
+    client.adjustmentSchedule.findFirst.mockResolvedValue({
+      periodNumber: 3,
+      nextAdjustmentDate: new Date('2025-10-01T00:00:00.000Z'),
+    });
+    client.contractAdjustment.findFirst.mockResolvedValue({
+      periodNumber: 6,
+      adjustmentDate: new Date('2026-07-01T00:00:00.000Z'),
+    });
+
+    await service.rebuildPendingSchedule(CONTRACT_ID);
+
+    const created = client.adjustmentSchedule.create.mock.calls.map((c: any) => [
+      c[0].data.periodNumber,
+      c[0].data.nextAdjustmentDate.toISOString().slice(0, 10),
+    ]);
+    expect(created).toEqual([
+      [7, '2026-10-01'],
+      [8, '2027-01-01'],
+      [9, '2027-04-01'],
+    ]);
+  });
+
+  it('DEF-135: con historial pero sin cronograma aplicado también parte del último ajuste', async () => {
+    const { service, client } = build({
+      ...EXISTING,
+      actualEndDate: new Date('2027-06-30T00:00:00.000Z'),
+    });
+    client.contractAdjustment.findFirst.mockResolvedValue({
+      periodNumber: 2,
+      adjustmentDate: new Date('2026-07-01T00:00:00.000Z'),
+    });
+
+    await service.rebuildPendingSchedule(CONTRACT_ID);
+
+    const created = client.adjustmentSchedule.create.mock.calls.map((c: any) => c[0].data.periodNumber);
+    expect(created).toEqual([3, 4, 5]);
   });
 });
