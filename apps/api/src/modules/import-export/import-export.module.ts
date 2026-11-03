@@ -6,9 +6,10 @@ import { CsvParserService } from './csv-parser.service';
 import { ImportBatchController } from './batch/import-batch.controller';
 import { ImportBatchService } from './batch/import-batch.service';
 import { TenantsModule } from '../tenants/tenants.module';
+import { ServicesModule } from '../services/services.module';
 
 @Module({
-  imports: [TenantsModule],
+  imports: [TenantsModule, ServicesModule],
   controllers: [ImportExportController, ImportBatchController],
   providers: [ImportExportService, ExportService, CsvParserService, ImportBatchService],
   exports: [ImportExportService, ExportService],

@@ -927,6 +927,8 @@ export enum ImportEntity {
   Persona = 'Persona',
   Propiedad = 'Propiedad',
   Contrato = 'Contrato',
+  Servicio = 'Servicio',
+  ReglaDeCargo = 'ReglaDeCargo',
 }
 
 export enum ImportRowAction {

@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import {
   AdjustmentBase,
+  AnnualDiscountBeneficiary,
+  AnnualRecovery,
+  BillingFrequency,
+  ChargePayer,
+  ChargeSplitMode,
   AdjustmentPeriod,
   AdjustmentType,
   CommissionType,
@@ -16,6 +21,9 @@ import {
   PersonRole,
   PersonType,
   PropertyType,
+  RemainingInstallmentsOnEnd,
+  ServicePaymentPlan,
+  ServiceType,
 } from '../enums';
 import { externalRefSchema, validateCuit } from './person.schema';
 
@@ -38,6 +46,8 @@ export const IMPORT_ERROR_CODES = [
   'ADJUSTMENT_HISTORY_INVALID',
   'RENT_MISMATCH',
   'PROPERTY_STATE_CONFLICT',
+  'SERVICE_NOT_APPLICABLE',
+  'CHARGE_RULE_IN_USE',
   'INTERNAL_ERROR',
 ] as const;
 export type ImportErrorCode = (typeof IMPORT_ERROR_CODES)[number];
@@ -194,6 +204,61 @@ export const ImportContractSchema = z
   })
   .strict();
 
+export const ImportServiceSchema = z
+  .object({
+    externalRef: externalRefSchema,
+    /** `externalRef` de la propiedad (o del edificio) a la que pertenece el servicio. */
+    propertyRef: externalRefSchema,
+    serviceType: z.nativeEnum(ServiceType),
+    providerName: text(200).nullable().optional(),
+    accountNumber: text(100).nullable().optional(),
+    amount: money,
+    currency: z.nativeEnum(Currency).default(Currency.ARS),
+    dueDay: z.number().int().min(1).max(31),
+    billingFrequency: z.nativeEnum(BillingFrequency).default(BillingFrequency.Mensual),
+    hasAnnualOption: z.boolean().default(false),
+    isActive: z.boolean().default(true),
+    notes: text(5000).nullable().optional(),
+  })
+  .strict();
+
+/** Fecha de calendario `YYYY-MM-DD` que existe (rechaza el 30 de febrero). */
+const calendarDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
+  .refine((v) => {
+    const d = new Date(`${v}T00:00:00.000Z`);
+    return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(v);
+  }, 'Invalid date');
+
+export const ImportChargeRuleSchema = z
+  .object({
+    /** `externalRef` del contrato. */
+    contractRef: externalRefSchema,
+    /** `externalRef` del servicio (del mismo lote o de uno anterior). */
+    serviceRef: externalRefSchema,
+    payer: z.nativeEnum(ChargePayer),
+    splitMode: z.nativeEnum(ChargeSplitMode).default(ChargeSplitMode.Porcentaje),
+    tenantSharePct: pct.default(100),
+    fixedAmount: money.nullable().optional(),
+    paymentPlan: z.nativeEnum(ServicePaymentPlan).default(ServicePaymentPlan.Mensual),
+    annualRecovery: z.nativeEnum(AnnualRecovery).default(AnnualRecovery.Prorrateado),
+    annualInstallments: z.number().int().min(1).max(12).default(12),
+    annualDiscountBeneficiary: z
+      .nativeEnum(AnnualDiscountBeneficiary)
+      .default(AnnualDiscountBeneficiary.Inquilino),
+    remainingInstallmentsOnEnd: z
+      .nativeEnum(RemainingInstallmentsOnEnd)
+      .default(RemainingInstallmentsOnEnd.CobrarEnLiquidacionFinal),
+    validFrom: calendarDate,
+    notes: text(2000).nullable().optional(),
+  })
+  .strict()
+  .refine((r) => r.splitMode !== ChargeSplitMode.Fijo || (r.fixedAmount != null && r.fixedAmount > 0), {
+    message: 'fixedAmount is required for Fijo',
+    path: ['fixedAmount'],
+  });
+
 /**
  * Pedido de un lote. Las filas llegan como `unknown` a propósito: se validan
  * una a una con los esquemas de arriba y el error queda en el registro de su fila.
@@ -206,6 +271,8 @@ export const ImportBatchRequestSchema = z
     persons: z.array(z.unknown()).default([]),
     properties: z.array(z.unknown()).default([]),
     contracts: z.array(z.unknown()).default([]),
+    services: z.array(z.unknown()).default([]),
+    chargeRules: z.array(z.unknown()).default([]),
   })
   .strict();
 
@@ -217,6 +284,8 @@ export const ImportBatchRowsQuerySchema = z.object({
 export type ImportPersonRow = z.infer<typeof ImportPersonSchema>;
 export type ImportPropertyRow = z.infer<typeof ImportPropertySchema>;
 export type ImportContractRow = z.infer<typeof ImportContractSchema>;
+export type ImportServiceRow = z.infer<typeof ImportServiceSchema>;
+export type ImportChargeRuleRow = z.infer<typeof ImportChargeRuleSchema>;
 export type ImportBatchRequest = z.infer<typeof ImportBatchRequestSchema>;
 
 export type ImportBatchCounts = {

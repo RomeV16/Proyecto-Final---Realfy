@@ -24,6 +24,8 @@ export class ImportRowError extends Error {
 export interface ImportContext {
   tenantId: string;
   defaults: OperationalDefaults;
+  /** Recalcula las partes de las boletas de un servicio desde una fecha (tras cambiar sus reglas). */
+  reallocateService?: (db: Db, serviceId: string, from: Date) => Promise<unknown>;
 }
 
 export type UpsertAction = 'Creado' | 'Actualizado' | 'SinCambios';
@@ -37,6 +39,10 @@ export interface RowOutcome {
 export interface EntityImporter<S extends ZodTypeAny = ZodTypeAny> {
   entity: ImportEntity;
   schema: S;
+  /** Clave de la fila dentro del lote, para detectar repetidas. Por defecto, su `externalRef`. */
+  keyOf?(row: z.output<S>): string;
+  /** Referencia que se registra de una fila sin validar. Por defecto, su `externalRef`. */
+  refOf?(raw: unknown): string | null;
   upsert(db: Db, ctx: ImportContext, row: z.output<S>): Promise<RowOutcome>;
 }
 
@@ -54,7 +60,7 @@ export function dayIso(value: Date | string | null | undefined): string | null {
 /** Resuelve una referencia externa dentro de la inmobiliaria; si no existe es un error de la fila. */
 export async function resolveRef(
   db: Db,
-  model: 'person' | 'property',
+  model: 'person' | 'property' | 'service' | 'contract',
   ctx: ImportContext,
   externalRef: string,
   field: string,
@@ -66,7 +72,7 @@ export async function resolveRef(
   if (!found) {
     throw new ImportRowError(
       'REFERENCE_NOT_FOUND',
-      `${model === 'person' ? 'Person' : 'Property'} with externalRef "${externalRef}" not found`,
+      `${model[0].toUpperCase()}${model.slice(1)} with externalRef "${externalRef}" not found`,
       field,
     );
   }
@@ -82,4 +88,10 @@ export function changedKeys<T extends Record<string, unknown>>(
   return Object.keys(desired).filter(
     (k) => desired[k] !== undefined && !same(k, existing[k] ?? null, desired[k]),
   );
+}
+
+/** `externalRef` de una fila sin validar, o null si no trae uno legible. */
+export function rawExternalRef(raw: unknown): string | null {
+  const v = (raw as { externalRef?: unknown } | null)?.externalRef;
+  return typeof v === 'string' && v.trim() ? v.trim() : null;
 }

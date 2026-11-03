@@ -2060,6 +2060,8 @@ enum BillPaidBy {
 model Service {
   id               String           @id @default(uuid())
   tenantId         String
+  /// Referencia del sistema anterior; el importador hace upsert por ella.
+  externalRef      String?
   propertyId       String
   serviceType      ServiceType
   providerName     String?
@@ -2079,6 +2081,7 @@ model Service {
   bills    ServiceBill[]
   rules    ContractChargeRule[]
 
+  @@unique([tenantId, externalRef])
   @@index([tenantId])
   @@index([tenantId, propertyId])
   @@index([tenantId, isActive])
@@ -3064,6 +3067,8 @@ enum ImportEntity {
   Persona
   Propiedad
   Contrato
+  Servicio
+  ReglaDeCargo
 }
 
 enum ImportRowAction {

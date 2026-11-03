@@ -10,15 +10,10 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { parseOrThrow } from '../../common/validation/zod';
-import { pickRuleAt } from './charge-rule-dates';
+import { dayOnly, dayStart, insertRuleVersion, pickRuleAt, serviceAppliesToContract } from './charge-rule-dates';
 import { ServiceBillsService } from './service-bills.service';
 
 type Db = any;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const dayStart = (value: string): Date =>
-  new Date(/^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00.000Z` : value);
-const dayOnly = (date: Date): Date => new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 
 const notFound = (error: string, message: string) => new NotFoundException({ error, message });
 const conflict = (error: string, message: string) => new ConflictException({ error, message });
@@ -89,9 +84,7 @@ export class ChargeRulesService {
 
     const service = await this.prisma.client.service.findFirst({ where: { id: input.serviceId } });
     if (!service) throw notFound('SERVICE_NOT_FOUND', 'Service not found');
-    const sameProperty = service.propertyId === contract.propertyId;
-    const ofBuilding = contract.property?.parentPropertyId === service.propertyId;
-    if (!sameProperty && !ofBuilding) {
+    if (!serviceAppliesToContract(service, contract)) {
       throw badRequest('SERVICE_NOT_APPLICABLE', 'The service belongs to another property');
     }
     if (validFrom.getTime() < dayOnly(contract.startDate).getTime()) {
@@ -100,31 +93,13 @@ export class ChargeRulesService {
     await this.assertAgreement(contractId, contract.status, validFrom, input.agreementId ?? null);
 
     const id = await this.prisma.client.$transaction(async (tx: Db) => {
-      const siblings = await tx.contractChargeRule.findMany({
-        where: { contractId, serviceId: input.serviceId },
-        orderBy: { validFrom: 'asc' },
-      });
-      if (siblings.some((r: any) => r.validFrom.getTime() === validFrom.getTime())) {
-        throw conflict('CHARGE_RULE_EXISTS', 'There is already a rule for this service starting on that date');
-      }
-      const previous = [...siblings].reverse().find((r: any) => r.validFrom.getTime() < validFrom.getTime());
-      const next = siblings.find((r: any) => r.validFrom.getTime() > validFrom.getTime());
-
-      // La regla nueva termina donde empieza la siguiente (si hay) y cierra a la anterior.
-      const dayBeforeNext = next ? new Date(next.validFrom.getTime() - DAY_MS) : null;
-      let validTo = input.validTo ? dayStart(input.validTo) : null;
-      if (dayBeforeNext && (!validTo || validTo.getTime() > dayBeforeNext.getTime())) validTo = dayBeforeNext;
-
-      const dayBefore = new Date(validFrom.getTime() - DAY_MS);
-      if (previous && (!previous.validTo || previous.validTo.getTime() > dayBefore.getTime())) {
-        await tx.contractChargeRule.update({ where: { id: previous.id }, data: { validTo: dayBefore } });
-      }
-
-      const rule = await tx.contractChargeRule.create({
-        data: {
-          tenantId,
-          contractId,
-          serviceId: input.serviceId,
+      const ruleId = await insertRuleVersion(tx, {
+        tenantId,
+        contractId,
+        serviceId: input.serviceId,
+        validFrom,
+        validTo: input.validTo ? dayStart(input.validTo) : null,
+        fields: {
           payer: input.payer,
           splitMode: input.splitMode,
           tenantSharePct: input.tenantSharePct,
@@ -134,14 +109,15 @@ export class ChargeRulesService {
           annualInstallments: input.annualInstallments,
           annualDiscountBeneficiary: input.annualDiscountBeneficiary,
           remainingInstallmentsOnEnd: input.remainingInstallmentsOnEnd,
-          validFrom,
-          validTo,
           agreementId: input.agreementId ?? null,
           notes: input.notes ?? null,
         },
       });
+      if (!ruleId) {
+        throw conflict('CHARGE_RULE_EXISTS', 'There is already a rule for this service starting on that date');
+      }
       await this.bills.reallocateService(tx, input.serviceId, validFrom);
-      return rule.id as string;
+      return ruleId;
     });
 
     this.logger.log('Created charge rule', { contractId, tenantId, serviceId: input.serviceId, payer: input.payer });
