@@ -29,7 +29,8 @@ export async function setupTestApp(): Promise<{
     imports: [AppModule],
   }).compile();
 
-  app = moduleFixture.createNestApplication();
+  // rawBody como en main.ts: los webhooks verifican la firma sobre el cuerpo crudo.
+  app = moduleFixture.createNestApplication({ rawBody: true });
   app.setGlobalPrefix('api');
   await app.init();
 
@@ -51,6 +52,11 @@ export async function cleanDatabase(prisma: PrismaService): Promise<void> {
   await prisma.baseClient.ticketComment.deleteMany();
   await prisma.baseClient.ticket.deleteMany();
   await prisma.baseClient.ticketCategory.deleteMany();
+
+  // Mensajería (apuntan a personas)
+  await prisma.baseClient.inboundMessage.deleteMany();
+  await prisma.baseClient.contactConsent.deleteMany();
+  await prisma.baseClient.messageOutbox.deleteMany();
 
   // S06 tables (Notification → ServicePayment → Service, before other FK targets)
   await prisma.baseClient.notification.deleteMany();

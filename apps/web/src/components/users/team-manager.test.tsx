@@ -59,7 +59,7 @@ const LINK = {
   expiresAt: '2026-12-31T15:00:00.000Z',
   token: 'tok',
   link: 'https://app.example.test/auth/accept-invitation?token=tok',
-  emailSent: false,
+  emailQueued: false,
 };
 
 let team: unknown[];
@@ -140,12 +140,12 @@ describe('TeamManager', () => {
   });
 
   it('copia el enlace y avisa si el portapapeles falla', async () => {
-    mockApi({ 'POST /users/i1/invitation/resend': () => ({ ...LINK, emailSent: true }) });
+    mockApi({ 'POST /users/i1/invitation/resend': () => ({ ...LINK, emailQueued: true }) });
     const { user, table } = await setup();
     const row = table().getByText('nuevo@example.test').closest('tr')!;
     await user.click(within(row).getByRole('button', { name: 'Reenviar invitación' }));
     const share = await screen.findByRole('dialog');
-    expect(await within(share).findByText('También lo enviamos por correo.')).toBeInTheDocument();
+    expect(await within(share).findByText('También quedó en la cola de envío por correo: el estado se ve en Mensajería.')).toBeInTheDocument();
 
     await user.click(within(share).getByRole('button', { name: 'Copiar enlace' }));
     expect(await navigator.clipboard.readText()).toBe(LINK.link);

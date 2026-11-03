@@ -118,6 +118,7 @@ function mockApi({ write, detail: over, failList, failDetail, pages = 1 }: Setup
       if (failDetail) throw new ApiRequestError(404, 'STATEMENT_NOT_FOUND', 'nf');
       return detail(over);
     }
+    if (path.startsWith('/outbox?')) return { items: [], total: 0, page: 1, limit: 20, totalPages: 1 };
     if (path.startsWith('/financial-accounts')) {
       return { items: [{ id: CAJA, kind: 'Caja', name: 'Caja ARS', currency: 'ARS', ownerPersonId: null, isActive: true, balance: '1' }], totals: [] };
     }
@@ -320,6 +321,24 @@ describe('Estado de cuenta: detalle (CP-476)', () => {
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Estado anulado.'));
     expect(writes().at(-1)![0]).toBe('/owner-statements/st-1/annul');
     expect(JSON.parse(writes().at(-1)![1].body)).toEqual({ reason: 'faltaba un gasto' });
+  });
+
+  it.each(['Emitido', 'Enviado'])('un estado %s se manda al locador desde su diálogo de envío', async (status) => {
+    mockApi({ detail: { status } });
+    const user = userEvent.setup();
+    renderEs(<OwnerStatementDetail statementId="st-1" />);
+    await screen.findByRole('heading', { name: 'Ana Locadora — Octubre de 2026' });
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Enviar el estado de cuenta' })).toBeInTheDocument();
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/outbox?relatedType=OwnerStatement&relatedId=st-1&page=1&limit=20'));
+  });
+
+  it.each(['Borrador', 'Anulado'])('un estado %s no se puede mandar', async (status) => {
+    mockApi({ detail: { status } });
+    renderEs(<OwnerStatementDetail statementId="st-1" />);
+    await screen.findByRole('heading', { name: 'Ana Locadora — Octubre de 2026' });
+    expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
   });
 
   it('un estado anulado muestra el motivo y no ofrece emitir ni anular', async () => {

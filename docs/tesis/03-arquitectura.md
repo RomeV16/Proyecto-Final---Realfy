@@ -26,7 +26,7 @@ flowchart LR
     idx["BCRA e INDEC<br/>índices de ajuste"]
     resend["Resend<br/>correo saliente"]
     llm["Proveedor del modelo de lenguaje"]
-    wa["WhatsApp Cloud API<br/>planificado, ítem 43"]
+    wa["WhatsApp Cloud API<br/>mensajes y webhooks"]
 
     staff --> web
     inq --> web
@@ -40,7 +40,9 @@ flowchart LR
     api --> idx
     api --> resend
     api --> llm
-    api -.->|planificado| wa
+    api --> wa
+    wa -.->|webhooks firmados| api
+    resend -.->|webhooks firmados| api
 ```
 
 La web y la API importan `packages/shared` en tiempo de compilación: no es un servicio sino código compartido, y es donde viven los motores puros de dinero (ajuste, liquidación, punitorios, rendición) que las dos aplicaciones usan con los mismos resultados. La API es la única que habla con la base, el almacenamiento y los servicios externos.
@@ -63,7 +65,8 @@ Lo que varios módulos necesitan vive en un solo lugar. La regla es **reutilizar
 - **Renderizador de PDF** (`apps/api/src/common/pdf/pdf-renderer.service.ts`): define las fuentes una vez, los estilos base y el paso de la definición de documento de pdfmake a un `Buffer` (`render`). Ofrece helpers de celda (`moneyCell`, `dateCell`, `headerCell`) y de pie de página (`pageFooter`). Los PDF de liquidaciones, rendiciones, reportes, comprobantes fiscales y contratos lo usan; cada uno solo arma el contenido.
 - **Exportación tabular** (`apps/api/src/common/export/tabular.ts`): `buildCsv` (con BOM para Excel) y `buildXlsx` (encabezado, filtro, fila congelada, formato numérico y fila de totales). La usan la exportación de propiedades y personas, los reportes y el Libro IVA.
 - **Registro de reportes** (`apps/api/src/modules/reports/report-registry.ts`): una entrada por reporte con clave, título, método de `ReportsService`, prefijo de archivo, claves del PDF y columnas del Excel. El controlador, el programador de envíos y los generadores de PDF y Excel leen de ahí; un reporte nuevo es una entrada más.
-- **Transporte de mail** (`apps/api/src/common/email/common-email.service.ts`): único cliente de Resend. `send` no lanza y devuelve `sent`, `skipped` (sin `RESEND_API_KEY`) o `failed`; cada llamador decide qué hacer. Los mails de liquidación, rendición y notificación solo arman asunto, cuerpo y adjuntos.
+- **Transporte de mail** (`apps/api/src/common/email/common-email.service.ts`): único cliente de Resend. `send` no lanza y devuelve `sent`, `skipped` (sin `RESEND_API_KEY`, o retenido por `MESSAGING_MODE`) o `failed` (también cuando Resend rechaza el envío, DEF-65). Lo usa el proveedor de mail de la bandeja de salida; los pocos mails directos que quedan respetan el modo del ambiente.
+- **Bandeja de salida** (`apps/api/src/common/messaging/outbox.service.ts`): `OutboxService.enqueue(tx, { channel, templateKey, vars, personId | to, relatedType, relatedId, idempotencyKey })` es la única forma de mandarle algo a una persona (ADR-0013); `pickChannel` elige WhatsApp o mail según el consentimiento. Las plantillas están en `@realfy/shared` (`MESSAGE_TEMPLATES`) y su texto de mail en `common/messaging/message-templates.ts`. El despacho, los proveedores y los webhooks viven en `modules/messaging`.
 - **Formatos compartidos** (`packages/shared/src/format.ts` y `date-utils`): `personName`, `propertyLabel`, `formatMoneyAR`, `formatPeriodAR`, `formatPeriodShortAR` y `formatDateAR`. Las fechas sin hora se leen en UTC para que el día no retroceda.
 - **Crons y auditoría** (`apps/api/src/common/scheduler/`, `apps/api/src/common/audit/audit.service.ts`). Todo proceso programado extiende `CronBaseService`, envuelve su trabajo en `runGuarded` (no corre con `NODE_ENV=test` y no tumba el proceso si falla) y declara `timeZone: AR_TIME_ZONE` (`@realfy/shared`, `America/Argentina/Buenos_Aires`; el nombre viejo `America/Buenos_Aires` solo se lee y se normaliza al escribir con `normalizeTimeZone`). Para recorrer las inmobiliarias usa `TenantCron.forEachActiveTenant(nombre, (tenantId, tenant) => ...)`: cada vuelta corre en un contexto con la inmobiliaria fijada, así que se usa `prisma.client` (con la extensión de tenant, que falla cerrado) y no se escribe `tenantId` a mano en los filtros; el error de una inmobiliaria se registra con el proceso, el `tenantId` y el identificador de correlación y no frena a las otras, y la función devuelve `{ ok, failed }`. Toda acción automática que mueve plata (punitorios, ajustes, condonaciones) deja su fila de auditoría con `AuditService.record(tx, { action, entity, entityId, before?, after?, userId?, metadata? })`, dentro de la misma transacción que el cambio; el interceptor de auditoría de los pedidos HTTP usa el mismo servicio, que aplica el mismo tapado de contraseñas y tokens. Los disparadores manuales (`POST /penalties/run`, `POST /notifications/run`) son solo Admin, y `POST /penalties/_run-now` además solo corre en modo de prueba.
 
@@ -154,7 +157,30 @@ Las copias nativas diarias y semanales del proveedor cubren los volúmenes de la
 
 ## Mensajería saliente
 
-Hoy el único canal saliente es el correo, a través de Resend y del transporte común de mail. Sin `RESEND_API_KEY` el sistema no envía nada y cada llamador decide qué hacer: la rendición, por ejemplo, no se marca como enviada. En el ambiente `piloto` la credencial todavía no está configurada, porque depende del dominio propio y de su configuración de correo, que siguen pendientes; mientras tanto, los enlaces de invitación y de recupero de contraseña los comparte el Admin a mano. La mensajería instantánea por WhatsApp y la cola de salida (outbox) con clave de idempotencia, por la que pasarán el correo y los mensajes para que un envío fallido no rompa la operación de negocio, están planificadas en el ítem 43 y en el ADR-0013, que todavía no existe.
+Todo mensaje a una persona —mail por Resend o WhatsApp por la Cloud API de Meta— pasa por una bandeja de salida transaccional (ADR-0013). La operación de negocio solo guarda el mensaje en `message_outbox`, dentro de su transacción y con una clave de idempotencia; un proceso programado lo despacha cada minuto. Así un proveedor lento o caído nunca rompe la operación, la misma operación repetida no duplica el mensaje y queda el registro de qué salió.
+
+```mermaid
+flowchart LR
+    op["Operación de negocio<br/>(liquidación enviada, recibo,<br/>estado de cuenta, invitación, ticket)"]
+    outbox[("message_outbox<br/>clave de idempotencia")]
+    cron["Despacho cada minuto<br/>TenantCron"]
+    modo{"MESSAGING_MODE<br/>off / allowlist / live"}
+    cons{"Consentimiento<br/>y horario"}
+    prov["Proveedor<br/>Resend o WhatsApp"]
+    hook["Webhooks firmados<br/>entregado, leído, rebote, BAJA"]
+
+    op -->|"enqueue(tx)"| outbox
+    cron --> outbox
+    cron --> modo
+    modo -->|off| outbox
+    modo -->|"allowlist / live"| cons
+    cons -->|bloqueado| outbox
+    cons -->|"sale"| prov
+    prov --> hook
+    hook -->|estado y bajas| outbox
+```
+
+El modo es de cada ambiente y por defecto es `off`: los mensajes se encolan y se ven, pero no sale ninguno. `allowlist` manda solo a direcciones del equipo y `live` a quien corresponda; el ambiente `piloto` queda en `off` o `allowlist` hasta que el dueño de la inmobiliaria apruebe el envío a su cartera. El consentimiento se guarda como historial por persona y dirección: la baja se respeta siempre y WhatsApp necesita el alta explícita. Los PDF de los documentos no se guardan en la bandeja: se generan al despachar. Las pruebas usan un proveedor de prueba y nunca llaman a Resend ni a Meta. En `piloto`, Resend y WhatsApp todavía no tienen credenciales (el dominio verificado y la cuenta de WhatsApp Business están pendientes); sin ellas los mensajes quedan pendientes con el motivo a la vista y el Admin sigue compartiendo los enlaces de invitación a mano.
 
 ## Decisiones técnicas clave
 

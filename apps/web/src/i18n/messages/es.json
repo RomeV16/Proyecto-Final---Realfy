@@ -117,7 +117,8 @@
   "cash": "Caja",
   "owners": "Locadores",
   "ownerStatements": "Estados de cuenta",
-  "followUps": "Vencimientos"
+  "followUps": "Vencimientos",
+  "messaging": "Mensajería"
  },
  "dataTable": {
   "pagination": {
@@ -248,7 +249,17 @@
    "NO_PUNTO_DE_VENTA": "El emisor no tiene punto de venta: traelos desde ARCA o cargá uno.",
    "CURRENCY_NOT_SUPPORTED": "Todavía no se factura en dólares.",
    "TENANT_PARTY_REQUIRED": "El contrato no tiene inquilino a quien facturar.",
-   "RECEPTOR_CUIT_REQUIRED": "Una factura A necesita el CUIT del inquilino."
+   "RECEPTOR_CUIT_REQUIRED": "Una factura A necesita el CUIT del inquilino.",
+   "NO_CONTACT_ADDRESS": "La persona no tiene cargado un mail o un celular para ese canal: completalo en su ficha.",
+   "NO_RECIPIENT": "El documento no tiene una persona a quien mandárselo.",
+   "OWNER_STATEMENT_NOT_ISSUED": "Solo se manda un estado de cuenta emitido.",
+   "MESSAGE_CHANNEL_NOT_SUPPORTED": "Ese documento no se puede mandar por ese canal.",
+   "RECEIPT_NOT_FOUND": "El recibo no existe.",
+   "OWNER_STATEMENT_NOT_FOUND": "El estado de cuenta no existe.",
+   "MESSAGE_NOT_FOUND": "El mensaje no existe.",
+   "MESSAGE_NOT_RETRYABLE": "Solo se reintenta un mensaje fallido, bloqueado o cancelado.",
+   "MESSAGE_NOT_CANCELLABLE": "Solo se cancela un mensaje pendiente o bloqueado.",
+   "MESSAGE_EXPIRED": "El enlace de un solo uso de la invitación ya se borró: generá una invitación nueva desde Usuarios."
   },
   "segment": {
    "loading": "Cargando…",
@@ -467,7 +478,7 @@
    "invitationTitle": "Enlace de invitación",
    "resetTitle": "Enlace para cambiar la contraseña",
    "intro": "Compartí este enlace con {email}.",
-   "emailSent": "También lo enviamos por correo.",
+   "emailQueued": "También quedó en la cola de envío por correo: el estado se ve en Mensajería.",
    "noEmail": "Por ahora la plataforma no envía correos: copiá el enlace y mandáselo por WhatsApp o el medio que prefieras.",
    "singleUse": "Sirve una sola vez y vence el {date}. Si se pierde, generá uno nuevo desde esta pantalla.",
    "linkLabel": "Enlace",
@@ -1842,7 +1853,10 @@
    "SystemAlert": "Alerta del sistema",
    "FiscalCertExpiry": "Certificado fiscal por vencer",
    "FiscalDelegationRevoked": "Delegación de ARCA dada de baja",
-   "LibroIvaGenerated": "Libro IVA ventas generado"
+   "LibroIvaGenerated": "Libro IVA ventas generado",
+   "MessageFailed": "Mensaje fallido",
+   "ContactOptedOut": "Una persona pidió la baja de los mensajes",
+   "InboundMessageReceived": "Mensaje de WhatsApp recibido"
   },
   "list": {
    "title": "Todas las notificaciones",
@@ -4417,7 +4431,8 @@
   "manageUsers": "Gestionar usuarios",
   "managePermissions": "Gestionar permisos",
   "manageDefaults": "Configurar valores",
-  "manageImports": "Ver importaciones"
+  "manageImports": "Ver importaciones",
+  "manageMessaging": "Ver mensajería"
  },
  "portalPublico": {
   "footer": {
@@ -4830,6 +4845,10 @@
    "invoicing": {
     "title": "Facturación por cuenta del locador",
     "description": "Qué se factura a nombre de cada locador, cuándo y con qué IVA. Cada locador puede cambiarlo. Son convenciones conservadoras: confirmalas con el contador antes de activar la emisión automática."
+   },
+   "messaging": {
+    "title": "Mensajería",
+    "description": "Horario de Buenos Aires en que salen los mails y los WhatsApp a la cartera; lo que se genera fuera de él queda pendiente hasta que abra."
    }
   },
   "fields": {
@@ -5030,6 +5049,14 @@
     "label": "IVA incluido en el importe",
     "hint": "De fábrica: {value}.",
     "zero": "Sin IVA discriminado"
+   },
+   "messagingFromHour": {
+    "label": "Mandar desde las (hora)",
+    "hint": "Hora de Buenos Aires desde la que se manda, de 0 a 23 (de fábrica {value})."
+   },
+   "messagingUntilHour": {
+    "label": "Mandar hasta las (hora)",
+    "hint": "Hora en que se deja de mandar, de 1 a 24 y después de la de inicio (de fábrica {value})."
    }
   }
  },
@@ -6724,6 +6751,211 @@
     "attempts": "Intentos",
     "error": "Motivo",
     "createdAt": "En cola desde"
+   }
+  }
+ },
+ "messaging": {
+  "title": "Mensajería",
+  "subtitle": "Bandeja de salida: cada mail y WhatsApp que manda la inmobiliaria, con su estado y el motivo si quedó frenado.",
+  "forbidden": "Tu rol no tiene acceso a la bandeja de salida.",
+  "settingsLink": "Configuración de mensajería",
+  "statuses": {
+   "Pending": "Pendiente",
+   "Sending": "Enviando",
+   "Sent": "Enviado",
+   "Delivered": "Entregado",
+   "Read": "Leído",
+   "Failed": "Fallido",
+   "Blocked": "Bloqueado",
+   "Cancelled": "Cancelado"
+  },
+  "channels": {
+   "Email": "Mail",
+   "WhatsApp": "WhatsApp"
+  },
+  "templates": {
+   "receipt": "Recibo de cobro",
+   "owner_statement": "Estado de cuenta",
+   "liquidacion": "Liquidación",
+   "ticket_status": "Cambio de estado de un reclamo",
+   "ticket_comment": "Respuesta en un reclamo",
+   "user_invitation": "Invitación al equipo",
+   "staff_alert": "Aviso al personal"
+  },
+  "related": {
+   "Receipt": "Recibo",
+   "OwnerStatement": "Estado de cuenta",
+   "Liquidacion": "Liquidación",
+   "Ticket": "Reclamo",
+   "TicketComment": "Respuesta en un reclamo",
+   "UserInvitation": "Invitación",
+   "Notification": "Aviso"
+  },
+  "reasons": {
+   "MESSAGING_OFF": "El envío está apagado en este ambiente: queda en cola hasta que se active.",
+   "PROVIDER_NOT_CONFIGURED": "Falta configurar el proveedor de este canal: queda en cola.",
+   "QUIET_HOURS": "Fuera del horario de envío: sale cuando abra.",
+   "NOT_IN_ALLOWLIST": "Modo de prueba: la dirección no está en la lista permitida.",
+   "OPTED_OUT": "La persona pidió la baja de este canal.",
+   "NO_OPT_IN": "WhatsApp necesita el alta explícita de la persona y no está registrada."
+  },
+  "providerError": "El proveedor respondió: {error}",
+  "filters": {
+   "status": "Estado",
+   "channel": "Canal",
+   "all": "Todos"
+  },
+  "scope": {
+   "person": "Mensajes de {name}",
+   "personUnknown": "Mensajes de una persona",
+   "document": "Mensajes de un documento ({document})",
+   "showAll": "Ver todos"
+  },
+  "columns": {
+   "date": "Fecha",
+   "recipient": "Destinatario",
+   "channel": "Canal",
+   "template": "Mensaje",
+   "related": "Documento",
+   "status": "Estado",
+   "detail": "Detalle",
+   "attempts": "Intentos",
+   "actions": "Acciones"
+  },
+  "noRecipient": "Sin persona",
+  "actions": {
+   "retry": "Reintentar",
+   "cancel": "Cancelar"
+  },
+  "retry": {
+   "title": "Reintentar el mensaje",
+   "body": "El mensaje a {to} vuelve a la cola y sale según el modo de envío, el horario y el consentimiento.",
+   "confirm": "Reintentar",
+   "keep": "Volver",
+   "done": "El mensaje volvió a la cola",
+   "error": "No se pudo reintentar el mensaje"
+  },
+  "cancel": {
+   "title": "Cancelar el mensaje",
+   "body": "El mensaje a {to} no se va a mandar. Si hace falta, después lo podés reintentar.",
+   "confirm": "Cancelar el mensaje",
+   "keep": "Volver",
+   "done": "Mensaje cancelado",
+   "error": "No se pudo cancelar el mensaje"
+  },
+  "empty": {
+   "title": "No hay mensajes",
+   "subtitle": "Cuando se mande un recibo, un estado de cuenta o un aviso, aparece acá con su estado."
+  },
+  "send": {
+   "open": "Enviar",
+   "title": {
+    "Receipt": "Enviar el recibo",
+    "OwnerStatement": "Enviar el estado de cuenta"
+   },
+   "explain": "Se encola en la bandeja de salida y sale según el modo de envío, el horario y el consentimiento de la persona. Si ya se mandó por ese canal, no se duplica.",
+   "email": "Enviar por mail",
+   "whatsapp": "Enviar por WhatsApp",
+   "queued": "Mensaje en la bandeja de salida",
+   "error": "No se pudo enviar el documento",
+   "last": "Último envío",
+   "history": "Mensajes de este documento",
+   "none": "Todavía no se mandó por ningún canal.",
+   "loadError": "No se pudieron cargar los mensajes del documento",
+   "viewAll": "Ver en la bandeja de salida"
+  },
+  "consents": {
+   "title": "Consentimiento de mensajes",
+   "hint": "WhatsApp necesita el alta explícita de la persona; una baja se respeta siempre, en cualquier canal. Registrá lo que dijo la persona y por dónde (por ejemplo: \"pidió los recibos por WhatsApp, en la oficina\").",
+   "viewMessages": "Ver mensajes",
+   "statuses": {
+    "OptIn": "Alta",
+    "OptOut": "Baja"
+   },
+   "none": "Sin registrar",
+   "sources": {
+    "Manual": "Registrado por el personal",
+    "Inbound": "Lo pidió la persona escribiendo",
+    "Complaint": "Marcó un mensaje como spam"
+   },
+   "address": "Se aplica a {address}",
+   "noAddress": "Sin dirección cargada para este canal",
+   "source": "Origen",
+   "date": "Fecha",
+   "note": "Nota",
+   "optIn": "Registrar alta",
+   "optOut": "Registrar baja",
+   "history": "Historial ({count})",
+   "loadError": "No se pudo cargar el consentimiento de mensajes",
+   "dialog": {
+    "titleOptIn": "Registrar el alta en {channel}",
+    "titleOptOut": "Registrar la baja en {channel}",
+    "explainOptIn": "La persona aceptó recibir mensajes por este canal. Se aplica a la dirección que tiene cargada hoy.",
+    "explainOptOut": "La persona no quiere recibir más mensajes por este canal. Desde ahora no se le manda nada por acá.",
+    "note": "Nota",
+    "noteHint": "Opcional: qué dijo la persona y por dónde.",
+    "save": "Registrar",
+    "saved": "Consentimiento registrado",
+    "error": "No se pudo registrar el consentimiento"
+   }
+  },
+  "settings": {
+   "title": "Mensajería",
+   "cardSubtitle": "Modo de envío, proveedores, horario y plantillas de los mails y los WhatsApp.",
+   "subtitle": "Cómo y cuándo salen los mails y los WhatsApp de la inmobiliaria.",
+   "back": "Configuración",
+   "readOnly": "Solo Administración y Gerencia ven la configuración de la mensajería.",
+   "loadError": "No se pudo cargar la configuración de la mensajería",
+   "mode": {
+    "title": "Modo de envío",
+    "currentLabel": "Este ambiente está en:",
+    "current": "actual",
+    "off": {
+     "label": "Apagado",
+     "description": "No se manda nada: los mensajes quedan en cola hasta que se active el envío."
+    },
+    "allowlist": {
+     "label": "Solo la lista de prueba",
+     "description": "Solo se manda a las direcciones de la lista de prueba ({count, plural, =0 {sin direcciones cargadas} one {# dirección} other {# direcciones}}); el resto queda bloqueado."
+    },
+    "live": {
+     "label": "Activo",
+     "description": "Se manda a todos, respetando el consentimiento de cada persona y el horario de envío."
+    },
+    "note": "El modo se fija por ambiente y lo configura quien despliega (variable MESSAGING_MODE); no se cambia desde acá. El ambiente piloto queda apagado o con la lista de prueba hasta que el dueño de la inmobiliaria lo apruebe."
+   },
+   "providers": {
+    "title": "Proveedores",
+    "email": "Mail (Resend)",
+    "whatsapp": "WhatsApp (Cloud API)",
+    "configured": "Configurado",
+    "from": "Remitente",
+    "webhook": "Avisos de entrega (webhook)",
+    "yes": "Sí",
+    "no": "No"
+   },
+   "window": {
+    "title": "Horario de envío",
+    "range": "De {from} a {until} h (hora de Buenos Aires)",
+    "explain": "Los mensajes a la cartera que se generan fuera de este horario quedan pendientes hasta que abra. Las invitaciones y los avisos al personal salen a cualquier hora.",
+    "change": "Cambiarlo en Configuración → Valores por defecto"
+   },
+   "templates": {
+    "title": "Plantillas",
+    "subtitle": "Qué mensajes manda el sistema, por qué canal y a quién. Las de WhatsApp tienen que estar aprobadas en WhatsApp Business con el nombre y el texto propuestos.",
+    "columns": {
+     "name": "Mensaje",
+     "channels": "Canales",
+     "audience": "Para",
+     "whatsapp": "Plantilla de WhatsApp",
+     "text": "Texto propuesto"
+    },
+    "audiences": {
+     "client": "La cartera",
+     "staff": "El personal"
+    },
+    "emailOnly": "Solo mail",
+    "empty": "No hay plantillas"
    }
   }
  }

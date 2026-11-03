@@ -24,6 +24,7 @@ Distingue dos cosas que no deben confundirse: lo que el sistema **hace hoy**, ve
 | Contrato y garantía | Partes del contrato, montos, fechas y la garantía (tipo, emisor, número de póliza, monto) | `Contract`, `ContractPerson`, `ContractGuarantee` |
 | Cobros | Liquidaciones, pagos y comprobantes fiscales, con el documento fiscal del receptor | `Liquidacion`, `Payment`, `Comprobante` |
 | Auditoría | Usuario, acción, entidad, cambios, dirección de red y agente de navegador de cada operación sensible | `AuditLog` |
+| Mensajería | Mensajes salientes (canal, dirección de destino, plantilla, variables del texto, estado de entrega y documento relacionado; el enlace de un solo uso de una invitación se oculta y se borra al terminar), consentimiento por canal (alta o baja, origen, fecha, dirección y quién lo registró) y mensajes de WhatsApp recibidos (número, texto y fecha) | `MessageOutbox`, `ContactConsent`, `InboundMessage` |
 
 ### Previsto para el piloto
 
@@ -38,7 +39,20 @@ La finalidad es administrar contratos de locación por cuenta de los locadores: 
 La base legal es doble, según el dato:
 
 - **Ejecución de la relación contractual.** Los datos de las partes de un contrato de locación y de su garantía son necesarios para ejecutarlo, y la ley exceptúa el consentimiento cuando los datos surgen de una relación contractual o se necesitan para cumplirla (artículo 5, inciso 2). Es la base de la mayor parte de la cartera.
-- **Consentimiento informado.** Para lo que excede el contrato, como las comunicaciones comerciales, el uso de datos de interesados que consultaron por una propiedad y la futura mensajería instantánea, se pide consentimiento expreso y se registra la baja (artículo 5, incisos 1 y 3, y artículo 6). Antes de enviar mensajes por WhatsApp el sistema debe registrar el consentimiento y permitir darse de baja; está previsto en el ítem 43 y hoy no existe.
+- **Consentimiento informado.** Para lo que excede el contrato, como las comunicaciones comerciales, el uso de datos de interesados que consultaron por una propiedad y la mensajería instantánea, se pide consentimiento expreso y se registra la baja (artículo 5, incisos 1 y 3, y artículo 6). Desde el ítem 43 el sistema lo registra y lo respeta (ver «Consentimiento y baja de los mensajes»).
+
+### Consentimiento y baja de los mensajes
+
+La mensajería saliente (ADR-0013) aplica estas reglas antes de mandar cada mensaje:
+
+- **La baja se respeta siempre**, por cualquier canal. Una persona pide la baja de WhatsApp respondiendo BAJA o STOP; marcar un mail como spam es una baja del mail. La inmobiliaria también la registra a mano desde la ficha de la persona.
+- **WhatsApp necesita un alta explícita.** Antes del primer mensaje alguien de la inmobiliaria registra el alta en la ficha, con una nota de dónde quedó (por ejemplo, una cláusula firmada en el contrato o un pedido por escrito). Sin alta, el mensaje queda bloqueado y no sale.
+- **El mail con documentos del contrato** (recibos, liquidaciones, estados de cuenta) se basa en la ejecución del contrato: sale a la dirección que la persona dio mientras no haya pedido la baja.
+- **Historial.** Cada alta o baja es un registro nuevo con la fecha, el origen, la dirección a la que aplica y quién lo cargó; vale el último. Sirve como prueba de cuándo se dio el consentimiento y cuándo se retiró. Una baja de un número que no es de ninguna persona cargada también se guarda y se respeta.
+- **Ningún mensaje sale sin aprobación del responsable.** El ambiente decide si se envía (`MESSAGING_MODE`): `off` por defecto, `allowlist` para probar con direcciones del equipo, `live` solo cuando el dueño de la inmobiliaria lo aprueba. El ambiente `piloto` queda en `off` o `allowlist` hasta esa aprobación.
+- **Horario.** Los mensajes a la cartera salen de 9 a 20 h de Buenos Aires (configurable en los valores por defecto).
+
+El texto con que se le pide el alta a la persona y la cláusula del contrato se acuerdan con el abogado (pendiente).
 
 El texto de información al titular y el mecanismo de consentimiento se deciden con el abogado y con la inmobiliaria (pendiente). La decisión de usar cifras agregadas del piloto en la tesis es independiente y también está pendiente (ver «Anonimización para la tesis»).
 
@@ -83,7 +97,7 @@ Para restringirlos, el Admin entra a Configuración → Permisos, destilda los r
 | Acceso (artículo 14) | Saber qué datos hay sobre uno | La inmobiliaria consulta la ficha de la persona, sus contratos y el historial, y entrega la información; el plazo legal es de diez días corridos |
 | Rectificación (artículo 16) | Corregir datos inexactos | La inmobiliaria edita la ficha; el cambio queda en el registro de auditoría; el plazo legal es de cinco días hábiles |
 | Supresión (artículo 16) | Eliminar datos que no corresponde conservar | Baja lógica de la persona; la supresión física procede cuando no hay contratos ni comprobantes que la referencien o cuando la ley deja de exigir su conservación |
-| Oposición y baja de comunicaciones | No recibir mensajes comerciales | Baja de los envíos; para mensajería instantánea, previsto en el ítem 43 |
+| Oposición y baja de comunicaciones | No recibir mensajes | Respondiendo BAJA o STOP a un WhatsApp, marcando un mail como spam o pidiéndoselo a la inmobiliaria, que registra la baja en la ficha de la persona. Desde ese momento no sale ningún mensaje por ese canal |
 
 Los pedidos llegan a la inmobiliaria, que es la responsable de la base, y el equipo la asiste técnicamente. Los plazos y la forma de atenderlos se confirman con el abogado (pendiente).
 
@@ -116,8 +130,8 @@ La tesis y este repositorio son públicos. Reglas:
 |---|---|---|
 | Modelo de lenguaje (módulo `ai`) | Para el panel de prioridades: un identificador opaco por ítem (`C1`, `R2`…), el tipo de ítem, su estado, importes y moneda, días de atraso o para vencer y horas fuera de plazo, si tiene responsable y la prioridad declarada. Para el resumen de cierre de contrato: métricas agregadas del contrato (tipo, fechas, cantidades de liquidaciones y pagos, puntualidad, montos y punitorios). No se envían nombres, documentos, correos, teléfonos, domicilios, identificadores internos ni títulos de propiedades: los tipos de datos del contexto que se arma para el modelo no tienen campos para ellos, y la identificación real no sale del servidor | Funciona hoy. El proveedor y el modelo se configuran por variable de entorno; con la credencial vacía el cliente queda deshabilitado y las funciones resuelven por reglas y plantillas. En el ambiente `piloto` se decide con la inmobiliaria si se habilita |
 | ARCA | Para emitir un comprobante: datos del emisor, tipo de comprobante, importes y el documento fiscal del receptor (CUIT, o cero para consumidor final), con el certificado del emisor | Funciona en homologación y, por cuenta del locador, con su delegación (ítem 38, ADR-0017): el comprobante lleva el CUIT, la razón social y la condición del locador. No se guarda ningún certificado ni clave del locador: se factura con el certificado de la inmobiliaria, cifrado como hasta ahora. Qué se factura y con qué IVA requiere validación del contador |
-| Resend (correo) | Dirección del destinatario y el contenido del mensaje con sus adjuntos (liquidaciones, rendiciones, notificaciones). Sin credencial no se envía ningún correo | Funciona hoy. Obligatorio en el ambiente `piloto` para invitaciones y estados de cuenta (ítem 43) |
-| WhatsApp (API oficial de la plataforma de mensajería) | Número de teléfono y texto de plantillas de utilidad, con consentimiento y baja | Previsto en el ítem 43; no existe hoy. Requiere consentimiento (ver «Base legal y finalidad») |
+| Resend (correo) | Dirección del destinatario y el contenido del mensaje con sus adjuntos (recibos, estados de cuenta, liquidaciones, avisos al personal, invitaciones). Sin credencial no se envía ningún correo | Funciona a través de la bandeja de salida y respeta el modo del ambiente y la baja. Necesario en `piloto` para invitaciones y estados de cuenta, con el dominio verificado (pendiente) |
+| WhatsApp (API oficial de la plataforma de mensajería) | Número de teléfono, parámetros de plantillas de utilidad (nombre de pila, número e importe del recibo, período y saldo del estado de cuenta, título y estado de un reclamo, nombre de la inmobiliaria) y el PDF adjunto. Recibe los estados de entrega y las respuestas de la persona | Implementado en el ítem 43, sin credenciales cargadas: solo con alta explícita y respetando la baja. La cuenta de empresa, el número nuevo y las plantillas están pendientes de alta en Meta |
 | BCRA e INDEC | Solo se descargan series públicas de índices; no se envía ningún dato personal | Funciona hoy |
 | Almacenamiento de objetos (compatible con S3) | Fotos de propiedades y adjuntos de personas y contratos | Funciona hoy, con el ambiente de almacenamiento propio de cada ambiente |
 

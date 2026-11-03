@@ -74,6 +74,10 @@ export {
   FeeSettlement,
   FeeVatMode,
   NotificationType,
+  MessageChannel,
+  MessageStatus,
+  ConsentStatus,
+  ConsentSource,
   PipelineType,
   LeadSource,
   LeadStatus,
@@ -842,6 +846,48 @@ export type {
 } from './schemas/penalty-config.schema';
 
 export { NotificationFilterSchema } from './schemas/notification.schema';
+
+// Mensajería saliente (ADR-0013)
+export {
+  MESSAGING_MODES,
+  parseMessagingMode,
+  normalizeEmail,
+  normalizePhone,
+  normalizeAddress,
+  parseAllowlist,
+  DEFAULT_SENDING_WINDOW,
+  isInsideSendingWindow,
+  nextSendingWindowStart,
+  MESSAGE_TEMPLATE_KEYS,
+  MESSAGE_TEMPLATES,
+  REDACTED,
+  redactMessageVars,
+  requiresOptIn,
+} from './messaging';
+export type {
+  MessagingMode,
+  SendingWindow,
+  MessageAttachmentKind,
+  MessageTemplateInfo,
+  MessageTemplateKey,
+} from './messaging';
+export {
+  OutboxFilterSchema,
+  SENDABLE_DOCUMENTS,
+  SendDocumentSchema,
+  SetConsentSchema,
+} from './schemas/messaging.schema';
+export type {
+  OutboxFilter,
+  SendableDocument,
+  SendDocumentInput,
+  SetConsentInput,
+  OutboxItem,
+  OutboxPage,
+  ChannelConsent,
+  PersonConsents,
+  MessagingSettings,
+} from './schemas/messaging.schema';
 export {
   CreateEmailTemplateSchema,
   UpdateEmailTemplateSchema,

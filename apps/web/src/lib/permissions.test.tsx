@@ -72,6 +72,11 @@ const EXPECTED: Record<Action, string[]> = {
   'dataQuality.merge': ['Admin'],
   'indexData.view': ['Admin', 'Gerente'],
   'indexData.manage': ['Admin'],
+  'messaging.view': ['Admin', 'Gerente', 'Liquidaciones', 'Lectura', 'Ventas', 'Soporte'],
+  'messaging.send': ['Admin', 'Gerente', 'Liquidaciones'],
+  'messaging.manage': ['Admin', 'Gerente'],
+  'consents.view': ['Admin', 'Gerente', 'Liquidaciones', 'Lectura', 'Ventas', 'Soporte'],
+  'consents.manage': ['Admin', 'Gerente', 'Ventas', 'Liquidaciones'],
 };
 
 describe('can', () => {
@@ -133,6 +138,13 @@ describe('menú por rol', () => {
       const keys = visibleNavItems(role).map((i) => i.key);
       expect(keys).toEqual(expect.arrayContaining(open));
       expect(keys.includes('users')).toBe(role === 'Admin' || role === 'Gerente');
+    }
+  });
+
+  it('Mensajería lleva a la bandeja de salida y la ven todos menos Marketing', () => {
+    expect(navItems.find((i) => i.key === 'messaging')?.href).toBe('/mensajeria');
+    for (const role of ALL_ROLES) {
+      expect(visibleNavItems(role).some((i) => i.key === 'messaging')).toBe(role !== 'Marketing');
     }
   });
 

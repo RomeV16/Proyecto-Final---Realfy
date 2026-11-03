@@ -756,6 +756,51 @@
     "Admin",
     "Gerente"
   ],
+  "src/modules/messaging/messaging.controller.ts#OutboxController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/messaging/messaging.controller.ts#OutboxController.send": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
+  "src/modules/messaging/messaging.controller.ts#OutboxController.retry": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/messaging/messaging.controller.ts#OutboxController.cancel": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/messaging/messaging.controller.ts#OutboxController.runNow": [
+    "Admin"
+  ],
+  "src/modules/messaging/messaging.controller.ts#MessagingSettingsController.settings": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/messaging/messaging.controller.ts#ConsentsController.list": [
+    "Admin",
+    "Gerente",
+    "Lectura",
+    "Liquidaciones",
+    "Soporte",
+    "Ventas"
+  ],
+  "src/modules/messaging/messaging.controller.ts#ConsentsController.set": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones",
+    "Ventas"
+  ],
+  "src/modules/messaging/webhooks.controller.ts#WebhooksController.verifyWhatsApp": null,
+  "src/modules/messaging/webhooks.controller.ts#WebhooksController.whatsapp": null,
+  "src/modules/messaging/webhooks.controller.ts#WebhooksController.resend": null,
   "src/modules/notifications/notifications.controller.ts#NotificationsController.run": [
     "Admin"
   ],

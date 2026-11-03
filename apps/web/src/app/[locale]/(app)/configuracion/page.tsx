@@ -33,6 +33,7 @@ export default function ConfiguracionPage() {
   const tPermissions = useTranslations('permissions');
   const tDefaults = useTranslations('operationalDefaults');
   const tImports = useTranslations('importBatches');
+  const tMessaging = useTranslations('messaging.settings');
   const { user } = useAuth();
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
@@ -75,6 +76,7 @@ export default function ConfiguracionPage() {
   const canManagePermissions = useCan('permissions.manage');
   const canManageDefaults = useCan('operationalDefaults.manage');
   const canViewImports = useCan('imports.manage');
+  const canManageMessaging = useCan('messaging.manage');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -251,6 +253,25 @@ export default function ConfiguracionPage() {
           <Link href={'/configuracion/valores-por-defecto'} className="shrink-0">
             <Button variant="secondary" size="sm">
               {t('manageDefaults')}
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {canManageMessaging && (
+        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+              <Icon name="mail" className="h-5 w-5" strokeWidth={1.75} />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">{tMessaging('title')}</p>
+              <p className="text-sm text-slate-500 mt-0.5">{tMessaging('cardSubtitle')}</p>
+            </div>
+          </div>
+          <Link href={'/configuracion/mensajeria'} className="shrink-0">
+            <Button variant="secondary" size="sm">
+              {t('manageMessaging')}
             </Button>
           </Link>
         </div>

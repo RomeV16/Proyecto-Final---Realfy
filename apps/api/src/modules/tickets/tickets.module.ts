@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CashModule } from '../cash/cash.module';
 import { ChargesModule } from '../charges/charges.module';
 import { TenantsModule } from '../tenants/tenants.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { TicketsController } from './tickets.controller';
 import { TicketsService } from './tickets.service';
 import { TicketCategoriesController } from './ticket-categories.controller';
@@ -11,7 +12,7 @@ import { TicketQuotesService } from './ticket-quotes.service';
 import { TicketRepairsService } from './ticket-repairs.service';
 
 @Module({
-  imports: [TenantsModule, CashModule, ChargesModule],
+  imports: [TenantsModule, CashModule, ChargesModule, NotificationsModule],
   controllers: [TicketsController, TicketCategoriesController],
   providers: [
     TicketsService,

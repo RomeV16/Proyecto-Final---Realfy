@@ -48,6 +48,8 @@ import { DataQualityModule } from './modules/data-quality/data-quality.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AiModule } from './modules/ai/ai.module';
 import { CommonEmailModule } from './common/email/common-email.module';
+import { CommonMessagingModule } from './common/messaging/messaging.module';
+import { MessagingModule } from './modules/messaging/messaging.module';
 import { PdfModule } from './common/pdf/pdf.module';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RbacGuard } from './common/auth/rbac.guard';
@@ -87,6 +89,7 @@ import { ReadPolicyModule } from './common/read-policy/read-policy.module';
     MediaModule,
     CryptoModule,
     CommonEmailModule,
+    CommonMessagingModule,
     PdfModule,
     AuthModule,
     TenantsModule,
@@ -106,6 +109,7 @@ import { ReadPolicyModule } from './common/read-policy/read-policy.module';
     ChargesModule,
     CashModule,
     OwnerAccountsModule,
+    MessagingModule,
     FollowUpsModule,
     FeesModule,
     DepositsModule,

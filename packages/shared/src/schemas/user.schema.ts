@@ -123,6 +123,10 @@ export interface ShareableLink {
   token: string;
   /** Enlace listo para compartir. */
   link: string;
-  /** `true` si el servidor además lo mandó por correo. */
-  emailSent: boolean;
+  /**
+   * `true` si además quedó en la bandeja de salida para mandarse por correo
+   * (hay servicio de correo). Sale según MESSAGING_MODE; el estado se ve en
+   * Mensajería.
+   */
+  emailQueued: boolean;
 }

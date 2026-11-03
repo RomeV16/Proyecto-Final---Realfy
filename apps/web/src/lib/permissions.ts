@@ -112,6 +112,18 @@ export const ACTION_ROLES = {
   'dataQuality.merge': [Admin],
   'indexData.view': [Admin, Gerente],
   'indexData.manage': [Admin],
+
+  // Mensajería saliente (la API exige los mismos roles en cada ruta)
+  /** Ver la bandeja de salida y los mensajes de un documento. */
+  'messaging.view': [Admin, Gerente, Liquidaciones, Lectura, Ventas, Soporte],
+  /** Mandar un recibo o un estado de cuenta por mail o por WhatsApp. */
+  'messaging.send': [Admin, Gerente, Liquidaciones],
+  /** Reintentar o cancelar un mensaje y ver la configuración de la mensajería. */
+  'messaging.manage': [Admin, Gerente],
+  /** Ver el consentimiento de mensajes de una persona. */
+  'consents.view': [Admin, Gerente, Liquidaciones, Lectura, Ventas, Soporte],
+  /** Registrar el alta o la baja de una persona en un canal. */
+  'consents.manage': [Admin, Gerente, Ventas, Liquidaciones],
 } as const satisfies Record<string, readonly UserRole[]>;
 
 export type Action = keyof typeof ACTION_ROLES;

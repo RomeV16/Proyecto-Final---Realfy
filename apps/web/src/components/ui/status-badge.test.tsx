@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import {
+  ConsentStatus,
   ContractStatus,
   ExpirationLight,
   FeeInstallmentStatus,
@@ -11,6 +12,7 @@ import {
   ImportRowAction,
   LeadStatus,
   LiquidacionStatus,
+  MessageStatus,
   OwnerStatementStatus,
   PendingChargeStatus,
   RendicionStatus,
@@ -42,6 +44,8 @@ const ENUMS: Record<StatusDomain, object> = {
   honorario: FeeStatus,
   cuotaHonorario: FeeInstallmentStatus,
   facturaLocador: LessorInvoiceStatus,
+  mensaje: MessageStatus,
+  consentimiento: ConsentStatus,
 };
 
 function lookup(messages: unknown, path: string): unknown {
@@ -64,6 +68,15 @@ describe('registro de estados', () => {
     expect(statusEntry('liquidacion', 'Enviada')?.tone).toBe('info');
     expect(statusEntry('liquidacion', 'Pendiente')?.tone).toBe('warning');
     expect(statusEntry('liquidacion', 'Pagada')?.tone).toBe('success');
+  });
+
+  it('mensajes: pendiente a vigilar, enviado brand, entregado y leído success, fallido y bloqueado danger', () => {
+    expect(statusEntry('mensaje', 'Pending')?.tone).toBe('warning');
+    expect(statusEntry('mensaje', 'Sent')?.tone).toBe('brand');
+    expect(statusEntry('mensaje', 'Read')?.tone).toBe('success');
+    expect(statusEntry('mensaje', 'Blocked')?.tone).toBe('danger');
+    expect(statusEntry('mensaje', 'Cancelled')).toMatchObject({ tone: 'neutral', strike: true });
+    expect(statusEntry('consentimiento', 'OptOut')?.tone).toBe('danger');
   });
 
   it('el acento deriva del tono y neutral no lleva barra', () => {

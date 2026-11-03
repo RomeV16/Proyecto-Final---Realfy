@@ -11,5 +11,6 @@ import { OwnerStatementsService } from './owner-statements.service';
   imports: [TenantsModule, CashModule],
   controllers: [OwnersController, OwnerStatementsController],
   providers: [OwnerLedgerService, OwnerStatementsService, OwnerStatementPdfService],
+  exports: [OwnerStatementsService],
 })
 export class OwnerAccountsModule {}

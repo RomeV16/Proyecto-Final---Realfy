@@ -117,7 +117,8 @@
   "cash": "Cash",
   "owners": "Lessors",
   "ownerStatements": "Owner statements",
-  "followUps": "Expirations"
+  "followUps": "Expirations",
+  "messaging": "Messaging"
  },
  "dataTable": {
   "pagination": {
@@ -248,7 +249,17 @@
    "NO_PUNTO_DE_VENTA": "The issuer has no point of sale: fetch them from ARCA or add one.",
    "CURRENCY_NOT_SUPPORTED": "Dollar invoicing is not supported yet.",
    "TENANT_PARTY_REQUIRED": "The contract has no tenant to invoice.",
-   "RECEPTOR_CUIT_REQUIRED": "An A invoice needs the tenant tax ID (CUIT)."
+   "RECEPTOR_CUIT_REQUIRED": "An A invoice needs the tenant tax ID (CUIT).",
+   "NO_CONTACT_ADDRESS": "The person has no email or mobile number for that channel: add it to their profile.",
+   "NO_RECIPIENT": "The document has no person to send it to.",
+   "OWNER_STATEMENT_NOT_ISSUED": "Only an issued owner statement can be sent.",
+   "MESSAGE_CHANNEL_NOT_SUPPORTED": "That document cannot be sent through that channel.",
+   "RECEIPT_NOT_FOUND": "The receipt does not exist.",
+   "OWNER_STATEMENT_NOT_FOUND": "The owner statement does not exist.",
+   "MESSAGE_NOT_FOUND": "The message does not exist.",
+   "MESSAGE_NOT_RETRYABLE": "Only a failed, blocked or cancelled message can be retried.",
+   "MESSAGE_NOT_CANCELLABLE": "Only a pending or blocked message can be cancelled.",
+   "MESSAGE_EXPIRED": "The invitation's one-time link was already erased: create a new invitation from Users."
   },
   "segment": {
    "loading": "Loading…",
@@ -467,7 +478,7 @@
    "invitationTitle": "Invitation link",
    "resetTitle": "Password change link",
    "intro": "Share this link with {email}.",
-   "emailSent": "We also sent it by email.",
+   "emailQueued": "It was also queued to go out by email: check its status in Messaging.",
    "noEmail": "The platform does not send emails yet: copy the link and send it by WhatsApp or any channel you prefer.",
    "singleUse": "It works only once and expires on {date}. If it gets lost, generate a new one from this screen.",
    "linkLabel": "Link",
@@ -1842,7 +1853,10 @@
    "SystemAlert": "Alerta del sistema",
    "FiscalCertExpiry": "Fiscal certificate expiring",
    "FiscalDelegationRevoked": "ARCA delegation revoked",
-   "LibroIvaGenerated": "IVA sales book generated"
+   "LibroIvaGenerated": "IVA sales book generated",
+   "MessageFailed": "Message failed",
+   "ContactOptedOut": "A contact opted out of messages",
+   "InboundMessageReceived": "WhatsApp message received"
   },
   "list": {
    "title": "Todas las notificaciones",
@@ -4417,7 +4431,8 @@
   "manageUsers": "Manage users",
   "managePermissions": "Manage permissions",
   "manageDefaults": "Configure values",
-  "manageImports": "View imports"
+  "manageImports": "View imports",
+  "manageMessaging": "View messaging"
  },
  "portalPublico": {
   "footer": {
@@ -4830,6 +4845,10 @@
    "invoicing": {
     "title": "Invoicing on behalf of the lessor",
     "description": "What is invoiced in the name of each lessor, when and with what VAT. Each lessor can change it. These are conservative conventions: confirm them with the accountant before turning on automatic issuing."
+   },
+   "messaging": {
+    "title": "Messaging",
+    "description": "Buenos Aires hours in which emails and WhatsApp messages go out to clients; anything created outside them waits until they open."
    }
   },
   "fields": {
@@ -5030,6 +5049,14 @@
     "label": "VAT included in the amount",
     "hint": "Factory default: {value}.",
     "zero": "No VAT itemised"
+   },
+   "messagingFromHour": {
+    "label": "Send from (hour)",
+    "hint": "Buenos Aires hour from which messages are sent, 0 to 23 (default {value})."
+   },
+   "messagingUntilHour": {
+    "label": "Send until (hour)",
+    "hint": "Hour at which sending stops, 1 to 24 and after the start hour (default {value})."
    }
   }
  },
@@ -6724,6 +6751,211 @@
     "attempts": "Attempts",
     "error": "Reason",
     "createdAt": "Queued since"
+   }
+  }
+ },
+ "messaging": {
+  "title": "Messaging",
+  "subtitle": "Outbox: every email and WhatsApp message the agency sends, with its status and the reason if it is on hold.",
+  "forbidden": "Your role has no access to the outbox.",
+  "settingsLink": "Messaging settings",
+  "statuses": {
+   "Pending": "Pending",
+   "Sending": "Sending",
+   "Sent": "Sent",
+   "Delivered": "Delivered",
+   "Read": "Read",
+   "Failed": "Failed",
+   "Blocked": "Blocked",
+   "Cancelled": "Cancelled"
+  },
+  "channels": {
+   "Email": "Email",
+   "WhatsApp": "WhatsApp"
+  },
+  "templates": {
+   "receipt": "Payment receipt",
+   "owner_statement": "Owner statement",
+   "liquidacion": "Settlement",
+   "ticket_status": "Claim status change",
+   "ticket_comment": "Reply on a claim",
+   "user_invitation": "Team invitation",
+   "staff_alert": "Staff alert"
+  },
+  "related": {
+   "Receipt": "Receipt",
+   "OwnerStatement": "Owner statement",
+   "Liquidacion": "Settlement",
+   "Ticket": "Claim",
+   "TicketComment": "Reply on a claim",
+   "UserInvitation": "Invitation",
+   "Notification": "Alert"
+  },
+  "reasons": {
+   "MESSAGING_OFF": "Sending is off in this environment: it stays queued until it is turned on.",
+   "PROVIDER_NOT_CONFIGURED": "The provider for this channel is not configured: it stays queued.",
+   "QUIET_HOURS": "Outside sending hours: it goes out when they open.",
+   "NOT_IN_ALLOWLIST": "Test mode: the address is not on the allowed list.",
+   "OPTED_OUT": "The person opted out of this channel.",
+   "NO_OPT_IN": "WhatsApp needs the explicit opt-in of the person and none is recorded."
+  },
+  "providerError": "The provider answered: {error}",
+  "filters": {
+   "status": "Status",
+   "channel": "Channel",
+   "all": "All"
+  },
+  "scope": {
+   "person": "Messages to {name}",
+   "personUnknown": "Messages to a person",
+   "document": "Messages of a document ({document})",
+   "showAll": "Show all"
+  },
+  "columns": {
+   "date": "Date",
+   "recipient": "Recipient",
+   "channel": "Channel",
+   "template": "Message",
+   "related": "Document",
+   "status": "Status",
+   "detail": "Detail",
+   "attempts": "Attempts",
+   "actions": "Actions"
+  },
+  "noRecipient": "No person",
+  "actions": {
+   "retry": "Retry",
+   "cancel": "Cancel"
+  },
+  "retry": {
+   "title": "Retry the message",
+   "body": "The message to {to} goes back to the queue and is sent according to the sending mode, hours and consent.",
+   "confirm": "Retry",
+   "keep": "Back",
+   "done": "The message is back in the queue",
+   "error": "Could not retry the message"
+  },
+  "cancel": {
+   "title": "Cancel the message",
+   "body": "The message to {to} will not be sent. You can retry it later if needed.",
+   "confirm": "Cancel the message",
+   "keep": "Back",
+   "done": "Message cancelled",
+   "error": "Could not cancel the message"
+  },
+  "empty": {
+   "title": "No messages",
+   "subtitle": "When a receipt, an owner statement or an alert is sent, it shows up here with its status."
+  },
+  "send": {
+   "open": "Send",
+   "title": {
+    "Receipt": "Send the receipt",
+    "OwnerStatement": "Send the owner statement"
+   },
+   "explain": "It is queued in the outbox and goes out according to the sending mode, the hours and the person's consent. If it was already sent through that channel, it is not duplicated.",
+   "email": "Send by email",
+   "whatsapp": "Send by WhatsApp",
+   "queued": "Message in the outbox",
+   "error": "Could not send the document",
+   "last": "Last send",
+   "history": "Messages of this document",
+   "none": "Not sent through any channel yet.",
+   "loadError": "Could not load the document's messages",
+   "viewAll": "View in the outbox"
+  },
+  "consents": {
+   "title": "Message consent",
+   "hint": "WhatsApp needs the explicit opt-in of the person; an opt-out is always honored, on any channel. Record what the person said and where (for example: \"asked for receipts by WhatsApp, at the office\").",
+   "viewMessages": "View messages",
+   "statuses": {
+    "OptIn": "Opted in",
+    "OptOut": "Opted out"
+   },
+   "none": "Not recorded",
+   "sources": {
+    "Manual": "Recorded by staff",
+    "Inbound": "Requested by the person in writing",
+    "Complaint": "Marked a message as spam"
+   },
+   "address": "Applies to {address}",
+   "noAddress": "No address on file for this channel",
+   "source": "Source",
+   "date": "Date",
+   "note": "Note",
+   "optIn": "Record opt-in",
+   "optOut": "Record opt-out",
+   "history": "History ({count})",
+   "loadError": "Could not load the message consent",
+   "dialog": {
+    "titleOptIn": "Record opt-in on {channel}",
+    "titleOptOut": "Record opt-out on {channel}",
+    "explainOptIn": "The person agreed to receive messages through this channel. It applies to the address currently on file.",
+    "explainOptOut": "The person does not want more messages through this channel. Nothing will be sent here from now on.",
+    "note": "Note",
+    "noteHint": "Optional: what the person said and where.",
+    "save": "Record",
+    "saved": "Consent recorded",
+    "error": "Could not record the consent"
+   }
+  },
+  "settings": {
+   "title": "Messaging",
+   "cardSubtitle": "Sending mode, providers, hours and templates for emails and WhatsApp messages.",
+   "subtitle": "How and when the agency's emails and WhatsApp messages go out.",
+   "back": "Settings",
+   "readOnly": "Only Administration and Management can see the messaging settings.",
+   "loadError": "Could not load the messaging settings",
+   "mode": {
+    "title": "Sending mode",
+    "currentLabel": "This environment is:",
+    "current": "current",
+    "off": {
+     "label": "Off",
+     "description": "Nothing is sent: messages stay queued until sending is turned on."
+    },
+    "allowlist": {
+     "label": "Test list only",
+     "description": "Only sent to the addresses on the test list ({count, plural, =0 {no addresses loaded} one {# address} other {# addresses}}); the rest is blocked."
+    },
+    "live": {
+     "label": "Live",
+     "description": "Sent to everyone, honoring each person's consent and the sending hours."
+    },
+    "note": "The mode is set per environment by whoever deploys it (MESSAGING_MODE variable); it is not changed here. The pilot environment stays off or on the test list until the agency owner approves it."
+   },
+   "providers": {
+    "title": "Providers",
+    "email": "Email (Resend)",
+    "whatsapp": "WhatsApp (Cloud API)",
+    "configured": "Configured",
+    "from": "Sender",
+    "webhook": "Delivery notices (webhook)",
+    "yes": "Yes",
+    "no": "No"
+   },
+   "window": {
+    "title": "Sending hours",
+    "range": "From {from} to {until} h (Buenos Aires time)",
+    "explain": "Messages to clients created outside these hours stay pending until they open. Invitations and staff alerts go out at any time.",
+    "change": "Change it in Settings → Defaults"
+   },
+   "templates": {
+    "title": "Templates",
+    "subtitle": "Which messages the system sends, through which channel and to whom. WhatsApp ones must be approved in WhatsApp Business with the proposed name and text.",
+    "columns": {
+     "name": "Message",
+     "channels": "Channels",
+     "audience": "For",
+     "whatsapp": "WhatsApp template",
+     "text": "Proposed text"
+    },
+    "audiences": {
+     "client": "Clients",
+     "staff": "Staff"
+    },
+    "emailOnly": "Email only",
+    "empty": "No templates"
    }
   }
  }

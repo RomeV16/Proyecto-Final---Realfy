@@ -92,6 +92,9 @@ const TENANT_SCOPED_MODELS = new Set([
   'Penalty',
   'ImportBatch',
   'ImportRowLog',
+  'MessageOutbox',
+  'ContactConsent',
+  'InboundMessage',
   // Note: RefreshToken and PipelineStage do NOT have tenantId — they're
   // isolated via parent relations (User and Pipeline respectively).
 ]);

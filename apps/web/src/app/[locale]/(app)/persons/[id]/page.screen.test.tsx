@@ -128,6 +128,15 @@ function mockApi(opts: Opts = {}) {
     if (path === '/scoring/persons/pe-1') {
       return Promise.resolve().then(opts.score ?? (() => score));
     }
+    if (path === '/persons/pe-1/consents') {
+      return Promise.resolve({
+        personId: 'pe-1',
+        channels: [
+          { channel: 'Email', status: 'OptIn', source: 'Manual', at: '2026-11-01T15:00:00.000Z', note: null, address: 'luis@prueba.test', history: [] },
+          { channel: 'WhatsApp', status: null, source: null, at: null, note: null, address: null, history: [] },
+        ],
+      });
+    }
     if (path === '/persons/pe-1/bank-accounts') return Promise.resolve([{ id: 'ba-1', currency: 'ARS', isDefault: true, alias: 'alias.prueba' }]);
     if (path.startsWith('/persons/pe-1/powers')) return Promise.resolve([]);
     if (path.startsWith('/contracts')) return Promise.resolve({ items: [] });
@@ -155,6 +164,16 @@ describe('PersonDetailPage', () => {
     auth.role = 'Admin';
   });
   afterEach(() => vi.unstubAllGlobals());
+
+  it('muestra el consentimiento de mensajes con el enlace a los mensajes de la persona', async () => {
+    mockApi();
+    await renderPage();
+    expect(await screen.findByRole('heading', { name: 'Consentimiento de mensajes' })).toBeInTheDocument();
+    expect(await screen.findByText('Alta')).toBeInTheDocument();
+    expect(screen.getByText('Sin registrar')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ver mensajes' })).toHaveAttribute('href', '/es/mensajeria?personId=pe-1');
+    expect(screen.getAllByRole('button', { name: 'Registrar alta' })).toHaveLength(2);
+  });
 
   it('muestra los datos, roles con nombres resueltos y el documento', async () => {
     mockApi();

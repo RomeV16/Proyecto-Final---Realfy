@@ -83,7 +83,7 @@ describe('Usuarios, invitaciones y contraseña (e2e)', () => {
 
       expect(Buffer.from(res.body.token, 'base64url').length).toBeGreaterThanOrEqual(32);
       expect(res.body.link).toContain(`/auth/accept-invitation?token=${encodeURIComponent(res.body.token)}`);
-      expect(res.body.emailSent).toBe(false);
+      expect(res.body.emailQueued).toBe(false);
       const days = (new Date(res.body.expiresAt).getTime() - Date.now()) / 86400000;
       expect(days).toBeGreaterThan(6.9);
       expect(days).toBeLessThanOrEqual(7);

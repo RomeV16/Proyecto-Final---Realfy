@@ -42,6 +42,7 @@ function liquidacion(overrides: Record<string, unknown> = {}) {
 }
 
 function build(liq: any, nextSeq = 6) {
+  const outbox = { enqueue: jest.fn().mockResolvedValue({ id: 'msg-1', status: 'Pending', statusReason: null, created: true }) };
   const tx: any = {
     $queryRaw: jest.fn().mockResolvedValue([{ next: nextSeq + 1 }]),
     liquidacion: { update: jest.fn().mockResolvedValue({}) },
@@ -65,7 +66,7 @@ function build(liq: any, nextSeq = 6) {
     { client } as unknown as PrismaService,
     tenantContext as unknown as TenantContextService,
     new PdfService(new PdfRendererService()),
-    { sendLiquidacionEmail: jest.fn().mockResolvedValue({ status: 'sent' }) } as any,
+    outbox as any,
     {} as any,
     {} as any,
     {} as any,
@@ -74,7 +75,7 @@ function build(liq: any, nextSeq = 6) {
     { pendingLines: jest.fn().mockResolvedValue([]), markImputed: jest.fn().mockResolvedValue(0), releaseFromLiquidation: jest.fn() } as any,
     { record: jest.fn(async (_tx: any, ctx: any) => ctx.payment) } as any,
   );
-  return { service, client, tx };
+  return { service, client, tx, outbox };
 }
 
 describe('recibo: numeración al aprobar', () => {
@@ -115,6 +116,48 @@ describe('recibo: numeración al aprobar', () => {
     expect((await service.findOne('liq-1')).receiptNumber).toBe('00000042');
     const { service: sinNumero } = build(liquidacion());
     expect((await sinNumero.findOne('liq-1')).receiptNumber).toBeNull();
+  });
+});
+
+describe('envío de la liquidación al inquilino (bandeja de salida)', () => {
+  const conInquilino = (email: string | null) =>
+    liquidacion({
+      status: 'Aprobada',
+      receiptSeq: 3,
+      contract: {
+        property: { title: 'Depto Palermo' },
+        persons: [{ role: 'Inquilino', personId: 'p-inq', person: { id: 'p-inq', firstName: 'Iris', lastName: 'Inquilina', email } }],
+        lessors: [],
+      },
+    });
+
+  it('al pasar a Enviada encola el mail con una clave por liquidación, sin mandarlo', async () => {
+    const { service, outbox } = build(conInquilino('iris@example.com'));
+    await service.transition('liq-1', { status: 'Enviada' });
+    expect(outbox.enqueue).toHaveBeenCalledTimes(1);
+    expect(outbox.enqueue.mock.calls[0][1]).toEqual({
+      channel: 'Email',
+      templateKey: 'liquidacion',
+      vars: { period: 'noviembre de 2026', periodShort: '11/2026', total: '312.000,00', agency: 'Inmobiliaria Demo' },
+      personId: 'p-inq',
+      to: 'iris@example.com',
+      relatedType: 'Liquidacion',
+      relatedId: 'liq-1',
+      idempotencyKey: 'Liquidacion:liq-1:Email',
+      createdByUserId: null,
+    });
+  });
+
+  it('sin mail del inquilino no encola nada y la transición sigue', async () => {
+    const { service, outbox } = build(conInquilino(null));
+    await expect(service.transition('liq-1', { status: 'Enviada' })).resolves.toBeDefined();
+    expect(outbox.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('un error al encolar no hace fallar la transición', async () => {
+    const { service, outbox } = build(conInquilino('no-es-un-mail'));
+    outbox.enqueue.mockRejectedValue(new Error('NO_CONTACT_ADDRESS'));
+    await expect(service.transition('liq-1', { status: 'Enviada' })).resolves.toBeDefined();
   });
 });
 

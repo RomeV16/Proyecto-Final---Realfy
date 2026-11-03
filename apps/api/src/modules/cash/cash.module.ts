@@ -23,6 +23,6 @@ import { ReceiptsService } from './receipts.service';
     ReceiptsController,
   ],
   providers: [CashService, CompensationsService, PaymentSettlementService, ReceiptsService],
-  exports: [CashService, PaymentSettlementService],
+  exports: [CashService, PaymentSettlementService, ReceiptsService],
 })
 export class CashModule {}

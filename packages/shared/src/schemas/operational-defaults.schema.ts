@@ -164,6 +164,22 @@ export const OperationalDefaultsSchema = z
         message: 'yellowDays must be greater than or equal to redDays',
         path: ['yellowDays'],
       }),
+    /**
+     * Mensajería (ADR-0013): horario de Buenos Aires en que se mandan los
+     * mensajes a la cartera (desde `fromHour` inclusive hasta `untilHour`
+     * exclusive). Fuera de ese horario quedan pendientes hasta que abra.
+     */
+    messaging: z
+      .object({
+        fromHour: z.number().int().min(0).max(23).default(9),
+        untilHour: z.number().int().min(1).max(24).default(20),
+      })
+      .strict()
+      .default({})
+      .refine((v) => v.untilHour > v.fromHour, {
+        message: 'untilHour must be greater than fromHour',
+        path: ['untilHour'],
+      }),
   })
   .strict();
 

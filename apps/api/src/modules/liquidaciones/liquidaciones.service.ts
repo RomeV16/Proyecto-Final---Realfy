@@ -40,6 +40,7 @@ import {
   periodKey,
   onBehalfOfText,
   formatDateAR,
+  MessageChannel,
 } from '@realfy/shared';
 import type { LineItemInput, OperationalDefaults, PaymentInput } from '@realfy/shared';
 import { PdfService } from './pdf.service';
@@ -49,7 +50,8 @@ import { ContractAdjustmentService } from '../index-data/contract-adjustment.ser
 import { pickTermsAt, resolveRule } from '../contracts/contract-terms';
 import { rentAtDate, rentChangeInMonth } from './rent-at';
 import { scheduledPeriod } from './generation-window';
-import { EmailService } from './email.service';
+import { OutboxService } from '../../common/messaging/outbox.service';
+import { liquidacionMessageVars } from './liquidacion-message';
 import { ServiceBillsService } from '../services/service-bills.service';
 import { PenaltiesService, parseDay } from '../penalties/penalties.service';
 import type { PenaltyContext } from '../penalties/penalties.service';
@@ -99,7 +101,7 @@ export class LiquidacionesService {
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
     private readonly pdfService: PdfService,
-    private readonly emailService: EmailService,
+    private readonly outbox: OutboxService,
     private readonly operationalDefaults: OperationalDefaultsService,
     private readonly audit: AuditService,
     private readonly adjustments: ContractAdjustmentService,
@@ -1173,47 +1175,42 @@ export class LiquidacionesService {
     });
   }
 
+  /**
+   * Encola el mail de la liquidación al inquilino en la bandeja de salida
+   * (ADR-0013); el PDF se genera al despacharlo. Una vez por liquidación: si
+   * vuelve a pasar por Enviada no se repite. Nunca hace fallar la transición.
+   */
   private async sendPdfEmail(liquidacion: any) {
     try {
-      const tenantId = this.tenantContext.getTenantId()!;
-      const tenant = await this.prisma.client.tenant.findFirst({
-        where: { id: tenantId },
-      });
-      const pdfBuffer = await this.renderReceipt(liquidacion);
-
-      // Find tenant (inquilino) email from contract persons
-      const inquilino = liquidacion.contract
-        ? getParty<any>(liquidacion.contract, 'Inquilino')
-        : undefined;
-      const email = inquilino?.person?.email;
-
-      if (email) {
-        const result = await this.emailService.sendLiquidacionEmail(
-          email,
-          {
-            id: liquidacion.id,
-            period: liquidacion.period,
-            total: liquidacion.total.toString(),
-          },
-          pdfBuffer,
-          tenant?.name ?? 'Inmobiliaria',
-        );
-        // Don't fail the transition if the email fails
-        if (result.status === 'failed') {
-          this.logger.error('Failed to send PDF email', {
-            liquidacionId: liquidacion.id,
-            error: result.error,
-          });
-        }
-      } else {
+      const inquilino = liquidacion.contract ? getParty<any>(liquidacion.contract, 'Inquilino') : undefined;
+      if (!inquilino?.person?.email) {
         this.logger.warn('No inquilino email found — skipping email', {
           liquidacionId: liquidacion.id,
           contractId: liquidacion.contractId,
         });
+        return;
       }
+      const tenant = await this.prisma.client.tenant.findFirst({
+        where: { id: this.tenantContext.getTenantId()! },
+        select: { name: true },
+      });
+      await this.outbox.enqueue(this.prisma.client, {
+        channel: MessageChannel.Email,
+        templateKey: 'liquidacion',
+        vars: liquidacionMessageVars(
+          { period: liquidacion.period, total: liquidacion.total.toString() },
+          tenant?.name ?? 'Inmobiliaria',
+        ),
+        personId: inquilino.person.id ?? inquilino.personId ?? null,
+        to: inquilino.person.email,
+        relatedType: 'Liquidacion',
+        relatedId: liquidacion.id,
+        idempotencyKey: `Liquidacion:${liquidacion.id}:Email`,
+        createdByUserId: this.tenantContext.getUserId() ?? null,
+      });
     } catch (error) {
-      // Don't fail the transition if email/PDF fails
-      this.logger.error('Failed to send PDF email', {
+      // Una dirección inválida no hace fallar la transición.
+      this.logger.error('Failed to queue PDF email', {
         liquidacionId: liquidacion.id,
         error: (error as Error).message,
       });
