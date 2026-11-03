@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { TenantContextService } from './tenant-context.service';
 import { TenantIsolationError } from './tenant-isolation.error';
+import { SYSTEM_SHARED_MODELS, SYSTEM_TENANT_ID } from './system-tenant';
 
 /**
  * Models that are tenant-scoped (have a tenantId column).
@@ -121,6 +122,34 @@ function getTenantField(model: string): string {
 }
 
 /**
+ * Filtro de inmobiliaria de una lectura. Fija la inmobiliaria actual, salvo en
+ * los modelos con filas de sistema (`SYSTEM_SHARED_MODELS`) cuando la consulta
+ * ya pide la propia y/o `__system__` y nada más: así los índices publicados se
+ * leen también con el cliente de una transacción (DEF-115). Un filtro que
+ * nombra a cualquier otra inmobiliaria se reemplaza, como siempre (ADR-0006).
+ */
+function readTenantFilter(model: string, where: { tenantId?: unknown } | undefined, tenantId: string): unknown {
+  const requested = where?.tenantId;
+  if (SYSTEM_SHARED_MODELS.has(model) && isOwnOrSystem(requested, tenantId)) {
+    return requested;
+  }
+  return tenantId;
+}
+
+function isOwnOrSystem(filter: unknown, tenantId: string): boolean {
+  const allowed = (value: unknown) => value === tenantId || value === SYSTEM_TENANT_ID;
+  if (typeof filter === 'string') return allowed(filter);
+  if (filter === null || typeof filter !== 'object') return false;
+  const values = (filter as { in?: unknown }).in;
+  return (
+    Object.keys(filter).length === 1 &&
+    Array.isArray(values) &&
+    values.length > 0 &&
+    values.every(allowed)
+  );
+}
+
+/**
  * Operations that read data — need WHERE clause injection.
  */
 const READ_OPERATIONS = new Set([
@@ -229,7 +258,7 @@ export function createTenantExtension(tenantContext: TenantContextService) {
 
           // READ operations: inject WHERE
           if (READ_OPERATIONS.has(operation)) {
-            a.where = { ...a.where, [tenantField]: tenantId };
+            a.where = { ...a.where, [tenantField]: readTenantFilter(model, a.where, tenantId) };
             return query(a);
           }
 
