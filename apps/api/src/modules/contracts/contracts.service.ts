@@ -357,6 +357,9 @@ export class ContractsService {
           firstDueMode: validated.liquidationRules?.firstDueMode ?? defaults.firstDueMode,
           fixedDiscountProration:
             validated.liquidationRules?.fixedDiscountProration ?? defaults.fixedDiscountProration,
+          // Ajuste aplicado después de emitir el mes: el pactado o el de la inmobiliaria (DEF-134).
+          lateAdjustmentBilling:
+            validated.liquidationRules?.lateAdjustmentBilling ?? defaults.lateAdjustmentBilling,
           // Anticipo del centro de carga: umbral propio (null = el de la inmobiliaria) y su base.
           upfrontThresholdFees: validated.liquidationRules?.upfrontThresholdFees ?? null,
           upfrontBasis: validated.liquidationRules?.upfrontBasis ?? defaults.upfrontBasis,

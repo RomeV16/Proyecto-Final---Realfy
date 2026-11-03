@@ -43,6 +43,7 @@ import {
   formatDateAR,
   MessageChannel,
   ScheduleStatus,
+  LateAdjustmentBilling,
 } from '@realfy/shared';
 import type {
   LineItemInput,
@@ -95,6 +96,11 @@ const PAYMENT_INCLUDE = {
  * alquiler y el primer mes diferido que arma el generador, y las bonificaciones de las
  * reglas. Un renglón Alquiler cargado a mano no se distingue y también se rehace.
  */
+/** Primer día del mes de una fecha, a medianoche UTC. */
+function monthOf(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+}
+
 function isRentDependentLine(line: { type: string; sourceType: string | null }): boolean {
   if (line.sourceType === 'ContractTermsVersion') return true;
   return line.type === LineItemType.Alquiler && (line.sourceType == null || line.sourceType === 'DeferredFirstMonth');
@@ -152,7 +158,10 @@ export class LiquidacionesService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.adjustments.onApplied((event) => this.refreshDraftsAfterAdjustment(event));
+    this.adjustments.onApplied(async (event) => {
+      await this.refreshDraftsAfterAdjustment(event);
+      await this.chargeLateAdjustment(event);
+    });
   }
 
   // ─── Auto-Generation ────────────────────────────────
@@ -1205,9 +1214,7 @@ export class LiquidacionesService implements OnModuleInit {
    * retroactivo: sale con el alquiler que rige. Devuelve cuántas cambió.
    */
   async refreshDraftsAfterAdjustment(event: AdjustmentAppliedEvent): Promise<number> {
-    const from = new Date(
-      Date.UTC(event.adjustmentDate.getUTCFullYear(), event.adjustmentDate.getUTCMonth(), 1),
-    );
+    const from = monthOf(event.adjustmentDate);
     const drafts = await this.prisma.client.liquidacion.findMany({
       where: {
         contractId: event.contractId,
@@ -1219,14 +1226,7 @@ export class LiquidacionesService implements OnModuleInit {
     });
     if (drafts.length === 0) return 0;
 
-    const contract = await this.prisma.client.contract.findFirst({
-      where: { id: event.contractId },
-      include: {
-        lessors: { include: { person: true } },
-        termsVersions: { orderBy: { validFrom: 'asc' } },
-        adjustments: { where: { appliedAt: { not: null } }, orderBy: { adjustmentDate: 'asc' } },
-      },
-    });
+    const contract = await this.loadContractForRent(event.contractId);
     if (!contract) return 0;
     const defaults = await this.operationalDefaults.get(event.tenantId);
 
@@ -1296,6 +1296,81 @@ export class LiquidacionesService implements OnModuleInit {
       refreshed,
     });
     return refreshed;
+  }
+
+  /**
+   * Un ajuste aplicado después de emitir la liquidación de un mes en que ya regía (DEF-134).
+   * Con la convención `Retroactivo` (de fábrica; pactable por contrato, `lateAdjustmentBilling`)
+   * la diferencia de cada mes emitido queda como cargo `AjusteRetroactivo` para la próxima
+   * liquidación. La diferencia es el alquiler del mes (con sus bonificaciones, prorrateo y
+   * convención de mitad de mes) con el ajuste menos el mismo cálculo sin él. Con
+   * `SinRetroactivo` el ajuste rige desde la próxima y no se cobra nada. Devuelve cuántos cargos dejó.
+   */
+  async chargeLateAdjustment(event: AdjustmentAppliedEvent): Promise<number> {
+    const emitted = await this.prisma.client.liquidacion.findMany({
+      where: {
+        contractId: event.contractId,
+        period: { gte: monthOf(event.adjustmentDate) },
+        status: {
+          notIn: [LiquidacionStatus.Borrador, LiquidacionStatus.Revision, LiquidacionStatus.Anulada],
+        },
+      },
+      select: { id: true, period: true },
+      orderBy: { period: 'asc' },
+    });
+    if (emitted.length === 0) return 0;
+    const contract = await this.loadContractForRent(event.contractId);
+    if (!contract) return 0;
+    const defaults = await this.operationalDefaults.get(event.tenantId);
+    const terms = pickTermsAt<any>(contract.termsVersions ?? [], event.adjustmentDate);
+    if (resolveRule(defaults, terms, 'lateAdjustmentBilling') !== LateAdjustmentBilling.Retroactivo) return 0;
+
+    const adjustment = contract.adjustments.find((a: { id: string }) => a.id === event.adjustmentId);
+    if (!adjustment) return 0;
+    // El mismo contrato como estaba antes del ajuste: sin él y con el alquiler anterior.
+    const without = {
+      ...contract,
+      rentAmount: adjustment.previousAmount,
+      adjustments: contract.adjustments.filter((a: { id: string }) => a.id !== event.adjustmentId),
+    };
+    let charged = 0;
+    for (const liq of emitted) {
+      const delta = (await this.rentNet(contract, liq.period, defaults)).minus(
+        await this.rentNet(without, liq.period, defaults),
+      );
+      if (delta.isZero()) continue;
+      const id = await this.charges.recordAdjustmentDifference({
+        tenantId: event.tenantId,
+        contract,
+        adjustmentId: event.adjustmentId,
+        description: `diferencia del ajuste del ${formatDateAR(event.adjustmentDate)} no incluida en la liquidación de ${periodKey(liq.period)}`,
+        amount: delta.toFixed(2),
+      });
+      if (id) charged++;
+    }
+    return charged;
+  }
+
+  /** Alquiler neto del período (alquiler menos bonificaciones de las reglas), o 0 si el contrato no rige. */
+  private async rentNet(contract: any, period: Date, defaults: OperationalDefaults): Promise<Decimal> {
+    const built = buildLiquidation(await this.rentInput(contract, period, defaults));
+    if (built.skipped) return new Decimal(0);
+    return built.lines.reduce(
+      (acc, l) => (l.type === LineItemType.Descuento ? acc.minus(l.amount) : acc.plus(l.amount)),
+      new Decimal(0),
+    );
+  }
+
+  /** El contrato con lo que hace falta para armar su alquiler (locadores, reglas y ajustes aplicados). */
+  private loadContractForRent(contractId: string) {
+    return this.prisma.client.contract.findFirst({
+      where: { id: contractId },
+      include: {
+        lessors: { include: { person: true } },
+        termsVersions: { orderBy: { validFrom: 'asc' } },
+        adjustments: { where: { appliedAt: { not: null } }, orderBy: { adjustmentDate: 'asc' } },
+      },
+    });
   }
 
   // ─── Advertencias ───────────────────────────────────

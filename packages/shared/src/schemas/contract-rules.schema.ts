@@ -7,6 +7,7 @@ import {
   Currency,
   FirstDueMode,
   FixedDiscountProration,
+  LateAdjustmentBilling,
   MidMonthAdjustmentMode,
   PaymentFlow,
   ProrationMode,
@@ -49,6 +50,7 @@ const liquidationConventionFields = {
   firstDueMode: z.nativeEnum(FirstDueMode),
   fixedDiscountProration: z.nativeEnum(FixedDiscountProration),
   upfrontBasis: z.nativeEnum(UpfrontBasis),
+  lateAdjustmentBilling: z.nativeEnum(LateAdjustmentBilling),
 };
 
 /** Umbral de anticipo del centro de carga, en comisiones mensuales; null vuelve al valor por defecto de la inmobiliaria. */

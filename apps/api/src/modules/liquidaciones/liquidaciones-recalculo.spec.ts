@@ -170,11 +170,114 @@ describe('LiquidacionesService: recálculo de borradores tras un ajuste (DEF-133
     expect(gone.client.$transaction).not.toHaveBeenCalled();
   });
 
+  it('el aviso de un ajuste recalcula los borradores y después cobra la diferencia de los meses emitidos', async () => {
+    const { service, adjustments } = build([]);
+    const refresh = jest.spyOn(service, 'refreshDraftsAfterAdjustment').mockResolvedValue(0);
+    const late = jest.spyOn(service, 'chargeLateAdjustment').mockResolvedValue(0);
+    service.onModuleInit();
+    await adjustments.onApplied.mock.calls[0][0](event);
+    expect(refresh).toHaveBeenCalledWith(event);
+    expect(late).toHaveBeenCalledWith(event);
+    expect(refresh.mock.invocationCallOrder[0]).toBeLessThan(late.mock.invocationCallOrder[0]);
+  });
+
   it('un período fuera del contrato se saltea', async () => {
     const draft = { id: 'liq', period: d('2028-10-01'), currency: 'ARS', total: '1', lineItems: [] };
     const ended = { ...contract([decAdjustment]), status: 'Finalizado', actualEndDate: d('2028-08-31') };
     const { service, client } = build([draft], ended);
     expect(await service.refreshDraftsAfterAdjustment(event)).toBe(0);
     expect(client.$transaction).not.toHaveBeenCalled();
+  });
+});
+
+describe('LiquidacionesService: diferencia de un ajuste aplicado después de emitir el mes (DEF-134)', () => {
+  const applied = { id: 'adj-1', ...decAdjustment };
+
+  function buildLate(opts: { emitted?: any[]; found?: any; mode?: string } = {}) {
+    const client: any = {
+      liquidacion: { findMany: jest.fn().mockResolvedValue(opts.emitted ?? [{ id: 'liq-dec', period: d('2026-12-01') }]) },
+      contract: {
+        findFirst: jest.fn().mockResolvedValue(
+          'found' in opts ? opts.found : { ...contract([applied]), propertyId: 'p-1' },
+        ),
+      },
+    };
+    const charges = { recordAdjustmentDifference: jest.fn().mockResolvedValue('charge-1') };
+    const defaults = {
+      get: jest.fn().mockResolvedValue({
+        dueDay: 10,
+        prorationMode: 'DiasReales',
+        midMonthAdjustmentMode: 'DesdePeriodoSiguiente',
+        firstDueMode: 'DiaDeInicio',
+        fixedDiscountProration: 'Proporcional',
+        lateAdjustmentBilling: opts.mode ?? 'Retroactivo',
+      }),
+    };
+    const service = new LiquidacionesService(
+      { client } as unknown as PrismaService,
+      { getTenantId: () => 'tenant-1', getUserId: jest.fn() } as unknown as TenantContextService,
+      {} as any,
+      {} as any,
+      defaults as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      charges as any,
+      {} as any,
+    );
+    return { service, client, charges };
+  }
+
+  it('CP-1269 — cobra en un cargo la diferencia neta de bonificaciones de cada mes emitido desde el ajuste', async () => {
+    const { service, client, charges } = buildLate();
+    expect(await service.chargeLateAdjustment(event)).toBe(1);
+    expect(client.liquidacion.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          contractId: 'c-1',
+          period: { gte: d('2026-12-01') },
+          status: { notIn: ['Borrador', 'Revision', 'Anulada'] },
+        },
+      }),
+    );
+    // 105.060 − 10 % = 94.554 contra 100.000 − 10 % = 90.000.
+    expect(charges.recordAdjustmentDifference).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      contract: expect.objectContaining({ id: 'c-1', propertyId: 'p-1' }),
+      adjustmentId: 'adj-1',
+      description: 'diferencia del ajuste del 01/12/2026 no incluida en la liquidación de 2026-12',
+      amount: '4554.00',
+    });
+  });
+
+  it('CP-1270 — con SinRetroactivo no deja cargos', async () => {
+    const { service, charges } = buildLate({ mode: 'SinRetroactivo' });
+    expect(await service.chargeLateAdjustment(event)).toBe(0);
+    expect(charges.recordAdjustmentDifference).not.toHaveBeenCalled();
+  });
+
+  it('sin meses emitidos, sin contrato o sin el ajuste no hace nada; un mes sin diferencia o ya cargado no suma', async () => {
+    const none = buildLate({ emitted: [] });
+    expect(await none.service.chargeLateAdjustment(event)).toBe(0);
+    expect(none.client.contract.findFirst).not.toHaveBeenCalled();
+
+    const gone = buildLate({ found: null });
+    expect(await gone.service.chargeLateAdjustment(event)).toBe(0);
+
+    const other = buildLate({ found: { ...contract([{ id: 'otro', ...decAdjustment }]), propertyId: 'p-1' } });
+    expect(await other.service.chargeLateAdjustment(event)).toBe(0);
+    expect(other.charges.recordAdjustmentDifference).not.toHaveBeenCalled();
+
+    // Noviembre (antes del ajuste) no cambia; diciembre ya tenía su cargo.
+    const repeated = buildLate({
+      emitted: [
+        { id: 'liq-nov', period: d('2026-11-01') },
+        { id: 'liq-dec', period: d('2026-12-01') },
+      ],
+    });
+    repeated.charges.recordAdjustmentDifference.mockResolvedValue(null);
+    expect(await repeated.service.chargeLateAdjustment(event)).toBe(0);
+    expect(repeated.charges.recordAdjustmentDifference).toHaveBeenCalledTimes(1);
   });
 });

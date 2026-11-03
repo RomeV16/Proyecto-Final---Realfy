@@ -1,5 +1,13 @@
 import { z } from 'zod';
-import { FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, SalesDepositHolder, UpfrontBasis } from '../enums';
+import {
+  FirstDueMode,
+  FixedDiscountProration,
+  LateAdjustmentBilling,
+  MidMonthAdjustmentMode,
+  ProrationMode,
+  SalesDepositHolder,
+  UpfrontBasis,
+} from '../enums';
 import type { OperationalDefaults, OperationalDefaultsInput } from './operational-defaults.schema';
 import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
 import { ReceiptSeriesMode } from '../cash';
@@ -34,6 +42,7 @@ export const operationalDefaultsFormSchema = z
     midMonthAdjustmentMode: z.nativeEnum(MidMonthAdjustmentMode),
     firstDueMode: z.nativeEnum(FirstDueMode),
     fixedDiscountProration: z.nativeEnum(FixedDiscountProration),
+    lateAdjustmentBilling: z.nativeEnum(LateAdjustmentBilling),
     commissionPct: numberText({ min: 0, max: 100 }),
     feeAlta: numberText({ min: 0, max: 100 }),
     feeRenovacion: numberText({ min: 0, max: 100 }),
@@ -112,6 +121,7 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     midMonthAdjustmentMode: d.midMonthAdjustmentMode,
     firstDueMode: d.firstDueMode,
     fixedDiscountProration: d.fixedDiscountProration,
+    lateAdjustmentBilling: d.lateAdjustmentBilling,
     commissionPct: String(d.commissionPct),
     feeAlta: String(d.fees.alta),
     feeRenovacion: String(d.fees.renovacion),
@@ -170,6 +180,7 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
     midMonthAdjustmentMode: f.midMonthAdjustmentMode,
     firstDueMode: f.firstDueMode,
     fixedDiscountProration: f.fixedDiscountProration,
+    lateAdjustmentBilling: f.lateAdjustmentBilling,
     commissionPct: num(f.commissionPct),
     fees: {
       alta: num(f.feeAlta),

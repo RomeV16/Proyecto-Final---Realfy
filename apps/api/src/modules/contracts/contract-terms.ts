@@ -32,6 +32,7 @@ export interface TermsLike {
   midMonthAdjustmentMode: string;
   firstDueMode: string;
   fixedDiscountProration: string;
+  lateAdjustmentBilling: string;
   upfrontThresholdFees: number | null;
   repairPreauthLimitAmount: unknown;
   repairPreauthLimitCurrency: string | null;
@@ -88,6 +89,7 @@ const RULE_DEFAULTS = {
   midMonthAdjustmentMode: (d: OperationalDefaults) => d.midMonthAdjustmentMode,
   firstDueMode: (d: OperationalDefaults) => d.firstDueMode,
   fixedDiscountProration: (d: OperationalDefaults) => d.fixedDiscountProration,
+  lateAdjustmentBilling: (d: OperationalDefaults) => d.lateAdjustmentBilling,
   upfrontThresholdFees: (d: OperationalDefaults) => d.upfrontThresholdFees,
   upfrontBasis: (d: OperationalDefaults) => d.upfrontBasis,
   lessorDirectOwes: (d: OperationalDefaults) => d.cash.lessorDirectOwes,

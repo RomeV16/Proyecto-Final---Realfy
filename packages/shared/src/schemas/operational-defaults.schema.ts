@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import { DepositHolder, SalesDepositHolder, FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
+import {
+  DepositHolder,
+  SalesDepositHolder,
+  FirstDueMode,
+  FixedDiscountProration,
+  LateAdjustmentBilling,
+  MidMonthAdjustmentMode,
+  ProrationMode,
+  UpfrontBasis,
+} from '../enums';
 import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
 import { ReceiptSeriesMode } from '../cash';
 import { LessorChargeTiming } from '../owner-ledger';
@@ -38,6 +47,8 @@ export const OperationalDefaultsSchema = z
     fixedDiscountProration: z
       .nativeEnum(FixedDiscountProration)
       .default(FixedDiscountProration.Proporcional),
+    /** Ajuste aplicado después de emitir un mes en que ya regía: la diferencia se cobra en la próxima (DEF-134). */
+    lateAdjustmentBilling: z.nativeEnum(LateAdjustmentBilling).default(LateAdjustmentBilling.Retroactivo),
     /** Rezago en meses con que se toma el IPC al ajustar. */
     ipcLagMonths: z.number().int().min(0).max(12).default(2),
     /**
