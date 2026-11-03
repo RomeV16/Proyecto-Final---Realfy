@@ -104,6 +104,17 @@ describe('CompensationsService', () => {
     expect(data[1].description).toContain('Ana Uno');
   });
 
+  it('DEF-72 — los asientos llevan la fecha del cobro, no la del día en que se carga la compensación (CP-662)', async () => {
+    const { service, payment, tx } = build();
+    payment.paidAt = new Date('2026-01-08T15:00:00.000Z');
+    await service.create({ paymentId: PAY, fromLessorId: X, toLessorId: A, amount: '1000' });
+    const { data } = tx.ownerLedgerEntry.createMany.mock.calls[0][0];
+    expect(data.map((e: any) => [e.personId, e.date, e.period])).toEqual([
+      [X, D('2026-01-08'), D('2026-01-01')],
+      [A, D('2026-01-08'), D('2026-01-01')],
+    ]);
+  });
+
   it('con la custodia de quien cubre: sale de su custodia y entra en la caja', async () => {
     const custody = { id: 'custody-x' };
     const { service, cash } = build({ custody, balance: '50000' });
