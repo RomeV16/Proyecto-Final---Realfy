@@ -260,4 +260,85 @@ describe('El ajuste del mes en la liquidación (e2e)', () => {
       ]);
     });
   });
+
+  describe('un ajuste aplicado después recalcula los borradores (DEF-133)', () => {
+    /** Diciembre generado sin el IPC de octubre, con un cargo cargado a mano. */
+    async function draftWithoutAdjustment(tag: string) {
+      const { tenantId, tokens } = await agency(tag);
+      const admin = tokens[UserRole.Admin];
+      await ipc(tenantId, '2026-09', '2.000000');
+      const contract = await createContract(admin);
+      await generate(admin, 12, 2026);
+      const dec = await liquidacionOf(admin, contract.id, '2026-12');
+      expect(dec.total).toBe('100000');
+      await post(admin, `/liquidaciones/${dec.id}/line-items`, {
+        type: 'Cargo',
+        description: 'Reposición de llave',
+        amount: '5000.00',
+      }).expect(201);
+      return { tenantId, tokens, admin, contract, dec };
+    }
+
+    const expectRefreshed = async (token: string, contractId: string, id: string) => {
+      const after = await liquidacionOf(token, contractId, '2026-12');
+      expect(after.id).toBe(id);
+      expect(after).toMatchObject({ status: 'Borrador', total: '110060', subtotal: '110060', warnings: [] });
+      expect(rentLines(after).map((l: any) => l.amount)).toEqual(['105060']);
+      // El cargo cargado a mano sigue; ningún renglón retroactivo sobre un borrador.
+      expect(after.lineItems.map((l: any) => [l.type, l.amount])).toEqual([
+        ['Alquiler', '105060'],
+        ['Cargo', '5000'],
+      ]);
+      return after;
+    };
+
+    it('CP-1266 — aplicar el ajuste desde Ajustes del mes recalcula el borrador de diciembre y conserva lo cargado a mano', async () => {
+      const { tenantId, admin, contract, dec } = await draftWithoutAdjustment('d5-ref-1');
+      await ipc(tenantId, '2026-10', '3.000000');
+
+      const applied = await post(admin, '/adjustments/apply-batch', {
+        period: '2026-12',
+        contractIds: [contract.id],
+      }).expect(201);
+      expect(applied.body.results[0]).toMatchObject({ result: 'applied', newRent: '105060' });
+
+      await expectRefreshed(admin, contract.id, dec.id);
+      const audit = await prisma.baseClient.auditLog.findFirstOrThrow({
+        where: { entity: 'Liquidacion', entityId: dec.id },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(audit.changes).toMatchObject({ operation: 'refresh-after-adjustment', adjustmentDate: '2026-12-01' });
+      // Ya se puede aprobar.
+      await post(admin, `/liquidaciones/${dec.id}/transition`, { status: 'Revision' }).expect(200);
+      await post(admin, `/liquidaciones/${dec.id}/transition`, { status: 'Aprobada' }).expect(200);
+    });
+
+    it('CP-1267 — la corrida diaria siguiente, con el índice ya publicado, aplica el ajuste y recalcula el borrador', async () => {
+      const { tenantId, admin, contract, dec } = await draftWithoutAdjustment('d5-ref-2');
+      await ipc(tenantId, '2026-10', '3.000000');
+
+      await post(admin, '/liquidaciones/_run-now', { today: '2026-11-22' }).expect(200);
+
+      await expectRefreshed(admin, contract.id, dec.id);
+    });
+
+    it('CP-1268 — calcular y aplicar el ajuste desde el contrato también recalcula el borrador', async () => {
+      const { tenantId, admin, contract, dec } = await draftWithoutAdjustment('d5-ref-3');
+      await ipc(tenantId, '2026-10', '3.000000');
+      const schedule = await prisma.baseClient.adjustmentSchedule.findFirstOrThrow({
+        where: { contractId: contract.id, periodNumber: 1 },
+      });
+
+      const calc = await post(admin, `/contracts/${contract.id}/adjustments/calculate`, {
+        scheduleId: schedule.id,
+      }).expect(201);
+      // Calculado pero sin aplicar: sigue bloqueada.
+      expect((await liquidacionOf(admin, contract.id, '2026-12')).warnings.map((w: any) => w.code)).toEqual([
+        'ADJUSTMENT_PENDING',
+      ]);
+      await post(admin, `/contracts/${contract.id}/adjustments/${calc.body.id}/apply`).expect(201);
+
+      await expectRefreshed(admin, contract.id, dec.id);
+    });
+  });
 });
