@@ -21,26 +21,34 @@ export function lastInstantOfMonth(period: Date): Date {
 }
 
 /**
- * Último instante en que un ajuste todavía cambia el alquiler del período. Con
- * `DesdePeriodoSiguiente` un ajuste a mitad de mes rige recién el mes que viene:
- * solo cuentan los que caen hasta el día 1. Con las otras convenciones cuenta
- * cualquiera del mes (prorrateado o todo el mes al alquiler nuevo).
+ * Fechas de ajuste que empiezan a regir en el período (DEF-132): `after` exclusivo y
+ * `until` inclusivo. Con `DesdePeriodoSiguiente` un ajuste a mitad de mes rige recién
+ * el mes que viene: cuentan los del mes anterior posteriores a su día 1 y el del día 1
+ * del período. Con las otras convenciones, cualquiera del mes (prorrateado o todo el
+ * mes al alquiler nuevo). Un ajuste atrasado de meses anteriores no bloquea el período:
+ * lo informa el proceso diario de ajustes.
  */
-export function adjustmentHorizon(period: Date, midMonthMode: string): Date {
-  return midMonthMode === MidMonthAdjustmentMode.DesdePeriodoSiguiente ? period : lastInstantOfMonth(period);
+export function adjustmentWindow(period: Date, midMonthMode: string): { after: Date; until: Date } {
+  if (midMonthMode === MidMonthAdjustmentMode.DesdePeriodoSiguiente) {
+    return { after: new Date(Date.UTC(period.getUTCFullYear(), period.getUTCMonth() - 1, 1)), until: period };
+  }
+  return { after: new Date(period.getTime() - 1), until: lastInstantOfMonth(period) };
 }
 
 /**
- * El ajuste pendiente más antiguo del contrato que afecta al período, o null.
- * `schedules` va ordenado por fecha.
+ * El ajuste pendiente más antiguo del contrato que empieza a regir en la ventana, o
+ * null. `schedules` va ordenado por fecha.
  */
 export function pendingAdjustmentWarning(
   schedules: { id: string; contractId: string; nextAdjustmentDate: Date }[],
   contractId: string,
-  horizon: Date,
+  window: { after: Date; until: Date },
 ): LiquidacionWarning | null {
   const first = schedules.find(
-    (s) => s.contractId === contractId && s.nextAdjustmentDate.getTime() <= horizon.getTime(),
+    (s) =>
+      s.contractId === contractId &&
+      s.nextAdjustmentDate.getTime() > window.after.getTime() &&
+      s.nextAdjustmentDate.getTime() <= window.until.getTime(),
   );
   return first
     ? {

@@ -44,6 +44,7 @@ import {
   MessageChannel,
   ScheduleStatus,
   LateAdjustmentBilling,
+  MidMonthAdjustmentMode,
 } from '@realfy/shared';
 import type {
   LineItemInput,
@@ -65,7 +66,7 @@ import { rentAtDate, rentChangeInMonth } from './rent-at';
 import { scheduledPeriod } from './generation-window';
 import {
   ADJUSTMENT_PENDING,
-  adjustmentHorizon,
+  adjustmentWindow,
   isEditableStatus,
   lastInstantOfMonth,
   pendingAdjustmentWarning,
@@ -1378,8 +1379,8 @@ export class LiquidacionesService implements OnModuleInit {
   /**
    * Advertencias de cada liquidación. Solo las editables (Borrador o Revisión) pueden
    * tenerlas: `ADJUSTMENT_PENDING` si el contrato tiene un ajuste sin aplicar (pendiente o
-   * calculado) que cambia el alquiler del período según su convención de ajuste a mitad de
-   * mes. Se calcula al leer, así que desaparece sola al aplicarse el ajuste.
+   * calculado) que empieza a regir en el período según su convención de ajuste a mitad de
+   * mes (`adjustmentWindow`). Se calcula al leer, así que desaparece sola al aplicarse el ajuste.
    */
   async warningsFor(
     rows: { contractId: string; period: Date; status: string }[],
@@ -1387,11 +1388,15 @@ export class LiquidacionesService implements OnModuleInit {
     const editable = rows.filter((r) => isEditableStatus(r.status));
     if (editable.length === 0) return rows.map(() => []);
     const latest = Math.max(...editable.map((r) => lastInstantOfMonth(r.period).getTime()));
+    // El mes anterior al primero: el comienzo más temprano de una ventana.
+    const earliest = Math.min(
+      ...editable.map((r) => adjustmentWindow(r.period, MidMonthAdjustmentMode.DesdePeriodoSiguiente).after.getTime()),
+    );
     const schedules = await this.prisma.client.adjustmentSchedule.findMany({
       where: {
         contractId: { in: [...new Set(editable.map((r) => r.contractId))] },
         status: { in: [ScheduleStatus.Pending, ScheduleStatus.Calculated] },
-        nextAdjustmentDate: { lte: new Date(latest) },
+        nextAdjustmentDate: { gt: new Date(earliest), lte: new Date(latest) },
         // Los mismos contratos cuyos ajustes aplica el proceso diario.
         contract: { status: ContractStatus.Activo, isActive: true },
       },
@@ -1412,7 +1417,7 @@ export class LiquidacionesService implements OnModuleInit {
         row.period,
       );
       const mode = resolveRule(defaults, terms, 'midMonthAdjustmentMode') as string;
-      const warning = pendingAdjustmentWarning(schedules, row.contractId, adjustmentHorizon(row.period, mode));
+      const warning = pendingAdjustmentWarning(schedules, row.contractId, adjustmentWindow(row.period, mode));
       return warning ? [warning] : [];
     });
   }

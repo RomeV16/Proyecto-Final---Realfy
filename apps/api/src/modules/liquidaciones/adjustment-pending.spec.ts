@@ -2,7 +2,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import {
   ADJUSTMENT_PENDING,
-  adjustmentHorizon,
+  adjustmentWindow,
   isEditableStatus,
   lastInstantOfMonth,
   pendingAdjustmentWarning,
@@ -19,26 +19,40 @@ describe('adjustment-pending (DEF-132)', () => {
     expect(['Aprobada', 'Enviada', 'Pagada', 'Vencida', 'Anulada'].some(isEditableStatus)).toBe(false);
   });
 
-  it('el horizonte es el día 1 con DesdePeriodoSiguiente y el fin del mes con las otras convenciones', () => {
+  it('la ventana es el mes anterior hasta el día 1 con DesdePeriodoSiguiente y el mes con las otras convenciones', () => {
     expect(lastInstantOfMonth(d('2026-02-01')).toISOString()).toBe('2026-02-28T23:59:59.999Z');
-    expect(adjustmentHorizon(d('2026-12-01'), 'DesdePeriodoSiguiente')).toEqual(d('2026-12-01'));
-    expect(adjustmentHorizon(d('2026-12-01'), 'Prorrateado').toISOString()).toBe('2026-12-31T23:59:59.999Z');
-    expect(adjustmentHorizon(d('2026-12-01'), 'DesdeEsePeriodo').toISOString()).toBe('2026-12-31T23:59:59.999Z');
+    expect(adjustmentWindow(d('2026-12-01'), 'DesdePeriodoSiguiente')).toEqual({
+      after: d('2026-11-01'),
+      until: d('2026-12-01'),
+    });
+    for (const mode of ['Prorrateado', 'DesdeEsePeriodo']) {
+      const w = adjustmentWindow(d('2026-12-01'), mode);
+      expect([w.after.toISOString(), w.until.toISOString()]).toEqual([
+        '2026-11-30T23:59:59.999Z',
+        '2026-12-31T23:59:59.999Z',
+      ]);
+    }
   });
 
-  it('toma el ajuste pendiente más antiguo del contrato hasta el horizonte', () => {
+  it('toma el ajuste pendiente más antiguo del contrato que empieza a regir en la ventana', () => {
     const schedules = [
-      { id: 's-0', contractId: 'otro', nextAdjustmentDate: d('2026-09-01') },
-      { id: 's-1', contractId: 'c-1', nextAdjustmentDate: d('2026-11-01') },
-      { id: 's-2', contractId: 'c-1', nextAdjustmentDate: d('2026-12-15') },
+      { id: 's-0', contractId: 'otro', nextAdjustmentDate: d('2026-12-01') },
+      { id: 's-old', contractId: 'c-1', nextAdjustmentDate: d('2026-10-01') },
+      { id: 's-1', contractId: 'c-1', nextAdjustmentDate: d('2026-11-15') },
+      { id: 's-2', contractId: 'c-1', nextAdjustmentDate: d('2026-12-01') },
     ];
-    expect(pendingAdjustmentWarning(schedules, 'c-1', d('2026-12-01'))).toEqual({
+    const dec = adjustmentWindow(d('2026-12-01'), 'DesdePeriodoSiguiente');
+    expect(pendingAdjustmentWarning(schedules, 'c-1', dec)).toEqual({
       code: ADJUSTMENT_PENDING,
-      adjustmentDate: '2026-11-01',
+      adjustmentDate: '2026-11-15',
       scheduleId: 's-1',
     });
-    expect(pendingAdjustmentWarning(schedules, 'c-1', d('2026-10-31'))).toBeNull();
-    expect(pendingAdjustmentWarning(schedules, 'c-2', d('2027-01-01'))).toBeNull();
+    // Un ajuste atrasado de meses anteriores no bloquea.
+    expect(pendingAdjustmentWarning(schedules, 'c-1', adjustmentWindow(d('2026-10-01'), 'Prorrateado'))?.scheduleId).toBe(
+      's-old',
+    );
+    expect(pendingAdjustmentWarning(schedules, 'c-1', adjustmentWindow(d('2027-01-01'), 'DesdePeriodoSiguiente'))).toBeNull();
+    expect(pendingAdjustmentWarning(schedules, 'c-2', dec)).toBeNull();
   });
 });
 
@@ -94,7 +108,7 @@ describe('LiquidacionesService: advertencia ADJUSTMENT_PENDING (DEF-132)', () =>
         where: {
           contractId: { in: ['c-1', 'c-2'] },
           status: { in: ['Pending', 'Calculated'] },
-          nextAdjustmentDate: { lte: new Date('2027-01-31T23:59:59.999Z') },
+          nextAdjustmentDate: { gt: d('2026-11-01'), lte: new Date('2027-01-31T23:59:59.999Z') },
           contract: { status: 'Activo', isActive: true },
         },
       }),
