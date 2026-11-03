@@ -59,6 +59,9 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-132 | Sin el índice del ajuste, la liquidación sale con el alquiler anterior sin aviso y se puede aprobar | Alta | RF-12 | CP-1263 a CP-1265 | [#217](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/217) | Corregido (3 nov) |
 | DEF-133 | Un ajuste aplicado después de generar el borrador no cambia el borrador | Alta | RF-12 | CP-1266 a CP-1268 | [#218](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/218) | Corregido (3 nov) |
 | DEF-134 | Un ajuste aplicado después de emitir la liquidación del mes se pierde | Alta | RF-12 | CP-1269 a CP-1272 | [#219](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/219) | Corregido (3 nov) |
+| DEF-135 | La prórroga de palabra de un contrato importado crea pendientes ya cubiertos por el historial de ajustes | Alta | RF-12 | CP-1280, CP-1286 | [#212](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/212) | Corregido (3 nov) |
+| DEF-136 | `apply-batch` no aísla los errores no HTTP y un contrato corta el lote con 409 sin informe por contrato | Media | RF-12, FB-23 | CP-1281, CP-1286 | [#213](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/213) | Corregido (3 nov) |
+| DEF-137 | Sin cronograma aplicado, el primer ajuste acumula la inflación desde el inicio del contrato aunque el alquiler importado ya esté actualizado | Alta | RF-12 | CP-1282 a CP-1285, CP-1287, CP-1288 | [#214](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/214) | Corregido (3 nov) |
 
 ---
 
@@ -277,6 +280,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** el valor entra al enum y a la máquina de estados como estado heredado sin transiciones (no se inventa un flujo), con traducción en es y en, variante de etiqueta en la web y el comentario corregido.
 - **Prueba de regresión:** CP-135 en `test/unit/enum-parity.spec.ts` y `liquidacion-state-machine.spec.ts`.
 - **Evidencia rojo/verde:** commit de regresión `314ea95` en rojo (1 caso); corrección en `ea9a5f5`. PR [#117](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/117); pipeline verde del PR: [ejecución 41153810147](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41153810147).
+
 ## DEF-16 — Un comprobante sin pago se pierde después de que el organismo autoriza el CAE
 
 - **Requisito afectado:** facturación electrónica (ítem 38 de la hoja de ruta).
@@ -432,6 +436,7 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Evidencia rojo/verde:** regresión `b3374a8` en rojo; corrección en `e88da9b`. PR [#148](https://github.com/RomeV16/Proyecto-Final---Realfy/pull/148).
 
 ---
+
 ## DEF-27 — Con un mes de la ventana sin publicar el ajuste se calcula con los meses que hay
 
 - **Requisito afectado:** RF-12.
@@ -781,3 +786,45 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** convención `lateAdjustmentBilling` (valor por defecto de la inmobiliaria, columna en la versión de reglas, migraciones `20261103193255_enums_ajuste_tardio` y `20261103193256_ajuste_tardio`); al aplicarse el ajuste, la diferencia por mes emitido (alquiler neto de bonificaciones con el ajuste menos sin él) va al centro de carga, una vez por ajuste y mes.
 - **Prueba de regresión:** CP-1269 a CP-1271 en `ajuste-del-mes-en-la-liquidacion.e2e-spec.ts`; `liquidaciones-recalculo.spec.ts`, `charges.service.spec.ts`; CP-1272 en `packages/shared/src/schemas/contract-rules.schema.spec.ts`; verificación de ensayo `checks/26_ajuste_tardio.sql`.
 - **Evidencia rojo/verde:** regresión `dfa7fb6` en rojo (3 pruebas fallan: no hay cargo y la convención no existe); corrección en `57a9bf2`.
+
+## DEF-135 — La prórroga de palabra de un contrato importado crea pendientes ya cubiertos por el historial de ajustes
+
+- **Requisito afectado:** RF-12, ajuste periódico del alquiler; prórroga de palabra (ítem 40).
+- **Origen:** ensayo general del ciclo de diciembre sobre la copia de la inmobiliaria piloto.
+- **Caso que lo detecta:** CP-1280.
+- **Severidad:** alta. Registrar la prórroga de un contrato importado cuyo historial siguió después del fin pactado dejaba el contrato sin poder ajustarse: el lote del mes respondía 409.
+- **Pasos para reproducir:** contrato activo importado con fin pactado vencido y ajustes históricos hasta después de ese fin; `POST /contracts/:id/oral-extension`; `POST /adjustments/apply-batch` del mes.
+- **Resultado esperado:** los ajustes pendientes arrancan después del último ajuste efectivamente aplicado, historial incluido.
+- **Resultado obtenido:** pendientes con períodos y fechas ya registrados en el historial; al aplicar, el índice único `(contractId, periodNumber, isProvisional)` rechazaba el ajuste.
+- **Causa raíz:** `rebuildPendingSchedule` tomaba como ancla el último período no pendiente del cronograma y no miraba `contract_adjustments`, que en un contrato importado puede ir más allá del cronograma.
+- **Corrección:** el ancla es el período más reciente entre el cronograma resuelto y el historial de ajustes.
+- **Prueba de regresión:** CP-1280 (`prorroga-y-lote.e2e-spec.ts`) y CP-1286 (`contract-rules-lifecycle.spec.ts`).
+- **Evidencia rojo/verde:** regresión `926b33c` en rojo (las pruebas unitarias y CP-1280 fallan: los pendientes repiten los períodos 4 a 6); corrección en `edf8482`.
+
+## DEF-136 — `apply-batch` no aísla los errores no HTTP y un contrato corta el lote con 409 sin informe por contrato
+
+- **Requisito afectado:** RF-12 y FB-23, aplicación masiva de los ajustes del mes.
+- **Origen:** ensayo general del ciclo de diciembre sobre la copia de la inmobiliaria piloto.
+- **Caso que lo detecta:** CP-1281.
+- **Severidad:** media. Quien aplicaba el lote veía un error global aunque los contratos anteriores ya estuvieran aplicados (cada uno en su transacción): el resultado no decía qué se había hecho.
+- **Pasos para reproducir:** `POST /adjustments/apply-batch` con varios contratos, uno de los cuales viola un índice único al aplicarse.
+- **Resultado esperado:** cada contrato informa su resultado; el lote nunca oculta lo ya aplicado.
+- **Resultado obtenido:** 409 `CONFLICT` para todo el lote, sin informe por contrato.
+- **Causa raíz:** `AdjustmentBatchService.apply` relanzaba cualquier error que no fuera una `HttpException`.
+- **Corrección:** el contrato que falla se informa con `result: error` y su código (`CONFLICT` para el índice único, `ADJUSTMENT_FAILED` para el resto) y el lote sigue con los demás; el error se registra en el log.
+- **Prueba de regresión:** CP-1281 (`prorroga-y-lote.e2e-spec.ts`) y CP-1286 (`adjustment-batch.service.spec.ts`).
+- **Evidencia rojo/verde:** regresión `926b33c` en rojo (el lote responde 409 y la prueba unitaria recibe el error); corrección en `42d0e6a`.
+
+## DEF-137 — Sin cronograma aplicado, el primer ajuste acumula la inflación desde el inicio del contrato aunque el alquiler importado ya esté actualizado
+
+- **Requisito afectado:** RF-12, ajuste periódico del alquiler; ADR-0010 y ADR-0011.
+- **Origen:** ensayo general del ciclo de diciembre sobre la copia de la inmobiliaria piloto.
+- **Caso que lo detecta:** CP-1282.
+- **Severidad:** alta. Un contrato importado sin historial, con los períodos vencidos salteados, calculaba su primer ajuste con la inflación de dos años (más de 70 %) sobre un alquiler que la inmobiliaria ya había actualizado.
+- **Pasos para reproducir:** contrato importado sin historial, todos los períodos vencidos en `Skipped`; prórroga de palabra; `POST /adjustments/preview-batch` del mes del primer pendiente.
+- **Resultado esperado:** la ventana arranca en la fecha desde la que rige el alquiler vigente.
+- **Resultado obtenido:** la ventana arrancaba en el inicio del contrato (veintitrés meses de índice en la prueba).
+- **Causa raíz:** `resolveAdjustmentWindow` solo miraba el último cronograma `Applied`; sin él, caía al inicio del contrato, y tampoco miraba el historial de ajustes.
+- **Corrección:** la ventana arranca en el último ajuste aplicado (cronograma o historial) o, sin ninguno, en el último período salteado fuera de los meses fijos iniciales. Recuperar la inflación salteada no estaba definido: se agregó la convención `skippedAdjustmentsMode` (`NoRecuperar` de fábrica, `Recuperar`), pactable por contrato y con valor por defecto de la inmobiliaria (ADR-0010).
+- **Prueba de regresión:** CP-1282 a CP-1285 (`prorroga-y-lote.e2e-spec.ts`, `adjustment-window.spec.ts`).
+- **Evidencia rojo/verde:** regresión `926b33c` en rojo (la prueba unitaria de la ventana y CP-1282 fallan); corrección en `f0ab144`.
