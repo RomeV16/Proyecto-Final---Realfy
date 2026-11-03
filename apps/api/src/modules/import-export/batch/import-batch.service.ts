@@ -11,14 +11,22 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { TenantContextService } from '../../../common/tenant/tenant-context.service';
 import { parseOrThrow } from '../../../common/validation/zod';
 import { OperationalDefaultsService } from '../../tenants/operational-defaults.service';
+import { ServiceBillsService } from '../../services/service-bills.service';
 import { contractImporter } from './contract.importer';
 import { personImporter } from './person.importer';
 import { propertyImporter } from './property.importer';
+import { chargeRuleImporter, serviceImporter } from './service.importer';
 import { buildCsv, type TabularColumn } from '../../../common/export/tabular';
-import { Db, EntityImporter, ImportContext, ImportRowError } from './import-types';
+import { Db, EntityImporter, ImportContext, ImportRowError, rawExternalRef } from './import-types';
 
 /** Registro de importadores por entidad: esquema de la fila y upsert por referencia externa. */
-export const ENTITY_IMPORTERS: readonly EntityImporter[] = [personImporter, propertyImporter, contractImporter];
+export const ENTITY_IMPORTERS: readonly EntityImporter[] = [
+  personImporter,
+  propertyImporter,
+  contractImporter,
+  serviceImporter,
+  chargeRuleImporter,
+];
 
 interface WorkItem {
   importer: EntityImporter;
@@ -78,18 +86,25 @@ export function toRowErrors(err: unknown): ImportRowErrorDetail[] {
   return [{ code: 'INTERNAL_ERROR', message: e?.message ?? 'Unexpected error' }];
 }
 
-/** Ordena el trabajo: personas, propiedades (los edificios antes que sus unidades) y contratos. */
+/**
+ * Ordena el trabajo: personas, propiedades (los edificios antes que sus
+ * unidades), contratos, servicios y reglas de traslado (que referencian a los
+ * dos anteriores).
+ */
 export function buildWorkItems(body: {
   persons: unknown[];
   properties: unknown[];
   contracts: unknown[];
+  services?: unknown[];
+  chargeRules?: unknown[];
 }): WorkItem[] {
-  const refOf = (raw: unknown): string | null => {
-    const v = (raw as { externalRef?: unknown } | null)?.externalRef;
-    return typeof v === 'string' && v.trim() ? v.trim() : null;
-  };
   const items = (importer: EntityImporter, rows: unknown[]): WorkItem[] =>
-    rows.map((raw, i) => ({ importer, rowNumber: i + 1, raw, externalRef: refOf(raw) }));
+    rows.map((raw, i) => ({
+      importer,
+      rowNumber: i + 1,
+      raw,
+      externalRef: (importer.refOf ?? rawExternalRef)(raw),
+    }));
 
   const hasParent = (w: WorkItem) => !!(w.raw as { parentExternalRef?: unknown } | null)?.parentExternalRef;
   const properties = items(propertyImporter, body.properties);
@@ -98,6 +113,8 @@ export function buildWorkItems(body: {
     ...properties.filter((w) => !hasParent(w)),
     ...properties.filter(hasParent),
     ...items(contractImporter, body.contracts),
+    ...items(serviceImporter, body.services ?? []),
+    ...items(chargeRuleImporter, body.chargeRules ?? []),
   ];
 }
 
@@ -122,6 +139,7 @@ export class ImportBatchService {
     private readonly prisma: PrismaService,
     private readonly tenantContext: TenantContextService,
     private readonly operationalDefaults: OperationalDefaultsService,
+    private readonly bills: ServiceBillsService,
   ) {}
 
   private tenantId(): string {
@@ -134,7 +152,11 @@ export class ImportBatchService {
   async run(body: unknown) {
     const request = parseOrThrow(ImportBatchRequestSchema, body, 'Invalid import batch');
     const tenantId = this.tenantId();
-    const ctx: ImportContext = { tenantId, defaults: await this.operationalDefaults.get(tenantId) };
+    const ctx: ImportContext = {
+      tenantId,
+      defaults: await this.operationalDefaults.get(tenantId),
+      reallocateService: (db, serviceId, from) => this.bills.reallocateService(db, serviceId, from),
+    };
 
     const batch = await this.prisma.client.importBatch.create({
       data: {
@@ -191,9 +213,14 @@ export class ImportBatchService {
         })),
       );
     }
-    const key = `${item.importer.entity}:${parsed.data.externalRef}`;
+    const rowKey = item.importer.keyOf ? item.importer.keyOf(parsed.data) : parsed.data.externalRef;
+    const key = `${item.importer.entity}:${rowKey}`;
     if (seen.has(key)) {
-      throw new ImportRowError('DUPLICATE_IN_BATCH', `externalRef "${parsed.data.externalRef}" appears more than once in the batch`, 'externalRef');
+      throw new ImportRowError(
+        'DUPLICATE_IN_BATCH',
+        `${item.importer.keyOf ? 'Row' : 'externalRef'} "${rowKey}" appears more than once in the batch`,
+        item.importer.keyOf ? undefined : 'externalRef',
+      );
     }
     const outcome = await item.importer.upsert(db, ctx, parsed.data);
     seen.add(key);

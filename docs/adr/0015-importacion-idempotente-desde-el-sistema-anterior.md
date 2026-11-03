@@ -41,9 +41,10 @@ externa de cada registro, con ensayo (`dryRun`) y un registro por fila; las
 extracciones y los mapeos se quedan en scripts externos.**
 
 - **Contrato JSON, no archivo.** `POST /import/batches` recibe
-  `{ dryRun, atomic?, kind?, persons?, properties?, contracts? }`. Los esquemas
-  de cada fila están en `packages/shared` (`ImportPersonSchema`,
-  `ImportPropertySchema`, `ImportContractSchema`). El script externo traduce el
+  `{ dryRun, atomic?, kind?, persons?, properties?, contracts?, services?,
+  chargeRules? }`. Los esquemas de cada fila están en `packages/shared`
+  (`ImportPersonSchema`, `ImportPropertySchema`, `ImportContractSchema`,
+  `ImportServiceSchema`, `ImportChargeRuleSchema`). El script externo traduce el
   sistema anterior a ese formato; el repositorio solo conoce el formato de
   Realfy. La carga por CSV de la pantalla de importación sigue como está.
 - **Idempotencia por `[tenantId, externalRef]`.** Cada fila se busca por su
@@ -76,6 +77,22 @@ extracciones y los mapeos se quedan en scripts externos.**
   Ambos modos conviven porque sirven a momentos distintos: el ensayo y la carga
   inicial toleran errores y se corrigen en el origen; la carga final de un corte
   se quiere todo o nada.
+- **Servicios y reglas de traslado (M8).** El servicio se identifica como las
+  demás entidades, por `[tenantId, externalRef]` (columna nueva en `Service`, con
+  varios NULL permitidos), y se liga a su propiedad con `propertyRef`. La regla no
+  tiene referencia propia: su clave es `[contrato, servicio, validFrom]`, la misma
+  del modelo (`ContractChargeRule`). Respeta la semántica de versiones de ADR-0008:
+  una regla nueva cierra la vigente el día anterior y nunca la pisa. Esa lógica
+  (`insertRuleVersion`) es la misma que usa el alta manual, no una copia. Con la
+  misma fecha y otros valores la regla se corrige en su lugar, salvo que ya se
+  haya usado en una liquidación (`CHARGE_RULE_IN_USE`); con otra fecha y los
+  mismos valores que la vigente no se agrega una versión. Al cambiar una regla se
+  recalculan las partes de las boletas del servicio, como en el alta manual. A
+  diferencia del alta manual, el lote no exige el acuerdo `CambioCargo` en un
+  contrato en vigencia: carga el estado ya pactado, no un cambio. Se procesan
+  después de los contratos (personas, propiedades, contratos, servicios, reglas),
+  así que una regla puede apuntar a un servicio del mismo lote. Un servicio de otra
+  propiedad (que no sea la del contrato ni su edificio) es `SERVICE_NOT_APPLICABLE`.
 - **Los datos importados no disparan efectos.** Un contrato importado como
   `Activo` no pasa por la activación: no envía avisos ni genera nada más que sus
   datos; solo deja la operación de alquiler de la propiedad en `Alquilado`, por el
@@ -155,9 +172,9 @@ sequenceDiagram
   se borre a mano. Es el costo de no destruir datos al reimportar.
 - El registro por fila queda como evidencia de la migración (cuántas filas, cuáles
   fallaron y por qué) para la reconciliación y para el informe.
-- El importador solo cubre personas, propiedades y contratos con sus reglas,
-  comisión e historial de ajustes. Servicios y reglas de traslado, boletas, saldos
-  iniciales y plantillas (pasos M8 a M11 del plan) se agregan al registro de
-  importadores cuando existan sus modelos.
+- El importador cubre personas, propiedades, contratos con sus reglas, comisión e
+  historial de ajustes, y servicios con sus reglas de traslado por contrato (pasos
+  M3 a M8). Boletas, saldos iniciales y plantillas (pasos M9 a M11 del plan) se
+  agregan al registro de importadores cuando existan sus modelos.
 - Cada modelo nuevo importable debe sumarse al registro `ENTITY_IMPORTERS` con su
   esquema y su upsert, y a las pruebas de idempotencia (`SinCambios` al repetir).

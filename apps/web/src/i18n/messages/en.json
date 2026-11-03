@@ -4403,7 +4403,9 @@
   "entities": {
    "Persona": "Person",
    "Propiedad": "Property",
-   "Contrato": "Contract"
+   "Contrato": "Contract",
+   "Servicio": "Service",
+   "ReglaDeCargo": "Charge rule"
   },
   "detail": {
    "title": "Import",
