@@ -1,4 +1,4 @@
--- migracion: 20261103100100_ventas
+-- migracion: 20261103130100_ventas
 -- ventas: las tablas nacen vacías y ningún honorario existente queda atado a una operación
 -- de venta (siguen colgando de la propiedad o del contrato como antes).
 -- Devuelve filas SOLO si algo salió mal.

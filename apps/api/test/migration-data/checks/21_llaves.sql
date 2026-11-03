@@ -1,4 +1,4 @@
--- migracion: 20261103100200_llaves
+-- migracion: 20261103130200_llaves
 -- llaves: las tablas nacen vacías y ninguna propiedad existente queda con llaves cargadas.
 -- Devuelve filas SOLO si algo salió mal.
 
