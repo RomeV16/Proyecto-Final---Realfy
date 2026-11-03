@@ -1240,10 +1240,11 @@ columna «Antes del piloto» corresponde al commit `ac07cdf` del 28/10/2026.
 | Pruebas unitarias de la API | 807 | 2.314 en 179 archivos | Integración continua, ejecución 41588355933, trabajo «Unit Tests & Coverage» |
 | Pruebas unitarias del paquete compartido | 48 | 1.017 en 44 archivos | Ídem |
 | Pruebas de la aplicación web | No había | 1.574 en 139 archivos | Ídem (vitest) |
-| Pruebas de integración de la API | 491 | 815 en 59 archivos | Integración continua, ejecución 41585381073 sobre `f110935`, con el mismo árbol que `ba78a78`, trabajo «API E2E Tests» |
+| Pruebas de integración de la API | 491 | 815 en 59 archivos | Ídem, trabajo «API E2E Tests» |
 | Cobertura de la API (líneas, sentencias, funciones, ramas) | 44,48 %, 44,36 %, 45,77 %, 34,50 % | 79,74 %, 79,79 %, 81,12 %, 70,96 % | Ejecución 41588355933; piso de la integración continua: 38 %, y 27 % de ramas |
 | Cobertura de líneas de la web y del paquete compartido | — | 77,97 % y 72,88 % | Ídem |
 | Duplicación por paquete (api, web, shared) | — | 1,02 %, 1,79 % y 0,55 % | Ejecución 41588355933, trabajo de código muerto y duplicación (jscpd) |
+| Cobertura combinada de unitarias e integración, y duplicación del repositorio | — | 82,9 % y 1,2 % | Análisis de SonarCloud sobre `ba78a78`, 3/11/2026 |
 | Pedidos de incorporación desde el inicio del piloto | — | 49 (#105 a #181), todos con revisión de otro integrante | Historial de la rama principal |
 
 Tres aclaraciones sobre la tabla. La primera: el catálogo de casos de prueba tiene
