@@ -150,12 +150,21 @@ describe('Cobranza escalonada (e2e)', () => {
     // Días 10 y 15: más firmes.
     await runOn(a.token, '2026-03-20');
     await runOn(a.token, '2026-03-25');
-    expect((await queued(a.tenantId)).map((m) => m.templateKey)).toEqual(['payment_reminder_1', 'payment_reminder_2', 'payment_reminder_3']);
+    // Después del tercero se repite el nivel 3 cada 5 días hasta que vence el alquiler siguiente.
+    for (const day of ['2026-03-30', '2026-04-04', '2026-04-09']) await runOn(a.token, day);
+    expect((await queued(a.tenantId)).map((m) => m.templateKey)).toEqual([
+      'payment_reminder_1',
+      'payment_reminder_2',
+      'payment_reminder_3',
+      'payment_reminder_3',
+      'payment_reminder_3',
+      'payment_reminder_3',
+    ]);
 
     // Al vencer el alquiler siguiente (10/04): el 11/04 se prepara el borrador y no sale ningún mensaje más.
     expect(await runOn(a.token, '2026-04-10')).toMatchObject({ lettersPrepared: 0 });
     expect(await runOn(a.token, '2026-04-11')).toMatchObject({ lettersPrepared: 1 });
-    expect(await queued(a.tenantId)).toHaveLength(3);
+    expect(await queued(a.tenantId)).toHaveLength(6);
     let detail = (await get(a.token, `/collection-cases/${opened.id}`).expect(200)).body;
     expect(detail).toMatchObject({ stage: 'Prejudicial', planStatus: 'AwaitingLetterConfirmation', nextAction: 'CartaDocumento', nextActionManual: true });
     expect(detail.debt).toHaveLength(2);

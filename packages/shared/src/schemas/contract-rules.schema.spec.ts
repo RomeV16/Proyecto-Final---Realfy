@@ -47,7 +47,7 @@ describe('OperationalDefaultsSchema', () => {
       upfrontThresholdFees: 2,
       upfrontBasis: 'ComisionPactada',
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
-      collections: { enabled: false, maxLevel: 3, letterTermDays: 10 },
+      collections: { enabled: false, maxLevel: 3, letterTermDays: 10, repeatLastLevel: true },
       expiryLight: { redDays: 30, yellowDays: 60 },
       repairs: { preauthLimit: 0, managementFeePct: 0 },
       sales: { reservationDays: 7, defaultDepositHolder: 'Inmobiliaria', requireDocsForBoleto: true },

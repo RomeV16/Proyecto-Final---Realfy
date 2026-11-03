@@ -109,7 +109,7 @@ describe('OperationalDefaultsManager', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
     await waitFor(() => expect(toast.success).toHaveBeenCalled());
     const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
-    expect(JSON.parse(put[1].body).collections).toEqual({ enabled: true, maxLevel: 2, letterTermDays: 10 });
+    expect(JSON.parse(put[1].body).collections).toEqual({ enabled: true, maxLevel: 2, letterTermDays: 10, repeatLastLevel: true });
   });
 
   it('el pago a cuenta viene activo y se puede apagar', async () => {

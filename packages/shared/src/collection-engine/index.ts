@@ -9,7 +9,7 @@ import { CollectionActionKind, CollectionStage } from '../enums';
  * Línea de tiempo con los valores de fábrica (vencimiento el día D):
  *   D+5   recordatorio amable (nivel 1)
  *   D+10  recordatorio más firme (nivel 2)
- *   D+15  recordatorio firme (nivel 3), el último
+ *   D+15  recordatorio firme (nivel 3); se repite cada 5 días hasta el prejudicial
  *   D'+1  (D' = vencimiento del alquiler siguiente, impago) prejudicial: se
  *         prepara la carta documento para enviarla en papel
  *   E+10  (E = envío confirmado de la carta) vence el plazo: se sugiere derivar
@@ -31,6 +31,8 @@ export interface CollectionPolicy {
   maxLevel: number;
   /** Plazo de la carta documento, en días corridos desde su envío. */
   letterTermDays: number;
+  /** Agotados los niveles, sigue mandando el último cada `everyDays` hasta que el caso pase a prejudicial. */
+  repeatLastLevel: boolean;
 }
 
 export const DEFAULT_COLLECTION_POLICY: CollectionPolicy = {
@@ -39,6 +41,7 @@ export const DEFAULT_COLLECTION_POLICY: CollectionPolicy = {
   everyDays: 5,
   maxLevel: COLLECTION_MAX_LEVEL,
   letterTermDays: 10,
+  repeatLastLevel: true,
 };
 
 export interface CollectionCaseInput {
@@ -118,7 +121,8 @@ const none = (status: CollectionPlanStatus): CollectionPlan => ({
  * Qué toca en un caso hoy. Reglas:
  * - Sin deuda vencida con saldo, se cierra (un pago parcial deja saldo: sigue abierto).
  * - Un acuerdo de pago pausa hasta su último día; si no se cumple, se retoma al día siguiente.
- * - Los recordatorios nunca salen más seguido que `everyDays`, ni se juntan al retomar.
+ * - Los recordatorios nunca salen más seguido que `everyDays`, ni se juntan al retomar. Agotados los niveles,
+ *   el último se repite cada `everyDays` hasta el prejudicial (`repeatLastLevel`).
  * - Al vencer el alquiler siguiente impago se prepara la carta documento; los recordatorios que quedaban se saltean.
  * - Con la carta enviada, vencido el plazo se sugiere derivar a un abogado (manual).
  * - Derivado o judicial: sin acciones automáticas.
@@ -156,9 +160,11 @@ export function planCollection(input: CollectionCaseInput, today: Date, policy: 
   const letterOn = prejudicialOn && resumeFloor ? maxDate(prejudicialOn, resumeFloor) : prejudicialOn;
 
   const sent = input.reminderDates.filter((d) => dayOf(d) >= dayOf(oldest)).sort((a, b) => dayOf(a) - dayOf(b));
-  const level = sent.length + 1;
+  const levels = Math.min(policy.maxLevel, COLLECTION_MAX_LEVEL);
+  // Con los niveles agotados el último se repite (si la política lo pide) hasta el prejudicial.
+  const level = Math.min(sent.length + 1, levels);
   let reminderOn: Date | null = null;
-  if (level <= Math.min(policy.maxLevel, COLLECTION_MAX_LEVEL)) {
+  if (sent.length < levels || policy.repeatLastLevel) {
     reminderOn = addDays(oldest, policy.firstReminderDays + sent.length * policy.everyDays);
     if (sent.length > 0) reminderOn = maxDate(reminderOn, addDays(sent[sent.length - 1], policy.everyDays));
     if (resumeFloor) reminderOn = maxDate(reminderOn, resumeFloor);
@@ -172,7 +178,7 @@ export function planCollection(input: CollectionCaseInput, today: Date, policy: 
   if (reminderOn) {
     return { status: 'Scheduled', action: reminderKind(level), dueOn: reminderOn, level, manual: false };
   }
-  // Recordatorios agotados y sin alquiler siguiente a la vista: queda a la espera.
+  // Recordatorios agotados sin repetición y sin alquiler siguiente a la vista: queda a la espera.
   return none('Scheduled');
 }
 

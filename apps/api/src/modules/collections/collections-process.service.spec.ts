@@ -84,17 +84,36 @@ describe('proceso diario de cobranza', () => {
       expect(f.cases[0].nextActionAt).toEqual(day('2026-03-15'));
     });
 
-    it('cada 5 días sube el tono: 5, 10 y 15 días con plantillas de nivel 1, 2 y 3', async () => {
+    it('cada 5 días sube el tono (5, 10 y 15 días: niveles 1, 2 y 3) y después repite el 3 hasta el prejudicial', async () => {
       const f = makeFakeCollections({ liquidaciones: [MARCH, { ...APRIL, status: 'Aprobada' }] });
-      for (const today of ['2026-03-15', '2026-03-20', '2026-03-25', '2026-03-30']) {
+      for (const today of ['2026-03-15', '2026-03-20', '2026-03-25', '2026-03-30', '2026-04-04']) {
         await f.process.runTenant('tenant-1', day(today));
       }
       expect(f.outbox.enqueue.mock.calls.map((c: any[]) => c[1].templateKey)).toEqual([
         'payment_reminder_1',
         'payment_reminder_2',
         'payment_reminder_3',
+        'payment_reminder_3',
+        'payment_reminder_3',
       ]);
-      expect(kindsOf(f.actions)).toEqual([`${K.Recordatorio}:1`, `${K.RecordatorioFirme}:2`, `${K.RecordatorioFirme}:3`]);
+      expect(kindsOf(f.actions)).toEqual([
+        `${K.Recordatorio}:1`,
+        `${K.RecordatorioFirme}:2`,
+        `${K.RecordatorioFirme}:3`,
+        `${K.RecordatorioFirme}:3`,
+        `${K.RecordatorioFirme}:3`,
+      ]);
+    });
+
+    it('con repeatLastLevel apagado no repite el último nivel', async () => {
+      const f = makeFakeCollections({
+        liquidaciones: [MARCH, { ...APRIL, status: 'Aprobada' }],
+        defaults: { collections: { enabled: true, repeatLastLevel: false } },
+      });
+      for (const today of ['2026-03-15', '2026-03-20', '2026-03-25', '2026-03-30']) {
+        await f.process.runTenant('tenant-1', day(today));
+      }
+      expect(f.outbox.enqueue).toHaveBeenCalledTimes(3);
     });
 
     it('correr dos veces el mismo día no repite el recordatorio', async () => {
@@ -159,6 +178,9 @@ describe('proceso diario de cobranza', () => {
       { kind: K.Recordatorio, level: 1, onDate: day('2026-03-15') },
       { kind: K.RecordatorioFirme, level: 2, onDate: day('2026-03-20') },
       { kind: K.RecordatorioFirme, level: 3, onDate: day('2026-03-25') },
+      { kind: K.RecordatorioFirme, level: 3, onDate: day('2026-03-30') },
+      { kind: K.RecordatorioFirme, level: 3, onDate: day('2026-04-04') },
+      { kind: K.RecordatorioFirme, level: 3, onDate: day('2026-04-09') },
     ];
 
     it('al vencer el siguiente alquiler impago prepara el borrador de la carta documento y no manda nada', async () => {
@@ -195,7 +217,7 @@ describe('proceso diario de cobranza', () => {
       });
       const res = await f.process.runTenant('tenant-1', day('2026-04-25'));
       expect(res).toMatchObject({ lettersPrepared: 0, remindersQueued: 0 });
-      expect(f.actions).toHaveLength(3);
+      expect(f.actions).toHaveLength(6);
     });
 
     it('con la carta enviada, el día que vence el plazo avisa a la gerencia para evaluar derivar, y no deriva', async () => {

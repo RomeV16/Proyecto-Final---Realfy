@@ -5107,6 +5107,10 @@
     "label": "Turn on escalating collections",
     "hint": "Off by default. When on, the daily process opens a case per contract with overdue rent and sends the reminders through the outbox (which respects the environment mode and consent). The formal letter is only prepared as a draft."
    },
+   "collectionsRepeatLastLevel": {
+    "label": "Repeat the last reminder",
+    "hint": "Once the levels run out, the last one keeps going at the usual pace until the case goes pre-litigation. Off, nothing more is sent after the last level."
+   },
    "collectionsMaxLevel": {
     "label": "Number of reminders",
     "hint": "1 to 3 notices, each firmer than the last (default {value}). After the reminders, when the next rent falls due, the formal letter is prepared."

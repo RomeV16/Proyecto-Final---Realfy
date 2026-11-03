@@ -194,7 +194,7 @@ flowchart TD
     abre["Se abre el caso<br/>etapa Recordatorio"]
     r1["D+5: recordatorio amable (nivel 1)"]
     r2["D+10: recordatorio más firme (nivel 2)"]
-    r3["D+15: recordatorio firme (nivel 3)"]
+    r3["D+15: recordatorio firme (nivel 3),<br/>se repite cada 5 días hasta el prejudicial"]
     outbox[("message_outbox<br/>importe exacto de hoy")]
     pago{"Pago"}
     cierra["Caso cerrado"]
@@ -213,6 +213,7 @@ flowchart TD
     r1 --> pago
     r2 --> pago
     r3 --> pago
+    r3 -->|"cada 5 días"| r3
     prej --> pago
     pago -->|"total"| cierra
     pago -->|"parcial: sigue abierto"| r1

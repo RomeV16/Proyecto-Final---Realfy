@@ -1040,7 +1040,7 @@ Cuando está prendida, todos los días a las 10 el sistema abre **un caso por
 contrato** con alquileres vencidos con saldo y sigue este camino:
 
 1. **Recordatorio.** A los 5 días del vencimiento sale un aviso amable; cada 5 días
-   uno más firme (hasta tres). Salen por WhatsApp si el inquilino dio el alta y por
+   uno más firme (hasta tres); después se repite el tercero cada 5 días hasta que el caso pasa a prejudicial (se puede apagar en *Valores por defecto*). Salen por WhatsApp si el inquilino dio el alta y por
    mail si no pidió la baja, con **el importe exacto de ese día** (saldo más
    punitorios) y el período adeudado. Se ven en *Mensajería* y en la línea de
    tiempo del caso, con su estado (entregado, bloqueado, etc.). Con el envío apagado

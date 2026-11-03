@@ -205,13 +205,14 @@ día D:
 |---|---|
 | D+5 | Recordatorio amable (nivel 1) |
 | D+10 | Recordatorio más firme (nivel 2) |
-| D+15 | Recordatorio firme (nivel 3), el último |
+| D+15 | Recordatorio firme (nivel 3) |
+| D+20, D+25, … | El nivel 3 se repite cada 5 días hasta que la cobranza pasa a prejudicial |
 | D'+1 | D' es el vencimiento del alquiler siguiente, impago: **prejudicial**, se prepara la carta documento |
 | E+10 | E es el envío confirmado de la carta: vence el plazo de 10 días corridos y se **sugiere** derivar a un abogado |
 
 Se configura en `Tenant.operationalDefaults`: el ritmo (`collectionCadence`,
 primer recordatorio a los 5 días y luego cada 5) y `collections`
-(`enabled`, `maxLevel` de 1 a 3 y `letterTermDays`, 10). **La cobranza viene
+(`enabled`, `maxLevel` de 1 a 3, `letterTermDays`, 10, y `repeatLastLevel`, activo de fábrica). **La cobranza viene
 apagada** (`enabled: false`): hasta que la inmobiliaria la prende, el proceso
 diario no abre casos ni manda nada; desplegar la migración no cambia nada.
 
@@ -222,8 +223,12 @@ Reglas de la política:
 - Un **acuerdo de pago** (con la fecha prometida) pausa los avisos hasta esa
   fecha; si llega y sigue la deuda, retoma al día siguiente.
 - Los recordatorios no salen más seguido que el ritmo configurado ni se juntan
-  al retomar o si el proceso se atrasó. Después del tercero no se repite: el
-  siguiente paso es la carta, al vencer el alquiler siguiente.
+  al retomar o si el proceso se atrasó. Agotados los niveles, el último
+  (nivel 3) se repite cada 5 días hasta que vence el alquiler siguiente y se
+  prepara la carta (`collections.repeatLastLevel`, activo de fábrica, según
+  el relevamiento: «reenvío cada 5 días más duro; al vencer el siguiente
+  alquiler, prejudicial»). Apagado, después del último nivel no se manda más
+  hasta la carta.
 - Una mora vieja (por ejemplo cargada desde el sistema anterior) cuyo alquiler
   siguiente ya venció pasa directo a la carta, sin un recordatorio amable de por
   medio.

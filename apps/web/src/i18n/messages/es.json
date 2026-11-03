@@ -5107,6 +5107,10 @@
     "label": "Activar la cobranza escalonada",
     "hint": "Apagada de fábrica. Prendida, el proceso diario abre un caso por contrato con alquileres vencidos y manda los recordatorios por la bandeja de salida (que respeta el modo del ambiente y el consentimiento). La carta documento solo se prepara como borrador."
    },
+   "collectionsRepeatLastLevel": {
+    "label": "Repetir el último recordatorio",
+    "hint": "Agotados los niveles, sigue mandando el último cada vez que toca hasta que el caso pasa a prejudicial. Apagado, después del último nivel no se manda más."
+   },
    "collectionsMaxLevel": {
     "label": "Cantidad de recordatorios",
     "hint": "De 1 a 3 avisos, cada vez más firmes (de fábrica {value}). Después de los recordatorios, al vencer el alquiler siguiente, se prepara la carta documento."

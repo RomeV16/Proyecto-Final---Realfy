@@ -54,6 +54,7 @@ export const operationalDefaultsFormSchema = z
     firstReminderDays: numberText({ int: true, min: 0, max: 365 }),
     everyDays: numberText({ int: true, min: 1, max: 365 }),
     collectionsEnabled: z.boolean(),
+    collectionsRepeatLastLevel: z.boolean(),
     collectionsMaxLevel: numberText({ int: true, min: 1, max: 3 }),
     collectionsLetterTermDays: numberText({ int: true, min: 1, max: 60 }),
     redDays: numberText({ int: true, min: 0, max: 365 }),
@@ -131,6 +132,7 @@ export function operationalDefaultsToForm(d: OperationalDefaults): OperationalDe
     firstReminderDays: String(d.collectionCadence.firstReminderDays),
     everyDays: String(d.collectionCadence.everyDays),
     collectionsEnabled: d.collections.enabled,
+    collectionsRepeatLastLevel: d.collections.repeatLastLevel,
     collectionsMaxLevel: String(d.collections.maxLevel),
     collectionsLetterTermDays: String(d.collections.letterTermDays),
     redDays: String(d.expiryLight.redDays),
@@ -191,6 +193,7 @@ export function operationalDefaultsFromForm(f: OperationalDefaultsFormInput): Op
     collections: {
       enabled: f.collectionsEnabled,
       maxLevel: num(f.collectionsMaxLevel),
+      repeatLastLevel: f.collectionsRepeatLastLevel,
       letterTermDays: num(f.collectionsLetterTermDays),
     },
     expiryLight: { redDays: num(f.redDays), yellowDays: num(f.yellowDays) },

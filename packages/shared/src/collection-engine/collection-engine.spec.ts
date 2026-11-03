@@ -52,18 +52,34 @@ describe('política de cobranza escalonada (línea de tiempo de fábrica)', () =
     expect(iso(p.dueOn)).toBe('2026-03-20');
   });
 
-  it('a los 15 días toca el tercero (nivel 3) y es el último', () => {
+  it('a los 15 días toca el tercero (nivel 3)', () => {
     const p = plan({ reminderDates: [d('2026-03-15'), d('2026-03-20')] }, '2026-03-25');
     expect(p).toMatchObject({ action: K.RecordatorioFirme, level: 3 });
     expect(iso(p.dueOn)).toBe('2026-03-25');
 
-    const after = plan({ reminderDates: [d('2026-03-15'), d('2026-03-20'), d('2026-03-25')] }, '2026-03-26');
-    expect(after.level).toBeNull();
-    expect(after.action).toBe(K.CartaDocumento);
+  });
+
+  it('después del tercero repite el nivel 3 cada 5 días (20, 25 y 30 días) hasta que vence el alquiler siguiente', () => {
+    const sent = [d('2026-03-15'), d('2026-03-20'), d('2026-03-25')];
+    const wait = plan({ reminderDates: sent }, '2026-03-26');
+    expect(wait).toMatchObject({ action: K.RecordatorioFirme, level: 3 });
+    expect(iso(wait.dueOn)).toBe('2026-03-30');
+    const again = plan({ reminderDates: [...sent, d('2026-03-30')] }, '2026-03-31');
+    expect(again).toMatchObject({ action: K.RecordatorioFirme, level: 3 });
+    expect(iso(again.dueOn)).toBe('2026-04-04');
+    // Llegado el día siguiente al vencimiento del alquiler siguiente, toca la carta y no otro recordatorio.
+    const letter = plan({ reminderDates: [...sent, d('2026-03-30'), d('2026-04-04'), d('2026-04-09')] }, '2026-04-11');
+    expect(letter.action).toBe(K.CartaDocumento);
+  });
+
+  it('con repeatLastLevel apagado, después del último nivel espera a la carta', () => {
+    const p = plan({ reminderDates: [d('2026-03-15'), d('2026-03-20'), d('2026-03-25')] }, '2026-03-26', { ...policy, repeatLastLevel: false });
+    expect(p.action).toBe(K.CartaDocumento);
+    expect(iso(p.dueOn)).toBe('2026-04-11');
   });
 
   it('al vencer el alquiler siguiente impago se prepara la carta documento (prejudicial)', () => {
-    const reminders = [d('2026-03-15'), d('2026-03-20'), d('2026-03-25')];
+    const reminders = [d('2026-03-15'), d('2026-03-20'), d('2026-03-25'), d('2026-03-30'), d('2026-04-04'), d('2026-04-09')];
     const wait = plan({ reminderDates: reminders }, '2026-04-10');
     expect(iso(wait.dueOn)).toBe('2026-04-11');
     expect(isActionDue(wait, d('2026-04-10'))).toBe(false);
@@ -171,7 +187,8 @@ describe('casos de borde', () => {
   });
 
   it('con un solo alquiler impago y sin siguiente facturado, el siguiente vence un mes después', () => {
-    const p = plan({ unpaidDueDates: [d('2026-03-10')], nextRentBilled: false, reminderDates: [d('2026-03-15'), d('2026-03-20'), d('2026-03-25')] }, '2026-03-26');
+    const reminderDates = [d('2026-03-15'), d('2026-03-20'), d('2026-03-25'), d('2026-03-30'), d('2026-04-04'), d('2026-04-09')];
+    const p = plan({ unpaidDueDates: [d('2026-03-10')], nextRentBilled: false, reminderDates }, '2026-04-10');
     expect(p.action).toBe(K.CartaDocumento);
     expect(iso(p.dueOn)).toBe('2026-04-11');
   });
@@ -180,6 +197,7 @@ describe('casos de borde', () => {
     const p = plan(
       { unpaidDueDates: [d('2026-03-10')], nextRentBilled: true, reminderDates: [d('2026-03-15'), d('2026-03-20'), d('2026-03-25')] },
       '2026-05-01',
+      { ...policy, repeatLastLevel: false },
     );
     expect(p).toMatchObject({ status: 'Scheduled', action: null, dueOn: null });
     expect(isActionDue(p, d('2026-05-01'))).toBe(false);
@@ -189,6 +207,7 @@ describe('casos de borde', () => {
     const p = plan({ reminderDates: [d('2026-03-15')], unpaidDueDates: [d('2026-03-10'), d('2026-04-10')] }, '2026-03-20', {
       ...policy,
       maxLevel: 1,
+      repeatLastLevel: false,
     });
     expect(p.action).toBe(K.CartaDocumento);
   });
@@ -238,9 +257,9 @@ describe('ayudas', () => {
 });
 
 describe('política vigente de una inmobiliaria', () => {
-  it('de fábrica está apagada y usa 5 días, cada 5, 3 niveles y 10 días corridos', () => {
+  it('de fábrica está apagada y usa 5 días, cada 5, 3 niveles repitiendo el último y 10 días corridos', () => {
     expect(collectionPolicyOf(DEFAULT_OPERATIONAL_DEFAULTS)).toEqual(DEFAULT_COLLECTION_POLICY);
-    expect(DEFAULT_COLLECTION_POLICY).toMatchObject({ enabled: false, firstReminderDays: 5, everyDays: 5, maxLevel: 3, letterTermDays: 10 });
+    expect(DEFAULT_COLLECTION_POLICY).toMatchObject({ enabled: false, firstReminderDays: 5, everyDays: 5, maxLevel: 3, letterTermDays: 10, repeatLastLevel: true });
   });
 
   it('toma el ritmo de collectionCadence y lo propio de collections', () => {
@@ -248,7 +267,7 @@ describe('política vigente de una inmobiliaria', () => {
       collectionCadence: { firstReminderDays: 7, everyDays: 4 },
       collections: { enabled: true, maxLevel: 2, letterTermDays: 15 },
     });
-    expect(collectionPolicyOf(defaults)).toEqual({ enabled: true, firstReminderDays: 7, everyDays: 4, maxLevel: 2, letterTermDays: 15 });
+    expect(collectionPolicyOf(defaults)).toEqual({ enabled: true, firstReminderDays: 7, everyDays: 4, maxLevel: 2, letterTermDays: 15, repeatLastLevel: true });
   });
 
   it('rechaza más de tres niveles o un plazo fuera de rango', () => {

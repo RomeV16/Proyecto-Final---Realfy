@@ -89,14 +89,15 @@ export const OperationalDefaultsSchema = z
       .default({}),
     /**
      * Cobranza escalonada (ADR-0013). El ritmo de los recordatorios es `collectionCadence`; acá
-     * se prende el proceso, cuántos niveles de tono se usan (1 a 3) y el plazo de la carta
-     * documento. Apagado, el proceso diario no abre casos ni manda avisos.
+     * se prende el proceso, cuántos niveles de tono se usan (1 a 3), si el último se repite
+     * hasta el prejudicial y el plazo de la carta documento. Apagado, el proceso diario no abre casos ni manda avisos.
      */
     collections: z
       .object({
         enabled: z.boolean().default(false),
         maxLevel: z.number().int().min(1).max(3).default(3),
         letterTermDays: z.number().int().min(1).max(60).default(10),
+        repeatLastLevel: z.boolean().default(true),
       })
       .strict()
       .default({}),
@@ -240,5 +241,6 @@ export function collectionPolicyOf(defaults: OperationalDefaults): CollectionPol
     everyDays: defaults.collectionCadence.everyDays,
     maxLevel: defaults.collections.maxLevel,
     letterTermDays: defaults.collections.letterTermDays,
+    repeatLastLevel: defaults.collections.repeatLastLevel,
   };
 }
