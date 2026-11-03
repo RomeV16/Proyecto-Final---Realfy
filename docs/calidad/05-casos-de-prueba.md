@@ -1115,7 +1115,7 @@ Banda CP-1100 a CP-1129. Misma semántica que el saldo inicial del locador (ADR-
 
 ## Plantillas de contrato completas (M11)
 
-Banda CP-1160 a CP-1199. Origen: preparación de las plantillas de la inmobiliaria piloto. Contratos, personas, direcciones y montos sintéticos; el resultado esperado se fijó antes de implementar. La migración `20261103182832_datos_de_la_inmobiliaria_para_contratos` (matrícula y domicilio de la inmobiliaria, dos columnas nulas) se ensaya con la verificación `25_datos_de_la_inmobiliaria_para_contratos.sql`: ninguna inmobiliaria existente queda con valores. ADR-0019.
+Banda CP-1160 a CP-1199. Origen: preparación de las plantillas de la inmobiliaria piloto. Contratos, personas, direcciones y montos sintéticos; el resultado esperado se fijó antes de implementar. La migración `20261103182832_datos_de_la_inmobiliaria_para_contratos` (matrícula y domicilio de la inmobiliaria, dos columnas nulas) se ensaya con la verificación `26_datos_de_la_inmobiliaria_para_contratos.sql`: ninguna inmobiliaria existente queda con valores. ADR-0019.
 
 | ID | Caso | Resultado esperado | Automatización | Estado |
 |---|---|---|---|---|
