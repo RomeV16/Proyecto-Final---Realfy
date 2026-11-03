@@ -845,3 +845,33 @@ Banda CP-770 a CP-783. Origen: FB-18. CU-49. Mensajes, personas y direcciones si
 | CP-781 | Roles | Lectura y Liquidaciones no entran (403); Ventas, Soporte, Gerente y Admin sí; sin sesión 401; el control de plazos manual es solo de Admin | `e2e/bandeja.e2e-spec.ts::CP-781`; `inbox.controller.spec.ts`; `role-groups.spec.ts` | verde (3 nov) |
 | CP-782 | Aislamiento | otra inmobiliaria no ve la consulta ni la contesta, asigna o cambia (404); el mail se ubica por la inmobiliaria de la casilla | `e2e/bandeja.e2e-spec.ts::CP-782` | verde (3 nov) |
 | CP-783 | Estado de entrega en el hilo y web | cada respuesta muestra su estado (pendiente con el motivo `MESSAGING_OFF`, enviada tras despachar); la pantalla filtra, responde con respuestas rápidas, asigna y toma, vincula persona, propiedad y contrato, registra llamadas, muestra el plazo en cuenta regresiva y el contador del menú, y guarda la configuración | `e2e/bandeja.e2e-spec.ts::CP-783`; `components/inbox/inbox.screen.test.tsx`; `lib/inbox.test.ts` | verde (3 nov) |
+
+## Consumo por unidad en la carga de boletas (ítem 35, 2.4)
+
+Banda CP-1130 a CP-1159. Origen: preparación de la migración del piloto (edificios con una sola boleta de agua, municipal o rentas para varias unidades). Cubre el motor de reparto por consumo, la vista previa, las unidades de la planilla y la pantalla *Boletas del mes*.
+
+| ID | Caso | Resultado esperado | Automatización | Estado |
+|---|---|---|---|---|
+| CP-1130 | Unidad con consumo 0 (DEF-105) | una unidad con consumo 0 declarado paga 0 (`ZeroShare`) y las demás se reparten la boleta; antes ninguna recibía su parte | `charge-split.spec.ts::CP-1130` | verde (3 nov) |
+| CP-1131 | Unidad en 0 con total de boleta mayor | con consumo total 400 y unidades 0 y 100, la segunda paga 100/400 y la diferencia no se traslada | `charge-split.spec.ts::CP-1131` | verde (3 nov) |
+| CP-1132 | Todo el consumo en 0 | sin consumo total y con todas las unidades en 0 no se reparte y se informa `MissingConsumption` | `charge-split.spec.ts::CP-1132` | verde (3 nov) |
+| CP-1133 | Unidad vacía en el total (DEF-106) | el consumo de una unidad sin contrato con regla entra en el total de la boleta: dos unidades de 100 reparten a la mitad, no la boleta entera | `service-bills.service.spec.ts::CP-1133` | verde (3 nov) |
+| CP-1134 | Unidades en la planilla | `GET /service-bills/sheet` lista las unidades del edificio y la propiedad (id y título) de cada regla | `service-bills.service.spec.ts::CP-1134` | verde (3 nov) |
+| CP-1135 | Vista previa sin guardar | `POST /service-bills/preview` devuelve el reparto por consumo y no crea boleta ni partes | `service-bills.service.spec.ts::CP-1135` | verde (3 nov) |
+| CP-1136 | Vista previa con unidad sin consumo | con varias unidades por consumo y una sin dato, no reparte y avisa `MissingConsumption` para cada una | `service-bills.service.spec.ts::CP-1136` | verde (3 nov) |
+| CP-1137 | Unidad ajena al edificio | un consumo de una propiedad que no es del servicio ni de su edificio se rechaza con `UNIT_NOT_IN_BUILDING` (vista previa y carga) | `service-bills.service.spec.ts::CP-1137` | verde (3 nov) |
+| CP-1138 | Unidad repetida y servicio inexistente | la misma unidad dos veces en los consumos es un error de validación; un servicio inexistente da `SERVICE_NOT_FOUND` | `service-bills.service.spec.ts::CP-1138` | verde (3 nov) |
+| CP-1139 | Corregir una boleta cargada (DEF-107) | al guardar el importe de una boleta cargada la planilla reenvía el consumo por unidad, el importe sin descuento y las notas | `monthly-service-bills.def107.test.tsx::CP-1139` | verde (3 nov) |
+| CP-1140 | Filas por unidad | un servicio de un edificio muestra una fila de consumo por unidad; el que no tiene unidades no muestra panel | `monthly-service-bills.units.test.tsx::CP-1140` | verde (3 nov) |
+| CP-1141 | Suma y consumo total | la pantalla suma los consumos (sin error de coma flotante), avisa si el total de la boleta es menor a la suma y muestra el consumo que queda sin unidad | `monthly-service-bills.units.test.tsx::CP-1141`; `service-bills.test.ts` | verde (3 nov) |
+| CP-1142 | Vista previa en pantalla | *Ver reparto* pide el reparto a la API con el consumo por unidad y lo muestra por unidad con su base de cálculo; sin importe lo pide | `monthly-service-bills.units.test.tsx::CP-1142` | verde (3 nov) |
+| CP-1143 | Vista previa sin reparto o con error | sin reparto lo dice; un error de la API se muestra en el panel | `monthly-service-bills.units.test.tsx::CP-1143` | verde (3 nov) |
+| CP-1144 | Validación del consumo por unidad | con varias unidades por consumo no se guarda si falta el consumo de una (error por unidad, accesible); un consumo no numérico se marca | `monthly-service-bills.units.test.tsx::CP-1144` | verde (3 nov) |
+| CP-1145 | Guardar con el consumo por unidad | la carga masiva lleva `unitConsumptions` con lo cargado (también un 0) | `monthly-service-bills.units.test.tsx::CP-1145` | verde (3 nov) |
+| CP-1146 | Pantalla en inglés | el panel y sus etiquetas salen en inglés y siguen siendo utilizables | `monthly-service-bills.units.test.tsx::CP-1146` | verde (3 nov) |
+| CP-1147 | Vista previa igual a lo guardado | la vista previa de una boleta nueva coincide con las partes que quedan al cargarla y no crea nada | `boletas-y-reglas.e2e-spec.ts::CP-1147` | verde (3 nov) |
+| CP-1148 | Unidad vacía y unidad en 0 | de punta a punta: la unidad sin contrato ocupa su parte (100/400 y 200/400) y una unidad en 0 no paga y no frena a la otra | `boletas-y-reglas.e2e-spec.ts::CP-1148` | verde (3 nov) |
+| CP-1149 | Sin consumo para repartir | falta el consumo de una unidad por consumo, o todos son 0: no se reparte | `boletas-y-reglas.e2e-spec.ts::CP-1149` | verde (3 nov) |
+| CP-1150 | Unidad ajena o repetida | rechazo con 400 en la vista previa y fila con error en la carga; servicio inexistente 404 | `boletas-y-reglas.e2e-spec.ts::CP-1150` | verde (3 nov) |
+| CP-1151 | Planilla con unidades | las unidades del edificio y la propiedad de cada regla llegan en la planilla del mes | `boletas-y-reglas.e2e-spec.ts::CP-1151` | verde (3 nov) |
+| CP-1152 | Roles y aislamiento de la vista previa | solo Admin, Gerente y Liquidaciones (403 al resto); otra inmobiliaria no ve el servicio (404) | `boletas-y-reglas.e2e-spec.ts::CP-1152` | verde (3 nov) |

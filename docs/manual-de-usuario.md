@@ -463,6 +463,28 @@ la liquidación sigue en borrador y se borra, o se quita el renglón, la boleta 
 a quedar pendiente. Para marcar una boleta como pagada (quién pagó, cuándo y el
 comprobante) se usa `PATCH /service-bills/:id`.
 
+### Consumo por unidad (edificios con una boleta para varias unidades)
+
+Cuando una sola boleta (agua, municipal, rentas) cubre varias unidades de un edificio, o
+cuando el servicio tiene reglas **por consumo**, debajo de la planilla aparece el panel
+**Consumo por unidad** de esa fila: una línea por unidad del edificio, con su consumo
+(el que dice la boleta; admite coma decimal y hasta 3 decimales), y la **suma** de las
+unidades. Reglas para cargarlo:
+
+- Una unidad vacía o sin contrato se carga con **0**: ocupa su parte del reparto pero no
+  paga. Una unidad sin cargar no cuenta como 0.
+- Si varias unidades se reparten por consumo, hace falta el consumo de **todas** ellas;
+  sin eso no se puede guardar y la unidad que falta queda marcada.
+- Si en la columna *Consumo* se escribe el total de la boleta y es mayor a la suma, la
+  diferencia (áreas comunes, unidades sin contrato) no se traslada a nadie; si es menor,
+  el reparto usa la suma.
+- **Ver reparto** muestra, antes de guardar, cuánto le toca a cada unidad con las reglas
+  vigentes y cómo se calculó, y avisa si alguna unidad no paga o si no se puede repartir.
+  Hace falta haber escrito el importe de la boleta.
+
+Al corregir una boleta ya cargada se conservan su consumo por unidad, el importe sin
+descuento y las notas.
+
 ### Cargar los gastos del mes (centro de carga)
 
 **Centro de carga** (`/cargos`, Admin, Gerente y Liquidaciones). Acá se cargan los gastos
