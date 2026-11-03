@@ -1,4 +1,5 @@
 import {
+  BillDocumentStatus,
   CollectionStage,
   ConsentStatus,
   ContractStatus,
@@ -64,7 +65,8 @@ export type StatusDomain =
   | 'consentimiento'
   | 'aviso'
   | 'cobranza'
-  | 'consulta';
+  | 'consulta'
+  | 'boletaRecibida';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -246,6 +248,17 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
     [USER_STATUSES.Active]: 'success',
     [USER_STATUSES.Inactive]: 'neutral',
   }),
+  boletaRecibida: entries(
+    'billDocuments.statuses',
+    {
+      [BillDocumentStatus.Recibida]: 'info',
+      [BillDocumentStatus.Procesada]: 'success',
+      [BillDocumentStatus.RequiereRevision]: 'warning',
+      [BillDocumentStatus.Rechazada]: 'danger',
+      [BillDocumentStatus.Duplicada]: 'neutral',
+    },
+    [BillDocumentStatus.Rechazada],
+  ),
   importacion: entries('importBatches.statuses', {
     [ImportBatchStatus.Validando]: 'info',
     [ImportBatchStatus.Validado]: 'brand',

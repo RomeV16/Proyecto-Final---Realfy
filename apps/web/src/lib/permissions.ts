@@ -56,6 +56,8 @@ export const ACTION_ROLES = {
   'delinquency.view': [Admin, Gerente],
   /** Boletas del mes y reglas de impuestos y servicios de cada contrato. */
   'serviceBills.manage': [Admin, Gerente, Liquidaciones],
+  /** Boletas recibidas (PDF por archivo, mail o consulta): ver la cola de revisión; aceptar y rechazar lo hace `serviceBills.manage`. */
+  'billDocuments.view': [Admin, Gerente, Liquidaciones, Lectura],
   'charges.manage': [Admin, Gerente, Liquidaciones],
   /** Ajustes del mes: previsualizar y aplicar los ajustes de alquiler. */
   'adjustments.manage': [Admin, Gerente, Liquidaciones],

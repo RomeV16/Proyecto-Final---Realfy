@@ -27,6 +27,7 @@ import { EditableDataTable } from '@/components/ui/data-table';
 import { ErrorNotice } from '@/components/ui/error-notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { inputStyles } from '@/components/ui/input';
+import { BillReviewNotice } from '@/components/bill-documents/bill-review-notice';
 import { UnitConsumptionsPanel } from './unit-consumptions-panel';
 
 type Translate = ReturnType<typeof useTranslations>;
@@ -348,6 +349,7 @@ export function MonthlyServiceBills() {
         </div>
       </header>
 
+      <BillReviewNotice />
       {error != null && <ErrorNotice error={error} fallback={t('loadError')} />}
       {error == null && sheet === null && <Skeleton className="h-48 w-full" />}
       {sheet !== null && sheet.rows.length === 0 && (
