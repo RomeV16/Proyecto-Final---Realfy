@@ -184,6 +184,7 @@
    "CHARGE_ALREADY_IMPUTED": "A charge was already included in another settlement.",
    "UPFRONT_NOT_APPLICABLE": "An advance only applies to a charge to the tenant.",
    "PROPERTY_MISMATCH": "The contract belongs to another property.",
+   "UNIT_NOT_IN_BUILDING": "The unit does not belong to the service or its building.",
    "BILL_ALREADY_BILLED": "The bill is already included in a settlement and cannot be changed.",
    "ALLOCATION_ALREADY_BILLED": "A part of the bill was already included in another settlement.",
    "BILL_NOT_FOUND": "The bill no longer exists.",
@@ -5417,6 +5418,37 @@
    "Pendiente": "Entered",
    "Pagada": "Paid",
    "Anulada": "Voided"
+  },
+  "units": {
+   "title": "Consumption per unit: {name}",
+   "hint": "Enter each unit's consumption (water, electricity, gas: as printed on the bill). An empty unit takes 0: it holds its share but pays nothing. You can preview the split before saving.",
+   "caption": "Consumption of each unit of {name}",
+   "unit": "Unit",
+   "consumption": "Consumption",
+   "inputLabel": "Consumption of {unit}",
+   "other": "Unit no longer in the building",
+   "sum": "Sum of the units",
+   "totalBelowSum": "The bill's total consumption is lower than the sum of the units ({sum}): the split uses the sum.",
+   "untransferred": "{amount} of consumption belongs to no unit (common areas or no contract): it is passed on to nobody.",
+   "errors": {
+    "invalid": "Enter a valid consumption (up to 3 decimals)",
+    "missing": "This unit's consumption is missing: the bill cannot be split unless every consumption-based unit has one"
+   },
+   "preview": {
+    "action": "Preview split",
+    "loading": "Calculating…",
+    "title": "Split with the current rules",
+    "basis": "How it is calculated",
+    "amount": "Share",
+    "none": "With this data nothing is passed on to anyone.",
+    "noAmount": "Enter the bill amount first.",
+    "error": "The split could not be calculated"
+   },
+   "skipped": {
+    "MissingConsumption": "not split: a unit's consumption is missing or all are 0",
+    "ZeroShare": "has nothing to pay",
+    "PaidDirectly": "pays the provider directly"
+   }
   },
   "validation": {
    "amount": "Enter a valid amount (up to 2 decimals)",

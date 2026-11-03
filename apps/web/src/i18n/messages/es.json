@@ -184,6 +184,7 @@
    "CHARGE_ALREADY_IMPUTED": "Un cargo ya se incluyó en otra liquidación.",
    "UPFRONT_NOT_APPLICABLE": "El anticipo solo corresponde a un cargo al inquilino.",
    "PROPERTY_MISMATCH": "El contrato es de otra propiedad.",
+   "UNIT_NOT_IN_BUILDING": "La unidad no pertenece al servicio ni a su edificio.",
    "BILL_ALREADY_BILLED": "La boleta ya está incluida en una liquidación y no se puede cambiar.",
    "ALLOCATION_ALREADY_BILLED": "Una parte de la boleta ya se incluyó en otra liquidación.",
    "BILL_NOT_FOUND": "La boleta ya no existe.",
@@ -5417,6 +5418,37 @@
    "Pendiente": "Cargada",
    "Pagada": "Pagada",
    "Anulada": "Anulada"
+  },
+  "units": {
+   "title": "Consumo por unidad: {name}",
+   "hint": "Cargá el consumo de cada unidad (agua, luz, gas: lo que dice la boleta). Una unidad vacía va con 0: ocupa su parte pero no paga. Podés ver cómo se reparte antes de guardar.",
+   "caption": "Consumo de cada unidad de {name}",
+   "unit": "Unidad",
+   "consumption": "Consumo",
+   "inputLabel": "Consumo de {unit}",
+   "other": "Unidad que ya no figura en el edificio",
+   "sum": "Suma de las unidades",
+   "totalBelowSum": "El consumo total de la boleta es menor a la suma de las unidades ({sum}): el reparto usa la suma.",
+   "untransferred": "Quedan {amount} de consumo sin unidad (áreas comunes o sin contrato): no se trasladan a nadie.",
+   "errors": {
+    "invalid": "Ingresá un consumo válido (hasta 3 decimales)",
+    "missing": "Falta el consumo de esta unidad: sin el de todas las unidades por consumo no se puede repartir"
+   },
+   "preview": {
+    "action": "Ver reparto",
+    "loading": "Calculando…",
+    "title": "Reparto con las reglas vigentes",
+    "basis": "Cómo se calcula",
+    "amount": "Le corresponde",
+    "none": "Con estos datos no se traslada nada a nadie.",
+    "noAmount": "Cargá primero el importe de la boleta.",
+    "error": "No se pudo calcular el reparto"
+   },
+   "skipped": {
+    "MissingConsumption": "no se reparte: falta el consumo de alguna unidad o todos son 0",
+    "ZeroShare": "no le toca pagar nada",
+    "PaidDirectly": "paga directo al ente"
+   }
   },
   "validation": {
    "amount": "Ingresá un importe válido (hasta 2 decimales)",

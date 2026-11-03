@@ -9,6 +9,22 @@ export interface ServiceBill {
   consumption: string | null;
   status: string;
   paidBy: string | null;
+  /** Datos que la planilla no edita y reenvía tal cual al corregir la boleta. */
+  nominalAmount?: string | null;
+  notes?: string | null;
+  unitConsumptions?: UnitConsumption[] | null;
+}
+
+/** Consumo de una unidad en la boleta (la API lo guarda por propiedad). */
+export interface UnitConsumption {
+  propertyId: string;
+  consumption: string;
+}
+
+/** Una unidad del edificio (o la propiedad de una regla por consumo) a la que se le carga su consumo. */
+export interface SheetUnit {
+  propertyId: string;
+  title: string;
 }
 
 /** Quién paga y cómo se reparte, resumido de la regla vigente de un contrato. */
@@ -20,6 +36,8 @@ export interface ChargeRuleSummary {
   tenantSharePct: string;
   fixedAmount: string | null;
   paymentPlan: string;
+  propertyId?: string | null;
+  propertyTitle?: string | null;
 }
 
 export interface SheetService {
@@ -38,6 +56,24 @@ export interface SheetRow {
   service: SheetService;
   bills: ServiceBill[];
   rules: ChargeRuleSummary[];
+  units?: SheetUnit[];
+}
+
+/** Una parte del reparto que devuelve la vista previa (`POST /service-bills/preview`). */
+export interface PreviewAllocation {
+  contractId: string;
+  payer: string;
+  amount: string;
+  chargePeriod: string;
+  installmentNo: number;
+  installmentsTotal: number;
+  basis: string;
+}
+
+export interface PreviewResponse {
+  allocations: PreviewAllocation[];
+  skipped: { contractId: string; reason: string }[];
+  warnings: { contractId: string; code: string }[];
 }
 
 export interface SheetResponse {
@@ -105,4 +141,66 @@ export function parseDateInput(raw: string): string | null {
   const date = new Date(Date.UTC(year, month - 1, day));
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+/** Texto de consumo por unidad, por propiedad. */
+export type UnitValues = Record<string, string>;
+
+/** Los consumos que la boleta ya trae, listos para editar. */
+export function initialUnitValues(bill?: ServiceBill | null): UnitValues {
+  return Object.fromEntries((bill?.unitConsumptions ?? []).map((u) => [u.propertyId, String(Number(u.consumption))]));
+}
+
+const thousandths = (value: string) => Math.round(Number(value) * 1000);
+const fromThousandths = (n: number) => String(n / 1000);
+
+export interface UnitCheck {
+  /** Lo que se envía: las unidades con consumo cargado. */
+  entries: UnitConsumption[];
+  /** Por propiedad: `invalid` (no es un número) o `missing` (falta y la boleta se reparte por consumo entre varias). */
+  errors: Record<string, 'invalid' | 'missing'>;
+  /** Suma de los consumos cargados. */
+  sum: string;
+  /** El consumo total de la boleta es menor a la suma: el reparto usa la suma. */
+  totalBelowSum: boolean;
+  /** Consumo total de la boleta que no está en ninguna unidad (áreas comunes): no se traslada. */
+  untransferred: string | null;
+}
+
+/** Propiedades con regla por consumo: si son varias, a todas les tiene que llegar su consumo. */
+export function consumptionRuleProperties(row: SheetRow): string[] {
+  return row.rules
+    .filter((rule) => rule.splitMode === 'Consumo' && rule.propertyId)
+    .map((rule) => rule.propertyId as string);
+}
+
+/** Valida y arma el consumo por unidad de una boleta; `total` es el consumo total escrito (puede estar vacío). */
+export function checkUnitConsumptions(row: SheetRow, values: UnitValues, total: string): UnitCheck {
+  const errors: UnitCheck['errors'] = {};
+  const entries: UnitConsumption[] = [];
+  let sum = 0;
+  for (const [propertyId, raw] of Object.entries(values)) {
+    if (raw.trim() === '') continue;
+    const parsed = parseConsumptionInput(raw);
+    if (parsed === null) errors[propertyId] = 'invalid';
+    else {
+      entries.push({ propertyId, consumption: parsed });
+      sum += thousandths(parsed);
+    }
+  }
+  const ruled = consumptionRuleProperties(row);
+  if (ruled.length > 1) {
+    for (const propertyId of ruled) {
+      if (!errors[propertyId] && !entries.some((e) => e.propertyId === propertyId)) errors[propertyId] = 'missing';
+    }
+  }
+  const totalParsed = total.trim() === '' ? null : parseConsumptionInput(total);
+  const totalValue = totalParsed === null ? null : thousandths(totalParsed);
+  return {
+    entries,
+    errors,
+    sum: fromThousandths(sum),
+    totalBelowSum: totalValue !== null && totalValue < sum,
+    untransferred: totalValue !== null && totalValue > sum ? fromThousandths(totalValue - sum) : null,
+  };
 }
