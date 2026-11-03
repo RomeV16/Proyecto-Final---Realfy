@@ -644,4 +644,160 @@ describe('Boletas de servicios y reglas de traslado (e2e)', () => {
     expect(res.body.results[0]).toMatchObject({ status: 'error', error: { code: 'SERVICE_NOT_FOUND' } });
     expect((await get(tokenB, '/service-bills/sheet?period=2026-11').expect(200)).body.rows).toHaveLength(0);
   });
+
+  // ─── Consumo por unidad ───
+
+  /** Un edificio con tres unidades (C vacía, sin contrato), el servicio de agua y dos contratos con regla por consumo. */
+  async function buildingWithWater(token: string) {
+    const building = (await post(token, '/properties', { title: 'Edificio', type: PropertyType.Departamento }).expect(201)).body;
+    const unit = async (title: string) =>
+      (
+        await post(token, '/properties', { title, type: PropertyType.Departamento, parentPropertyId: building.id }).expect(201)
+      ).body;
+    const [unitA, unitB, unitC] = [await unit('Unidad A'), await unit('Unidad B'), await unit('Unidad C')];
+    const contractA = await createContract(token, {}, unitA.id);
+    const contractB = await createContract(token, {}, unitB.id);
+    const water = await createService(token, building.id, { serviceType: 'Agua' });
+    await addRule(token, contractA, water.id, { splitMode: 'Consumo', payer: 'Propietario' });
+    await addRule(token, contractB, water.id, { splitMode: 'Consumo', payer: 'Inmobiliaria' });
+    return { building, unitA, unitB, unitC, contractA, contractB, water };
+  }
+
+  it('CP-1147 — la vista previa da el mismo reparto que queda guardado al cargar la boleta', async () => {
+    const { tokens } = await agency('bol-13');
+    const token = tokens[UserRole.Admin];
+    const { unitA, unitB, unitC, contractA, contractB, water } = await buildingWithWater(token);
+    const row = {
+      serviceId: water.id,
+      period: '2026-11',
+      amount: '1000.00',
+      unitConsumptions: [
+        { propertyId: unitA.id, consumption: '100' },
+        { propertyId: unitB.id, consumption: '200' },
+        { propertyId: unitC.id, consumption: '0' },
+      ],
+    };
+    const preview = (await post(token, '/service-bills/preview', row).expect(200)).body;
+    // Sin consumo total de la boleta: 100/300 y 200/300 de 1000 = 333,33 + 666,67.
+    expect(preview.allocations.map((a: any) => [a.contractId, a.amount, a.chargePeriod])).toEqual(
+      expect.arrayContaining([
+        [contractA.id, '333.33', '2026-11-01'],
+        [contractB.id, '666.67', '2026-11-01'],
+      ]),
+    );
+    expect((await get(token, '/service-bills?period=2026-11').expect(200)).body.total).toBe(0);
+
+    const billId = (await bulk(token, [row]).expect(200)).body.results[0].billId;
+    const stored = (await get(token, `/service-bills/${billId}/allocations`).expect(200)).body.stored;
+    expect(Object.fromEntries(stored.map((a: any) => [a.contractId, a.amount]))).toEqual({
+      [contractA.id]: '333.33',
+      [contractB.id]: '666.67',
+    });
+  });
+
+  it('CP-1148 — el consumo de una unidad vacía ocupa su parte (DEF-106) y una unidad en 0 no frena el reparto (DEF-105)', async () => {
+    const { tokens } = await agency('bol-14');
+    const token = tokens[UserRole.Admin];
+    const { unitA, unitB, unitC, contractA, contractB, water } = await buildingWithWater(token);
+    // La unidad C no tiene contrato: su consumo (100) entra en el total y A y B pagan 100/400 y 200/400.
+    const withVacant = (await post(token, '/service-bills/preview', {
+      serviceId: water.id,
+      period: '2026-11',
+      amount: '1000.00',
+      unitConsumptions: [
+        { propertyId: unitA.id, consumption: '100' },
+        { propertyId: unitB.id, consumption: '200' },
+        { propertyId: unitC.id, consumption: '100' },
+      ],
+    }).expect(200)).body;
+    expect(Object.fromEntries(withVacant.allocations.map((a: any) => [a.contractId, a.amount]))).toEqual({
+      [contractA.id]: '250.00',
+      [contractB.id]: '500.00',
+    });
+    // A en 0: no paga y B se lleva toda la boleta.
+    const zero = (await post(token, '/service-bills/preview', {
+      serviceId: water.id,
+      period: '2026-11',
+      amount: '1000.00',
+      unitConsumptions: [
+        { propertyId: unitA.id, consumption: '0' },
+        { propertyId: unitB.id, consumption: '200' },
+      ],
+    }).expect(200)).body;
+    expect(zero.allocations.map((a: any) => [a.contractId, a.amount])).toEqual([[contractB.id, '1000.00']]);
+    expect(zero.skipped).toEqual([expect.objectContaining({ contractId: contractA.id, reason: 'ZeroShare' })]);
+  });
+
+  it('CP-1149 — sin el consumo de alguna unidad por consumo no se reparte; el total en 0 tampoco', async () => {
+    const { tokens } = await agency('bol-15');
+    const token = tokens[UserRole.Admin];
+    const { unitA, unitB, water } = await buildingWithWater(token);
+    const missing = (await post(token, '/service-bills/preview', {
+      serviceId: water.id,
+      period: '2026-11',
+      amount: '1000.00',
+      unitConsumptions: [{ propertyId: unitA.id, consumption: '100' }],
+    }).expect(200)).body;
+    expect(missing.allocations).toEqual([]);
+    expect(missing.skipped.map((s: any) => s.reason)).toEqual(['MissingConsumption', 'MissingConsumption']);
+    const zeros = (await post(token, '/service-bills/preview', {
+      serviceId: water.id,
+      period: '2026-11',
+      amount: '1000.00',
+      unitConsumptions: [
+        { propertyId: unitA.id, consumption: '0' },
+        { propertyId: unitB.id, consumption: '0' },
+      ],
+    }).expect(200)).body;
+    expect(zeros.allocations).toEqual([]);
+  });
+
+  it('CP-1150 — una unidad ajena al edificio o repetida se rechaza, en la vista previa y en la carga', async () => {
+    const { tokens } = await agency('bol-16');
+    const token = tokens[UserRole.Admin];
+    const { unitA, water } = await buildingWithWater(token);
+    const other = (await post(token, '/properties', { title: 'Otro edificio', type: PropertyType.Departamento }).expect(201)).body;
+    const foreign = { serviceId: water.id, period: '2026-11', amount: '10.00', unitConsumptions: [{ propertyId: other.id, consumption: '1' }] };
+    const res = await post(token, '/service-bills/preview', foreign).expect(400);
+    expect(res.body.error).toBe('UNIT_NOT_IN_BUILDING');
+    expect((await bulk(token, [foreign]).expect(200)).body.results[0]).toMatchObject({
+      status: 'error',
+      error: { code: 'UNIT_NOT_IN_BUILDING' },
+    });
+    const repeated = {
+      serviceId: water.id,
+      period: '2026-11',
+      amount: '10.00',
+      unitConsumptions: [
+        { propertyId: unitA.id, consumption: '1' },
+        { propertyId: unitA.id, consumption: '2' },
+      ],
+    };
+    await post(token, '/service-bills/preview', repeated).expect(400);
+    await post(token, '/service-bills/preview', { serviceId: '11111111-1111-4111-8111-111111111111', period: '2026-11', amount: '1.00' }).expect(404);
+  });
+
+  it('CP-1151 — la planilla del mes lista las unidades del edificio y la propiedad de cada regla', async () => {
+    const { tokens } = await agency('bol-17');
+    const token = tokens[UserRole.Admin];
+    const { unitA, unitB, unitC, contractA } = await buildingWithWater(token);
+    const row = (await get(token, '/service-bills/sheet?period=2026-11').expect(200)).body.rows[0];
+    expect(row.units.map((u: any) => u.propertyId).sort()).toEqual([unitA.id, unitB.id, unitC.id].sort());
+    expect(row.rules.find((r: any) => r.contractId === contractA.id)).toMatchObject({
+      propertyId: unitA.id,
+      propertyTitle: 'Unidad A',
+    });
+  });
+
+  it('CP-1152 — la vista previa es solo de facturación y de la propia inmobiliaria', async () => {
+    const a = await agency('bol-18a');
+    const b = await agency('bol-18b');
+    const { water } = await buildingWithWater(a.tokens[UserRole.Admin]);
+    const body = { serviceId: water.id, period: '2026-11', amount: '10.00' };
+    const writers = [UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones];
+    for (const role of ALL_ROLES) {
+      await post(a.tokens[role], '/service-bills/preview', body).expect(writers.includes(role) ? 200 : 403);
+    }
+    await post(b.tokens[UserRole.Admin], '/service-bills/preview', body).expect(404);
+  });
 });
