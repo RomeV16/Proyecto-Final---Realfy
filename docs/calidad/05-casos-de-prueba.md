@@ -1041,3 +1041,20 @@ Banda CP-1430 a CP-1439. ADR-0018. Remitentes y PDF sintéticos.
 | CP-1312 | Reporte de pendientes (unitario) | lista solo las partes sin facturar de moneda distinta; con `contractId` y mes filtra | `service-bills.service.spec.ts::CP-1312` | verde (3 nov) |
 | CP-1313 | Pantalla de liquidaciones | tras generar, muestra cuántas liquidaciones salieron con avisos | `LiquidacionList.screen.test.tsx::CP-1313` | verde (3 nov) |
 
+
+
+## Proveedor y cuenta normalizada en servicios (piloto, uso real)
+
+Banda CP-1320 a CP-1339. Origen: uso real del piloto (los servicios migrados no tenían proveedor y la cuenta se guardaba como venía de la fuente, distinta de la del PDF). ADR-0018 (cuenta normalizada) y ADR-0015 (servicios del lote). Datos sintéticos.
+
+| ID | Caso | Resultado esperado | Automatización | Estado |
+|---|---|---|---|---|
+| CP-1320 | Normalización de la cuenta por proveedor | `1100-0000-0001` en Rentas da `110000000001`; `123` en Aguas Cordobesas da `000123`; `12 345-67` en EPEC da `1234567`; `12.345.678` en Ecogas da `12345678`; ` i0000001 ` en la Municipalidad da `I0000001`; `ab-12.3 4` en el genérico da `AB1234` | `bills-intake/providers/provider-account.spec.ts` | verde (3 nov) |
+| CP-1321 | Errores de proveedor y cuenta | proveedor fuera del catálogo `UNKNOWN_PROVIDER_KEY`; tipo de servicio que el proveedor no emite `PROVIDER_SERVICE_TYPE_MISMATCH`; cuenta fuera de formato `INVALID_PROVIDER_ACCOUNT` | `bills-intake/providers/provider-account.spec.ts` | verde (3 nov) |
+| CP-1322 | Edición parcial | cambiar sólo la cuenta la valida con el proveedor ya guardado; cambiar sólo el importe u otro campo no revalida la cuenta guardada; sin proveedor la cuenta no se toca | `bills-intake/providers/provider-account.spec.ts`, `e2e/boletas-automaticas.e2e-spec.ts::CP-1322` | verde (3 nov) |
+| CP-1323 | Lote: `providerKey` en servicios | una fila con `providerKey` y la cuenta `1100-0000-0001` se crea con la cuenta `110000000001`; sin `providerKey` la cuenta se guarda tal cual | `import-export/batch/service.importer.spec.ts`, `e2e/import-batches.e2e-spec.ts::CP-1323` | verde (3 nov) |
+| CP-1324 | Lote: errores de fila con código estable | clave desconocida `UNKNOWN_PROVIDER_KEY` (campo `providerKey`), cuenta inválida `INVALID_PROVIDER_ACCOUNT` (campo `accountNumber`), tipo ajeno `PROVIDER_SERVICE_TYPE_MISMATCH` (campo `serviceType`); el resto del lote se carga | `import-export/batch/service.importer.spec.ts`, `e2e/import-batches.e2e-spec.ts::CP-1323` | verde (3 nov) |
+| CP-1325 | Lote: reimportar es idempotente | reenviar la misma cuenta con otro formato (`1100 00000001`) es `SinCambios`; una cuenta nueva sin `providerKey` en la fila se normaliza con el proveedor ya guardado | `import-export/batch/service.importer.spec.ts`, `e2e/import-batches.e2e-spec.ts::CP-1323` | verde (3 nov) |
+| CP-1326 | Búsqueda simétrica del servicio | un servicio con cuenta normalizada se encuentra con la cuenta del documento en otro formato (Rentas `1100-0000-0001`, Aguas `123`); sin proveedor reconocido se prueba la cuenta tal cual y la normalizada | `bills-intake/bill-intake.service.spec.ts` | verde (3 nov) |
+| CP-1327 | De punta a punta: servicio importado y boleta | un servicio de la Municipalidad importado con la cuenta ` 0123456789-01200 ` se guarda como `012345678901200`; el PDF sintético trae la cuenta pegada y da de alta la boleta sobre ese servicio (`Procesada`) | `e2e/boletas-automaticas.e2e-spec.ts::CP-1327` | verde (3 nov) |
+| CP-1328 | Forma del campo en el contrato del lote | `providerKey` es opcional, acepta `null` y rechaza texto vacío; la pertenencia al catálogo se valida al importar | `packages/shared/src/schemas/import-batch.schema.spec.ts` | verde (3 nov) |

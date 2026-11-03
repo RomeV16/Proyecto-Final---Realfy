@@ -93,6 +93,7 @@ extracciones y los mapeos se quedan en scripts externos.**
   después de los contratos (personas, propiedades, contratos, servicios, reglas),
   así que una regla puede apuntar a un servicio del mismo lote. Un servicio de otra
   propiedad (que no sea la del contrato ni su edificio) es `SERVICE_NOT_APPLICABLE`.
+- **Proveedor del servicio.** La fila de servicio acepta `providerKey` (opcional, `null` lo quita). Se valida contra el catálogo de ADR-0018 en el importador, no en el esquema compartido, para que una clave desconocida sea un error de fila con código estable (`UNKNOWN_PROVIDER_KEY`) y no un rechazo de la forma. Con proveedor, la cuenta se guarda normalizada con el esquema de ese proveedor (la misma función del alta manual); cuenta inválida es `INVALID_PROVIDER_ACCOUNT` y tipo de servicio ajeno, `PROVIDER_SERVICE_TYPE_MISMATCH`. Reimportar la misma cuenta con otro formato es `SinCambios`.
 - **Los datos importados no disparan efectos.** Un contrato importado como
   `Activo` no pasa por la activación: no envía avisos ni genera nada más que sus
   datos; solo deja la operación de alquiler de la propiedad en `Alquilado`, por el
