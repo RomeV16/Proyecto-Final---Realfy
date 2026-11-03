@@ -237,8 +237,15 @@ export class TenantsService {
 
   /** Reemplaza los valores por defecto; lo que falte se completa con los del código. */
   async updateOperationalDefaults(data: unknown) {
-    const validated = parseOrThrow(OperationalDefaultsSchema, data, 'Invalid operational defaults');
-    return this.operationalDefaults.set(this.requireTenantId(), validated);
+    const tenantId = this.requireTenantId();
+    // La publicación (portales, privacidad) se edita en su propia pantalla: el
+    // formulario de valores por defecto no la manda y no debe borrarla.
+    const body =
+      data && typeof data === 'object' && !('publication' in data)
+        ? { ...data, publication: (await this.operationalDefaults.get(tenantId)).publication }
+        : data;
+    const validated = parseOrThrow(OperationalDefaultsSchema, body, 'Invalid operational defaults');
+    return this.operationalDefaults.set(tenantId, validated);
   }
 
   /** Recursos sensibles que el rol del usuario actual puede leer. */

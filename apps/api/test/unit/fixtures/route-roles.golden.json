@@ -756,6 +756,26 @@
     "Admin",
     "Gerente"
   ],
+  "src/modules/listings/listings.controller.ts#ListingsController.adCopy": null,
+  "src/modules/listings/listings.controller.ts#ListingsController.findForProperty": null,
+  "src/modules/listings/listings.controller.ts#ListingsController.getPortals": null,
+  "src/modules/listings/listings.controller.ts#ListingsController.overview": null,
+  "src/modules/listings/listings.controller.ts#ListingsController.pauseUnavailable": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Ventas"
+  ],
+  "src/modules/listings/listings.controller.ts#ListingsController.updatePortals": [
+    "Admin",
+    "Gerente"
+  ],
+  "src/modules/listings/listings.controller.ts#ListingsController.upsertForProperty": [
+    "Admin",
+    "Gerente",
+    "Marketing",
+    "Ventas"
+  ],
   "src/modules/messaging/messaging.controller.ts#OutboxController.list": [
     "Admin",
     "Gerente",
@@ -1098,6 +1118,7 @@
     "Gerente"
   ],
   "src/modules/public/public.controller.ts#PublicController.getProfile": null,
+  "src/modules/public/public.controller.ts#PublicController.getSitemap": null,
   "src/modules/public/public.controller.ts#PublicController.listProperties": null,
   "src/modules/public/public.controller.ts#PublicController.getProperty": null,
   "src/modules/public/public.controller.ts#PublicController.createInquiry": null,
