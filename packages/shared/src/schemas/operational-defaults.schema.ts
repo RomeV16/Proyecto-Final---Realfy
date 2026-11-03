@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DepositHolder, FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
+import { DepositHolder, SalesDepositHolder, FirstDueMode, FixedDiscountProration, MidMonthAdjustmentMode, ProrationMode, UpfrontBasis } from '../enums';
 import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settlement-engine';
 import { ReceiptSeriesMode } from '../cash';
 import { LessorChargeTiming } from '../owner-ledger';
@@ -155,6 +155,23 @@ export const OperationalDefaultsSchema = z
       .default({}),
     /** Publicación: portales, privacidad del aviso y del micrositio, aviso de vencimiento. */
     publication: PublicationSettingsSchema.default({}),
+
+    /**
+     * Ventas (D14): convenciones que la inmobiliaria no fijó. Solo se registran; el sistema
+     * nunca devuelve ni retiene una seña por su cuenta (las reglas de pérdida y devolución
+     * las define la inmobiliaria con su abogado).
+     */
+    sales: z
+      .object({
+        /** Días de vigencia de una reserva cuando no se indica vencimiento. */
+        reservationDays: z.number().int().min(1).max(90).default(7),
+        /** Quién guarda el dinero de una reserva o seña cuando no se indica. */
+        defaultDepositHolder: z.nativeEnum(SalesDepositHolder).default(SalesDepositHolder.Inmobiliaria),
+        /** Si pasar a boleto exige tener tildada la documentación obligatoria del inmueble. */
+        requireDocsForBoleto: z.boolean().default(true),
+      })
+      .strict()
+      .default({}),
     /** Semáforo de vencimiento de contratos: rojo a los N días o menos del fin, amarillo hasta los M días. */
     expiryLight: z
       .object({
