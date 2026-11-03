@@ -122,7 +122,8 @@ function DefaultsForm({
   const handleSubmit = submit(async (data) => {
     const result = await apiClient<OperationalDefaults>('/tenants/me/operational-defaults', {
       method: 'PUT',
-      body: JSON.stringify(operationalDefaultsFromForm(data)),
+      // El formulario no edita las convenciones de depósitos: se reenvían tal como están guardadas.
+      body: JSON.stringify({ ...operationalDefaultsFromForm(data), deposits: saved.deposits }),
     });
     onSaved(result);
     toast.success(t('saved'));
