@@ -26,6 +26,45 @@ Distingue dos cosas que no deben confundirse: lo que el sistema **hace hoy**, ve
 | Auditoría | Usuario, acción, entidad, cambios, dirección de red y agente de navegador de cada operación sensible | `AuditLog` |
 | Mensajería | Mensajes salientes (canal, dirección de destino, plantilla, variables del texto, estado de entrega y documento relacionado; el enlace de un solo uso de una invitación se oculta y se borra al terminar), consentimiento por canal (alta o baja, origen, fecha, dirección y quién lo registró) y mensajes de WhatsApp recibidos (número, texto y fecha) | `MessageOutbox`, `ContactConsent`, `InboundMessage` |
 
+### Lo que expone el sitio público
+
+El micrositio público de la inmobiliaria (`/p/<slug>` o su dominio propio) se
+sirve sin sesión, así que lo que devuelve es lo único del sistema que cualquier
+persona puede leer. Su alcance está acotado por diseño y por pruebas:
+
+| Dato | ¿Se expone? |
+|---|---|
+| Propiedades | Solo las que alguien publicó a propósito: una operación disponible con su aviso en el portal *micrositio* en *Publicado* y sin vencer. Una propiedad disponible que nadie marcó no aparece; al alquilarse, venderse o pausar el aviso, sale |
+| Tipo, superficie, ambientes, antigüedad, orientación, amenidades, descripción, fotos, precio y moneda de la operación | Sí |
+| Ciudad y provincia | Sí |
+| Calle y altura | **No**, salvo que la inmobiliaria desactive *Ocultar la dirección exacta* (por defecto está activada). Piso y departamento nunca |
+| Coordenadas | **No**, salvo que la inmobiliaria active *Mostrar un mapa*; en ese caso se devuelven redondeadas a unos 100 metros, nunca el punto exacto |
+| Propietarios, titulares, inquilinos, garantes, contratos, notas internas, importes de contratos | **Nunca**. La consulta no los selecciona |
+| Datos de la inmobiliaria | Nombre, provincia, logo y colores de marca. No el CUIT ni los datos de facturación |
+
+La descripción de una propiedad es texto libre y la carga el personal: la regla
+de uso es no escribir allí datos de contacto ni de terceros. El aviso para copiar
+a otros portales quita mails, teléfonos y links de ese texto, pero el micrositio
+muestra la descripción tal como está cargada.
+
+**Consulta del formulario.** La persona que escribe en el formulario entrega su
+nombre, apellido, correo o teléfono y un mensaje. Esos datos crean (o reutilizan,
+si el correo o el teléfono ya existían) una persona con rol *interesado* y un
+lead de la propia inmobiliaria; no salen a ningún tercero. El formulario está
+protegido con un campo señuelo contra programas automáticos y un límite de 10
+consultas por minuto por conexión, y la API valida todo lo que recibe con
+esquemas estrictos. El texto se muestra siempre escapado en el panel, nunca como
+HTML.
+
+**Aislamiento entre inmobiliarias.** Cada pedido público se resuelve a una sola
+inmobiliaria (por `slug` o por dominio) y toda consulta lleva ese filtro: la
+ficha de una propiedad de otra inmobiliaria responde 404 y el sitemap lista solo
+lo propio. Las pruebas de la API lo verifican.
+
+**Buscadores.** El sitio se publica con `sitemap.xml` y `robots.txt` para que se
+indexe: lo que está publicado es público a propósito. El panel y el ingreso no se
+indexan.
+
 ### Previsto para el piloto
 
 El ítem 33 del cronograma amplía la ficha de persona con tipo (física o jurídica), documento de identidad, domicilio, estado civil, nacionalidad, forma de cobro y varias cuentas bancarias con moneda, y agrega apoderados y locadores por contrato. Para los garantes se prevé registrar empleador e ingresos como parte de la evaluación de la garantía; hasta entonces esa información solo puede estar en los archivos adjuntos. Cada ampliación actualiza `tesis/03-modelo-datos.md` y este documento en el mismo PR.

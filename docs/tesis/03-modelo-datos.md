@@ -106,7 +106,7 @@ Inmueble administrado por la inmobiliaria.
 - `id`, `tenantId`, `title`, `description`, `type`, `street`, `number`, `floor`, `apartment`, `city`, `province`, `zipCode`, `country`, `latitude`, `longitude`, `area`, `rooms`, `bedrooms`, `bathrooms`, `garages`, `age`, `orientation`, `amenities`, `price`, `currency`, `cadastralId`, `parentPropertyId`, `externalRef`, `isActive`.
 - `cadastralId` es la nomenclatura catastral (texto libre). `parentPropertyId` apunta al edificio que contiene la unidad (relación `edificio`, `onDelete: SetNull`): sirve para repartir gastos por consumo; no puede ser la propia propiedad, debe ser de la misma inmobiliaria y no puede formar un ciclo (`PROPERTY_SELF_PARENT`, `PARENT_PROPERTY_NOT_FOUND`, `PROPERTY_PARENT_CYCLE`). `externalRef` sigue la misma regla que en `Person`, con `@@unique([tenantId, externalRef])`.
 - La dirección está desagregada en columnas, no en un campo único. La propiedad **no** tiene un estado de disponibilidad ni un propietario directo: el estado vive en cada `PropertyOperation` y la titularidad se expresa como una `PersonRoleAssignment` de rol propietario apuntando a la propiedad.
-- Relación 1-N con `PropertyOperation`, `PropertyMedia`, `PriceHistory`, `PropertyValuation`, `Service`, `Ticket`, `LeadVisit`.
+- Relación 1-N con `PropertyOperation`, `PropertyListing`, `PropertyMedia`, `PriceHistory`, `PropertyValuation`, `Service`, `Ticket`, `LeadVisit`.
 
 ### PropertyOperation
 
@@ -114,6 +114,15 @@ Operación habilitada sobre la propiedad, con su propio estado.
 
 - `id`, `tenantId`, `propertyId`, `operationType`, `state`, `price`, `currency`.
 - `operationType` es alquiler, alquiler temporario o venta. `state` recorre la máquina de estados de disponibilidad: borrador, disponible, reservado, alquilado, vendido, ocupado, suspendido y archivado. Que el estado esté acá y no en la propiedad es lo que permite tener un mismo inmueble publicado en venta y alquilado a la vez.
+
+### PropertyListing
+
+Aviso de una operación en un portal de publicación o en el micrositio propio (ítem 44).
+
+- `id`, `tenantId`, `propertyId`, `operationType`, `portal`, `status`, `externalUrl`, `externalCode`, `publishedAt`, `expiresAt`, `updatedByUserId`.
+- Una fila por propiedad, operación y portal (`@@unique([propertyId, operationType, portal])`). `portal` es la clave del portal (los configura cada inmobiliaria en `Tenant.operationalDefaults.publication.portals`) o `micrositio`, el sitio propio, que siempre existe. `status` es no publicado, publicado, pausado o vencido; un aviso publicado con `expiresAt` pasado se lee como vencido sin que nadie lo cambie.
+- Solo las operaciones con el aviso de `micrositio` publicado y sin vencer se muestran en el sitio público. Se borra en cascada con la propiedad; `updatedByUserId` queda en nulo si se borra el usuario.
+- Se guarda en una tabla y no en el JSON de la inmobiliaria porque hay que consultarla por estado y vencimiento, borrarla con la propiedad y escribirla desde varias personas a la vez sin pisar cambios. Lo que sí vive en el JSON de la inmobiliaria es la configuración de portales y de privacidad.
 
 ### PropertyMedia
 

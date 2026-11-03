@@ -851,16 +851,47 @@ delimitado por la persona a la que pertenece el token.
 El token de refresco del portal rota en cada uso, y reutilizar uno ya revocado
 revoca todos los de esa persona: es la detección de robo de token.
 
+## Publicación
+
+Estado de cada propiedad en cada portal, aviso listo para copiar y resumen de lo
+que falta publicar. Un aviso es una fila por propiedad, operación y portal
+(`property_listings`); el portal `micrositio` es el sitio propio y siempre
+existe, los demás se configuran por inmobiliaria en
+`operationalDefaults.publication`. La publicación en Zonaprop, Argenprop,
+MercadoLibre y La Voz es manual: ninguno ofrece una interfaz utilizable desde acá
+(ver `tesis/01-alcance-y-objetivos.md`), así que la API solo registra el estado.
+
+| Método | Ruta | Para qué | Acceso |
+|---|---|---|---|
+| GET | `/properties/:id/listings` | Estado de la propiedad en cada portal: operaciones, portales, avisos con estado vigente (un aviso publicado y vencido sale `Vencido`), enlace y quién lo actualizó. | Autenticado |
+| PUT | `/properties/:id/listings` | Guarda uno o más avisos (`{ listings: [{ operationType, portal, status, externalUrl?, externalCode?, publishedAt?, expiresAt? }] }`). 400 `PORTAL_UNKNOWN`, `OPERATION_NOT_FOUND`, `EXPIRY_IN_PAST` o URL que no es http(s); 409 `OPERATION_NOT_PUBLISHABLE` (solo una operación Disponible o Reservada se publica), `PORTAL_DISABLED`. | Admin, Gerente, Ventas, Marketing |
+| GET | `/properties/:id/ad-copy` | Aviso para copiar: `?portal=` (por defecto `micrositio`) y `?operation=`. Devuelve título, descripción, límites del portal, fotos en orden de carga y advertencias. | Autenticado |
+| GET | `/listings/overview` | Disponibles sin publicar, por vencer, vencidos y publicados de lo que ya no está disponible, con totales y avisos por portal. | Autenticado |
+| POST | `/listings/pause-unavailable` | Pasa a `Pausado` los avisos publicados de operaciones que ya no están disponibles o de propiedades dadas de baja. | Admin, Gerente, Ventas, Marketing |
+| GET | `/listings/portals` | Portales configurados, privacidad (`hideExactAddress`, `showMap`) y días de aviso (`expiryWarnDays`). | Autenticado |
+| PUT | `/listings/portals` | Reemplaza esa configuración. `PUT /tenants/me/operational-defaults` no la borra si el cuerpo no la trae. | Admin, Gerente |
+
+El aviso para copiar se arma con plantillas deterministas, sin servicios
+externos. Nunca usa el título interno de la ficha ni datos de propietarios o
+inquilinos, quita mails, teléfonos y links del texto libre, y muestra la calle y
+la altura solo si `hideExactAddress` es falso.
+
 ## Micrositio público
 
 Estas rutas no requieren ninguna sesión. La inmobiliaria se resuelve por su
 `slug`, que un guard propio traduce leyendo por fuera del filtro por
 inmobiliaria, porque en ese momento todavía no hay —ni va a haber— contexto de
-sesión.
+sesión. Solo se devuelve lo que alguien publicó: una operación `Disponible` con
+su aviso en el portal `micrositio` en `Publicado` y sin vencer. Nunca se
+devuelven propietarios, inquilinos ni notas internas, y la calle, la altura y las
+coordenadas solo si la configuración de publicación lo permite (las coordenadas,
+redondeadas a unos 100 m). La web resuelve la inmobiliaria por dominio con
+`MICROSITE_HOST_MAP` o `MICROSITE_BASE_DOMAIN` (ver `despliegue.md`).
 
 | Método | Ruta | Para qué | Acceso |
 |---|---|---|---|
 | GET | `/public/:slug` | Perfil público de la inmobiliaria. | Público |
-| GET | `/public/:slug/properties` | Propiedades publicadas, filtrables por operación, tipo y ciudad. | Público |
+| GET | `/public/:slug/properties` | Propiedades publicadas, filtrables por operación, tipo, zona (`city`) y rango de precio (`minPrice`, `maxPrice`, sobre el precio de la operación). | Público |
 | GET | `/public/:slug/properties/:id` | Ficha de una propiedad publicada. | Público |
-| POST | `/public/:slug/inquiries` | Consulta del formulario, que entra como lead. | Público, 10/min |
+| GET | `/public/:slug/sitemap` | Ids y fecha de cambio de lo publicado, para el `sitemap.xml`. | Público |
+| POST | `/public/:slug/inquiries` | Consulta del formulario, que entra como lead (origen `WebInquiry`; la bandeja de consultas la toma de ahí). No se escribe en `inbound_messages` porque esa tabla solo admite los canales `Email` y `WhatsApp` y exige el id del proveedor; sumar un canal web exigiría una migración de enum sin ganancia, ya que el interesado ya tiene responsable, embudo y seguimiento. El campo `website` es un señuelo: lleno, se responde 201 igual y no se guarda nada. | Público, 10/min |
