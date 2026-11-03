@@ -67,7 +67,7 @@ interface Condition {
 type Node =
   | { kind: 'text'; text: string }
   | { kind: 'var'; name: string; raw: string }
-  | { kind: 'if'; cond: Condition; then: Node[]; otherwise: Node[]; at: number }
+  | { kind: 'if'; cond: Condition; whenTrue: Node[]; whenFalse: Node[]; at: number }
   | { kind: 'each'; list: string; alias: string; body: Node[]; at: number };
 
 interface Frame {
@@ -112,7 +112,7 @@ function parse(source: string, options: TemplateOptions): Node[] {
   const top = (): Frame => stack[stack.length - 1];
   const target = (): Node[] => {
     const f = top();
-    if (f.kind === 'si') return f.inElse ? (f.node as Extract<Node, { kind: 'if' }>).otherwise : (f.node as Extract<Node, { kind: 'if' }>).then;
+    if (f.kind === 'si') return f.inElse ? (f.node as Extract<Node, { kind: 'if' }>).whenFalse : (f.node as Extract<Node, { kind: 'if' }>).whenTrue;
     if (f.kind === 'cada') return (f.node as Extract<Node, { kind: 'each' }>).body;
     return f.nodes;
   };
@@ -159,7 +159,7 @@ function parse(source: string, options: TemplateOptions): Node[] {
 
     if (tag === '#si') {
       if (stack.length > MAX_DEPTH) fail(source, start, 'TOO_DEEP', `Los bloques están anidados a más de ${MAX_DEPTH} niveles`);
-      const node = { kind: 'if' as const, cond: parseCondition(source, start, arg), then: [], otherwise: [], at: start };
+      const node = { kind: 'if' as const, cond: parseCondition(source, start, arg), whenTrue: [], whenFalse: [], at: start };
       target().push(node);
       stack.push({ kind: 'si', nodes: [], node, at: start });
     } else if (tag === '#cada') {
@@ -253,7 +253,7 @@ function render(nodes: Node[], scope: Scope, source: string, budget: { left: num
     let piece = '';
     if (node.kind === 'text') piece = node.text;
     else if (node.kind === 'var') piece = lookup(scope, node.name) ?? node.raw;
-    else if (node.kind === 'if') piece = render(evaluate(node.cond, scope) ? node.then : node.otherwise, scope, source, budget);
+    else if (node.kind === 'if') piece = render(evaluate(node.cond, scope) ? node.whenTrue : node.whenFalse, scope, source, budget);
     else {
       const list = Object.hasOwn(scope.lists, node.list) ? scope.lists[node.list] : undefined;
       if (!list) fail(source, node.at, 'UNKNOWN_LIST', `La lista "${node.list}" no existe`);
@@ -315,8 +315,8 @@ export function extractTemplateVariables(template: string, options: TemplateOpti
       if (node.kind === 'var') add(node.name);
       else if (node.kind === 'if') {
         add(node.cond.name);
-        visit(node.then, aliases);
-        visit(node.otherwise, aliases);
+        visit(node.whenTrue, aliases);
+        visit(node.whenFalse, aliases);
       } else if (node.kind === 'each') visit(node.body, [...aliases, node.alias]);
     }
   };
