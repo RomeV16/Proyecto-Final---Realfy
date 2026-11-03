@@ -59,6 +59,7 @@ describe('OperationalDefaultsSchema', () => {
         compensationScope: 'CualquierLocador',
       },
       ownerAccounts: { statementCloseDay: null, lessorChargeTiming: 'AlGenerarEstado' },
+      invoicing: { scope: 'Alquiler', when: 'Manual', vatPct: 0 },
     });
   });
 

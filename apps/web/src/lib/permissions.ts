@@ -38,6 +38,12 @@ export const ACTION_ROLES = {
   'liquidaciones.readOnlyNotice': [Lectura],
   'invoices.emit': [Admin, Gerente, Liquidaciones],
   'fiscal.configure': [Admin, Gerente],
+  /** Facturación por cuenta del locador: ver comprobantes, cola y configuración. */
+  'lessorInvoicing.view': [Admin, Gerente, Liquidaciones, Lectura],
+  /** Facturar un cobro o un estado por cuenta del locador y emitir lo pendiente. */
+  'lessorInvoicing.emit': [Admin, Gerente, Liquidaciones],
+  /** Dar de alta el emisor delegado de un locador y definir qué y cuándo se factura. */
+  'lessorInvoicing.configure': [Admin, Gerente],
 
   // Reportes, morosidad y tablero
   'reports.view': [Admin, Gerente, Liquidaciones],

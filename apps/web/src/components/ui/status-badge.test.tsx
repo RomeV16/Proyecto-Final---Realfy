@@ -5,6 +5,7 @@ import {
   ContractStatus,
   ExpirationLight,
   FeeInstallmentStatus,
+  LessorInvoiceStatus,
   FeeStatus,
   ImportBatchStatus,
   ImportRowAction,
@@ -40,6 +41,7 @@ const ENUMS: Record<StatusDomain, object> = {
   vencimiento: ExpirationLight,
   honorario: FeeStatus,
   cuotaHonorario: FeeInstallmentStatus,
+  facturaLocador: LessorInvoiceStatus,
 };
 
 function lookup(messages: unknown, path: string): unknown {

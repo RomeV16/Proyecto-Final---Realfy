@@ -723,8 +723,8 @@ Auditoría de cada desencriptado de la clave privada del certificado, de forma q
 
 CUIT en nombre del cual la inmobiliaria puede facturar: el propio (`isSelf`) o el de un propietario que le delegó el servicio de facturación electrónica (WSFE) en ARCA.
 
-- `id`, `tenantId`, `cuit`, `businessName`, `fiscalCondition`, `delegationStatus` (Pending, Active, Revoked), `delegationVerifiedAt`, `delegationLastError`, `isSelf`, `isActive`.
-- Único por `(tenantId, cuit)`. Relación 1-N con `ArcaPuntoDeVenta` y con `Comprobante`.
+- `id`, `tenantId`, `cuit`, `businessName`, `fiscalCondition`, `delegationStatus` (Pending, Active, Revoked), `delegationVerifiedAt`, `delegationLastError`, `isSelf`, `isActive`, `personId?` (el locador cuya delegación usa; vacío = emisor propio de la inmobiliaria), `invoicingSettings?` (JSON: `scope`, `when`, `vatPct` que el locador pisa y `autoSince`, desde cuándo factura solo; vacío = valores de `operationalDefaults.invoicing`).
+- Único por `(tenantId, cuit)` y por `(tenantId, personId)`. Relación 1-N con `ArcaPuntoDeVenta` y con `Comprobante`; relación N-1 opcional con `Person` (`ON DELETE RESTRICT`). El emisor delegado no guarda clave: se factura con el certificado de la inmobiliaria (ADR-0017).
 
 ### ArcaPuntoDeVenta
 
@@ -745,7 +745,14 @@ Comprobante electrónico autorizado por ARCA (factura, nota de crédito o nota d
 
 - `id`, `tenantId`, `paymentId?`, `issuerId?`, `type` (`ComprobanteType`), `status` (Emitido, Anulado), `cbteTipo`, `puntoDeVenta`, `numero`, `docTipo`, `docNro`, `receptorName`, `receptorFiscalCondition`, `impTotal`, `impNeto`, `impIva`, `cae`, `caeFchVto`, `emittedAt`.
 - La combinación `(tenantId, issuerId, puntoDeVenta, cbteTipo, numero)` es única: AFIP numera por CUIT, punto de venta y tipo, sin huecos ni repeticiones, así que dos emisores de la misma inmobiliaria pueden tener el mismo número.
-- Relación N-1 opcional con `Payment` (si se borra el pago, `paymentId` queda en nulo: `ON DELETE SET NULL`) y N-1 con `ArcaIssuer`. `feeInstallmentId?` indica la cuota de honorario que factura (también `SET NULL`). Una nota de crédito referencia al comprobante que anula a través de `originalComprobanteId` (relación `ComprobanteNC`).
+- Relación N-1 opcional con `Payment` (si se borra el pago, `paymentId` queda en nulo: `ON DELETE SET NULL`) y N-1 con `ArcaIssuer`. `feeInstallmentId?` indica la cuota de honorario que factura (también `SET NULL`) y `ownerStatementId?` el estado de cuenta del locador del que sale la factura por su cuenta (`SET NULL`; con `paymentId`, el cobro). Una nota de crédito referencia al comprobante que anula a través de `originalComprobanteId` (relación `ComprobanteNC`).
+
+### LessorInvoiceJob
+
+Trabajo de facturación por cuenta del locador (ADR-0017): la factura (o la nota de crédito) que sale de un cobro o de un estado de cuenta para un locador. Es la cola de emisión y la garantía de que no se factura dos veces.
+
+- `id`, `tenantId`, `personId`, `sourceType` (`Payment`, `OwnerStatement`), `sourceId`, `kind` (`Factura`, `NotaCredito`), `status` (`Pendiente`, `Emitido`, `Fallido`, `Omitido`), `auto` (creado por la configuración y no por una persona), `comprobanteId?` (el primer comprobante emitido), `attempts`, `lastError?`, `lastAttemptAt?`.
+- Único por `(tenantId, sourceType, sourceId, personId, kind)`; índices `[tenantId, status]` y `[tenantId, personId]`. `personId` es `RESTRICT` y `comprobanteId`, `SET NULL`. `sourceId` no tiene clave foránea (apunta a un cobro o a un estado según `sourceType`). Un trabajo puede emitir varios comprobantes (uno por contrato); cada uno tiene su propia clave de idempotencia (`clientRequestId`). La unión de personas rechaza dos trabajos del mismo origen y tipo.
 
 ### LibroIvaExport
 

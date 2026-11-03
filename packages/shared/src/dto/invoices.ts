@@ -75,6 +75,7 @@ export const EmitInvoiceDtoSchema = z.object({
   // Business-side link
   paymentId: z.string().uuid().optional(),     // if linked to a Payment, for auto-associating
   feeInstallmentId: z.string().uuid().optional(), // cuota de honorario que se factura
+  ownerStatementId: z.string().uuid().optional(), // estado de cuenta del locador por cuyo alquiler se factura
   description: z.string().max(500).optional(), // line item description
   clientRequestId: z.string().uuid().optional(), // idempotency
 })

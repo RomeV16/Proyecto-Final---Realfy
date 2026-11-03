@@ -81,6 +81,9 @@ export {
   VisitStatus,
   VisitOutcome,
   ComprobanteType,
+  LessorInvoiceSource,
+  LessorInvoiceKind,
+  LessorInvoiceStatus,
   ComprobanteStatus,
   CommissionType,
   RendicionStatus,
@@ -1298,3 +1301,20 @@ export {
   ConfirmMoveOutSchema,
 } from './schemas/deposit.schema';
 export type { UpsertDepositInput, CreateMoveOutInput } from './schemas/deposit.schema';
+
+// Facturación por cuenta del locador
+export {
+  LessorInvoiceScope,
+  LessorInvoiceWhen,
+  LESSOR_INVOICE_VAT_RATES,
+  InvoicingSettingsSchema,
+  LessorInvoicingOverrideSchema,
+  DEFAULT_INVOICING_SETTINGS,
+  resolveInvoicingSettings,
+  SCOPE_ENTRY_TYPES,
+  lessorInvoiceAmount,
+  splitVatIncluded,
+  lessorInvoiceKey,
+} from './lessor-invoicing';
+export type { InvoicingSettings, LessorInvoicingOverride } from './lessor-invoicing';
+export { LessorInvoiceJobFilterSchema, LessorIssuerCreateSchema } from './schemas/lessor-invoicing.schema';

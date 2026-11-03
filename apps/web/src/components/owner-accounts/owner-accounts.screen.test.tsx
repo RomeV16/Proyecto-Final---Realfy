@@ -334,6 +334,25 @@ describe('Locadores: cuenta corriente', () => {
     expect(apiClient).toHaveBeenCalledWith(`/owners/${ANA}/ledger?currency=USD&page=1&limit=50`);
   });
 
+  it('la ruta del locador ofrece la solapa de facturación y la carga al elegirla', async () => {
+    const user = userEvent.setup();
+    mockApi();
+    renderEs(<OwnerLedgerPage />);
+    await screen.findByRole('heading', { name: 'Cuenta corriente de Ana Locadora' });
+    await user.click(screen.getByRole('tab', { name: 'Facturación' }));
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith(`/persons/${ANA}/invoicing-settings`));
+    expect(screen.queryByRole('heading', { name: 'Cuenta corriente de Ana Locadora' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Cuenta corriente' }));
+    expect(await screen.findByRole('heading', { name: 'Cuenta corriente de Ana Locadora' })).toBeInTheDocument();
+  });
+
+  it('sin permiso de facturación la ruta del locador no muestra solapas de facturación', async () => {
+    auth.role = 'Soporte';
+    mockApi();
+    renderEs(<OwnerLedgerPage />);
+    expect(screen.queryByRole('tab', { name: 'Facturación' })).not.toBeInTheDocument();
+  });
+
   it('sin moneda en la dirección arranca en pesos', async () => {
     search.currency = null;
     mockApi();

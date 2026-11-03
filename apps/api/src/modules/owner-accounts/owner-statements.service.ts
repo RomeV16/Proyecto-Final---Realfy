@@ -25,6 +25,7 @@ import { auditJson } from '../cash/cash.errors';
 import { pendingLessorCharges, postLessorCharges } from './lessor-charges';
 import { byLedgerOrder } from './ledger-posting';
 import type { LessorChargePosting } from './lessor-charges';
+import { enqueueCreditNotes } from '../invoices/lessor-invoice-queue';
 import { PROPERTY_LABEL } from './owner-ledger.service';
 import { OwnerStatementPdfService } from './owner-statement-pdf.service';
 
@@ -360,6 +361,8 @@ export class OwnerStatementsService {
       });
       if (later > 0) throw conflict('STATEMENT_NOT_LATEST', 'Annul the later statements of this lessor first');
       const released = await tx.ownerLedgerEntry.updateMany({ where: { statementId: id }, data: { statementId: null } });
+      // Las facturas emitidas por cuenta del locador por este estado quedan en cola para su nota de crédito.
+      const creditNotes = await enqueueCreditNotes(tx, tenantId, 'OwnerStatement', id);
       const after = await tx.ownerStatement.update({
         where: { id },
         data: { status: OwnerStatementStatus.Anulado, annulledAt: new Date(), annulReason: input.reason },
@@ -371,7 +374,7 @@ export class OwnerStatementsService {
         entityId: id,
         before: auditJson(statement),
         after: auditJson(after),
-        metadata: { operation: 'owner-statement-annul', reason: input.reason, released: released.count },
+        metadata: { operation: 'owner-statement-annul', reason: input.reason, released: released.count, creditNotes },
       });
       this.logger.log('Owner statement annulled', { id, released: released.count });
       return this.summary(after);

@@ -4,6 +4,7 @@ import { CompensationScope, LessorDirectOwes, PartialAllocation } from '../settl
 import { ReceiptSeriesMode } from '../cash';
 import { LessorChargeTiming } from '../owner-ledger';
 import { FeeVatMode } from '../enums';
+import { InvoicingSettingsSchema } from '../lessor-invoicing';
 import { ContractTotalMode, FeePayerChoice, StaffCommissionBase } from '../fee-engine';
 
 const pct = z.number().min(0).max(100);
@@ -118,6 +119,11 @@ export const OperationalDefaultsSchema = z
       })
       .strict()
       .default({}),
+    /**
+     * Facturación por cuenta del locador: qué se factura, cuándo y con qué IVA. Cada locador
+     * puede pisarlo. Conservador: solo el alquiler, sin IVA discriminado y a pedido.
+     */
+    invoicing: InvoicingSettingsSchema.default({}),
     /**
      * Incidencias y reparaciones. `preauthLimit`: hasta qué importe, en pesos, la
      * inmobiliaria actúa sin consultar al locador (0 = siempre se consulta).

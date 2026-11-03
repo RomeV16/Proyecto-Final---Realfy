@@ -29,6 +29,8 @@ export const MERGE_MODELS: Record<string, string> = {
   financialAccount: 'FinancialAccount',
   ownerLedgerEntry: 'OwnerLedgerEntry',
   ownerStatement: 'OwnerStatement',
+  arcaIssuer: 'ArcaIssuer',
+  lessorInvoiceJob: 'LessorInvoiceJob',
   fee: 'Fee',
   staffCommission: 'StaffCommission',
   ticket: 'Ticket',
@@ -84,6 +86,11 @@ export const MERGE_RULES: MergeRule[] = [
   { kind: 'conflict', delegate: 'ownerLedgerEntry', field: 'personId', scope: ['sourceType', 'sourceId', 'type'] },
   // Un estado por locador, mes y moneda: dos estados del mismo mes no se juntan solos.
   { kind: 'conflict', delegate: 'ownerStatement', field: 'personId', scope: ['period', 'currency'] },
+  // Un emisor delegado por persona: si las dos tienen uno, no se juntan solos (cada uno tiene su
+  // CUIT, sus puntos de venta y su numeración).
+  { kind: 'conflict', delegate: 'arcaIssuer', field: 'personId', scope: [] },
+  // La cola de facturación por cuenta del locador: una por origen y tipo.
+  { kind: 'conflict', delegate: 'lessorInvoiceJob', field: 'personId', scope: ['sourceType', 'sourceId', 'kind'] },
   { kind: 'conflict', delegate: 'tenantScore', field: 'personId', scope: [] },
   { kind: 'conflict', delegate: 'providerProfile', field: 'personId', scope: [] },
   { kind: 'conflict', delegate: 'inquilinoCredential', field: 'personId', scope: [] },

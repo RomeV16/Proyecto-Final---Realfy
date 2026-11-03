@@ -112,7 +112,7 @@ export class InvoicesService {
   /**
    * Resolve the punto de venta: explicit param → first active PdV for issuer.
    */
-  private async resolvePuntoDeVenta(issuerId: string, explicit?: number): Promise<number> {
+  async resolvePuntoDeVenta(issuerId: string, explicit?: number): Promise<number> {
     if (explicit !== undefined) return explicit;
 
     const pdv = await this.prisma.client.arcaPuntoDeVenta.findFirst({
@@ -137,6 +137,12 @@ export class InvoicesService {
     const where: any = {};
     if (filters.paymentId) where.paymentId = filters.paymentId;
     if (filters.feeInstallmentId) where.feeInstallmentId = filters.feeInstallmentId;
+    if (filters.ownerStatementId) where.ownerStatementId = filters.ownerStatementId;
+    // Emitida por cuenta de un locador: el emisor es el delegado de esa persona.
+    if (filters.personId) where.issuer = { personId: filters.personId };
+    if (filters.source === 'Payment') where.paymentId = { not: null };
+    if (filters.source === 'OwnerStatement') where.ownerStatementId = { not: null };
+    if (filters.source === 'FeeInstallment') where.feeInstallmentId = { not: null };
     if (filters.type) where.type = filters.type;
 
     const skip = (filters.page - 1) * filters.limit;
@@ -303,6 +309,7 @@ export class InvoicesService {
       issuerId: issuer.id,
       paymentId: dto.paymentId ?? null,
       feeInstallmentId: dto.feeInstallmentId ?? null,
+      ownerStatementId: dto.ownerStatementId ?? null,
       clientRequestId: dto.clientRequestId ?? null,
       type: mapCbteTipoToEnum(dto.cbteTipo),
       status: ComprobanteStatus.Emitido,

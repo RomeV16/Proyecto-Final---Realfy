@@ -7,6 +7,7 @@ import {
   ImportBatchStatus,
   ImportRowAction,
   LeadStatus,
+  LessorInvoiceStatus,
   LiquidacionStatus,
   OwnerStatementStatus,
   RendicionStatus,
@@ -48,7 +49,8 @@ export type StatusDomain =
   | 'estadoCuenta'
   | 'vencimiento'
   | 'honorario'
-  | 'cuotaHonorario';
+  | 'cuotaHonorario'
+  | 'facturaLocador';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -125,6 +127,15 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
       [FeeInstallmentStatus.Anulada]: 'neutral',
     },
     [FeeInstallmentStatus.Anulada],
+  ),
+  facturaLocador: entries(
+    'lessorInvoicing.statuses',
+    {
+      [LessorInvoiceStatus.Pendiente]: 'warning',
+      [LessorInvoiceStatus.Emitido]: 'success',
+      [LessorInvoiceStatus.Fallido]: 'danger',
+      [LessorInvoiceStatus.Omitido]: 'neutral',
+    },
   ),
   vencimiento: entries('followUps.lights', {
     [ExpirationLight.Green]: 'success',
