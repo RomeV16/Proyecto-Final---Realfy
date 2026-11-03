@@ -51,6 +51,7 @@ export const MERGE_MODELS: Record<string, string> = {
   messageOutbox: 'MessageOutbox',
   contactConsent: 'ContactConsent',
   inboundMessage: 'InboundMessage',
+  conversation: 'Conversation',
 };
 
 export const MERGE_RULES: MergeRule[] = [
@@ -89,6 +90,7 @@ export const MERGE_RULES: MergeRule[] = [
   // baja por dirección se sigue respetando aunque la persona cambie.
   { kind: 'repoint', delegate: 'messageOutbox', field: 'personId' },
   { kind: 'repoint', delegate: 'inboundMessage', field: 'personId' },
+  { kind: 'repoint', delegate: 'conversation', field: 'personId' },
   { kind: 'repoint', delegate: 'contactConsent', field: 'personId' },
   // El garante de un rol apunta a otra persona sin clave foránea.
   { kind: 'repoint', delegate: 'personRoleAssignment', field: 'guarantorForPersonId' },

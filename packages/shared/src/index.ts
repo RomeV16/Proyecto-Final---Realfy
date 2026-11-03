@@ -100,6 +100,9 @@ export {
   TicketQuoteStatus,
   ApprovalChannel,
   TicketPriority,
+  ConversationChannel,
+  ConversationStatus,
+  MessageDirection,
 } from './enums';
 
 // Schemas — usuarios y autenticacion
