@@ -14,7 +14,7 @@ import { TenantContextService } from '../../common/tenant/tenant-context.service
 import { ServiceBillsService, defaultInstallmentLabel, parsePeriod } from '../services/service-bills.service';
 import { BillDocumentStorage } from './bill-document-storage.service';
 import { PdfTextService } from './pdf-text.service';
-import { readBill } from './providers';
+import { normalizeAccount, readBill } from './providers';
 
 type Db = any;
 
@@ -231,8 +231,18 @@ export class BillIntakeService {
     providerKey: string | null,
     accountNumbers: string[],
   ): Promise<{ kind: 'one'; serviceId: string } | { kind: 'many' } | { kind: 'none' }> {
+    // La cuenta se busca con la misma normalización con la que se guarda (por proveedor).
+    // Sin proveedor (sólo para sugerir) se prueba también el valor tal cual, porque ese servicio no guarda cuenta normalizada.
+    const wanted = [
+      ...new Set(
+        accountNumbers.flatMap((n) => {
+          const normalized = normalizeAccount(providerKey ?? 'generico', n);
+          return providerKey ? [normalized ?? n] : [n, ...(normalized ? [normalized] : [])];
+        }),
+      ),
+    ];
     const services = await this.prisma.client.service.findMany({
-      where: { isActive: true, accountNumber: { in: accountNumbers }, ...(providerKey ? { providerKey } : {}) },
+      where: { isActive: true, accountNumber: { in: wanted }, ...(providerKey ? { providerKey } : {}) },
       select: { id: true },
       take: 2,
     });

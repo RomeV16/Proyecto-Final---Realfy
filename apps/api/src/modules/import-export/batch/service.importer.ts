@@ -1,5 +1,6 @@
 import { ChargeSplitMode, ImportChargeRuleSchema, ImportEntity, ImportServiceSchema } from '@realfy/shared';
 import type { ImportChargeRuleRow, ImportServiceRow } from '@realfy/shared';
+import { resolveProviderFields } from '../../bills-intake/providers/provider-account';
 import {
   dayOnly,
   dayStart,
@@ -20,12 +21,15 @@ import {
 
 // ─── Servicios e impuestos de una propiedad ─────────
 
+type ServiceCurrent = { providerKey: string | null; accountNumber: string | null; serviceType: string };
+
 /** Campos del servicio que informa la fila; los ausentes (`undefined`) no se tocan al actualizar. */
 export function serviceFields(row: ImportServiceRow) {
   return {
     serviceType: row.serviceType,
     providerName: row.providerName,
     accountNumber: row.accountNumber,
+    providerKey: row.providerKey,
     amount: dec(row.amount),
     currency: row.currency,
     dueDay: row.dueDay,
@@ -36,10 +40,17 @@ export function serviceFields(row: ImportServiceRow) {
   };
 }
 
+/** La cuenta normalizada según el proveedor del catálogo; clave desconocida o cuenta inválida son error de fila. */
+function providerAccount(row: ImportServiceRow, existing: ServiceCurrent | null): { accountNumber?: string | null } {
+  const result = resolveProviderFields(row, existing ?? undefined);
+  if (!result.ok) throw new ImportRowError(result.code, result.message, result.field);
+  return result.accountNumber === undefined ? {} : { accountNumber: result.accountNumber };
+}
+
 async function upsertService(db: Db, ctx: ImportContext, row: ImportServiceRow): Promise<RowOutcome> {
   const propertyId = await resolveRef(db, 'property', ctx, row.propertyRef, 'propertyRef');
-  const fields = serviceFields(row);
   const existing = await db.service.findFirst({ where: { tenantId: ctx.tenantId, externalRef: row.externalRef } });
+  const fields = { ...serviceFields(row), ...providerAccount(row, existing) };
 
   if (!existing) {
     const data = Object.fromEntries(Object.entries(fields).filter(([, v]) => v !== undefined));

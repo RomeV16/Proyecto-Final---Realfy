@@ -13,7 +13,7 @@ import {
   CreateServicePaymentSchema,
 } from '@realfy/shared';
 import { parseOrThrow } from '../../common/validation/zod';
-import { getProvider, normalizeAccount } from '../bills-intake/providers';
+import { resolveProviderFields } from '../bills-intake/providers/provider-account';
 
 @Injectable()
 export class ServicesService {
@@ -157,26 +157,9 @@ export class ServicesService {
     input: { providerKey?: string | null; accountNumber?: string | null; serviceType?: string },
     current?: { providerKey: string | null; accountNumber: string | null; serviceType: string },
   ): { accountNumber?: string | null } {
-    const providerKey = input.providerKey !== undefined ? input.providerKey : (current?.providerKey ?? null);
-    if (!providerKey) return {};
-    const provider = getProvider(providerKey);
-    const serviceType = input.serviceType ?? current?.serviceType;
-    if (provider && serviceType && provider.serviceTypes.length > 0 && !provider.serviceTypes.includes(serviceType as never)) {
-      throw new BadRequestException({
-        error: 'PROVIDER_SERVICE_TYPE_MISMATCH',
-        message: `Provider ${providerKey} does not issue ${serviceType} bills`,
-      });
-    }
-    const raw = input.accountNumber !== undefined ? input.accountNumber : (current?.accountNumber ?? null);
-    if (raw === null || raw === '') return input.accountNumber === undefined ? {} : { accountNumber: null };
-    const normalized = normalizeAccount(providerKey, raw);
-    if (!normalized) {
-      throw new BadRequestException({
-        error: 'INVALID_PROVIDER_ACCOUNT',
-        message: `The account number is not valid for provider ${providerKey}`,
-      });
-    }
-    return { accountNumber: normalized };
+    const result = resolveProviderFields(input, current);
+    if (!result.ok) throw new BadRequestException({ error: result.code, message: result.message });
+    return result.accountNumber === undefined ? {} : { accountNumber: result.accountNumber };
   }
 
   // ─── Soft Delete ────────────────────────────────────

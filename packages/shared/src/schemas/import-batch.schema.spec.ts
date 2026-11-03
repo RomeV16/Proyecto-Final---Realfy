@@ -154,6 +154,13 @@ describe('ImportServiceSchema', () => {
     dueDay: 31,
   };
 
+  it('providerKey es opcional y se valida contra el catálogo al importar, no en la forma', () => {
+    expect(ImportServiceSchema.parse(service).providerKey).toBeUndefined();
+    expect(ImportServiceSchema.parse({ ...service, providerKey: 'epec' }).providerKey).toBe('epec');
+    expect(ImportServiceSchema.parse({ ...service, providerKey: null }).providerKey).toBeNull();
+    expect(ImportServiceSchema.safeParse({ ...service, providerKey: '' }).success).toBe(false);
+  });
+
   it('completa los valores por defecto', () => {
     expect(ImportServiceSchema.parse(service)).toMatchObject({
       currency: 'ARS',

@@ -49,6 +49,9 @@ export const IMPORT_ERROR_CODES = [
   'PROPERTY_STATE_CONFLICT',
   'SERVICE_NOT_APPLICABLE',
   'CHARGE_RULE_IN_USE',
+  'UNKNOWN_PROVIDER_KEY',
+  'PROVIDER_SERVICE_TYPE_MISMATCH',
+  'INVALID_PROVIDER_ACCOUNT',
   'INTERNAL_ERROR',
 ] as const;
 const MISSING_ADJUSTMENT_PCT = 'MISSING_ADJUSTMENT_PCT' satisfies (typeof IMPORT_ERROR_CODES)[number];
@@ -225,7 +228,10 @@ export const ImportServiceSchema = z
     propertyRef: externalRefSchema,
     serviceType: z.nativeEnum(ServiceType),
     providerName: text(200).nullable().optional(),
+    /** Identificador ante el proveedor; con `providerKey` se guarda normalizado según el catálogo. */
     accountNumber: text(100).nullable().optional(),
+    /** Clave del proveedor en el catálogo de boletas (ADR-0018); una clave desconocida es error de la fila. */
+    providerKey: text(60).nullable().optional(),
     amount: money,
     currency: z.nativeEnum(Currency).default(Currency.ARS),
     dueDay: z.number().int().min(1).max(31),
