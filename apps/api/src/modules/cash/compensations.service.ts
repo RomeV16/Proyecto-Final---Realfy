@@ -20,7 +20,7 @@ import { OperationalDefaultsService } from '../tenants/operational-defaults.serv
 import { getLessorsAt } from '../contracts/contract-parties';
 import { CashService } from './cash.service';
 import { postCompensation } from '../owner-accounts/ledger-posting';
-import { auditJson, badRequest, conflict, notFound, rethrowSettlement } from './cash.errors';
+import { auditJson, badRequest, conflict, dayStart, notFound, rethrowSettlement } from './cash.errors';
 
 type Db = any;
 
@@ -104,8 +104,16 @@ export class CompensationsService {
         },
         include: { fromLessor: PERSON, toLessor: PERSON },
       });
+      // La compensación es parte del cobro: sin fecha indicada, sus asientos van con la del cobro (DEF-72).
+      const date = dayStart(input.date ?? (payment.paidAt ?? todayInAR()).toISOString());
       const movements = input.fromCustody
-        ? await this.payFromCustody(tx, { tenantId, payment, compensation, toAccountId: input.toAccountId ?? null })
+        ? await this.payFromCustody(tx, {
+            tenantId,
+            payment,
+            compensation,
+            toAccountId: input.toAccountId ?? null,
+            date: input.date ? date : todayInAR(),
+          })
         : [];
       // Cuenta corriente: resta a quien cobró y suma a quien le correspondía (ADR-0009).
       await postCompensation(
@@ -115,7 +123,7 @@ export class CompensationsService {
           compensation,
           contract: payment.liquidacion.contract,
           period: payment.liquidacion.period,
-          date: todayInAR(),
+          date,
           names: { from: personName(compensation.fromLessor), to: personName(compensation.toLessor) },
         },
       );
@@ -152,7 +160,7 @@ export class CompensationsService {
    */
   private async payFromCustody(
     tx: Db,
-    ctx: { tenantId: string; payment: any; compensation: any; toAccountId: string | null },
+    ctx: { tenantId: string; payment: any; compensation: any; toAccountId: string | null; date: Date },
   ) {
     const { tenantId, payment, compensation } = ctx;
     const custody = await tx.financialAccount.findFirst({
@@ -172,7 +180,7 @@ export class CompensationsService {
     });
     const common = {
       tenantId,
-      date: todayInAR(),
+      date: ctx.date,
       amount,
       currency: payment.currency,
       category: CashCategory.Compensacion,

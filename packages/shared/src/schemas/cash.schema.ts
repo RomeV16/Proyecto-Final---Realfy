@@ -124,6 +124,8 @@ export const CreateCompensationSchema = z
      */
     fromCustody: z.boolean().optional(),
     toAccountId: z.string().uuid().optional().nullable(),
+    /** Fecha de los asientos y de la entrega de custodia; sin fecha, la del cobro (DEF-72). */
+    date: dateOnly.optional(),
     note,
   })
   .strict()

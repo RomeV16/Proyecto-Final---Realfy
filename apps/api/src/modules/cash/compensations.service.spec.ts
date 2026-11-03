@@ -115,6 +115,14 @@ describe('CompensationsService', () => {
     ]);
   });
 
+  it('una fecha indicada rige los asientos y la entrega de custodia', async () => {
+    const { service, payment, tx } = build({ custody: { id: 'custody-x' }, balance: '50000' });
+    payment.paidAt = new Date('2026-01-08T15:00:00.000Z');
+    const res = await service.create({ paymentId: PAY, fromLessorId: X, toLessorId: A, amount: '1000', fromCustody: true, date: '2026-02-03' });
+    expect(res.movements.map((m: any) => m.date)).toEqual([D('2026-02-03'), D('2026-02-03')]);
+    expect(tx.ownerLedgerEntry.createMany.mock.calls[0][0].data.map((e: any) => e.period)).toEqual([D('2026-02-01'), D('2026-02-01')]);
+  });
+
   it('con la custodia de quien cubre: sale de su custodia y entra en la caja', async () => {
     const custody = { id: 'custody-x' };
     const { service, cash } = build({ custody, balance: '50000' });
