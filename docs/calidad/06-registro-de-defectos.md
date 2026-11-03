@@ -555,4 +555,4 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el formulario no edita `deposits` y el cuerpo que arma (`operationalDefaultsFromForm`) no lo incluye; el `PUT` reemplaza el objeto entero y completa lo que falta con los valores de fábrica.
 - **Corrección:** al guardar, la pantalla reenvía las convenciones de depósitos tal como estaban guardadas.
 - **Prueba de regresión:** CP-725 en `apps/web/src/components/settings/operational-defaults-form.def80.test.tsx`.
-- **Evidencia rojo/verde:** regresión `03337c9` en rojo (1 prueba falla: el cuerpo llega sin `deposits`); corrección en `c9a6dfb`.
+- **Evidencia rojo/verde:** regresión `a6f9397` en rojo (1 prueba falla: el cuerpo llega sin `deposits`); corrección en `469278c`.
