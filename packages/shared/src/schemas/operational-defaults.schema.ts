@@ -6,6 +6,7 @@ import { LessorChargeTiming } from '../owner-ledger';
 import { FeeVatMode } from '../enums';
 import { InvoicingSettingsSchema } from '../lessor-invoicing';
 import { ContractTotalMode, FeePayerChoice, StaffCommissionBase } from '../fee-engine';
+import { PublicationSettingsSchema } from '../publication/settings';
 
 const pct = z.number().min(0).max(100);
 const days = z.number().int().min(0).max(365);
@@ -152,6 +153,8 @@ export const OperationalDefaultsSchema = z
       })
       .strict()
       .default({}),
+    /** Publicación: portales, privacidad del aviso y del micrositio, aviso de vencimiento. */
+    publication: PublicationSettingsSchema.default({}),
     /** Semáforo de vencimiento de contratos: rojo a los N días o menos del fin, amarillo hasta los M días. */
     expiryLight: z
       .object({

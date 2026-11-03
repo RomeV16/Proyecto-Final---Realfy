@@ -82,6 +82,14 @@ export enum PropertyOperationType {
   Temporario = 'Temporario',
 }
 
+/** Estado de un aviso en un portal. `Vencido` también se deduce de la fecha de vencimiento. */
+export enum ListingStatus {
+  NoPublicado = 'NoPublicado',
+  Publicado = 'Publicado',
+  Pausado = 'Pausado',
+  Vencido = 'Vencido',
+}
+
 export enum PropertyState {
   Borrador = 'Borrador',
   Disponible = 'Disponible',

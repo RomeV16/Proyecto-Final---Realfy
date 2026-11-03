@@ -1402,3 +1402,6 @@ export type {
   CycleCurrency,
 } from './reconciliation/cycle';
 export { RECONCILIATION_CYCLE, RECONCILIATION_EXPECTED } from './reconciliation/characterization.fixture';
+
+// Publicación: portales, avisos por portal y aviso optimizado
+export * from './publication';

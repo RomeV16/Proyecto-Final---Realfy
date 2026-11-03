@@ -61,6 +61,17 @@ describe('OperationalDefaultsSchema', () => {
       ownerAccounts: { statementCloseDay: null, lessorChargeTiming: 'AlGenerarEstado' },
       invoicing: { scope: 'Alquiler', when: 'Manual', vatPct: 0 },
       messaging: { fromHour: 9, untilHour: 20 },
+      publication: {
+        portals: [
+          { key: 'zonaprop', name: 'Zonaprop', urlTemplate: null, enabled: true },
+          { key: 'argenprop', name: 'Argenprop', urlTemplate: null, enabled: true },
+          { key: 'mercadolibre', name: 'MercadoLibre', urlTemplate: null, enabled: true },
+          { key: 'lavoz', name: 'Clasificados La Voz', urlTemplate: null, enabled: true },
+        ],
+        hideExactAddress: true,
+        showMap: false,
+        expiryWarnDays: 7,
+      },
     });
   });
 
