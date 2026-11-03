@@ -2,13 +2,13 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.0 |
-| Fecha | 2 de noviembre de 2026 |
+| Versión | 1.1 |
+| Fecha | 3 de noviembre de 2026 |
 | Alcance | El ciclo mensual de alquileres de la inmobiliaria piloto reproducido en el ambiente `piloto`: ajustes, boletas, cargos, punitorios, liquidaciones, cobros y estados de cuenta |
 | Requisitos cubiertos | Objetivos específicos del piloto (`../tesis/30-piloto.md`); ítem 45 del cronograma (#103) |
 | Casos de uso | CU-08, CU-09, CU-10, CU-11, CU-13, CU-30, CU-31, CU-33 y el que agregue el ítem 37 |
 | Ambiente | `piloto`, con datos reales; la evidencia vive fuera del repositorio |
-| Historial | 1.0: versión inicial, antes de la línea base y del primer ciclo |
+| Historial | 1.0: versión inicial, antes de la línea base y del primer ciclo. 1.1: suite de reconciliación sintética (sección 9) y procedimiento del C1 con la versión privada |
 
 ## 1. Qué se prueba y qué no
 
@@ -22,7 +22,7 @@ La aceptación en campo tiene dos mitades, porque los datos reales no pueden est
 
 | Nivel | Qué verifica | Datos | Dónde vive | Estado |
 |---|---|---|---|---|
-| Reconciliación sintética | Que el recibo, la comisión y el neto de cada contrato, y el total de cada estado de cuenta, coinciden con los valores esperados calculados a mano para casos construidos con la forma de los reales (varios locadores, boletas repartidas, cargos, punitorios, prorrateo, ajuste provisorio) | Sintéticos | Suite de la integración continua (PR 3.5 del ítem 45); sus casos se numeran en `05-casos-de-prueba.md` en ese PR | Planificado para S15 |
+| Reconciliación sintética | Que el recibo, la comisión y el neto de cada contrato, y el total de cada estado de cuenta, coinciden con los valores esperados calculados a mano para casos construidos con la forma de los reales (varios locadores, boletas repartidas, cargos, punitorios, prorrateo, ajuste provisorio) | Sintéticos | Suite de la integración continua: `packages/shared/src/reconciliation` y `apps/api/test/e2e/reconciliacion.e2e-spec.ts` (CP-660 a CP-668, sección 9) | En la integración continua desde el 3 de noviembre |
 | Reconciliación en campo | Que los mismos totales coinciden con los del sistema actual de la inmobiliaria para el mes real | Reales | Fuera del repositorio, con acceso restringido al equipo | Desde el C1 |
 | Aceptación de uso | Que las personas de la inmobiliaria pueden hacer cada paso del ciclo y cómo lo valoran | Reales | Registro de feedback y métricas del piloto | Desde el C2 |
 
@@ -82,7 +82,7 @@ Un ciclo que no cumple la salida no se repite: se informa como está, con sus di
 1. Antes de generar nada, se guardan los totales del sistema actual para el mes: por contrato, los conceptos de la tabla anterior; por locador, el total del estado de cuenta.
 2. Se ejecuta el ciclo en Realfy en el orden de `../operacion-piloto.md`, «Cierre de mes».
 3. Se exportan los totales de Realfy con la misma forma.
-4. Se comparan con un script fuera del repositorio, que produce un informe de diferencias por contrato y por concepto.
+4. Se comparan con un script fuera del repositorio, que produce un informe de diferencias por contrato y por concepto (sección 9, «Versión con datos reales»).
 5. Cada diferencia se analiza hasta encontrar su causa y se registra (sección 5).
 6. Se resume el ciclo con cifras agregadas (sección 6).
 
@@ -129,3 +129,49 @@ Las metas son las de `../tesis/30-piloto.md` y se fijaron antes de medir. Este p
 | Exponer datos reales al documentar | Solo agregados, y solo con consentimiento (sección 6) |
 
 La relación con el resto del proceso de calidad está en `02-plan-de-pruebas.md`, y los riesgos del proyecto, en `04-riesgos.md`.
+
+## 9. Suite de reconciliación
+
+### Formato y comparador
+
+El resultado de un ciclo se expresa en un formato plano (`ReconciliationResult`, en `packages/shared/src/reconciliation/format.ts`) que pueden escribir por igual un caso esperado hecho a mano, los motores, la lectura de la API o un script que lea la planilla de la inmobiliaria:
+
+- **Por contrato**, los conceptos de la sección 4: alquiler mensual vigente y porcentaje del ajuste del mes, renglones agrupados por concepto y destino (alquiler, ajuste retroactivo, descuentos, impuestos y servicios al ente o al locador, cargos al locador o a la inmobiliaria, punitorios), total del recibo, comisión, neto de los locadores, lo cobrado en el mes y la parte de cada locador.
+- **Por locador y moneda**, los totales del estado de cuenta: apertura, créditos, débitos, pagos y cierre.
+
+El comparador (`compareReconciliation`) usa tolerancia cero: un importe distinto en un centavo, o que falta de un lado, es una diferencia; el mismo importe escrito distinto no lo es. Devuelve una lista ordenada de diferencias (contrato o locador, concepto, esperado y obtenido).
+
+### Caso de caracterización
+
+El caso (`characterization.fixture.ts`) es un julio de 2026 sintético con once contratos y nueve locadores, con la forma de la cartera real y sin ningún dato de ella: IPC trimestral con rezago, ICL anual, porcentaje fijo, escalonado y un alquiler en dólares; dos locadores con porcentajes de cobro distintos de su titularidad; un locador con tres unidades (estado consolidado) y saldo inicial; boletas de los tres pagadores, un impuesto anual en cuotas y un servicio de edificio repartido por consumo; cargos al inquilino y al locador, uno que pide anticipo; bonificación, devolución y prorrateo; un punitorio con el máximo entre la tasa del Banco Nación y un piso diario; un cobro parcial, un inquilino que le paga directo al locador, efectivo en custodia, una compensación y pagos a locadores. Los esperados se calcularon a mano, con aritmética decimal exacta, y su derivación está en el encabezado del caso.
+
+Corre en dos niveles, los dos en la integración continua:
+
+| Prueba | Qué recorre | Casos |
+|---|---|---|
+| `reconciliation.characterization.spec.ts` (Jest del paquete compartido) | `runCycle`: los motores encadenados como la API (ajustes, boletas, cargos, punitorios, liquidación, reparto de cada cobro, cuenta corriente y estado) | CP-663 a CP-665 |
+| `reconciliacion.e2e-spec.ts` (e2e de la API) | El mismo ciclo cargado por la API, de los índices a los estados de cuenta, comparado con el mismo esperado | CP-666 y CP-667 |
+
+La suite encontró cuatro defectos, todos con su regresión en rojo y su corrección (`06-registro-de-defectos.md`): el descuento sumaba en el reparto del cobro (DEF-70), la compensación sin importe dejaba corto al locador compensado (DEF-71), la compensación se asentaba el día de la carga (DEF-72) y el cobro del primer mes de un contrato que empieza a mitad de mes no se repartía (DEF-73).
+
+### Reglas a confirmar en el C1
+
+La suite reproduce las reglas tal como están decididas. Tres de ellas pueden diferir de lo que hace la inmobiliaria y se verifican en la primera reconciliación con datos reales; si difieren, cada una se registra como hallazgo (sección 5), no como defecto:
+
+- **Primer ajuste con rezago.** La ventana del primer ajuste empieza en el inicio del contrato (ADR-0011): con rezago 2, el primer ajuste trimestral usa dos meses de índice. La planilla aplica a todos los contratos que ajustan en el mes el mismo porcentaje trimestral (tres meses).
+- **Rezago del ICL.** El rezago de la inmobiliaria (`ipcLagMonths`) se copia a los contratos de todas las modalidades, incluidos los de ICL, cuyo valor se toma habitualmente a la fecha del ajuste. El caso sintético pacta rezago 0 para su contrato de ICL.
+- **Boleta del locador pagada por la inmobiliaria con traslado parcial.** Si la inmobiliaria paga una boleta con traslado «Propietario» de la que el inquilino paga solo una parte, el estado del locador descuenta esa parte (ADR-0009) y no la boleta entera; en la planilla, el impuesto pagado por la inmobiliaria va entero a los gastos del dueño. El caso sintético usa un traslado del 100 %, donde las dos reglas coinciden.
+
+### Versión con datos reales
+
+La versión con datos reales vive fuera del repositorio, en el almacenamiento privado del equipo, y no se sube nunca. Lee la planilla de recibos del mes de la inmobiliaria y una copia restaurada de la base de `piloto` (nunca el ambiente en sí), compara por contrato con la misma regla de tolerancia cero y escribe un informe privado con cada diferencia y su categoría (dato faltante, regla distinta, error del sistema, error de la planilla) y un resumen solo con cantidades y porcentajes, apto para la tesis si llega el consentimiento (sección 6).
+
+Procedimiento del C1 (liquidación de diciembre, ≈ 20 de noviembre de 2026):
+
+1. Antes de generar nada, se guarda la planilla del mes con su huella (criterio de entrada).
+2. El coordinador genera las liquidaciones de diciembre en `piloto`, en borrador.
+3. Se toma la copia de la base siguiendo `../operacion-piloto.md` y se restaura en una base local de solo lectura.
+4. Se corre el script de reconciliación del período sobre la planilla y la copia restaurada.
+5. Se revisa cada diferencia con la dirección de la inmobiliaria y se le asigna su causa.
+6. Cada diferencia distinta de cero queda registrada como FB o DEF (sección 5); una que revele una regla general suma además un contrato al caso sintético.
+

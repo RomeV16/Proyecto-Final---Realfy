@@ -39,6 +39,10 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-29 | Los cobros devuelven el número del recibo sin la etiqueta impresa | Baja | — | CP-450 | [#163](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/163) | Corregido (2 nov) |
 | DEF-30 | La comisión del contrato no se guarda desde la pantalla y una guardada aparece sin tipo | Media | — | CP-480 | [#164](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/164) | Corregido (2 nov) |
 | DEF-65 | Un mail rechazado por Resend se informa como enviado | Alta | ítem 43 (mensajería) | CP-630 | [#171](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/171) | Corregido (3 nov) |
+| DEF-70 | Un renglón Descuento suma en el reparto del cobro: comisión y neto de los locadores mal y un cobro total repartido como parcial | Alta | — | CP-660, CP-663 | pendiente | Corregido (3 nov) |
+| DEF-71 | La compensación sin importe deja al locador compensado sin la comisión que ya se le había descontado | Alta | — | CP-661, CP-663 | pendiente | Corregido (3 nov) |
+| DEF-72 | La compensación se asienta el día en que se carga y no se le puede indicar la fecha | Media | — | CP-662, CP-667 | pendiente | Corregido (3 nov) |
+| DEF-73 | El cobro del primer mes de un contrato que empieza a mitad de mes no se reparte entre sus locadores | Alta | — | CP-668, CP-666 | pendiente | Corregido (3 nov) |
 
 ---
 
@@ -481,3 +485,59 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** un `error` en la respuesta, o una respuesta sin id, es un envío fallido.
 - **Prueba de regresión:** CP-630 en `apps/api/src/common/email/common-email.service.spec.ts`.
 - **Evidencia rojo/verde:** regresión `e0040a7` en rojo (1 prueba falla: llega `status: 'sent'`); corrección en `435267e`.
+
+## DEF-70 — Un renglón Descuento suma en el reparto del cobro
+
+- **Requisito afectado:** ninguno funcional; reparto del cobro y cuenta corriente del locador (ítems 36 y 37).
+- **Origen:** reconciliación sintética del ciclo mensual (3.5, ítem 45).
+- **Caso que lo detecta:** CP-663 (la suite de reconciliación da diferencias en los contratos con devolución y con bonificación); regresión CP-660.
+- **Severidad:** alta. Toda liquidación con un descuento (bonificación pactada, devolución al inquilino, corrección de un ajuste provisorio a su favor) se repartía mal: la comisión de una bonificación corría sobre el alquiler más el descuento, el neto de los locadores incluía el descuento y un cobro que saldaba la liquidación se repartía como parcial.
+- **Pasos para reproducir:** liquidación de 330.000 de alquiler con una devolución de 12.000 (total 318.000); registrar un cobro de 318.000.
+- **Resultado esperado:** reparto sobre 318.000: comisión 23.100 a la inmobiliaria y 294.900 a los locadores.
+- **Resultado obtenido:** total del reparto 342.000, así que el cobro se trataba como parcial: 21.478,95 a la inmobiliaria y 296.521,05 a los locadores. Con una bonificación del 5 % sobre 520.000, comisión de 38.220 en lugar de 34.580.
+- **Causa raíz:** la liquidación guarda el descuento en positivo y lo resta al calcular el total; el reparto sumaba todos los renglones sin mirar el tipo.
+- **Corrección:** el renglón lleva su tipo al motor de reparto y un `Descuento` resta del total, de la base de la comisión y de la parte de su destino.
+- **Prueba de regresión:** CP-660 en `apps/api/src/modules/cash/payment-settlement.service.spec.ts` y `packages/shared/src/settlement-engine/settlement-engine.spec.ts`; CP-663 en `packages/shared/src/reconciliation/reconciliation.characterization.spec.ts`.
+- **Evidencia rojo/verde:** regresión `38433e8` en rojo (1 prueba falla y 12 pasan); corrección en `4027bef`. Contra el reparto anterior, la suite de reconciliación da 18 diferencias en recibos y estados.
+
+## DEF-71 — La compensación sin importe deja corto al locador compensado
+
+- **Requisito afectado:** ninguno funcional; compensaciones entre locadores (ítem 36) y estado de cuenta (ítem 37).
+- **Origen:** reconciliación sintética del ciclo mensual (3.5, ítem 45).
+- **Caso que lo detecta:** CP-663; regresión CP-661.
+- **Severidad:** alta. En cada compensación sin importe el locador compensado perdía la comisión (que ya tenía descontada) y quien cobró se quedaba con esa diferencia. La inmobiliaria registra unas quince compensaciones por mes.
+- **Pasos para reproducir:** cobro de 100.000 de un contrato con A y B al 50 %, recibido por un locador; compensar a A desde X, otro locador, sin importe.
+- **Resultado esperado:** se compensan 50.000 (lo que A figuraba teniendo en mano: su parte de 46.500 más la comisión de 3.500 que debía); A queda con 46.500 a favor y X con −50.000, como en la planilla de la inmobiliaria, donde el locador que recibe la transferencia de otro inquilino responde por todo lo que recibió.
+- **Resultado obtenido:** se compensaban 46.500; A quedaba con 43.000 y X con −46.500. El ejemplo de ADR-0009 daba el resultado esperado para A pero los números de CP-401 y CP-468 fijaban el del defecto.
+- **Causa raíz:** el importe por defecto era la parte neta de A en el reparto, sin la deuda que el cobro le había dejado.
+- **Corrección:** `compensationDefault` en el motor de reparto: la parte del locador más lo que debía por ese cobro (su parte menos su saldo); el servicio lo usa como importe por defecto. Se corrigen los esperados de CP-401 y CP-468 y el ejemplo de ADR-0009.
+- **Prueba de regresión:** CP-661 en `apps/api/src/modules/cash/compensations.service.spec.ts` y `packages/shared/src/settlement-engine/settlement-engine.spec.ts`; CP-401 y CP-468 en la suite e2e.
+- **Evidencia rojo/verde:** regresión `dcb7bba` en rojo (1 prueba falla y 6 pasan: 46.500 en lugar de 50.000); corrección en `1bf49f3`.
+
+## DEF-72 — La compensación se asienta el día en que se carga
+
+- **Requisito afectado:** ninguno funcional; estado de cuenta del locador (ítem 37).
+- **Origen:** reconciliación sintética del ciclo mensual (3.5, ítem 45), al cargar en noviembre una compensación de un cobro de julio.
+- **Caso que lo detecta:** CP-667; regresión CP-662.
+- **Severidad:** media. Una compensación cargada después del cierre del mes caía en el estado del mes de carga: el estado del mes del cobro de los dos locadores quedaba descuadrado y no había forma de corregirlo. La planilla de la inmobiliaria se arma con un atraso mediano de tres semanas.
+- **Pasos para reproducir:** registrar un cobro con fecha 8 de enero recibido por un locador y, otro mes, compensarlo.
+- **Resultado esperado:** los asientos de la compensación con la fecha del cobro (o la que se indique), en el estado de enero.
+- **Resultado obtenido:** los asientos con la fecha del día de la carga.
+- **Causa raíz:** el servicio tomaba siempre `todayInAR()` y el alta no aceptaba fecha.
+- **Corrección:** `POST /compensations` acepta `date`; sin ella, los asientos van con la fecha del cobro. La entrega de custodia sigue con la del día salvo que se indique otra.
+- **Prueba de regresión:** CP-662 en `apps/api/src/modules/cash/compensations.service.spec.ts`; CP-667 en `apps/api/test/e2e/reconciliacion.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `547ef9a` en rojo (1 prueba falla y 7 pasan: los asientos salen con la fecha de hoy); corrección en `e8dc96a`.
+
+## DEF-73 — El primer mes de un contrato que empieza a mitad de mes no se reparte
+
+- **Requisito afectado:** ninguno funcional; reparto del cobro y cuenta corriente del locador (ítems 36 y 37).
+- **Origen:** reconciliación de punta a punta por la API (3.5, ítem 45), con el contrato que empieza el 15 de julio.
+- **Caso que lo detecta:** CP-666; regresión CP-668.
+- **Severidad:** alta. El cobro del primer mes (el proporcional) de todo contrato nuevo que no empieza el día 1 quedaba sin reparto: sin comisión, sin asientos en la cuenta corriente del locador y fuera de su estado de cuenta.
+- **Pasos para reproducir:** contrato que empieza el 15 de julio; generar julio, enviar y registrar el cobro.
+- **Resultado esperado:** el cobro se reparte entre los locadores vigentes al día de inicio.
+- **Resultado obtenido:** el reparto queda con el error `SETTLEMENT_LESSOR_SHARES` (los porcentajes suman 0) y no deja asientos.
+- **Causa raíz:** el reparto, la compensación, la boleta pagada por la inmobiliaria y los locadores del recibo en PDF leían los locadores el día 1 del mes; los del contrato rigen desde su inicio. Solo el generador de liquidaciones contemplaba el caso.
+- **Corrección:** `lessorsDateFor` (el día 1 o, si el contrato empieza después, su inicio), usado en esos cuatro lugares y en el generador.
+- **Prueba de regresión:** CP-668 en `apps/api/src/modules/cash/payment-settlement.service.spec.ts` y `contracts/contract-parties.spec.ts`; C11 de `apps/api/test/e2e/reconciliacion.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `613e98c` en rojo (1 prueba falla y 13 pasan: `SETTLEMENT_LESSOR_SHARES`); corrección en `392936f`.
