@@ -73,6 +73,24 @@ describe('CompensationsService', () => {
     expect(res).toMatchObject({ amount: '45000.00', fromLessorId: X, toLessorId: A, currency: 'ARS', movements: [] });
   });
 
+  it('DEF-71 — sin importe, compensa lo que el locador figuraba cobrando en mano: su parte más lo que debía (CP-661)', async () => {
+    const { service, payment, tx } = build();
+    // Cobro de 100000 que figura recibido por los locadores: cada uno, su parte (46500) y la comisión que debe (3500).
+    payment.settlement = {
+      positions: [
+        { personId: A, share: '46500.00', received: '50000.00', balance: '-3500.00' },
+        { personId: B, share: '46500.00', received: '50000.00', balance: '-3500.00' },
+      ],
+    };
+    const res = await service.create({ paymentId: PAY, fromLessorId: X, toLessorId: A });
+    expect(res.amount).toBe('50000.00');
+    const { data } = tx.ownerLedgerEntry.createMany.mock.calls[0][0];
+    expect(data.map((e: any) => [e.personId, e.amount])).toEqual([
+      [X, '-50000.00'],
+      [A, '50000.00'],
+    ]);
+  });
+
   it('cuenta corriente: resta a quien cobró y suma a quien le correspondía, con la compensación como origen (CP-454)', async () => {
     const { service, tx } = build();
     await service.create({ paymentId: PAY, fromLessorId: X, toLessorId: A, amount: '1000' });
