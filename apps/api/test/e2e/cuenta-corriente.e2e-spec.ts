@@ -232,11 +232,12 @@ describe('Cuenta corriente del locador (e2e)', () => {
     const jan = await sent(token, contract.id, 1);
     const payment = (await pay(token, jan.id, { amount: '100000', method: 'Transferencia' }).expect(200)).body.registeredPayment;
     await post(token, '/compensations', { paymentId: payment.id, fromLessorId: x, toLessorId: a }).expect(201);
-    expect(rows(await ledgerOf(token, x))).toEqual([['Compensacion', '-46500.00']]);
+    // X cobró lo que figuraba en mano de A (su parte y la comisión que debía): responde por los 50000 (DEF-71).
+    expect(rows(await ledgerOf(token, x))).toEqual([['Compensacion', '-50000.00']]);
     const ledgerA = await ledgerOf(token, a);
-    expect(rows(ledgerA).at(-1)).toEqual(['Compensacion', '46500.00']);
-    // A no cobró: queda a favor lo suyo menos lo que debía por comisión (46500 − 3500 − 50000 + 46500).
-    expect(ledgerA.closing).toBe('43000.00');
+    expect(rows(ledgerA).at(-1)).toEqual(['Compensacion', '50000.00']);
+    // A no cobró: le queda a favor su parte (50000 − 3500 − 50000 + 50000).
+    expect(ledgerA.closing).toBe('46500.00');
     expect((await ledgerOf(token, b)).closing).toBe('-3500.00');
   });
 

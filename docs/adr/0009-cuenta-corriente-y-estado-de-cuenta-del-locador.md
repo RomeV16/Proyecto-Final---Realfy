@@ -89,9 +89,12 @@ Liquidación de 100000 de alquiler, comisión del 7 % y dos locadores al 50 %:
   inmobiliaria fijan que el locador paga los entes él mismo, lo que retiene para
   ellos no cuenta como cobrado: queda descontado del `CobroDirecto` y el saldo sigue
   siendo solo lo que le debe a la inmobiliaria.
-- **Compensación**: si el inquilino le pagó a otro locador X la parte de A, X queda
-  con −46500 (tiene en mano dinero de A) y A con +46500 (la inmobiliaria se lo
-  debe); entre ambos suman cero.
+- **Compensación**: si el inquilino le pagó a otro locador X la parte de A, el cobro
+  figuraba recibido por A (+50000 de alquiler, −3500 de comisión y −50000 cobrados en
+  mano). La compensación pasa a X lo que A figuraba teniendo en mano: X queda con
+  −50000 (tiene dinero de A y de la comisión) y A con +46500, su parte, que la
+  inmobiliaria le debe. Sin importe, la compensación toma ese monto: la parte del
+  locador más lo que debía por el cobro (DEF-71).
 
 ### Estado de cuenta mensual consolidado
 

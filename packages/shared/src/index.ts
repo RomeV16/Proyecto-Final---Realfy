@@ -637,6 +637,7 @@ export {
   settlePayment,
   settlementBuckets,
   checkCompensation,
+  compensationDefault,
   convertAmount,
   accountBalance,
   SettlementError,

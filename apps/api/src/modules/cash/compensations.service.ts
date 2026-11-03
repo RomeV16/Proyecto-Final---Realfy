@@ -7,6 +7,7 @@ import {
   FinancialAccountKind,
   PaymentMethod,
   checkCompensation,
+  compensationDefault,
   personName,
   todayInAR,
 } from '@realfy/shared';
@@ -129,7 +130,10 @@ export class CompensationsService {
     });
   }
 
-  /** Parte de `to` en el cobro (según el reparto guardado) menos lo ya compensado a su favor. */
+  /**
+   * Lo que `to` figuraba cobrando en mano en ese cobro (su parte más lo que debía, según el
+   * reparto guardado; DEF-71) menos lo ya compensado a su favor.
+   */
   private pendingShare(payment: any, toLessorId: string): string {
     const position = payment.settlement?.positions?.find((p: any) => p.personId === toLessorId);
     if (!position) {
@@ -138,7 +142,7 @@ export class CompensationsService {
     const done = payment.compensations
       .filter((c: any) => c.toLessorId === toLessorId)
       .reduce((acc: Decimal, c: any) => acc.plus(c.amount.toString()), new Decimal(0));
-    return new Decimal(position.share).minus(done).toFixed(2);
+    return compensationDefault(position).minus(done).toFixed(2);
   }
 
   /**

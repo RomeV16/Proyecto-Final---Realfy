@@ -6,6 +6,7 @@ import {
   SettlementError,
   accountBalance,
   checkCompensation,
+  compensationDefault,
   convertAmount,
   settlePayment,
   settlementBuckets,
@@ -338,6 +339,15 @@ describe('settlement-engine — validaciones y monedas', () => {
 });
 
 describe('settlement-engine — compensaciones', () => {
+  it('por defecto se compensa lo que el locador figuraba cobrando en mano: su parte más lo que debía (DEF-71)', () => {
+    const r = settlePayment(base({ receivedBy: PaymentReceiver.Locador }));
+    expect(r.positions.map((p) => compensationDefault(p).toFixed(2))).toEqual(
+      r.positions.map((p) => p.share.minus(p.balance).toFixed(2)),
+    );
+    expect(compensationDefault({ share: '46500', balance: '-3500' }).toFixed(2)).toBe('50000.00');
+    expect(compensationDefault({ share: '46500' }).toFixed(2)).toBe('46500.00');
+  });
+
   const ok = {
     paymentAmount: '1000',
     receivedBy: PaymentReceiver.Locador,

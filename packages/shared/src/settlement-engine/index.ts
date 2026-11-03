@@ -421,6 +421,17 @@ export function checkCompensation(input: CompensationCheck): Money {
   return amount;
 }
 
+/**
+ * Lo que se compensa por defecto a un locador cuyo cobro recibió otro (DEF-71):
+ * lo que figuraba cobrando en mano, que es su parte más lo que le debe a la
+ * inmobiliaria por ese cobro (su saldo negativo). Así el compensado queda con su
+ * parte y quien cobró responde por todo lo que recibió. Sin saldo guardado, su parte.
+ */
+export function compensationDefault(position: { share: MoneyInput; balance?: MoneyInput | null }): Money {
+  const share = round2(position.share);
+  return position.balance == null ? share : share.minus(round2(position.balance));
+}
+
 // ─── Monedas ────────────────────────────────────────────
 
 /**
