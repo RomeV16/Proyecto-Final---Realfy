@@ -44,6 +44,9 @@ export const MERGE_MODELS: Record<string, string> = {
   tenantScore: 'TenantScore',
   providerProfile: 'ProviderProfile',
   inquilinoCredential: 'InquilinoCredential',
+  messageOutbox: 'MessageOutbox',
+  contactConsent: 'ContactConsent',
+  inboundMessage: 'InboundMessage',
 };
 
 export const MERGE_RULES: MergeRule[] = [
@@ -71,6 +74,12 @@ export const MERGE_RULES: MergeRule[] = [
   // Honorarios: quien paga y la persona que cobra la comisión pasan a la conservada.
   { kind: 'repoint', delegate: 'fee', field: 'payerPersonId' },
   { kind: 'repoint', delegate: 'staffCommission', field: 'personId' },
+  // Mensajería: los mensajes, los entrantes y el historial de consentimiento pasan a
+  // la conservada. Es un historial: vale el registro más reciente de las dos, y una
+  // baja por dirección se sigue respetando aunque la persona cambie.
+  { kind: 'repoint', delegate: 'messageOutbox', field: 'personId' },
+  { kind: 'repoint', delegate: 'inboundMessage', field: 'personId' },
+  { kind: 'repoint', delegate: 'contactConsent', field: 'personId' },
   // El garante de un rol apunta a otra persona sin clave foránea.
   { kind: 'repoint', delegate: 'personRoleAssignment', field: 'guarantorForPersonId' },
   { kind: 'dedupe', delegate: 'personRoleAssignment', field: 'personId', scope: ['role'] },

@@ -613,15 +613,68 @@ export enum NotificationType {
   ServiceDueReminder = 'ServiceDueReminder',
   ContractExpiring = 'ContractExpiring',
   LiquidacionOverdue = 'LiquidacionOverdue',
+  /**
+   * @deprecated Sin emisor: el aviso de un cobro le llega a quien pagó como
+   * mensaje de la bandeja de salida (plantilla `receipt`, ADR-0013). Queda en
+   * la base por las filas viejas.
+   */
   PaymentReceived = 'PaymentReceived',
+  /** Configuración que impide operar (por ejemplo, mensajes trabados sin proveedor). */
   SystemAlert = 'SystemAlert',
   StaleLeadAlert = 'StaleLeadAlert',
   TicketCreated = 'TicketCreated',
+  /**
+   * @deprecated Sin emisor: el cambio de estado de un ticket se le avisa al
+   * inquilino por la bandeja de salida (plantilla `ticket_status`, ADR-0013).
+   */
   TicketStatusChanged = 'TicketStatusChanged',
   TicketCommentAdded = 'TicketCommentAdded',
   FiscalCertExpiry = 'FiscalCertExpiry',
   FiscalDelegationRevoked = 'FiscalDelegationRevoked',
   LibroIvaGenerated = 'LibroIvaGenerated',
+  /** Un mensaje de la bandeja de salida agotó los intentos o el proveedor lo rechazó. */
+  MessageFailed = 'MessageFailed',
+  /** Una persona pidió la baja respondiendo BAJA o STOP. */
+  ContactOptedOut = 'ContactOptedOut',
+  /** Llegó un mensaje de WhatsApp (se guarda para la bandeja de consultas). */
+  InboundMessageReceived = 'InboundMessageReceived',
+}
+
+// ─── Mensajería saliente (ADR-0013) ─────────────────────
+
+export enum MessageChannel {
+  Email = 'Email',
+  WhatsApp = 'WhatsApp',
+}
+
+/**
+ * Estado de un mensaje de la bandeja de salida. Pending espera al despacho (con
+ * el motivo en `statusReason` si algo lo frena); Sending está tomado por el
+ * despacho; Sent lo aceptó el proveedor; Delivered y Read llegan por webhook;
+ * Failed agotó los intentos o fue rechazado; Blocked no se manda por el modo
+ * del ambiente o por el consentimiento; Cancelled lo canceló una persona.
+ */
+export enum MessageStatus {
+  Pending = 'Pending',
+  Sending = 'Sending',
+  Sent = 'Sent',
+  Delivered = 'Delivered',
+  Read = 'Read',
+  Failed = 'Failed',
+  Blocked = 'Blocked',
+  Cancelled = 'Cancelled',
+}
+
+export enum ConsentStatus {
+  OptIn = 'OptIn',
+  OptOut = 'OptOut',
+}
+
+/** Quién registró el consentimiento: el personal, la persona escribiendo, o una queja de spam. */
+export enum ConsentSource {
+  Manual = 'Manual',
+  Inbound = 'Inbound',
+  Complaint = 'Complaint',
 }
 
 // ─── Pipeline Enums ─────────────────────────────────────

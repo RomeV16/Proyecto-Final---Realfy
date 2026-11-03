@@ -652,6 +652,10 @@ model Person {
   feesPaid         Fee[]             @relation("FeePayer")
   staffCommissions StaffCommission[] @relation("StaffCommissionPerson")
 
+  outboxMessages  MessageOutbox[]
+  contactConsents ContactConsent[]
+  inboundMessages InboundMessage[]
+
   @@unique([tenantId, cuit])
   @@unique([tenantId, externalRef])
   @@index([tenantId])
@@ -2248,6 +2252,9 @@ enum NotificationType {
   FiscalCertExpiry
   FiscalDelegationRevoked
   LibroIvaGenerated
+  MessageFailed
+  ContactOptedOut
+  InboundMessageReceived
 }
 
 model EmailTemplate {
@@ -3176,4 +3183,113 @@ model LessorInvoiceJob {
   @@index([tenantId, status])
   @@index([tenantId, personId])
   @@map("lessor_invoice_jobs")
+}
+
+// ─── Mensajería saliente (D13, ADR-0013) ────────────────
+//
+// Todo mensaje a una persona (mail o WhatsApp) se encola en `MessageOutbox`
+// dentro de la transacción del negocio, con una clave de idempotencia. Un
+// proceso programado lo despacha según el modo del ambiente
+// (MESSAGING_MODE), el consentimiento y el horario permitido.
+
+enum MessageChannel {
+  Email
+  WhatsApp
+}
+
+enum MessageStatus {
+  Pending
+  Sending
+  Sent
+  Delivered
+  Read
+  Failed
+  Blocked
+  Cancelled
+}
+
+enum ConsentStatus {
+  OptIn
+  OptOut
+}
+
+enum ConsentSource {
+  Manual
+  Inbound
+  Complaint
+}
+
+/// Bandeja de salida: un mensaje por fila, despachado por el proceso programado.
+model MessageOutbox {
+  id              String         @id @default(uuid())
+  tenantId        String
+  channel         MessageChannel
+  personId        String?
+  /// Dirección normalizada: mail en minúsculas o teléfono en dígitos con código de país.
+  to              String
+  templateKey     String
+  vars            Json           @default("{}")
+  status          MessageStatus  @default(Pending)
+  /// Por qué sigue pendiente o quedó bloqueado (MESSAGING_OFF, PROVIDER_NOT_CONFIGURED, QUIET_HOURS, NOT_IN_ALLOWLIST, OPTED_OUT, NO_OPT_IN).
+  statusReason    String?
+  providerMsgId   String?        @unique
+  error           String?
+  attempts        Int            @default(0)
+  nextAttemptAt   DateTime?
+  scheduledAt     DateTime       @default(now())
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  relatedType     String?
+  relatedId       String?
+  idempotencyKey  String         @unique
+  createdByUserId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, status, scheduledAt])
+  @@index([tenantId, relatedType, relatedId])
+  @@index([tenantId, personId])
+  @@index([tenantId, createdAt])
+  @@map("message_outbox")
+}
+
+/// Consentimiento por canal (Ley 25.326): historial, vale el último registro.
+model ContactConsent {
+  id               String         @id @default(uuid())
+  tenantId         String
+  personId         String?
+  channel          MessageChannel
+  /// Dirección a la que aplica (la baja de un número que no es de ninguna persona también se respeta).
+  address          String?
+  status           ConsentStatus
+  source           ConsentSource
+  note             String?
+  recordedByUserId String?
+  at               DateTime       @default(now())
+
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, personId, channel, at])
+  @@index([tenantId, channel, address, at])
+  @@map("contact_consents")
+}
+
+/// Mensaje entrante mínimo (WhatsApp), para la bandeja de consultas.
+model InboundMessage {
+  id            String         @id @default(uuid())
+  tenantId      String
+  channel       MessageChannel
+  from          String
+  personId      String?
+  body          String?
+  providerMsgId String         @unique
+  receivedAt    DateTime
+  createdAt     DateTime       @default(now())
+
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, receivedAt])
+  @@map("inbound_messages")
 }
