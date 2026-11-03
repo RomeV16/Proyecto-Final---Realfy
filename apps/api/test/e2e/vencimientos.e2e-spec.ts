@@ -24,7 +24,7 @@ const DAY_MS = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const inDays = (n: number) => new Date(todayInAR().getTime() + n * DAY_MS);
 
-/** CP-470 a CP-479: vencimientos (semáforo, seguimientos, checklist) y prórroga de palabra; CP-480 a CP-485: renovación como período; CP-490 a CP-492: contratos vencidos que siguen corriendo. */
+/** CP-806 a CP-815: vencimientos (semáforo, seguimientos, checklist) y prórroga de palabra; CP-816 y CP-481 a CP-485: renovación como período; CP-490 a CP-492: contratos vencidos que siguen corriendo. */
 describe('Vencimientos (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -130,7 +130,7 @@ describe('Vencimientos (e2e)', () => {
     http().get(`/api/follow-ups${query}`).set(auth(token)).expect(200);
 
   describe('proceso diario', () => {
-    it('CP-470: abre el seguimiento de los contratos en la ventana, una sola vez', async () => {
+    it('CP-806: abre el seguimiento de los contratos en la ventana, una sola vez', async () => {
       const { token } = await agency('cron');
       const soon = await activeContract(token, 'soon', 45);
       const expired = await activeContract(token, 'old', -10);
@@ -158,7 +158,7 @@ describe('Vencimientos (e2e)', () => {
       expect(byContract.get(soon).tenantName).toContain('Inquilino');
     });
 
-    it('CP-471: respeta los umbrales de la inmobiliaria', async () => {
+    it('CP-807: respeta los umbrales de la inmobiliaria', async () => {
       const { token } = await agency('thr');
       await activeContract(token, 'thr', 80);
       await http()
@@ -175,7 +175,7 @@ describe('Vencimientos (e2e)', () => {
       expect((await list(token, '?light=yellow')).body.total).toBe(1);
     });
 
-    it('CP-472: filtra por color, tipo, estado y responsable', async () => {
+    it('CP-808: filtra por color, tipo, estado y responsable', async () => {
       const { token, admin } = await agency('flt');
       const a = await activeContract(token, 'a', 45);
       await activeContract(token, 'b', -5);
@@ -200,7 +200,7 @@ describe('Vencimientos (e2e)', () => {
       return { ...ctx, contractId, followUp };
     }
 
-    it('CP-473: asigna un responsable y rechaza uno que no es de la inmobiliaria', async () => {
+    it('CP-809: asigna un responsable y rechaza uno que no es de la inmobiliaria', async () => {
       const { token, admin, followUp } = await opened('asg');
       const res = await http()
         .patch(`/api/follow-ups/${followUp.id}`)
@@ -219,7 +219,7 @@ describe('Vencimientos (e2e)', () => {
       await http().patch('/api/follow-ups/no-existe').set(auth(token)).send({ notes: 'x' }).expect(404);
     });
 
-    it('CP-474: marca y desmarca pasos del checklist con quién y cuándo', async () => {
+    it('CP-810: marca y desmarca pasos del checklist con quién y cuándo', async () => {
       const { token, admin, followUp } = await opened('chk');
       const task = followUp.tasks[0];
       const on = await http()
@@ -245,7 +245,7 @@ describe('Vencimientos (e2e)', () => {
         .expect(404);
     });
 
-    it('CP-475: pasar a devolución cambia el checklist y conserva lo hecho', async () => {
+    it('CP-811: pasar a devolución cambia el checklist y conserva lo hecho', async () => {
       const { token, followUp } = await opened('knd');
       await http()
         .patch(`/api/follow-ups/${followUp.id}/tasks/${followUp.tasks[0].id}`)
@@ -262,7 +262,7 @@ describe('Vencimientos (e2e)', () => {
       expect(res.body.tasks.filter((t: any) => t.done).map((t: any) => t.code)).toEqual(['VISITA']);
     });
 
-    it('CP-476: un seguimiento cerrado no cambia de checklist y puede reabrirse', async () => {
+    it('CP-812: un seguimiento cerrado no cambia de checklist y puede reabrirse', async () => {
       const { token, followUp } = await opened('cls');
       const closed = await http()
         .patch(`/api/follow-ups/${followUp.id}`)
@@ -286,7 +286,7 @@ describe('Vencimientos (e2e)', () => {
       expect(reopened.body).toMatchObject({ status: 'Abierto', closedAt: null });
     });
 
-    it('CP-477: solo Admin, Gerente y Ventas editan; todos leen; otra inmobiliaria no ve nada', async () => {
+    it('CP-813: solo Admin, Gerente y Ventas editan; todos leen; otra inmobiliaria no ve nada', async () => {
       const { tokens, followUp } = await opened('rol');
       await http()
         .patch(`/api/follow-ups/${followUp.id}`)
@@ -304,7 +304,7 @@ describe('Vencimientos (e2e)', () => {
   });
 
   describe('prórroga de palabra', () => {
-    it('CP-478: mueve el fin real, deja el pactado, cierra el seguimiento y se audita', async () => {
+    it('CP-814: mueve el fin real, deja el pactado, cierra el seguimiento y se audita', async () => {
       const { token, tokens } = await agency('prr');
       const contractId = await activeContract(token, 'prr', 10);
       await scheduler.openForAllTenants();
@@ -343,7 +343,7 @@ describe('Vencimientos (e2e)', () => {
       expect(iso(new Date(next.dueDate))).toBe(until);
     });
 
-    it('CP-479: rechaza una fecha que no es posterior al fin y un contrato que no está activo', async () => {
+    it('CP-815: rechaza una fecha que no es posterior al fin y un contrato que no está activo', async () => {
       const { token } = await agency('prv');
       const contractId = await activeContract(token, 'prv', 30);
       const post = (id: string, body: object) =>
@@ -357,7 +357,7 @@ describe('Vencimientos (e2e)', () => {
       await post(contractId, { until: iso(inDays(60)), note: 'rescindido' }).expect(409);
     });
 
-    it('CP-479: la ruta de convenios no acepta prórrogas ni renovaciones', async () => {
+    it('CP-815: la ruta de convenios no acepta prórrogas ni renovaciones', async () => {
       const { token } = await agency('agr');
       const contractId = await activeContract(token, 'agr', 30);
       await http()
@@ -374,7 +374,7 @@ describe('Vencimientos (e2e)', () => {
     const periods = async (token: string, id: string) =>
       (await http().get(`/api/contracts/${id}/periods`).set(auth(token)).expect(200)).body as any[];
 
-    it('CP-480: agrega un período, fija el alquiler y la regla nuevos, mueve el fin y cierra el seguimiento', async () => {
+    it('CP-816: agrega un período, fija el alquiler y la regla nuevos, mueve el fin y cierra el seguimiento', async () => {
       const { token } = await agency('ren');
       const contractId = await activeContract(token, 'ren', 20);
       await scheduler.openForAllTenants();

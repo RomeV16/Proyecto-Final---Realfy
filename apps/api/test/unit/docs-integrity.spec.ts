@@ -28,4 +28,17 @@ describe('integridad de la documentación', () => {
     }
     expect(offenders).toEqual([]);
   });
+
+  it('el catálogo de casos de prueba no repite ningún identificador CP', () => {
+    const text = readFileSync(join(DOCS, 'calidad/05-casos-de-prueba.md'), 'utf8');
+    const seen = new Map<string, number>();
+    const duplicated: string[] = [];
+    text.split('\n').forEach((line, i) => {
+      const id = /^\| (CP-\d+) \|/.exec(line)?.[1];
+      if (!id) return;
+      if (seen.has(id)) duplicated.push(`${id} (líneas ${seen.get(id)} y ${i + 1})`);
+      else seen.set(id, i + 1);
+    });
+    expect(duplicated).toEqual([]);
+  });
 });

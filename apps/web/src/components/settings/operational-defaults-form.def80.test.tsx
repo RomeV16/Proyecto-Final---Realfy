@@ -39,7 +39,7 @@ describe('DEF-80: guardar los valores por defecto no pisa lo que el formulario n
     });
   });
 
-  it('CP-725: el cuerpo que se guarda conserva las convenciones de depósitos', async () => {
+  it('CP-805: el cuerpo que se guarda conserva las convenciones de depósitos', async () => {
     const user = userEvent.setup();
     renderEs(<OperationalDefaultsManager />);
     const dueDay = await screen.findByLabelText(/Día de vencimiento/);
