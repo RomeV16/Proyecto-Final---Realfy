@@ -9,6 +9,7 @@ import {
   BILLING_READ_ROLES,
   BILLING_ROLES,
   BILLING_VIEW_ROLES,
+  INBOX_ROLES,
   MANAGEMENT_ROLES,
   MARKETING_ROLES,
   SALES_MARKETING_ROLES,
@@ -64,6 +65,7 @@ describe('grupos de roles', () => {
     expect(s(SUPPORT_ROLES)).toEqual(s([A, G, UserRole.Soporte]));
     expect(s(MARKETING_ROLES)).toEqual(s([A, G, UserRole.Marketing]));
     expect(s(SALES_MARKETING_ROLES)).toEqual(s([A, G, UserRole.Ventas, UserRole.Marketing]));
+    expect(s(INBOX_ROLES)).toEqual(s([A, G, UserRole.Ventas, UserRole.Marketing, UserRole.Soporte]));
     expect(s(BILLING_READ_ROLES)).toEqual(s([A, G, UserRole.Liquidaciones, UserRole.Lectura]));
     expect(s(BILLING_VIEW_ROLES)).toEqual(
       s([A, G, UserRole.Liquidaciones, UserRole.Lectura, UserRole.Ventas, UserRole.Soporte]),

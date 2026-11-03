@@ -54,6 +54,19 @@ describe('Valores por defecto de la inmobiliaria', () => {
     );
   });
 
+  it('el formulario de valores por defecto no borra la publicación ni la configuración de la bandeja', async () => {
+    const { service } = build('t1', { publication: { hideExactAddress: false }, inbox: { slaMinutes: 30 } });
+    const saved = await service.updateOperationalDefaults({ dueDay: 8 });
+    expect(saved.publication.hideExactAddress).toBe(false);
+    expect(saved.inbox.slaMinutes).toBe(30);
+  });
+
+  it('si el cuerpo trae la bandeja, rige la que se manda', async () => {
+    const { service } = build('t1', { inbox: { slaMinutes: 30 } });
+    const saved = await service.updateOperationalDefaults({ inbox: { slaMinutes: 5 } });
+    expect(saved.inbox.slaMinutes).toBe(5);
+  });
+
   it('guarda un valor completo en la inmobiliaria del contexto', async () => {
     const { service, prisma } = build('t1');
     const saved = await service.updateOperationalDefaults({ dueDay: 8 });

@@ -344,7 +344,7 @@ describe('Mensajería saliente (e2e)', () => {
       providers: { email: { configured: true }, whatsapp: { configured: true } },
       sendingWindow: { fromHour: 0, untilHour: 24 },
     });
-    expect(settings.templates).toHaveLength(10);
+    expect(settings.templates).toHaveLength(11);
     await get(tokens[UserRole.Liquidaciones], '/messaging/settings').expect(403);
   });
 });

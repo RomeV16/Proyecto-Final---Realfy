@@ -100,6 +100,9 @@ export {
   TicketQuoteStatus,
   ApprovalChannel,
   TicketPriority,
+  ConversationChannel,
+  ConversationStatus,
+  MessageDirection,
 } from './enums';
 
 // Schemas — usuarios y autenticacion
@@ -1500,3 +1503,4 @@ export type {
   CollectionCasePage,
   CollectionCaseDetail,
 } from './schemas/collection.schema';
+export * from './inbox';

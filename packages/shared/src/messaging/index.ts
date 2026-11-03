@@ -143,9 +143,11 @@ export interface MessageTemplateInfo {
   /**
    * `client`: va a una persona de la cartera; respeta el horario permitido y el
    * consentimiento. `staff`: va al personal o a quien se invita; solo mail y sin
-   * horario.
+   * horario. `reply`: respuesta a alguien que escribió primero (bandeja de
+   * consultas): respeta la baja, no necesita el alta de WhatsApp (la persona
+   * inició la conversación) y sale a cualquier hora.
    */
-  audience: 'client' | 'staff';
+  audience: 'client' | 'staff' | 'reply';
   /** Variables que la plantilla usa, en el orden de los parámetros de WhatsApp. */
   vars: string[];
   /** Variables con secretos (un enlace de un solo uso): no se muestran y se borran al terminar. */
@@ -155,6 +157,12 @@ export interface MessageTemplateInfo {
   whatsapp?: { name: string; language: string };
   /** Texto propuesto para la plantilla de WhatsApp, con {{n}} en el orden de `vars`. */
   whatsappText?: string;
+  /**
+   * Texto libre: por WhatsApp sale como mensaje de texto y solo se permite dentro de las
+   * 24 horas del último mensaje de la persona (ventana de atención al cliente de Meta);
+   * no usa plantilla aprobada.
+   */
+  freeForm?: boolean;
 }
 
 export const MESSAGE_TEMPLATE_KEYS = [
@@ -168,6 +176,7 @@ export const MESSAGE_TEMPLATE_KEYS = [
   'payment_reminder_3',
   'user_invitation',
   'staff_alert',
+  'inbox_message',
 ] as const;
 export type MessageTemplateKey = (typeof MESSAGE_TEMPLATE_KEYS)[number];
 
@@ -259,6 +268,13 @@ export const MESSAGE_TEMPLATES: Record<MessageTemplateKey, MessageTemplateInfo> 
     channels: [MessageChannel.Email],
     audience: 'staff',
     vars: ['subject', 'title', 'message', 'agency'],
+  },
+  inbox_message: {
+    key: 'inbox_message',
+    channels: BOTH,
+    audience: 'reply',
+    vars: ['subject', 'text', 'agency'],
+    freeForm: true,
   },
 };
 

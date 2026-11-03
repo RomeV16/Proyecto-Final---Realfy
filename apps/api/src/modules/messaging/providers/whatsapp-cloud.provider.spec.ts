@@ -111,4 +111,41 @@ describe('WhatsAppCloudProvider (Graph API simulada)', () => {
     expect(res).toEqual({ ok: false, error: 'WHATSAPP_TEMPLATE_MISSING: liquidacion', retryable: false });
     expect(http).not.toHaveBeenCalled();
   });
+
+  describe('texto libre de la bandeja de consultas', () => {
+    const free = (over: Partial<OutgoingMessage> = {}) =>
+      message({ templateKey: 'inbox_message', vars: { subject: 'Re: algo', text: ' Hola Iris\nSí, está disponible. ', agency: 'Inmo Demo' }, ...over });
+
+    it('se manda como mensaje de texto, sin plantilla, conservando los saltos de línea', async () => {
+      const http = jest.fn().mockResolvedValue(reply(200, { messages: [{ id: 'wamid.T1' }] }));
+      await expect(provider(http).send(free())).resolves.toEqual({ ok: true, providerMsgId: 'wamid.T1' });
+      const [url, init] = http.mock.calls[0];
+      expect(url).toBe('https://graph.facebook.com/v21.0/1000000001/messages');
+      expect(JSON.parse(init.body)).toEqual({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: '5493515550101',
+        type: 'text',
+        text: { preview_url: false, body: 'Hola Iris\nSí, está disponible.' },
+      });
+    });
+
+    it('fuera de la ventana de 24 horas Meta lo rechaza (131047) y no se reintenta', async () => {
+      const http = jest.fn().mockResolvedValue(reply(400, { error: { message: 'Re-engagement message', code: 131047 } }));
+      await expect(provider(http).send(free())).resolves.toEqual({
+        ok: false,
+        error: 'WHATSAPP_400_131047: Re-engagement message',
+        retryable: false,
+      });
+    });
+
+    it('un error de red se reintenta y una respuesta sin id también', async () => {
+      await expect(provider(jest.fn().mockRejectedValue(new Error('ECONNRESET'))).send(free())).resolves.toEqual({
+        ok: false,
+        error: 'NETWORK: ECONNRESET',
+        retryable: true,
+      });
+      await expect(provider(jest.fn().mockResolvedValue(reply(200, {}))).send(free())).resolves.toMatchObject({ ok: false, retryable: true });
+    });
+  });
 });

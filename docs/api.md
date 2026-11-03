@@ -961,6 +961,35 @@ delimitado por la persona a la que pertenece el token.
 El token de refresco del portal rota en cada uso, y reutilizar uno ya revocado
 revoca todos los de esa persona: es la detección de robo de token.
 
+## Bandeja de consultas
+
+Consultas de WhatsApp, mail, formulario del micrositio y teléfono (ADR-0013, CU-49). Cada
+consulta es un hilo por canal y dirección con responsable, estado y plazo de primera
+respuesta (`operationalDefaults.inbox`: `slaMinutes` 15, horario de atención, ventana del
+hilo, responsable por defecto, autorrespuesta por canal y respuestas rápidas). Estados:
+`Nueva`, `Asignada`, `EnCurso`, `Esperando`, `Resuelta`, `Archivada`. `slaState`: `ok`,
+`warning` (último tercio), `breached`, `met` (ya se contestó) o `none`. Todas las rutas
+son de Admin, Gerente, Ventas, Marketing y Soporte, salvo las indicadas.
+
+| Método | Ruta | Para qué | Acceso |
+|---|---|---|---|
+| GET | `/conversations` | Lista paginada, de la última actividad a la más vieja, con `status`, `open` (sin resueltas ni archivadas), `channel`, `assignee` (`me`, `none` o un id), `slaBreached`, `search`, `page` y `limit`. Cada consulta trae el responsable, los sin leer, el plazo, `slaState` y una vista previa. | INBOX |
+| GET | `/conversations/summary` | Contadores del menú: `unread` (propios o sin responsable), `breached` y `unassigned`, entre las abiertas. | INBOX |
+| GET | `/conversations/settings` | Configuración de la bandeja. | INBOX |
+| PUT | `/conversations/settings` | Reemplaza la configuración. 400 con valores inválidos o un responsable por defecto inexistente. | Admin, Gerente |
+| POST | `/conversations/calls` | *Registrar llamada*: `{ name, phone, summary, propertyId?, answered }`. Crea (o suma a) una consulta de canal `Telefono` asignada a quien la registra. 400 `INVALID_PHONE`. | INBOX |
+| GET | `/conversations/:id` | El hilo (con el estado de entrega de cada respuesta), la persona, el interesado, lo vinculado, el plazo, por dónde saldría una respuesta (`replyRoute`) y, si no puede salir, el motivo (`replyBlockedReason`: `CONTACT_OPTED_OUT`, `WHATSAPP_WINDOW_CLOSED`, `NO_REPLY_CHANNEL`). 404 si es de otra inmobiliaria. | INBOX |
+| POST | `/conversations/:id/read` | Deja en cero los sin leer. | INBOX |
+| POST | `/conversations/:id/reply` | `{ body, subject? }`: encola la respuesta por la bandeja de salida (canal de la consulta o mail; WhatsApp solo con texto libre dentro de las 24 horas), la registra en el hilo, toma la primera respuesta y deja la consulta en `Esperando`. 409 `CONTACT_OPTED_OUT`, `WHATSAPP_WINDOW_CLOSED`, `NO_REPLY_CHANNEL`, `CONVERSATION_ARCHIVED`. Repetir el mismo texto a la vez devuelve `queued: false`. | INBOX |
+| PUT | `/conversations/:id/assignee` | `{ assigneeUserId }` (null desasigna); avisa a la persona asignada. 400 si el usuario no existe o está inactivo. | INBOX |
+| PUT | `/conversations/:id/status` | `{ status }`. | INBOX |
+| PUT | `/conversations/:id/links` | `{ personId?, leadId?, related?: { type: 'Property' \| 'Contract', id } }`; null desvincula. 404 `PERSON_NOT_FOUND`, `LEAD_NOT_FOUND`, `PROPERTY_NOT_FOUND`, `CONTRACT_NOT_FOUND`. | INBOX |
+| POST | `/conversations/_run-sla` | Una vuelta del control de plazos para la inmobiliaria del pedido. Solo con `NODE_ENV=test` o `E2E_TEST_MODE=1`. | Admin |
+| POST | `/inbox/email-ingest` | Mail reenviado a la bandeja (público, firmado con `X-Realfy-Signature: sha256=<hex>` sobre el cuerpo crudo y `INBOX_EMAIL_INGEST_SECRET`): `{ tenantSlug, messageId, from, fromName?, subject?, text, receivedAt?, automatic? }`. 401 con firma inválida; 404 con una inmobiliaria desconocida; `ignored` en la respuesta si es automático. Repetir el `messageId` no duplica. | Firma |
+
+El formulario del micrositio (`POST /public/:slug/inquiries`) además abre una consulta de
+canal `Web`. El webhook de WhatsApp abre o suma consultas con los mensajes entrantes.
+
 ## Publicación
 
 Estado de cada propiedad en cada portal, aviso listo para copiar y resumen de lo

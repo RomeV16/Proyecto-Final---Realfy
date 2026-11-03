@@ -1,6 +1,6 @@
 import { MESSAGE_TEMPLATES, MessageChannel, type MessageTemplateKey } from '@realfy/shared';
 import type { MessagingConfigService } from '../../../common/messaging/messaging-config.service';
-import { whatsappParams } from '../../../common/messaging/message-templates';
+import { whatsappFreeText, whatsappParams } from '../../../common/messaging/message-templates';
 import type { MessageProvider, OutgoingMessage, ProviderResult } from './message-provider';
 
 /** Códigos de la Cloud API que indican un límite de envío: se reintenta más tarde. */
@@ -37,7 +37,9 @@ export class WhatsAppCloudProvider implements MessageProvider {
   }
 
   async send(message: OutgoingMessage): Promise<ProviderResult> {
-    const template = MESSAGE_TEMPLATES[message.templateKey as MessageTemplateKey]?.whatsapp;
+    const info = MESSAGE_TEMPLATES[message.templateKey as MessageTemplateKey];
+    if (info?.freeForm) return this.sendText(message);
+    const template = info?.whatsapp;
     if (!template) return { ok: false, error: `WHATSAPP_TEMPLATE_MISSING: ${message.templateKey}`, retryable: false };
 
     try {
@@ -64,6 +66,32 @@ export class WhatsAppCloudProvider implements MessageProvider {
           to: message.to,
           type: 'template',
           template: { name: template.name, language: { code: template.language }, components },
+        }),
+      });
+      if (!res.ok) return res;
+      const id = (res.body as { messages?: { id?: string }[] }).messages?.[0]?.id;
+      return id ? { ok: true, providerMsgId: id } : { ok: false, error: 'WhatsApp did not return a message id', retryable: true };
+    } catch (err) {
+      return { ok: false, error: `NETWORK: ${(err as Error).message}`, retryable: true };
+    }
+  }
+
+  /**
+   * Mensaje de texto libre: solo vale dentro de la ventana de 24 horas desde el último
+   * mensaje de la persona (la bandeja lo verifica al encolar); fuera de ella Meta lo
+   * rechaza (131047) y queda fallido, sin reintentos.
+   */
+  private async sendText(message: OutgoingMessage): Promise<ProviderResult> {
+    try {
+      const res = await this.call('messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: message.to,
+          type: 'text',
+          text: { preview_url: false, body: whatsappFreeText(message.vars) },
         }),
       });
       if (!res.ok) return res;

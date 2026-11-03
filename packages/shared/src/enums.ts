@@ -644,8 +644,12 @@ export enum NotificationType {
   MessageFailed = 'MessageFailed',
   /** Una persona pidió la baja respondiendo BAJA o STOP. */
   ContactOptedOut = 'ContactOptedOut',
-  /** Llegó un mensaje de WhatsApp (se guarda para la bandeja de consultas). */
+  /** Llegó un mensaje a la bandeja de consultas (consulta nueva sin responsable o mensaje nuevo en una abierta). */
   InboundMessageReceived = 'InboundMessageReceived',
+  /** Una consulta de la bandeja pasó su plazo de primera respuesta sin que nadie contestara. */
+  InboxSlaBreached = 'InboxSlaBreached',
+  /** Le asignaron una consulta de la bandeja. */
+  InboxAssigned = 'InboxAssigned',
 }
 
 // ─── Mensajería saliente (ADR-0013) ─────────────────────
@@ -728,6 +732,35 @@ export enum PipelineType {
 }
 
 // ─── Lead Enums ─────────────────────────────────────────
+
+/** Canal por el que llega una consulta a la bandeja (ADR-0013, bandeja de consultas). */
+export enum ConversationChannel {
+  WhatsApp = 'WhatsApp',
+  Email = 'Email',
+  Web = 'Web',
+  Telefono = 'Telefono',
+}
+
+/**
+ * Estado de una consulta. Nueva: nadie la tomó; Asignada: tiene responsable y
+ * nadie contestó; EnCurso: se está atendiendo; Esperando: se espera al cliente;
+ * Resuelta: cerrada (si el cliente escribe de nuevo dentro de la ventana, se reabre);
+ * Archivada: fuera de la bandeja.
+ */
+export enum ConversationStatus {
+  Nueva = 'Nueva',
+  Asignada = 'Asignada',
+  EnCurso = 'EnCurso',
+  Esperando = 'Esperando',
+  Resuelta = 'Resuelta',
+  Archivada = 'Archivada',
+}
+
+/** Sentido de un mensaje de una consulta: In lo escribió el cliente; Out, la inmobiliaria. */
+export enum MessageDirection {
+  In = 'In',
+  Out = 'Out',
+}
 
 export enum LeadSource {
   WebInquiry = 'WebInquiry',

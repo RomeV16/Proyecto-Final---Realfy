@@ -41,6 +41,12 @@ export const SALES_MARKETING_ROLES: readonly UserRole[] = [
   UserRole.Marketing,
 ];
 
+/** Bandeja de consultas: quien atiende a clientes (comercial, marketing y soporte). */
+export const INBOX_ROLES: readonly UserRole[] = [
+  ...SALES_MARKETING_ROLES,
+  UserRole.Soporte,
+];
+
 /** Liquidaciones más el rol de solo lectura. */
 export const BILLING_READ_ROLES: readonly UserRole[] = [
   ...BILLING_ROLES,

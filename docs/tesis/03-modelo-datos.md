@@ -950,6 +950,28 @@ La línea de tiempo de un caso (`collection_actions`).
 
 `Tenant.operationalDefaults.collections` guarda `enabled` (apagado de fábrica), `maxLevel` (3) y `letterTermDays` (10); el ritmo de los recordatorios sigue en `collectionCadence`.
 
+## Bandeja de consultas
+
+Dos tablas por inmobiliaria, en el filtro de aislamiento; `Conversation.personId` está en la unión de personas (ADR-0013).
+
+### Conversation
+
+Una consulta por inmobiliaria, canal y contacto (`conversations`).
+
+- `id`, `tenantId`, `channel` (`WhatsApp`, `Email`, `Web`, `Telefono`), `address` (teléfono con código de país o mail en minúsculas, normalizado), `counterpartName`, `subject`, `status` (`Nueva`, `Asignada`, `EnCurso`, `Esperando`, `Resuelta`, `Archivada`).
+- Contraparte y vínculos: `personId` y `leadId` (opcionales, `SET NULL`), `relatedType`/`relatedId` (`Property` o `Contract`, sin clave foránea), `assigneeUserId` (opcional, `SET NULL`).
+- Plazo: `slaDueAt`, `firstResponseAt` (la primera respuesta de una persona; la autorrespuesta no cuenta), `slaBreachedAt` (se marca una sola vez), `autoRepliedAt`. `unread` cuenta los mensajes del cliente sin abrir; `lastMessageAt` ordena la lista y define la ventana del hilo.
+- Índices `[tenantId, status, lastMessageAt]`, `[tenantId, assigneeUserId, status]`, `[tenantId, channel, address, lastMessageAt]` (hilos), `[tenantId, slaDueAt]` y `[tenantId, personId]`.
+
+### ConversationMessage
+
+Un mensaje de una consulta (`conversation_messages`).
+
+- `id`, `tenantId`, `conversationId` (`CASCADE`), `direction` (`In` del cliente, `Out` de la inmobiliaria), `body`, `attachments` (JSON con referencias; el contenido no se guarda), `authorUserId`, `isAutoReply`, `at`.
+- `inboundMessageId` y `outboxMessageId`, únicos y opcionales: el entrante de WhatsApp o mail apunta a su fila de `inbound_messages` y el saliente a la de `message_outbox`, de donde sale el estado de entrega. Los de teléfono y formulario no tienen fila de origen.
+
+La migración `20261103160100_bandeja_de_consultas` (con los enums en `20261103160000_enums_bandeja_de_consultas`) agrupa los mensajes que ya estaban en `inbound_messages` en una consulta archivada por inmobiliaria, canal y dirección (historia, sin plazo); se ensaya con `24_bandeja_de_consultas.sql`. `Tenant.operationalDefaults.inbox` guarda la configuración y `Notification.type` suma `InboxSlaBreached` e `InboxAssigned`.
+
 ## Importación desde el sistema anterior
 
 Las dos tablas que registran cada corrida del importador (ADR-0015). Ambas son por inmobiliaria y están en el filtro de aislamiento.

@@ -86,6 +86,8 @@ const EXPECTED: Record<Action, string[]> = {
   'messaging.manage': ['Admin', 'Gerente'],
   'consents.view': ['Admin', 'Gerente', 'Liquidaciones', 'Lectura', 'Ventas', 'Soporte'],
   'consents.manage': ['Admin', 'Gerente', 'Ventas', 'Liquidaciones'],
+  'inbox.access': ['Admin', 'Gerente', 'Ventas', 'Marketing', 'Soporte'],
+  'inbox.configure': ['Admin', 'Gerente'],
 };
 
 describe('can', () => {

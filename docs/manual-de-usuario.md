@@ -1077,6 +1077,52 @@ queda registrado «sin medio de contacto» y la gerencia recibe una notificació
 que avisar por otra vía y, si hace falta, registrar el alta del canal en la ficha de la
 persona. Un caso cerrado no admite más acciones; una mora nueva abre otro.
 
+### Bandeja de consultas
+
+**Bandeja** (`/bandeja`, Admin, Gerente, Ventas, Marketing y Soporte) junta en un solo
+lugar lo que escriben los clientes: WhatsApp, mails a la casilla de consultas, el
+formulario del micrositio y las llamadas que alguien anota. El número del menú son los
+mensajes sin leer propios o sin responsable; se pone rojo si hay consultas con el plazo
+vencido.
+
+- **La lista** muestra cada consulta con el canal, quién escribió, el último mensaje, el
+  estado, el responsable y el **plazo de primera respuesta** con una cuenta regresiva
+  (15 minutos por defecto). Se filtra por estado (por defecto, las abiertas), canal,
+  responsable (*Mis consultas*, *Sin responsable*) y *Plazo vencido*, y se busca por
+  nombre, dirección o asunto.
+- **El hilo** (a la derecha, o en pantalla completa en el celular) muestra los mensajes
+  del cliente y las respuestas con su estado de entrega; la autorrespuesta lleva su
+  etiqueta. Debajo, el cuadro para **responder** dice por dónde sale (WhatsApp o mail) y
+  ofrece las **respuestas rápidas**, que completan el nombre de pila.
+- **Responsable y estado.** Admin y Gerente eligen a quién asignar; el resto puede
+  *Tomar* la consulta. Quien contesta una consulta sin responsable se la queda. El
+  estado pasa a *Esperando al cliente* al responder y vuelve a *En curso* cuando el
+  cliente contesta; *Resuelta* la cierra (si el cliente escribe de nuevo, se reabre con un
+  plazo nuevo).
+- **Vincular** une la consulta con una persona, una propiedad o un contrato (los
+  contratos son los de la persona vinculada). Una consulta del micrositio ya llega con
+  su interesado y la propiedad consultada.
+- **Registrar llamada** anota quién llamó y qué se habló. Si ya se atendió, queda en
+  curso; si quedó para devolver, se asigna a quien la anota y corre el plazo.
+
+**La autorrespuesta** sale sola a las consultas nuevas por WhatsApp, mail y micrositio
+(una vez por consulta) por la bandeja de salida: respeta la baja de la persona, el modo
+de envío del ambiente y, por WhatsApp, solo sale dentro de las 24 horas del mensaje del
+cliente. **No detiene el plazo**: ese es para una persona. Si la mensajería está apagada
+en el ambiente, queda pendiente con el motivo en el hilo.
+
+**WhatsApp y las 24 horas.** Meta solo permite texto libre dentro de las 24 horas del
+último mensaje del cliente. Pasado ese tiempo, la respuesta sale por mail si la persona
+tiene uno vinculado; si no, la pantalla avisa y hay que llamar o esperar a que escriba.
+Si la persona pidió la baja, no se le puede responder desde la bandeja.
+
+**Configuración → Bandeja de consultas** (Admin y Gerente): minutos del plazo, horario de
+atención (días y horas; fuera de él el plazo corre desde que abre), ventana del hilo,
+responsable por defecto, texto de la autorrespuesta por canal y las respuestas rápidas.
+Los mails entrantes necesitan que el despliegue arme el reenvío de la casilla de
+consultas (ver *Despliegue*); sin eso la bandeja funciona con WhatsApp, el micrositio y
+las llamadas.
+
 ### Honorarios
 
 **Honorarios** (`/honorarios`) reúne los honorarios de cada operación —alta de un

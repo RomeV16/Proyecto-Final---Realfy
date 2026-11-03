@@ -3,6 +3,7 @@ import { MessageChannel } from '@realfy/shared';
 import { CommonEmailService } from '../../common/email/common-email.service';
 import { MessagingConfigService } from '../../common/messaging/messaging-config.service';
 import { CashModule } from '../cash/cash.module';
+import { InboxModule } from '../inbox/inbox.module';
 import { LiquidacionesModule } from '../liquidaciones/liquidaciones.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { OwnerAccountsModule } from '../owner-accounts/owner-accounts.module';
@@ -33,7 +34,7 @@ export function messageProvidersFactory(email: CommonEmailService, config: Messa
 
 /** Mensajería saliente: despacho, proveedores, webhooks, consentimiento y bandeja de salida (ADR-0013). */
 @Module({
-  imports: [TenantsModule, NotificationsModule, CashModule, OwnerAccountsModule, LiquidacionesModule],
+  imports: [TenantsModule, NotificationsModule, CashModule, OwnerAccountsModule, LiquidacionesModule, InboxModule],
   controllers: [OutboxController, MessagingSettingsController, ConsentsController, WebhooksController],
   providers: [
     { provide: MESSAGE_PROVIDERS, useFactory: messageProvidersFactory, inject: [CommonEmailService, MessagingConfigService] },

@@ -1,5 +1,5 @@
 import { MESSAGE_TEMPLATE_KEYS, MESSAGE_TEMPLATES, MessageChannel } from '@realfy/shared';
-import { attachmentFilename, isTemplateKey, renderEmail, whatsappParams } from './message-templates';
+import { attachmentFilename, isTemplateKey, renderEmail, whatsappFreeText, whatsappParams } from './message-templates';
 import { consentBlock } from './consent-policy';
 import { MessagingConfigService } from './messaging-config.service';
 import type { ConfigService } from '@nestjs/config';
@@ -24,6 +24,20 @@ describe('plantillas de la bandeja de salida', () => {
     expect(mail.html).not.toContain('<script>');
     expect(mail.html).toContain('&lt;script&gt;');
     expect(mail.html).toContain('Inmo &amp; Cía');
+  });
+
+  it('la respuesta de la bandeja respeta los saltos de línea, escapa el HTML y firma con la inmobiliaria', () => {
+    const mail = renderEmail('inbox_message', { subject: 'Re: depto', text: 'Hola <b>Iris</b>\nTe esperamos', agency: 'Inmo & Cía' });
+    expect(mail.subject).toBe('Re: depto');
+    expect(mail.html).toContain('Hola &lt;b&gt;Iris&lt;/b&gt;<br/>Te esperamos');
+    expect(mail.html).toContain('Inmo &amp; Cía');
+    expect(renderEmail('inbox_message', {}).subject).toBe('');
+  });
+
+  it('el texto libre de WhatsApp se recorta al tope de la API', () => {
+    expect(whatsappFreeText({ text: '  hola  ' })).toBe('hola');
+    expect(whatsappFreeText({})).toBe('');
+    expect(whatsappFreeText({ text: 'x'.repeat(5000) })).toHaveLength(4096);
   });
 
   it('el recibo nombra número, monto y concepto', () => {
@@ -63,6 +77,10 @@ describe('regla de consentimiento', () => {
   it('WhatsApp a la cartera necesita el alta; una baja corta todo', () => {
     expect(consentBlock(null, MessageChannel.WhatsApp, 'receipt')).toBe('NO_OPT_IN');
     expect(consentBlock(optIn as any, MessageChannel.WhatsApp, 'receipt')).toBeNull();
+    // La respuesta a quien escribió primero no pide el alta, pero la baja se respeta.
+    expect(consentBlock(null, MessageChannel.WhatsApp, 'inbox_message')).toBeNull();
+    expect(consentBlock({ status: 'OptOut' } as any, MessageChannel.WhatsApp, 'inbox_message')).toBe('OPTED_OUT');
+    expect(consentBlock({ status: 'OptOut' } as any, MessageChannel.Email, 'inbox_message')).toBe('OPTED_OUT');
     expect(consentBlock(optOut as any, MessageChannel.WhatsApp, 'receipt')).toBe('OPTED_OUT');
   });
 
@@ -88,6 +106,7 @@ describe('MessagingConfigService', () => {
     expect(c.whatsappConfigured()).toBe(false);
     expect(c.resend.from).toBe('noreply@realfy.com.ar');
     expect(c.whatsapp.graphVersion).toBe('v21.0');
+    expect(c.inbox).toEqual({ emailIngestSecret: undefined, whatsappTenantSlug: undefined });
   });
 
   it('allowlist deja pasar solo las direcciones de la lista; live deja pasar todas', () => {

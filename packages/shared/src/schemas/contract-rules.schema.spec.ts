@@ -15,6 +15,7 @@ import {
   operationalDefaultsToForm,
 } from './operational-defaults.form';
 import { CreateContractSchema, CreateIndexDataSchema, UpdateContractSchema } from './contract.schema';
+import { InboxSettingsSchema } from '../inbox/settings';
 
 describe('OperationalDefaultsSchema', () => {
   it('un objeto vacío toma los valores por defecto (M1)', () => {
@@ -63,6 +64,7 @@ describe('OperationalDefaultsSchema', () => {
       ownerAccounts: { statementCloseDay: null, lessorChargeTiming: 'AlGenerarEstado' },
       invoicing: { scope: 'Alquiler', when: 'Manual', vatPct: 0 },
       messaging: { fromHour: 9, untilHour: 20 },
+      inbox: InboxSettingsSchema.parse({}),
       publication: {
         portals: [
           { key: 'zonaprop', name: 'Zonaprop', urlTemplate: null, enabled: true },

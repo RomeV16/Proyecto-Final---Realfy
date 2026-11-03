@@ -4,6 +4,7 @@ import { screen } from '@testing-library/react';
 import {
   ConsentStatus,
   ContractStatus,
+  ConversationStatus,
   ExpirationLight,
   FeeInstallmentStatus,
   LessorInvoiceStatus,
@@ -54,6 +55,7 @@ const ENUMS: Record<StatusDomain, object> = {
   consentimiento: ConsentStatus,
   aviso: ListingStatus,
   cobranza: CollectionStage,
+  consulta: ConversationStatus,
 };
 
 function lookup(messages: unknown, path: string): unknown {

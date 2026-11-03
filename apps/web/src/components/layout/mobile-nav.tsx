@@ -5,6 +5,7 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Icon } from '@/components/ui/icon';
+import { InboxNavBadge } from './inbox-nav-badge';
 import { useVisibleNavItems } from './nav-items';
 
 interface MobileNavProps {
@@ -87,6 +88,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
                   <Icon name={item.icon} size={20} />
                 </span>
                 <span className="flex-1">{t(item.key)}</span>
+                {item.badge === 'inbox' && <InboxNavBadge />}
               </Link>
             );
           })}

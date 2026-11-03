@@ -105,6 +105,11 @@ const EMAIL: Record<MessageTemplateKey, (vars: MessageVars) => RenderedEmail> = 
           <p>Saludos cordiales,<br/>${v(x, 'agency')}</p>
         `,
   }),
+  // Respuesta de la bandeja de consultas: el texto lo escribe una persona (o la autorrespuesta).
+  inbox_message: (x) => ({
+    subject: x.subject ?? '',
+    html: `<p>${v(x, 'text').replace(/\r?\n/g, '<br/>')}</p><p>Saludos cordiales,<br/>${v(x, 'agency')}</p>`,
+  }),
 };
 
 export function isTemplateKey(key: string): key is MessageTemplateKey {
@@ -122,6 +127,11 @@ export function renderEmail(templateKey: string, vars: MessageVars): RenderedEma
  * catálogo. WhatsApp no acepta saltos de línea, tabulaciones ni más de cuatro
  * espacios seguidos en un parámetro, ni uno vacío.
  */
+/** Texto de un mensaje libre de WhatsApp (sin plantilla): saltos de línea permitidos, tope de la API. */
+export function whatsappFreeText(vars: MessageVars): string {
+  return (vars.text ?? '').trim().slice(0, 4096);
+}
+
 export function whatsappParams(templateKey: string, vars: MessageVars): string[] {
   if (!isTemplateKey(templateKey)) throw new Error(`Plantilla desconocida: ${templateKey}`);
   return MESSAGE_TEMPLATES[templateKey].vars.map((key) => {

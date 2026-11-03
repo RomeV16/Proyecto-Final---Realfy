@@ -68,6 +68,30 @@ enum PropertyOperationType {
   Temporario
 }
 
+/// Canal por el que llega una consulta a la bandeja.
+enum ConversationChannel {
+  WhatsApp
+  Email
+  Web
+  Telefono
+}
+
+/// Estado de una consulta de la bandeja.
+enum ConversationStatus {
+  Nueva
+  Asignada
+  EnCurso
+  Esperando
+  Resuelta
+  Archivada
+}
+
+/// Sentido de un mensaje de una consulta (In: del cliente; Out: de la inmobiliaria).
+enum MessageDirection {
+  In
+  Out
+}
+
 /// Estado de un aviso en un portal (publicación).
 enum ListingStatus {
   NoPublicado
@@ -381,6 +405,7 @@ model User {
 
   staffCommissions StaffCommission[] @relation("StaffCommissionUser")
   propertyListings PropertyListing[] @relation("ListingUpdatedBy")
+  conversations    Conversation[]    @relation("ConversationAssignee")
 
   salesOperationsAgent SalesOperation[] @relation("SalesOperationAgent")
   keySetsHeld          KeySet[]         @relation("KeySetHolderUser")
@@ -700,6 +725,7 @@ model Person {
   outboxMessages  MessageOutbox[]
   contactConsents ContactConsent[]
   inboundMessages InboundMessage[]
+  conversations   Conversation[]
 
   salesParties      SalesParty[]
   salesDepositsHeld SalesDeposit[] @relation("SalesDepositHolder")
@@ -859,6 +885,7 @@ model Lead {
   assignedToUser User?             @relation(fields: [assignedToUserId], references: [id], onDelete: SetNull)
   interactions   LeadInteraction[]
   visits         LeadVisit[]
+  conversations  Conversation[]
 
   @@index([tenantId])
   @@index([tenantId, status])
@@ -2311,6 +2338,8 @@ enum NotificationType {
   MessageFailed
   ContactOptedOut
   InboundMessageReceived
+  InboxSlaBreached
+  InboxAssigned
 }
 
 model EmailTemplate {
@@ -3302,7 +3331,8 @@ model MessageOutbox {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+  person              Person?              @relation(fields: [personId], references: [id], onDelete: SetNull)
+  conversationMessage ConversationMessage?
 
   collectionActions CollectionAction[]
 
@@ -3346,9 +3376,11 @@ model InboundMessage {
   receivedAt    DateTime
   createdAt     DateTime       @default(now())
 
-  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+  person              Person?              @relation(fields: [personId], references: [id], onDelete: SetNull)
+  conversationMessage ConversationMessage?
 
   @@index([tenantId, receivedAt])
+  @@index([tenantId, channel, from])
   @@map("inbound_messages")
 }
 
@@ -3660,4 +3692,69 @@ model CollectionAction {
   @@unique([caseId, key])
   @@index([tenantId, caseId, at])
   @@map("collection_actions")
+}
+
+/// Consulta de la bandeja unificada: un hilo con una persona por un canal (WhatsApp, mail,
+/// formulario del micrositio o llamada), con responsable y plazo de primera respuesta.
+model Conversation {
+  id              String              @id @default(uuid())
+  tenantId        String
+  channel         ConversationChannel
+  /// Dirección normalizada de quien escribe (teléfono, mail) o la que dejó en el formulario.
+  address         String
+  counterpartName String?
+  subject         String?
+  status          ConversationStatus  @default(Nueva)
+  personId        String?
+  leadId          String?
+  /// Propiedad o contrato a los que se refiere: "Property" o "Contract".
+  relatedType     String?
+  relatedId       String?
+  assigneeUserId  String?
+  firstResponseAt DateTime?
+  slaDueAt        DateTime?
+  slaBreachedAt   DateTime?
+  autoRepliedAt   DateTime?
+  /// Mensajes del cliente que nadie abrió todavía.
+  unread          Int                 @default(0)
+  lastMessageAt   DateTime
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  person   Person?               @relation(fields: [personId], references: [id], onDelete: SetNull)
+  lead     Lead?                 @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  assignee User?                 @relation("ConversationAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  messages ConversationMessage[]
+
+  @@index([tenantId, status, lastMessageAt])
+  @@index([tenantId, assigneeUserId, status])
+  @@index([tenantId, channel, address, lastMessageAt])
+  @@index([tenantId, slaDueAt])
+  @@index([tenantId, personId])
+  @@map("conversations")
+}
+
+/// Mensaje de una consulta. Los entrantes de WhatsApp y mail apuntan a su fila de
+/// `inbound_messages`; los salientes, a su fila de `message_outbox` (de ahí sale el estado de entrega).
+model ConversationMessage {
+  id               String           @id @default(uuid())
+  tenantId         String
+  conversationId   String
+  direction        MessageDirection
+  body             String
+  /// Adjuntos: referencias [{ name, url? }]; el contenido no se guarda en la base.
+  attachments      Json             @default("[]")
+  inboundMessageId String?          @unique
+  outboxMessageId  String?          @unique
+  authorUserId     String?
+  isAutoReply      Boolean          @default(false)
+  at               DateTime
+  createdAt        DateTime         @default(now())
+
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  inboundMessage InboundMessage? @relation(fields: [inboundMessageId], references: [id], onDelete: SetNull)
+  outboxMessage  MessageOutbox?  @relation(fields: [outboxMessageId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, conversationId, at])
+  @@map("conversation_messages")
 }
