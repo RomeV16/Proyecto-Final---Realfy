@@ -3,6 +3,9 @@ import { ServicesModule } from '../services/services.module';
 import { TenantsModule } from '../tenants/tenants.module';
 import { BillDocumentStorage } from './bill-document-storage.service';
 import { BillDocumentsService } from './bill-documents.service';
+import { BillFetchScheduler } from './bill-fetch.scheduler';
+import { BillFetchService } from './bill-fetch.service';
+import { BillFetcherRegistry } from './bill-fetcher.registry';
 import { BillIntakeService } from './bill-intake.service';
 import { BillMailService } from './bill-mail.service';
 import { BillsIntakeController } from './bills-intake.controller';
@@ -19,7 +22,10 @@ import { PdfTextService } from './pdf-text.service';
     BillIntakeService,
     BillDocumentsService,
     BillMailService,
+    BillFetcherRegistry,
+    BillFetchService,
+    BillFetchScheduler,
   ],
-  exports: [BillIntakeService],
+  exports: [BillIntakeService, BillFetcherRegistry],
 })
 export class BillsIntakeModule {}
