@@ -38,6 +38,8 @@ const batch = (over: Record<string, unknown> = {}) => ({
     byEntity: {
       Persona: { Creado: 2, Actualizado: 0, SinCambios: 0, Error: 0 },
       Contrato: { Creado: 1, Actualizado: 0, SinCambios: 0, Error: 1 },
+      Servicio: { Creado: 3, Actualizado: 0, SinCambios: 0, Error: 0 },
+      ReglaDeCargo: { Creado: 3, Actualizado: 0, SinCambios: 0, Error: 0 },
     },
   },
   ...over,
@@ -128,6 +130,8 @@ describe('ImportBatchDetail', () => {
     const summary = screen.getByRole('region', { name: 'Resumen por entidad' });
     expect(within(summary).getByText('Persona')).toBeInTheDocument();
     expect(within(summary).getByText('Contrato')).toBeInTheDocument();
+    expect(within(summary).getByText('Servicio')).toBeInTheDocument();
+    expect(within(summary).getByText('Regla de traslado')).toBeInTheDocument();
   });
 
   it('el filtro por acción vuelve a pedir las filas y deja sólo los errores', async () => {
