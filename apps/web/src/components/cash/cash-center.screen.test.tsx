@@ -160,6 +160,7 @@ function setup({ write, failAccounts, failMovements, failReceipts, movementPages
       return { items: [{ id: CONTRACT, startDate: '2026-01-01T00:00:00.000Z', property: { title: 'Depto Sintético' } }] };
     }
     if (path.startsWith('/persons?search=')) return { items: [{ id: ANA, firstName: 'Ana', lastName: 'Ejemplo', dni: '30111222' }] };
+    if (path.startsWith('/outbox?')) return paged([]);
     throw new Error(`unexpected ${path}`);
   });
   return renderEs(<CashCenter />);
@@ -603,5 +604,36 @@ describe('Caja: recibos', () => {
     await screen.findAllByText('00000002');
     await user.click(screen.getAllByRole('button', { name: 'Imprimir' })[0]);
     await waitFor(() => expect(toastError).toHaveBeenCalledWith('No se pudo descargar el archivo. Intentá de nuevo.'));
+  });
+
+  it('cada recibo se puede mandar a quien pagó desde su diálogo de envío', async () => {
+    setup();
+    const user = userEvent.setup();
+    await screen.findAllByText('Caja ARS');
+    await openTab(user, 'Recibos');
+    await screen.findAllByText('00000002');
+    await user.click(screen.getAllByRole('button', { name: 'Enviar' })[0]);
+    const dialog = within(screen.getAllByRole('dialog').at(-1)!);
+    expect(dialog.getByRole('heading', { name: 'Enviar el recibo' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(apiClient).toHaveBeenCalledWith(`/outbox?relatedType=Receipt&relatedId=${RECEIPT}&page=1&limit=20`),
+    );
+    await user.click(dialog.getByRole('button', { name: 'Enviar por mail' }));
+    await waitFor(() =>
+      expect(apiClient).toHaveBeenCalledWith('/outbox/send', {
+        method: 'POST',
+        body: JSON.stringify({ kind: 'Receipt', id: RECEIPT, channel: 'Email' }),
+      }),
+    );
+  });
+
+  it('Lectura ve los recibos pero no el botón de envío', async () => {
+    auth.role = 'Lectura';
+    setup();
+    const user = userEvent.setup();
+    await screen.findAllByText('Caja ARS');
+    await openTab(user, 'Recibos');
+    await screen.findAllByText('00000002');
+    expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
   });
 });

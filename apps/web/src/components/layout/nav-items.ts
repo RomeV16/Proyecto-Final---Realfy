@@ -55,6 +55,7 @@ export const navItems: NavItem[] = [
   { key: 'tickets', href: '/tickets', icon: 'tickets' },
   { key: 'providers', href: '/providers', icon: 'providers' },
   { key: 'notifications', href: '/notifications', icon: 'bell' },
+  { key: 'messaging', href: '/mensajeria', icon: 'mail', action: 'messaging.view' },
   { key: 'import', href: '/import', icon: 'import', action: 'settings.manage' },
   { key: 'dataQuality', href: '/calidad-de-datos', icon: 'search', action: 'dataQuality.view' },
   { key: 'users', href: '/configuracion/usuarios', icon: 'team', action: 'users.view' },

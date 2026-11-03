@@ -90,6 +90,21 @@ describe('ConfiguracionPage', () => {
     if (link) expect(link.getAttribute('href')).toBe('/es/configuracion/usuarios');
   });
 
+  it.each([
+    ['Admin', true],
+    ['Gerente', true],
+    ['Liquidaciones', false],
+    ['Ventas', false],
+  ])('%s: acceso a Mensajería = %s', async (role, visible) => {
+    setRole(role as string);
+    mockApi();
+    renderEs(<ConfiguracionPage />);
+    await screen.findByRole('heading', { name: 'Configuración' });
+    const link = screen.queryByRole('link', { name: 'Ver mensajería' });
+    expect(Boolean(link)).toBe(visible);
+    if (link) expect(link.getAttribute('href')).toBe('/es/configuracion/mensajeria');
+  });
+
   it.each(['Ventas', 'Liquidaciones', 'Soporte', 'Lectura'])(
     '%s ve el formulario de solo lectura',
     async (role) => {

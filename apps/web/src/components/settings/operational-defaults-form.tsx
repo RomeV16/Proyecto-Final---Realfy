@@ -97,6 +97,7 @@ const SECTIONS: { key: string; fields: FieldName[]; checks?: CheckField[] }[] = 
   },
   { key: 'ownerAccounts', fields: ['ownerStatementCloseDay', 'ownerLessorChargeTiming'] },
   { key: 'invoicing', fields: ['invoicingScope', 'invoicingWhen', 'invoicingVatPct'] },
+  { key: 'messaging', fields: ['messagingFromHour', 'messagingUntilHour'] },
 ];
 
 const DEFAULT_FORM = operationalDefaultsToForm(DEFAULT_OPERATIONAL_DEFAULTS);

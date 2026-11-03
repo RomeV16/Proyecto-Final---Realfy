@@ -1,4 +1,5 @@
 import {
+  ConsentStatus,
   ContractStatus,
   ExpirationLight,
   FeeInstallmentStatus,
@@ -9,6 +10,7 @@ import {
   LeadStatus,
   LessorInvoiceStatus,
   LiquidacionStatus,
+  MessageStatus,
   OwnerStatementStatus,
   RendicionStatus,
   TicketStatus,
@@ -50,7 +52,9 @@ export type StatusDomain =
   | 'vencimiento'
   | 'honorario'
   | 'cuotaHonorario'
-  | 'facturaLocador';
+  | 'facturaLocador'
+  | 'mensaje'
+  | 'consentimiento';
 
 export interface StatusEntry {
   tone: BadgeVariant;
@@ -203,6 +207,25 @@ export const STATUS_REGISTRY: Record<StatusDomain, Record<string, StatusEntry>> 
     [ImportBatchStatus.Ejecutando]: 'info',
     [ImportBatchStatus.Completado]: 'success',
     [ImportBatchStatus.Fallido]: 'danger',
+  }),
+  // Mensajes de la bandeja de salida: Sent es brand (el proveedor lo aceptó y falta que llegue).
+  mensaje: entries(
+    'messaging.statuses',
+    {
+      [MessageStatus.Pending]: 'warning',
+      [MessageStatus.Sending]: 'info',
+      [MessageStatus.Sent]: 'brand',
+      [MessageStatus.Delivered]: 'success',
+      [MessageStatus.Read]: 'success',
+      [MessageStatus.Failed]: 'danger',
+      [MessageStatus.Blocked]: 'danger',
+      [MessageStatus.Cancelled]: 'neutral',
+    },
+    [MessageStatus.Cancelled],
+  ),
+  consentimiento: entries('messaging.consents.statuses', {
+    [ConsentStatus.OptIn]: 'success',
+    [ConsentStatus.OptOut]: 'danger',
   }),
   importFila: entries('importBatches.actions', {
     [ImportRowAction.Creado]: 'success',

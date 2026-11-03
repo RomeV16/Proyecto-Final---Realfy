@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Textarea } from '@/components/ui/textarea';
 import { useErrorText } from '@/components/cash/use-cash-data';
+import { SendDocument } from '@/components/messaging/send-document';
 import { BalanceAmount, SignedAmount } from './balance-amount';
 import { SourceInvoicesPanel } from '@/components/invoices/lessor/source-invoices-panel';
 import { PayoutDialog } from './payout-dialog';
@@ -29,7 +30,8 @@ import { PayoutDialog } from './payout-dialog';
 /**
  * Un estado de cuenta: saldo anterior, créditos, descuentos y pagos del mes con
  * el saldo al cierre, y los movimientos de cada unidad. Desde acá se descarga el
- * PDF, se emite, se anula y se registra el pago al locador.
+ * PDF, se emite, se manda al locador (emitido o enviado), se anula y se registra
+ * el pago al locador.
  */
 export function OwnerStatementDetail({ statementId }: { statementId: string }) {
   const t = useTranslations('ownerAccounts');
@@ -141,6 +143,9 @@ export function OwnerStatementDetail({ statementId }: { statementId: string }) {
           <Button type="button" variant="secondary" onClick={pdf}>
             {t('detail.pdf')}
           </Button>
+          {(data.status === OwnerStatementStatus.Emitido || data.status === OwnerStatementStatus.Enviado) && (
+            <SendDocument kind="OwnerStatement" id={statementId} size="md" />
+          )}
           {canManage && data.status === OwnerStatementStatus.Borrador && (
             <Button type="button" onClick={() => void issue()} disabled={busy}>
               {t('detail.issue')}

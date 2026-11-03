@@ -50,7 +50,7 @@ export function ShareLinkDialog({ shared, onClose }: { shared: SharedLink | null
               )}
             </FormField>
             <div id="share-link-note" className="space-y-1 text-sm text-[var(--color-muted)]">
-              <p>{shared.data.emailSent ? t('emailSent') : t('noEmail')}</p>
+              <p>{shared.data.emailQueued ? t('emailQueued') : t('noEmail')}</p>
               <p>{t('singleUse', { date: formatDateTime(shared.data.expiresAt, undefined, locale) })}</p>
             </div>
           </>

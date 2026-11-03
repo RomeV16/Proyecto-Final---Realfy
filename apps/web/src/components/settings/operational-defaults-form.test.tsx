@@ -92,6 +92,7 @@ describe('OperationalDefaultsManager', () => {
       collectionCadence: { firstReminderDays: 5, everyDays: 5 },
       expiryLight: { redDays: 30, yellowDays: 60 },
       repairs: { preauthLimit: 0, managementFeePct: 0 },
+      messaging: { fromHour: 9, untilHour: 20 },
     });
   });
 
@@ -258,6 +259,34 @@ describe('OperationalDefaultsManager', () => {
       staffCommissionPct: 10,
       staffCommissionBase: 'Bruto',
     });
+  });
+
+  it('mensajería: el horario de envío viene de 9 a 20, se valida y se guarda anidado', async () => {
+    const user = userEvent.setup();
+    renderEs(<OperationalDefaultsManager />);
+
+    expect(await screen.findByText('Mensajería')).toBeInTheDocument();
+    const from = screen.getByLabelText(/Mandar desde las/);
+    const until = screen.getByLabelText(/Mandar hasta las/);
+    expect(from).toHaveValue('9');
+    expect(until).toHaveValue('20');
+    expect(screen.getByText(/de 0 a 23 \(de fábrica 9\)/)).toBeInTheDocument();
+
+    // Hasta tiene que ser después de desde.
+    await user.clear(until);
+    await user.type(until, '8');
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+    await waitFor(() => expect(until).toHaveAttribute('aria-invalid', 'true'));
+    expect(apiClient.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+
+    await user.clear(from);
+    await user.type(from, '8');
+    await user.clear(until);
+    await user.type(until, '21');
+    await user.click(screen.getByRole('button', { name: 'Guardar valores' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    const put = apiClient.mock.calls.find(([, init]) => init?.method === 'PUT')!;
+    expect(JSON.parse(put[1].body).messaging).toEqual({ fromHour: 8, untilHour: 21 });
   });
 
   it('un valor inválido se marca en el campo y no se envía', async () => {

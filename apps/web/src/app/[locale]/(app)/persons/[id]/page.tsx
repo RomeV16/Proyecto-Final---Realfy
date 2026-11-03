@@ -8,6 +8,7 @@ import { PersonRole } from '@realfy/shared';
 import { Fragment, useState, useEffect, useCallback, useRef } from 'react';
 import { PersonForm, type PersonFormData } from '@/components/persons/person-form';
 import { PersonRoleBadge } from '@/components/persons/person-role-badge';
+import { PersonConsents } from '@/components/persons/person-consents';
 import { EntityRow } from '@/components/ui/entity-card';
 import { ErrorNotice } from '@/components/ui/error-notice';
 import { Icon } from '@/components/ui/icon';
@@ -1075,6 +1076,9 @@ export default function PersonDetailPage() {
             onRolesChange={(roles) => setPerson((prev) => prev ? { ...prev, roles } : null)}
             canEdit={canEdit}
           />
+
+          {/* Consentimiento de mensajes por mail y WhatsApp */}
+          <PersonConsents personId={person.id} />
 
           {/* Documents */}
           <DocumentsSection

@@ -10,11 +10,12 @@ import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { DateText } from '@/components/ui/date-text';
 import { inputStyles } from '@/components/ui/input';
 import { MoneyText } from '@/components/ui/money-text';
+import { SendDocument } from '@/components/messaging/send-document';
 import { printReceipt } from './print-receipt';
 
 const LIMIT = 50;
 
-/** Recibos de cobro numerados, para consultar y reimprimir. */
+/** Recibos de cobro numerados, para consultar, reimprimir y mandar a quien pagó. */
 export function ReceiptsPanel() {
   const t = useTranslations('cash');
   const tMethods = useTranslations('liquidaciones.paymentMethods');
@@ -73,9 +74,12 @@ export function ReceiptsPanel() {
       key: 'actions',
       header: t('receipts.columns.actions'),
       render: (r) => (
-        <Button type="button" size="sm" variant="secondary" onClick={() => void printReceipt(r.id, r.number, tCommon('downloadFailed'))}>
-          {t('receipts.print')}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="secondary" onClick={() => void printReceipt(r.id, r.number, tCommon('downloadFailed'))}>
+            {t('receipts.print')}
+          </Button>
+          <SendDocument kind="Receipt" id={r.id} />
+        </div>
       ),
     },
   ];
