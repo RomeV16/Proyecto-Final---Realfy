@@ -1515,6 +1515,7 @@
   },
   "adjustmentPendingCount": "{count} with a pending adjustment (index missing): they cannot be approved until it is applied",
   "outOfRangeCount": "{count} outside the contract period (skipped)",
+  "withWarningsCount": "{count} with warnings (zero rent or bills not passed on)",
   "lineItemTypes": {
    "Alquiler": "Alquiler",
    "Ajuste": "Ajuste",

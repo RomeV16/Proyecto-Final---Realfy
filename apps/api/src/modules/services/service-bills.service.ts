@@ -21,8 +21,22 @@ import { monthStart, pickRuleAt } from './charge-rule-dates';
 import { OperationalDefaultsService } from '../tenants/operational-defaults.service';
 import { syncServiceBillEntries } from '../owner-accounts/ledger-posting';
 
+/**
+ * Aviso de una boleta: algo del reparto que no llegó a ninguna liquidación (o que no se repartió) y que
+ * quien carga la boleta tiene que ver. Los códigos son estables.
+ */
+export type BillWarning =
+  | {
+      code: 'BILL_CURRENCY_MISMATCH';
+      contractId: string;
+      billCurrency: string;
+      contractCurrency: string;
+      message: string;
+    }
+  | { code: 'CONSUMPTION_MISSING'; contractId: string; ruleId: string | null; message: string };
+
 export type BulkBillRowResult =
-  | { index: number; status: 'created' | 'updated' | 'unchanged'; billId: string }
+  | { index: number; status: 'created' | 'updated' | 'unchanged'; billId: string; warnings: BillWarning[] }
   | { index: number; status: 'error'; error: { code: string; message: string } };
 
 type Db = any;
@@ -176,6 +190,7 @@ export class ServiceBillsService {
     const preview = await this.compute(this.prisma.client, bill);
     return {
       billId: id,
+      warnings: billWarnings(bill, preview),
       stored: stored.map((a: any) => ({ ...a, amount: a.amount.toString() })),
       preview: {
         allocations: preview.allocations.map((a) => ({
@@ -263,13 +278,15 @@ export class ServiceBillsService {
       updated: count('updated'),
       unchanged: count('unchanged'),
       failed: count('error'),
+      /** Filas guardadas con algún aviso (la boleta existe, pero parte del reparto no llegará a una liquidación). */
+      withWarnings: results.filter((r) => r.status !== 'error' && r.warnings.length > 0).length,
       results,
     };
   }
 
   private async upsertRow(
     row: ServiceBillRowInput,
-  ): Promise<{ status: 'created' | 'updated' | 'unchanged'; billId: string }> {
+  ): Promise<{ status: 'created' | 'updated' | 'unchanged'; billId: string; warnings: BillWarning[] }> {
     const service = await this.prisma.client.service.findFirst({ where: { id: row.serviceId } });
     if (!service) throw notFound('SERVICE_NOT_FOUND', 'Service not found');
     await this.assertUnitsOfService(this.prisma.client, service, row.unitConsumptions);
@@ -292,10 +309,14 @@ export class ServiceBillsService {
 
       if (!existing) {
         const created = await this.createBill(tx, service, { period, installmentLabel, ...values });
-        return { status: 'created' as const, billId: created.id as string };
+        const split = await this.compute(tx, created);
+        return { status: 'created' as const, billId: created.id as string, warnings: billWarnings(created, split) };
       }
 
-      if (sameValues(existing, values)) return { status: 'unchanged' as const, billId: existing.id as string };
+      if (sameValues(existing, values)) {
+        const current = existing.status === ServiceBillStatus.Anulada ? undefined : await this.compute(tx, existing);
+        return { status: 'unchanged' as const, billId: existing.id as string, warnings: billWarnings(existing, current) };
+      }
 
       await this.assertNotBilled(tx, existing.id);
       const updated = await tx.serviceBill.update({
@@ -307,8 +328,8 @@ export class ServiceBillsService {
           status: existing.status === ServiceBillStatus.Anulada ? ServiceBillStatus.Pendiente : existing.status,
         },
       });
-      await this.materialize(tx, updated);
-      return { status: 'updated' as const, billId: existing.id as string };
+      const result = await this.materialize(tx, updated);
+      return { status: 'updated' as const, billId: existing.id as string, warnings: billWarnings(updated, result) };
     });
   }
 
@@ -469,11 +490,11 @@ export class ServiceBillsService {
   // ─── Reparto ────────────────────────────────────────
 
   /** Calcula el reparto de la boleta con las reglas vigentes (no escribe). */
-  async compute(db: Db, bill: any): Promise<ChargeSplitResult> {
+  async compute(db: Db, bill: any): Promise<BillSplit> {
     const period = monthStart(bill.period);
     const rules = await db.contractChargeRule.findMany({
       where: { serviceId: bill.serviceId },
-      include: { contract: { select: { id: true, status: true, startDate: true, endDate: true, actualEndDate: true, propertyId: true } } },
+      include: { contract: { select: { id: true, status: true, startDate: true, endDate: true, actualEndDate: true, propertyId: true, rentCurrency: true } } },
     });
 
     const units = new Map<string, string>(
@@ -484,11 +505,13 @@ export class ServiceBillsService {
     );
 
     const inputs: ChargeRuleInput[] = [];
+    const contractCurrency = new Map<string, string>();
     for (const rule of pickRulesFor(rules, period)) {
       const contract = rule.contract;
       if (contract.status === ContractStatus.Borrador) continue;
       const end = effectiveEnd(contract);
       if (end && end.getTime() < period.getTime()) continue;
+      if (contract.rentCurrency) contractCurrency.set(contract.id, contract.rentCurrency);
       inputs.push({
         contractId: rule.contractId,
         ruleId: rule.id,
@@ -507,7 +530,7 @@ export class ServiceBillsService {
     }
 
     try {
-      return splitBill(
+      const result = splitBill(
         {
           amount: bill.amount.toString(),
           nominalAmount: bill.nominalAmount?.toString() ?? null,
@@ -516,6 +539,7 @@ export class ServiceBillsService {
         },
         inputs,
       );
+      return { ...result, contractCurrency };
     } catch (error) {
       if (error instanceof InvalidChargeRuleError) throw badRequest(error.code, error.message);
       throw error;
@@ -526,7 +550,7 @@ export class ServiceBillsService {
    * Deja guardadas las partes de la boleta: reemplaza las que todavía no se
    * facturaron y respeta las ya facturadas (una parte se factura una sola vez).
    */
-  async materialize(tx: Db, bill: any) {
+  async materialize(tx: Db, bill: any): Promise<BillSplit | undefined> {
     const tenantId = this.tenantContext.getTenantId()!;
     await tx.serviceBillAllocation.deleteMany({ where: { billId: bill.id, billedAt: null } });
     if (bill.status === ServiceBillStatus.Anulada) return;
@@ -623,6 +647,49 @@ export class ServiceBillsService {
   }
 
   /**
+   * Partes sin facturar que no entran en la liquidación del contrato porque la boleta está en otra moneda que el
+   * alquiler. Cómo se convierten (moneda del renglón, tipo de cambio) es una regla de dinero sin definir: no se
+   * facturan ni se convierten, se informan.
+   */
+  async unbilledOtherCurrency(contractId: string | undefined, upTo?: Date) {
+    const rows = await this.prisma.client.serviceBillAllocation.findMany({
+      where: {
+        ...(contractId ? { contractId } : {}),
+        billedAt: null,
+        ...(upTo ? { chargePeriod: { lte: upTo } } : {}),
+        payer: { not: ChargePayer.Inquilino },
+        bill: { status: { not: ServiceBillStatus.Anulada } },
+      },
+      include: {
+        bill: { include: { service: { select: { serviceType: true, providerName: true } } } },
+        contract: { select: { rentCurrency: true } },
+      },
+      orderBy: [{ chargePeriod: 'asc' }, { createdAt: 'asc' }],
+    });
+    return rows
+      .filter((a: any) => a.bill.currency !== a.contract.rentCurrency)
+      .map((a: any) => ({
+        reason: 'BILL_CURRENCY_MISMATCH' as const,
+        allocationId: a.id as string,
+        contractId: a.contractId as string,
+        billId: a.billId as string,
+        serviceType: a.bill.service.serviceType as string,
+        providerName: (a.bill.service.providerName ?? null) as string | null,
+        period: (a.bill.period as Date).toISOString().slice(0, 10),
+        chargePeriod: (a.chargePeriod as Date).toISOString().slice(0, 10),
+        amount: a.amount.toString() as string,
+        payer: a.payer as string,
+        billCurrency: a.bill.currency as string,
+        contractCurrency: a.contract.rentCurrency as string,
+      }));
+  }
+
+  /** GET /service-bills/unbilled: partes que hoy no pueden entrar en ninguna liquidación. */
+  async unbilled() {
+    return { items: await this.unbilledOtherCurrency(undefined) };
+  }
+
+  /**
    * Marca facturadas las partes que la liquidación incluyó, en la misma
    * transacción que la crea. Si alguna ya estaba facturada (otra generación se
    * adelantó) falla y la transacción se deshace: una parte entra en una sola
@@ -665,6 +732,39 @@ export function billConsumption(bill: { consumption?: { toString(): string } | n
   if (units.size === 0) return declared;
   const sum = [...units.values()].reduce((acc, c) => acc.plus(c), new Money(0));
   return declared != null && new Money(declared).gte(sum) ? declared : sum.toString();
+}
+
+/** Reparto de una boleta más la moneda de alquiler de cada contrato alcanzado (para avisar si no coincide). */
+export type BillSplit = ChargeSplitResult & { contractCurrency: Map<string, string> };
+
+/** Avisos de una boleta con su reparto: partes en otra moneda y reglas por consumo sin consumo. */
+export function billWarnings(bill: { currency?: string | null }, split: BillSplit | undefined): BillWarning[] {
+  if (!split) return [];
+  const warnings: BillWarning[] = [];
+  const billCurrency = bill.currency ?? null;
+  const mismatched = new Set<string>();
+  for (const a of split.allocations) {
+    const contractCurrency = split.contractCurrency.get(a.contractId);
+    if (!billCurrency || !contractCurrency || contractCurrency === billCurrency || mismatched.has(a.contractId)) continue;
+    mismatched.add(a.contractId);
+    warnings.push({
+      code: 'BILL_CURRENCY_MISMATCH',
+      contractId: a.contractId,
+      billCurrency,
+      contractCurrency,
+      message: `boleta en ${billCurrency} sobre contrato en ${contractCurrency}: no se trasladó`,
+    });
+  }
+  for (const s of split.skipped) {
+    if (s.reason !== 'MissingConsumption') continue;
+    warnings.push({
+      code: 'CONSUMPTION_MISSING',
+      contractId: s.contractId,
+      ruleId: s.ruleId,
+      message: 'regla por consumo sin consumo por unidad: no se repartió',
+    });
+  }
+  return warnings;
 }
 
 /** Por cada contrato, la regla vigente en el mes de la boleta (la de la fecha de inicio si el contrato empieza después). */

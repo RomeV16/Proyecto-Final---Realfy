@@ -824,7 +824,7 @@ describe('Boletas de servicios y reglas de traslado (e2e)', () => {
     const generated = (await generate(token, 11, 2026)).body;
     const result = generated.results.find((r: any) => r.contractId === contract.id);
     expect(result.status).toBe('created');
-    expect(result.warnings).toEqual([
+    expect(result.warningDetails).toEqual([
       expect.objectContaining({ code: 'UNBILLED_BILL_CURRENCY_MISMATCH', billCurrency: 'ARS', contractCurrency: 'USD' }),
     ]);
     expect(generated.withWarnings).toBe(1);
@@ -862,16 +862,15 @@ describe('Boletas de servicios y reglas de traslado (e2e)', () => {
   });
 
   it('CP-1302 — una liquidación con alquiler en cero se genera y avisa', async () => {
-    const { tokens, tenantId } = await agency('bol-22');
+    const { tokens } = await agency('bol-22');
     const token = tokens[UserRole.Admin];
     const contract = await createContract(token);
-    await prisma.contract.update({ where: { id: contract.id }, data: { rentAmount: '0' } });
-    expect(tenantId).toBeTruthy();
+    await prisma.baseClient.contract.update({ where: { id: contract.id }, data: { rentAmount: '0' } });
 
     const generated = (await generate(token, 11, 2026)).body;
     const result = generated.results.find((r: any) => r.contractId === contract.id);
     expect(result.status).toBe('created');
-    expect(result.warnings).toEqual([expect.objectContaining({ code: 'RENT_IS_ZERO' })]);
+    expect(result.warningDetails).toEqual([expect.objectContaining({ code: 'RENT_IS_ZERO' })]);
     expect(generated.withWarnings).toBe(1);
   });
 
