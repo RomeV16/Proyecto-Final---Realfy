@@ -39,13 +39,34 @@ describe('buildWorkItems', () => {
     ]);
   });
 
+  it('los servicios y las reglas van después de los contratos; la regla se registra por contrato, servicio y fecha', () => {
+    const items = buildWorkItems({
+      persons: [],
+      properties: [],
+      contracts: [{ externalRef: 'C1' }],
+      chargeRules: [{ contractRef: 'C1', serviceRef: 'S1', validFrom: '2025-01-01' }],
+      services: [{ externalRef: 'S1' }],
+    });
+    expect(items.map((i) => `${i.importer.entity}:${i.externalRef}`)).toEqual([
+      'Contrato:C1',
+      'Servicio:S1',
+      'ReglaDeCargo:C1|S1|2025-01-01',
+    ]);
+  });
+
   it('una fila sin referencia legible se registra igual, con externalRef nulo', () => {
     const items = buildWorkItems({ persons: [null, 'x', { externalRef: 5 }, { externalRef: ' P ' }], properties: [], contracts: [] });
     expect(items.map((i) => i.externalRef)).toEqual([null, null, null, 'P']);
   });
 
   it('el registro tiene un importador por entidad', () => {
-    expect(ENTITY_IMPORTERS.map((i) => i.entity)).toEqual([ImportEntity.Persona, ImportEntity.Propiedad, ImportEntity.Contrato]);
+    expect(ENTITY_IMPORTERS.map((i) => i.entity)).toEqual([
+      ImportEntity.Persona,
+      ImportEntity.Propiedad,
+      ImportEntity.Contrato,
+      ImportEntity.Servicio,
+      ImportEntity.ReglaDeCargo,
+    ]);
   });
 });
 

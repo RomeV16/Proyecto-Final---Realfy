@@ -87,6 +87,31 @@ function portfolio() {
   };
 }
 
+/** Servicios de la cartera: dos de la unidad U-1 y las expensas del edificio, más un servicio de otra unidad. */
+function servicesAndRules(): { services: any[]; chargeRules: any[] } {
+  return {
+    services: [
+      { externalRef: 'SRV-U1-agua', propertyRef: 'U-1', serviceType: 'Agua', providerName: 'Aguas Demo', accountNumber: '1001', amount: 15000, dueDay: 10 },
+      { externalRef: 'SRV-U1-luz', propertyRef: 'U-1', serviceType: 'Electricidad', amount: 22000.5, dueDay: 5, billingFrequency: 'Bimestral' },
+      { externalRef: 'SRV-EDIF-expensas', propertyRef: 'U-EDIF', serviceType: 'Expensas', amount: 0, dueDay: 31, isActive: true },
+      { externalRef: 'SRV-U2-agua', propertyRef: 'U-2', serviceType: 'Agua', amount: 9000, dueDay: 10 },
+    ],
+    chargeRules: [
+      { contractRef: 'C-1', serviceRef: 'SRV-U1-agua', payer: 'Inquilino', validFrom: '2025-01-01' },
+      { contractRef: 'C-1', serviceRef: 'SRV-U1-agua', payer: 'Inmobiliaria', tenantSharePct: 80, validFrom: '2025-07-01' },
+      { contractRef: 'C-1', serviceRef: 'SRV-U1-luz', payer: 'Propietario', splitMode: 'Fijo', fixedAmount: 5000, validFrom: '2025-01-01' },
+      { contractRef: 'C-1', serviceRef: 'SRV-EDIF-expensas', payer: 'Inmobiliaria', paymentPlan: 'Anual', annualInstallments: 6, validFrom: '2025-01-01', notes: 'Expensas ordinarias' },
+    ],
+  };
+}
+
+/** La cartera completa, más la unidad U-2 (de otro contrato) a la que pertenece un servicio que no es de C-1. */
+const fullBatch = () => {
+  const base = portfolio();
+  base.properties.push({ externalRef: 'U-2', type: 'Departamento', street: 'Calle Falsa', number: '125', city: 'Cordoba' } as any);
+  return { ...base, ...servicesAndRules() };
+};
+
 describe('Importación por lotes (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
@@ -427,6 +452,187 @@ describe('Importación por lotes (e2e)', () => {
   it('un cuerpo mal formado es 400', async () => {
     await post({ persons: [] }).expect(400);
     await post({ dryRun: false, personas: [] }).expect(400);
+  });
+
+  describe('servicios y reglas de traslado (M8)', () => {
+    /** Todo menos lo que apunta al servicio de otra unidad (ese caso se prueba aparte). */
+    const batchOk = () => {
+      const b = fullBatch();
+      b.chargeRules = b.chargeRules.filter((r) => r.serviceRef !== 'SRV-U2-agua');
+      return b;
+    };
+
+    it('dryRun calcula las acciones de servicios y reglas sin escribirlos', async () => {
+      const res = await post({ dryRun: true, ...batchOk() }).expect(201);
+
+      expect(res.body.counts.errors).toBe(0);
+      expect(counts(res, 'Servicio').Creado).toBe(4);
+      expect(counts(res, 'ReglaDeCargo').Creado).toBe(4);
+      expect(await prisma.baseClient.service.count()).toBe(0);
+      expect(await prisma.baseClient.contractChargeRule.count()).toBe(0);
+    });
+
+    it('carga servicios y reglas en el mismo lote que sus propiedades y contratos', async () => {
+      const res = await post({ dryRun: false, ...batchOk() }).expect(201);
+      expect(res.body.counts.errors).toBe(0);
+
+      const agua = await prisma.baseClient.service.findFirst({ where: { tenantId, externalRef: 'SRV-U1-agua' } });
+      expect(agua).toMatchObject({ serviceType: 'Agua', providerName: 'Aguas Demo', accountNumber: '1001', currency: 'ARS', billingFrequency: 'Mensual', isActive: true });
+      expect(Number(agua!.amount)).toBe(15000);
+      const luz = await prisma.baseClient.service.findFirst({ where: { tenantId, externalRef: 'SRV-U1-luz' } });
+      expect(Number(luz!.amount)).toBe(22000.5);
+      expect(luz!.billingFrequency).toBe('Bimestral');
+
+      // Dos versiones de la regla del agua: la primera se cierra el día anterior a la segunda.
+      const versions = await prisma.baseClient.contractChargeRule.findMany({
+        where: { serviceId: agua!.id },
+        orderBy: { validFrom: 'asc' },
+      });
+      expect(versions).toHaveLength(2);
+      expect(versions[0].payer).toBe('Inquilino');
+      expect(versions[0].validTo?.toISOString()).toBe('2025-06-30T00:00:00.000Z');
+      expect(versions[1]).toMatchObject({ payer: 'Inmobiliaria', splitMode: 'Porcentaje', validTo: null });
+      expect(Number(versions[1].tenantSharePct)).toBe(80);
+
+      const fija = await prisma.baseClient.contractChargeRule.findFirst({ where: { serviceId: luz!.id } });
+      expect(fija).toMatchObject({ payer: 'Propietario', splitMode: 'Fijo' });
+      expect(Number(fija!.fixedAmount)).toBe(5000);
+
+      // El servicio del edificio aplica al contrato de su unidad.
+      const expensas = await prisma.baseClient.contractChargeRule.findFirst({
+        where: { service: { externalRef: 'SRV-EDIF-expensas' } },
+      });
+      expect(expensas).toMatchObject({ paymentPlan: 'Anual', annualInstallments: 6, notes: 'Expensas ordinarias' });
+    });
+
+    it('volver a enviar el lote deja servicios y reglas en SinCambios', async () => {
+      await post({ dryRun: false, ...batchOk() }).expect(201);
+      const before = {
+        services: await prisma.baseClient.service.count(),
+        rules: await prisma.baseClient.contractChargeRule.count(),
+      };
+
+      const again = await post({ dryRun: false, ...batchOk() }).expect(201);
+
+      expect(again.body.counts.errors).toBe(0);
+      expect(counts(again, 'Servicio')).toMatchObject({ Creado: 0, Actualizado: 0, SinCambios: 4 });
+      expect(counts(again, 'ReglaDeCargo')).toMatchObject({ Creado: 0, Actualizado: 0, SinCambios: 4 });
+      expect({
+        services: await prisma.baseClient.service.count(),
+        rules: await prisma.baseClient.contractChargeRule.count(),
+      }).toEqual(before);
+    });
+
+    it('un importe o un reparto distintos dan Actualizado sólo en esa fila; una regla con otra fecha es una versión nueva', async () => {
+      await post({ dryRun: false, ...batchOk() }).expect(201);
+      const next = batchOk();
+      next.services[0].amount = 16500;
+      next.chargeRules[2].tenantSharePct = 50; // luz, misma fecha: se corrige en su lugar
+      next.chargeRules.push({ contractRef: 'C-1', serviceRef: 'SRV-U1-luz', payer: 'Inquilino', validFrom: '2025-10-01' } as any);
+
+      const res = await post({ dryRun: false, ...next }).expect(201);
+
+      expect(counts(res, 'Servicio')).toMatchObject({ Creado: 0, Actualizado: 1, SinCambios: 3 });
+      expect(counts(res, 'ReglaDeCargo')).toMatchObject({ Creado: 1, Actualizado: 1, SinCambios: 3 });
+      expect(rowFor(res, 'SRV-U1-agua').action).toBe('Actualizado');
+      const luzRules = await prisma.baseClient.contractChargeRule.findMany({
+        where: { service: { externalRef: 'SRV-U1-luz' } },
+        orderBy: { validFrom: 'asc' },
+      });
+      expect(luzRules).toHaveLength(2);
+      expect(Number(luzRules[0].tenantSharePct)).toBe(50);
+      expect(luzRules[0].validTo?.toISOString()).toBe('2025-09-30T00:00:00.000Z');
+      expect(luzRules[1]).toMatchObject({ payer: 'Inquilino', validTo: null });
+    });
+
+    it('errores de fila con código estable y el resto del lote sigue', async () => {
+      const b = fullBatch();
+      b.chargeRules.push(
+        { contractRef: 'C-1', serviceRef: 'SRV-U2-agua', payer: 'Inquilino', validFrom: '2025-01-01' }, // servicio de otra unidad
+        { contractRef: 'C-NO', serviceRef: 'SRV-U1-agua', payer: 'Inquilino', validFrom: '2025-01-01' },
+        { contractRef: 'C-1', serviceRef: 'SRV-NO', payer: 'Inquilino', validFrom: '2025-01-01' },
+        { contractRef: 'C-1', serviceRef: 'SRV-U1-luz', payer: 'Inquilino', splitMode: 'Fijo', validFrom: '2025-02-01' },
+        { contractRef: 'C-1', serviceRef: 'SRV-U1-luz', payer: 'Inquilino', validFrom: '2024-12-31' },
+        { contractRef: 'C-1', serviceRef: 'SRV-U1-agua', payer: 'Inquilino', validFrom: '2025-01-01' }, // repetida
+      );
+      b.services.push({ externalRef: 'SRV-X', propertyRef: 'U-NO', serviceType: 'Gas', amount: 1, dueDay: 1 } as any);
+
+      const res = await post({ dryRun: false, ...b }).expect(201);
+      const errorsOf = (entity: string) =>
+        res.body.rows.filter((r: any) => r.entity === entity && r.action === 'Error').map((r: any) => r.errors[0]);
+
+      expect(errorsOf('Servicio')).toEqual([expect.objectContaining({ code: 'REFERENCE_NOT_FOUND', field: 'propertyRef' })]);
+      expect(errorsOf('ReglaDeCargo').map((e: any) => [e.code, e.field])).toEqual([
+        ['SERVICE_NOT_APPLICABLE', 'serviceRef'],
+        ['REFERENCE_NOT_FOUND', 'contractRef'],
+        ['REFERENCE_NOT_FOUND', 'serviceRef'],
+        ['VALIDATION_ERROR', 'fixedAmount'],
+        ['INVALID_DATES', 'validFrom'],
+        ['DUPLICATE_IN_BATCH', undefined],
+      ]);
+      expect(counts(res, 'ReglaDeCargo').Creado).toBe(4);
+      expect(res.body.rows.find((r: any) => r.action === 'Error' && r.entity === 'ReglaDeCargo').externalRef).toBe(
+        'C-1|SRV-U2-agua|2025-01-01',
+      );
+      expect(await prisma.baseClient.contractChargeRule.count()).toBe(4);
+    });
+
+    it('atomic: una regla con error deshace también los servicios', async () => {
+      const b = batchOk();
+      b.chargeRules.push({ contractRef: 'C-1', serviceRef: 'SRV-NO', payer: 'Inquilino', validFrom: '2025-01-01' });
+
+      const res = await post({ dryRun: false, atomic: true, ...b }).expect(201);
+
+      expect(res.body.status).toBe('Fallido');
+      expect(await prisma.baseClient.service.count()).toBe(0);
+      expect(await prisma.baseClient.contractChargeRule.count()).toBe(0);
+    });
+
+    it('una regla puede apuntar a un servicio de un lote anterior', async () => {
+      const b = batchOk();
+      await post({ dryRun: false, persons: b.persons, properties: b.properties, contracts: b.contracts, services: b.services }).expect(201);
+
+      const res = await post({ dryRun: false, chargeRules: b.chargeRules }).expect(201);
+
+      expect(counts(res, 'ReglaDeCargo').Creado).toBe(4);
+      expect(res.body.counts.errors).toBe(0);
+    });
+
+    it('el registro del lote, su detalle y su CSV incluyen las entidades nuevas', async () => {
+      const run = await post({ dryRun: false, ...batchOk() }).expect(201);
+      const rows = await http()
+        .get(`/api/import/batches/${run.body.id}/rows?entity=ReglaDeCargo`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(rows.body.total).toBe(4);
+      await http().get(`/api/import/batches/${run.body.id}/rows/csv`).set('Authorization', `Bearer ${token}`).expect(200);
+    });
+
+    it('sólo Admin; otra inmobiliaria no resuelve servicios ni contratos ajenos y la referencia se repite sin choque', async () => {
+      const email = `ger-srv-${Date.now()}@test.com`;
+      await createUserDirect(prisma, tenantId, { email, password: 'Password123!', role: UserRole.Gerente });
+      const gerente = (await loginUser(app, email, 'Password123!')).accessToken;
+      await post({ dryRun: true, ...servicesAndRules() }, gerente).expect(403);
+
+      await post({ dryRun: false, ...batchOk() }).expect(201);
+      const other = await registerUser(app, {
+        email: `otra-srv-${Date.now()}@test.com`,
+        password: 'Password123!',
+        firstName: 'Otra',
+        lastName: 'Admin',
+      });
+
+      const probe = await post({ dryRun: true, chargeRules: batchOk().chargeRules }, other.accessToken).expect(201);
+      expect(probe.body.rows.every((r: any) => r.errors[0].code === 'REFERENCE_NOT_FOUND')).toBe(true);
+      const svc = await post({ dryRun: true, services: batchOk().services }, other.accessToken).expect(201);
+      expect(svc.body.rows.every((r: any) => r.errors[0].code === 'REFERENCE_NOT_FOUND' && r.errors[0].field === 'propertyRef')).toBe(true);
+
+      // Con su propia cartera, la misma referencia externa es otro servicio.
+      const mine = { ...batchOk(), chargeRules: [] };
+      const own = await post({ dryRun: false, ...mine }, other.accessToken).expect(201);
+      expect(counts(own, 'Servicio').Creado).toBe(4);
+      expect(await prisma.baseClient.service.count({ where: { externalRef: 'SRV-U1-agua' } })).toBe(2);
+    });
   });
 
   describe('permisos y aislamiento', () => {

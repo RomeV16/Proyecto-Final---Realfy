@@ -3,9 +3,11 @@ import {
   ImportBankAccountSchema,
   ImportBatchRequestSchema,
   ImportBatchRowsQuerySchema,
+  ImportChargeRuleSchema,
   ImportContractSchema,
   ImportPersonSchema,
   ImportPropertySchema,
+  ImportServiceSchema,
 } from './import-batch.schema';
 
 const contract = {
@@ -28,6 +30,8 @@ describe('ImportBatchRequestSchema', () => {
       persons: [],
       properties: [],
       contracts: [],
+      services: [],
+      chargeRules: [],
     });
   });
 
@@ -116,5 +120,79 @@ describe('consulta de filas y códigos', () => {
 
   it('los códigos de error son únicos', () => {
     expect(new Set(IMPORT_ERROR_CODES).size).toBe(IMPORT_ERROR_CODES.length);
+  });
+});
+
+describe('ImportServiceSchema', () => {
+  const service = {
+    externalRef: 'SRV-1-agua',
+    propertyRef: 'U-1',
+    serviceType: 'Agua',
+    amount: 0,
+    dueDay: 31,
+  };
+
+  it('completa los valores por defecto', () => {
+    expect(ImportServiceSchema.parse(service)).toMatchObject({
+      currency: 'ARS',
+      billingFrequency: 'Mensual',
+      hasAnnualOption: false,
+      isActive: true,
+    });
+  });
+
+  it.each([
+    [{ amount: -1 }, 'amount'],
+    [{ dueDay: 0 }, 'dueDay'],
+    [{ dueDay: 32 }, 'dueDay'],
+    [{ serviceType: 'Telepatia' }, 'serviceType'],
+    [{ propertyRef: undefined }, 'propertyRef'],
+    [{ externalRef: ' ' }, 'externalRef'],
+    [{ proveedor: 'x' }, ''],
+  ])('rechaza %j', (patch, field) => {
+    const r = ImportServiceSchema.safeParse({ ...service, ...patch });
+    expect(r.success).toBe(false);
+    if (!r.success && field) expect(r.error.issues[0].path[0]).toBe(field);
+  });
+
+  it('admite proveedor y cuenta nulos', () => {
+    expect(ImportServiceSchema.safeParse({ ...service, providerName: null, accountNumber: null, notes: null }).success).toBe(true);
+  });
+});
+
+describe('ImportChargeRuleSchema', () => {
+  const rule = { contractRef: 'C-1', serviceRef: 'SRV-1-agua', payer: 'Inquilino', validFrom: '2025-01-01' };
+
+  it('completa los valores por defecto', () => {
+    expect(ImportChargeRuleSchema.parse(rule)).toMatchObject({
+      splitMode: 'Porcentaje',
+      tenantSharePct: 100,
+      paymentPlan: 'Mensual',
+      annualRecovery: 'Prorrateado',
+      annualInstallments: 12,
+      annualDiscountBeneficiary: 'Inquilino',
+      remainingInstallmentsOnEnd: 'CobrarEnLiquidacionFinal',
+    });
+  });
+
+  it.each([
+    [{ splitMode: 'Fijo' }, 'fixedAmount'],
+    [{ splitMode: 'Fijo', fixedAmount: 0 }, 'fixedAmount'],
+    [{ tenantSharePct: 101 }, 'tenantSharePct'],
+    [{ tenantSharePct: -1 }, 'tenantSharePct'],
+    [{ annualInstallments: 13 }, 'annualInstallments'],
+    [{ payer: 'Nadie' }, 'payer'],
+    [{ validFrom: '2025-02-30' }, 'validFrom'],
+    [{ validFrom: '2025-01-01T00:00:00Z' }, 'validFrom'],
+    [{ validFrom: undefined }, 'validFrom'],
+    [{ validTo: '2025-12-31' }, ''],
+  ])('rechaza %j', (patch, field) => {
+    const r = ImportChargeRuleSchema.safeParse({ ...rule, ...patch });
+    expect(r.success).toBe(false);
+    if (!r.success && field) expect(r.error.issues[0].path[0]).toBe(field);
+  });
+
+  it('un reparto fijo con importe es válido', () => {
+    expect(ImportChargeRuleSchema.safeParse({ ...rule, splitMode: 'Fijo', fixedAmount: 12000.5 }).success).toBe(true);
   });
 });
