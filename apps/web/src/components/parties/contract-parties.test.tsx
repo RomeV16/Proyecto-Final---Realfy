@@ -91,12 +91,15 @@ function contract(overrides: Record<string, unknown> = {}) {
   };
 }
 
+// Respuesta por defecto para los listados que el detalle consulta (colecciones, etc.): una página vacía válida.
+const EMPTY_PAGE = { items: [], total: 0 };
+
 function mockApi(get: () => unknown) {
   apiClient.mockImplementation((path: string) => {
     if (path === '/contracts/c-1') return Promise.resolve(get());
     if (path.endsWith('/powers') || path.includes('/powers?')) return Promise.resolve([]);
     if (path.endsWith('/bank-accounts')) return Promise.resolve([]);
-    return Promise.resolve({});
+    return Promise.resolve(EMPTY_PAGE);
   });
 }
 
@@ -168,13 +171,13 @@ describe('Contrato — sección Locadores', () => {
       return contract();
     });
     apiClient.mockImplementation((path: string, init?: { method?: string }) => {
-      if (init?.method === 'PUT') return Promise.resolve({});
+      if (init?.method === 'PUT') return Promise.resolve(EMPTY_PAGE);
       if (path === '/contracts/c-1') {
         reads += 1;
         return Promise.resolve(contract());
       }
       if (path.includes('/powers') || path.endsWith('/bank-accounts')) return Promise.resolve([]);
-      return Promise.resolve({});
+      return Promise.resolve(EMPTY_PAGE);
     });
     reads = 0;
     const user = await renderDetail();
