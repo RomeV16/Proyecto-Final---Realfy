@@ -68,6 +68,14 @@ enum PropertyOperationType {
   Temporario
 }
 
+/// Estado de un aviso en un portal (publicación).
+enum ListingStatus {
+  NoPublicado
+  Publicado
+  Pausado
+  Vencido
+}
+
 enum PropertyState {
   Borrador
   Disponible
@@ -372,6 +380,7 @@ model User {
   paymentsReceived   Payment[]     @relation("PaymentReceivedBy")
 
   staffCommissions StaffCommission[] @relation("StaffCommissionUser")
+  propertyListings PropertyListing[] @relation("ListingUpdatedBy")
 
   @@unique([email, tenantId])
   @@index([tenantId])
@@ -512,6 +521,7 @@ model Property {
   services     Service[]
   leads        Lead[]
   leadVisits   LeadVisit[]
+  listings     PropertyListing[]
 
   tickets        Ticket[]
   valuations     PropertyValuation[]
@@ -545,6 +555,34 @@ model PropertyOperation {
   @@index([tenantId])
   @@index([tenantId, state])
   @@map("property_operations")
+}
+
+/// Aviso de una operación de una propiedad en un portal (Zonaprop, La Voz...) o en el
+/// micrositio propio (portal "micrositio"). Una fila por propiedad + operación + portal.
+model PropertyListing {
+  id              String                @id @default(uuid())
+  tenantId        String
+  propertyId      String
+  operationType   PropertyOperationType
+  /// Clave del portal (ver Tenant.operationalDefaults.publication.portals) o "micrositio".
+  portal          String
+  status          ListingStatus         @default(NoPublicado)
+  externalUrl     String?
+  externalCode    String?
+  publishedAt     DateTime?
+  expiresAt       DateTime?
+  updatedByUserId String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  updatedBy User?    @relation("ListingUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([propertyId, operationType, portal])
+  @@index([tenantId, status])
+  @@index([tenantId, portal, status])
+  @@index([tenantId, expiresAt])
+  @@map("property_listings")
 }
 
 model PropertyMedia {

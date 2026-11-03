@@ -45,6 +45,7 @@ export async function setupTestApp(): Promise<{
  */
 export async function cleanDatabase(prisma: PrismaService): Promise<void> {
   // Order matters — delete children before parents
+  await prisma.baseClient.propertyListing.deleteMany();
 
   // Ticket tables (delete attachments → comments → tickets → categories before other FK targets)
   await prisma.baseClient.ticketQuote.deleteMany();
