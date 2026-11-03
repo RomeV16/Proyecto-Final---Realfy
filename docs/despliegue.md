@@ -137,6 +137,8 @@ Las que habilitan funcionalidad que, sin ellas, queda apagada en silencio:
 | `WHATSAPP_APP_SECRET` | — | Secreto de la app de Meta, con el que se verifica `X-Hub-Signature-256`. Sin él, `POST /api/webhooks/whatsapp` rechaza todo. |
 | `WHATSAPP_VERIFY_TOKEN` | — | Texto que se elige al suscribir el webhook en Meta; la verificación `GET /api/webhooks/whatsapp` lo compara. |
 | `WHATSAPP_GRAPH_VERSION` | `v21.0` | Versión de la Graph API. |
+| `WHATSAPP_TENANT_SLUG` | — | Slug de la inmobiliaria dueña del número de WhatsApp del ambiente. Un WhatsApp de un número al que nunca se le escribió entra como consulta nueva de esa inmobiliaria; sin la variable, de la única inmobiliaria activa. |
+| `INBOX_EMAIL_INGEST_SECRET` | — | Secreto con que se firma el mail reenviado a `POST /api/inbox/email-ingest` (`X-Realfy-Signature`). Sin él, la ruta rechaza todo. |
 | `ARCA_MASTER_KEY` | — | Clave de 32 bytes en base64 que protege los certificados fiscales. Se valida recién cuando se sube o se usa un certificado, así que la API levanta igual: una inmobiliaria que no factura electrónicamente no depende de ella. |
 | `ARCA_MOCK` | vacío | En `1` responde las llamadas a los servicios de ARCA desde el simulador del repositorio, en lugar de ir al organismo. Para desarrollo y pruebas. |
 | `ARCA_ACCESS_TOKEN` | — | El PDF fiscal se genera con la plantilla local en lugar de la del servicio externo. |
@@ -218,6 +220,28 @@ salida es una tabla de la base que despacha un proceso programado de la API),
 así que no hace falta provisionarlo ni definir `REDIS_URL`. Un secreto propio para los tokens de
 refresco tampoco hace falta: esos tokens no son JWT sino identificadores
 aleatorios opacos guardados en la base, de modo que no hay nada que firmar.
+
+### Bandeja de consultas: mails entrantes (pendiente de configurar)
+
+Los WhatsApp entrantes llegan por el webhook ya suscripto. Los **mails** requieren un
+paso externo que queda pendiente hasta tener el dominio y la casilla:
+
+1. Elegir la casilla de consultas (por ejemplo `consultas@<dominio>`) y apuntar su
+   MX a un servicio de recepción: Resend permite recibir mails (evento
+   `email.received`) o se puede usar el reenvío de la casilla del proveedor de correo.
+2. Armar un reenvío mínimo (una función o un script) que, por cada mail, lea el
+   `Message-ID`, el remitente, el asunto y el texto, y llame a
+   `POST https://<api>/api/inbox/email-ingest` con el cuerpo JSON
+   `{ tenantSlug, messageId, from, fromName, subject, text, receivedAt, automatic }`
+   y el encabezado `X-Realfy-Signature: sha256=<HMAC-SHA256 del cuerpo con el secreto>`.
+   `automatic` va en `true` si el mail trae `Auto-Submitted` distinto de `no` o
+   `Precedence: bulk/auto_reply`.
+3. Definir `INBOX_EMAIL_INGEST_SECRET` en el servicio `api` y el remitente `RESEND_FROM`
+   con esa misma casilla, para que las respuestas de los clientes vuelvan a ella.
+4. Probar con `MESSAGING_MODE=allowlist`: las autorrespuestas solo salen a las
+   direcciones de la lista.
+
+Sin este paso la bandeja funciona igual con WhatsApp, el micrositio y las llamadas.
 
 ## Servicio web
 

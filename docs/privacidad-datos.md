@@ -25,6 +25,7 @@ Distingue dos cosas que no deben confundirse: lo que el sistema **hace hoy**, ve
 | Cobros | Liquidaciones, pagos y comprobantes fiscales, con el documento fiscal del receptor | `Liquidacion`, `Payment`, `Comprobante` |
 | Auditoría | Usuario, acción, entidad, cambios, dirección de red y agente de navegador de cada operación sensible | `AuditLog` |
 | Mensajería | Mensajes salientes (canal, dirección de destino, plantilla, variables del texto, estado de entrega y documento relacionado; el enlace de un solo uso de una invitación se oculta y se borra al terminar), consentimiento por canal (alta o baja, origen, fecha, dirección y quién lo registró) y mensajes de WhatsApp recibidos (número, texto y fecha) | `MessageOutbox`, `ContactConsent`, `InboundMessage` |
+| Bandeja de consultas | Consultas de clientes y de interesados que escriben por WhatsApp, mail, el formulario del micrositio o teléfono: canal, dirección (teléfono o mail), nombre que dio, asunto, el texto de cada mensaje y de cada respuesta, quién la atendió, el estado y los plazos, y a qué persona, propiedad o contrato se vinculó. Lo ven Admin, Gerente, Ventas, Marketing y Soporte; el texto de los adjuntos no se guarda | `Conversation`, `ConversationMessage` |
 
 ### Lo que expone el sitio público
 
@@ -85,6 +86,7 @@ La base legal es doble, según el dato:
 La mensajería saliente (ADR-0013) aplica estas reglas antes de mandar cada mensaje:
 
 - **La baja se respeta siempre**, por cualquier canal. Una persona pide la baja de WhatsApp respondiendo BAJA o STOP; marcar un mail como spam es una baja del mail. La inmobiliaria también la registra a mano desde la ficha de la persona.
+- **La respuesta a quien escribió primero no necesita el alta.** La autorrespuesta y las respuestas de la bandeja de consultas salen a quien inició la conversación (en WhatsApp, solo con texto libre dentro de las 24 horas de su mensaje); la baja se respeta igual: con una baja registrada no sale ninguna.
 - **WhatsApp necesita un alta explícita.** Antes del primer mensaje alguien de la inmobiliaria registra el alta en la ficha, con una nota de dónde quedó (por ejemplo, una cláusula firmada en el contrato o un pedido por escrito). Sin alta, el mensaje queda bloqueado y no sale.
 - **El mail con documentos del contrato** (recibos, liquidaciones, estados de cuenta) se basa en la ejecución del contrato: sale a la dirección que la persona dio mientras no haya pedido la baja.
 - **Historial.** Cada alta o baja es un registro nuevo con la fecha, el origen, la dirección a la que aplica y quién lo cargó; vale el último. Sirve como prueba de cuándo se dio el consentimiento y cuándo se retiró. Una baja de un número que no es de ninguna persona cargada también se guarda y se respeta.

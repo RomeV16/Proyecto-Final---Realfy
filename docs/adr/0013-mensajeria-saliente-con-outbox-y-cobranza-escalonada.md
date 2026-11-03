@@ -164,6 +164,70 @@ siempre `{ received: true }`. Los mensajes entrantes se guardan mínimos
 (`inbound_messages`) para la bandeja de consultas del PR 5.3; BAJA o STOP
 registran la baja y avisan a la gerencia.
 
+### Bandeja de consultas (inbound, PR 5.3)
+
+Los mensajes entrantes terminan en una bandeja unificada (`conversations` y
+`conversation_messages`). Una consulta es un hilo de **una inmobiliaria, un canal
+(WhatsApp, Email, Web, Telefono) y una dirección normalizada**; cada mensaje
+entrante de WhatsApp o mail apunta a su fila de `inbound_messages` (única) y cada
+saliente a su fila de `message_outbox`, de donde sale el estado de entrega. Un
+mensaje nuevo se une a la consulta abierta del mismo canal y dirección cuyo último
+mensaje esté dentro de la ventana (`inbox.threadWindowHours`, 72 por defecto) o
+abre una; una consulta resuelta que recibe un mensaje se reabre con plazo nuevo.
+
+**Ingreso por canal**
+
+- *WhatsApp:* el mismo webhook de arriba. Un número que ya recibió mensajes se
+  ubica por el último mensaje que se le mandó; una consulta **nueva** de un número
+  desconocido va a la inmobiliaria dueña del número del ambiente
+  (`WHATSAPP_TENANT_SLUG`) o, sin esa variable, a la única inmobiliaria activa; con
+  varias y sin variable se descarta. El guardado es idempotente: Meta reintenta el
+  aviso y, si el mensaje quedó guardado pero no llegó a la consulta, el reintento lo
+  completa.
+- *Mail:* Resend recibe mails entrantes (evento `email.received`), pero el aviso no
+  trae el cuerpo y hay que pedirlo por API; en lugar de atarnos a ese formato, la
+  API expone `POST /inbox/email-ingest`, firmado como el webhook de Meta
+  (`X-Realfy-Signature: sha256=<hex>`, HMAC-SHA256 del cuerpo crudo con
+  `INBOX_EMAIL_INGEST_SECRET`; sin secreto se rechaza todo). Un servicio de
+  recepción (el reenvío de la casilla de consultas) manda el mail ya normalizado
+  (`tenantSlug`, `messageId`, `from`, `subject`, `text`, `automatic`). El
+  `Message-ID` identifica el mensaje (único por inmobiliaria); los automáticos
+  (`automatic`, `no-reply`, `mailer-daemon`) no abren consultas. Armar ese reenvío
+  queda como configuración pendiente (ver despliegue).
+- *Micrositio:* la consulta pública crea el interesado y, a continuación, una consulta
+  de canal Web con la propiedad (`relatedType: Property`) y el responsable del
+  interesado. Si la bandeja falla, el formulario igual responde.
+- *Teléfono:* *Registrar llamada* (`POST /conversations/calls`): una llamada atendida
+  nace en curso con primera respuesta y sin plazo; una para devolver nace asignada a
+  quien la anota con el plazo corriendo.
+
+**Plazo y autorrespuesta.** El plazo de primera respuesta es la configuración
+`operationalDefaults.inbox` (`slaMinutes` 15, `businessHours` de lunes a viernes de 9
+a 18 en hora de Buenos Aires, activable). Un proceso programado (`inbox-sla`, cada
+minuto, `TenantCron`) marca una sola vez cada consulta vencida (`slaBreachedAt`, con
+una actualización condicional) y avisa al responsable y a Admin y Gerente
+(`InboxSlaBreached`). La **autorrespuesta** se encola en la misma transacción que
+abre la consulta con la clave `inbox-autoreply:<consulta>` (una por consulta) y la
+plantilla `inbox_message`, de destinatario `reply`: respeta la baja y el modo del
+ambiente como cualquier mensaje, **no** pide el alta de WhatsApp (la persona escribió
+primero) y no tiene horario permitido (justamente sirve fuera de horario). No detiene
+el plazo: ese es el de una persona.
+
+**Ventana de WhatsApp.** La plantilla `inbox_message` es de *texto libre*
+(`freeForm`): por WhatsApp sale como mensaje `text`, sin plantilla aprobada, algo que
+Meta solo admite dentro de las 24 horas del último mensaje de la persona (ventana de
+atención al cliente). Antes de encolar se verifica que haya un mensaje entrante de ese
+número en las últimas 24 horas; fuera de la ventana se usa el mail de la persona y, si
+no hay, se responde 409 `WHATSAPP_WINDOW_CLOSED`. Fuera de ventana, Meta rechaza el
+texto (131047) y el mensaje queda fallido sin reintentos.
+
+**Respuesta.** `POST /conversations/:id/reply` elige la ruta (el canal de la consulta
+y, si no se puede, el mail; una baja se respeta en todos los canales), encola el
+mensaje y registra la respuesta en el hilo en una transacción. La clave de idempotencia
+sale del texto y del último mensaje: un doble clic encola una sola vez. La consulta pasa
+a *esperando al cliente*, toma la primera respuesta y, si no tenía responsable, se
+asigna a quien contestó.
+
 ### Notificaciones (L11)
 
 Los tipos de notificación sin emisor pasan a la bandeja de salida: el aviso al

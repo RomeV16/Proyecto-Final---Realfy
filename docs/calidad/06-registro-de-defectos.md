@@ -44,6 +44,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-72 | La compensación se asienta el día en que se carga y no se le puede indicar la fecha | Media | — | CP-662, CP-667 | [#175](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/175) | Corregido (3 nov) |
 | DEF-73 | El cobro del primer mes de un contrato que empieza a mitad de mes no se reparte entre sus locadores | Alta | — | CP-668, CP-666 | [#176](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/176) | Corregido (3 nov) |
 | DEF-80 | Guardar los valores por defecto pisa las convenciones de depósitos con las de fábrica | Media | — | CP-725 | [#179](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/179) | Corregido (3 nov) |
+| DEF-95 | El documento de casos de uso quedó con marcas de conflicto de un merge | Baja | — | `test/unit/docs-integrity.spec.ts` | — | Corregido (3 nov) |
 
 ---
 
@@ -556,3 +557,17 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** al guardar, la pantalla reenvía las convenciones de depósitos tal como estaban guardadas.
 - **Prueba de regresión:** CP-725 en `apps/web/src/components/settings/operational-defaults-form.def80.test.tsx`.
 - **Evidencia rojo/verde:** regresión `36132f7` en rojo (1 prueba falla: el cuerpo llega sin `deposits`); corrección en `1be5b3a`.
+
+## DEF-95 — El documento de casos de uso quedó con marcas de conflicto de un merge
+
+- **Requisito afectado:** ninguno funcional; documentación de casos de uso (CU-44, CU-46 y CU-47).
+- **Origen:** el merge de ventas y llaves (5.6) sobre la mensajería saliente (5.2) dejó `<<<<<<<`, `=======` y `>>>>>>>` dentro de `docs/tesis/02-roles-y-casos-uso.md`.
+- **Caso que lo detecta:** `apps/api/test/unit/docs-integrity.spec.ts`.
+- **Severidad:** baja. El documento se leía con marcas de git en medio y la numeración de los casos de uso parecía duplicada; no afectaba al sistema.
+- **Pasos para reproducir:** buscar líneas que empiecen con `<<<<<<<`, `=======` o `>>>>>>>` en `docs/**/*.md`.
+- **Resultado esperado:** ningún documento tiene marcas de conflicto.
+- **Resultado obtenido:** tres marcas en `tesis/02-roles-y-casos-uso.md`.
+- **Causa raíz:** un conflicto de texto (las dos ramas agregaron una sección a continuación del mismo caso de uso) se resolvió sin quitar las marcas.
+- **Corrección:** se quitaron las marcas y se conservaron las dos secciones.
+- **Prueba de regresión:** `apps/api/test/unit/docs-integrity.spec.ts` (ningún `.md` de `docs/` puede tener marcas de conflicto).
+- **Evidencia rojo/verde:** regresión `00468e8` en rojo (1 prueba falla: tres marcas); corrección en `2720074`.
