@@ -48,12 +48,16 @@ function build(opts: { role?: UserRole; mailConfigured?: boolean; mailOk?: boole
   const config: any = {
     get: (k: string) => (k === 'WEB_BASE_URL' ? 'https://app.example.com' : undefined),
   };
-  const email: any = {
-    isConfigured: jest.fn().mockReturnValue(opts.mailConfigured ?? false),
-    sendEmail: jest.fn().mockResolvedValue(opts.mailOk === false ? null : { id: 'm' }),
+  (client as any).messageOutbox = { updateMany: jest.fn().mockResolvedValue({ count: 0 }) };
+  const email: any = { isConfigured: jest.fn().mockReturnValue(opts.mailConfigured ?? false) };
+  const outbox: any = {
+    enqueue:
+      opts.mailOk === false
+        ? jest.fn().mockRejectedValue(new Error('NO_CONTACT_ADDRESS'))
+        : jest.fn().mockResolvedValue({ id: 'm', status: 'Pending', statusReason: null, created: true }),
   };
-  const service = new UsersService(prisma, tenantContext, config, email);
-  return { service, client, base, email };
+  const service = new UsersService(prisma, tenantContext, config, email, outbox);
+  return { service, client, base, email, outbox };
 }
 
 describe('UsersService', () => {
@@ -85,7 +89,7 @@ describe('UsersService', () => {
       expect(stored.token).toBe(hashToken(res.token));
       expect(stored.token).not.toBe(res.token);
       expect(res.link).toBe(`https://app.example.com/auth/accept-invitation?token=${encodeURIComponent(res.token)}`);
-      expect(res.emailSent).toBe(false);
+      expect(res.emailQueued).toBe(false);
       expect(new Date(res.expiresAt).getTime()).toBeGreaterThan(Date.now() + 6 * 86400000);
     });
 
@@ -115,13 +119,30 @@ describe('UsersService', () => {
       expect(client.userInvitation.create).not.toHaveBeenCalled();
     });
 
-    it('manda el correo si hay servicio y no falla si el envío falla', async () => {
+    it('encola el correo en la bandeja de salida si hay servicio y no falla si no se puede encolar', async () => {
       const ok = build({ mailConfigured: true });
-      expect((await ok.service.invite({ email: 'n@x.com', role: 'Ventas' })).emailSent).toBe(true);
-      expect(ok.email.sendEmail).toHaveBeenCalledTimes(1);
+      const res = await ok.service.invite({ email: 'n@x.com', role: 'Ventas' });
+      expect(res.emailQueued).toBe(true);
+      expect(ok.outbox.enqueue).toHaveBeenCalledTimes(1);
+      const [, input] = ok.outbox.enqueue.mock.calls[0];
+      expect(input).toMatchObject({
+        channel: 'Email',
+        templateKey: 'user_invitation',
+        to: 'n@x.com',
+        vars: { link: res.link },
+        relatedType: 'UserInvitation',
+        relatedId: 'inv-1',
+      });
+      expect(input.idempotencyKey).toMatch(/^UserInvitation:inv-1:[0-9a-f]{16}$/);
 
       const bad = build({ mailConfigured: true, mailOk: false });
-      expect((await bad.service.invite({ email: 'n@x.com', role: 'Ventas' })).emailSent).toBe(false);
+      expect((await bad.service.invite({ email: 'n@x.com', role: 'Ventas' })).emailQueued).toBe(false);
+    });
+
+    it('sin servicio de correo no encola nada: el enlace se comparte a mano', async () => {
+      const off = build({ mailConfigured: false });
+      expect((await off.service.invite({ email: 'n@x.com', role: 'Ventas' })).emailQueued).toBe(false);
+      expect(off.outbox.enqueue).not.toHaveBeenCalled();
     });
 
     it('valida el cuerpo', async () => {
@@ -137,6 +158,18 @@ describe('UsersService', () => {
       const res = await service.resendInvitation('inv-1');
       const data = client.userInvitation.update.mock.calls[0][0].data;
       expect(data.token).toBe(hashToken(res.token));
+    });
+
+    it('cancela el correo anterior, que lleva un enlace vencido, y encola uno nuevo', async () => {
+      const { service, client, outbox } = build({ mailConfigured: true });
+      client.userInvitation.findFirst.mockResolvedValue({ id: 'inv-1', email: 'a@example.com', role: 'Ventas' });
+      const res = await service.resendInvitation('inv-1');
+      expect(res.emailQueued).toBe(true);
+      expect((client as any).messageOutbox.updateMany).toHaveBeenCalledWith({
+        where: { relatedType: 'UserInvitation', relatedId: 'inv-1', status: { in: ['Pending', 'Blocked'] } },
+        data: { status: 'Cancelled', vars: {} },
+      });
+      expect(outbox.enqueue.mock.calls[0][1].vars).toEqual({ link: res.link });
     });
 
     it('404 si no hay invitación pendiente en la inmobiliaria', async () => {

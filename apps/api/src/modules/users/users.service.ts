@@ -10,6 +10,8 @@ import { ConfigService } from '@nestjs/config';
 import {
   AcceptInvitationSchema,
   InviteUserSchema,
+  MessageChannel,
+  MessageStatus,
   UpdateUserSchema,
   UserRole,
   type ShareableLink,
@@ -19,6 +21,7 @@ import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { CommonEmailService } from '../../common/email/common-email.service';
+import { OutboxService } from '../../common/messaging/outbox.service';
 import { parseOrThrow } from '../../common/validation/zod';
 import {
   buildWebLink,
@@ -42,6 +45,7 @@ export class UsersService {
     private readonly tenantContext: TenantContextService,
     private readonly config: ConfigService,
     private readonly email: CommonEmailService,
+    private readonly outbox: OutboxService,
   ) {}
 
   /**
@@ -159,18 +163,39 @@ export class UsersService {
     );
   }
 
-  /** Manda el enlace por correo si hay servicio; nunca hace fallar la operación. */
-  private async mailInvitation(email: string, link: string): Promise<boolean> {
+  /**
+   * Encola el enlace por correo en la bandeja de salida si hay servicio de
+   * correo (ADR-0013); sin servicio, el Admin lo comparte a mano como antes.
+   * Un reenvío cancela el mensaje anterior, que lleva un enlace que ya no
+   * sirve. Nunca hace fallar la operación.
+   */
+  private async mailInvitation(invitation: { id: string; email: string }, link: string, tokenHash: string): Promise<boolean> {
     if (!this.email.isConfigured()) return false;
-    const sent = await this.email.sendEmail({
-      to: email,
-      subject: 'Te invitaron a Realfy',
-      html:
-        `<p>Te invitaron a sumarte a una inmobiliaria en Realfy.</p>` +
-        `<p>Creá tu cuenta desde este enlace. Sirve una sola vez y vence en 7 días:</p>` +
-        `<p><a href="${link}">${link}</a></p>`,
-    });
-    return sent !== null;
+    try {
+      await this.prisma.client.messageOutbox.updateMany({
+        where: {
+          relatedType: 'UserInvitation',
+          relatedId: invitation.id,
+          status: { in: [MessageStatus.Pending, MessageStatus.Blocked] },
+        },
+        data: { status: MessageStatus.Cancelled, vars: {} },
+      });
+      await this.outbox.enqueue(this.prisma.client, {
+        channel: MessageChannel.Email,
+        templateKey: 'user_invitation',
+        vars: { link },
+        to: invitation.email,
+        relatedType: 'UserInvitation',
+        relatedId: invitation.id,
+        // Una clave por enlace: el reenvío rota el token y encola un mensaje nuevo.
+        idempotencyKey: `UserInvitation:${invitation.id}:${tokenHash.slice(0, 16)}`,
+        createdByUserId: this.tenantContext.getUserId() ?? null,
+      });
+      return true;
+    } catch (err) {
+      this.logger.error(`Invitation email not queued: invitationId=${invitation.id} error=${(err as Error).message}`);
+      return false;
+    }
   }
 
   private requireAdminContext(): { tenantId: string; userId: string } {
@@ -248,7 +273,7 @@ export class UsersService {
         });
 
     const link = this.acceptLink(token);
-    const emailSent = await this.mailInvitation(email, link);
+    const emailQueued = await this.mailInvitation(invitation, link, tokenHash);
     this.logger.log(`User invited: invitationId=${invitation.id} role=${validated.role}`);
 
     return {
@@ -258,7 +283,7 @@ export class UsersService {
       expiresAt: invitation.expiresAt.toISOString(),
       token,
       link,
-      emailSent,
+      emailQueued,
     };
   }
 
@@ -284,7 +309,7 @@ export class UsersService {
     });
 
     const link = this.acceptLink(token);
-    const emailSent = await this.mailInvitation(invitation.email, link);
+    const emailQueued = await this.mailInvitation(invitation, link, tokenHash);
     this.logger.log(`Invitation resent: invitationId=${invitation.id}`);
 
     return {
@@ -294,7 +319,7 @@ export class UsersService {
       expiresAt: expiresAt.toISOString(),
       token,
       link,
-      emailSent,
+      emailQueued,
     };
   }
 
