@@ -341,4 +341,90 @@ describe('El ajuste del mes en la liquidación (e2e)', () => {
       await expectRefreshed(admin, contract.id, dec.id);
     });
   });
+
+  describe('un ajuste aplicado después de emitir la liquidación del mes no se pierde (DEF-134)', () => {
+    /**
+     * Diciembre generado sin el IPC de octubre y ya emitido con el alquiler anterior (como
+     * quedó antes de esta corrección, o si el cronograma se corrige después de emitir).
+     * Después se publica octubre y se aplica el ajuste del 1/12.
+     */
+    async function emittedThenAdjusted(tag: string, opts: { tenantDefault?: string; contractRule?: string } = {}) {
+      const { tenantId, tokens } = await agency(tag);
+      const admin = tokens[UserRole.Admin];
+      if (opts.tenantDefault) {
+        await http()
+          .put('/api/tenants/me/operational-defaults')
+          .set(auth(admin))
+          .send({ lateAdjustmentBilling: opts.tenantDefault })
+          .expect(200);
+      }
+      await ipc(tenantId, '2026-09', '2.000000');
+      const contract = await createContract(
+        admin,
+        opts.contractRule ? { liquidationRules: { lateAdjustmentBilling: opts.contractRule } } : {},
+      );
+      await generate(admin, 12, 2026);
+      const dec = await liquidacionOf(admin, contract.id, '2026-12');
+      await prisma.baseClient.liquidacion.update({ where: { id: dec.id }, data: { status: 'Enviada', receiptSeq: 1 } });
+      await ipc(tenantId, '2026-10', '3.000000');
+      const applied = await post(admin, '/adjustments/apply-batch', {
+        period: '2026-12',
+        contractIds: [contract.id],
+      }).expect(201);
+      expect(applied.body.results[0]).toMatchObject({ result: 'applied', newRent: '105060' });
+      // La emitida no se toca.
+      expect((await liquidacionOf(admin, contract.id, '2026-12')).total).toBe('100000');
+      return { admin, contract, dec };
+    }
+
+    it('CP-1269 — la diferencia de diciembre queda como cargo AjusteRetroactivo y entra en enero, con comisión', async () => {
+      const { admin, contract, dec } = await emittedThenAdjusted('d5-late-1');
+
+      const charges = (await get(admin, `/charges?contractId=${contract.id}`).expect(200)).body.items;
+      expect(charges).toEqual([
+        expect.objectContaining({
+          kind: 'AjusteRetroactivo',
+          chargedTo: 'Inquilino',
+          amount: '5060',
+          status: 'Pendiente',
+          sourceType: 'ContractAdjustment',
+        }),
+      ]);
+      expect(charges[0].description).toContain('2026-12');
+
+      await generate(admin, 1, 2027);
+      const jan = await liquidacionOf(admin, contract.id, '2027-01');
+      expect(jan.lineItems.map((l: any) => [l.type, l.amount])).toEqual([
+        ['Alquiler', '105060'],
+        ['AjusteRetroactivo', '5060'],
+      ]);
+      expect(jan.total).toBe('110120');
+      expect(jan.lineItems[1]).toMatchObject({ commissionable: true, beneficiary: 'Locador', sourceType: 'PendingCharge' });
+      const charge = (await get(admin, `/charges?contractId=${contract.id}`).expect(200)).body.items[0];
+      expect(charge).toMatchObject({ status: 'Imputado', imputedLiquidacionId: jan.id });
+      // Diciembre sigue como se emitió.
+      expect((await get(admin, `/liquidaciones/${dec.id}`).expect(200)).body.total).toBe('100000');
+    });
+
+    it('CP-1270 — con la convención SinRetroactivo de la inmobiliaria el ajuste rige desde enero y no hay cargo', async () => {
+      const { admin, contract } = await emittedThenAdjusted('d5-late-2', { tenantDefault: 'SinRetroactivo' });
+
+      expect((await get(admin, `/charges?contractId=${contract.id}`).expect(200)).body.items).toEqual([]);
+      await generate(admin, 1, 2027);
+      const jan = await liquidacionOf(admin, contract.id, '2027-01');
+      expect(jan.lineItems.map((l: any) => [l.type, l.amount])).toEqual([['Alquiler', '105060']]);
+    });
+
+    it('CP-1271 — la convención es pactable por contrato: Retroactivo pactado pisa el SinRetroactivo de la inmobiliaria', async () => {
+      const { admin, contract } = await emittedThenAdjusted('d5-late-3', {
+        tenantDefault: 'SinRetroactivo',
+        contractRule: 'Retroactivo',
+      });
+
+      const rules = (await get(admin, `/contracts/${contract.id}/terms`).expect(200)).body;
+      expect(JSON.stringify(rules)).toContain('"lateAdjustmentBilling":"Retroactivo"');
+      const charges = (await get(admin, `/charges?contractId=${contract.id}`).expect(200)).body.items;
+      expect(charges.map((c: any) => [c.kind, c.amount])).toEqual([['AjusteRetroactivo', '5060']]);
+    });
+  });
 });
