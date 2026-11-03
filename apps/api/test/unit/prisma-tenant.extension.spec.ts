@@ -314,4 +314,65 @@ describe('Prisma Tenant Extension', () => {
       }),
     );
   });
+  // DEF-115: los índices publicados (BCRA, INDEC) se guardan bajo `__system__` y
+  // cada inmobiliaria los lee junto con los propios, también dentro de una transacción.
+  describe('IndexData: lectura de los valores de sistema', () => {
+    it('conserva el filtro de la inmobiliaria actual más `__system__` en una lectura', async () => {
+      const mockQuery = jest.fn().mockResolvedValue([]);
+      const args = { where: { tenantId: { in: ['tenant-123', '__system__'] }, indexType: 'IPC' } };
+
+      await handler({ model: 'IndexData', operation: 'findMany', args, query: mockQuery });
+
+      expect(mockQuery).toHaveBeenCalledWith({
+        where: { tenantId: { in: ['tenant-123', '__system__'] }, indexType: 'IPC' },
+      });
+    });
+
+    it('conserva una lectura solo de `__system__`', async () => {
+      const mockQuery = jest.fn().mockResolvedValue(null);
+      const args = { where: { tenantId: '__system__', indexType: 'IPC' } };
+
+      await handler({ model: 'IndexData', operation: 'findFirst', args, query: mockQuery });
+
+      expect(mockQuery).toHaveBeenCalledWith({ where: { tenantId: '__system__', indexType: 'IPC' } });
+    });
+
+    it('pisa un filtro que nombra a otra inmobiliaria', async () => {
+      const mockQuery = jest.fn().mockResolvedValue([]);
+      const args = { where: { tenantId: { in: ['tenant-123', '__system__', 'tenant-otra'] } } };
+
+      await handler({ model: 'IndexData', operation: 'findMany', args, query: mockQuery });
+
+      expect(mockQuery).toHaveBeenCalledWith({ where: { tenantId: 'tenant-123' } });
+    });
+
+    it('pisa `__system__` en los demás modelos', async () => {
+      const mockQuery = jest.fn().mockResolvedValue([]);
+      const args = { where: { tenantId: { in: ['tenant-123', '__system__'] } } };
+
+      await handler({ model: 'Contract', operation: 'findMany', args, query: mockQuery });
+
+      expect(mockQuery).toHaveBeenCalledWith({ where: { tenantId: 'tenant-123' } });
+    });
+
+    it('no amplía las escrituras: borrar o actualizar sigue limitado a la inmobiliaria actual', async () => {
+      const mockQuery = jest.fn().mockResolvedValue({ count: 0 });
+
+      await handler({
+        model: 'IndexData',
+        operation: 'deleteMany',
+        args: { where: { tenantId: '__system__' } },
+        query: mockQuery,
+      });
+      await handler({
+        model: 'IndexData',
+        operation: 'update',
+        args: { where: { id: 'x', tenantId: { in: ['tenant-123', '__system__'] } }, data: { value: '1' } },
+        query: mockQuery,
+      });
+
+      expect(mockQuery).toHaveBeenNthCalledWith(1, { where: { tenantId: 'tenant-123' } });
+      expect(mockQuery).toHaveBeenNthCalledWith(2, { where: { id: 'x', tenantId: 'tenant-123' }, data: { value: '1' } });
+    });
+  });
 });
