@@ -19,7 +19,7 @@ export function verifyMetaSignature(rawBody: Buffer | undefined, header: string 
 }
 
 /** Tolerancia del reloj para las firmas de Resend (svix). */
-export const SVIX_TOLERANCE_SECONDS = 5 * 60;
+const SVIX_TOLERANCE_SECONDS = 5 * 60;
 
 /**
  * Firma de Resend (svix): HMAC-SHA256 de `${svix-id}.${svix-timestamp}.${cuerpo}`

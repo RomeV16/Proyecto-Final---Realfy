@@ -24,11 +24,11 @@ import { MessageAttachmentsService } from './message-attachments.service';
 import { MESSAGE_PROVIDERS, type MessageProvider, type MessageAttachment } from './providers/message-provider';
 
 /** Mensajes que toma cada vuelta por inmobiliaria. */
-export const DISPATCH_BATCH = 50;
+const DISPATCH_BATCH = 50;
 /** Intentos antes de darlo por fallido. */
 export const MAX_ATTEMPTS = 5;
 /** Espera antes de cada reintento, en minutos (después del intento 1, 2, 3, 4). */
-export const BACKOFF_MINUTES = [1, 5, 30, 120] as const;
+const BACKOFF_MINUTES = [1, 5, 30, 120] as const;
 /**
  * Un mensaje que quedó "enviándose" más de este tiempo es de una vuelta que se
  * cortó (un reinicio). No se reintenta solo: puede haber salido y WhatsApp no
