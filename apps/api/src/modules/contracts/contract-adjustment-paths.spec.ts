@@ -60,7 +60,7 @@ const schedule = {
 function build(contract: any, series: Series, previous: any = null) {
   // Responde como IndexDataService.getForPeriod: las series mensuales con un
   // valor por cada mes de la ventana pedida (empezando por el primero), las
-  // diarias con un valor por día desde el inicio de la ventana.
+  // diarias con el primer valor en el inicio de la ventana y el último en su fin.
   const getForPeriod = jest.fn(async (type: IndexType, from: Date, until: Date, opts: any = {}) => {
     const values = series[type] ?? [];
     if (MONTHLY.includes(type)) {
@@ -71,9 +71,10 @@ function build(contract: any, series: Series, previous: any = null) {
         isEstimate: false,
       }));
     }
+    // El primer valor cae en la fecha de inicio y el último en la de fin; los de en medio, en días corridos.
     return values.map((value, i) => ({
       value,
-      period: new Date(from.getTime() + i * 86_400_000),
+      period: i > 0 && i === values.length - 1 ? until : new Date(from.getTime() + i * 86_400_000),
       isEstimate: false,
     }));
   });

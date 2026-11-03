@@ -352,13 +352,14 @@ describe('cobertura de las series de nivel (ICL, UVA) en los extremos de la vent
   it('CP-1224: con el rezago la ventana corrida también exige sus dos extremos', async () => {
     const h = harness({
       terms: iclTerms({ indexLagMonths: 1 }),
-      points: { ICL: [['2025-01-01', '1000'], ['2025-04-01', '1250']] },
+      points: { ICL: [['2025-04-01', '1250'], ['2025-06-01', '1400']] },
     });
 
-    const err = await load(h, icl(), firstWindow('2025-05-01')).catch((e) => e);
+    // Con rezago 1, la ventana del ajuste de julio tras el de abril va del 1 de marzo al 1 de junio.
+    const err = await load(h, icl(), afterWindow('2025-04-01', '2025-07-01')).catch((e) => e);
 
     expect(err).toBeInstanceOf(MissingIndexDataError);
-    expect(err.missingPeriods).toEqual(['2025-04-01']);
+    expect(err.missingPeriods).toEqual(['2025-03-01']);
   });
 
   it('CP-1225: el cálculo no se acepta con el mismo día de inicio y de fin', async () => {
