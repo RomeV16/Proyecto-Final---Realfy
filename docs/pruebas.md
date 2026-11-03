@@ -239,6 +239,7 @@ con las suites de la primera versión y sigue con las que sumó el piloto.
 | `e2e/facturacion-por-cuenta-del-locador.e2e-spec.ts` | Emisión con emisor delegado y ARCA simulado, idempotencia, cola y notas de crédito. |
 | `e2e/mensajeria.e2e-spec.ts` | Bandeja de salida, modos de envío, consentimiento y webhooks, con proveedores de prueba. |
 | `e2e/cobranza.e2e-spec.ts` | Cobranza escalonada en un día simulado: recordatorios, prejudicial y carta documento en borrador. |
+| `e2e/bandeja.e2e-spec.ts` | Bandeja de consultas: ingreso por WhatsApp, mail, micrositio y llamadas, responsable, plazo de primera respuesta y autorrespuesta, con proveedores de prueba. |
 | `e2e/publicacion.e2e-spec.ts` | Estado por portal, aviso para copiar y micrositio sin datos privados. |
 | `e2e/ventas-y-llaves.e2e-spec.ts` | Operaciones de venta, señas, documentación y movimientos de llaves. |
 | `e2e/reconciliacion.e2e-spec.ts` | El ciclo sintético de la reconciliación cargado por la API (ver la sección siguiente). |

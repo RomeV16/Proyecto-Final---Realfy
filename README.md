@@ -31,6 +31,7 @@ Grouped by area; each one is described in the [user manual](./docs/manual-de-usu
 **Operations and communication**
 - **Incidents and repairs**: pre-authorisation, quotes, provider payment and allocation to tenant or lessor; tenant portal with tickets.
 - **Messaging**: idempotent outbox for email (Resend) and WhatsApp Cloud API, per-channel consent, signed webhooks and three sending modes (off, allow-list, live), off by default (ADR-0013).
+- **Inquiries inbox**: WhatsApp, email, microsite form and logged calls in one place, with an owner, a first-response deadline (15 minutes by default) and an auto-reply sent through the outbox.
 - **Publication**: status per portal, ready-to-copy listing text and the agency's public microsite, also under its own domain.
 - **Sales and keys**: reservation, deposit, signing and deed, pending deposits, property documentation, sale fees and key movements.
 - Leads pipeline, reports, dashboard and two model-assisted features with deterministic fallback.

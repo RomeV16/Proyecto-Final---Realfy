@@ -81,7 +81,8 @@ que llegar a la defensa con:
   contra el ambiente de homologación del organismo, y un emisor delegado para uno
   de los locadores.
 - La mensajería en modo `allowlist`, con las direcciones del equipo en la lista, o
-  en `off`, según lo que se quiera mostrar (ver el paso 14).
+  en `off`, según lo que se quiera mostrar (ver el paso 14), y un par de consultas en
+  la bandeja de consultas: una del formulario del micrositio y una llamada anotada.
 - Dos accesos al portal ya activados, uno por cada situación de deuda.
 
 La segunda inmobiliaria alcanza con dos o tres propiedades y un contrato: solo
@@ -280,10 +281,16 @@ bandeja de salida: los recordatorios del paso 8 y el envío del estado de cuenta
 paso 9 están ahí, con su estado y su motivo. En la ficha de una persona, la
 tarjeta de **consentimiento** por canal.
 
-El punto a transmitir es que nada sale hacia afuera sin pasar por la bandeja, que
-un envío fallido no deshace la operación que lo originó y que en el ambiente
-piloto la mensajería está apagada hasta que la inmobiliaria apruebe los envíos
-(ADR-0013).
+Después, la **bandeja de consultas** (`/bandeja`): la consulta que se envió desde el
+micrositio en el paso 1 está ahí junto con la llamada anotada, cada una con su
+canal, su responsable y la cuenta regresiva del plazo de primera respuesta.
+Tomar una, vincularla con la persona y responderla; la respuesta y la
+autorrespuesta salen por la misma bandeja de salida.
+
+El punto a transmitir es que nada sale hacia afuera sin pasar por la bandeja de
+salida, que un envío fallido no deshace la operación que lo originó y que en el
+ambiente piloto la mensajería está apagada hasta que la inmobiliaria apruebe los
+envíos (ADR-0013).
 
 ### 15. Publicación, ventas y llaves
 
