@@ -969,6 +969,8 @@ model Contract {
   deposit   ContractDeposit?
   moveOut   MoveOutSettlement?
 
+  collectionCases CollectionCase[]
+
   fees Fee[]
 
   @@unique([tenantId, externalRef])
@@ -3302,6 +3304,8 @@ model MessageOutbox {
 
   person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
 
+  collectionActions CollectionAction[]
+
   @@index([tenantId, status, scheduledAt])
   @@index([tenantId, relatedType, relatedId])
   @@index([tenantId, personId])
@@ -3564,4 +3568,96 @@ model KeyMovement {
   @@index([holderPersonId])
   @@index([holderUserId])
   @@map("key_movements")
+}
+
+// ─── Cobranza escalonada (ADR-0013) ─────────────────────
+
+enum CollectionStage {
+  Recordatorio
+  Prejudicial
+  Abogado
+  Judicial
+  Cerrado
+}
+
+enum CollectionActionKind {
+  Recordatorio
+  RecordatorioFirme
+  CartaDocumento
+  DerivacionAbogado
+  Nota
+  Pago
+  Acuerdo
+}
+
+enum CollectionActionStatus {
+  Preparada
+  Realizada
+}
+
+/// Caso de cobranza: un contrato con alquileres vencidos impagos. Un caso abierto por contrato;
+/// una mora nueva después de cerrarlo abre otro.
+model CollectionCase {
+  id               String                @id @default(uuid())
+  tenantId         String
+  contractId       String
+  stage            CollectionStage       @default(Recordatorio)
+  currency         Currency              @default(ARS)
+  /// Vencimiento impago más viejo en la última pasada del proceso diario.
+  overdueSince     DateTime
+  /// Saldo vencido en la última pasada: un saldo menor indica un pago parcial.
+  lastBalance      Decimal?              @db.Decimal(15, 2)
+  nextActionKind   CollectionActionKind?
+  nextActionAt     DateTime?
+  /// Último día de un acuerdo de pago vigente.
+  pausedUntil      DateTime?
+  letterPreparedOn DateTime?
+  /// Día en que se confirmó el envío en papel de la carta documento.
+  letterSentOn     DateTime?
+  assigneeId       String?
+  closeReason      String?
+  /// Día en que se abrió; con el contrato evita abrir dos casos el mismo día.
+  openedOn         DateTime
+  closedAt         DateTime?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  contract Contract           @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  actions  CollectionAction[]
+
+  @@unique([contractId, openedOn])
+  @@index([tenantId, stage, nextActionAt])
+  @@index([tenantId, contractId])
+  @@map("collection_cases")
+}
+
+/// Línea de tiempo de un caso: avisos mandados, carta documento, acuerdos, pagos y notas.
+model CollectionAction {
+  id              String                 @id @default(uuid())
+  tenantId        String
+  caseId          String
+  kind            CollectionActionKind
+  status          CollectionActionStatus @default(Realizada)
+  /// Nivel de tono del recordatorio (1 a 3).
+  level           Int?
+  channel         MessageChannel?
+  outboxMessageId String?
+  /// Importe a pagar ese día (recordatorio) o prometido (acuerdo).
+  amount          Decimal?               @db.Decimal(15, 2)
+  /// Fecha propia de la acción: promesa de pago del acuerdo o envío de la carta.
+  onDate          DateTime?
+  note            String?
+  /// Campos editables de la carta documento y destinatario de un recordatorio.
+  data            Json?
+  /// Clave de la acción automática de un día (evita repetirla si el proceso corre dos veces).
+  key             String?
+  createdByUserId String?
+  at              DateTime               @default(now())
+
+  case   CollectionCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  outbox MessageOutbox? @relation(fields: [outboxMessageId], references: [id], onDelete: SetNull)
+
+  @@unique([caseId, key])
+  @@index([tenantId, caseId, at])
+  @@map("collection_actions")
 }
