@@ -227,6 +227,20 @@ describe('PaymentSettlementService — cuenta corriente del locador (ADR-0009)',
     expect(res.settlement).toMatchObject({ buckets: { total: '90000.00', commission: '6300.00', lessors: '83700.00' } });
   });
 
+  it('DEF-73 — el cobro del primer mes de un contrato que empieza a mitad de mes se reparte entre sus locadores (CP-668)', async () => {
+    const from15 = { payoutPct: '100', validFrom: D('2026-01-15'), validTo: null };
+    const { service, tx, ledger, ctx } = build({ lessors: [{ personId: A, ...from15 }] });
+    const contract = await tx.contract.findFirst();
+    contract.startDate = D('2026-01-15');
+    const res = await service.record(tx, ctx({}, '100000'));
+    expect(res.settlement.error).toBeUndefined();
+    expect(res.settlement.positions).toEqual([expect.objectContaining({ personId: A, share: '93000.00' })]);
+    expect(rows(ledger)).toEqual([
+      [A, 'Alquiler', '100000.00'],
+      [A, 'Comision', '-7000.00'],
+    ]);
+  });
+
   it('un cobro sin reparto no deja asientos', async () => {
     const { service, tx, ledger, ctx } = build({ lessors: [] });
     await service.record(tx, ctx());
