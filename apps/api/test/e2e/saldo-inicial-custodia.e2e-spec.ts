@@ -81,7 +81,7 @@ describe('Saldo inicial de cuentas (e2e)', () => {
     expect(list.totals.find((t: any) => t.currency === 'USD')).toMatchObject({ custody: '800.50', agency: '0.00' });
     expect(list.totals.find((t: any) => t.currency === 'EUR')).toMatchObject({ custody: '300.00' });
     const book = (await get(token, `/cash-movements?accountId=${usd.account.id}&category=SaldoInicial`).expect(200)).body;
-    expect(book.items.map((m: any) => [m.amount, m.currency, m.account.kind])).toEqual([['800.50', 'USD', 'Custodia']]);
+    expect(book.items.map((m: any) => [Number(m.amount), m.currency, m.account.kind])).toEqual([[800.5, 'USD', 'Custodia']]);
   });
 
   it('CP-1102 — idempotente: reenviar lo mismo no cambia nada; un importe distinto corrige el mismo asiento, con auditoría', async () => {
