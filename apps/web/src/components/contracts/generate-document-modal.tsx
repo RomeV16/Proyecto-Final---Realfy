@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { downloadFile } from '@/lib/download';
 import { useState, useEffect, useCallback } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { Spinner } from '@/components/ui/spinner';
 
 // ─── Types ──────────────────────────────────────────────
@@ -50,6 +50,7 @@ export function GenerateDocumentModal({ open, contractId, onClose }: GenerateDoc
   const [variables, setVariables] = useState<Record<string, string>>({});
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [format, setFormat] = useState<'pdf' | 'docx'>('pdf');
+  const [signingDate, setSigningDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -86,6 +87,7 @@ export function GenerateDocumentModal({ open, contractId, onClose }: GenerateDoc
     if (!open) {
       setSelectedTemplateId('');
       setFormat('pdf');
+      setSigningDate('');
       setError('');
       setGenerating(false);
     }
@@ -105,14 +107,18 @@ export function GenerateDocumentModal({ open, contractId, onClose }: GenerateDoc
       await downloadFile(`/contracts/${contractId}/generate-document`, `contrato.${format}`, {
         init: {
           method: 'POST',
-          body: JSON.stringify({ templateId: selectedTemplateId, format }),
+          body: JSON.stringify({ templateId: selectedTemplateId, format, ...(signingDate ? { signingDate } : {}) }),
         },
         preferServerName: true,
       });
 
       onClose();
-    } catch {
-      setError(t('error'));
+    } catch (err) {
+      setError(
+        err instanceof ApiRequestError && err.errorCode === 'TEMPLATE_SYNTAX_ERROR'
+          ? t('syntaxError', { message: err.message })
+          : t('error'),
+      );
     } finally {
       setGenerating(false);
     }
@@ -199,6 +205,24 @@ export function GenerateDocumentModal({ open, contractId, onClose }: GenerateDoc
                   {t('formatDocx')}
                 </button>
               </div>
+            </div>
+
+            {/* Signing date */}
+            <div>
+              <label htmlFor="gdSigningDate" className="block text-sm font-medium text-slate-700 mb-1.5">
+                {t('signingDate')}
+              </label>
+              <input
+                id="gdSigningDate"
+                type="date"
+                value={signingDate}
+                onChange={(e) => setSigningDate(e.target.value)}
+                aria-describedby="gdSigningDateHint"
+                className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              />
+              <p id="gdSigningDateHint" className="mt-1 text-xs text-slate-500">
+                {t('signingDateHint')}
+              </p>
             </div>
 
             {/* Variables preview */}

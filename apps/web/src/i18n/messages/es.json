@@ -2291,78 +2291,206 @@
   }
  },
  "contractTemplates": {
-  "title": "Plantillas de Contrato",
-  "subtitle": "Creá y gestioná plantillas de contrato con variables dinámicas para generar documentos PDF y DOCX",
+  "title": "Plantillas de contrato",
+  "subtitle": "Textos de contrato con variables, condicionales y listas para generar documentos PDF y DOCX desde cada contrato",
   "newTemplate": "Nueva plantilla",
-  "table": {
-   "name": "Nombre",
-   "contractType": "Tipo de contrato",
-   "variables": "Variables",
-   "isActive": "Activa",
-   "isDefault": "Predeterminada",
-   "actions": "Acciones"
+  "loadError": "No se pudieron cargar las plantillas",
+  "noPermission": "Solo Admin y Gerente administran las plantillas de contrato.",
+  "status": {
+   "active": "Activa",
+   "inactive": "Inactiva",
+   "default": "Predeterminada"
   },
+  "back": "Volver a la lista",
+  "edit": "Editar",
+  "delete": "Eliminar",
   "form": {
+   "createTitle": "Nueva plantilla de contrato",
+   "editTitle": "Editar plantilla de contrato",
    "name": "Nombre",
-   "namePlaceholder": "Ej: Contrato de alquiler estándar",
    "contractType": "Tipo de contrato",
-   "body": "Cuerpo del contrato",
-   "bodyPlaceholder": "Escribí el contenido del contrato con {{variables}}…\n\nVariables disponibles:\n{{propietario.nombre}}, {{propietario.cuit}}\n{{inquilino.nombre}}, {{inquilino.cuit}}\n{{propiedad.direccion}}, {{propiedad.titulo}}\n{{contrato.monto}}, {{contrato.moneda}}\n{{contrato.fechaInicio}}, {{contrato.fechaFin}}",
-   "variables": "Variables detectadas",
-   "isActive": "Activa",
-   "isDefault": "Plantilla predeterminada",
-   "preview": "Vista previa"
+   "body": "Texto del contrato",
+   "bodyHint": "Cada renglón es un párrafo. Las variables van entre llaves dobles.",
+   "isActive": "Activa (se ofrece al generar un documento)",
+   "isDefault": "Predeterminada para su tipo de contrato",
+   "create": "Crear plantilla",
+   "save": "Guardar cambios",
+   "saving": "Guardando…",
+   "required": "Este dato es obligatorio",
+   "syntaxOk": "La plantilla está bien formada.",
+   "syntaxError": "Plantilla mal formada: {message}",
+   "apiSyntaxError": "La plantilla no se guardó. Error en la línea {line}, columna {column}.",
+   "saveError": "No se pudo guardar la plantilla",
+   "created": "Plantilla creada",
+   "updated": "Plantilla actualizada"
   },
-  "create": {
-   "title": "Crear plantilla de contrato",
-   "submit": "Crear",
-   "submitting": "Creando…"
-  },
-  "edit": {
-   "title": "Editar plantilla de contrato",
-   "submit": "Guardar cambios",
-   "submitting": "Guardando…"
-  },
-  "delete": {
+  "deleteConfirm": {
    "title": "Eliminar plantilla",
-   "description": "¿Estás seguro de que querés eliminar esta plantilla de contrato? Esta acción no se puede deshacer.",
-   "success": "Plantilla eliminada",
-   "error": "Error al eliminar la plantilla"
-  },
-  "toast": {
-   "created": "Plantilla de contrato creada exitosamente",
-   "updated": "Plantilla de contrato actualizada exitosamente",
-   "error": "Ocurrió un error. Intentá de nuevo."
+   "body": "Se elimina la plantilla \"{name}\". Los documentos ya generados no cambian. Esta acción no se puede deshacer.",
+   "confirm": "Eliminar",
+   "done": "Plantilla eliminada",
+   "error": "No se pudo eliminar la plantilla"
   },
   "empty": {
-   "title": "No hay plantillas de contrato",
-   "subtitle": "Creá tu primera plantilla para generar documentos automáticamente"
-  },
-  "validation": {
-   "nameRequired": "El nombre es obligatorio",
-   "contractTypeRequired": "El tipo de contrato es obligatorio",
-   "bodyRequired": "El cuerpo del contrato es obligatorio"
-  },
-  "rbac": {
-   "noAccess": "No tenés permisos para acceder a esta sección."
+   "title": "Todavía no hay plantillas",
+   "subtitle": "Creá la primera para generar contratos desde cada ficha."
   },
   "contractTypes": {
    "Alquiler": "Alquiler",
    "AlquilerTemporario": "Alquiler temporario",
    "Venta": "Venta"
   },
+  "catalog": {
+   "title": "Variables y bloques disponibles",
+   "intro": "Tocá una variable o un bloque para insertarlo donde está el cursor. Lo que no tiene dato en el contrato queda en el documento como la etiqueta entre llaves, para completarlo a mano.",
+   "insert": "Insertar",
+   "variablesTitle": "Variables del contrato",
+   "groups": {
+    "contrato": "Contrato",
+    "propiedad": "Propiedad",
+    "garantia": "Garantía",
+    "inmobiliaria": "Inmobiliaria",
+    "fecha": "Fecha de generación"
+   },
+   "vars": {
+    "contrato_tipo": "Tipo de contrato",
+    "contrato_estado": "Estado del contrato",
+    "contrato_fechaInicio": "Fecha de inicio (dd/mm/aaaa)",
+    "contrato_fechaFin": "Fecha de fin (dd/mm/aaaa)",
+    "contrato_fechaInicioLarga": "Fecha de inicio, con el mes en letras (1 de julio de 2026)",
+    "contrato_fechaFinLarga": "Fecha de fin, con el mes en letras",
+    "contrato_fechaInicioEnLetras": "Fecha de inicio toda en letras (primero de julio de dos mil veintiséis)",
+    "contrato_fechaFinEnLetras": "Fecha de fin toda en letras",
+    "contrato_fechaFirma": "Fecha de firma (dd/mm/aaaa); sale de la que se indica al generar el documento o de la cargada en el contrato",
+    "contrato_fechaFirmaLarga": "Fecha de firma con el mes en letras",
+    "contrato_fechaFirmaEnLetras": "Fecha de firma toda en letras",
+    "contrato_monto": "Alquiler vigente",
+    "contrato_montoEnLetras": "Alquiler vigente en letras",
+    "contrato_montoInicial": "Alquiler inicial (el del primer período del contrato)",
+    "contrato_montoInicialEnLetras": "Alquiler inicial en letras",
+    "contrato_moneda": "Moneda del alquiler",
+    "contrato_deposito": "Depósito en garantía; solo existe si el contrato tiene depósito",
+    "contrato_depositoEnLetras": "Depósito en letras",
+    "contrato_tipoAjuste": "Índice de ajuste",
+    "contrato_periodoAjuste": "Periodicidad del ajuste",
+    "contrato_notas": "Notas del contrato",
+    "propiedad_titulo": "Título de la propiedad",
+    "propiedad_direccion": "Calle y número",
+    "propiedad_direccionCompleta": "Domicilio completo: calle, número, piso, departamento, ciudad y provincia",
+    "propiedad_piso": "Piso",
+    "propiedad_depto": "Departamento o unidad",
+    "propiedad_ciudad": "Ciudad",
+    "propiedad_provincia": "Provincia",
+    "propiedad_codigoPostal": "Código postal",
+    "propiedad_tipo": "Tipo de propiedad",
+    "propiedad_superficie": "Superficie",
+    "propiedad_ambientes": "Cantidad de ambientes",
+    "propiedad_dormitorios": "Cantidad de dormitorios",
+    "propiedad_banos": "Cantidad de baños",
+    "propiedad_descripcion": "Descripción del inmueble (\"consta de…\")",
+    "propiedad_catastro": "Nomenclatura catastral",
+    "propiedad_cuentaRentas": "Número de cuenta de Rentas (impuesto inmobiliario cargado en los servicios de la propiedad)",
+    "propiedad_unidadAguas": "Unidad o cuenta del servicio de agua (cargada en los servicios de la propiedad)",
+    "garantia_tipo": "Tipo de garantía (la primera cargada; la segunda es garantia2)",
+    "garantia_descripcion": "Descripción de la garantía",
+    "garantia_monto": "Monto de la garantía",
+    "garantia_emisor": "Emisor de la garantía (por ejemplo, la aseguradora)",
+    "garantia_poliza": "Número de póliza",
+    "inmobiliaria_nombre": "Nombre de la inmobiliaria",
+    "inmobiliaria_cuit": "CUIT de la inmobiliaria",
+    "inmobiliaria_provincia": "Provincia de la inmobiliaria",
+    "inmobiliaria_matricula": "Matrícula profesional (se carga en Configuración)",
+    "inmobiliaria_domicilio": "Domicilio de la inmobiliaria (se carga en Configuración)",
+    "fecha_hoy": "Fecha de hoy (dd/mm/aaaa)",
+    "fecha_hoyLarga": "Fecha de hoy con el mes en letras",
+    "fecha_hoyEnLetras": "Fecha de hoy toda en letras"
+   },
+   "personsTitle": "Personas",
+   "personsHint": "Cada persona tiene estos datos. Si falta alguno en la ficha, no se define.",
+   "prefixes": {
+    "inquilino": "El primer locatario. Con varios, usá la lista inquilinos.",
+    "locador": "El primer locador, con su porcentaje y capacidad. Con varios, usá la lista locadores.",
+    "propietario": "Otro nombre del primer locador, para las plantillas anteriores.",
+    "garante": "El primer garante; el segundo es garante2, el tercero garante3. Con varios, usá la lista garantes.",
+    "comprador": "El comprador, en contratos de venta."
+   },
+   "fields": {
+    "nombre": "Nombre",
+    "apellido": "Apellido",
+    "nombreCompleto": "Nombre y apellido",
+    "documento": "DNI o documento, tal como está cargado",
+    "dniConPuntos": "DNI con puntos de millares (6.678.901)",
+    "cuit": "CUIT o CUIL",
+    "telefono": "Teléfono",
+    "email": "Correo electrónico",
+    "domicilio": "Domicilio",
+    "estadoCivil": "Estado civil",
+    "nacionalidad": "Nacionalidad",
+    "capacidad": "Capacidad con la que firma el locador (propietario, usufructuario…)",
+    "porcentaje": "Porcentaje de cobro del locador",
+    "poderdante": "Locador al que representa el apoderado",
+    "alcances": "Alcances del poder",
+    "firma": "Modo de firma del apoderado"
+   },
+   "listsTitle": "Listas (para repetir)",
+   "listsHint": "Dentro de una lista, los datos de cada elemento se escriben con su nombre: item.nombreCompleto. También hay variables sueltas: inquilinos.cantidad, inquilinos.nombres y inquilinos.lista, y por posición: inquilinos.2.nombreCompleto.",
+   "insertBlock": "Insertar el bloque",
+   "lists": {
+    "inquilinos": "Todos los locatarios del contrato.",
+    "locadores": "Todos los locadores, cada uno con su porcentaje de cobro.",
+    "garantes": "Todos los garantes, con los datos de su ficha.",
+    "apoderados": "Quienes actúan por un locador, con alcances y modo de firma."
+   },
+   "summaries": {
+    "cantidad": "Cantidad de personas de la lista (garantes.cantidad)",
+    "nombres": "Los nombres corridos: A, B y C (garantes.nombres)",
+    "lista": "Nombre y documento de cada uno, corridos (garantes.lista)"
+   },
+   "loopTitle": "Dentro de una lista",
+   "loop": {
+    "n": "Número de orden del elemento (1, 2, 3…)",
+    "total": "Cantidad de elementos de la lista",
+    "primero": "Vale 1 en el primer elemento y 0 en los demás",
+    "ultimo": "Vale 1 en el último elemento y 0 en los demás; sirve para poner el punto final en vez de la coma"
+   },
+   "blocksTitle": "Condicionales y listas",
+   "blocks": {
+    "si": {
+     "title": "Condicional",
+     "description": "Muestra el texto solo si la variable tiene valor. También se puede negar con \"no\" o comparar con ==, !=, >, >=, < y <=, contra un número o un texto entre comillas. Una variable vacía, 0, false o sin dato cuenta como falsa."
+    },
+    "sino": {
+     "title": "Alternativa",
+     "description": "Dentro de un condicional, lo que se muestra cuando la condición no se cumple. Sirve para el singular y el plural."
+    },
+    "cada": {
+     "title": "Lista",
+     "description": "Repite el texto por cada elemento de una lista (inquilinos, locadores, garantes o apoderados). Con \"como\" se le pone nombre al elemento; sin él se llama item. Una etiqueta de bloque sola en su renglón no deja un renglón vacío."
+    },
+    "escape": {
+     "title": "Llaves literales",
+     "description": "Una barra invertida antes de las llaves deja la etiqueta como texto, sin interpretarla."
+    }
+   },
+   "formatTitle": "Formato del documento",
+   "formatBold": "Un texto entre dos asteriscos dobles sale en negrita: **así**.",
+   "formatHeading": "Un renglón que empieza con \"# \" sale como título centrado. Cada renglón es un párrafo."
+  },
   "generateDocument": {
-   "title": "Generar Documento",
-   "button": "Generar Documento",
+   "title": "Generar documento",
+   "button": "Generar documento",
    "selectTemplate": "Seleccioná una plantilla",
    "noTemplates": "No hay plantillas disponibles para este tipo de contrato",
    "format": "Formato",
    "formatPdf": "PDF",
    "formatDocx": "DOCX (Word)",
+   "signingDate": "Fecha de firma (opcional)",
+   "signingDateHint": "Sale en las variables de fecha de firma; si la dejás vacía se usa la cargada en el contrato.",
    "variablesPreview": "Variables del contrato",
    "generate": "Generar y descargar",
    "generating": "Generando…",
    "error": "Error al generar el documento",
+   "syntaxError": "La plantilla está mal formada: {message}",
    "templateRequired": "Seleccioná una plantilla"
   }
  },
@@ -4464,7 +4592,10 @@
   "manageDefaults": "Configurar valores",
   "manageImports": "Ver importaciones",
   "manageMessaging": "Ver mensajería",
-  "manageInbox": "Configurar la bandeja"
+  "manageInbox": "Configurar la bandeja",
+  "licenseNumber": "Matrícula profesional",
+  "address": "Domicilio de la inmobiliaria",
+  "manageTemplates": "Gestionar plantillas"
  },
  "portalPublico": {
   "footer": {

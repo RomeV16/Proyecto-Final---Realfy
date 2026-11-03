@@ -38,6 +38,8 @@ const tenant = {
   brandPrimary: '#112233',
   brandSecondary: '#445566',
   logoUrl: 'https://ejemplo.invalid/logo.png',
+  licenseNumber: 'Mat. 0000',
+  address: 'Calle Ficticia 123, Ciudad Demo',
 };
 
 function mockApi() {
@@ -55,6 +57,7 @@ const EDIT_LINKS = [
   ['Configurar facturación', '/es/configuracion/fiscal'],
   ['Configurar puntuación', '/es/configuracion/scoring'],
   ['Ver y cargar índices', '/es/configuracion/indices'],
+  ['Gestionar plantillas', '/es/configuracion/plantillas'],
 ] as const;
 
 describe('ConfiguracionPage', () => {
@@ -133,6 +136,23 @@ describe('ConfiguracionPage', () => {
     expect(screen.getByLabelText('Provincia')).toHaveValue('CABA');
     expect(screen.getByLabelText('URL del logo')).toHaveValue('https://ejemplo.invalid/logo.png');
     expect(screen.getByText('#112233')).toBeInTheDocument();
+  });
+
+  it('carga y guarda la matrícula y el domicilio de la inmobiliaria', async () => {
+    mockApi();
+    const user = userEvent.setup();
+    renderEs(<ConfiguracionPage />);
+    const license = await screen.findByLabelText('Matrícula profesional');
+    expect(license).toHaveValue('Mat. 0000');
+    expect(screen.getByLabelText('Domicilio de la inmobiliaria')).toHaveValue('Calle Ficticia 123, Ciudad Demo');
+    await user.clear(license);
+    await user.clear(screen.getByLabelText('Domicilio de la inmobiliaria'));
+    await user.type(screen.getByLabelText('Domicilio de la inmobiliaria'), '  Otra 45 ');
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    await screen.findByText('Cambios guardados');
+    const body = JSON.parse(apiClient.mock.calls.find((c) => c[1]?.method === 'PATCH')?.[1].body);
+    expect(body.licenseNumber).toBe('');
+    expect(body.address).toBe('Otra 45');
   });
 
   it('guarda los cambios con PATCH y confirma', async () => {
