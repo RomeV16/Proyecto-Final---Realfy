@@ -23,7 +23,7 @@ Las referencias entre filas se resuelven por `externalRef` dentro de la inmobili
 
 ## Pasos
 
-El plan numera doce pasos (M0 a M12). El importador cubre M3 a M7; los demás se hacen por otros caminos o esperan al modelo que los recibe.
+El plan numera doce pasos (M0 a M12). El importador cubre M3 a M8; los demás se hacen por otros caminos o esperan al modelo que los recibe.
 
 | Paso | Qué | Cómo | Validación |
 |---|---|---|---|
@@ -35,19 +35,20 @@ El plan numera doce pasos (M0 a M12). El importador cubre M3 a M7; los demás se
 | M5 | Contratos administrados con locadores y porcentaje de cobro, inquilinos, garantes, fechas, fin real donde hubo prórroga de palabra, reglas (índice, período, rezago, base, día de pago, flujo de cobro) y comisión | `contracts[]` con `status: Activo`, `lessors`, `terms` y `commission` | Todos los activos esperados y locadores que suman 100 % (`LESSOR_SHARES_INVALID` si no) |
 | M6 | Contratos no vigentes y de sola intermediación, como historial | `contracts[]` con `status` `Vencido`, `Rescindido` o `Archivado`; `selfManaged: true` para el locador que cobra directo | La cuenta por estado coincide con el sistema anterior |
 | M7 | Historial de alquileres y ajustes de los vigentes | `adjustmentsHistory` de cada contrato | El monto vigente reproduce el del mes de corte (`RENT_MISMATCH` si no) |
-| M8 | Servicios y reglas de traslado (quién paga y en qué porcentaje) | Cuando exista su modelo (ADR-0008) | Por contrato, igual al recibo |
+| M8 | Servicios y reglas de traslado (quién paga y en qué porcentaje) | `services[]` (uno por servicio o impuesto de cada propiedad o edificio) y `chargeRules[]` (una por contrato, servicio y fecha de inicio) | Por contrato, igual al recibo |
 | M9 | Boletas del primer período en paralelo | Carga del mes en pantalla | Los totales coinciden con la planilla |
 | M10 | Saldos iniciales por locador, efectivo en custodia, deudas y adelantos | Cuando exista su modelo (ADR-0009 y ADR-0012) | La administración confirma cada saldo |
 | M11 | Plantillas de contrato | Pantalla de plantillas | Contratos de prueba generados y comparados con los reales |
 | M12 | Ventas en curso y documentación | Cuando exista su modelo | Estado confirmado |
 
-### Qué valida el importador en M3 a M7
+### Qué valida el importador en M3 a M8
 
 - **Forma de cada fila.** Los esquemas de `packages/shared` rechazan campos desconocidos, fechas mal escritas, enumeraciones inexistentes, CBU que no tienen 22 dígitos y CUIT con dígito verificador inválido. Cada problema queda en la fila, con su campo, y no frena al resto.
 - **Referencias.** Una persona, una propiedad o un edificio que no existe en la inmobiliaria es `REFERENCE_NOT_FOUND`. Una referencia repetida dentro del lote es `DUPLICATE_IN_BATCH`; un CUIT ya usado por otra persona, `DUPLICATE_KEY`.
 - **Contrato activo.** Locadores que suman 100 % en toda la vigencia, al menos un inquilino y ninguna otra locación activa que se superponga en la propiedad. La operación de alquiler de la propiedad queda `Alquilado` sin enviar ningún aviso.
 - **Fechas.** El fin no puede ser anterior al inicio ni el fin real al inicio (`INVALID_DATES`).
 - **Historial de ajustes.** Ordenado por período, sin períodos repetidos y encadenado: cada ajuste parte de donde terminó el anterior, el primero del alquiler inicial y el último termina en el monto vigente.
+- **Servicios y reglas (M8).** Cada servicio lleva el `externalRef` que tenía en el sistema anterior y la referencia de su propiedad. Cada regla une un contrato y un servicio de la misma propiedad (o del edificio que la contiene) con quién paga y en qué proporción, y rige desde `validFrom`. Un servicio de otra propiedad es `SERVICE_NOT_APPLICABLE`; un reparto `Fijo` sin importe, `VALIDATION_ERROR`; una fecha anterior al inicio del contrato, `INVALID_DATES`. Si el sistema anterior tenía un cambio de quién paga a mitad del contrato, se envían dos reglas con su fecha: la primera se cierra sola el día anterior a la segunda. Las reglas se cargan después de los contratos y los servicios, en el mismo lote o en uno posterior.
 - **Rezago.** Un contrato nuevo toma el rezago de la fila o el de la inmobiliaria (2 meses por defecto); uno que ya está cargado conserva el suyo (ADR-0011).
 
 ## Ensayo contra una copia
@@ -96,4 +97,4 @@ Cada corrección hace desaparecer el hallazgo en la consulta siguiente, así que
 
 - Lo que el lote no informa no se modifica, y lo que desaparece del origen no se borra: una cuenta bancaria o un ajuste que se quita debe quitarse a mano en Realfy.
 - Los conjuntos que la fila informa (titulares, inquilinos y garantes, locadores) se reemplazan completos: la fila debe traerlos todos.
-- Servicios, boletas, saldos iniciales, plantillas y ventas (M8 a M12) se incorporan al importador cuando existan los modelos que los reciben.
+- Boletas, saldos iniciales, plantillas y ventas (M9 a M12) se incorporan al importador cuando existan los modelos que los reciben.

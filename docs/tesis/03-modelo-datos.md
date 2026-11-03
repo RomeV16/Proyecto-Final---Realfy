@@ -459,7 +459,8 @@ Punitorio calculado sobre una liquidación vencida.
 
 Servicios e impuestos asociados a una propiedad (gas, luz, tasa municipal, impuesto inmobiliario) y sus pagos.
 
-- `Service`: `id`, `tenantId`, `propertyId`, `serviceType` (Electricidad, Gas, Agua, Internet, Expensas, Municipal, ImpuestoInmobiliario, Otro), `providerName`, `accountNumber`, `amount`, `currency`, `dueDay`, `billingFrequency` (Mensual por defecto, Bimestral, Trimestral, Anual), `hasAnnualOption` (falso por defecto), `isActive`, `notes`.
+- `Service`: `id`, `tenantId`, `externalRef`, `propertyId`, `serviceType` (Electricidad, Gas, Agua, Internet, Expensas, Municipal, ImpuestoInmobiliario, Otro), `providerName`, `accountNumber`, `amount`, `currency`, `dueDay`, `billingFrequency` (Mensual por defecto, Bimestral, Trimestral, Anual), `hasAnnualOption` (falso por defecto), `isActive`, `notes`.
+- `Service.externalRef` es la referencia del servicio en el sistema anterior, única por inmobiliaria (`@@unique([tenantId, externalRef])`) y con varios NULL permitidos; la usa el importador por lotes (ADR-0015, paso M8).
 - `ServicePayment`: `id`, `tenantId`, `serviceId`, `amount`, `paymentDate`, `period`, `notes`, `billId` (opcional: el pago de la boleta que lo originó; si se borra la boleta queda nulo).
 
 ### Impuestos y servicios trasladables
@@ -989,7 +990,7 @@ Una corrida del importador o su ensayo.
 
 El resultado de cada fila de un lote.
 
-- `id`, `tenantId`, `batchId`, `entity` (`Persona`, `Propiedad` o `Contrato`), `externalRef`, `rowNumber`, `action`, `entityId`, `errors`, `createdAt`.
+- `id`, `tenantId`, `batchId`, `entity` (`Persona`, `Propiedad`, `Contrato`, `Servicio` o `ReglaDeCargo`), `externalRef`, `rowNumber`, `action`, `entityId`, `errors`, `createdAt`.
 - `action` es `Creado`, `Actualizado`, `SinCambios` o `Error`. `rowNumber` es la posición (desde 1) de la fila en su arreglo del pedido. `entityId` es el registro resultante y queda vacío si la fila falló.
 - `errors` guarda como JSON la lista de `{ code, message, field? }` de la fila.
 - Se borra en cascada con su lote; `@@index([batchId, action])` sirve a la consulta de errores.
