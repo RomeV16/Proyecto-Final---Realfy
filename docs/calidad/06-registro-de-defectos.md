@@ -38,7 +38,7 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-28 | Cada corrida diaria suma el punitorio acumulado entero y vuelve a devengar lo condonado | Alta | — | CP-360 | [#157](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/157) | Corregido (2 nov) |
 | DEF-29 | Los cobros devuelven el número del recibo sin la etiqueta impresa | Baja | — | CP-450 | [#163](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/163) | Corregido (2 nov) |
 | DEF-30 | La comisión del contrato no se guarda desde la pantalla y una guardada aparece sin tipo | Media | — | CP-480 | [#164](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/164) | Corregido (2 nov) |
-| DEF-65 | Un mail rechazado por Resend se informa como enviado | Alta | ítem 43 (mensajería) | CP-630 | — (pendiente de abrir) | Corregido (2 nov) |
+| DEF-65 | Un mail rechazado por Resend se informa como enviado | Alta | ítem 43 (mensajería) | CP-630 | — (pendiente de abrir) | Corregido (3 nov) |
 
 ---
 
@@ -480,4 +480,4 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Causa raíz:** el SDK de Resend (v6) no lanza ante un rechazo de la API: devuelve `{ data: null, error }`. El servicio solo trataba la excepción.
 - **Corrección:** un `error` en la respuesta, o una respuesta sin id, es un envío fallido.
 - **Prueba de regresión:** CP-630 en `apps/api/src/common/email/common-email.service.spec.ts`.
-- **Evidencia rojo/verde:** regresión `9690f42` en rojo (1 prueba falla: llega `status: 'sent'`); corrección en el commit siguiente.
+- **Evidencia rojo/verde:** regresión `e0040a7` en rojo (1 prueba falla: llega `status: 'sent'`); corrección en `435267e`.
