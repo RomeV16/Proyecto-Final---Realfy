@@ -577,6 +577,34 @@ describe('Importación por lotes (e2e)', () => {
       expect(await prisma.baseClient.contractChargeRule.count()).toBe(4);
     });
 
+    it('CP-1323 providerKey: guarda la cuenta normalizada del proveedor; clave desconocida, cuenta inválida o tipo ajeno son error de fila', async () => {
+      const b = batchOk();
+      b.services.push(
+        { externalRef: 'SRV-P-ok', propertyRef: 'U-1', serviceType: 'ImpuestoInmobiliario', providerKey: 'rentas-cordoba', accountNumber: '1100-0000-0001', amount: 5, dueDay: 10 },
+        { externalRef: 'SRV-P-clave', propertyRef: 'U-1', serviceType: 'Gas', providerKey: 'inexistente', accountNumber: '123456', amount: 5, dueDay: 10 },
+        { externalRef: 'SRV-P-cuenta', propertyRef: 'U-1', serviceType: 'ImpuestoInmobiliario', providerKey: 'rentas-cordoba', accountNumber: '123', amount: 5, dueDay: 10 },
+        { externalRef: 'SRV-P-tipo', propertyRef: 'U-1', serviceType: 'Gas', providerKey: 'rentas-cordoba', accountNumber: '110000000001', amount: 5, dueDay: 10 },
+      );
+
+      const res = await post({ dryRun: false, ...b }).expect(201);
+
+      const errors = res.body.rows.filter((r: any) => r.entity === 'Servicio' && r.action === 'Error');
+      expect(errors.map((r: any) => [r.externalRef, r.errors[0].code, r.errors[0].field])).toEqual([
+        ['SRV-P-clave', 'UNKNOWN_PROVIDER_KEY', 'providerKey'],
+        ['SRV-P-cuenta', 'INVALID_PROVIDER_ACCOUNT', 'accountNumber'],
+        ['SRV-P-tipo', 'PROVIDER_SERVICE_TYPE_MISMATCH', 'serviceType'],
+      ]);
+      const saved = await prisma.baseClient.service.findFirst({ where: { tenantId, externalRef: 'SRV-P-ok' } });
+      expect(saved).toMatchObject({ providerKey: 'rentas-cordoba', accountNumber: '110000000001' });
+
+      // Reimportar con otro formato de la misma cuenta no cambia nada.
+      const again = await post({
+        dryRun: false,
+        services: [{ externalRef: 'SRV-P-ok', propertyRef: 'U-1', serviceType: 'ImpuestoInmobiliario', providerKey: 'rentas-cordoba', accountNumber: '1100 00000001', amount: 5, dueDay: 10 }],
+      }).expect(201);
+      expect(counts(again, 'Servicio').SinCambios).toBe(1);
+    });
+
     it('atomic: una regla con error deshace también los servicios', async () => {
       const b = batchOk();
       b.chargeRules.push({ contractRef: 'C-1', serviceRef: 'SRV-NO', payer: 'Inquilino', validFrom: '2025-01-01' });

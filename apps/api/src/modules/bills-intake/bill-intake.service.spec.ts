@@ -168,6 +168,22 @@ describe('BillIntakeService: circuito único', () => {
     expect(result.document.status).toBe(BillDocumentStatus.Procesada);
   });
 
+  it('busca la cuenta con la misma normalización con que se guarda, por proveedor', async () => {
+    const { service } = build({
+      services: [
+        { id: 'svc-r', providerKey: 'rentas-cordoba', accountNumber: '110000000001' },
+        { id: 'svc-a', providerKey: 'aguas-cordobesas', accountNumber: '000123' },
+        { id: 'svc-g', providerKey: 'generico', accountNumber: 'AB-123' },
+      ],
+    });
+    expect(await service.matchService('rentas-cordoba', ['1100-0000-0001'])).toEqual({ kind: 'one', serviceId: 'svc-r' });
+    expect(await service.matchService('aguas-cordobesas', ['123'])).toEqual({ kind: 'one', serviceId: 'svc-a' });
+    expect(await service.matchService('rentas-cordoba', ['1100-0000-0002'])).toEqual({ kind: 'none' });
+    // Sin proveedor reconocido (sólo para sugerir) se prueba la cuenta tal cual y la normalizada.
+    expect(await service.matchService(null, ['AB-123'])).toEqual({ kind: 'one', serviceId: 'svc-g' });
+    expect(await service.matchService(null, ['110000000001'])).toEqual({ kind: 'one', serviceId: 'svc-r' });
+  });
+
   it('dos servicios con la misma cuenta es ambiguo: va a revisión', async () => {
     const { service } = build({
       services: [

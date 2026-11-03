@@ -34,6 +34,7 @@ describe('serviceImporter.upsert', () => {
     serviceType: 'Agua',
     providerName: 'Aguas Demo',
     accountNumber: null,
+    providerKey: null,
     amount: { toString: () => '15000.00', valueOf: () => 15000 },
     currency: 'ARS',
     dueDay: 10,
@@ -68,6 +69,42 @@ describe('serviceImporter.upsert', () => {
       isActive: true,
       amount: '15000.00',
     });
+  });
+
+  it('providerKey: la cuenta se guarda normalizada con el esquema del proveedor', async () => {
+    const db = fakeDb(null);
+    const row = parseService({ serviceType: 'ImpuestoInmobiliario', providerKey: 'rentas-cordoba', accountNumber: '1100-0000-0001' });
+    await serviceImporter.upsert(db, ctx, row);
+    expect(db.service.create.mock.calls[0][0].data).toMatchObject({ providerKey: 'rentas-cordoba', accountNumber: '110000000001' });
+  });
+
+  it('providerKey desconocido, cuenta inválida o de otro tipo de servicio son error de fila con código estable', async () => {
+    const attempt = (extra: Record<string, unknown>) => serviceImporter.upsert(fakeDb(null), ctx, parseService(extra));
+    await expect(attempt({ providerKey: 'inexistente' })).rejects.toMatchObject({
+      details: [{ code: 'UNKNOWN_PROVIDER_KEY', field: 'providerKey' }],
+    });
+    await expect(attempt({ serviceType: 'ImpuestoInmobiliario', providerKey: 'rentas-cordoba', accountNumber: '12' })).rejects.toMatchObject({
+      details: [{ code: 'INVALID_PROVIDER_ACCOUNT', field: 'accountNumber' }],
+    });
+    await expect(attempt({ serviceType: 'Gas', providerKey: 'rentas-cordoba', accountNumber: '110000000001' })).rejects.toMatchObject({
+      details: [{ code: 'PROVIDER_SERVICE_TYPE_MISMATCH', field: 'serviceType' }],
+    });
+  });
+
+  it('al actualizar, una cuenta en otro formato del mismo servicio no cambia nada; sin proveedor se guarda tal cual', async () => {
+    const same = fakeDb(stored({ serviceType: 'ImpuestoInmobiliario', providerKey: 'rentas-cordoba', accountNumber: '110000000001' }));
+    const row = parseService({ serviceType: 'ImpuestoInmobiliario', providerKey: 'rentas-cordoba', accountNumber: '1100 00000001' });
+    expect(await serviceImporter.upsert(same, ctx, row)).toEqual({ action: 'SinCambios', entityId: 's1' });
+
+    const plain = fakeDb(null);
+    await serviceImporter.upsert(plain, ctx, parseService({ accountNumber: '10-01' }));
+    expect(plain.service.create.mock.calls[0][0].data.accountNumber).toBe('10-01');
+  });
+
+  it('con el proveedor ya guardado, una cuenta nueva sin providerKey en la fila se normaliza con ese proveedor', async () => {
+    const db = fakeDb(stored({ serviceType: 'ImpuestoInmobiliario', providerKey: 'rentas-cordoba', accountNumber: '110000000001' }));
+    await serviceImporter.upsert(db, ctx, parseService({ serviceType: 'ImpuestoInmobiliario', accountNumber: '1100-0000-0009' }));
+    expect(db.service.update.mock.calls[0][0].data).toEqual({ accountNumber: '110000000009' });
   });
 
   it('los mismos datos son SinCambios y no escriben', async () => {
