@@ -948,8 +948,10 @@ lo resuelve y los casos de prueba que lo verifican. Los tres que más pesaron en
 diseño son que el locador no es necesariamente el propietario y un contrato puede
 tener varios, cada uno con su porcentaje de cobro; que casi todas las reglas son
 pactables por contrato y cambian por acuerdos fechados, y que el dinero llega por
-tres caminos distintos. Al 3/11/2026, veintiséis hallazgos están resueltos por
-funciones integradas, uno sigue planificado y uno quedó fuera del piloto. Todos provienen del
+tres caminos distintos. Según el registro, al 3/11/2026 veintiséis hallazgos están
+implementados por pedidos integrados —cada uno con su número en el estado—, uno sigue
+planificado (FB-16, los pagarés como documento adjunto del contrato) y uno quedó
+fuera de alcance (FB-27, el inventario estructurado). Todos provienen del
 relevamiento: el registro todavía no tiene hallazgos de uso real, y no se presentan
 como tales.
 
@@ -1235,7 +1237,7 @@ corresponde al commit `ac07cdf` del 28/10/2026.
 | Controladores y rutas | 34 y 226 | 53 y 426 | Archivos con `@Controller` y decoradores `@Get`, `@Post`, `@Put`, `@Patch` y `@Delete` en `apps/api/src` |
 | Registros de arquitectura | 6 | 17 | `docs/adr/` |
 | Casos de uso | 24 (CU-01 a CU-24) | 49 (CU-01 a CU-49) | Identificadores en `02-roles-y-casos-uso.md` |
-| Casos de prueba del catálogo | 48 | 530 renglones, del CP-01 al CP-783, con 513 identificadores distintos | Renglones de `../calidad/05-casos-de-prueba.md` |
+| Casos de prueba del catálogo | 48 | 530, del CP-01 al CP-816, sin identificadores repetidos | Renglones de `../calidad/05-casos-de-prueba.md`, medidos tras la renumeración de #185 (`9f94675`) |
 | Defectos registrados | 8 (DEF-01 a DEF-08) | 37: los 8 anteriores y 29 del piloto (DEF-09 a DEF-95) | `../calidad/06-registro-de-defectos.md` |
 | Pruebas unitarias de la API | 807 | 2.419 en 186 archivos | Integración continua, ejecución 41591721662, trabajo «Unit Tests & Coverage» (ver la nota sobre la fuente) |
 | Pruebas unitarias del paquete compartido | 48 | 1.040 en 45 archivos | Ídem |
@@ -1258,11 +1260,13 @@ unitarias de la API y del paquete compartido coinciden con las de la ejecución 
 `main`. La cobertura combinada de SonarCloud es la del último análisis de `main`
 (`ba78a78`). La prueba inestable queda registrada para corregirse.
 
-Tres aclaraciones sobre la tabla. La primera: el catálogo de casos de prueba tiene
-dos rangos asignados dos veces —CP-470 a CP-480, a la cuenta corriente y a los
-vencimientos, y CP-720 a CP-725, a la publicación y a las ventas—; son casos
-distintos con el mismo identificador, y la renumeración queda pendiente para la
-próxima revisión del catálogo. La segunda: el informe de la tesis usa la medición del
+Tres aclaraciones sobre la tabla. La primera: el catálogo de casos de prueba llegó
+a tener dos rangos asignados dos veces —CP-470 a CP-480, a la cuenta corriente y a
+los vencimientos, y CP-720 a CP-725, a la publicación y a las ventas—. El pedido
+#185 los renumeró (vencimientos a CP-806 a CP-816; ventas y llaves a CP-800 a
+CP-805) y agregó una prueba de integridad de la documentación que falla si un
+identificador se repite; la fila del catálogo se midió después de esa
+renumeración. La segunda: el informe de la tesis usa la medición del
 mismo día sobre el commit `1a89e0a`, previa a la cobranza escalonada (#181) y a la
 bandeja de consultas (#183), y se remide en su pasada final; la diferencia con esta
 tabla —dos módulos, cuatro entidades, seis enumeraciones, cuatro migraciones, dos
