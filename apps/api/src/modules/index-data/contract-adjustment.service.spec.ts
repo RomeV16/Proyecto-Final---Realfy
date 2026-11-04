@@ -593,7 +593,7 @@ describe('ContractAdjustmentService', () => {
       expect(mockTxContractUpdate).not.toHaveBeenCalled();
     });
 
-    it('CP-1451: un alquiler que sube o que no cambia no pide revisión', async () => {
+    it('CP-1457: un alquiler que sube o que no cambia no pide revisión', async () => {
       mockFindManyDueSchedules.mockResolvedValueOnce([
         makeDue({ id: 'contract-A', customAdjustmentPct: '0.00' }, { id: 'schedule-A' }),
         makeDue({ id: 'contract-B' }, { id: 'schedule-B' }),

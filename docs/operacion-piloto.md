@@ -116,6 +116,24 @@ curl -sS -X POST "$API/api/index-data/backfill" -H "Authorization: Bearer $TOKEN
 - Después se vuelve a previsualizar el mes (Ajustes del mes): los contratos ICL y UVA
   que estaban en `MISSING_INDEX_DATA` por el histórico pasan a «listo».
 
+## Prórrogas de contratos importados y ajustes que bajan el alquiler
+
+Dos pasos de operación después del despliegue de DEF-173 a DEF-176:
+
+- **Prórrogas de palabra.** En un contrato importado sin historial de ajustes, la
+  prórroga deja salteado lo vencido hasta la fecha de importación (el alquiler
+  importado ya lo incluye) y el primer pendiente es posterior. Antes de aprobar
+  diciembre, revisar en cada contrato prorrogado antes del despliegue que su primer
+  ajuste pendiente sea posterior a la importación; si quedó uno anterior, reenviar
+  el lote de ese contrato (el importador alinea el cronograma pendiente con el
+  calendario) antes de que el proceso de las 7 lo aplique.
+- **Ajustes que bajan el alquiler.** El proceso diario y la generación no los
+  aplican: quedan pendientes con el motivo `RENT_DECREASE_REQUIRES_REVIEW` y la
+  liquidación del mes lleva `ADJUSTMENT_PENDING`. Se revisan en *Ajustes del mes*
+  (aparecen con «El alquiler baja…» y no entran en *Elegir todos*); se aplican a mano,
+  con confirmación, sólo si la inmobiliaria confirma esa baja. Si no, se corrige el
+  dato del contrato (base, rezago o modalidad) y se vuelve a previsualizar.
+
 ## Cierre de mes
 
 Lista de verificación, en el orden del ciclo (ver `tesis/30-piloto.md`). Mientras

@@ -234,3 +234,15 @@ sequenceDiagram
     end
     A->>L: Si el mes ya estaba emitido: cargo AjusteRetroactivo para la próxima
 ```
+
+## Addendum: un ajuste que baja el alquiler no se aplica en silencio (4 de noviembre de 2026)
+
+Con base `Original` (el índice acumulado desde el inicio del tramo sobre el alquiler inicial), el alquiler nuevo puede quedar por debajo del vigente. Este ADR no define si un ajuste puede bajar el alquiler: es una regla de dinero por confirmar con la inmobiliaria y con Manuel. Mientras tanto, el comportamiento seguro es que no ocurra sin que una persona lo vea:
+
+- La previsualización y la aplicación informan, además de `percentage` (variación del índice), `rentChangePct`, la variación del alquiler nuevo sobre el vigente; la previsualización marca `rentDecrease`.
+- El proceso diario y la generación de liquidaciones no aplican ese ajuste: lo saltean con el motivo estable `RENT_DECREASE_REQUIRES_REVIEW` y queda pendiente (la liquidación del período lleva `ADJUSTMENT_PENDING`).
+- La aplicación masiva lo aplica sólo si el contrato figura en `confirmRentDecrease`; *Ajustes del mes* no lo elige con *Elegir todos* y pide confirmarlo. La auditoría asienta `rentDecreaseConfirmed`.
+- Las correcciones de un provisorio a su valor oficial no pasan por esta revisión: corrigen un alquiler ya aplicado.
+
+Convención a confirmar: si la inmobiliaria acepta que un ajuste baje el alquiler (y en qué contratos), la revisión pasaría a ser una convención pactable (ADR-0010) y no una regla fija.
+

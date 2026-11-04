@@ -1758,6 +1758,14 @@ Cada fila tiene un estado:
   puede elegir y enlaza a la carga de índices. Cargados los valores, *Actualizar*.
 - **No se puede calcular**: falta el porcentaje o los escalones del contrato.
 
+La columna *Variación del índice* es la del índice del período; *Variación del alquiler*
+es lo que de verdad cambia el alquiler vigente, y puede ser distinta (por ejemplo
+cuando el contrato ajusta sobre el alquiler original). Si el alquiler nuevo es
+**menor** que el vigente, la fila lo advierte («El alquiler baja…»), *Elegir todos*
+no la toma y el proceso diario tampoco la aplica: queda pendiente hasta que alguien
+la revise, la elija a mano y confirme al aplicar. Una liquidación del mes con un
+ajuste así sin aplicar lleva la advertencia que impide aprobarla.
+
 Se marcan las filas que se quieren aplicar (*Elegir todos* toma las aplicables),
 *Aplicar* pide confirmación y muestra cuántas van a cuenta, y al terminar cada fila
 muestra su resultado. Lo que no se pudo aplicar queda pendiente. Cada ajuste queda
