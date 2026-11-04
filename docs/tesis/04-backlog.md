@@ -204,7 +204,7 @@ Redacción del informe de tesis, preparación de presentación y ensayos de defe
 
 ## Piloto en una inmobiliaria real
 
-Los ítems 30 a 46 incorporan la validación en uso real. Cada uno tiene un issue con criterios de aceptación y las etiquetas `piloto` y `origen:*`. La oleada indica el orden de ejecución. Al 2026-11-03 están hechos los ítems 30 a 44, con lo que las seis oleadas de desarrollo quedaron entregadas; el 45 y el 46 son continuos hasta la defensa, porque dependen de los ciclos de la inmobiliaria.
+Los ítems 30 a 46 incorporan la validación en uso real. Cada uno tiene un issue con criterios de aceptación y las etiquetas `piloto` y `origen:*`. La oleada indica el orden de ejecución. Al 2026-11-03 están hechos los ítems 30 a 44, con lo que las seis oleadas de desarrollo quedaron entregadas; el 45 y el 46 son continuos hasta la defensa, porque dependen de los ciclos de la inmobiliaria. Después, el 3 y el 4/11, se sumó la oleada 6 de migración y boletas, que no tiene un ítem propio y se cuenta dentro de los ítems 35 y 39 (ver «Oleada 6» al final de esta sección).
 
 ### 30. Piloto: relevamiento, plan y registro de feedback
 
@@ -270,7 +270,7 @@ Líneas con destino y marca de comisionable, generación anticipada, boletas de 
 - Dependencias: 34.
 - Oleada: 2.
 - Issue: #93.
-- Estado al 2026-11-03: Hecho (cerrado el 2026-11-02). PR #117 y #133 (correcciones de fechas, dinero y deuda), #151 (generador de liquidaciones), #156 (boletas y reglas de traslado), #158 (punitorios en la liquidación) y #159 (centro de carga).
+- Estado al 2026-11-04: Hecho (cerrado el 2026-11-02). PR #117 y #133 (correcciones de fechas, dinero y deuda), #151 (generador de liquidaciones), #156 (boletas y reglas de traslado), #158 (punitorios en la liquidación) y #159 (centro de carga). Después del cierre, el primer ensayo general del ciclo encontró y corrigió defectos de la generación y del ajuste del mes (DEF-130 a DEF-134, #225) y de los avisos de boletas (DEF-140 a DEF-143, #222), y la verificación del reparto por consumo, otros tres (DEF-105 a DEF-107, #198).
 
 ### 36. Cobros, caja, efectivo, custodia y compensaciones
 
@@ -314,7 +314,7 @@ Importación idempotente de contratos, locadores, reglas, servicios, ajustes y s
 - Dependencias: 33 a 37.
 - Oleada: 3.
 - Issue: #97.
-- Estado al 2026-11-03: Hecho en lo que construye. PR #110 (importación ligada a la inmobiliaria), #155 (importación idempotente) y #160 (panel de calidad de datos). La cartera real se cargó en `piloto` el 2026-11-02; el issue sigue abierto hasta cerrar con la inmobiliaria la lista de revisión de la carga, que se corrige reenviando el lote.
+- Estado al 2026-11-04: Hecho en lo que construye, con la migración todavía incompleta. PR #110 (importación ligada a la inmobiliaria), #155 (importación idempotente) y #160 (panel de calidad de datos); después, #187 (servicios y reglas de traslado en el lote, paso M8), #221 (cronograma de ajustes por fecha del historial, DEF-125 a DEF-129) y #227 (proveedor y cuenta normalizada). La cartera real se cargó en `piloto` el 2026-11-02 y los servicios y reglas el 2026-11-03; el issue sigue abierto hasta cerrar con la inmobiliaria la lista de revisión de la carga, los saldos iniciales propuestos (M10, con el saldo inicial de custodia integrado el 4/11 en #197), las plantillas (M11, en un pedido abierto) y las ventas en curso (M12, con su inventario hecho). El estado de cada paso está en `32-migracion.md`.
 
 ### 40. Vencimientos, renovaciones, prórrogas y depósitos
 
@@ -358,7 +358,7 @@ Envío de mail, mensajería instantánea con consentimiento y baja a través de 
 - Dependencias: 32, 35.
 - Oleada: 4 y 5.
 - Issue: #101.
-- Estado al 2026-11-03: Hecho. PR #172 (bandeja de salida idempotente, correo y WhatsApp, modos de envío y consentimiento), #181 (cobranza escalonada, apagada de fábrica) y #183 (bandeja de consultas unificada con responsable, plazo de primera respuesta y autorrespuesta; corrige DEF-95). La mensajería queda apagada en `piloto` hasta verificar el dominio y la cuenta de WhatsApp y hasta que la inmobiliaria apruebe los envíos; las decisiones legales de la cobranza siguen pendientes de revisión por el abogado de la inmobiliaria.
+- Estado al 2026-11-04: Hecho. PR #172 (bandeja de salida idempotente, correo y WhatsApp, modos de envío y consentimiento), #181 (cobranza escalonada, apagada de fábrica) y #183 (bandeja de consultas unificada con responsable, plazo de primera respuesta y autorrespuesta; corrige DEF-95). El dominio propio del producto y el dominio de correo están verificados desde el 3/11; la recepción de los mails entrantes (Email Routing y un Worker de Cloudflare) está en un pedido abierto (#234). La mensajería queda apagada en `piloto` hasta verificar la cuenta de WhatsApp y hasta que la inmobiliaria apruebe los envíos; las decisiones legales de la cobranza siguen pendientes de revisión por el abogado de la inmobiliaria.
 
 ### 44. Ventas, llaves y publicación
 
@@ -380,7 +380,7 @@ Ciclos en sombra, paralelo y propio, suite de reconciliación, línea base y mé
 - Dependencias: 39.
 - Oleada: 3 a 5.
 - Issue: #103.
-- Estado al 2026-11-03: Continuo. La suite de reconciliación con casos sintéticos está integrada (#177) y encontró DEF-70 a DEF-73; la línea base y el C1 son alrededor del 20/11/2026, el C2 alrededor del 20/12/2026 y el C3 alrededor del 20/01/2027.
+- Estado al 2026-11-04: Continuo. La suite de reconciliación con casos sintéticos está integrada (#177) y encontró DEF-70 a DEF-73. Se hicieron dos ensayos generales del primer ciclo sobre una copia de `piloto`, que encontraron veinticuatro defectos (DEF-115 a DEF-143 y DEF-173 a DEF-176) y estimaron la coincidencia del C1 según las boletas y las prórrogas (porcentajes: a completar tras el consentimiento de la inmobiliaria; `../calidad/12-piloto.md`, sección 10). La línea base y el C1 son alrededor del 20/11/2026, el C2 alrededor del 20/12/2026 y el C3 alrededor del 20/01/2027.
 
 ### 46. Documentación, informe y defensa con el piloto
 
@@ -391,6 +391,10 @@ Actualización de la documentación, el informe final y la preparación de la de
 - Dependencias: todos los ítems anteriores.
 - Oleada: Continuo.
 - Issue: #104.
-- Estado al 2026-11-03: Continuo. Documentación en el mismo PR de cada cambio, más dos PR propios (#107 y #162) y la actualización del informe final, el Hito 4 y este plan con las oleadas 3 a 5; el anexo de validación se actualiza tras el C2 y el C3.
+- Estado al 2026-11-04: Continuo. Documentación en el mismo PR de cada cambio, más tres PR propios (#107, #162 y #186) y la actualización del informe final, el Hito 4 y este plan con las oleadas 3 a 5; la del 4/11 suma la oleada 6, los ensayos generales y las cifras remedidas. El anexo de validación se actualiza tras el C2 y el C3.
+
+### Oleada 6: migración completa y obtención automática de boletas
+
+Trabajo agregado el 3 y el 4/11/2026, después de verificar que la migración de la cartera estaba incompleta y de que ningún proveedor ofrece una interfaz de consulta de boletas. No tiene ítem del cronograma ni issue de ítem: se cuenta dentro de los ítems 35 (boletas y reglas de traslado) y 39 (migración), y se declara como ampliación de alcance en el informe final, sección 9.8. Integrado: servicios y reglas en el lote de importación (#187), consumo por unidad (#198), obtención automática de boletas con su catálogo de proveedores y circuito común (#193, ADR-0018), formulario de servicios (#231), proveedor y cuenta normalizada (#227), pantalla de boletas recibidas (#229), boletas por mail de remitentes automáticos (#236) y las correcciones del ensayo general (#220 a #225). Abiertos al 4/11: plantillas de contrato completas (#199), Worker de recepción de mails (#234) y prórroga de contratos importados sin historial (#242); el saldo inicial de cuentas de caja y custodia (#197) se integró ese día.
 
 <!-- Cierre item 04 — backlog priorizado -->
