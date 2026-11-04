@@ -158,6 +158,25 @@ los adjuntos de personas, con una clave determinista por inmobiliaria y contenid
 Un resumen de cuenta con varias boletas es todo o nada: si una sola queda fuera de la
 ventana de fechas, el documento entero va a revisión.
 
+### Cuenta normalizada y proveedor del servicio
+
+El circuito asocia la boleta a un `Service` por `providerKey` y `accountNumber`. Para que
+esa comparación no dependa de cómo se escribió la cuenta, hay una sola normalización,
+la del esquema de cuenta de cada proveedor del catálogo (`accountSchema`), y se aplica
+en las dos puntas: al **guardar** (alta y edición manual, y lote de importación, con la
+misma función `resolveProviderFields`) y al **buscar** (`matchService` normaliza las
+cuentas del documento con el proveedor reconocido). Sin proveedor la cuenta se guarda
+tal cual: no hay formato que aplicar. Para sugerir el servicio de un documento sin
+proveedor reconocido se prueba la cuenta tal cual y la del lector genérico.
+
+No se agregó ninguna columna ni migración de datos. `providerKey` nació con este ADR, de
+modo que ningún servicio anterior lo tenía, y los que lo tienen desde el alta o la
+edición manual ya se guardaron normalizados; un servicio sin proveedor no entra al
+circuito hasta que se le asigna uno, y esa asignación normaliza la cuenta (o falla con
+`INVALID_PROVIDER_ACCOUNT` y se corrige a mano). Una migración que reescribiera cuentas
+habría tenido que replicar en SQL los normalizadores de cada proveedor, con riesgo sobre
+datos reales y sin beneficio.
+
 ### Canales
 
 - **`archivo`**: `POST /bills-intake/documents` (multipart, hasta 10 PDF de 10 MB). Cola

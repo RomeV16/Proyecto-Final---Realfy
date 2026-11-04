@@ -126,7 +126,7 @@ describe('Obtención automática de boletas (e2e)', () => {
       expect(unknown.status).toBe(400);
     });
 
-    it('al cambiar el proveedor o la cuenta se valida contra lo que ya había', async () => {
+    it('CP-1322 al cambiar el proveedor o la cuenta se valida contra lo que ya había', async () => {
       const { token } = await agency('a');
       const svc = await createService(token, { accountNumber: undefined });
       const res = await http().patch(`/api/services/${svc.id}`).set(auth(token)).send({ accountNumber: '12-14-009-028' }).expect(200);
@@ -165,6 +165,26 @@ describe('Obtención automática de boletas (e2e)', () => {
       expect(detail.data.lines).toHaveLength(1);
       const file = await get(token, `/bills-intake/documents/${documentId}/file`).expect(200);
       expect(file.body.url).toContain('https://storage.test/bill-documents/');
+    });
+
+    it('CP-1327 un servicio importado con la cuenta en otro formato encuentra la boleta cuyo PDF la trae distinto', async () => {
+      const { token } = await agency('a');
+      const batch = {
+        dryRun: false,
+        properties: [{ externalRef: 'U-1', type: 'Departamento', street: 'Calle Falsa', number: '123', city: 'Cordoba' }],
+        services: [
+          { externalRef: 'SRV-muni', propertyRef: 'U-1', serviceType: 'Municipal', providerKey: 'muni-cordoba', accountNumber: ' 0123456789-01200 ', amount: 1000, dueDay: 10 },
+        ],
+      };
+      const imported = await post(token, '/import/batches', batch).expect(201);
+      expect(imported.body.counts.errors).toBe(0);
+      const svc = await prisma.baseClient.service.findFirstOrThrow({ where: { externalRef: 'SRV-muni' } });
+      expect(svc.accountNumber).toBe('012345678901200');
+
+      const { pdf } = currentCedulon({ objeto: 'I0000777' });
+      const res = await upload(token, [{ name: 'cedulon.pdf', content: pdf }]).expect(200);
+      expect(res.body.results[0]).toMatchObject({ status: BillDocumentStatus.Procesada, reason: null });
+      expect((await get(token, `/service-bills?serviceId=${svc.id}`)).body.total).toBe(1);
     });
 
     it('una boleta sin servicio coincidente queda en revisión y se acepta con el servicio elegido y correcciones', async () => {
