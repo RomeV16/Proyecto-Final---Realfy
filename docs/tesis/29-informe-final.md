@@ -1289,7 +1289,7 @@ sujeto al consentimiento de la inmobiliaria para publicar cifras de su operació
   copia lógica fuera de él, semanal y antes de cada despliegue. Entre el 31/10 y el
   3/11/2026 el ambiente recibió siete despliegues, cada uno precedido por su copia y,
   cuando traía migraciones, por su ensayo sobre una copia restaurada; el 3 y el 4/11
-  hubo tres más (de 64 a 69 migraciones). La restauración se probó el 31/10/2026 sobre la base vacía y el 2/11/2026 con los
+  hubo cuatro más (de 64 a 71 migraciones); el del 4/11 llevó a `production` y a `piloto` todo `main` hasta #242, con su copia previa, el ensayo de las dos migraciones nuevas sobre una copia restaurada (sin cambios en los datos) y una copia posterior. La restauración se probó el 31/10/2026 sobre la base vacía y el 2/11/2026 con los
   datos reales cargados: restaurar la base tardó unos 3 segundos en local, que es el
   RTO de la base medido. El RTO total del servicio, con meta de 2 horas, no se midió
   de punta a punta (`../despliegue.md`).
@@ -1465,7 +1465,7 @@ general) y no incluye lo integrado después: el saldo inicial de custodia (#197)
 plantillas de contrato completas (#199), el Worker de recepción de mails (#234) y la
 prórroga de contratos importados sin historial (#242). Con ellos, contados sobre
 `dd8b22b`, el registro de defectos pasa a 68 renglones (60 del piloto, DEF-09 a
-DEF-176) y el catálogo de casos de prueba a 771.
+DEF-176) el catálogo de casos de prueba a 771 y las migraciones a 71; todo eso está desplegado desde el 4/11.
 
 Las cifras de la operación de la inmobiliaria —cartera, tiempos, diferencias de
 reconciliación— no están en esta tabla y no se publican sin su consentimiento; las
