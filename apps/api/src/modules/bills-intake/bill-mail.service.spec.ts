@@ -88,12 +88,36 @@ describe('BillMailService', () => {
     await expect(build().service.ingest(mail({ tenantSlug: undefined, to: 'otra@x.test' }))).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('un remitente inválido o automático se ignora sin tocar el circuito', async () => {
+  it('CP-1430 un remitente inválido se ignora sin tocar el circuito', async () => {
     const { service, intake } = build();
     await expect(service.ingest(mail({ from: 'sin-arroba' }))).resolves.toEqual({ received: true, ignored: 'invalid-sender', documents: [] });
-    await expect(service.ingest(mail({ from: 'no-reply@proveedor.test' }))).resolves.toEqual({ received: true, ignored: 'automatic', documents: [] });
     expect(intake.intake).not.toHaveBeenCalled();
     expect(intake.intakeWithoutAttachment).not.toHaveBeenCalled();
+  });
+
+  it.each(['no-reply@proveedor.test', 'noreply@proveedor.test', 'notifications@proveedor.test', 'do-not-reply@proveedor.test'])(
+    'CP-1431 el PDF de un remitente automático (%s) entra al circuito',
+    async (from) => {
+      const { service, intake } = build();
+      const res = await service.ingest(mail({ from, attachments: [{ filename: 'f.pdf', contentBase64: b64(simplePdf(['Factura'])) }] }));
+      expect(res).not.toHaveProperty('ignored');
+      expect(res.documents).toHaveLength(1);
+      expect(intake.intake).toHaveBeenCalledWith(expect.objectContaining({ channel: BillChannel.Mail, origin: from }), expect.any(Date));
+    },
+  );
+
+  it('CP-1432 un remitente automático sin PDF queda en revisión como cualquier otro', async () => {
+    const { service, intake } = build();
+    const res = await service.ingest(mail({ from: 'no-reply@proveedor.test', attachments: [] }));
+    expect(res.documents).toHaveLength(1);
+    expect(intake.intakeWithoutAttachment).toHaveBeenCalledWith(expect.objectContaining({ origin: 'no-reply@proveedor.test' }));
+  });
+
+  it('CP-1433 la marca automatic del servicio de recepción no descarta el mail', async () => {
+    const { service, intake } = build();
+    const res = await service.ingest(mail({ automatic: true, attachments: [{ filename: 'f.pdf', contentBase64: b64(simplePdf(['Factura'])) }] }));
+    expect(res).not.toHaveProperty('ignored');
+    expect(intake.intake).toHaveBeenCalledTimes(1);
   });
 
   it('un cuerpo inválido es 400', async () => {

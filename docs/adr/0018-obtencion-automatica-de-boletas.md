@@ -175,7 +175,11 @@ ventana de fechas, el documento entero va a revisión.
   sale de `tenantSlug`, como en la bandeja, o de la dirección de destino
   `boletas+<slug>@...`. Cada PDF adjunto entra al circuito con canal `Mail`. Un mail sin
   PDF queda en revisión como `NO_ATTACHMENT`, una sola vez por mensaje; **los mails con
-  un enlace en lugar de un adjunto se tratan en un pedido posterior**.
+  un enlace en lugar de un adjunto se tratan en un pedido posterior**. A diferencia de la
+  bandeja de consultas, **los remitentes automáticos (`no-reply`, marca `automatic`) se
+  aceptan**: los proveedores mandan la factura digital desde ellos. La protección es que
+  solo se procesan PDF y que la boleta se da de alta sola únicamente si el lector
+  reconoce proveedor y cuenta.
 - **`consulta`**: en esta base solo existe la interfaz `BillFetcher` (`providerKey`,
   `fetch(servicio, contexto)` que devuelve PDF), el registro de conectores y el proceso
   diario, sin ningún conector. El proceso (6:00 de Buenos Aires, dentro del contexto de

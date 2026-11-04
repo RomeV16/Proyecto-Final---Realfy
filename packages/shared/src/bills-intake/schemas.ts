@@ -63,6 +63,8 @@ export const BillMailIngestSchema = z
     from: z.string().trim().min(3).max(320),
     subject: z.string().trim().max(300).optional(),
     receivedAt: z.coerce.date().optional(),
+    /** Marca de mail automático del servicio de recepción: en boletas se acepta igual, no descarta. */
+    automatic: z.boolean().optional(),
     attachments: z
       .array(
         z

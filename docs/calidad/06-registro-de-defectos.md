@@ -64,6 +64,8 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-137 | Sin cronograma aplicado, el primer ajuste acumula la inflación desde el inicio del contrato aunque el alquiler importado ya esté actualizado | Alta | RF-12 | CP-1282 a CP-1285, CP-1287, CP-1288 | [#214](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/214) | Corregido (3 nov) |
 | DEF-120 | Los ajustes ICL y UVA se calculan con la serie incompleta, sin aviso | Alta | RF-12, RF-13 | CP-1220 a CP-1228 | [#203](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/203) | En corrección |
 | DEF-121 | No hay carga del histórico de ICL y UVA de la serie de sistema | Alta | RF-14 | CP-1230 a CP-1236 | [#205](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/205) | En corrección |
+| DEF-170 | Las boletas de un remitente automático (no-reply) se descartan en silencio | Alta | RF-09 | CP-1430 a CP-1434 | [#235](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/235) | Corregido (3 nov) |
+| DEF-171 | El ingreso de boletas rechaza con 400 la marca automatic del servicio de recepción | Media | RF-09 | CP-1433 a CP-1435 | [#235](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/235) | Corregido (3 nov) |
 
 ---
 
@@ -856,3 +858,29 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** `POST /api/index-data/backfill` (solo Admin) con `indexType`, `from` y `to`: pide el rango al BCRA por tramos, inserta solo los días que faltan en la serie de sistema y devuelve cuántos insertó, cuántos ya estaban, cuántos difieren y los días que el BCRA no devolvió.
 - **Prueba de regresión:** CP-1230 a CP-1239 en `index-scraper.service.spec.ts`, `index-data.controller.spec.ts` y `apps/api/test/e2e/index-data-backfill.e2e-spec.ts`.
 - **Evidencia rojo/verde:** regresión `4df8c34` en rojo (las pruebas del lector, del controlador y del flujo completo no compilan: la operación no existe); corrección en `9f46698`.
+
+## DEF-170 — Las boletas de un remitente automático (no-reply) se descartan en silencio
+
+- **Requisito afectado:** ADR-0018 (ingreso de boletas por mail).
+- **Origen:** uso real de la inmobiliaria piloto: los proveedores, los municipios y las administradoras mandan la factura digital desde direcciones automáticas y la inmobiliaria puede reenviarlas con una regla.
+- **Caso que lo detecta:** CP-1430 a CP-1434.
+- **Severidad:** alta. La boleta no llegaba ni a la cola de revisión y nadie se enteraba.
+- **Pasos para reproducir:** `POST /bills-intake/email-ingest` firmado con `from: no-reply@proveedor.test` y un PDF adjunto.
+- **Resultado esperado:** el PDF entra al circuito con canal `Mail`; si el lector no reconoce proveedor y cuenta queda en revisión.
+- **Resultado obtenido:** respuesta 200 con `ignored: "automatic"` y ningún documento.
+- **Causa raíz:** el ingreso de boletas reusaba `NO_REPLY_LOCAL_PART`, pensado para no abrir consultas con autorrespuestas en la bandeja, donde sí corresponde.
+- **Corrección:** se quitó el filtro del ingreso de boletas; la protección es que solo se procesan PDF y que la boleta se da de alta sola únicamente si el lector reconoce proveedor y cuenta. La bandeja de consultas mantiene el suyo.
+- **Prueba de regresión:** CP-1430 a CP-1433 en `bill-mail.service.spec.ts`; CP-1434 en `boletas-automaticas.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `1c00276` en rojo; corrección en `dbcbcc6`.
+
+## DEF-171 — El ingreso de boletas rechaza con 400 la marca automatic del servicio de recepción
+
+- **Requisito afectado:** ADR-0018.
+- **Origen:** revisión del defecto anterior: el esquema del ingreso es estricto y no conocía el campo `automatic` que el servicio de recepción manda con los mails automáticos (Auto-Submitted, Precedence).
+- **Caso que lo detecta:** CP-1433 a CP-1435.
+- **Severidad:** media. Habría tirado 400 en el mismo caso que DEF-170.
+- **Resultado esperado:** `automatic` se acepta, es opcional y no descarta el mail.
+- **Resultado obtenido:** 400 `Invalid inbound bill email`.
+- **Corrección:** `automatic: z.boolean().optional()` en `BillMailIngestSchema`; el servicio no lo usa para descartar.
+- **Prueba de regresión:** CP-1433 en `bill-mail.service.spec.ts`; CP-1435 en `bills-intake.spec.ts`; CP-1434 en el e2e.
+- **Evidencia rojo/verde:** regresión `1c00276` en rojo; corrección en `dbcbcc6`.

@@ -58,6 +58,13 @@ describe('esquemas de los documentos de boletas', () => {
     }
   });
 
+  it('CP-1435 el mail acepta la marca automatic del servicio de recepción sin exigirla', () => {
+    const base = { messageId: '<m@x>', from: 'no-reply@b.test', tenantSlug: 'demo' };
+    expect(BillMailIngestSchema.safeParse({ ...base, automatic: true }).success).toBe(true);
+    expect(BillMailIngestSchema.safeParse(base).success).toBe(true);
+    expect(BillMailIngestSchema.safeParse({ ...base, automatic: 'si' }).success).toBe(false);
+  });
+
   it('rechazar exige un motivo', () => {
     expect(RejectBillDocumentSchema.safeParse({ reason: '  ' }).success).toBe(false);
     expect(RejectBillDocumentSchema.parse({ reason: ' No es una boleta ' })).toEqual({ reason: 'No es una boleta' });
