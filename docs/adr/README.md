@@ -2,7 +2,7 @@
 
 Índice de las decisiones de arquitectura (ADR) del proyecto. Cada decisión vive en su propio archivo de esta carpeta, con contexto, decisión y consecuencias. Una decisión aceptada no se reescribe: si cambia, se escribe una nueva que la reemplaza y la anterior pasa a «Reemplazada»; las precisiones posteriores que no la cambian se agregan como addendum fechado al final del mismo archivo.
 
-Índice verificado el 3 de noviembre de 2026 contra los archivos de la carpeta: dieciocho decisiones, todas aceptadas. Las seis primeras son del desarrollo original de la tesis; de la 0007 en adelante, del piloto en una inmobiliaria real (`../tesis/30-piloto.md`).
+Índice verificado el 3 de noviembre de 2026 contra los archivos de la carpeta: diecinueve decisiones, todas aceptadas. Las seis primeras son del desarrollo original de la tesis; de la 0007 en adelante, del piloto en una inmobiliaria real (`../tesis/30-piloto.md`).
 
 ## Decisiones
 
@@ -26,6 +26,7 @@
 | [0016](0016-diagramas-como-codigo.md) | Diagramas como código (mermaid) | Aceptado | 2026-10-30 | Piloto, ítem 31 |
 | [0017](0017-facturacion-por-cuenta-del-locador-con-emisor-delegado.md) | Facturación por cuenta del locador con emisor delegado | Aceptado | 2026-11-02 | Piloto, ítem 38 |
 | [0018](0018-obtencion-automatica-de-boletas.md) | Obtención automática de boletas de servicios e impuestos | Aceptado; los lectores de EPEC y Ecogas quedan a ajustar con la primera boleta real | 2026-11-03 | Piloto, uso real |
+| [0019](0019-motor-de-plantillas-de-contrato-con-bloques.md) | Motor de plantillas de contrato con condicionales y listas | Aceptado | 2026-11-03 | Piloto, paso M11 |
 
 La fecha es la de aceptación que figura en cada archivo. El orden de los números no coincide con el de las fechas en el piloto porque los números se reservaron en el plan, antes de implementar, y cada decisión se aceptó en el pedido de incorporación que la implementa.
 

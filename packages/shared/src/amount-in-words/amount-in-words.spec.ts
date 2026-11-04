@@ -1,4 +1,4 @@
-import { amountInWords } from './index';
+import { amountInWords, dateInWords, numberInWords } from './index';
 
 describe('amountInWords (es-AR)', () => {
   const golden: [string | number, string][] = [
@@ -50,5 +50,34 @@ describe('amountInWords (es-AR)', () => {
     expect(() => amountInWords(-1)).toThrow('negativos');
     expect(() => amountInWords(1, 'BRL')).toThrow('Moneda');
     expect(() => amountInWords('1000000000000')).toThrow('rango');
+  });
+});
+
+describe('numberInWords y dateInWords', () => {
+  it('numberInWords no apocopa al final de la frase', () => {
+    expect(numberInWords(1)).toBe('uno');
+    expect(numberInWords(21)).toBe('veintiuno');
+    expect(numberInWords(31)).toBe('treinta y uno');
+    expect(numberInWords(2001)).toBe('dos mil uno');
+    expect(numberInWords(2026)).toBe('dos mil veintiséis');
+    expect(numberInWords(0)).toBe('cero');
+  });
+
+  it('numberInWords rechaza lo que no es un entero en rango', () => {
+    expect(() => numberInWords(-1)).toThrow();
+    expect(() => numberInWords(1.5)).toThrow();
+    expect(() => numberInWords(1e12)).toThrow();
+  });
+
+  it('dateInWords escribe la fecha al estilo de los contratos', () => {
+    expect(dateInWords('2026-07-01')).toBe('primero de julio de dos mil veintiséis');
+    expect(dateInWords(new Date('2028-06-30T00:00:00Z'))).toBe('treinta de junio de dos mil veintiocho');
+    expect(dateInWords('2021-03-21')).toBe('veintiuno de marzo de dos mil veintiuno');
+    expect(dateInWords('2026-12-31')).toBe('treinta y uno de diciembre de dos mil veintiséis');
+  });
+
+  it('dateInWords lee la fecha en UTC y rechaza una fecha inválida', () => {
+    expect(dateInWords('2026-07-01T00:00:00.000Z')).toBe('primero de julio de dos mil veintiséis');
+    expect(() => dateInWords('no es fecha')).toThrow();
   });
 });

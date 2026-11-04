@@ -92,35 +92,3 @@ export function renderTemplate(
     return fullMatch;
   });
 }
-
-/**
- * Render a template by replacing {{variableName}} placeholders with provided values.
- *
- * Unlike renderTemplate(), this does NOT HTML-escape values — suitable for
- * plain-text targets such as DOCX paragraphs, PDF text runs, and CSV exports
- * where HTML entities would appear as literal ampersand-sequences.
- *
- * - Unresolved variables (not present in the values map) are left as-is
- * - Whitespace inside braces is normalized: {{ nombre }} matches 'nombre'
- *
- * @param template - Template string with {{variable}} placeholders
- * @param values - Map of variable names to their string values
- * @returns The rendered template with variables replaced (no escaping)
- *
- * @example
- * renderTemplatePlain('Hola {{nombre}}', { nombre: 'Juan & María' })
- * // => 'Hola Juan & María'
- */
-export function renderTemplatePlain(
-  template: string,
-  values: Record<string, string>,
-): string {
-  const regex = new RegExp(VARIABLE_PATTERN.source, VARIABLE_PATTERN.flags);
-
-  return template.replace(regex, (fullMatch, variableName: string) => {
-    if (variableName in values) {
-      return values[variableName];
-    }
-    return fullMatch;
-  });
-}

@@ -339,13 +339,18 @@ exports[`Caracterización de PDF contrato 1`] = `
       "text": "Contrato de locación",
     },
     {
+      "alignment": "justify",
       "margin": [
         0,
         1,
         0,
         1,
       ],
-      "text": "Primera línea",
+      "text": [
+        {
+          "text": "Primera línea",
+        },
+      ],
     },
     {
       "fontSize": 6,
@@ -358,22 +363,132 @@ exports[`Caracterización de PDF contrato 1`] = `
       "text": " ",
     },
     {
+      "alignment": "justify",
       "margin": [
         0,
         1,
         0,
         1,
       ],
-      "text": "Segunda línea",
+      "text": [
+        {
+          "text": "Segunda línea",
+        },
+      ],
     },
     {
+      "alignment": "justify",
       "margin": [
         0,
         1,
         0,
         1,
       ],
-      "text": "Tercera",
+      "text": [
+        {
+          "text": "Tercera",
+        },
+      ],
+    },
+  ],
+  "defaultStyle": {
+    "fontSize": 10,
+    "lineHeight": 1.3,
+  },
+  "footer": {
+    "columns": [
+      {
+        "fontSize": 8,
+        "margin": [
+          40,
+          0,
+          0,
+          0,
+        ],
+        "text": "Contrato de locación",
+      },
+      {
+        "alignment": "right",
+        "fontSize": 8,
+        "margin": [
+          0,
+          0,
+          40,
+          0,
+        ],
+        "text": "Pág. 1/3",
+      },
+    ],
+  },
+  "pageMargins": [
+    40,
+    40,
+    40,
+    40,
+  ],
+  "styles": {
+    "header": {
+      "bold": true,
+      "fontSize": 16,
+    },
+    "subheader": {
+      "bold": true,
+      "fontSize": 12,
+    },
+    "title": {
+      "bold": true,
+      "fontSize": 13,
+    },
+  },
+}
+`;
+
+exports[`Caracterización de PDF contrato con título y negrita 1`] = `
+{
+  "content": [
+    {
+      "alignment": "center",
+      "margin": [
+        0,
+        5,
+        0,
+        15,
+      ],
+      "style": "title",
+      "text": "Contrato de locación",
+    },
+    {
+      "alignment": "center",
+      "bold": true,
+      "fontSize": 12,
+      "margin": [
+        0,
+        8,
+        0,
+        4,
+      ],
+      "text": "CONTRATO",
+    },
+    {
+      "alignment": "justify",
+      "margin": [
+        0,
+        1,
+        0,
+        1,
+      ],
+      "text": [
+        {
+          "text": "PRIMERA: ",
+        },
+        {
+          "bold": true,
+          "text": "objeto",
+        },
+        {
+          "text": " del contrato.",
+        },
+      ],
     },
   ],
   "defaultStyle": {
@@ -443,13 +558,18 @@ exports[`Caracterización de PDF contrato sin nombre de inmobiliaria 1`] = `
       "text": "Sin nombre",
     },
     {
+      "alignment": "justify",
       "margin": [
         0,
         1,
         0,
         1,
       ],
-      "text": "Texto",
+      "text": [
+        {
+          "text": "Texto",
+        },
+      ],
     },
   ],
   "defaultStyle": {

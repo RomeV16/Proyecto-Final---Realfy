@@ -303,8 +303,10 @@ que se descuenta en su estado de cuenta suma ese honorario. Sin porcentaje no se
 cobra.
 
 El documento del contrato se genera desde el mismo detalle, eligiendo una de las
-plantillas disponibles. Las plantillas se administran aparte y son de Admin y
-Gerente; para empezar existe una carga de plantillas por defecto.
+plantillas disponibles, en PDF o en Word, y, si hace falta, la **fecha de firma**
+que va en el texto. Las plantillas se administran aparte y son de Admin y Gerente
+(ver «Plantillas de contrato»); para empezar existe una carga de plantillas por
+defecto.
 
 Rescindir un contrato es de Admin o Gerente, también pide confirmación en la
 misma pantalla, y produce el resumen de cierre. Si el contrato rescindido era el
@@ -312,6 +314,68 @@ misma pantalla, y produce el resumen de cierre. Si el contrato rescindido era el
 *Disponible*; si queda otro contrato activo sobre la propiedad, o si alguien ya
 había movido la operación a otro estado, no se toca. Lo mismo pasa cuando un
 contrato activo se marca como vencido o renovado.
+
+### Plantillas de contrato
+
+Desde *Configuración*, *Plantillas de contrato* (Admin y Gerente) se crean, editan
+y borran las plantillas con las que se genera el documento de un contrato. Una
+plantilla es un texto con **variables** entre llaves dobles, como
+`{{contrato.monto}}`. Al lado del cuerpo está el catálogo de variables, con qué es
+cada una; un clic en una variable la inserta donde está el cursor. Una variable sin
+dato en el contrato queda escrita tal cual (`{{propiedad.catastro}}`) en el
+documento: es la señal de que falta cargar ese dato.
+
+**Qué datos hay.** Del contrato: alquiler vigente y alquiler inicial (el del
+período original), depósito, fechas de inicio y fin y fecha de firma. Cada importe y
+cada fecha tiene también su versión en letras (`contrato.montoEnLetras`,
+`contrato.fechaInicioEnLetras`: «primero de julio de dos mil veintiséis»). Del
+inmueble: dirección, descripción, nomenclatura catastral, la cuenta de Rentas y la
+unidad de Aguas (salen de los servicios e impuestos cargados en la propiedad, con
+el número de cuenta). De la inmobiliaria: nombre, CUIT, provincia, **matrícula** y
+**domicilio** (se cargan en *Configuración*, datos de la inmobiliaria). De cada
+persona: nombre, documento (`documento` tal cual y `dniConPuntos`: 6.678.901),
+CUIT, teléfono, mail, domicilio, estado civil y nacionalidad.
+
+**Varias personas.** `inquilino.*` es siempre el primer locatario. Para todos están
+las listas `inquilinos`, `locadores` (con su porcentaje y capacidad), `garantes` y
+`apoderados`, y las variables sueltas `inquilinos.cantidad`, `inquilinos.nombres`
+(«A, B y C») y `inquilinos.lista`.
+
+**Condicionales.** El texto entre `{{#si condición}}` y `{{/si}}` sale solo si se
+cumple; con `{{#sino}}` se da la alternativa:
+
+```
+{{#si contrato.deposito}}El locatario deja un depósito de {{contrato.deposito}}.{{#sino}}El locatario no deja depósito.{{/si}}
+{{#si garantes.cantidad > 1}}Los garantes{{#sino}}El garante{{/si}}
+```
+
+La condición puede ser una variable (se cumple si tiene valor distinto de vacío, 0 o
+`false`), una variable negada (`{{#si no contrato.deposito}}`) o una comparación con un
+número o un texto entre comillas (`>`, `>=`, `<`, `<=`, `==`, `!=`).
+
+**Listas.** `{{#cada garantes como g}}…{{/cada}}` repite el texto por cada garante;
+adentro, `{{g.nombreCompleto}}`, `{{g.dniConPuntos}}` y el resto de los datos de la
+persona, más `{{g.n}}` (número de orden), `{{g.total}}`, `{{g.primero}}` y
+`{{g.ultimo}}` (para poner coma o punto al final). Sin `como` el alias es `item`.
+
+```
+{{#cada garantes como g}}
+Garante {{g.n}}: {{g.nombreCompleto}}, DNI {{g.dniConPuntos}}{{#si g.domicilio}}, con domicilio en {{g.domicilio}}{{/si}}.
+{{/cada}}
+```
+
+Una etiqueta `{{#…}}` o `{{/…}}` sola en su renglón no deja un renglón vacío. Para
+escribir llaves dobles tal cual hay que anteponer una barra invertida:
+`\{{texto}}`. Los condicionales se pueden anidar hasta seis niveles.
+
+**Errores.** Si la plantilla está mal formada (un `{{#si}}` sin su `{{/si}}`, una
+condición que no se entiende, una lista que no existe), la pantalla lo marca mientras
+se escribe, con la línea y la columna, y no deja guardarla.
+
+**Formato del documento.** Cada renglón del texto es un párrafo (justificado); un
+renglón que empieza con `# ` es un título centrado y `**texto**` sale en negrita, en
+el PDF y en el Word. No hay más formato: tamaños, tablas ni encabezados propios no
+están.
 
 ### Ver las reglas vigentes y los acuerdos de un contrato
 
@@ -1529,13 +1593,15 @@ buscadores.
 ## Configuración
 
 `/configuracion` reúne los datos de la inmobiliaria: nombre, CUIT, provincia,
+matrícula y domicilio (que salen en los contratos generados desde una plantilla),
 colores de marca y logo —los mismos que usa el micrositio público—. Editar es de
 Admin y Gerente; los demás la ven en modo lectura. Desde ahí se llega a las
 pantallas de configuración específicas: la fiscal (`/configuracion/fiscal`),
 las etapas del embudo (`/configuracion/pipeline`), los pesos del puntaje de
 inquilinos (`/configuracion/scoring`) y los índices de ajuste
 (`/configuracion/indices`) y los valores por defecto
-(`/configuracion/valores-por-defecto`); y, además, la del equipo
+(`/configuracion/valores-por-defecto`), las plantillas de contrato
+(`/configuracion/plantillas`); y, además, la del equipo
 (`/configuracion/usuarios`), la de permisos de lectura (`/configuracion/permisos`) y
 la de mensajería (`/configuracion/mensajeria`).
 

@@ -2291,79 +2291,207 @@
   }
  },
  "contractTemplates": {
-  "title": "Plantillas de Contrato",
-  "subtitle": "Creá y gestioná plantillas de contrato con variables dinámicas para generar documentos PDF y DOCX",
-  "newTemplate": "Nueva plantilla",
-  "table": {
-   "name": "Nombre",
-   "contractType": "Tipo de contrato",
-   "variables": "Variables",
-   "isActive": "Activa",
-   "isDefault": "Predeterminada",
-   "actions": "Acciones"
+  "title": "Contract templates",
+  "subtitle": "Contract texts with variables, conditionals and lists, to generate PDF and DOCX documents from each contract",
+  "newTemplate": "New template",
+  "loadError": "Could not load the templates",
+  "noPermission": "Only Admin and Manager manage contract templates.",
+  "status": {
+   "active": "Active",
+   "inactive": "Inactive",
+   "default": "Default"
   },
+  "back": "Back to the list",
+  "edit": "Edit",
+  "delete": "Delete",
   "form": {
-   "name": "Nombre",
-   "namePlaceholder": "Ej: Contrato de alquiler estándar",
-   "contractType": "Tipo de contrato",
-   "body": "Cuerpo del contrato",
-   "bodyPlaceholder": "Escribí el contenido del contrato con {{variables}}…\n\nVariables disponibles:\n{{propietario.nombre}}, {{propietario.cuit}}\n{{inquilino.nombre}}, {{inquilino.cuit}}\n{{propiedad.direccion}}, {{propiedad.titulo}}\n{{contrato.monto}}, {{contrato.moneda}}\n{{contrato.fechaInicio}}, {{contrato.fechaFin}}",
-   "variables": "Variables detectadas",
-   "isActive": "Activa",
-   "isDefault": "Plantilla predeterminada",
-   "preview": "Vista previa"
+   "createTitle": "New contract template",
+   "editTitle": "Edit contract template",
+   "name": "Name",
+   "contractType": "Contract type",
+   "body": "Contract text",
+   "bodyHint": "Each line is a paragraph. Variables go between double braces.",
+   "isActive": "Active (offered when generating a document)",
+   "isDefault": "Default for its contract type",
+   "create": "Create template",
+   "save": "Save changes",
+   "saving": "Saving…",
+   "required": "This field is required",
+   "syntaxOk": "The template is well formed.",
+   "syntaxError": "Malformed template: {message}",
+   "apiSyntaxError": "The template was not saved. Error at line {line}, column {column}.",
+   "saveError": "Could not save the template",
+   "created": "Template created",
+   "updated": "Template updated"
   },
-  "create": {
-   "title": "Crear plantilla de contrato",
-   "submit": "Crear",
-   "submitting": "Creando…"
-  },
-  "edit": {
-   "title": "Editar plantilla de contrato",
-   "submit": "Guardar cambios",
-   "submitting": "Guardando…"
-  },
-  "delete": {
-   "title": "Eliminar plantilla",
-   "description": "¿Estás seguro de que querés eliminar esta plantilla de contrato? Esta acción no se puede deshacer.",
-   "success": "Plantilla eliminada",
-   "error": "Error al eliminar la plantilla"
-  },
-  "toast": {
-   "created": "Plantilla de contrato creada exitosamente",
-   "updated": "Plantilla de contrato actualizada exitosamente",
-   "error": "Ocurrió un error. Intentá de nuevo."
+  "deleteConfirm": {
+   "title": "Delete template",
+   "body": "The template \"{name}\" will be deleted. Documents already generated do not change. This cannot be undone.",
+   "confirm": "Delete",
+   "done": "Template deleted",
+   "error": "Could not delete the template"
   },
   "empty": {
-   "title": "No hay plantillas de contrato",
-   "subtitle": "Creá tu primera plantilla para generar documentos automáticamente"
-  },
-  "validation": {
-   "nameRequired": "El nombre es obligatorio",
-   "contractTypeRequired": "El tipo de contrato es obligatorio",
-   "bodyRequired": "El cuerpo del contrato es obligatorio"
-  },
-  "rbac": {
-   "noAccess": "No tenés permisos para acceder a esta sección."
+   "title": "There are no templates yet",
+   "subtitle": "Create the first one to generate contracts from each record."
   },
   "contractTypes": {
-   "Alquiler": "Alquiler",
-   "AlquilerTemporario": "Alquiler temporario",
-   "Venta": "Venta"
+   "Alquiler": "Rental",
+   "AlquilerTemporario": "Temporary rental",
+   "Venta": "Sale"
+  },
+  "catalog": {
+   "title": "Available variables and blocks",
+   "intro": "Select a variable or block to insert it at the cursor. Anything the contract has no data for stays in the document as the tag in braces, to be filled in by hand.",
+   "insert": "Insert",
+   "variablesTitle": "Contract variables",
+   "groups": {
+    "contrato": "Contract",
+    "propiedad": "Property",
+    "garantia": "Guarantee",
+    "inmobiliaria": "Agency",
+    "fecha": "Generation date"
+   },
+   "vars": {
+    "contrato_tipo": "Contract type",
+    "contrato_estado": "Contract status",
+    "contrato_fechaInicio": "Start date (dd/mm/yyyy)",
+    "contrato_fechaFin": "End date (dd/mm/yyyy)",
+    "contrato_fechaInicioLarga": "Start date with the month spelled out (1 de julio de 2026)",
+    "contrato_fechaFinLarga": "End date with the month spelled out",
+    "contrato_fechaInicioEnLetras": "Start date fully in words (primero de julio de dos mil veintiséis)",
+    "contrato_fechaFinEnLetras": "End date fully in words",
+    "contrato_fechaFirma": "Signing date (dd/mm/yyyy); taken from the date entered when generating the document or the one saved on the contract",
+    "contrato_fechaFirmaLarga": "Signing date with the month spelled out",
+    "contrato_fechaFirmaEnLetras": "Signing date fully in words",
+    "contrato_monto": "Current rent",
+    "contrato_montoEnLetras": "Current rent in words",
+    "contrato_montoInicial": "Initial rent (the first period of the contract)",
+    "contrato_montoInicialEnLetras": "Initial rent in words",
+    "contrato_moneda": "Rent currency",
+    "contrato_deposito": "Security deposit; only defined when the contract has one",
+    "contrato_depositoEnLetras": "Deposit in words",
+    "contrato_tipoAjuste": "Adjustment index",
+    "contrato_periodoAjuste": "Adjustment period",
+    "contrato_notas": "Contract notes",
+    "propiedad_titulo": "Property title",
+    "propiedad_direccion": "Street and number",
+    "propiedad_direccionCompleta": "Full address: street, number, floor, unit, city and province",
+    "propiedad_piso": "Floor",
+    "propiedad_depto": "Unit",
+    "propiedad_ciudad": "City",
+    "propiedad_provincia": "Province",
+    "propiedad_codigoPostal": "Postal code",
+    "propiedad_tipo": "Property type",
+    "propiedad_superficie": "Area",
+    "propiedad_ambientes": "Number of rooms",
+    "propiedad_dormitorios": "Number of bedrooms",
+    "propiedad_banos": "Number of bathrooms",
+    "propiedad_descripcion": "Property description",
+    "propiedad_catastro": "Cadastral reference",
+    "propiedad_cuentaRentas": "Property tax account number (from the property services)",
+    "propiedad_unidadAguas": "Water service account (from the property services)",
+    "garantia_tipo": "Guarantee type (the first one; the second is garantia2)",
+    "garantia_descripcion": "Guarantee description",
+    "garantia_monto": "Guarantee amount",
+    "garantia_emisor": "Guarantee issuer (for example, the insurer)",
+    "garantia_poliza": "Policy number",
+    "inmobiliaria_nombre": "Agency name",
+    "inmobiliaria_cuit": "Agency tax ID",
+    "inmobiliaria_provincia": "Agency province",
+    "inmobiliaria_matricula": "Professional license number (set in Settings)",
+    "inmobiliaria_domicilio": "Agency address (set in Settings)",
+    "fecha_hoy": "Today (dd/mm/yyyy)",
+    "fecha_hoyLarga": "Today with the month spelled out",
+    "fecha_hoyEnLetras": "Today fully in words"
+   },
+   "personsTitle": "People",
+   "personsHint": "Each person has these fields. If one is missing from their record, it is not defined.",
+   "prefixes": {
+    "inquilino": "The first tenant. With several, use the inquilinos list.",
+    "locador": "The first lessor, with payout and capacity. With several, use the locadores list.",
+    "propietario": "Another name for the first lessor, kept for older templates.",
+    "garante": "The first guarantor; the second is garante2, then garante3. With several, use the garantes list.",
+    "comprador": "The buyer, in sale contracts."
+   },
+   "fields": {
+    "nombre": "First name",
+    "apellido": "Last name",
+    "nombreCompleto": "Full name",
+    "documento": "ID number as saved",
+    "dniConPuntos": "ID number with thousands dots (6.678.901)",
+    "cuit": "Tax ID",
+    "telefono": "Phone",
+    "email": "Email",
+    "domicilio": "Address",
+    "estadoCivil": "Marital status",
+    "nacionalidad": "Nationality",
+    "capacidad": "Capacity in which the lessor signs",
+    "porcentaje": "Lessor payout percentage",
+    "poderdante": "Lessor the attorney acts for",
+    "alcances": "Scope of the power of attorney",
+    "firma": "Attorney signature mode"
+   },
+   "listsTitle": "Lists (to repeat)",
+   "listsHint": "Inside a list, each item field is written with its name: item.nombreCompleto. There are also loose variables: inquilinos.cantidad, inquilinos.nombres and inquilinos.lista, and by position: inquilinos.2.nombreCompleto.",
+   "insertBlock": "Insert the block",
+   "lists": {
+    "inquilinos": "All tenants on the contract.",
+    "locadores": "All lessors, each with their payout percentage.",
+    "garantes": "All guarantors, with the details on their record.",
+    "apoderados": "People acting for a lessor, with scope and signature mode."
+   },
+   "summaries": {
+    "cantidad": "Number of people in the list (garantes.cantidad)",
+    "nombres": "The names in a row: A, B y C (garantes.nombres)",
+    "lista": "Name and ID of each, in a row (garantes.lista)"
+   },
+   "loopTitle": "Inside a list",
+   "loop": {
+    "n": "Position of the item (1, 2, 3…)",
+    "total": "Number of items in the list",
+    "primero": "1 on the first item, 0 on the others",
+    "ultimo": "1 on the last item, 0 on the others; use it to end with a period instead of a comma"
+   },
+   "blocksTitle": "Conditionals and lists",
+   "blocks": {
+    "si": {
+     "title": "Conditional",
+     "description": "Shows the text only when the variable has a value. It can be negated with \"no\" or compared with ==, !=, >, >=, < and <= against a number or a quoted text. An empty variable, 0, false or a missing value counts as false."
+    },
+    "sino": {
+     "title": "Alternative",
+     "description": "Inside a conditional, what is shown when the condition is not met. Useful for singular and plural."
+    },
+    "cada": {
+     "title": "List",
+     "description": "Repeats the text for each item of a list (inquilinos, locadores, garantes or apoderados). \"como\" names the item; without it the item is called item. A block tag alone on its line leaves no empty line."
+    },
+    "escape": {
+     "title": "Literal braces",
+     "description": "A backslash before the braces leaves the tag as plain text, uninterpreted."
+    }
+   },
+   "formatTitle": "Document formatting",
+   "formatBold": "Text between double asterisks comes out in bold: **like this**.",
+   "formatHeading": "A line starting with \"# \" comes out as a centered title. Each line is a paragraph."
   },
   "generateDocument": {
-   "title": "Generar Documento",
-   "button": "Generar Documento",
-   "selectTemplate": "Seleccioná una plantilla",
-   "noTemplates": "No hay plantillas disponibles para este tipo de contrato",
-   "format": "Formato",
+   "title": "Generate document",
+   "button": "Generate document",
+   "selectTemplate": "Select a template",
+   "noTemplates": "There are no templates available for this contract type",
+   "format": "Format",
    "formatPdf": "PDF",
    "formatDocx": "DOCX (Word)",
-   "variablesPreview": "Variables del contrato",
-   "generate": "Generar y descargar",
-   "generating": "Generando…",
-   "error": "Error al generar el documento",
-   "templateRequired": "Seleccioná una plantilla"
+   "signingDate": "Signing date (optional)",
+   "signingDateHint": "Used by the signing date variables; if left empty, the date saved on the contract is used.",
+   "variablesPreview": "Contract variables",
+   "generate": "Generate and download",
+   "generating": "Generating…",
+   "error": "Error generating the document",
+   "syntaxError": "The template is malformed: {message}",
+   "templateRequired": "Select a template"
   }
  },
  "scoring": {
@@ -4464,7 +4592,10 @@
   "manageDefaults": "Configure values",
   "manageImports": "View imports",
   "manageMessaging": "View messaging",
-  "manageInbox": "Configure the inbox"
+  "manageInbox": "Configure the inbox",
+  "licenseNumber": "Professional license number",
+  "address": "Agency address",
+  "manageTemplates": "Manage templates"
  },
  "portalPublico": {
   "footer": {

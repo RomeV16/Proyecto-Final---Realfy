@@ -578,10 +578,30 @@ export type { DefaultStageDefinition } from './constants';
 // Template engine
 export {
   renderTemplate,
-  renderTemplatePlain,
   extractVariableNames,
   escapeHtml,
 } from './template-engine';
+export {
+  renderTemplatePlain,
+  validateTemplate,
+  extractTemplateVariables,
+  TemplateSyntaxError,
+} from './template-blocks';
+export type { TemplateLists, TemplateListItem, TemplateOptions, TemplateSyntaxCode } from './template-blocks';
+export { parseDocumentText, parseInlineBold } from './document-text';
+export type { DocumentLine, TextSegment } from './document-text';
+export {
+  TEMPLATE_PERSON_FIELDS,
+  TEMPLATE_PERSON_PREFIXES,
+  TEMPLATE_LISTS,
+  TEMPLATE_LIST_NAMES,
+  TEMPLATE_LOOP_FIELDS,
+  TEMPLATE_LIST_SUMMARIES,
+  TEMPLATE_VARIABLE_GROUPS,
+  TEMPLATE_BLOCKS,
+  isKnownTemplateVariable,
+} from './contract-template-catalog';
+export type { TemplateListName, TemplateVariableGroup } from './contract-template-catalog';
 
 // Fechas en UTC y dinero exacto
 export {
@@ -599,7 +619,7 @@ export { Money, round2, toAmountString, sumMoney, allocateLargestRemainder } fro
 export type { MoneyInput } from './money';
 
 // Formato de datos para mostrar
-export { propertyLabel, personName, formatMoneyAR, formatPeriodAR, formatPeriodShortAR, formatReceiptNumber } from './format';
+export { propertyLabel, personName, formatMoneyAR, formatPeriodAR, formatPeriodShortAR, formatReceiptNumber, formatDniAR } from './format';
 export type { PropertyLabelInput, PersonNameInput, MoneyLike } from './format';
 
 // Adjustment engine
@@ -1295,7 +1315,7 @@ export {
 export type { ChargeImputationTarget, PendingChargeLineSource, UpfrontCheck } from './pending-charge';
 
 // Amount in words
-export { amountInWords } from './amount-in-words';
+export { amountInWords, numberInWords, dateInWords } from './amount-in-words';
 
 // Importación desde el sistema anterior (lotes por referencia externa)
 export {

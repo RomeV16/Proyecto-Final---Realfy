@@ -38,4 +38,13 @@ export const ContractTemplateFilterSchema = z.object({
 export const GenerateDocumentSchema = z.object({
   templateId: z.string().uuid(),
   format: z.enum(['pdf', 'docx']),
+  /** Fecha de firma (AAAA-MM-DD) para `contrato.fechaFirma*`; si falta, se usa la del contrato si la tiene. */
+  signingDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD')
+    .refine((v) => {
+      const d = new Date(`${v}T00:00:00Z`);
+      return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+    }, 'Invalid date')
+    .optional(),
 });

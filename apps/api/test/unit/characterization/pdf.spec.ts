@@ -200,6 +200,17 @@ describe('Caracterización de PDF', () => {
     expect(doc).toMatchSnapshot();
   });
 
+  it('contrato con título y negrita', async () => {
+    const service = new ContractPdfService(new PdfRendererService());
+    const doc = await captureDocDefinition(() =>
+      service.generatePdf('# CONTRATO\nPRIMERA: **objeto** del contrato.', {
+        title: 'Contrato de locación',
+        contractType: 'Locacion',
+      }),
+    );
+    expect(doc).toMatchSnapshot();
+  });
+
   it('contrato sin nombre de inmobiliaria', async () => {
     const service = new ContractPdfService(new PdfRendererService());
     const doc = await captureDocDefinition(() =>

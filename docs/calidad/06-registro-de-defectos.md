@@ -70,6 +70,8 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-141 | La liquidación con alquiler en cero se genera sin ninguna advertencia | Baja | — | CP-1302, CP-1308, CP-1313 | [#202](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/202) | Corregido (3 nov) |
 | DEF-142 | La carga de una boleta con reglas por consumo y sin consumo por unidad responde creada con el reparto vacío | Baja | — | CP-1303, CP-1311 | [#204](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/204) | Corregido (3 nov) |
 | DEF-143 | El importador acepta un ajuste Custom o de porcentaje fijo sin porcentaje y falla recién al calcular el ajuste | Baja | — | CP-1305 a CP-1307 | [#206](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/206) | Corregido (3 nov) |
+| DEF-110 | Con varios locatarios, `inquilino.*` de la plantilla mezcla datos de personas distintas | Media | — | CP-1166 | [#194](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/194) | Corregido (3 nov) |
+| DEF-111 | Un locador que dejó de serlo sigue figurando entre los locadores de la plantilla | Media | — | CP-1167 | [#195](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/195) | Corregido (3 nov) |
 
 ---
 
@@ -944,3 +946,31 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** el esquema de la fila exige `customPct` para `Custom` y `FixedPercent`; el lote lo informa con el código estable `MISSING_ADJUSTMENT_PCT`.
 - **Prueba de regresión:** CP-1305 y CP-1306 en `packages/shared/src/schemas/import-batch.schema.spec.ts`; CP-1307 en `import-batch.service.spec.ts`.
 - **Evidencia rojo/verde:** regresión `ff7f527` en rojo; corrección en `f511099`.
+
+## DEF-110 — Con varios locatarios, `inquilino.*` de la plantilla mezcla datos de personas distintos
+
+- **Requisito afectado:** generación del documento del contrato (plantillas).
+- **Origen:** uso real, preparación de la plantilla de la inmobiliaria piloto (M11): hay contratos de dos y tres locatarios.
+- **Caso que lo detecta:** CP-1166, `apps/api/src/modules/contract-templates/contract-variable-builder.def110.spec.ts`.
+- **Severidad:** media. En un documento legal una misma variable podía juntar el nombre de una persona con el CUIT o el teléfono de otra.
+- **Pasos para reproducir:** contrato con dos locatarios, el primero con CUIT, teléfono y documento y el segundo sin ellos; leer `inquilino.cuit`.
+- **Resultado esperado:** `inquilino.*` es el primer locatario, con sus datos.
+- **Resultado obtenido:** el nombre era el del último locatario y el CUIT, el teléfono y el documento, los del primero.
+- **Causa raíz:** el armador recorría las partes y volvía a escribir `inquilino.*` en cada una; solo escribía los campos que la persona tenía, así que los que faltaban conservaban el valor anterior.
+- **Corrección:** `inquilino.*` se arma solo con el primer locatario, y todos quedan en la lista `inquilinos` y en `inquilinos.N.*` (ADR-0019).
+- **Prueba de regresión:** CP-1166.
+- **Evidencia rojo/verde:** regresión `81d396b` en rojo (2 de 3 pruebas fallan); corrección en el commit `feat(contract-templates)` del mismo pedido.
+
+## DEF-111 — Un locador que dejó de serlo sigue figurando entre los locadores de la plantilla
+
+- **Requisito afectado:** generación del documento del contrato (plantillas), locadores por contrato (ADR-0007).
+- **Origen:** revisión del armador al agregar la lista `locadores` (M11).
+- **Caso que lo detecta:** CP-1167, `contract-variable-builder.def110.spec.ts`.
+- **Severidad:** media. Después de un cambio de titular, un contrato nuevo generado desde la plantilla nombraba al locador anterior.
+- **Pasos para reproducir:** contrato con un locador con fin de vigencia pasado y otro vigente; leer `locadores.cantidad` y `locador.nombreCompleto`.
+- **Resultado esperado:** solo figura el vigente.
+- **Resultado obtenido:** figuraban los dos y `locador.*` era el primero por orden, aunque ya no fuera titular.
+- **Causa raíz:** `findOne` trae todos los locadores del contrato, también los históricos, y el armador no miraba `validTo`.
+- **Corrección:** se listan los locadores sin fin de vigencia o con fin futuro; si ninguno sigue vigente (contrato terminado) se listan todos.
+- **Prueba de regresión:** CP-1167.
+- **Evidencia rojo/verde:** regresión `81d396b` en rojo; corrección en el commit `feat(contract-templates)` del mismo pedido.

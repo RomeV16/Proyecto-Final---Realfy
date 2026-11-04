@@ -97,3 +97,27 @@ export function amountInWords(amount: MoneyInput, currency: string = 'ARS'): str
 
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+const MONTHS = [
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+  'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+];
+
+/** Entero en letras al final de una frase, sin apócope: "veintiuno", "dos mil uno". */
+export function numberInWords(n: number): string {
+  if (!Number.isInteger(n) || n < 0 || n >= 1_000_000_000_000) {
+    throw new AmountInWordsError('Número fuera de rango para el texto en letras');
+  }
+  return integerToWords(n).replace(/\bveintiún$/, 'veintiuno').replace(/\bun$/, 'uno');
+}
+
+/**
+ * Fecha en letras al estilo de los contratos: "primero de julio de dos mil
+ * veintiséis". Una fecha sin hora (medianoche UTC) se lee en UTC para que el día no retroceda.
+ */
+export function dateInWords(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) throw new AmountInWordsError('Fecha no válida para el texto en letras');
+  const day = d.getUTCDate();
+  return `${day === 1 ? 'primero' : numberInWords(day)} de ${MONTHS[d.getUTCMonth()]} de ${numberInWords(d.getUTCFullYear())}`;
+}

@@ -19,6 +19,8 @@ interface TenantData {
   brandPrimary?: string;
   brandSecondary?: string;
   logoUrl?: string;
+  licenseNumber?: string | null;
+  address?: string | null;
 }
 
 const PROVINCES = Object.values(Province);
@@ -35,6 +37,7 @@ export default function ConfiguracionPage() {
   const tImports = useTranslations('importBatches');
   const tMessaging = useTranslations('messaging.settings');
   const tInbox = useTranslations('inbox.settings');
+  const tTemplates = useTranslations('contractTemplates');
   const { user } = useAuth();
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
@@ -44,6 +47,8 @@ export default function ConfiguracionPage() {
   const [brandPrimary, setBrandPrimary] = useState('#f97316');
   const [brandSecondary, setBrandSecondary] = useState('#0f172a');
   const [logoUrl, setLogoUrl] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [address, setAddress] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -60,6 +65,8 @@ export default function ConfiguracionPage() {
         setBrandPrimary(data.brandPrimary ?? '#f97316');
         setBrandSecondary(data.brandSecondary ?? '#0f172a');
         setLogoUrl(data.logoUrl ?? '');
+        setLicenseNumber(data.licenseNumber ?? '');
+        setAddress(data.address ?? '');
       } catch {
         if (!cancelled) setError(t('loadError'));
       } finally {
@@ -96,6 +103,8 @@ export default function ConfiguracionPage() {
         province,
         brandPrimary,
         brandSecondary,
+        licenseNumber: licenseNumber.trim(),
+        address: address.trim(),
       };
       if (logoUrl.trim()) body.logoUrl = logoUrl.trim();
 
@@ -198,6 +207,25 @@ export default function ConfiguracionPage() {
           <Link href={'/configuracion/indices'} className="shrink-0">
             <Button variant="secondary" size="sm">
               {t('manageIndices')}
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {canEdit && (
+        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+              <Icon name="text" className="h-5 w-5" strokeWidth={1.75} />
+            </span>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">{tTemplates('title')}</p>
+              <p className="text-sm text-slate-500 mt-0.5">{tTemplates('subtitle')}</p>
+            </div>
+          </div>
+          <Link href={'/configuracion/plantillas'} className="shrink-0">
+            <Button variant="secondary" size="sm">
+              {t('manageTemplates')}
             </Button>
           </Link>
         </div>
@@ -400,6 +428,29 @@ export default function ConfiguracionPage() {
               </span>
             </div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input
+            label={t('licenseNumber')}
+            value={licenseNumber}
+            maxLength={60}
+            onChange={(e) => {
+              setLicenseNumber(e.target.value);
+              setSaved(false);
+            }}
+            disabled={!canEdit || saving}
+          />
+          <Input
+            label={t('address')}
+            value={address}
+            maxLength={300}
+            onChange={(e) => {
+              setAddress(e.target.value);
+              setSaved(false);
+            }}
+            disabled={!canEdit || saving}
+          />
         </div>
 
         <Input

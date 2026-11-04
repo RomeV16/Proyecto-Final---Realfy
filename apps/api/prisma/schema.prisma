@@ -338,6 +338,9 @@ model Tenant {
   brandPrimary        String?
   brandSecondary      String?
   logoUrl             String?
+  /// Matrícula profesional y domicilio de la inmobiliaria: salen en las plantillas de contrato.
+  licenseNumber       String?
+  address             String?
   penaltyConfig       Json?
   readPolicy          Json?
   /// Valores por defecto de la operación (null: rigen los del código). Ver OperationalDefaultsSchema.

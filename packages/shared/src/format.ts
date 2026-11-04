@@ -73,3 +73,15 @@ export function personName(person: PersonNameInput | null | undefined): string {
 export function formatReceiptNumber(seq: number): string {
   return String(seq).padStart(8, '0');
 }
+
+/**
+ * Documento de identidad con puntos de millares: "6678901" -> "6.678.901".
+ * Si no son solo dígitos (pasaporte, DNI ya con puntos de otra forma, texto
+ * libre) lo devuelve como vino, sin espacios en los extremos.
+ */
+export function formatDniAR(dni: string | null | undefined): string {
+  const value = clean(dni);
+  const digits = value.replaceAll('.', '');
+  if (!/^\d{6,9}$/.test(digits)) return value;
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
