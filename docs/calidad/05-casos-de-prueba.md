@@ -1096,3 +1096,18 @@ Banda CP-1340 a CP-1369. Origen: la revisión de lo que no se lee solo (ADR-0018
 | CP-1367 | Motivos y proveedores conocidos | sólo los códigos del catálogo se traducen; un texto libre se muestra tal cual; la confianza se redondea a porcentaje entero y sólo `RequiereRevision` se revisa | `web/src/lib/bill-documents.test.tsx::traduce sólo los códigos` | verde (3 nov) |
 | CP-1368 | Contador de revisión | se actualiza cada minuto, no pregunta sin permiso y conserva el último valor si falla | `web/src/lib/bill-documents.test.tsx::useBillReviewCount` | verde (3 nov) |
 | CP-1369 | Lista sin permiso no consulta | `usePaginatedList` con `enabled: false` no hace ningún pedido | `web/src/hooks/use-paginated-list.test.tsx::enabled en falso` | verde (3 nov) |
+
+
+## Saldo inicial de cuentas de caja, banco y custodia (migración M10)
+
+Banda CP-1100 a CP-1129. Misma semántica que el saldo inicial del locador (ADR-0009, ADR-0012). El resultado esperado se fijó antes de implementar.
+
+| ID | Caso | Resultado esperado | Automatización | Estado |
+|---|---|---|---|---|
+| CP-1100 | Saldo inicial de cuenta: permisos | `POST /financial-accounts/:id/opening-balance` lo cargan Admin y Gerente; Liquidaciones y Lectura reciben 403 y sin sesión 401 | `e2e/saldo-inicial-custodia.e2e-spec.ts::CP-1100`; `cash.controller.spec.ts` | verde (3 nov) |
+| CP-1101 | Saldo inicial en pesos, dólares y euros | cada cuenta lleva su asiento `SaldoInicial` en su moneda; aparece en el saldo, en los totales por moneda (caja y banco aparte de la custodia) y en el libro; un importe negativo en una caja es una salida | `e2e/saldo-inicial-custodia.e2e-spec.ts::CP-1101`; `cash/cash-opening-balance.spec.ts` | verde (3 nov) |
+| CP-1102 | Saldo inicial idempotente y corregible | reenviar lo mismo responde `changed: false` y no escribe ni audita; un importe distinto corrige el mismo asiento (uno solo por cuenta) con CREATE y UPDATE y el motivo en la auditoría; cero lo quita | `e2e/saldo-inicial-custodia.e2e-spec.ts::CP-1102`; `cash/cash-opening-balance.spec.ts` | verde (3 nov) |
+| CP-1103 | Custodia cargada y entrega | el saldo inicial de una custodia se puede entregar y la entrega lo baja; el asiento no escribe nada en la cuenta corriente del locador | `e2e/saldo-inicial-custodia.e2e-spec.ts::CP-1103` | verde (3 nov) |
+| CP-1104 | Saldo inicial de cuenta: validaciones | motivo obligatorio (mínimo 3), hasta 2 decimales, sin campos de más (la moneda no se manda), custodia no negativa (400 `CUSTODY_OPENING_NEGATIVE`), cuenta inactiva 409, cuenta inexistente 404 | `e2e/saldo-inicial-custodia.e2e-spec.ts::CP-1104`; `cash/cash-opening-balance.spec.ts` | verde (3 nov) |
+| CP-1105 | Saldo inicial de cuenta: aislamiento | otra inmobiliaria no ve la cuenta ni su saldo inicial y recibe 404 al cargarlo | `e2e/saldo-inicial-custodia.e2e-spec.ts::CP-1105` | verde (3 nov) |
+| CP-1106 | Saldo inicial en la pantalla de caja | el botón *Saldo inicial* aparece en cada cuenta activa sólo para Admin y Gerente; el formulario pide importe con signo, fecha y motivo, confirma antes de enviar y marca los errores; la moneda es la de la cuenta | `components/cash/cash-center.screen.test.tsx` (Caja: saldo inicial de una cuenta) | verde (3 nov) |

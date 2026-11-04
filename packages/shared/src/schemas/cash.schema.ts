@@ -100,6 +100,22 @@ export const CreateConversionSchema = z
 
 // ─── Custodia y compensaciones ──────────────────────────
 
+/**
+ * Saldo inicial de una cuenta (caja, banco o custodia), con la misma semántica que
+ * el del locador: uno por cuenta, con fecha de corte y motivo. La moneda es la de la cuenta.
+ * Positivo es lo que la cuenta tiene; negativo (sólo caja o banco) es un descubierto.
+ */
+export const AccountOpeningBalanceSchema = z
+  .object({
+    amount: z
+      .union([z.string(), z.number().transform(String)])
+      .pipe(z.string().regex(/^-?\d+(\.\d{1,2})?$/, 'Must be a decimal with up to 2 places')),
+    /** Fecha de corte del saldo; por defecto, hoy. */
+    date: dateOnly.optional(),
+    reason: z.string().trim().min(3).max(1000),
+  })
+  .strict();
+
 /** Entrega al locador del efectivo en custodia; sin importe, entrega todo el saldo. */
 export const DeliverCustodySchema = z
   .object({
@@ -154,6 +170,7 @@ export const AgencyExpenseSchema = z
   })
   .strict();
 
+export type AccountOpeningBalanceInput = z.infer<typeof AccountOpeningBalanceSchema>;
 export type CreateFinancialAccountInput = z.infer<typeof CreateFinancialAccountSchema>;
 export type CreateCashMovementInput = z.infer<typeof CreateCashMovementSchema>;
 export type CreateConversionInput = z.infer<typeof CreateConversionSchema>;

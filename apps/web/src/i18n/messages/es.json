@@ -5868,8 +5868,10 @@
    "ComisionEmpleado": "Comisión de empleado",
    "Sena": "Seña",
    "Custodia": "Custodia",
+   "Deposito": "Depósito",
    "Compensacion": "Compensación",
-   "Conversion": "Conversión"
+   "Conversion": "Conversión",
+   "SaldoInicial": "Saldo inicial"
   },
   "directions": {
    "In": "Entrada",
@@ -5930,6 +5932,7 @@
    "add": "Nueva cuenta",
    "inactive": "Dada de baja",
    "rename": "Renombrar",
+   "openingBalance": "Saldo inicial",
    "deactivate": "Dar de baja",
    "activate": "Reactivar",
    "deactivated": "Cuenta dada de baja",
@@ -6060,6 +6063,29 @@
     "title": "No hay recibos",
     "subtitle": "Los recibos se emiten al registrar un cobro."
    }
+  },
+  "opening": {
+   "errors": {
+    "amount": "Ingresá el importe con hasta 2 decimales (podés usar coma y signo menos)",
+    "date": "Ingresá una fecha válida",
+    "reason": "Escribí el motivo (entre 3 y 1000 caracteres)"
+   },
+   "title": "Saldo inicial de {name}",
+   "explain": "Lo que la cuenta ya tenía al arrancar, en {currency}. Uno por cuenta: si ya existe, se corrige. Si es la custodia de un locador, el dinero que se le debe va aparte en su saldo inicial de cuenta corriente. Queda en la auditoría con el motivo.",
+   "amount": "Importe en {currency}",
+   "amountHint": "Positivo es lo que hay; negativo (sólo caja o banco) es un descubierto. Cero quita el saldo inicial.",
+   "date": "Fecha de corte",
+   "dateHint": "Vacío: hoy.",
+   "reason": "Motivo",
+   "reasonHint": "Por ejemplo: arqueo de caja al cierre de octubre.",
+   "save": "Guardar saldo inicial",
+   "saving": "Guardando…",
+   "error": "No se pudo guardar el saldo inicial.",
+   "done": "Saldo inicial guardado.",
+   "confirmTitle": "Confirmar saldo inicial",
+   "confirmBody": "El saldo inicial de {name} queda en {amount}.",
+   "confirmReason": "Motivo: {reason}",
+   "confirmLabel": "Sí, guardar"
   }
  },
  "ownerAccounts": {

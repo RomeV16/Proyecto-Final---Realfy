@@ -637,3 +637,70 @@ describe('Caja: recibos', () => {
     expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
   });
 });
+
+describe('Caja: saldo inicial de una cuenta', () => {
+  const openFor = async (user: ReturnType<typeof userEvent.setup>, rowName: string) => {
+    await screen.findAllByText('Caja ARS');
+    const row = screen.getAllByRole('row').find((r) => within(r).queryByText(rowName)) as HTMLElement;
+    await user.click(within(row).getByRole('button', { name: 'Saldo inicial' }));
+    return screen.findByRole('dialog');
+  };
+
+  it('carga el saldo inicial de una custodia en la moneda de la cuenta, confirmando importe y motivo', async () => {
+    setup({ write: () => ({ changed: true }) });
+    const user = userEvent.setup();
+    const dialog = await openFor(user, 'Custodia Beto');
+    expect(within(dialog).getByText('Saldo inicial de Custodia Beto (Beto Prueba)')).toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText(/Importe en USD/), '800,50');
+    await user.type(within(dialog).getByLabelText('Fecha de corte'), '2026-10-31');
+    await user.type(within(dialog).getByLabelText(/Motivo/), 'Custodia al corte de octubre');
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar saldo inicial' }));
+    const confirm = (await screen.findAllByRole('dialog')).at(-1) as HTMLElement;
+    expect(within(confirm).getByText('Motivo: Custodia al corte de octubre')).toBeInTheDocument();
+    await user.click(within(confirm).getByRole('button', { name: 'Sí, guardar' }));
+
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0][0]).toBe(`/financial-accounts/${CUST_BETO}/opening-balance`);
+    expect(bodyOf(0)).toEqual({ amount: '800.50', date: '2026-10-31', reason: 'Custodia al corte de octubre' });
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('Saldo inicial guardado.'));
+  });
+
+  it('un importe inválido y un motivo vacío se marcan y no se mandan; la fecha vacía no se manda', async () => {
+    setup();
+    const user = userEvent.setup();
+    const dialog = await openFor(user, 'Caja ARS');
+    await user.type(within(dialog).getByLabelText(/Importe en ARS/), 'abc');
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar saldo inicial' }));
+    expect(await within(dialog).findByText(/Ingresá el importe con hasta 2 decimales/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Escribí el motivo/)).toBeInTheDocument();
+    expect(writes()).toHaveLength(0);
+  });
+
+  it('cancelar la confirmación no manda nada; un error de la API queda en el formulario', async () => {
+    setup({
+      write: () => {
+        throw new ApiRequestError(400, 'CUSTODY_OPENING_NEGATIVE', 'negative');
+      },
+    });
+    const user = userEvent.setup();
+    const dialog = await openFor(user, 'Custodia Ana');
+    await user.type(within(dialog).getByLabelText(/Importe en ARS/), '-10');
+    await user.type(within(dialog).getByLabelText(/Motivo/), 'Prueba de error');
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar saldo inicial' }));
+    let confirm = (await screen.findAllByRole('dialog')).at(-1) as HTMLElement;
+    await user.click(within(confirm).getByRole('button', { name: 'Cancelar' }));
+    expect(writes()).toHaveLength(0);
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar saldo inicial' }));
+    confirm = (await screen.findAllByRole('dialog')).at(-1) as HTMLElement;
+    await user.click(within(confirm).getByRole('button', { name: 'Sí, guardar' }));
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(await within(dialog).findByRole('alert')).toBeInTheDocument();
+  });
+
+  it('Gerencia lo ve; Liquidaciones y Lectura no', async () => {
+    auth.role = 'Liquidaciones';
+    setup();
+    await screen.findAllByText('Caja ARS');
+    expect(screen.queryByRole('button', { name: 'Saldo inicial' })).not.toBeInTheDocument();
+  });
+});

@@ -1,4 +1,5 @@
 import {
+  AccountOpeningBalanceSchema,
   CashCategory,
   CashDirection,
   convertAmount,
@@ -13,6 +14,7 @@ import {
 } from '@realfy/shared';
 import { sharedFormSchema, type SharedSchema } from './form-schema';
 import { toDecimalString } from './index-values';
+import { parseSignedAmount } from './owner-accounts';
 
 /* ──────────── Lo que devuelve la API ──────────── */
 
@@ -230,6 +232,24 @@ export const conversionFormSchema = formSchema(
     note: orNull(v.note),
   }),
   'fromAccountId',
+);
+
+export interface AccountOpeningFormValues {
+  amount: string;
+  date: string;
+  reason: string;
+}
+
+/** El importe del saldo inicial es con signo: sus errores tienen mensajes propios en `cash.opening.errors`. */
+export const accountOpeningFormSchema = sharedFormSchema(
+  'cash.opening',
+  AccountOpeningBalanceSchema,
+  (v) => ({
+    amount: parseSignedAmount(v.amount) ?? (v.amount || 'x'),
+    ...((v.date ?? '').trim() ? { date: v.date } : {}),
+    reason: (v.reason ?? '').trim(),
+  }),
+  'amount',
 );
 
 export interface DeliverFormValues {

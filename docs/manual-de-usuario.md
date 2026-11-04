@@ -900,6 +900,17 @@ pasa por la inmobiliaria.
 - **Recibos**: los recibos de cobro con número, fecha, inquilino, propiedad e importe,
   para reimprimirlos.
 
+**Saldo inicial de una cuenta.** En *Cuentas*, el botón *Saldo inicial* de cada cuenta
+activa (Admin y Gerente) carga lo que la cuenta ya tenía al arrancar con el sistema, en
+la moneda de la cuenta: el arqueo de una caja, el saldo de un banco o el efectivo que se
+guarda en custodia para un locador (en pesos, dólares o euros). Pide el importe, la
+fecha de corte (vacía, hoy) y un **motivo**, que queda en la auditoría. Hay uno por
+cuenta: si ya existe, se corrige, y volver a cargar lo mismo no cambia nada. Un importe
+negativo (sólo en caja o banco) es un descubierto y cero quita el saldo inicial. Lo
+cargado aparece en el saldo de la cuenta, en los totales y en el libro como *Saldo
+inicial*. Cargarlo en una custodia no toca la cuenta corriente del locador: lo que se
+le debe se carga aparte en su *Saldo inicial* del estado de cuenta.
+
 **Custodia.** La sección de custodia muestra el efectivo que la inmobiliaria guarda
 para cada locador, por moneda. *Entregar* registra que el locador lo buscó o que se
 depositó: todo el saldo o una parte, con la fecha. No se puede entregar más de lo que

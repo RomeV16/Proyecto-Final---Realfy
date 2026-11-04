@@ -3,7 +3,7 @@ import { MANUAL_CASH_CATEGORIES, ReceiptSeriesMode, defaultDirectionFor, receipt
 import { OperationalDefaultsSchema } from '../schemas/operational-defaults.schema';
 import { operationalDefaultsFromForm, operationalDefaultsToForm } from '../schemas/operational-defaults.form';
 import { CreatePaymentSchema } from '../schemas/liquidacion.schema';
-import { CreateCashMovementSchema, CreateConversionSchema, CreateFinancialAccountSchema } from '../schemas/cash.schema';
+import { AccountOpeningBalanceSchema, CreateCashMovementSchema, CreateConversionSchema, CreateFinancialAccountSchema } from '../schemas/cash.schema';
 
 describe('cash — series de recibos', () => {
   it('una serie única por defecto', () => {
@@ -87,5 +87,15 @@ describe('cash — opciones de la inmobiliaria y esquemas', () => {
     expect(CreateCashMovementSchema.safeParse({ ...mov, category: 'Gasto', amount: '0' }).success).toBe(false);
     const conversion = { fromAccountId: acc, toAccountId: acc, date: '2026-11-02', amount: '1', rate: '1000' };
     expect(CreateConversionSchema.safeParse(conversion).success).toBe(false);
+  });
+});
+
+describe('AccountOpeningBalanceSchema', () => {
+  it('acepta importes con signo y 2 decimales, con motivo, sin moneda', () => {
+    expect(AccountOpeningBalanceSchema.safeParse({ amount: '-10.50', reason: 'Arqueo al corte' }).success).toBe(true);
+    expect(AccountOpeningBalanceSchema.safeParse({ amount: 0, date: '2026-10-31', reason: 'Sin saldo' }).success).toBe(true);
+    expect(AccountOpeningBalanceSchema.safeParse({ amount: '1.234', reason: 'Arqueo' }).success).toBe(false);
+    expect(AccountOpeningBalanceSchema.safeParse({ amount: '1', reason: 'ab' }).success).toBe(false);
+    expect(AccountOpeningBalanceSchema.safeParse({ amount: '1', reason: 'Arqueo', currency: 'USD' }).success).toBe(false);
   });
 });

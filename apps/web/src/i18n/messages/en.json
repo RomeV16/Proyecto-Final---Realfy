@@ -5868,8 +5868,10 @@
    "ComisionEmpleado": "Employee commission",
    "Sena": "Deposit",
    "Custodia": "Custody",
+   "Deposito": "Deposit",
    "Compensacion": "Compensation",
-   "Conversion": "Conversion"
+   "Conversion": "Conversion",
+   "SaldoInicial": "Opening balance"
   },
   "directions": {
    "In": "In",
@@ -5930,6 +5932,7 @@
    "add": "New account",
    "inactive": "Deactivated",
    "rename": "Rename",
+   "openingBalance": "Opening balance",
    "deactivate": "Deactivate",
    "activate": "Reactivate",
    "deactivated": "Account deactivated",
@@ -6060,6 +6063,29 @@
     "title": "No receipts",
     "subtitle": "Receipts are issued when a payment is registered."
    }
+  },
+  "opening": {
+   "errors": {
+    "amount": "Enter the amount with up to 2 decimals (a minus sign is allowed)",
+    "date": "Enter a valid date",
+    "reason": "Write the reason (3 to 1000 characters)"
+   },
+   "title": "Opening balance of {name}",
+   "explain": "What the account already held at start-up, in {currency}. One per account: if it already exists, it is corrected. For a lessor's custody, the money owed to them goes separately in their ledger opening balance. It is audited with the reason.",
+   "amount": "Amount in {currency}",
+   "amountHint": "Positive is what is there; negative (cash or bank only) is an overdraft. Zero removes the opening balance.",
+   "date": "Cut-off date",
+   "dateHint": "Empty: today.",
+   "reason": "Reason",
+   "reasonHint": "For example: cash count at the end of October.",
+   "save": "Save opening balance",
+   "saving": "Saving…",
+   "error": "The opening balance could not be saved.",
+   "done": "Opening balance saved.",
+   "confirmTitle": "Confirm opening balance",
+   "confirmBody": "The opening balance of {name} will be {amount}.",
+   "confirmReason": "Reason: {reason}",
+   "confirmLabel": "Yes, save"
   }
  },
  "ownerAccounts": {

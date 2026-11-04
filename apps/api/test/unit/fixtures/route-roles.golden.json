@@ -70,6 +70,10 @@
     "Admin",
     "Gerente"
   ],
+  "src/modules/cash/cash.controller.ts#FinancialAccountsController.openingBalance": [
+    "Admin",
+    "Gerente"
+  ],
   "src/modules/cash/cash.controller.ts#CashMovementsController.list": [
     "Admin",
     "Gerente",

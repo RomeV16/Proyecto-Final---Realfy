@@ -1620,6 +1620,8 @@ enum CashCategory {
   Deposito
   Compensacion
   Conversion
+  /// Asiento de apertura de una cuenta (migración): uno por cuenta.
+  SaldoInicial
 }
 
 /// Quién recibió un cobro.

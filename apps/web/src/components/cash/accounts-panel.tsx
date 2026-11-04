@@ -13,6 +13,7 @@ import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
 import { ErrorNotice } from '@/components/ui/error-notice';
 import { MoneyText } from '@/components/ui/money-text';
 import { AccountForm } from './account-form';
+import { AccountOpeningDialog } from './account-opening-dialog';
 import { useErrorText } from './use-cash-data';
 
 interface Props {
@@ -35,6 +36,7 @@ export function AccountsPanel({ data, error, canAccounts, onChanged }: Props) {
   const confirm = useConfirm();
   const errorText = useErrorText();
   const [editing, setEditing] = useState<FinancialAccount | 'new' | null>(null);
+  const [opening, setOpening] = useState<FinancialAccount | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   async function toggleActive(account: FinancialAccount) {
@@ -97,6 +99,11 @@ export function AccountsPanel({ data, error, canAccounts, onChanged }: Props) {
                 <Button type="button" size="sm" variant="secondary" onClick={() => setEditing(a)}>
                   {t('accounts.rename')}
                 </Button>
+                {a.isActive && (
+                  <Button type="button" size="sm" variant="secondary" onClick={() => setOpening(a)}>
+                    {t('accounts.openingBalance')}
+                  </Button>
+                )}
                 <Button
                   type="button"
                   size="sm"
@@ -185,6 +192,7 @@ export function AccountsPanel({ data, error, canAccounts, onChanged }: Props) {
           onSaved={onChanged}
         />
       )}
+      {opening && <AccountOpeningDialog account={opening} onClose={() => setOpening(null)} onDone={onChanged} />}
     </section>
   );
 }

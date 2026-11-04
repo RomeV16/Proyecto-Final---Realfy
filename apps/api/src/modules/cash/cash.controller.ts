@@ -32,6 +32,15 @@ export class FinancialAccountsController {
   async update(@Param('id') id: string, @Body() body: unknown) {
     return this.cash.updateAccount(id, body);
   }
+
+  /** POST /financial-accounts/:id/opening-balance — Saldo inicial de la cuenta (caja, banco o custodia), con motivo. Admin, Gerente. */
+  @Roles(...MANAGEMENT_ROLES)
+  @AuditOperation('account-opening-balance')
+  @Post(':id/opening-balance')
+  @HttpCode(200)
+  async openingBalance(@Param('id') id: string, @Body() body: unknown) {
+    return this.cash.setOpeningBalance(id, body);
+  }
 }
 
 /** Libro de movimientos de la inmobiliaria. */

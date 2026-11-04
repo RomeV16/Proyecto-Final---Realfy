@@ -11,6 +11,7 @@ describe('controladores de caja', () => {
     listAccounts: jest.fn(async () => 'accounts'),
     createAccount: jest.fn(async () => 'created'),
     updateAccount: jest.fn(async () => 'updated'),
+    setOpeningBalance: jest.fn(async () => 'opening'),
     listMovements: jest.fn(async () => 'movements'),
     createMovement: jest.fn(async () => 'movement'),
     createConversion: jest.fn(async () => 'conversion'),
@@ -23,6 +24,8 @@ describe('controladores de caja', () => {
     expect(await accounts.create({ a: 1 })).toBe('created');
     expect(await accounts.update('id-1', { name: 'x' })).toBe('updated');
     expect(cash.updateAccount).toHaveBeenCalledWith('id-1', { name: 'x' });
+    expect(await accounts.openingBalance('id-1', { amount: '1' })).toBe('opening');
+    expect(cash.setOpeningBalance).toHaveBeenCalledWith('id-1', { amount: '1' });
 
     const movements = new CashMovementsController(cash as any);
     expect(await movements.list({})).toBe('movements');

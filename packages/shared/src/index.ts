@@ -693,12 +693,14 @@ export {
   CreateCashMovementSchema,
   CreateConversionSchema,
   DeliverCustodySchema,
+  AccountOpeningBalanceSchema,
   CreateCompensationSchema,
   ReceiptFilterSchema,
   AgencyExpenseSchema,
 } from './schemas/cash.schema';
 export type {
   CreateFinancialAccountInput,
+  AccountOpeningBalanceInput,
   CreateCashMovementInput,
   CreateConversionInput,
   CreateCompensationInput,
