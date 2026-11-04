@@ -38,8 +38,34 @@ servicios y configuración pero sin nada en común en datos ni en secretos:
 
 El ambiente `piloto` tiene sus propios secretos: contraseña de la base,
 contraseña del almacenamiento, `JWT_SECRET` y `ARCA_MASTER_KEY`. Ninguno se
-comparte con `production`. Las URL del ambiente piloto se guardan en la
-configuración privada del equipo y no figuran en este repositorio.
+comparte con `production`.
+
+### Dominio `realfy.app`
+
+Desde el 3 de noviembre de 2026 el producto tiene dominio propio. El ambiente
+`piloto` es el producto y `production` es la demostración:
+
+| Dirección | Servicio | Ambiente |
+|---|---|---|
+| `app.realfy.app` | `web` | `piloto` |
+| `api.realfy.app` | `api` | `piloto` |
+| `demo.realfy.app` | `web` | `production` (demostración, datos sintéticos) |
+| `api.demo.realfy.app` | `api` | `production` |
+| `<slug>.sitios.realfy.app` | `web` (micrositio de cada inmobiliaria, un nivel) | `piloto` |
+| `realfy.app` y `www.realfy.app` | Redirección permanente a `app.realfy.app` | Cloudflare |
+
+El DNS está en Cloudflare (plan gratuito, con los registros de los servicios de
+Railway sin proxy y un registro DMARC propio), y el registro del dominio sigue en el
+proveedor donde se compró, con los servidores de nombres apuntando a Cloudflare.
+Las variables que dependen de la dirección se fijaron por ambiente:
+`WEB_BASE_URL` y `CORS_ORIGINS` en la API, con la dirección nueva y la anterior
+mientras dura la transición, y `MICROSITE_BASE_DOMAIN=sitios.realfy.app` en la web de
+`piloto`. El correo sale desde el dominio verificado en Resend (ver más abajo).
+Detalles que conviene saber: el certificado de cada dirección lo emite el proveedor de
+alojamiento después de que el DNS propaga, y los resolvedores de una zona nueva pueden
+fallar a ratos por la caché negativa del DNS; mientras tanto, un script puede apuntar a
+la dirección propia del servicio. Los identificadores de los recursos y los secretos no
+figuran en este repositorio.
 
 Las variables de este proyecto son valores literales, no referencias entre
 servicios. Por eso, cuando un ambiente se duplica, toda variable que apunte al
@@ -228,6 +254,8 @@ Los WhatsApp entrantes llegan por el webhook ya suscripto. Los **mails** de
 `realfy.app` está en Cloudflare, cada casilla tiene una regla que la manda al Worker
 `realfy-email-worker` (`infra/email-worker/`), y el Worker lee el mail, lo firma y
 llama a la API. El Worker reemplaza al "reenvío mínimo" que se pensó al principio.
+
+La recepción está **activa en el ambiente `piloto` desde el 4 de noviembre de 2026**, con una prueba de punta a punta (del mail a la API) que dio bien. La recepción de Resend se evaluó y se descartó porque no hacía falta un servicio más.
 
 | Casilla | Endpoint de la API | Cuerpo |
 |---|---|---|
@@ -528,15 +556,17 @@ de ciclo.
 - Solo se despliega un commit integrado en `main`, desde su copia limpia, y después
   de verificarlo en `production`.
 - El correo (`RESEND_API_KEY` y `RESEND_FROM`) es necesario en `piloto` para
-  invitaciones, recuperos y envío de documentos, y se configura junto con el dominio
-  propio, que está pendiente. Mientras falte, el Admin comparte los enlaces a mano,
-  los documentos se descargan en PDF y el sistema no marca como enviado lo que no se
-  envió.
+  invitaciones, recuperos y envío de documentos. Desde el 3 de noviembre de 2026
+  está configurado con el dominio propio verificado en Resend (remitente con la forma
+  `Realfy <notificaciones@realfy.app>`, con una clave de solo envío). Si faltara, el
+  Admin comparte los enlaces a mano, los documentos se descargan en PDF y el sistema no
+  marca como enviado lo que no se envió.
 - `MESSAGING_MODE` queda en `off` (o `allowlist` con direcciones del equipo) hasta
   que el dueño de la inmobiliaria apruebe el envío a su cartera. Pasar a `live` sin
   esa aprobación está prohibido, aunque el proveedor esté configurado.
-- Ningún dato, dominio, contraseña ni identificador de recursos del ambiente
-  piloto se escribe en el repositorio.
+- Ningún dato personal, contraseña ni identificador de recursos del ambiente piloto
+  se escribe en el repositorio. Las direcciones públicas del producto sí figuran, en
+  la sección «Dominio `realfy.app`».
 
 ## Entorno local
 
