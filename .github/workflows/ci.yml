@@ -132,6 +132,11 @@ jobs:
       - name: Web tests with coverage
         run: pnpm --filter @realfy/web test:coverage
 
+      # Worker de Cloudflare que recibe los mails de boletas@ y consultas@ (infra/email-worker):
+      # verifica los cuerpos contra los esquemas de @realfy/shared y la firma contra la de la API.
+      - name: Email worker tests with coverage
+        run: pnpm --filter @realfy/email-worker test:coverage
+
       # Reporte automático: resumen de cobertura en la página de la ejecución.
       - name: Coverage summary
         if: ${{ !cancelled() }}
