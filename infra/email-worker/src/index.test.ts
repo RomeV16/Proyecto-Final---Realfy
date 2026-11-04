@@ -51,6 +51,7 @@ describe('boletas@', () => {
       from: 'facturas@proveedor-demo.test',
       subject: 'Factura de abril',
     });
+    expect(parsed.automatic).toBe(false);
     expect(parsed.attachments).toHaveLength(1);
     expect(parsed.attachments[0]).toMatchObject({ filename: 'factura-abril.pdf', contentType: 'application/pdf' });
     expect(Buffer.from(parsed.attachments[0].contentBase64, 'base64').equals(PDF_BYTES)).toBe(true);
@@ -108,9 +109,12 @@ describe('boletas@', () => {
     expect(json.attachments).toHaveLength(2);
   });
 
-  it('CP-1417: un mail de un remitente automático con PDF igual se manda: la API decide', async () => {
-    await handleEmail(fakeMessage(buildMime({ attachments: [pdf], headers: { 'Auto-Submitted': 'auto-generated' } })), demoEnv());
+  it('CP-1417: un mail automático con PDF igual se manda, con automatic: true (la API lo acepta y no lo descarta)', async () => {
+    await handleEmail(fakeMessage(buildMime({ from: 'no-reply@proveedor-demo.test', attachments: [pdf], headers: { 'Auto-Submitted': 'auto-generated' } })), demoEnv());
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    const parsed = BillMailIngestSchema.parse(sent().json);
+    expect(parsed).toMatchObject({ automatic: true, from: 'no-reply@proveedor-demo.test' });
+    expect(parsed.attachments).toHaveLength(1);
   });
 });
 

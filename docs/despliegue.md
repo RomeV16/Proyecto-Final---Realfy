@@ -231,7 +231,7 @@ llama a la API. El Worker reemplaza al "reenvío mínimo" que se pensó al princ
 
 | Casilla | Endpoint de la API | Cuerpo |
 |---|---|---|
-| `boletas@` y `boletas+<slug>@` | `POST /api/bills-intake/email-ingest` | `tenantSlug`, `to`, `messageId`, `from`, `subject`, `receivedAt`, `attachments` (PDF en base64) |
+| `boletas@` y `boletas+<slug>@` | `POST /api/bills-intake/email-ingest` | `tenantSlug`, `to`, `messageId`, `from`, `subject`, `receivedAt`, `automatic`, `attachments` (PDF en base64) |
 | `consultas@` y `consultas+<slug>@` | `POST /api/inbox/email-ingest` | `tenantSlug`, `messageId`, `from`, `fromName`, `subject`, `text`, `receivedAt`, `automatic` |
 
 La firma es `X-Realfy-Signature: sha256=<HMAC-SHA256 del cuerpo con el secreto>`; los dos

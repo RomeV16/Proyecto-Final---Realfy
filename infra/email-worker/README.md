@@ -9,15 +9,16 @@ les entrega los mails. Decisión: ADR-0013 (bandeja) y ADR-0018 (boletas).
 
 | Destinatario (sobre) | Qué manda | Endpoint |
 |---|---|---|
-| `boletas@` / `boletas+<slug>@` | `BillMailIngestSchema`: `tenantSlug`, `to`, `messageId`, `from`, `subject`, `receivedAt`, `attachments[]` (sólo PDF, en base64) | `${API_BASE_URL}/api/bills-intake/email-ingest` |
+| `boletas@` / `boletas+<slug>@` | `BillMailIngestSchema`: `tenantSlug`, `to`, `messageId`, `from`, `subject`, `receivedAt`, `automatic`, `attachments[]` (sólo PDF, en base64) | `${API_BASE_URL}/api/bills-intake/email-ingest` |
 | `consultas@` / `consultas+<slug>@` | `EmailIngestSchema`: `tenantSlug`, `messageId`, `from`, `fromName`, `subject`, `text`, `receivedAt`, `automatic` | `${API_BASE_URL}/api/inbox/email-ingest` |
 | cualquier otro | `FALLBACK_FORWARD_TO` si está definida; si no, `message.setReject` (error permanente) | no llama a la API |
 
 - La inmobiliaria sale del `+<slug>` de la dirección; sin él, de `DEFAULT_TENANT_SLUG`. Si no hay ninguna de
   las dos el Worker falla (el remitente reintenta mientras se corrige la configuración).
 - `automatic` es `true` con `Auto-Submitted` distinto de `no` o `Precedence: bulk` / `auto_reply`, como
-  documenta la API. En boletas **no** se descarta por esos encabezados (las facturas automáticas son
-  justamente el caso de uso); la API filtra por remitente (`no-reply@`, `mailer-daemon@`...).
+  documenta la API. En consultas la API ignora los mails marcados; en boletas el Worker también manda la marca
+  pero la API la acepta y no descarta nada (las facturas automáticas de los proveedores, desde `no-reply@`,
+  son justamente el caso de uso).
 - Límites de la API respetados en boletas: hasta 10 PDF, de hasta 10 MiB cada uno y con un total en base64 por
   debajo de 24 MiB (la API acepta cuerpos de 25 MiB). Lo que no entra se salta y queda en el registro
   (`skippedPdfs`); un mail sin PDF aceptable llega con `attachments: []` y la API lo deja en revisión.

@@ -122,6 +122,7 @@ export function billsPayload(mail: ParsedMail, to: string, tenantSlug: string, r
     from: mail.from,
     ...(mail.subject ? { subject: mail.subject } : {}),
     receivedAt: receivedAt.toISOString(),
+    automatic: mail.automatic,
     attachments: mail.pdfs.map((pdf) => ({ filename: pdf.filename, contentType: 'application/pdf', contentBase64: pdf.contentBase64 })),
   };
 }

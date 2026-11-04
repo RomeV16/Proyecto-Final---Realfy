@@ -1041,6 +1041,8 @@ Banda CP-1430 a CP-1439. ADR-0018. Remitentes y PDF sintéticos.
 | CP-1312 | Reporte de pendientes (unitario) | lista solo las partes sin facturar de moneda distinta; con `contractId` y mes filtra | `service-bills.service.spec.ts::CP-1312` | verde (3 nov) |
 | CP-1313 | Pantalla de liquidaciones | tras generar, muestra cuántas liquidaciones salieron con avisos | `LiquidacionList.screen.test.tsx::CP-1313` | verde (3 nov) |
 
+
+
 ## Proveedor y cuenta normalizada en servicios (piloto, uso real)
 
 Banda CP-1320 a CP-1339. Origen: uso real del piloto (los servicios migrados no tenían proveedor y la cuenta se guardaba como venía de la fuente, distinta de la del PDF). ADR-0018 (cuenta normalizada) y ADR-0015 (servicios del lote). Datos sintéticos.
@@ -1056,6 +1058,7 @@ Banda CP-1320 a CP-1339. Origen: uso real del piloto (los servicios migrados no 
 | CP-1326 | Búsqueda simétrica del servicio | un servicio con cuenta normalizada se encuentra con la cuenta del documento en otro formato (Rentas `1100-0000-0001`, Aguas `123`); sin proveedor reconocido se prueba la cuenta tal cual y la normalizada | `bills-intake/bill-intake.service.spec.ts` | verde (3 nov) |
 | CP-1327 | De punta a punta: servicio importado y boleta | un servicio de la Municipalidad importado con la cuenta ` 0123456789-01200 ` se guarda como `012345678901200`; el PDF sintético trae la cuenta pegada y da de alta la boleta sobre ese servicio (`Procesada`) | `e2e/boletas-automaticas.e2e-spec.ts::CP-1327` | verde (3 nov) |
 | CP-1328 | Forma del campo en el contrato del lote | `providerKey` es opcional, acepta `null` y rechaza texto vacío; la pertenencia al catálogo se valida al importar | `packages/shared/src/schemas/import-batch.schema.spec.ts` | verde (3 nov) |
+
 
 ### Pantalla de boletas recibidas (web)
 
@@ -1093,6 +1096,7 @@ Banda CP-1340 a CP-1369. Origen: la revisión de lo que no se lee solo (ADR-0018
 | CP-1367 | Motivos y proveedores conocidos | sólo los códigos del catálogo se traducen; un texto libre se muestra tal cual; la confianza se redondea a porcentaje entero y sólo `RequiereRevision` se revisa | `web/src/lib/bill-documents.test.tsx::traduce sólo los códigos` | verde (3 nov) |
 | CP-1368 | Contador de revisión | se actualiza cada minuto, no pregunta sin permiso y conserva el último valor si falla | `web/src/lib/bill-documents.test.tsx::useBillReviewCount` | verde (3 nov) |
 | CP-1369 | Lista sin permiso no consulta | `usePaginatedList` con `enabled: false` no hace ningún pedido | `web/src/hooks/use-paginated-list.test.tsx::enabled en falso` | verde (3 nov) |
+
 
 ## Saldo inicial de cuentas de caja, banco y custodia (migración M10)
 
@@ -1139,12 +1143,12 @@ Banda CP-1410 a CP-1429. Origen: uso real del piloto (los mails de boletas y con
 |---|---|---|---|---|
 | CP-1410 | Destinatario -> circuito | `boletas@` y `boletas+<slug>@` van a boletas, `consultas@` y `consultas+<slug>@` a la bandeja (sin distinguir mayúsculas, con el slug en minúscula); `info@`, `boletas2@`, `boletas+@`, `boletas+a_b@`, `boletas+a+b@` y vacío no tienen circuito | `infra/email-worker/src/recipient.test.ts::CP-1410` | verde (3 nov) |
 | CP-1411 | Destinatario desconocido | no llama a la API; con `FALLBACK_FORWARD_TO` se reenvía a esa dirección, sin ella se rechaza con error permanente (`Unknown recipient`) | `infra/email-worker/src/index.test.ts::CP-1411` | verde (3 nov) |
-| CP-1412 | Boleta con PDF | `POST /api/bills-intake/email-ingest` con un cuerpo que `BillMailIngestSchema` acepta: `tenantSlug`, `to`, `messageId`, `from`, `subject` y el PDF en base64 idéntico al original; el handler `email(message, env, ctx)` del export hace lo mismo | `infra/email-worker/src/index.test.ts::CP-1412` | verde (3 nov) |
+| CP-1412 | Boleta con PDF | `POST /api/bills-intake/email-ingest` con un cuerpo que `BillMailIngestSchema` acepta: `tenantSlug`, `to`, `messageId`, `from`, `subject`, `automatic: false` y el PDF en base64 idéntico al original; el handler `email(message, env, ctx)` del export hace lo mismo | `infra/email-worker/src/index.test.ts::CP-1412` | verde (3 nov) |
 | CP-1413 | Firma igual a la de la API | `X-Realfy-Signature: sha256=<hex>` coincide con el vector RFC 4231 (clave `Jefe`), con `createHmac` y pasa `verifyMetaSignature` de la API sobre los mismos bytes, también con acentos y emoji; el cuerpo de boletas y el de consultas verifican con el secreto | `infra/email-worker/src/signature.test.ts::CP-1413`; `index.test.ts::CP-1412`; `::CP-1415` | verde (3 nov) |
 | CP-1414 | Firma ajena o cuerpo alterado | la función de la API rechaza la firma del Worker con un cuerpo distinto o con otro secreto | `infra/email-worker/src/signature.test.ts::CP-1414` | verde (3 nov) |
 | CP-1415 | Consulta | `POST /api/inbox/email-ingest` con un cuerpo que `EmailIngestSchema` acepta: `tenantSlug`, `messageId`, `from`, `fromName`, `subject`, `text` (con acentos), `receivedAt` y `automatic: false` | `infra/email-worker/src/index.test.ts::CP-1415` | verde (3 nov) |
 | CP-1416 | Inmobiliaria de la casilla | el `+<slug>` de la dirección gana sobre `DEFAULT_TENANT_SLUG`; sin slug se usa el de por defecto (recortado y en minúscula); sin ninguno el Worker falla antes de llamar a la API, para que el remitente reintente mientras se corrige | `infra/email-worker/src/index.test.ts::CP-1416` | verde (3 nov) |
-| CP-1417 | Automáticos | `Auto-Submitted` distinto de `no` y `Precedence: bulk` o `auto_reply` dan `automatic: true`; `Auto-Submitted: no`, `Precedence: list` y un mail común dan `false`; en boletas no se descarta por esos encabezados | `infra/email-worker/src/index.test.ts::CP-1417` | verde (3 nov) |
+| CP-1417 | Automáticos | `Auto-Submitted` distinto de `no` y `Precedence: bulk` o `auto_reply` dan `automatic: true`; `Auto-Submitted: no`, `Precedence: list` y un mail común dan `false`; en boletas la marca viaja en `automatic` (que `BillMailIngestSchema` acepta) y un mail de `no-reply@` con PDF se manda igual | `infra/email-worker/src/index.test.ts::CP-1417` | verde (3 nov) |
 | CP-1418 | Sólo los PDF | de un mail con imagen, PDF y `.PDF` octet-stream se mandan los dos PDF; sin adjuntos llega `attachments: []` | `infra/email-worker/src/index.test.ts::CP-1418` | verde (3 nov) |
 | CP-1419 | Límites de la API | un PDF de más de 10 MiB se salta, el undécimo adjunto no se manda, uno de exactamente 10 MiB entra y el cuerpo total queda por debajo de 25 MiB | `infra/email-worker/src/index.test.ts::CP-1419` | verde (3 nov) |
 | CP-1420 | Identificador y remitente | sin `Message-ID` se usa un identificador derivado del SHA-256 del mensaje, igual en el reintento; sin `From` en el encabezado se usa el del sobre | `infra/email-worker/src/index.test.ts::CP-1420` | verde (3 nov) |
