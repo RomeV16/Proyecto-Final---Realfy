@@ -1001,7 +1001,7 @@ agrupa por oleada.
 | 3. Dinero y datos reales | Importación idempotente, panel de calidad de datos, caja con tres flujos de cobro, custodia y compensaciones, cuenta corriente y estado de cuenta del locador, suite de reconciliación | 36, 37, 39, 45 | #155, #160, #161, #165, #177 | Integrada |
 | 4. Ciclo de vida del contrato | Vencimientos con semáforo y seguimientos, prórroga de palabra y renovación como período, incidencias con preautorización y presupuesto, honorarios, depósitos y liquidación de egreso, facturación por cuenta del locador | 38, 40, 41, 42 | #166 a #170 | Integrada |
 | 5. Mensajería y comercial | Bandeja de salida con correo y WhatsApp, modos de envío y consentimiento; publicación asistida y micrositio con dominio propio; ventas y llaves; cobranza escalonada; bandeja de consultas unificada con responsable, plazo de primera respuesta y autorrespuesta | 43, 44 | #172, #178, #180, #181, #183 | Integrada |
-| 6. Migración completa y boletas automáticas | Servicios y reglas de traslado por el importador (M8), proveedor y cuenta normalizada, formulario web de servicios, obtención automática de boletas con catálogo de proveedores, lectura de PDF, ingreso por archivo y por mail y pantalla de revisión, consumo por unidad; correcciones que salieron de los ensayos generales (DEF-115 a DEF-143, DEF-170 y DEF-171) | Complementa 35 y 39 | #187, #193, #198, #220 a #225, #227, #229, #231, #236, #237 | Integrada; tres pedidos abiertos al 4/11 (plantillas, recepción de mails y prórroga sin historial); el saldo inicial de custodia (#197) se integró ese día |
+| 6. Migración completa y boletas automáticas | Servicios y reglas de traslado por el importador (M8), proveedor y cuenta normalizada, formulario web de servicios, obtención automática de boletas con catálogo de proveedores, lectura de PDF, ingreso por archivo y por mail y pantalla de revisión, consumo por unidad; correcciones que salieron de los ensayos generales (DEF-115 a DEF-143, DEF-170 y DEF-171) | Complementa 35 y 39 | #187, #193, #198, #220 a #225, #227, #229, #231, #236, #237 | Integrada; el 4/11 se integraron además el saldo inicial de custodia (#197), las plantillas completas (#199), el Worker de recepción de mails (#234) y la prórroga sin historial (#242) |
 | Documentación | Capítulo del piloto, registro de hallazgos, migración, trazabilidad, privacidad, diagramas, plan de aceptación en campo | 46 | #107, #162, #186 | Continua |
 
 Las decisiones de arquitectura nuevas son doce, del ADR-0007 al ADR-0018
@@ -1054,8 +1054,9 @@ intercambiables:
   Cloudflare, de modo que los mails entrantes se reciben con Email Routing y un Worker
   que los lee, decide por destinatario —boletas o consultas, con la inmobiliaria
   indicada en la dirección de destino— y los reenvía firmados a los endpoints de la
-  API que ya existían. Es un componente propio, con su prueba, en el pedido #234,
-  abierto al 4/11. El envío usa Resend, con el dominio verificado y los registros de
+  API que ya existían. Es un componente propio, con su prueba (#234), y la recepción está
+  activa en el ambiente piloto desde el 4/11/2026, con una prueba de punta a punta
+  (del mail a la API) que dio bien. El envío usa Resend, con el dominio verificado y los registros de
   autenticación del remitente en el DNS; la mensajería sigue en modo apagado.
 - **Decisiones pendientes.** Quedan tres que no son del equipo: autorizar un conector
   de consulta de la Municipalidad, que es el único con consulta pública sin sesión
@@ -1106,39 +1107,40 @@ real y verifica su transformación, y la cobertura de la suite de integración s
 al análisis estático. Son nueve trabajos, ocho de ellos obligatorios para integrar
 a la rama principal, que está protegida desde el 30/10/2026.
 
-**Defectos.** El registro de la rama principal tiene cincuenta y cuatro defectos del
-piloto (DEF-09 a DEF-171; la numeración reserva rangos por área y por eso no es
+**Defectos.** El registro de la rama principal tiene sesenta defectos del
+piloto (DEF-09 a DEF-176; la numeración reserva rangos por área y por eso no es
 correlativa), además de los ocho anteriores (DEF-01 a DEF-08). Todos se cerraron con
 el mismo circuito: prueba de regresión que falla contra el código anterior,
 corrección en un pedido revisado y la misma prueba en verde
-(`../calidad/06-registro-de-defectos.md`). Los veinticinco que se sumaron entre el
+(`../calidad/06-registro-de-defectos.md`). Los treinta y uno que se sumaron entre el
 3/11 y el 4/11 salen casi todos de los ensayos generales del ciclo (9.6).
 
 | Severidad | Defectos del piloto en la rama principal |
 |---|---|
 | Bloqueante | 1 |
 | Alta | 25 |
-| Media | 21 |
-| Baja | 7 |
-| Total | 54 |
+| Media | 25 |
+| Baja | 9 |
+| Total | 60 |
 
 | Origen (uno por defecto, el principal) | Defectos | Identificadores |
 |---|---|---|
-| Revisión de código, incluida la del módulo vecino al construir uno nuevo y la de la integración de dos ramas | 18 | DEF-09 a 11, 15 a 18, 20 a 24, 29, 30, 80, 95, 170 y 171 |
+| Revisión de código, incluida la del módulo vecino al construir uno nuevo y la de la integración de dos ramas | 20 | DEF-09 a 11, 15 a 18, 20 a 24, 29, 30, 80, 95, 110, 111, 170 y 171 |
 | Pruebas de caracterización de los motores antes de modificarlos | 3 | DEF-12 a 14 |
 | Análisis de duplicación | 3 | DEF-19, 25 y 26 |
 | Diseño o extracción de un motor compartido | 2 | DEF-27 y 28 |
 | Integración con un proveedor externo | 1 | DEF-65 |
 | Reconciliación del ciclo mensual con casos sintéticos | 4 | DEF-70 a 73 |
 | Verificación de punta a punta del reparto por consumo | 3 | DEF-105 a 107 |
-| Primer ensayo general del ciclo sobre una copia de la cartera (D1 a D11) | 20 | DEF-115, 120, 121, 125 a 137 y 140 a 143 |
+| Ensayos generales del ciclo sobre una copia de la cartera (D1 a D11 y E1 y E2) | 24 | DEF-115, 120, 121, 125 a 137, 140 a 143 y 173 a 176 |
 | Uso real | 0 | — |
 
-Los dos de DEF-170 y DEF-171 se encontraron al preparar la recepción de mails
-(proveedores que mandan la factura desde direcciones automáticas) y se cuentan como
-revisión. El segundo ensayo general sumó dos defectos más, E1 y E2 (DEF-173 a
-DEF-176), en un pedido abierto al 4/11 que todavía no está en el registro de la rama
-principal; con ese pedido el origen «ensayo general» pasa de 20 a 24.
+DEF-170 y DEF-171 se encontraron al preparar la recepción de mails (proveedores que
+mandan la factura desde direcciones automáticas), y DEF-110 y DEF-111 al probar el
+motor de plantillas con el modelo de contrato de la inmobiliaria; se cuentan como
+revisión. El segundo ensayo general sumó dos problemas más, E1 y E2 (DEF-173 a
+DEF-176), corregidos en #242, con los que el origen «ensayo general» pasa de 20 a 24
+defectos.
 
 Ningún defecto se detectó todavía por uso real, porque ninguna persona de la
 inmobiliaria operó el sistema; la severidad «bloquea el cierre del mes», prevista
@@ -1413,9 +1415,8 @@ Tabla única de cifras. Medición del **4 de noviembre de 2026** sobre la rama p
 en el commit `c7b3eac` (pantalla de boletas recibidas, #229), con las seis oleadas de
 desarrollo y la oleada 6 de migración y boletas entregadas. Se conserva la medición
 anterior, del 3 de noviembre sobre `a2ea7d9`, para ver la evolución; la columna «Antes
-del piloto» corresponde al commit `ac07cdf` del 28/10/2026. Los pedidos abiertos al
-medir (#197, #199, #234 y #242) no están incluidos; el #197 se integró mientras se
-medía.
+del piloto» corresponde al commit `ac07cdf` del 28/10/2026. Lo integrado después
+(#197, #199, #234 y #242) no está incluido; el #197 se integró mientras se medía.
 
 | Dimensión | Antes del piloto | 3/11/2026 (`a2ea7d9`) | 4/11/2026 (`c7b3eac`) | Fuente |
 |---|---|---|---|---|
@@ -1460,9 +1461,11 @@ casos, defectos y casos de uso. La segunda: la versión del informe de la tesis 
 el 3/11 usa la medición de esa fecha; la siguiente usa esta columna del 4/11, y se
 remide en su pasada final. La tercera: la columna del 4/11 incluye la oleada 6
 (obtención automática de boletas, migración de servicios y correcciones del ensayo
-general) y no incluye lo que estaba en pedidos abiertos al medir: el saldo inicial de
-custodia (#197, integrado después), las plantillas de contrato completas, la
-recepción de mails y la prórroga de contratos importados sin historial.
+general) y no incluye lo integrado después: el saldo inicial de custodia (#197), las
+plantillas de contrato completas (#199), el Worker de recepción de mails (#234) y la
+prórroga de contratos importados sin historial (#242). Con ellos, contados sobre
+`dd8b22b`, el registro de defectos pasa a 68 renglones (60 del piloto, DEF-09 a
+DEF-176) y el catálogo de casos de prueba a 771.
 
 Las cifras de la operación de la inmobiliaria —cartera, tiempos, diferencias de
 reconciliación— no están en esta tabla y no se publican sin su consentimiento; las
@@ -1479,9 +1482,10 @@ inmobiliaria está cargada en el ambiente piloto con sus servicios y reglas de
 traslado, y las correcciones de los documentos de contrato; la reconciliación
 sintética corre en cada cambio sin diferencias; se hicieron dos ensayos generales del
 primer ciclo y lo integrado hasta el 4/11 está desplegado en los dos ambientes, que
-desde el 3/11 sirven en el dominio propio del producto. Quedan tres pedidos
-abiertos (plantillas de contrato, recepción de mails y la corrección de la prórroga
-sin historial), y el saldo inicial de custodia, integrado el 4/11, falta desplegarlo.
+desde el 3/11 sirven en el dominio propio del producto. No quedan pedidos abiertos de esta oleada: el 4/11 se integraron el saldo inicial
+de custodia, las plantillas completas, el Worker de recepción de mails y la
+corrección de la prórroga sin historial, y la recepción de mails está activa en el
+ambiente piloto desde ese día.
 
 Falta lo que no depende del equipo sino del calendario de la inmobiliaria y de
 terceros:
@@ -1499,8 +1503,7 @@ terceros:
   cuenta del locador, punitorios, sellos, carta documento y señas) con el contador,
   el abogado y el colegio profesional; hasta entonces rigen como valores
   configurables con su valor por defecto.
-- **Habilitaciones**: la cuenta de WhatsApp, el despliegue de la recepción de mails
-  y la aprobación de la inmobiliaria para encender la mensajería y la cobranza
+- **Habilitaciones**: la cuenta de WhatsApp y la aprobación de la inmobiliaria para encender la mensajería y la cobranza
   escalonada; y las tres decisiones de boletas de 9.4 (conector de la Municipalidad,
   Rentas, adhesión a la factura digital).
 - **Consentimiento** de la inmobiliaria para publicar cifras agregadas.

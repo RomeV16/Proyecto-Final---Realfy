@@ -105,7 +105,7 @@ El 2/11/2026 se creyó completa la migración porque estaban cargados los pasos 
 | M8 | Hecho el 3/11 | Importador de servicios y reglas de traslado (#187); proveedor y cuenta normalizada (#227); formulario web de servicios (#231). Cantidad de servicios y reglas cargados: a completar tras el consentimiento de la inmobiliaria. Todos los contratos activos tienen sus reglas y el reenvío da todo `SinCambios` |
 | M9 | Pendiente del ciclo | Las boletas de diciembre se cargan por el circuito automático antes de generar la liquidación; todavía no hay boletas cargadas en `piloto` |
 | M10 | Propuesta lista, sin confirmar | Una propuesta de renglones (con los candidatos descartados explicados) para que la inmobiliaria confirme. El saldo inicial de una cuenta de caja o custodia tiene su endpoint desde el PR #197, integrado el 4/11; falta que la inmobiliaria confirme los saldos |
-| M11 | PR abierto | Dos plantillas de contrato de vivienda preparadas (con y sin depósito). El motor ampliado está en el PR #199, abierto al 4/11 |
+| M11 | Motor integrado, carga pendiente | Dos plantillas de contrato de vivienda preparadas (con y sin depósito). El motor ampliado se integró el 4/11 (#199); falta cargar las plantillas y compararlas con los contratos reales |
 | M12 | Inventario hecho, carga pendiente | Operaciones de venta relevadas, separadas en las que están en curso y las históricas, que no se cargan (cantidades: a completar tras el consentimiento de la inmobiliaria). Faltan la entrada por lote y campos de la operación (ver abajo) |
 
 ### M8: servicios y reglas de traslado
@@ -124,7 +124,7 @@ Para M10 hay una propuesta armada con lo que el origen dice de cada locador y ca
 
 ### M11: plantillas
 
-Al probar el motor con el modelo de locación de vivienda de la inmobiliaria aparecieron brechas que no se resuelven con más plantillas: condicionales (con o sin depósito), listas (de uno a tres locatarios y de cero a cuatro garantes, singular y plural), importes y fechas en letras, canon inicial y datos de matrícula, y un Word y un PDF que no distinguían títulos ni negritas. El PR #199, abierto al 4/11, amplía el motor para eso sin evaluar código; hasta que se integre, las dos plantillas preparadas no se pueden cargar.
+Al probar el motor con el modelo de locación de vivienda de la inmobiliaria aparecieron brechas que no se resuelven con más plantillas: condicionales (con o sin depósito), listas (de uno a tres locatarios y de cero a cuatro garantes, singular y plural), importes y fechas en letras, canon inicial y datos de matrícula, y un Word y un PDF que no distinguían títulos ni negritas. El PR #199, integrado el 4/11, amplía el motor para eso sin evaluar código; con él se pueden cargar las dos plantillas preparadas.
 
 ### M12: ventas en curso
 

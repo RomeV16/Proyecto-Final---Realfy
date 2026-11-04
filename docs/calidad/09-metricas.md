@@ -14,8 +14,8 @@ Medición sobre `main` en el commit `c7b3eac` (pantalla de boletas recibidas, #2
 oleada 6 de migración y boletas. Es la misma medición de la tabla única de cifras del
 informe final (`../tesis/29-informe-final.md`, sección 9.10), con la misma regla: cada
 número sale de una ejecución identificable y todo lo que no se pudo medir figura como
-no medido. Los pedidos abiertos al medir (#197, #199, #234 y #242) no están incluidos; el
-#197 se integró mientras se medía y tampoco entra.
+no medido. Lo integrado después (#197, #199, #234 y #242) no está incluido; el #197 se
+integró mientras se medía.
 
 ### Pruebas y cobertura (integración continua)
 
@@ -68,22 +68,22 @@ debajo; la oleada 6 sumó código sin empujarla.
 
 ### Métrica de proceso: defectos del piloto
 
-Del 30 de octubre al 4 de noviembre se registraron cincuenta y cuatro defectos en
-`main` (DEF-09 a DEF-171): un bloqueante, veinticinco de severidad alta, veintiuno media y
-siete baja. Los veinticinco que se sumaron desde la medición anterior salen de tres
-orígenes: veinte del primer ensayo general del ciclo sobre una copia de la cartera
-(DEF-115 a DEF-143), tres de la verificación del reparto por consumo (DEF-105 a
-DEF-107) y dos de la revisión de la recepción de mails (DEF-170 y DEF-171); el segundo
-ensayo sumó otros cuatro (DEF-173 a DEF-176) en un pedido que todavía no está integrado.
-Ninguno proviene del uso real: los ensayos los corre el equipo sobre una copia, con los
-procesos programados apagados. Todos se cerraron con su prueba de regresión en rojo
-primero.
+Del 30 de octubre al 4 de noviembre se registraron sesenta defectos en `main`
+(DEF-09 a DEF-176, contados sobre `dd8b22b`, que ya incluye #242): un bloqueante,
+veinticinco de severidad alta, veinticinco media y nueve baja. Los treinta y uno que
+se sumaron desde la medición anterior salen de cuatro orígenes: veinticuatro de los
+ensayos generales del ciclo sobre una copia de la cartera (DEF-115 a DEF-143 y DEF-173
+a DEF-176), tres de la verificación del reparto por consumo (DEF-105 a DEF-107), dos de
+la revisión de la recepción de mails (DEF-170 y DEF-171) y dos de la prueba del motor
+de plantillas (DEF-110 y DEF-111). Ninguno proviene del uso real: los ensayos los corre
+el equipo sobre una copia, con los procesos programados apagados. Todos se cerraron con
+su prueba de regresión en rojo primero.
 
 La métrica del TP, el tiempo entre la detección y la regresión en verde, se puede
 medir ahora de forma aproximada, porque el issue de estos defectos se abrió al triar el
 informe del ensayo y no junto con el pedido que los corrige. Del issue a la integración
 del pedido pasaron entre 1,0 y 6,4 horas (mediana 2,6) en los veinticinco defectos
-(veinticuatro issues; fuente: fechas de apertura de los issues y de integración de los
+anteriores a #242 (veinticuatro issues; fuente: fechas de apertura de los issues y de integración de los
 pedidos de la API de GitHub). Es una cota inferior del tiempo desde la detección:
 la hora en que el ensayo encontró cada uno no se registró aparte. Desde el C1 se
 registra con la hora de detección (`12-piloto.md`, sección 5).

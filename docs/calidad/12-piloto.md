@@ -230,14 +230,14 @@ Se repitió con la copia posterior al despliegue de los arreglos de ajustes y de
 
 La conclusión cualitativa es publicable: la estimación sube mucho al cargar las boletas, y lo que más la mueve ya no es Realfy sino tres datos: **las boletas** (M9), **las prórrogas** de los contratos con fin pactado vencido y **la regla de redondeo** del alquiler ajustado, de la que depende la mayoría de los contratos «a validar». Es una estimación sobre supuestos, no el resultado del C1.
 
-Defectos nuevos del segundo ensayo, en el pedido #242 (abierto al 4/11):
+Defectos nuevos del segundo ensayo, corregidos en #242 (integrado el 4/11):
 
 | Defecto | Gravedad | Descripción técnica | DEF |
 |---|---|---|---|
 | E1 | Media | La prórroga de palabra de un contrato importado sin historial deja pendiente un período anterior a la importación, y el proceso diario lo aplica además del siguiente: doble ajuste | DEF-173 |
 | E2 | Baja | Con base de ajuste original el ajuste puede bajar el alquiler sin aviso, y el porcentaje informado es el del índice y no el del alquiler | DEF-174 a DEF-176 |
 
-El segundo ensayo se corrió sin las correcciones de D10 y D11, que se integraron después (#222): con ellas, los veinte defectos del primer ensayo están corregidos en `main` al 4/11. Los dos nuevos se registran en `06-registro-de-defectos.md` con su pedido. Queda anotado, para corregirlo en la herramienta antes del C1, que la herramienta de reconciliación toma como vacante una fila sin alquiler aunque cobre impuestos y suma dólares y pesos en el total de la planilla.
+El segundo ensayo se corrió sin las correcciones de D10 y D11, que se integraron después (#222): con ellas, los veinte defectos del primer ensayo están corregidos en `main` al 4/11. Los dos nuevos están en `06-registro-de-defectos.md`, corregidos en #242. Queda anotado, para corregirlo en la herramienta antes del C1, que la herramienta de reconciliación toma como vacante una fila sin alquiler aunque cobre impuestos y suma dólares y pesos en el total de la planilla.
 
 ### Qué se hizo antes del 4/11
 
