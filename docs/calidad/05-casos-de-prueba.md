@@ -1112,10 +1112,9 @@ Banda CP-1100 a CP-1129. Misma semántica que el saldo inicial del locador (ADR-
 | CP-1105 | Saldo inicial de cuenta: aislamiento | otra inmobiliaria no ve la cuenta ni su saldo inicial y recibe 404 al cargarlo | `e2e/saldo-inicial-custodia.e2e-spec.ts::CP-1105` | verde (3 nov) |
 | CP-1106 | Saldo inicial en la pantalla de caja | el botón *Saldo inicial* aparece en cada cuenta activa sólo para Admin y Gerente; el formulario pide importe con signo, fecha y motivo, confirma antes de enviar y marca los errores; la moneda es la de la cuenta | `components/cash/cash-center.screen.test.tsx` (Caja: saldo inicial de una cuenta) | verde (3 nov) |
 
-
 ## Plantillas de contrato completas (M11)
 
-Banda CP-1160 a CP-1199. Origen: preparación de las plantillas de la inmobiliaria piloto. Contratos, personas, direcciones y montos sintéticos; el resultado esperado se fijó antes de implementar. La migración `20261103215004_datos_de_la_inmobiliaria_para_contratos` (matrícula y domicilio de la inmobiliaria, dos columnas nulas) se ensaya con la verificación `27_datos_de_la_inmobiliaria_para_contratos.sql`: ninguna inmobiliaria existente queda con valores. ADR-0019.
+Banda CP-1160 a CP-1199. Origen: preparación de las plantillas de la inmobiliaria piloto. Contratos, personas, direcciones y montos sintéticos; el resultado esperado se fijó antes de implementar. La migración `20261104032130_datos_de_la_inmobiliaria_para_contratos` (matrícula y domicilio de la inmobiliaria, dos columnas nulas) se ensaya con la verificación `28_datos_de_la_inmobiliaria_para_contratos.sql`: ninguna inmobiliaria existente queda con valores. ADR-0019.
 
 | ID | Caso | Resultado esperado | Automatización | Estado |
 |---|---|---|---|---|
