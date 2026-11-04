@@ -79,9 +79,9 @@ const ROWS = [
   row('e', { overdue: true, status: 'fixed_initial', newRent: '100000.00', percentage: '0.0000', propertyTitle: null }),
 ];
 
-function setup(onApply?: () => unknown) {
+function setup(onApply?: () => unknown, rows: unknown[] = ROWS) {
   apiClient.mockImplementation(async (path: string) => {
-    if (path === '/adjustments/preview-batch') return { period: '2026-04', rows: ROWS };
+    if (path === '/adjustments/preview-batch') return { period: '2026-04', rows };
     if (path === '/adjustments/apply-batch') return onApply ? onApply() : { period: '2026-04', results: [] };
     throw new Error(`unexpected ${path}`);
   });
@@ -241,5 +241,78 @@ describe('Ajustes del mes', () => {
     setup();
     expect(screen.getByText('No tenés permiso para aplicar ajustes.')).toBeInTheDocument();
     expect(apiClient).not.toHaveBeenCalled();
+  });
+
+  describe('ajuste que baja el alquiler (DEF-176)', () => {
+    const DROP = row('f', {
+      adjustmentType: 'UVA',
+      currentRent: '250000.00',
+      newRent: '200000.00',
+      percentage: '100.0000',
+      rentChangePct: '-20.0000',
+      rentDecrease: true,
+    });
+    const RISE = row('a', { rentChangePct: '5.0600', rentDecrease: false });
+
+    it('CP-1454: muestra la variación del alquiler y la advertencia de la baja', async () => {
+      setup(undefined, [RISE, DROP]);
+
+      expect((await screen.findAllByText('Depto f')).length).toBeGreaterThan(0);
+
+      expect(screen.getAllByText(/El alquiler baja 20 %/).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/-20/).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto f' })[0]).toBeEnabled();
+    });
+
+    it('CP-1455: elegir todos deja afuera la baja, que se puede elegir a mano', async () => {
+      setup(undefined, [RISE, DROP]);
+      await screen.findAllByText('Depto f');
+      const user = userEvent.setup();
+
+      await user.click(screen.getByLabelText('Elegir todos los ajustes aplicables'));
+
+      expect(screen.getByRole('button', { name: 'Aplicar 1 ajuste' })).toBeEnabled();
+      expect(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto f' })[0]).not.toBeChecked();
+
+      await user.click(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto f' })[0]);
+      expect(screen.getByRole('button', { name: 'Aplicar 2 ajustes' })).toBeEnabled();
+    });
+
+    it('CP-1456: aplicar una baja pide confirmarla y la envía como confirmada', async () => {
+      setup(undefined, [RISE, DROP]);
+      await screen.findAllByText('Depto f');
+      const user = userEvent.setup();
+
+      await user.click(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto a' })[0]);
+      await user.click(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto f' })[0]);
+      await user.click(screen.getByRole('button', { name: 'Aplicar 2 ajustes' }));
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText(/1 baja el alquiler/)).toBeInTheDocument();
+      await user.click(within(dialog).getByRole('button', { name: 'Aplicar' }));
+
+      await waitFor(() =>
+        expect(apiClient).toHaveBeenCalledWith(
+          '/adjustments/apply-batch',
+          expect.objectContaining({ body: expect.stringContaining('"confirmRentDecrease":["f"]') }),
+        ),
+      );
+    });
+
+    it('CP-1456: lo que no baja no manda confirmaciones', async () => {
+      setup(undefined, [RISE, DROP]);
+      await screen.findAllByText('Depto a');
+      const user = userEvent.setup();
+
+      await user.click(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto a' })[0]);
+      await user.click(screen.getByRole('button', { name: 'Aplicar 1 ajuste' }));
+      await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Aplicar' }));
+
+      await waitFor(() =>
+        expect(apiClient).toHaveBeenCalledWith(
+          '/adjustments/apply-batch',
+          expect.objectContaining({ body: expect.stringContaining('"confirmRentDecrease":[]') }),
+        ),
+      );
+    });
   });
 });
