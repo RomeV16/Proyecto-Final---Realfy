@@ -27,7 +27,7 @@ function currentMonth(now = new Date()): string {
 }
 
 const KNOWN_ERRORS = ['MISSING_ADJUSTMENT_PCT', 'MISSING_ADJUSTMENT_STEPS', 'UNKNOWN_ADJUSTMENT_TYPE'];
-const KNOWN_REASONS = ['MISSING_INDEX_DATA', 'NO_DUE_ADJUSTMENT', 'CONTRACT_NOT_FOUND'];
+const KNOWN_REASONS = ['MISSING_INDEX_DATA', 'NO_DUE_ADJUSTMENT', 'CONTRACT_NOT_FOUND', 'RENT_DECREASE_REQUIRES_REVIEW'];
 
 const RESULT_VARIANT = { applied: 'success', provisional: 'warning', fixed_initial: 'neutral', skipped: 'danger' } as const;
 
@@ -71,7 +71,10 @@ export function MonthlyAdjustments() {
   const selectable = useMemo(() => (rows ?? []).filter((r) => r.selectable), [rows]);
   const chosen = useMemo(() => selectable.filter((r) => selected.has(r.contractId)), [selectable, selected]);
   const chosenProvisional = chosen.filter((r) => r.isProvisional).length;
-  const allSelected = selectable.length > 0 && chosen.length === selectable.length;
+  // Un ajuste que baja el alquiler no entra en "Elegir todos": se elige a mano y se confirma al aplicar (DEF-176).
+  const chosenDecreases = chosen.filter((r) => r.rentDecrease);
+  const byDefault = useMemo(() => selectable.filter((r) => !r.rentDecrease), [selectable]);
+  const allSelected = byDefault.length > 0 && byDefault.every((r) => selected.has(r.contractId));
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -83,7 +86,7 @@ export function MonthlyAdjustments() {
   }
 
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(selectable.map((r) => r.contractId)));
+    setSelected(allSelected ? new Set() : new Set(byDefault.map((r) => r.contractId)));
   }
 
   async function apply() {
@@ -95,6 +98,11 @@ export function MonthlyAdjustments() {
         <div className="space-y-2">
           <p>{t('apply.confirmBody', { count: chosen.length })}</p>
           {chosenProvisional > 0 && <p>{t('apply.confirmProvisional', { count: chosenProvisional })}</p>}
+          {chosenDecreases.length > 0 && (
+            <p className="font-medium text-[var(--color-warning,var(--color-danger))]">
+              {t('apply.confirmRentDecrease', { count: chosenDecreases.length })}
+            </p>
+          )}
         </div>
       ),
     });
@@ -104,7 +112,11 @@ export function MonthlyAdjustments() {
     try {
       const res = await apiClient<AdjustmentApplyBatch>('/adjustments/apply-batch', {
         method: 'POST',
-        body: JSON.stringify({ period, contractIds: chosen.map((r) => r.contractId) }),
+        body: JSON.stringify({
+          period,
+          contractIds: chosen.map((r) => r.contractId),
+          confirmRentDecrease: chosenDecreases.map((r) => r.contractId),
+        }),
       });
       setResults(new Map(res.results.map((r) => [r.contractId, r])));
       const applied = res.results.filter((r) => r.result === 'applied').length;
@@ -196,6 +208,19 @@ export function MonthlyAdjustments() {
       render: (row) => (row.percentage === null ? '—' : formatPercent(row.percentage, { decimals: 2, locale })),
     },
     {
+      key: 'rentChange',
+      header: t('columns.rentChange'),
+      alignRight: true,
+      render: (row) =>
+        row.rentChangePct == null ? (
+          '—'
+        ) : (
+          <span className={row.rentDecrease ? 'font-medium text-[var(--color-warning,var(--color-danger))]' : undefined}>
+            {formatPercent(row.rentChangePct, { decimals: 2, locale })}
+          </span>
+        ),
+    },
+    {
       key: 'months',
       header: t('columns.months'),
       render: (row) =>
@@ -215,6 +240,13 @@ export function MonthlyAdjustments() {
       render: (row) => (
         <div className="space-y-1">
           <StatusBadge domain="ajuste" status={row.status} />
+          {row.rentDecrease && (
+            <p role="alert" className="text-xs font-medium text-[var(--color-warning,var(--color-danger))]">
+              {t('rentDecreaseHint', {
+                pct: formatPercent(Math.abs(Number(row.rentChangePct)), { decimals: 2, locale }),
+              })}
+            </p>
+          )}
           {row.isProvisional && <p className="text-xs text-[var(--color-muted)]">{t('provisionalHint')}</p>}
           {row.missing && (
             <p className="text-xs text-[var(--color-danger)]">
@@ -315,6 +347,7 @@ export function MonthlyAdjustments() {
         <p className="text-sm" aria-live="polite">
           {t('summary.selected', { count: chosen.length })}
           {chosenProvisional > 0 && <> · {t('summary.provisional', { count: chosenProvisional })}</>}
+          {chosenDecreases.length > 0 && <> · {t('summary.decreases', { count: chosenDecreases.length })}</>}
         </p>
         <Button onClick={() => void apply()} disabled={chosen.length === 0 || applying}>
           {applying ? <Spinner className="h-4 w-4" /> : <Icon name="check" className="h-4 w-4" />}

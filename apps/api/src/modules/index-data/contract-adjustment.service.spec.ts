@@ -536,6 +536,76 @@ describe('ContractAdjustmentService', () => {
 
   // ── Aviso a las liquidaciones (CP-1266, DEF-133) ──────────────────────────
 
+  describe('ajuste que baja el alquiler (DEF-174, DEF-175)', () => {
+    const decrease = () => makeDue({ customAdjustmentPct: '-10.00' });
+
+    it('CP-1445: lo aplicado informa la variación real del alquiler vigente', async () => {
+      mockFindManyDueSchedules.mockResolvedValueOnce([makeDue()]);
+
+      const result = await service.applyDueAdjustments('tenant-1');
+
+      expect(result.applied[0]).toMatchObject({ percentage: '10', rentChangePct: '10.0000' });
+    });
+
+    it('CP-1448: el proceso diario no aplica en silencio un ajuste que baja el alquiler', async () => {
+      mockFindManyDueSchedules.mockResolvedValueOnce([decrease()]);
+
+      const result = await service.applyDueAdjustments('tenant-1');
+
+      expect(result.applied).toEqual([]);
+      expect(result.skipped).toEqual([
+        expect.objectContaining({
+          contractId: 'contract-1',
+          scheduleId: 'schedule-1',
+          appliedPeriod: '2025-04',
+          reason: 'RENT_DECREASE_REQUIRES_REVIEW',
+          previousRent: '50000',
+          newRent: '45000',
+          rentChangePct: '-10.0000',
+        }),
+      ]);
+      expect(mockTxContractUpdate).not.toHaveBeenCalled();
+      expect(mockTxScheduleUpdate).not.toHaveBeenCalled();
+      expect(mockTxAdjustmentCreate).not.toHaveBeenCalled();
+      expect(Logger.prototype.error).not.toHaveBeenCalled();
+    });
+
+    it('CP-1449: una persona que lo confirma lo aplica y queda asentado en la auditoría', async () => {
+      const applied = await service.applySchedule(decrease(), {
+        tenantId: 'tenant-1',
+        source: 'batch',
+        userId: 'user-1',
+        allowRentDecrease: true,
+      } as any);
+
+      expect(applied).toMatchObject({ newRent: '45000', percentage: '-10', rentChangePct: '-10.0000' });
+      expect(mockTxContractUpdate).toHaveBeenCalledWith({ where: { id: 'contract-1' }, data: { rentAmount: '45000' } });
+      expect(mockAuditRecord.mock.calls[0][1].metadata).toMatchObject({ rentDecreaseConfirmed: true, rentChangePct: '-10.0000' });
+    });
+
+    it('CP-1450: sin confirmación, aplicar a mano un ajuste que baja responde 409 y no escribe', async () => {
+      const err = await service
+        .applySchedule(decrease(), { tenantId: 'tenant-1', source: 'batch' })
+        .catch((e) => e);
+
+      expect(err.getStatus()).toBe(409);
+      expect(err.getResponse()).toMatchObject({ error: 'RENT_DECREASE_REQUIRES_REVIEW' });
+      expect(mockTxContractUpdate).not.toHaveBeenCalled();
+    });
+
+    it('CP-1457: un alquiler que sube o que no cambia no pide revisión', async () => {
+      mockFindManyDueSchedules.mockResolvedValueOnce([
+        makeDue({ id: 'contract-A', customAdjustmentPct: '0.00' }, { id: 'schedule-A' }),
+        makeDue({ id: 'contract-B' }, { id: 'schedule-B' }),
+      ]);
+
+      const result = await service.applyDueAdjustments('tenant-1');
+
+      expect(result.skipped).toEqual([]);
+      expect(result.applied.map((a) => a.contractId)).toEqual(['contract-A', 'contract-B']);
+    });
+  });
+
   describe('aviso de ajuste aplicado', () => {
     it('CP-1266: después de confirmar el ajuste avisa a quien escucha, con el origen de la generación', async () => {
       const listener = jest.fn().mockResolvedValue(undefined);

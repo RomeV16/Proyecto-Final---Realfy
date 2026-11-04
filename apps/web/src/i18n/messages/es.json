@@ -4250,7 +4250,8 @@
     "type": "Índice",
     "current": "Alquiler actual",
     "new": "Alquiler nuevo",
-    "percentage": "Variación",
+    "percentage": "Variación del índice",
+    "rentChange": "Variación del alquiler",
     "months": "Meses de índice",
     "status": "Estado",
     "result": "Resultado"
@@ -4268,6 +4269,7 @@
     "missing_data": "Faltan datos",
     "error": "No se puede calcular"
   },
+  "rentDecreaseHint": "El alquiler baja {pct} respecto del vigente. Revisalo: no entra en «Elegir todos» y hay que confirmarlo al aplicar.",
   "provisionalHint": "Calculado con índices estimados; se corrige cuando se publique el oficial.",
   "missing": {
     "months": "Faltan {indexes}: {periods}",
@@ -4282,7 +4284,8 @@
   },
   "summary": {
     "selected": "{count, plural, =0 {Ningún ajuste elegido} one {# ajuste elegido} other {# ajustes elegidos}}",
-    "provisional": "{count, plural, one {# a cuenta} other {# a cuenta}}"
+    "provisional": "{count, plural, one {# a cuenta} other {# a cuenta}}",
+    "decreases": "{count, plural, one {# baja el alquiler} other {# bajan el alquiler}}"
   },
   "apply": {
     "button": "Aplicar {count, plural, one {# ajuste} other {# ajustes}}",
@@ -4290,6 +4293,7 @@
     "confirmTitle": "Aplicar los ajustes elegidos",
     "confirmBody": "Se van a actualizar los alquileres de {count, plural, one {# contrato} other {# contratos}}.",
     "confirmProvisional": "{count, plural, one {# se aplica} other {# se aplican}} a cuenta con índices estimados y se corregirá al publicarse el oficial.",
+    "confirmRentDecrease": "{count, plural, one {# ajuste baja el alquiler vigente} other {# ajustes bajan el alquiler vigente}}: al aplicar confirmás que se apliquen igual.",
     "confirmLabel": "Aplicar",
     "done": "{applied, plural, =0 {No se aplicó ningún ajuste} one {Se aplicó # ajuste} other {Se aplicaron # ajustes}}.",
     "doneSkipped": "{skipped, plural, one {# quedó pendiente} other {# quedaron pendientes}}."
@@ -4302,6 +4306,7 @@
     "reasons": {
       "MISSING_INDEX_DATA": "Faltan datos del índice",
       "NO_DUE_ADJUSTMENT": "Ya no tiene un ajuste que venza",
+      "RENT_DECREASE_REQUIRES_REVIEW": "Baja el alquiler: elegilo y confirmalo para aplicarlo",
       "CONTRACT_NOT_FOUND": "No se encontró el contrato",
       "generic": "No se pudo aplicar"
     }

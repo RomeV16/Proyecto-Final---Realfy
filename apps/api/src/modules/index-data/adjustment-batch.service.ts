@@ -15,6 +15,9 @@ import {
   ContractAdjustmentService,
   MISSING_INDEX_DATA,
   MissingIndexDataError,
+  RENT_DECREASE_REQUIRES_REVIEW,
+  RentDecreaseRequiresReviewError,
+  rentChangePct,
 } from './contract-adjustment.service';
 
 /** Último instante del mes `YYYY-MM` en UTC. */
@@ -81,6 +84,8 @@ export class AdjustmentBatchService {
         currentRent: currentRent.toFixed(2),
         newRent: null,
         percentage: null,
+        rentChangePct: null,
+        rentDecrease: false,
         factor: null,
         status: 'error',
         isProvisional: false,
@@ -102,6 +107,8 @@ export class AdjustmentBatchService {
         const newRent = loaded.fixedInitial ? currentRent : result.newRent;
         row.newRent = newRent.toFixed(2);
         row.percentage = (loaded.fixedInitial ? new Decimal(0) : result.percentage).toFixed(4);
+        row.rentChangePct = rentChangePct(currentRent, newRent);
+        row.rentDecrease = newRent.lt(currentRent);
         row.factor = newRent.div(currentRent.isZero() ? new Decimal(1) : currentRent).toFixed(6);
         row.isProvisional = loaded.isProvisional;
         row.estimatedPeriods = [...new Set(loaded.estimated.map((e) => e.period))];
@@ -128,11 +135,16 @@ export class AdjustmentBatchService {
     return { period, rows };
   }
 
-  async apply(period: string, contractIds: string[]): Promise<AdjustmentApplyBatch> {
+  async apply(
+    period: string,
+    contractIds: string[],
+    confirmRentDecrease: string[] = [],
+  ): Promise<AdjustmentApplyBatch> {
     const tenantId = this.requireTenant();
     const userId = this.tenantContext.getUserId() ?? null;
     const byContract = new Map((await this.dueSchedules(period)).map((s) => [s.contractId, s]));
     const allowProvisional = await this.adjustments.isProvisionalAllowed(tenantId);
+    const confirmed = new Set(confirmRentDecrease);
 
     const results: AdjustmentApplyResult[] = [];
     for (const contractId of [...new Set(contractIds)]) {
@@ -153,6 +165,7 @@ export class AdjustmentBatchService {
           source: 'batch',
           userId,
           allowProvisional,
+          allowRentDecrease: confirmed.has(contractId),
         });
         results.push({
           contractId,
@@ -161,6 +174,7 @@ export class AdjustmentBatchService {
           reason: null,
           previousRent: applied.previousRent,
           newRent: applied.newRent,
+          rentChangePct: applied.rentChangePct,
           estimatedPeriods: applied.estimatedPeriods,
           missingPeriods: [],
           indexTypes: [],
@@ -186,6 +200,14 @@ export class AdjustmentBatchService {
         missingPeriods: err.missingPeriods,
       };
     }
+    if (err instanceof RentDecreaseRequiresReviewError) {
+      return {
+        ...this.skipped(contractId, RENT_DECREASE_REQUIRES_REVIEW),
+        previousRent: err.previousRent,
+        newRent: err.newRent,
+        rentChangePct: err.rentChangePct,
+      };
+    }
     if (err instanceof HttpException) return this.skipped(contractId, this.adjustments.skipReason(err));
     const code =
       err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002' ? 'CONFLICT' : 'ADJUSTMENT_FAILED';
@@ -206,6 +228,7 @@ export class AdjustmentBatchService {
       reason,
       previousRent: null,
       newRent: null,
+      rentChangePct: null,
       estimatedPeriods: [],
       missingPeriods: [],
       indexTypes: [],

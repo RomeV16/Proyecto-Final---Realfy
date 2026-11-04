@@ -1161,3 +1161,27 @@ Banda CP-1410 a CP-1429. Origen: uso real del piloto (los mails de boletas y con
 | CP-1427 | MIME ilegible | si el mensaje no se puede leer se rechaza (`Message could not be read`) y no se llama a la API | `infra/email-worker/src/index.test.ts::CP-1427` | verde (3 nov) |
 | CP-1428 | Compila para Cloudflare | `npx wrangler@4.149.0 deploy --dry-run` en `infra/email-worker` arma el paquete (157,87 KiB, 40,60 KiB comprimido) con las variables `API_BASE_URL` y `DEFAULT_TENANT_SLUG` vacía | manual, sin tocar la cuenta | verde (3 nov) |
 | CP-1429 | `wrangler.toml` sin cuentas ni secretos | nombre `realfy-email-worker`, `API_BASE_URL` de producción, `DEFAULT_TENANT_SLUG` vacío, sin `account_id`, rutas, secreto ni destino de reenvío | `infra/email-worker/src/wrangler-config.test.ts::CP-1429` | verde (3 nov) |
+## Prórroga sin historial y ajuste que baja el alquiler (segundo ensayo del ciclo C1)
+
+Banda CP-1440 a CP-1459 (usados CP-1440 a CP-1457). Origen: segundo ensayo general del ciclo de diciembre con la copia de la inmobiliaria piloto; DEF-173 a DEF-176. Contratos sintéticos; el resultado esperado se fijó antes de corregir. Que un ajuste pueda bajar el alquiler es una regla de dinero por confirmar (ADR-0011, addendum del 4 de noviembre): estos casos fijan que no ocurra en silencio, no que esté permitido.
+
+| ID | Caso | Resultado esperado | Automatización | Estado |
+|---|---|---|---|---|
+| CP-1440 | Prórroga de un contrato importado sin historial | el período anterior a la importación queda `Skipped`; los siguientes, `Pending` | `contracts/contract-rules-lifecycle.spec.ts::CP-1440` | verde (4 nov) |
+| CP-1441 | Con un período aplicado | los pendientes no se saltean | `contracts/contract-rules-lifecycle.spec.ts::CP-1441` | verde (4 nov) |
+| CP-1442 | Con historial de ajustes | los períodos atrasados posteriores al último ajuste siguen pendientes | `contracts/contract-rules-lifecycle.spec.ts::CP-1442` | verde (4 nov) |
+| CP-1443 | Contrato que no viene de una importación | conserva sus pendientes atrasados | `contracts/contract-rules-lifecycle.spec.ts::CP-1443` | verde (4 nov) |
+| CP-1444 | Prórroga de punta a punta | el cronograma queda salteado hasta la importación, el primer pendiente es de 2027 y el lote de octubre no lo lista ni se aplica | `e2e/prorroga-y-lote.e2e-spec.ts::CP-1444` | verde (4 nov) |
+| CP-1445 | Variación real en lo aplicado | `rentChangePct` es la variación del alquiler (10 %) y `percentage`, la del índice | `index-data/contract-adjustment.service.spec.ts::CP-1445` | verde (4 nov) |
+| CP-1446 | Previsualización con una baja | la fila informa `rentChangePct` y `rentDecrease`, y sigue siendo elegible | `index-data/adjustments-run.spec.ts::CP-1446` | verde (4 nov) |
+| CP-1447 | Índice contra alquiler con base Original | UVA que se duplica sobre un alquiler inicial menor que el vigente: `percentage` 100, alquiler −20 % | `index-data/adjustments-run.spec.ts::CP-1447` | verde (4 nov) |
+| CP-1448 | Proceso diario ante una baja | no escribe nada, el ajuste sigue pendiente y se informa `RENT_DECREASE_REQUIRES_REVIEW` con los alquileres | `index-data/contract-adjustment.service.spec.ts::CP-1448` | verde (4 nov) |
+| CP-1449 | Baja confirmada | se aplica, la auditoría asienta `rentDecreaseConfirmed` y la variación | `index-data/contract-adjustment.service.spec.ts::CP-1449` | verde (4 nov) |
+| CP-1450 | Baja sin confirmar al aplicar a mano | 409 `RENT_DECREASE_REQUIRES_REVIEW`, nada escrito | `index-data/contract-adjustment.service.spec.ts::CP-1450` | verde (4 nov) |
+| CP-1451 | Proceso diario de punta a punta | UVA con base Original que baja de 250.000 a 200.000: queda salteado con su motivo, el alquiler y los ajustes no cambian | `e2e/ajuste-masivo.e2e-spec.ts::CP-1451` | verde (4 nov) |
+| CP-1452 | Lote con y sin confirmación | `confirmRentDecrease` decide por contrato; sin él, `skipped` con la variación; con él, `applied` | `index-data/adjustments-run.spec.ts::CP-1452`; `e2e/ajuste-masivo.e2e-spec.ts::CP-1452` | verde (4 nov) |
+| CP-1453 | Previsualización de punta a punta | `rentChangePct` −20 %, `rentDecrease`, `percentage` 100 y `selectable` | `e2e/ajuste-masivo.e2e-spec.ts::CP-1453` | verde (4 nov) |
+| CP-1454 | Advertencia en Ajustes del mes | la fila muestra la variación del alquiler y «El alquiler baja 20 %» | `components/adjustments/monthly-adjustments.screen.test.tsx::CP-1454` | verde (4 nov) |
+| CP-1455 | Elegir todos | deja afuera la baja, que se puede elegir a mano | `components/adjustments/monthly-adjustments.screen.test.tsx::CP-1455` | verde (4 nov) |
+| CP-1456 | Aplicar una baja desde la pantalla | la confirmación la cuenta aparte y el pedido manda `confirmRentDecrease`; sin bajas, la lista va vacía | `components/adjustments/monthly-adjustments.screen.test.tsx::CP-1456` | verde (4 nov) |
+| CP-1457 | Lo que sube o no cambia | no pide revisión | `index-data/contract-adjustment.service.spec.ts::CP-1457` | verde (4 nov) |

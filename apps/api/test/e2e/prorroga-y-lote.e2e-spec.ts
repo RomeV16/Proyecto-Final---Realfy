@@ -211,4 +211,26 @@ describe('Prórroga de palabra y aplicación masiva sobre contratos importados (
     expect(await modeOf(inherited)).toBe('Recuperar');
     expect(await modeOf(own)).toBe('NoRecuperar');
   });
+
+  it('CP-1444 — la prórroga de un contrato importado sin historial no deja pendiente un período anterior a la importación', async () => {
+    const id = await activeContract('2024-10-01', '2026-09-30', AdjustmentType.FixedPercent);
+    await prisma.baseClient.adjustmentSchedule.updateMany({ where: { contractId: id }, data: { status: 'Skipped' } });
+    // Importado el 4 de noviembre de 2026: el alquiler cargado ya incluye lo anterior.
+    await prisma.baseClient.contract.update({
+      where: { id },
+      data: { externalRef: 'IMP-1444', createdAt: new Date('2026-11-04T12:00:00.000Z') },
+    });
+
+    await post(`/contracts/${id}/oral-extension`, { until: '2027-10-31', note: 'Hablado' }).expect(201);
+
+    const rows = await schedules(id);
+    expect(rows.filter((s) => dayOf(s.nextAdjustmentDate) <= '2026-11-04').every((s) => s.status === 'Skipped')).toBe(true);
+    const pending = rows.filter((s) => s.status === 'Pending');
+    expect(pending.map((s) => dayOf(s.nextAdjustmentDate))).toEqual(['2027-01-01', '2027-04-01', '2027-07-01', '2027-10-01']);
+
+    // El período de octubre de 2026 ya no vence: ni el lote ni el proceso diario lo aplican.
+    const preview = await post('/adjustments/preview-batch', { period: '2026-10' }).expect(201);
+    expect(preview.body.rows.find((r: any) => r.contractId === id)).toBeUndefined();
+    expect(await prisma.baseClient.contractAdjustment.count({ where: { contractId: id } })).toBe(0);
+  });
 });

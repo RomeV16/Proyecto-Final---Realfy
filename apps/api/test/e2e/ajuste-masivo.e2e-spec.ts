@@ -547,4 +547,80 @@ describe('Ajustes del mes: cron, aplicación masiva, provisorios y corrección (
       expect(applyB.body.results[0]).toMatchObject({ result: 'applied', newRent: '121000' });
     });
   });
+
+  describe('ajuste que baja el alquiler (DEF-174, DEF-175)', () => {
+    const SYSTEM = '__system__';
+    const uvaDay = (day: string, value: string) =>
+      prisma.baseClient.indexData.create({
+        data: { tenantId: SYSTEM, indexType: 'UVA', period: new Date(`${day}T00:00:00.000Z`), value, source: 'bcra-v4-uva' },
+      });
+
+    /** UVA con base Original: alquiler inicial 100.000, vigente 250.000, y la UVA se duplica en la ventana. */
+    async function uvaThatLowersTheRent(tag: string) {
+      const { tokens } = await agency(tag);
+      const admin = tokens[UserRole.Admin];
+      await uvaDay('2026-01-01', '100');
+      await uvaDay('2026-02-01', '200');
+      const contract = await createContract(admin, { adjustmentType: AdjustmentType.UVA });
+      await prisma.baseClient.contractTermsVersion.updateMany({
+        where: { contractId: contract.id },
+        data: { adjustmentBase: 'Original' },
+      });
+      await prisma.baseClient.contract.update({ where: { id: contract.id }, data: { rentAmount: '250000.00' } });
+      return { admin, contract };
+    }
+
+    const rentOf = async (id: string) =>
+      Number((await prisma.baseClient.contract.findUniqueOrThrow({ where: { id } })).rentAmount);
+
+    it('CP-1453 — la previsualización informa la variación del alquiler y marca la baja', async () => {
+      const { admin, contract } = await uvaThatLowersTheRent('baja-1');
+
+      const preview = await post(admin, '/adjustments/preview-batch', { period: PERIOD }).expect(201);
+
+      expect(previewRow(preview.body, contract.id)).toMatchObject({
+        status: 'ready',
+        percentage: '100.0000',
+        currentRent: '250000.00',
+        newRent: '200000.00',
+        rentChangePct: '-20.0000',
+        rentDecrease: true,
+        selectable: true,
+      });
+    });
+
+    it('CP-1451 — el proceso diario no baja el alquiler en silencio y lo saltea con un motivo estable', async () => {
+      const { admin, contract } = await uvaThatLowersTheRent('baja-2');
+
+      const run = await post(admin, '/adjustments/_run-now').expect(201);
+
+      const skipped = run.body.skipped.find((s: any) => s.contractId === contract.id && s.appliedPeriod === '2026-04');
+      expect(skipped).toMatchObject({ reason: 'RENT_DECREASE_REQUIRES_REVIEW', rentChangePct: '-20.0000' });
+      expect(run.body.applied.filter((a: any) => a.contractId === contract.id)).toEqual([]);
+      expect(await rentOf(contract.id)).toBe(250000);
+      expect(await prisma.baseClient.contractAdjustment.count({ where: { contractId: contract.id } })).toBe(0);
+    });
+
+    it('CP-1452 — el lote no la aplica sin confirmación expresa y, confirmada, informa la variación', async () => {
+      const { admin, contract } = await uvaThatLowersTheRent('baja-3');
+
+      const refused = await post(admin, '/adjustments/apply-batch', { period: PERIOD, contractIds: [contract.id] }).expect(201);
+      expect(refused.body.results[0]).toMatchObject({
+        result: 'skipped',
+        reason: 'RENT_DECREASE_REQUIRES_REVIEW',
+        previousRent: '250000',
+        newRent: '200000',
+        rentChangePct: '-20.0000',
+      });
+      expect(await rentOf(contract.id)).toBe(250000);
+
+      const confirmed = await post(admin, '/adjustments/apply-batch', {
+        period: PERIOD,
+        contractIds: [contract.id],
+        confirmRentDecrease: [contract.id],
+      }).expect(201);
+      expect(confirmed.body.results[0]).toMatchObject({ result: 'applied', newRent: '200000', rentChangePct: '-20.0000' });
+      expect(await rentOf(contract.id)).toBe(200000);
+    });
+  });
 });

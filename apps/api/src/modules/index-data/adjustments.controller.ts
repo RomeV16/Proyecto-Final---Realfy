@@ -35,7 +35,9 @@ export class AdjustmentsController {
   /**
    * POST /adjustments/apply-batch — Aplica los ajustes elegidos del mes. Cada
    * contrato va en su transacción; la respuesta informa por contrato si se
-   * aplicó o por qué se salteó. Admin, Gerente y Liquidaciones.
+   * aplicó o por qué se salteó. Un ajuste que baja el alquiler sólo se aplica si
+   * su contrato figura en `confirmRentDecrease`; si no, se saltea con
+   * `RENT_DECREASE_REQUIRES_REVIEW`. Admin, Gerente y Liquidaciones.
    */
   @Roles(...BILLING_ROLES)
   @Post('apply-batch')
@@ -43,7 +45,7 @@ export class AdjustmentsController {
     @Body(new ZodValidationPipe(ApplyAdjustmentBatchSchema, 'Invalid adjustment batch'))
     dto: ApplyAdjustmentBatchInput,
   ) {
-    return this.batch.apply(dto.period, dto.contractIds);
+    return this.batch.apply(dto.period, dto.contractIds, dto.confirmRentDecrease ?? []);
   }
 
   /**

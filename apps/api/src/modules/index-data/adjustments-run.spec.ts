@@ -5,7 +5,7 @@ import { AdjustmentBatchService } from './adjustment-batch.service';
 import { AdjustmentTrueUpService } from './adjustment-trueup.service';
 import { AdjustmentsController } from './adjustments.controller';
 import { AdjustmentsScheduler } from './adjustments.scheduler';
-import { ContractAdjustmentService, MissingIndexDataError } from './contract-adjustment.service';
+import { ContractAdjustmentService, MissingIndexDataError, RentDecreaseRequiresReviewError } from './contract-adjustment.service';
 import { makeTenantCron } from '../../common/scheduler/tenant-cron.testing';
 
 const utc = (s: string) => new Date(`${s}T00:00:00.000Z`);
@@ -188,6 +188,67 @@ describe('AdjustmentBatchService', () => {
     h.adjustments.applySchedule.mockRejectedValueOnce(new Error('deadlock'));
     const failed = await h.service.apply('2026-04', ['c1']);
     expect(failed.results[0]).toMatchObject({ result: 'error', reason: 'ADJUSTMENT_FAILED' });
+  });
+
+  it('CP-1446: la fila informa la variación real del alquiler y marca la baja sin dejar de ser elegible', async () => {
+    const h = build([schedule(), schedule({ id: 's2', contractId: 'c2', contract: contract({ id: 'c2' }) })]);
+    h.adjustments.loadParams
+      .mockResolvedValueOnce(loaded())
+      .mockResolvedValueOnce(
+        loaded({ params: { type: AdjustmentType.FixedPercent, percentage: new Decimal(-10), baseRent: new Decimal(100000) } }),
+      );
+
+    const { rows } = await h.service.preview('2026-04');
+
+    expect(rows[0]).toMatchObject({ rentChangePct: '10.0000', rentDecrease: false, selectable: true });
+    expect(rows[1]).toMatchObject({
+      status: 'ready',
+      percentage: '-10.0000',
+      newRent: '90000.00',
+      rentChangePct: '-10.0000',
+      rentDecrease: true,
+      selectable: true,
+    });
+  });
+
+  it('CP-1447: el porcentaje del índice no es el del alquiler cuando la base es el alquiler original', async () => {
+    // UVA que se duplica sobre un alquiler inicial de 100.000, con el alquiler vigente en 250.000.
+    const h2 = build([schedule({ contract: contract({ rentAmount: '250000.00' }) })]);
+    h2.adjustments.loadParams.mockResolvedValue(
+      loaded({ params: { type: AdjustmentType.UVA, startValue: new Decimal(100), endValue: new Decimal(200), baseRent: new Decimal(100000) } }),
+    );
+
+    const { rows } = await h2.service.preview('2026-04');
+
+    expect(rows[0]).toMatchObject({
+      percentage: '100.0000',
+      newRent: '200000.00',
+      rentChangePct: '-20.0000',
+      rentDecrease: true,
+    });
+  });
+
+  it('CP-1452: una baja sólo se aplica si se la confirma por contrato', async () => {
+    const h = build([schedule(), schedule({ id: 's2', contractId: 'c2', contract: contract({ id: 'c2' }) })]);
+    const blocked = new RentDecreaseRequiresReviewError('100000', '90000', '-10.0000');
+    h.adjustments.applySchedule
+      .mockRejectedValueOnce(blocked)
+      .mockResolvedValueOnce({ status: 'applied', previousRent: '100000', newRent: '90000', rentChangePct: '-10.0000', estimatedPeriods: [] });
+
+    const res = await (h.service as any).apply('2026-04', ['c1', 'c2'], ['c2']);
+
+    expect(h.adjustments.applySchedule.mock.calls.map((c: any[]) => c[1].allowRentDecrease)).toEqual([false, true]);
+    expect(res.results).toEqual([
+      expect.objectContaining({
+        contractId: 'c1',
+        result: 'skipped',
+        reason: 'RENT_DECREASE_REQUIRES_REVIEW',
+        previousRent: '100000',
+        newRent: '90000',
+        rentChangePct: '-10.0000',
+      }),
+      expect.objectContaining({ contractId: 'c2', result: 'applied', rentChangePct: '-10.0000' }),
+    ]);
   });
 
   it('exige contexto de inmobiliaria', async () => {
@@ -375,7 +436,9 @@ describe('AdjustmentsScheduler y AdjustmentsController', () => {
     const controller = new AdjustmentsController(batch, {} as any);
     expect(await controller.previewBatch({ period: '2026-04' })).toBe('p');
     expect(await controller.applyBatch({ period: '2026-04', contractIds: ['c1'] })).toBe('a');
-    expect(batch.apply).toHaveBeenCalledWith('2026-04', ['c1']);
+    expect(batch.apply).toHaveBeenCalledWith('2026-04', ['c1'], []);
+    await controller.applyBatch({ period: '2026-04', contractIds: ['c1'], confirmRentDecrease: ['c1'] });
+    expect(batch.apply).toHaveBeenLastCalledWith('2026-04', ['c1'], ['c1']);
   });
 });
 

@@ -72,6 +72,10 @@ el registro oficial; este archivo es la copia versionada.
 | DEF-143 | El importador acepta un ajuste Custom o de porcentaje fijo sin porcentaje y falla recién al calcular el ajuste | Baja | — | CP-1305 a CP-1307 | [#206](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/206) | Corregido (3 nov) |
 | DEF-110 | Con varios locatarios, `inquilino.*` de la plantilla mezcla datos de personas distintas | Media | — | CP-1166 | [#194](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/194) | Corregido (3 nov) |
 | DEF-111 | Un locador que dejó de serlo sigue figurando entre los locadores de la plantilla | Media | — | CP-1167 | [#195](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/195) | Corregido (3 nov) |
+| DEF-173 | La prórroga de palabra de un contrato importado sin historial deja pendiente un período anterior a la importación | Media | RF-12 | CP-1440 a CP-1444 | [#238](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/238) | Corregido (4 nov) |
+| DEF-174 | El porcentaje de la previsualización y la aplicación del ajuste es el del índice, no el del alquiler | Baja | RF-12, RF-13 | CP-1445 a CP-1447, CP-1453 | [#239](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/239) | Corregido (4 nov) |
+| DEF-175 | Un ajuste puede bajar el alquiler vigente sin ningún aviso, en el lote y en el proceso diario | Media | RF-12, RF-13 | CP-1448 a CP-1452, CP-1457 | [#240](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/240) | Corregido (4 nov) |
+| DEF-176 | Ajustes del mes no advierte de los ajustes que bajan el alquiler y los selecciona con el resto | Baja | RF-12 | CP-1454 a CP-1456 | [#241](https://github.com/RomeV16/Proyecto-Final---Realfy/issues/241) | Corregido (4 nov) |
 
 ---
 
@@ -974,3 +978,55 @@ esperado). La corrección entra en `a1591b4` (PR #85).
 - **Corrección:** se listan los locadores sin fin de vigencia o con fin futuro; si ninguno sigue vigente (contrato terminado) se listan todos.
 - **Prueba de regresión:** CP-1167.
 - **Evidencia rojo/verde:** regresión `81d396b` en rojo; corrección en el commit `feat(contract-templates)` del mismo pedido.
+
+## DEF-173 — La prórroga de palabra de un contrato importado sin historial deja pendiente un período anterior a la importación
+
+- **Requisito afectado:** RF-12 (ajustes de alquiler).
+- **Origen:** segundo ensayo general del primer ciclo del piloto, sobre la copia de la inmobiliaria piloto.
+- **Caso que lo detecta:** CP-1440.
+- **Severidad:** media. El alquiler importado ya incluye lo vencido hasta la importación; si ese período queda pendiente, el proceso diario lo aplica además del siguiente (doble ajuste).
+- **Pasos para reproducir:** importar un contrato sin historial de ajustes cuyo fin pactado ya venció (todos sus períodos quedan salteados); registrar una prórroga de palabra (`POST /contracts/:id/oral-extension`) y ejecutar el proceso diario de ajustes.
+- **Resultado esperado:** sin historial ni períodos aplicados, el período anterior a la importación queda salteado, como cuando el contrato se importa con fin real, y el primer pendiente es posterior a la importación.
+- **Resultado obtenido:** el período siguiente al último salteado, anterior a la importación, queda pendiente y se aplica.
+- **Corrección:** `rebuildPendingSchedule` deja salteados los períodos que vencen hasta la fecha de alta de un contrato importado (con referencia externa) sin historial de ajustes ni períodos aplicados o calculados; el resto sigue pendiente.
+- **Prueba de regresión:** CP-1440 a CP-1443 en `contract-rules-lifecycle.spec.ts`; CP-1444 en `apps/api/test/e2e/prorroga-y-lote.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `b06505c` en rojo (CP-1440 y CP-1444 fallan: el período anterior a la importación queda pendiente); corrección en `4aed728`.
+
+## DEF-174 — El porcentaje de la previsualización y la aplicación del ajuste es el del índice, no el del alquiler
+
+- **Requisito afectado:** RF-12, RF-13.
+- **Origen:** segundo ensayo general del primer ciclo del piloto.
+- **Caso que lo detecta:** CP-1446.
+- **Severidad:** baja. La información engaña, no cambia importes.
+- **Pasos para reproducir:** contrato UVA con base de ajuste Original, alquiler inicial menor que el vigente y UVA que se duplica en la ventana; previsualizar el lote.
+- **Resultado esperado:** además del porcentaje del índice, la variación real sobre el alquiler vigente.
+- **Resultado obtenido:** solo `percentage` (variación del índice, 100 %) aunque el alquiler baje.
+- **Corrección:** la previsualización (`rentChangePct`, `rentDecrease`), la aplicación del lote y del proceso diario informan `rentChangePct`, la variación del alquiler nuevo sobre el vigente. `percentage` conserva el significado de la variación del índice.
+- **Prueba de regresión:** CP-1445 a CP-1447 en `contract-adjustment.service.spec.ts` y `adjustments-run.spec.ts`; CP-1453 en `ajuste-masivo.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `6ad65e7` en rojo; corrección en `57ce355` (la misma que DEF-175).
+
+## DEF-175 — Un ajuste puede bajar el alquiler vigente sin ningún aviso, en el lote y en el proceso diario
+
+- **Requisito afectado:** RF-12, RF-13.
+- **Origen:** segundo ensayo general del primer ciclo del piloto.
+- **Caso que lo detecta:** CP-1448.
+- **Severidad:** media. Es una regla de dinero: si la inmobiliaria permite que un ajuste baje el alquiler está por confirmar; mientras tanto no puede ocurrir sin que alguien lo vea.
+- **Pasos para reproducir:** contrato UVA con base Original, alquiler inicial 100.000, vigente 250.000, UVA que se duplica: el lote y el proceso diario dejan el alquiler en 200.000 sin aviso.
+- **Resultado esperado:** el ajuste que baja el alquiler no se aplica solo.
+- **Resultado obtenido:** se aplica igual que cualquier otro.
+- **Corrección:** el proceso diario y la generación de liquidaciones saltean el ajuste con el motivo `RENT_DECREASE_REQUIRES_REVIEW` (queda pendiente y la liquidación del mes se marca con `ADJUSTMENT_PENDING`); el lote lo aplica solo si el contrato figura en `confirmRentDecrease`, y la auditoría deja asentada la confirmación.
+- **Prueba de regresión:** CP-1448 a CP-1452 y CP-1457 en `contract-adjustment.service.spec.ts`, `adjustments-run.spec.ts` y `ajuste-masivo.e2e-spec.ts`.
+- **Evidencia rojo/verde:** regresión `6ad65e7` en rojo (el proceso diario aplica la baja y el lote no informa la variación; las pruebas del controlador no compilan: falta `confirmRentDecrease`); corrección en `57ce355`.
+
+## DEF-176 — Ajustes del mes no advierte de los ajustes que bajan el alquiler y los selecciona con el resto
+
+- **Requisito afectado:** RF-12.
+- **Origen:** segundo ensayo general del primer ciclo del piloto.
+- **Caso que lo detecta:** CP-1454.
+- **Severidad:** baja.
+- **Pasos para reproducir:** abrir Ajustes del mes con un ajuste que baja el alquiler y usar "Elegir todos".
+- **Resultado esperado:** advertencia visible en la fila, fuera de la selección por defecto y confirmación expresa al aplicarlo.
+- **Resultado obtenido:** la fila no se distingue y se elige con las demás.
+- **Corrección:** la fila muestra la variación del alquiler y la advertencia "El alquiler baja"; "Elegir todos" la deja afuera; elegida a mano, la confirmación del lote la cuenta aparte y se envía como confirmada.
+- **Prueba de regresión:** CP-1454 a CP-1456 en `monthly-adjustments.screen.test.tsx`.
+- **Evidencia rojo/verde:** regresión `6ad65e7` en rojo (4 pruebas de pantalla fallan: sin advertencia, sin variación del alquiler y sin confirmación); corrección en `08d9cbf`.
