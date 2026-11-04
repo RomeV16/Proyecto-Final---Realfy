@@ -287,7 +287,7 @@ describe('Ajustes del mes', () => {
       await user.click(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto f' })[0]);
       await user.click(screen.getByRole('button', { name: 'Aplicar 2 ajustes' }));
       const dialog = await screen.findByRole('dialog');
-      expect(within(dialog).getByText(/1 baja el alquiler/)).toBeInTheDocument();
+      expect(within(dialog).getByText(/1 ajuste baja el alquiler vigente/)).toBeInTheDocument();
       await user.click(within(dialog).getByRole('button', { name: 'Aplicar' }));
 
       await waitFor(() =>

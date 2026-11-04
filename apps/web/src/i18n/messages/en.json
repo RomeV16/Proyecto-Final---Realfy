@@ -4250,7 +4250,8 @@
     "type": "Index",
     "current": "Current rent",
     "new": "New rent",
-    "percentage": "Change",
+    "percentage": "Index change",
+    "rentChange": "Rent change",
     "months": "Index months",
     "status": "Status",
     "result": "Result"
@@ -4268,6 +4269,7 @@
     "missing_data": "Missing data",
     "error": "Cannot be calculated"
   },
+  "rentDecreaseHint": "The rent goes down {pct} from the current one. Review it: it is not included in \"Select all\" and must be confirmed when applying.",
   "provisionalHint": "Calculated with estimated indices; it is corrected when the official value is published.",
   "missing": {
     "months": "Missing {indexes}: {periods}",
@@ -4282,7 +4284,8 @@
   },
   "summary": {
     "selected": "{count, plural, =0 {No adjustment selected} one {# adjustment selected} other {# adjustments selected}}",
-    "provisional": "{count, plural, one {# on account} other {# on account}}"
+    "provisional": "{count, plural, one {# on account} other {# on account}}",
+    "decreases": "{count, plural, one {# lowers the rent} other {# lower the rent}}"
   },
   "apply": {
     "button": "Apply {count, plural, one {# adjustment} other {# adjustments}}",
@@ -4290,6 +4293,7 @@
     "confirmTitle": "Apply the selected adjustments",
     "confirmBody": "The rent of {count, plural, one {# contract} other {# contracts}} will be updated.",
     "confirmProvisional": "{count, plural, one {# is} other {# are}} applied on account with estimated indices and will be corrected when the official value is published.",
+    "confirmRentDecrease": "{count, plural, one {# adjustment lowers the current rent} other {# adjustments lower the current rent}}: by applying you confirm they go through.",
     "confirmLabel": "Apply",
     "done": "{applied, plural, =0 {No adjustment was applied} one {# adjustment was applied} other {# adjustments were applied}}.",
     "doneSkipped": "{skipped, plural, one {# stayed pending} other {# stayed pending}}."
@@ -4302,6 +4306,7 @@
     "reasons": {
       "MISSING_INDEX_DATA": "Index data is missing",
       "NO_DUE_ADJUSTMENT": "It no longer has an adjustment due",
+      "RENT_DECREASE_REQUIRES_REVIEW": "The rent goes down: pick it and confirm to apply it",
       "CONTRACT_NOT_FOUND": "The contract was not found",
       "generic": "It could not be applied"
     }
