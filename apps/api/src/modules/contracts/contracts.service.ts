@@ -734,6 +734,11 @@ export class ContractsService {
       anchor ? anchor.periodNumber + 1 : 1,
     );
 
+    // Un contrato importado sin historial ni períodos aplicados trae el alquiler vigente a la
+    // fecha de la importación: lo vencido hasta entonces queda salteado, como al importarlo con
+    // fin real (`importedSchedule`), y no se ajusta dos veces (DEF-173).
+    const cutoff = lastAdjustment ? null : await this.importedWithoutAppliedPeriods(contract);
+
     for (const entry of newEntries) {
       await this.prisma.client.adjustmentSchedule.create({
         data: {
@@ -741,10 +746,24 @@ export class ContractsService {
           contractId: id,
           nextAdjustmentDate: entry.date,
           periodNumber: entry.periodNumber,
-          status: ScheduleStatus.Pending,
+          status:
+            cutoff && entry.date.getTime() <= cutoff.getTime() ? ScheduleStatus.Skipped : ScheduleStatus.Pending,
         },
       });
     }
+  }
+
+  /** Fecha de la importación del contrato si no tiene ningún período aplicado ni calculado; si no, `null`. */
+  private async importedWithoutAppliedPeriods(contract: {
+    id: string;
+    externalRef?: string | null;
+    createdAt?: Date;
+  }): Promise<Date | null> {
+    if (!contract.externalRef || !contract.createdAt) return null;
+    const resolved = await this.prisma.client.adjustmentSchedule.findFirst({
+      where: { contractId: contract.id, status: { in: [ScheduleStatus.Applied, ScheduleStatus.Calculated] } },
+    });
+    return resolved ? null : contract.createdAt;
   }
 
   // ─── Terminate ──────────────────────────────────────
