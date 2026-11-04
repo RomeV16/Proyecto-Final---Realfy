@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { IndexDataService } from './index-data.service';
@@ -98,7 +98,10 @@ export interface AdjustmentApplied {
   previousRent: string;
   newRent: string;
   deltaAmount: string;
+  /** Variación del índice. */
   percentage: string;
+  /** Variación real del alquiler sobre el vigente (`YY.YYYY`, en %). */
+  rentChangePct: string;
   estimatedPeriods: string[];
   adjustmentId: string | null;
 }
@@ -111,6 +114,10 @@ export interface AdjustmentSkipped {
   reason: string;
   indexTypes?: string[];
   missingPeriods?: string[];
+  /** `RENT_DECREASE_REQUIRES_REVIEW`: el alquiler vigente, el que quedaría y su variación. */
+  previousRent?: string;
+  newRent?: string;
+  rentChangePct?: string;
 }
 
 /**
@@ -151,6 +158,34 @@ export type AdjustmentAppliedListener = (event: AdjustmentAppliedEvent) => Promi
 export interface AdjustmentRun {
   applied: AdjustmentApplied[];
   skipped: AdjustmentSkipped[];
+}
+
+export const RENT_DECREASE_REQUIRES_REVIEW = 'RENT_DECREASE_REQUIRES_REVIEW';
+
+/**
+ * El ajuste dejaría un alquiler menor que el vigente. Que un ajuste pueda bajar el alquiler es una
+ * regla de dinero por confirmar: no se aplica en silencio, una persona lo aplica expresamente (DEF-175).
+ */
+export class RentDecreaseRequiresReviewError extends ConflictException {
+  constructor(
+    readonly previousRent: string,
+    readonly newRent: string,
+    readonly rentChangePct: string,
+  ) {
+    super({
+      error: RENT_DECREASE_REQUIRES_REVIEW,
+      message: 'The adjustment would lower the current rent; it must be applied explicitly after review',
+      previousRent,
+      newRent,
+      rentChangePct,
+    });
+  }
+}
+
+/** Variación del alquiler nuevo sobre el vigente, en % con cuatro decimales (0 si el vigente es 0). */
+export function rentChangePct(previous: Decimal, next: Decimal): string {
+  if (previous.isZero()) return new Decimal(0).toFixed(4);
+  return next.minus(previous).div(previous).times(100).toFixed(4);
 }
 
 /** El ajuste no se puede calcular: faltan los valores de uno o más índices. */
@@ -597,7 +632,14 @@ export class ContractAdjustmentService {
    */
   async applySchedule(
     schedule: { id: string; contractId: string; nextAdjustmentDate: Date; periodNumber: number; contract?: any },
-    context: { tenantId: string; source: string; userId?: string | null; allowProvisional?: boolean },
+    context: {
+      tenantId: string;
+      source: string;
+      userId?: string | null;
+      allowProvisional?: boolean;
+      /** Una persona confirmó que este ajuste baje el alquiler (DEF-175). */
+      allowRentDecrease?: boolean;
+    },
   ): Promise<AdjustmentApplied> {
     const appliedPeriod = schedule.nextAdjustmentDate.toISOString().slice(0, 7);
     let outcome!: AdjustmentApplied;
@@ -628,6 +670,12 @@ export class ContractAdjustmentService {
       const newRent = loaded.fixedInitial ? currentRent : result.newRent;
       const delta = newRent.minus(currentRent);
       const percentage = loaded.fixedInitial ? new Decimal(0) : result.percentage;
+      const changePct = rentChangePct(currentRent, newRent);
+      // Antes de escribir nada: la transacción se deshace y el cronograma sigue pendiente.
+      const lowersRent = newRent.lt(currentRent);
+      if (lowersRent && !context.allowRentDecrease) {
+        throw new RentDecreaseRequiresReviewError(currentRent.toString(), newRent.toString(), changePct);
+      }
 
       let adjustmentId: string | null = null;
       if (!loaded.fixedInitial) {
@@ -679,6 +727,8 @@ export class ContractAdjustmentService {
           newRent: newRent.toString(),
           delta: delta.toString(),
           percentage: percentage.toDecimalPlaces(4).toString(),
+          rentChangePct: changePct,
+          ...(lowersRent && { rentDecreaseConfirmed: true }),
           nextAdjustmentDate: nextDate.toISOString(),
           provisional: loaded.isProvisional,
           fixedInitial: loaded.fixedInitial,
@@ -697,6 +747,7 @@ export class ContractAdjustmentService {
         newRent: newRent.toString(),
         deltaAmount: delta.toDecimalPlaces(2).toString(),
         percentage: percentage.toDecimalPlaces(4).toString(),
+        rentChangePct: changePct,
         estimatedPeriods: [...new Set(loaded.estimated.map((e) => e.period))],
         adjustmentId,
       };
@@ -861,6 +912,26 @@ export class ContractAdjustmentService {
             reason: MISSING_INDEX_DATA,
             indexTypes: err.indexTypes,
             missingPeriods: err.missingPeriods,
+          });
+          continue;
+        }
+        if (err instanceof RentDecreaseRequiresReviewError) {
+          this.logger.warn(`${RENT_DECREASE_REQUIRES_REVIEW}: el ajuste baja el alquiler y espera revisión`, {
+            code: RENT_DECREASE_REQUIRES_REVIEW,
+            contractId,
+            tenantId,
+            scheduleId: schedule.id,
+            appliedPeriod,
+            rentChangePct: err.rentChangePct,
+          });
+          run.skipped.push({
+            contractId,
+            scheduleId: schedule.id,
+            appliedPeriod,
+            reason: RENT_DECREASE_REQUIRES_REVIEW,
+            previousRent: err.previousRent,
+            newRent: err.newRent,
+            rentChangePct: err.rentChangePct,
           });
           continue;
         }

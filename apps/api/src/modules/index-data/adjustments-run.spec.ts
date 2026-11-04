@@ -5,7 +5,7 @@ import { AdjustmentBatchService } from './adjustment-batch.service';
 import { AdjustmentTrueUpService } from './adjustment-trueup.service';
 import { AdjustmentsController } from './adjustments.controller';
 import { AdjustmentsScheduler } from './adjustments.scheduler';
-import { ContractAdjustmentService, MissingIndexDataError } from './contract-adjustment.service';
+import { ContractAdjustmentService, MissingIndexDataError, RentDecreaseRequiresReviewError } from './contract-adjustment.service';
 import { makeTenantCron } from '../../common/scheduler/tenant-cron.testing';
 
 const utc = (s: string) => new Date(`${s}T00:00:00.000Z`);
@@ -230,9 +230,7 @@ describe('AdjustmentBatchService', () => {
 
   it('CP-1452: una baja sólo se aplica si se la confirma por contrato', async () => {
     const h = build([schedule(), schedule({ id: 's2', contractId: 'c2', contract: contract({ id: 'c2' }) })]);
-    const { ConflictException } = jest.requireActual('@nestjs/common');
-    const blocked = new ConflictException({ error: 'RENT_DECREASE_REQUIRES_REVIEW', message: 'x' });
-    Object.assign(blocked, { previousRent: '100000', newRent: '90000', rentChangePct: '-10.0000' });
+    const blocked = new RentDecreaseRequiresReviewError('100000', '90000', '-10.0000');
     h.adjustments.applySchedule
       .mockRejectedValueOnce(blocked)
       .mockResolvedValueOnce({ status: 'applied', previousRent: '100000', newRent: '90000', rentChangePct: '-10.0000', estimatedPeriods: [] });

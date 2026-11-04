@@ -12,6 +12,11 @@ export const ApplyAdjustmentBatchSchema = z
   .object({
     period,
     contractIds: z.array(z.string().min(1)).min(1).max(500),
+    /**
+     * Contratos (de `contractIds`) cuyo ajuste baja el alquiler y la persona confirma expresamente.
+     * Sin la confirmación el ajuste que baja el alquiler no se aplica (`RENT_DECREASE_REQUIRES_REVIEW`).
+     */
+    confirmRentDecrease: z.array(z.string().min(1)).max(500).optional(),
   })
   .strict();
 export type ApplyAdjustmentBatchInput = z.infer<typeof ApplyAdjustmentBatchSchema>;
@@ -42,7 +47,12 @@ export interface AdjustmentPreviewRow {
   currency: string;
   currentRent: string;
   newRent: string | null;
+  /** Variación del índice (no la del alquiler: con base Original pueden diferir). */
   percentage: string | null;
+  /** Variación real del alquiler nuevo sobre el vigente, en %. */
+  rentChangePct: string | null;
+  /** El alquiler nuevo es menor que el vigente: no se elige por defecto y se aplica sólo confirmado. */
+  rentDecrease: boolean;
   /** Nuevo alquiler sobre el actual. */
   factor: string | null;
   status: AdjustmentRowStatus;
@@ -71,10 +81,12 @@ export interface AdjustmentApplyResult {
   result: 'applied' | 'skipped' | 'error';
   /** `applied`, `provisional` o `fixed_initial` si se aplicó. */
   status: string | null;
-  /** Por qué se salteó o falló: `MISSING_INDEX_DATA`, `NO_DUE_ADJUSTMENT`, `CONTRACT_NOT_FOUND`, `CONFLICT`, etc. */
+  /** Por qué se salteó o falló: `MISSING_INDEX_DATA`, `NO_DUE_ADJUSTMENT`, `CONTRACT_NOT_FOUND`, `RENT_DECREASE_REQUIRES_REVIEW`, `CONFLICT`, etc. */
   reason: string | null;
   previousRent: string | null;
   newRent: string | null;
+  /** Variación real del alquiler sobre el vigente, en %; también cuando se saltea por `RENT_DECREASE_REQUIRES_REVIEW`. */
+  rentChangePct: string | null;
   estimatedPeriods: string[];
   missingPeriods: string[];
   indexTypes: string[];

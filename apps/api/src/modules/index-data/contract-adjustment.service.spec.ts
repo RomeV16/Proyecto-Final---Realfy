@@ -544,7 +544,7 @@ describe('ContractAdjustmentService', () => {
 
       const result = await service.applyDueAdjustments('tenant-1');
 
-      expect(result.applied[0]).toMatchObject({ percentage: '10.0000', rentChangePct: '10.0000' });
+      expect(result.applied[0]).toMatchObject({ percentage: '10', rentChangePct: '10.0000' });
     });
 
     it('CP-1448: el proceso diario no aplica en silencio un ajuste que baja el alquiler', async () => {
@@ -578,7 +578,7 @@ describe('ContractAdjustmentService', () => {
         allowRentDecrease: true,
       } as any);
 
-      expect(applied).toMatchObject({ newRent: '45000', percentage: '-10.0000', rentChangePct: '-10.0000' });
+      expect(applied).toMatchObject({ newRent: '45000', percentage: '-10', rentChangePct: '-10.0000' });
       expect(mockTxContractUpdate).toHaveBeenCalledWith({ where: { id: 'contract-1' }, data: { rentAmount: '45000' } });
       expect(mockAuditRecord.mock.calls[0][1].metadata).toMatchObject({ rentDecreaseConfirmed: true, rentChangePct: '-10.0000' });
     });
