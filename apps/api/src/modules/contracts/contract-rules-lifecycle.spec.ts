@@ -235,4 +235,80 @@ describe('ContractsService — fin real y reglas al editar', () => {
     const created = client.adjustmentSchedule.create.mock.calls.map((c: any) => c[0].data.periodNumber);
     expect(created).toEqual([3, 4, 5]);
   });
+
+  describe('DEF-173: prórroga de un contrato importado sin historial', () => {
+    const IMPORTED = {
+      ...EXISTING,
+      externalRef: 'IMP-1',
+      createdAt: new Date('2026-11-04T12:00:00.000Z'),
+      startDate: new Date('2024-10-01T00:00:00.000Z'),
+      endDate: new Date('2026-09-30T00:00:00.000Z'),
+      actualEndDate: new Date('2027-10-31T00:00:00.000Z'),
+    };
+    const SKIPPED_ROW = {
+      periodNumber: 7,
+      nextAdjustmentDate: new Date('2026-07-01T00:00:00.000Z'),
+      status: 'Skipped',
+    };
+
+    /** Cronograma: sólo períodos salteados al importar, salvo que se indique un aplicado. */
+    function withSchedule(client: any, applied: unknown = null) {
+      client.adjustmentSchedule.findFirst.mockImplementation(async (args: any) =>
+        args.where.status?.not ? SKIPPED_ROW : applied,
+      );
+    }
+
+    const created = (client: any) =>
+      client.adjustmentSchedule.create.mock.calls.map((c: any) => [
+        c[0].data.periodNumber,
+        c[0].data.nextAdjustmentDate.toISOString().slice(0, 10),
+        c[0].data.status,
+      ]);
+
+    it('CP-1440: el período anterior a la importación queda salteado y el primer pendiente es posterior', async () => {
+      const { service, client } = build(IMPORTED);
+      withSchedule(client);
+
+      await service.rebuildPendingSchedule(CONTRACT_ID);
+
+      expect(created(client)).toEqual([
+        [8, '2026-10-01', 'Skipped'],
+        [9, '2027-01-01', 'Pending'],
+        [10, '2027-04-01', 'Pending'],
+        [11, '2027-07-01', 'Pending'],
+        [12, '2027-10-01', 'Pending'],
+      ]);
+    });
+
+    it('CP-1441: con un período aplicado en el cronograma los pendientes no se saltean', async () => {
+      const { service, client } = build(IMPORTED);
+      withSchedule(client, { periodNumber: 6, status: 'Applied' });
+
+      await service.rebuildPendingSchedule(CONTRACT_ID);
+
+      expect(created(client).map((c: any) => c[2])).toEqual(['Pending', 'Pending', 'Pending', 'Pending', 'Pending']);
+    });
+
+    it('CP-1442: con historial de ajustes los períodos atrasados siguen pendientes', async () => {
+      const { service, client } = build(IMPORTED);
+      withSchedule(client);
+      client.contractAdjustment.findFirst.mockResolvedValue({
+        periodNumber: 9,
+        adjustmentDate: new Date('2026-07-01T00:00:00.000Z'),
+      });
+
+      await service.rebuildPendingSchedule(CONTRACT_ID);
+
+      expect(created(client)[0]).toEqual([10, '2026-10-01', 'Pending']);
+    });
+
+    it('CP-1443: un contrato que no viene de una importación conserva sus pendientes atrasados', async () => {
+      const { service, client } = build({ ...IMPORTED, externalRef: null });
+      withSchedule(client);
+
+      await service.rebuildPendingSchedule(CONTRACT_ID);
+
+      expect(created(client)[0]).toEqual([8, '2026-10-01', 'Pending']);
+    });
+  });
 });
