@@ -69,3 +69,33 @@ La suite de reconciliación del ítem 45 (#103) verifica el objetivo específico
 | DEF-72 | Compensación en el estado de cuenta (FB-10; ítem 37) | `/compensations` (`date`) | CP-667 | CP-662 |
 | DEF-73 | Cobro del primer mes de un contrato nuevo (FB-06; ítem 36) | `/liquidaciones/:id/payments`, `/compensations` | CP-666 | CP-668 |
 
+## Migración y obtención automática de boletas
+
+Los pedidos de la oleada 6 no nacen de un hallazgo nuevo del relevamiento sino de completar lo que los hallazgos FB-04 (importar la cartera) y FB-08 (impuestos y servicios con reglas de traslado) ya exigían. La tabla los une con su caso de uso, la decisión y los casos de prueba; el estado de cada paso de la migración está en `32-migracion.md`.
+
+| Operación | FB de origen | CU | ADR | PR | Endpoint | CP |
+|---|---|---|---|---|---|---|
+| Servicios y reglas de traslado en el lote de importación (M8) | FB-04, FB-08 | CU-34 (modificado) | ADR-0015, ADR-0008 | #187 | `/import/batches` con `services[]` y `chargeRules[]` | CP-817 a CP-822 |
+| Proveedor y cuenta normalizada del servicio | FB-08 | CU-34 (modificado); CU-50 | ADR-0018 | #227 | `/import/batches` (`providerKey`), `/services` | CP-1320 a CP-1328 |
+| Formulario web de servicios e impuestos de la propiedad | FB-08 | CU-33 (modificado) | ADR-0018 | #231 | `/services`, `/services/:id` (reactivar con `isActive`) | CP-1370 a CP-1382 |
+| Consumo por unidad en la carga de boletas y vista previa del reparto | FB-08 | CU-33 (modificado) | ADR-0008 | #198 | `/service-bills/preview`, `/service-bills/sheet`, `/service-bills/bulk` | CP-1130 a CP-1152 |
+| Obtención automática de boletas: catálogo, lectores, circuito, archivo, mail y consulta | FB-08 | CU-50 (nuevo) | ADR-0018 | #193 | `/bills-intake/documents`, `/bills-intake/documents/:id`, `/bills-intake/documents/:id/accept`, `/bills-intake/documents/:id/reject`, `/bills-intake/email-ingest` | CP-1000 a CP-1015 |
+| Pantalla de boletas recibidas y configuración de la obtención automática | FB-08 | CU-50 | ADR-0018 | #229 | los de `/bills-intake`; valores por defecto (`billFetching`) | CP-1340 a CP-1369 |
+| Recepción de mails con Cloudflare Email Routing y un Worker (activa en el ambiente piloto desde el 4/11) | FB-08, FB-18 | CU-50; CU-49 | ADR-0018, ADR-0013 | #234 | `/bills-intake/email-ingest`, `/inbox/email-ingest` | CP-1410 a CP-1429 |
+| Boletas por mail de remitentes automáticos | FB-08, FB-18 | CU-50 | ADR-0018 | #236 | `/bills-intake/email-ingest` | CP-1430 a CP-1435 |
+
+## Ensayo general del primer ciclo y defectos que encontró
+
+Los dos ensayos generales sobre una copia de la cartera (`../calidad/12-piloto.md`, sección 10) verifican, con datos reales y fuera del repositorio, el mismo objetivo que la suite sintética. Cada problema que encontraron queda unido al hallazgo cuya regla rompía, a la operación que corrige y a los casos que lo cubren. Los defectos de la tabla están en `../calidad/06-registro-de-defectos.md`; los de E1 y E2 (DEF-173 a DEF-176) están en el registro desde #242.
+
+| Problema | Defecto | Operación (FB, ítem) | Endpoint | CP |
+|---|---|---|---|---|
+| D1: aplicar un ajuste no ve los índices de sistema | DEF-115 | Aplicación de ajustes (FB-13 y FB-23; ítem 34) | `/adjustments/apply-batch`, `/adjustments/_run-now` | CP-1200 a CP-1204 |
+| D2: ICL y UVA con la serie incompleta, y sin carga del histórico | DEF-120, DEF-121 | Índices y ajuste (FB-13 y FB-25; ítem 34) | `/adjustments/preview-batch`, `/index-data/backfill` | CP-1220 a CP-1236 |
+| D3, D4 y D9: el importador desalinea el cronograma de ajustes | DEF-125 a DEF-129 | Importación del historial de ajustes (FB-04; ítem 39) | `/import/batches` | CP-1240 a CP-1257 |
+| D5: la generación del mes no incluye el ajuste que rige desde el día 1 | DEF-130 a DEF-134 | Generación anticipada y ajuste (FB-07 y FB-13; ítem 35) | `/liquidaciones/generate`, aprobación de la liquidación | CP-1260 a CP-1272 |
+| D6, D7 y D8: prórroga de palabra, lote por contrato y ventana del primer ajuste | DEF-135 a DEF-137 | Prórroga y aplicación masiva (FB-05 y FB-23; ítems 34 y 40) | `/contracts/:id/oral-extension`, `/adjustments/apply-batch` | CP-1280 a CP-1288 |
+| D10 y D11: avisos de boleta en otra moneda, alquiler cero, consumo faltante y ajuste sin porcentaje | DEF-140 a DEF-143 | Boletas, liquidación e importación (FB-08 y FB-04; ítems 35 y 39) | `/service-bills/bulk`, `/service-bills/unbilled`, `/liquidaciones/generate`, `/import/batches` | CP-1300 a CP-1313 |
+| E1 y E2: prórroga sin historial y ajuste que baja el alquiler | DEF-173 a DEF-176 | Prórroga y ajuste (FB-05 y FB-13; ítems 34 y 40) | `/contracts/:id/oral-extension`, `/adjustments/preview-batch` | CP-1440 a CP-1457 |
+
+Fuera del ensayo, el defecto DEF-105 a DEF-107 salió de verificar de punta a punta el reparto por consumo (CP-1130 a CP-1152), y el DEF-170 y el DEF-171, de preparar la recepción de mails (CP-1430 a CP-1435).

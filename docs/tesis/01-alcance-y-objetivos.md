@@ -65,16 +65,17 @@ El piloto agrega al alcance lo que la inmobiliaria necesita para dejar sus plani
 | Personas con documento, domicilio y varias cuentas bancarias; locadores por contrato con porcentaje de cobro y vigencia; apoderados; titularidad separada | 33 | Implementado |
 | Activación del contrato; reglas versionadas con acuerdos fechados y valores por defecto de la inmobiliaria; fin real y prórroga de palabra; ajuste con rezago, estimado y corrección, y aplicación de los ajustes del mes | 34 | Implementado |
 | Liquidación completa: generación anticipada con prorrateo y vencimiento pactado, boletas de impuestos y servicios con reglas de traslado, centro de carga, punitorios dentro de la liquidación, recibo numerado con monto en letras | 35 | Implementado |
-| Importación idempotente desde el sistema anterior y panel de calidad de datos | 39 | Implementado; la carga de la cartera real está hecha y su revisión con la inmobiliaria sigue en curso |
+| Importación idempotente desde el sistema anterior, con servicios y reglas de traslado, y panel de calidad de datos | 39 | Implementado; la carga de la cartera real y de sus servicios está hecha y su revisión con la inmobiliaria sigue en curso (saldos, plantillas y ventas, en `32-migracion.md`) |
 | Caja operativa, cobro en tres flujos, efectivo en custodia y compensaciones | 36 | Implementado |
-| Cuenta corriente y estado de cuenta consolidado por locador | 37 | Planificado (oleada 3) |
-| Facturación electrónica por cuenta del locador | 38 | Planificado (oleada 4) |
-| Vencimientos con semáforo, renovación como período del contrato, depósitos y liquidación de egreso | 40 | Planificado (oleada 4) |
-| Honorarios de alta, renovación, venta y tasación, y comisiones del personal | 41 | Planificado (oleada 4) |
-| Incidencias y reparaciones con preautorización, presupuesto e imputación | 42 | Planificado (oleada 4) |
-| Correo con dominio propio, mensajería instantánea con consentimiento, bandeja de consultas y cobranza escalonada | 43 | Planificado (oleadas 4 y 5) |
-| Operación de venta hasta el boleto (reserva y seña), registro de llaves y publicación asistida en portales | 44 | Planificado (oleada 5) |
-| Ciclos en paralelo, reconciliación y métricas del piloto | 45 | Pendiente: línea base y primer ciclo en sombra alrededor del 20/11/2026 |
+| Cuenta corriente y estado de cuenta consolidado por locador | 37 | Implementado |
+| Facturación electrónica por cuenta del locador | 38 | Implementado |
+| Vencimientos con semáforo, renovación como período del contrato, depósitos y liquidación de egreso | 40 | Implementado |
+| Honorarios de alta, renovación, venta y tasación, y comisiones del personal | 41 | Implementado |
+| Incidencias y reparaciones con preautorización, presupuesto e imputación | 42 | Implementado |
+| Correo con dominio propio, mensajería instantánea con consentimiento, bandeja de consultas y cobranza escalonada | 43 | Implementado; la mensajería está apagada en el ambiente piloto y la recepción de mails está activa desde el 4/11/2026 |
+| Operación de venta hasta el boleto (reserva y seña), registro de llaves y publicación asistida en portales | 44 | Implementado |
+| Obtención automática de boletas de servicios e impuestos por PDF, mail y consulta, con catálogo de proveedores y revisión (oleada 6, dentro de los ítems 35 y 39) | 35, 39 | Implementado; los lectores de electricidad y gas y el conector de consulta quedan pendientes |
+| Ciclos en paralelo, reconciliación y métricas del piloto | 45 | En curso: dos ensayos generales hechos sobre una copia; línea base y primer ciclo en sombra alrededor del 20/11/2026 |
 
 ## Exclusiones
 

@@ -114,17 +114,20 @@ Desde S15 el ritmo lo marca el ciclo mensual de la inmobiliaria y no la quincena
 | C3 | ≈ 20/01/2027 | La inmobiliaria opera en Realfy con su sistema actual de respaldo | Oleada 4 | Métricas antes y después; feedback y defectos del uso |
 | C4 | ≈ 20/02/2027 | Realfy es el sistema principal | Oleada 5 | Cierre del piloto |
 
+**Estado real al 4/11/2026.** Después de las seis oleadas se agregó la oleada 6, de migración completa y obtención automática de boletas (`04-backlog.md`, «Oleada 6»), y se hicieron dos ensayos generales del primer ciclo (`../calidad/12-piloto.md`, sección 10), que movieron el trabajo de S15 de «esperar el C1» a «llegar al C1 con las boletas, los índices y las prórrogas cargados». Lo que sigue en este párrafo es el estado al 3/11, que se conserva.
+
 **Estado real al 3/11/2026.** El desarrollo se adelantó a este calendario: entre el 31/10 y el 3/11/2026 se integraron completas las oleadas 3, 4 y 5, con lo que todas las oleadas de desarrollo quedaron entregadas. Los ciclos C2 a C4 ya no esperan desarrollo nuevo: dependen de los resultados de cada ciclo, de las correcciones que produzca el uso real y de habilitaciones externas (dominio de correo, cuenta de WhatsApp y confirmaciones del contador y del abogado). Los sprints S15 a S22 se reescriben con ese estado; la versión anterior, que ubicaba las oleadas 4 y 5 entre diciembre y febrero, se reemplaza y el adelanto se declara como desvío en `29-informe-final.md`, sección 9.8.
 
 ### S15 replanificado: 02/11/2026 a 13/11/2026
 
 - Plan: 36 (caja y cobros), 37 (cuenta corriente del locador), 39 (carga de la cartera real en `piloto` y su revisión con la inmobiliaria), 45 (suite de reconciliación con casos sintéticos), 46 (documentación del piloto).
 - Estado real al 03/11: hecho, y además las oleadas 4 y 5 completas. Integrados 36 (#161), 37 (#165), 39 (#155, #160), 45 en su parte sintética (#177), 38 (#170), 40 (#166, #169), 41 (#168), 42 (#167), 43 (#172, #181, #183) y 44 (#178, #180). Cartera real cargada el 02/11 y restauración de su copia medida (unos 3 segundos para la base).
-- Resto del sprint: desplegar en `piloto` lo integrado después del último despliegue (la cobranza escalonada y la bandeja de consultas), con su copia previa; cerrar con la inmobiliaria la lista de revisión de la carga y reenviar el lote (39); 46 (informe final, Hito 4 y este plan con el estado real).
+- Resto del sprint al 3/11: desplegar en `piloto` lo integrado después del último despliegue (la cobranza escalonada y la bandeja de consultas), con su copia previa; cerrar con la inmobiliaria la lista de revisión de la carga y reenviar el lote (39); 46 (informe final, Hito 4 y este plan con el estado real).
+- Estado real al 04/11: desplegado todo lo integrado (oleadas 0 a 6, de 64 a 71 migraciones, con su copia previa y el ensayo de migraciones; el último despliegue, el 4/11, incluyó #197, #199, #229, #234 y #242). Hechos además la carga de servicios y reglas (M8), las correcciones de datos desde los documentos de contrato, el histórico de ICL y UVA, el dominio propio del producto, y dos ensayos generales del ciclo con veinticuatro defectos corregidos o en corrección. El 4/11 se integraron además el saldo inicial de custodia (#197), las plantillas completas (#199), el Worker de recepción de mails (#234, activo en el ambiente piloto desde ese día) y la prórroga sin historial (#242). Queda para antes del C1: decidir la regla de redondeo, confirmar con la inmobiliaria los saldos propuestos y los contratos con ajuste retenido, y cargar las boletas de diciembre.
 
 ### S16 replanificado: 16/11/2026 a 30/11/2026
 
-- Ítems: 45 (línea base y C1 en sombra, ≈ 20/11), correcciones que salgan de la reconciliación, 46 (resultado del C1 en el informe final y en el Hito 4).
+- Ítems: 45 (línea base y C1 en sombra, ≈ 20/11), correcciones que salgan de la reconciliación, 46 (resultado del C1 en el informe final y en el Hito 4). Antes del 21/11, cuando corre el proceso diario que genera diciembre: índice de octubre en la serie, previsualización de los ajustes del mes, boletas de diciembre cargadas y prórrogas registradas.
 - Entregable de hito: Hito 4 el 30/11, con el piloto en curso: relevamiento, plan, oleadas 0 a 5, línea base, C1 y registro de feedback hasta esa fecha.
 
 ### S17: 01/12/2026 a 11/12/2026
