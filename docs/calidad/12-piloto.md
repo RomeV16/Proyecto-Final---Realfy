@@ -2,13 +2,13 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.1 |
-| Fecha | 3 de noviembre de 2026 |
+| Versión | 1.2 |
+| Fecha | 4 de noviembre de 2026 |
 | Alcance | El ciclo mensual de alquileres de la inmobiliaria piloto reproducido en el ambiente `piloto`: ajustes, boletas, cargos, punitorios, liquidaciones, cobros y estados de cuenta |
 | Requisitos cubiertos | Objetivos específicos del piloto (`../tesis/30-piloto.md`); ítem 45 del cronograma (#103) |
 | Casos de uso | CU-08, CU-09, CU-10, CU-11, CU-13, CU-30, CU-31, CU-33 y el que agregue el ítem 37 |
 | Ambiente | `piloto`, con datos reales; la evidencia vive fuera del repositorio |
-| Historial | 1.0: versión inicial, antes de la línea base y del primer ciclo. 1.1: suite de reconciliación sintética (sección 9) y procedimiento del C1 con la versión privada |
+| Historial | 1.0: versión inicial, antes de la línea base y del primer ciclo. 1.1: suite de reconciliación sintética (sección 9) y procedimiento del C1 con la versión privada. 1.2: dos ensayos generales del C1 sobre una copia de `piloto` y procedimiento del C1 ajustado con lo que mostraron (sección 10) |
 
 ## 1. Qué se prueba y qué no
 
@@ -103,7 +103,7 @@ Una diferencia no queda «explicada» por tener una hipótesis: queda explicada 
 
 - **Fuera del repositorio.** Los totales del sistema actual, las exportaciones de Realfy, el informe de diferencias y las notas de análisis de cada ciclo se guardan en el almacenamiento privado del equipo, con acceso restringido, junto con el resto de los datos del piloto. Nunca se suben al repositorio, ni siquiera parcialmente o anonimizados a mano.
 - **En el repositorio.** Solo los registros que el procedimiento genera —defectos y hallazgos, redactados como reglas generales sin nombres ni importes— y, por ciclo, un resumen agregado: cantidad de contratos comparados, cantidad de diferencias por categoría de la sección 5 y cuántas quedaron abiertas.
-- **Consentimiento.** La publicación de esos resúmenes agregados en el repositorio y en la tesis requiere el consentimiento de la inmobiliaria, que está pendiente (`../privacidad-datos.md`, «Anonimización para la tesis»). Hasta tenerlo, el repositorio registra solo que el ciclo se hizo, su fecha y los FB y DEF que generó; los agregados se guardan con el resto de la evidencia y se publican si el consentimiento llega.
+- **Consentimiento.** La publicación de esos resúmenes agregados en el repositorio y en la tesis requiere el consentimiento de la inmobiliaria, que está pendiente (`../privacidad-datos.md`, «Anonimización para la tesis»). Hasta tenerlo, el repositorio registra solo que el ciclo se hizo, su fecha y los FB y DEF que generó; los agregados se guardan con el resto de la evidencia y se publican si el consentimiento llega. Los dos ensayos generales previos al C1 (sección 10) no son un ciclo: se corrieron sobre una copia, sin que nadie de la inmobiliaria operara el sistema, y se informan con cantidades y porcentajes agregados, sin nombres, importes ni identificadores de contratos. Su publicación sigue sujeta al mismo consentimiento: si la inmobiliaria no lo da, se retiran de este documento y del informe final.
 
 ## 7. Métricas por ciclo
 
@@ -175,3 +175,94 @@ Procedimiento del C1 (liquidación de diciembre, ≈ 20 de noviembre de 2026):
 5. Se revisa cada diferencia con la dirección de la inmobiliaria y se le asigna su causa.
 6. Cada diferencia distinta de cero queda registrada como FB o DEF (sección 5); una que revele una regla general suma además un contrato al caso sintético.
 
+## 10. Ensayos generales previos al C1
+
+El C1 es la primera reconciliación con datos reales y no admite repetirse (un ciclo que no cumple la salida se informa como está, sección 3). Por eso, antes de generar nada en `piloto`, se ensayó dos veces, el 3 y el 4 de noviembre, lo que el sistema haría el día del C1. Los ensayos no reemplazan al C1: dicen qué diferencias tendría si se corriera hoy y permitieron corregir antes lo que era un defecto de Realfy. Todos los resultados son cantidades y porcentajes; la evidencia detallada (planilla, reportes por contrato, respuestas de la API) vive fuera del repositorio.
+
+### Método
+
+1. **Copia restaurada.** Se restauró en una base local la copia lógica más reciente de `piloto`, con su suma de verificación (la del 3/11 para el primer ensayo, con el código desplegado entonces; la posterior al despliegue de las correcciones, para el segundo). Nunca se llamó a la API ni a la base del ambiente.
+2. **API local en modo prueba.** El código de `main` corrió con los procesos programados apagados y la mensajería apagada, con un administrador local que se borró con la base.
+3. **Resultado esperado guardado antes.** Se usó como referencia la planilla de liquidación de octubre, la más reciente con la liquidación hecha, con su huella. No existe todavía el libro de noviembre ni el de diciembre.
+4. **Mismo comparador del C1.** La herramienta de reconciliación del C1 (sección 9, «Versión con datos reales») sin cambios, con tolerancia cero.
+5. **Dos períodos.** Octubre se genera como borrador y se compara con la planilla. Diciembre, que es el período del C1, no tiene planilla: se simula lo que harían los procesos diarios (índices, ajustes y generación) y se contrasta, contrato por contrato, con lo que la práctica de la inmobiliaria hace en noviembre y diciembre según su base.
+6. **Supuestos declarados.** El IPC de octubre se supuso igual al de septiembre, porque el INDEC lo publica alrededor del 12/11; las boletas de diciembre se supusieron con el importe de la ficha de cada servicio; y las prórrogas de palabra del segundo ensayo usaron una fecha inventada. Los importes de ajuste de diciembre son por eso ficticios; los meses y la mecánica no.
+
+### Primer ensayo (C0, 3 de noviembre)
+
+Octubre se generó como borrador para todos los contratos que liquidan ese mes y se comparó con la planilla. Resultados cuantitativos (contratos comparados, coincidencias al centavo y sin contar impuestos, contratos con diferencia): **a completar tras el consentimiento de la inmobiliaria**. Lo que sí se puede decir en general, porque describe el método y el tipo de diferencia y no la cartera:
+
+| Tipo de diferencia | Resultado |
+|---|---|
+| Alquiler, comisión, cargos y punitorios | Reproducen la planilla al centavo en todos los contratos comparados |
+| Impuestos y servicios | Casi toda la diferencia: las boletas todavía no estaban cargadas (paso M9 de la migración), y las reglas de traslado de M8 rigen desde el 1/11 |
+| Datos | Dos contratos fuera de la comparación por datos: un canon pactado en UVA cargado en cero y un contrato que empieza después de octubre |
+| Regla distinta o error del sistema | Ninguno en octubre |
+
+Diciembre, si no se hacía nada hasta el proceso diario del 21/11: ningún contrato ajusta, porque ningún ajuste podía aplicarse (D1). La coincidencia al centavo proyectada era muy baja; con una coordinación manual simulada, con rodeos para sortear los defectos, mejoraba pero seguía sin reproducir una parte importante de los ajustes de la práctica (cifras: a completar tras el consentimiento de la inmobiliaria).
+
+| Defecto | Gravedad | Descripción técnica | DEF |
+|---|---|---|---|
+| D1 | Bloqueante | Aplicar un ajuste no ve los índices de sistema: la extensión de aislamiento pisa el filtro de la inmobiliaria y del sistema dentro de una transacción; la previsualización lo da por listo y la aplicación lo saltea. En `piloto`, donde todos los índices son de sistema, ningún ajuste se podía aplicar | DEF-115 |
+| D2 | Alta | Las series de nivel (ICL y UVA) se calculan con la serie incompleta, sin aviso; la serie de sistema solo tenía los últimos dos meses y faltaba cargar el histórico | DEF-120, DEF-121 |
+| D3, D4, D9 | Alta | El importador empareja historial y cronograma por número de período sin mirar la fecha, deja salteados los períodos vencidos que no se pueden aplicar nunca, y al reenviar el lote no reconstruye el cronograma | DEF-125 a DEF-129 |
+| D5 | Alta | La generación anticipada del mes no incluye el ajuste que rige desde el día 1: el mes se perdía y el siguiente salía ajustado | DEF-130 a DEF-134 |
+| D6, D7, D8 | Alta | La prórroga de palabra de un contrato importado crea períodos ya cubiertos por el historial, un error en un contrato corta el lote entero, y sin cronograma aplicado el primer ajuste acumula la inflación desde el inicio del contrato | DEF-135 a DEF-137 |
+| D10, D11 | Media y baja | Silencios: una boleta en otra moneda que el contrato nunca se factura, la liquidación con alquiler cero, el consumo faltante en un edificio con reparto por consumo, y un ajuste personalizado sin porcentaje | DEF-140 a DEF-143 |
+
+Los once problemas, registrados como veinte defectos, se corrigieron en seis pedidos paralelos, cada uno con su regresión en rojo, y se integraron el 3/11 (`../calidad/06-registro-de-defectos.md`).
+
+### Segundo ensayo (C0b, 3 y 4 de noviembre)
+
+Se repitió con la copia posterior al despliegue de los arreglos de ajustes y de la carga del histórico de ICL y UVA, que incluye el reenvío del lote de contratos con sus correcciones. Octubre dio lo mismo que en el primer ensayo: ninguna regresión, y una diferencia nueva que es dato y no código, porque la generación ahora aplica los ajustes pendientes del mes y el importador ya no deja salteados los períodos posteriores al último ajuste del historial (DEF-126, DEF-130).
+
+| Tema | Primer ensayo | Segundo ensayo |
+|---|---|---|
+| Ajustes sin hacer nada | Ninguno se aplica (D1) | Se aplican solos por los procesos diarios; el proceso programado reproduce el lote por API |
+| Mes de ajuste de la práctica reproducido | Ninguno sin hacer nada; una parte con todos los rodeos manuales | Una parte sin hacer nada y la gran mayoría con la prórroga de palabra registrada por API, sin rodeos (cifras: a completar tras el consentimiento de la inmobiliaria) |
+| Ajustes salteados al importar que la práctica sí aplica | Varios | Ninguno fuera de los contratos con historial inválido |
+| ICL y UVA | Porcentajes falsos con la serie de dos meses | Histórico completo y porcentajes coherentes |
+| Prórroga de palabra | 409, períodos duplicados, ajuste que acumulaba la inflación desde el inicio | Sin errores, con un defecto nuevo (E1) |
+| Generación del mes | Sin el ajuste y sin aviso | Aplica antes de liquidar; avisa en los que no puede (`ADJUSTMENT_PENDING`) |
+| Impuestos | Sin boletas: difieren los contratos con impuestos | Igual: M9 todavía no está cargado |
+
+**Coincidencia estimada del C1 por escenario.** Se estimó para cuatro escenarios: A (sin hacer nada) y B (con las prórrogas registradas), cada uno sin boletas y con las boletas de diciembre cargadas. Un contrato cuenta como *igual* si ningún lado ajusta en noviembre o diciembre y Realfy repite el alquiler de la planilla; como *a validar* si el mes de ajuste coincide con la práctica (el monto depende del redondeo y del IPC real, que entra igual en los dos lados), y como *distinto* si la práctica ajusta y Realfy no, o al revés. Para dar un número puntual se aplica la tasa de coincidencia al centavo de los ajustes de IPC históricos con la fórmula de Realfy, medida en el primer ensayo. Los porcentajes y rangos por escenario son **a completar tras el consentimiento de la inmobiliaria**.
+
+La conclusión cualitativa es publicable: la estimación sube mucho al cargar las boletas, y lo que más la mueve ya no es Realfy sino tres datos: **las boletas** (M9), **las prórrogas** de los contratos con fin pactado vencido y **la regla de redondeo** del alquiler ajustado, de la que depende la mayoría de los contratos «a validar». Es una estimación sobre supuestos, no el resultado del C1.
+
+Defectos nuevos del segundo ensayo, en el pedido #242 (abierto al 4/11):
+
+| Defecto | Gravedad | Descripción técnica | DEF |
+|---|---|---|---|
+| E1 | Media | La prórroga de palabra de un contrato importado sin historial deja pendiente un período anterior a la importación, y el proceso diario lo aplica además del siguiente: doble ajuste | DEF-173 |
+| E2 | Baja | Con base de ajuste original el ajuste puede bajar el alquiler sin aviso, y el porcentaje informado es el del índice y no el del alquiler | DEF-174 a DEF-176 |
+
+El segundo ensayo se corrió sin las correcciones de D10 y D11, que se integraron después (#222): con ellas, los veinte defectos del primer ensayo están corregidos en `main` al 4/11. Los dos nuevos se registran en `06-registro-de-defectos.md` con su pedido. Queda anotado, para corregirlo en la herramienta antes del C1, que la herramienta de reconciliación toma como vacante una fila sin alquiler aunque cobre impuestos y suma dólares y pesos en el total de la planilla.
+
+### Qué se hizo antes del 4/11
+
+- **Despliegue conjunto.** Las correcciones de índices, cronograma, prórroga y ventana se integraron y desplegaron juntas el 3/11, con copia previa y ensayo de las migraciones sobre una copia restaurada, y no por separado: con solo la corrección de D1 el proceso diario habría empezado a aplicar ajustes sobre cronogramas que todavía estaban mal.
+- **Datos.** Se cargó el histórico de ICL y UVA y se reenvió el lote de contratos con las correcciones de los documentos (`../tesis/32-migracion.md`).
+- **Ajustes retenidos.** Antes del proceso de ajustes del 4/11 a las 07:00, el segundo ensayo mostró que se aplicarían ajustes que la práctica no hizo: unos de un contrato cuyo historial no coincide con su tipo de índice, y otros de un contrato cuyo documento y cuyo lote difieren en la periodicidad. Se marcaron como salteados en `piloto`, dentro de una transacción verificada, y quedan así hasta confirmar con la inmobiliaria qué ajuste corresponde; el lote no se reenvía sobre ellos mientras tanto. Los otros ajustes de noviembre coinciden en el mes con la práctica.
+
+### Reglas de dinero que los ensayos dejaron abiertas
+
+Todas están configuradas con un valor por defecto, no bloquean el desarrollo y se deciden con la inmobiliaria y el equipo antes de aprobar diciembre:
+
+- **Redondeo del alquiler ajustado.** La práctica mezcla centavo, peso y porcentaje a dos decimales; Realfy redondea al centavo un porcentaje de cuatro decimales. Es la regla con más efecto en el porcentaje al centavo. El ensayo propone, si la regla no se decide antes, informar el C1 con la tolerancia cero de la sección 4 y además con una tolerancia declarada de ±1 peso en el alquiler ajustado y de centavos en las cuentas compartidas; lo decide el equipo con la inmobiliaria.
+- **Los ajustes salteados y el ajuste del mes cuando la liquidación ya se generó**: si se cobran de forma retroactiva o rigen desde el mes siguiente sin recuperar lo salteado, y si el siguiente ajuste recupera la inflación que quedó sin aplicar.
+- **Primer ajuste con rezago de dos meses** (dos o tres meses de índice) y **ICL y UVA con o sin rezago**; ya figuraban entre las reglas a confirmar en el C1 (sección 9).
+- **Impuestos en pesos en contratos en dólares**: moneda del renglón, tipo de cambio o recibo aparte.
+- **Un ajuste que baja el alquiler** (base original con índice que no subió lo suficiente): hoy se salta con el motivo `RENT_DECREASE_REQUIRES_REVIEW` y queda pendiente de revisión.
+- **Ajustes vencidos al importar que la práctica no aplicó**: hoy el proceso diario los aplica solos al día siguiente del despliegue, sin revisión; falta decidir si exigen una confirmación la primera vez.
+
+Además hay preguntas abiertas a la inmobiliaria sobre contratos concretos (prórrogas de los contratos con fin vencido, calendario de ajuste de algunos, ajustes personalizados sin porcentaje), que se registran como hallazgos cuando se contestan.
+
+### Procedimiento del C1 ajustado
+
+Del primer ensayo salieron cambios al procedimiento de la sección 9, que los reemplazan:
+
+1. **Orden de los procesos diarios.** Lectura de índices a las 06:00, ajustes a las 07:00 y generación de las liquidaciones a las 07:30, hora de Buenos Aires (DEF-131). El proceso de generación del período corre el 21/11, diez días antes del mes.
+2. **Antes de ese proceso**: confirmar que el IPC de octubre está en la serie (el INDEC lo publica alrededor del 12/11), correr la previsualización de Ajustes del mes de diciembre y revisarla, y cargar las boletas de diciembre por el circuito automático (M9). Si falta el índice, los ajustes de IPC quedan pendientes, las liquidaciones salen con la advertencia `ADJUSTMENT_PENDING` y no se pueden aprobar hasta que el índice llegue.
+3. **Si el proceso de generación corrió antes de tener las boletas**, se borran los borradores y se regeneran.
+4. **Antes de aprobar diciembre**, revisar los contratos con la advertencia de ajuste pendiente, los de alquiler cero y los que tienen una boleta en otra moneda sin trasladar (`GET /service-bills/unbilled`).
