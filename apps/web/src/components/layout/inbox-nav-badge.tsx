@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useOptionalAuth } from '@/lib/auth-context';
 import { useInboxSummary } from '@/lib/inbox-summary';
 import { can } from '@/lib/permissions';
-import { cn } from '@/lib/cn';
+import { NavCountBadge } from './nav-count-badge';
 
 /**
  * Contador de la bandeja de consultas en el menú: mensajes sin leer propios o sin responsable. Si hay plazos
@@ -15,18 +15,6 @@ export function InboxNavBadge({ floating = false }: { floating?: boolean }) {
   const role = useOptionalAuth()?.user?.role;
   const enabled = can(role, 'inbox.access');
   const { unread, breached } = useInboxSummary(enabled);
-  if (!enabled || unread === 0) return null;
-  return (
-    <span
-      role="status"
-      aria-label={t('unread', { count: unread })}
-      className={cn(
-        'inline-flex min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[0.65rem] font-semibold leading-5 tabular-nums text-white',
-        breached > 0 ? 'bg-[var(--color-danger)]' : 'bg-brand-500',
-        floating && 'absolute -right-1 -top-1',
-      )}
-    >
-      {unread > 99 ? '99+' : unread}
-    </span>
-  );
+  if (!enabled) return null;
+  return <NavCountBadge count={unread} label={t('unread', { count: unread })} danger={breached > 0} floating={floating} />;
 }

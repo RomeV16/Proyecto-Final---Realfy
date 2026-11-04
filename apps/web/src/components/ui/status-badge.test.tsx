@@ -24,6 +24,7 @@ import {
   USER_STATUSES,
   VisitStatus,
   ADJUSTMENT_ROW_STATUSES,
+  BillDocumentStatus,
   ListingStatus,
 } from '@realfy/shared';
 import es from '@/i18n/messages/es.json';
@@ -56,6 +57,7 @@ const ENUMS: Record<StatusDomain, object> = {
   aviso: ListingStatus,
   cobranza: CollectionStage,
   consulta: ConversationStatus,
+  boletaRecibida: BillDocumentStatus,
 };
 
 function lookup(messages: unknown, path: string): unknown {

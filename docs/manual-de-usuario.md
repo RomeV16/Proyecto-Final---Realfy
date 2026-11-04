@@ -526,18 +526,60 @@ si la boleta es del mes (o de los tres meses anteriores o siguientes) y los impo
 vencimientos son coherentes, da de alta la boleta como pendiente, con el mismo reparto
 al inquilino que una cargada a mano.
 
-Los PDF entran por la API (`POST /bills-intake/documents`), o por mail: la casilla
-`boletas+<inmobiliaria>@...` recibe la factura digital que el proveedor manda por mail y
-procesa el PDF adjunto. Mandar dos veces el mismo PDF no duplica nada. Lo que el sistema
-no puede resolver **queda en una lista de revisión con el motivo** (no encontró el
-servicio, la lectura es dudosa, ya hay una boleta con otro importe, el mail no traía
-PDF); desde ahí se acepta, con las correcciones que hagan falta, o se rechaza con un
-motivo. Una boleta ya cargada con otro importe nunca se pisa: se corrige en la planilla
-del mes. Esta versión no trae todavía la pantalla de revisión; se trabaja con la API
-(`docs/api.md`, «Obtención automática de boletas»).
+Los PDF entran por la pantalla **Boletas recibidas** (o por la API,
+`POST /bills-intake/documents`) y por mail: la casilla `boletas+<inmobiliaria>@...`
+recibe la factura digital que el proveedor manda por mail y procesa el PDF adjunto.
+Mandar dos veces el mismo PDF no duplica nada. Lo que el sistema no puede resolver
+**queda en revisión con el motivo** (no encontró el servicio, la lectura es dudosa, ya
+hay una boleta con otro importe, el mail no traía PDF). Una boleta ya cargada con otro
+importe nunca se pisa: se corrige en la planilla del mes.
+
+#### Boletas recibidas: subir, revisar, aceptar o rechazar
+
+**Boletas recibidas** (`/boletas/recibidas`) está en el menú junto a *Boletas del mes*.
+La ven Admin, Gerente, Liquidaciones y Lectura; suben, aceptan y rechazan Admin, Gerente
+y Liquidaciones (los mismos permisos que la carga de boletas). El menú muestra un
+número con las boletas **en revisión**, y *Boletas del mes* avisa lo mismo arriba de la
+planilla, con un enlace para revisarlas.
+
+1. **Subir.** Se arrastran uno o varios PDF a la zona punteada o se eligen con *Elegir
+   archivos* (sólo PDF, hasta 10 MB cada uno). Cada archivo se procesa por separado y
+   muestra su resultado: el estado, cuántas boletas se cargaron, si ya estaba cargado
+   (*Ya estaba cargado*) o por qué no se pudo subir (*No es un PDF*, *Pesa más de
+   10 MB*). La barra indica cuántos archivos se procesaron.
+2. **Lista.** Debajo se ven los documentos, los que esperan revisión primero. Se filtra
+   por **estado** (Recibida, Procesada, Requiere revisión, Rechazada, Duplicada) y por
+   **canal** (archivo subido, mail, consulta al proveedor). Cada fila muestra el
+   proveedor y la cuenta que se leyeron, la confianza de la lectura, el **motivo** por el
+   que quedó en revisión, escrito en palabras (por ejemplo «Ningún servicio cargado tiene
+   esa cuenta», «La lectura no es lo bastante confiable para cargarla sola») y las
+   boletas que dio de alta, con enlace al documento.
+3. **Revisar.** Al abrir un documento el PDF original se ve a un lado y, al otro, lo que
+   se leyó: proveedor, cuenta, servicio sugerido, avisos de la lectura y cada boleta
+   (período, cuota, importe y vencimiento). Los documentos en revisión ofrecen dos
+   acciones.
+4. **Aceptar…** abre un formulario: se elige el **servicio** (se busca escribiendo la
+   propiedad, el proveedor, el tipo o la cuenta) y se corrigen, si hace falta, el
+   período (`AAAA-MM`), la cuota, el importe y el vencimiento. Sólo se mandan los datos
+   que se cambiaron. Si el documento no trae ninguna boleta legible, período e importe
+   son obligatorios; si trae varias (un resumen de cuenta), se aceptan tal como se
+   leyeron, sin correcciones. Al aceptar, el documento queda *Procesada* (o *Duplicada*
+   si la boleta ya estaba) y la boleta entra como pendiente, con el mismo reparto al
+   inquilino que una cargada a mano.
+5. **Rechazar…** pide un **motivo** (hasta 500 caracteres) y deja el documento
+   *Rechazada*, sin generar ninguna boleta. El motivo queda a la vista en la lista.
+
+Si alguien resolvió el documento antes, el sistema lo avisa («ya no está en revisión») y
+hay que actualizar la pantalla. Un usuario con permiso de lectura ve todo pero no puede
+aceptar ni rechazar.
 
 La consulta directa a los sitios de los proveedores está apagada y todavía no tiene
-conectores: no se consulta nada.
+conectores: no se consulta nada. Se prende en *Configuración → Valores por defecto*, en la
+sección **Obtención automática de boletas**: un interruptor («Consultar a los
+proveedores todos los días») y la lista de proveedores del catálogo (Aguas Cordobesas,
+Ecogas, EPEC, Municipalidad de Córdoba, Rentas de Córdoba) de los que se consulta; se
+guarda con su propio botón y no cambia el resto de los valores. Lo que llega por archivo
+o por mail se procesa siempre, con esto prendido o no.
 
 ### Cargar los gastos del mes (centro de carga)
 

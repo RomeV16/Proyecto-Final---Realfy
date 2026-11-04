@@ -18,8 +18,8 @@ export interface NavItem {
   action?: Action;
   /** Recurso sensible: el ítem se oculta a los roles que la política de lectura de la inmobiliaria no deja leerlo. */
   readResource?: ReadResource;
-  /** Contador a la derecha del nombre (hoy sólo la bandeja de consultas). */
-  badge?: 'inbox';
+  /** Contador a la derecha del nombre (la bandeja de consultas y las boletas en revisión). */
+  badge?: 'inbox' | 'billReview';
 }
 
 /**
@@ -42,6 +42,7 @@ export const navItems: NavItem[] = [
   { key: 'liquidaciones', href: '/liquidaciones', icon: 'liquidaciones' },
   { key: 'adjustments', href: '/ajustes', icon: 'percent', action: 'adjustments.manage' },
   { key: 'serviceBills', href: '/boletas', icon: 'invoices', action: 'serviceBills.manage' },
+  { key: 'billDocuments', href: '/boletas/recibidas', icon: 'invoices', action: 'billDocuments.view', badge: 'billReview' },
   { key: 'charges', href: '/cargos', icon: 'liquidaciones', action: 'charges.manage' },
   { key: 'fees', href: '/honorarios', icon: 'percent', action: 'fees.view' },
   { key: 'pagos', href: '/pagos', icon: 'liquidaciones' },
@@ -91,4 +92,13 @@ export function useVisibleNavItems(): NavItem[] {
   const access = useReadAccess();
   // Sin sesión (la transición de ingreso) no hay política que consultar.
   return visibleNavItems(user?.role, navItems, user ? access : null);
+}
+
+/**
+ * El ítem de la ruta actual. Si dos ítems encajan (`/boletas` y `/boletas/recibidas`), gana el de la ruta
+ * más específica, para que no se marquen los dos a la vez.
+ */
+export function isNavItemActive(pathname: string, href: string, items: readonly NavItem[] = navItems): boolean {
+  const matches = (h: string) => pathname === h || pathname.startsWith(`${h}/`);
+  return matches(href) && !items.some((item) => item.href.length > href.length && matches(item.href));
 }

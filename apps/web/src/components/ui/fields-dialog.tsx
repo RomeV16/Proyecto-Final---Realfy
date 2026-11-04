@@ -23,6 +23,8 @@ export interface FieldDef {
   hint?: string;
   /** El campo solo aparece (y se valida) si devuelve `true` con los valores actuales. */
   visible?: (values: FieldValues) => boolean;
+  /** Validación propia de un valor no vacío: devuelve el mensaje de error o `null`. */
+  validate?: (value: string) => string | null;
 }
 
 interface Props {
@@ -67,6 +69,9 @@ export function FieldsDialog({ title, description, fields, initial = {}, submitL
         if (f.required) found[f.name] = t('required');
       } else if (f.kind === 'amount' && !parsePositiveAmount(value)) {
         found[f.name] = t('amountInvalid');
+      } else {
+        const custom = f.validate?.(value) ?? null;
+        if (custom) found[f.name] = custom;
       }
     }
     return found;

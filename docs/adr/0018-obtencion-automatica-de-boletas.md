@@ -230,8 +230,9 @@ revisión.
 
 - La carga manual de boletas y la automática comparten el alta; un cambio en el
   reparto vale para las dos. La planilla del mes sigue siendo el lugar para corregir
-  una boleta; la pantalla de revisión de documentos va en un pedido aparte (hoy se usa
-  la API).
+  una boleta; los documentos que esperan revisión se resuelven en la pantalla
+  «Boletas recibidas» (subida, lista con filtros, PDF junto a lo leído, aceptar con
+  correcciones o rechazar con motivo).
 - Todo lo dudoso queda en una cola con el motivo, el servicio sugerido y el PDF, en
   lugar de cargarse mal en silencio. Mientras EPEC y Ecogas no se ajusten, **todas**
   sus boletas pasan por revisión.
@@ -248,7 +249,7 @@ revisión.
   aparte (`NodePdfTextService`), y la API en producción la usa en proceso.
 - Se agregan dos tablas y columnas sin backfill; la reversa está anotada en la
   migración.
-- Queda para los pedidos siguientes: la pantalla de revisión, el conector de consulta
+- Queda para los pedidos siguientes: el conector de consulta
   de la Municipalidad (el único con consulta pública sin sesión, a tasa baja y
   desactivable, idealmente con un convenio), los mails con enlace, el ajuste de EPEC y
   Ecogas con boletas reales, el OCR de escaneos y el canal de portal.

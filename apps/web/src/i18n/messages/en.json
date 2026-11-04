@@ -114,6 +114,7 @@
   "notifications": "Notificaciones",
   "permissions": "Permissions",
   "serviceBills": "Monthly bills",
+  "billDocuments": "Received bills",
   "charges": "Charge center",
   "fees": "Fees",
   "cash": "Cash",
@@ -159,6 +160,12 @@
   "copied": "Copied",
   "codes": {
    "ADJUSTMENT_PENDING": "A rent adjustment in force this month has not been applied yet: apply it from Monthly adjustments (or wait for the index) before approving the liquidación.",
+   "DOCUMENT_NOT_REVIEWABLE": "This document is no longer pending review: someone resolved it first. Refresh the page.",
+   "SERVICE_REQUIRED": "Choose the service the bill belongs to.",
+   "DOCUMENT_FILE_NOT_FOUND": "This document has no stored PDF.",
+   "NOTHING_TO_ACCEPT": "The document has no bill: fill in the period and amount.",
+   "CORRECTIONS_NEED_SINGLE_BILL": "Corrections only apply to a document with a single bill.",
+   "BILL_ALREADY_EXISTS": "A bill for that service, period and installment already exists with another amount.",
    "CONTRACT_NOT_ACTIVE": "This can only be done with an active or expired contract.",
   "EXPIRED_CONTRACT_NEEDS_EXTENSION_OR_RENEWAL": "An expired contract is reactivated by an oral extension or a renewal.",
    "EXTENSION_NOT_AFTER_END": "The extension must end after the contract's current end.",
@@ -7977,6 +7984,178 @@
     "newTitle": "New reply",
     "newBody": "Hi '{name}', "
    }
+  }
+ },
+ "billDocuments": {
+  "title": "Received bills",
+  "subtitle": "Bill PDFs that arrive by file upload, by email or by provider lookup. Those read with certainty are loaded automatically; the rest wait here for your review.",
+  "forbidden": "You do not have permission to see received bills.",
+  "loadError": "Could not load the received bills",
+  "detailLoadError": "Could not load the document",
+  "notFound": "Document not found",
+  "back": "Back to received bills",
+  "upload": {
+   "title": "Upload bills",
+   "dropLabel": "Upload bill PDFs",
+   "drop": "Drag one or more PDFs here",
+   "or": "or",
+   "choose": "Choose files",
+   "limits": "PDF only, up to 10 MB each.",
+   "dragging": "Drop the files to upload them",
+   "progress": "{done} of {total} files processed",
+   "uploading": "Uploading…",
+   "clear": "Clear list",
+   "notPdf": "Not a PDF",
+   "tooLarge": "Larger than 10 MB",
+   "failed": "Could not be uploaded",
+   "duplicate": "Already loaded",
+   "billsCreated": "{count, plural, one {# bill loaded} other {# bills loaded}}",
+   "viewDocument": "View document",
+   "files": "Files"
+  },
+  "filters": {
+   "status": "Status",
+   "allStatuses": "All statuses",
+   "channel": "Channel",
+   "allChannels": "All channels"
+  },
+  "statuses": {
+   "Recibida": "Received",
+   "Procesada": "Processed",
+   "RequiereRevision": "Needs review",
+   "Rechazada": "Rejected",
+   "Duplicada": "Duplicate"
+  },
+  "channels": {
+   "Consulta": "Provider lookup",
+   "Mail": "Email",
+   "Portal": "Portal",
+   "Archivo": "Uploaded file"
+  },
+  "providers": {
+   "aguas-cordobesas": "Aguas Cordobesas",
+   "muni-cordoba": "Municipalidad de Córdoba",
+   "rentas-cordoba": "Rentas de Córdoba",
+   "epec": "EPEC",
+   "ecogas": "Ecogas",
+   "generico": "Other provider"
+  },
+  "reasons": {
+   "NO_ATTACHMENT": "The email had no PDF attached.",
+   "UNREADABLE": "The PDF could not be read (it may be a scan, with no text).",
+   "UNKNOWN_PROVIDER": "The bill provider was not recognized.",
+   "NO_ACCOUNT": "No account number was found in the document.",
+   "NO_MATCHING_SERVICE": "No loaded service has that account.",
+   "AMBIGUOUS_SERVICE": "More than one service has that account.",
+   "LOW_CONFIDENCE": "The reading is not reliable enough to load it automatically.",
+   "INVALID_AMOUNT": "The amount read is not valid.",
+   "PERIOD_OUT_OF_RANGE": "The period is outside the expected range.",
+   "DUE_DATE_INCONSISTENT": "The due date does not fit the period.",
+   "BILL_EXISTS_DIFFERENT_AMOUNT": "A bill for that service and period already exists with another amount."
+  },
+  "columns": {
+   "received": "Received",
+   "document": "Document",
+   "channel": "Channel",
+   "provider": "Provider",
+   "account": "Account",
+   "status": "Status",
+   "reason": "Reason",
+   "bills": "Bills"
+  },
+  "billsCount": "{count, plural, one {# bill} other {# bills}}",
+  "noDocumentName": "No file",
+  "empty": {
+   "title": "No received bills",
+   "subtitle": "Upload a PDF or wait for them to arrive by email.",
+   "filtered": "No bills match those filters."
+  },
+  "detail": {
+   "title": "Received bill",
+   "viewer": "Bill PDF",
+   "viewerTitle": "PDF of the received bill",
+   "openFile": "Open the PDF in another tab",
+   "noFile": "This document has no stored PDF.",
+   "fileError": "Could not open the PDF",
+   "read": "What was read",
+   "provider": "Provider",
+   "account": "Account",
+   "confidence": "Reading confidence",
+   "service": "Suggested service",
+   "noService": "None",
+   "received": "Received",
+   "reviewed": "Reviewed",
+   "reason": "Reason",
+   "rejectionReason": "Rejection reason",
+   "warnings": "Reading warnings",
+   "lines": "Bills read",
+   "noLines": "No bill was read.",
+   "line": {
+    "period": "Period",
+    "installment": "Installment",
+    "amount": "Amount",
+    "dueDate": "Due date"
+   },
+   "createdBills": "Loaded bills",
+   "goToBills": "See the month bills",
+   "unknown": "No data"
+  },
+  "review": {
+   "title": "Review",
+   "intro": "Choose the service, fix what is needed and accept it to load the bill, or reject it with a reason.",
+   "readOnly": "You have read-only access: you cannot accept or reject.",
+   "accept": "Accept…",
+   "reject": "Reject…",
+   "acceptTitle": "Accept the bill",
+   "acceptDescription": "It is loaded with what was read and the corrections you make.",
+   "acceptSubmit": "Accept and load",
+   "accepted": "Bill loaded",
+   "acceptError": "Could not accept the bill",
+   "rejectTitle": "Reject the document",
+   "rejectDescription": "It is discarded and creates no bill.",
+   "rejectSubmit": "Reject",
+   "rejected": "Document rejected",
+   "rejectError": "Could not reject the document",
+   "rejectReason": "Reason",
+   "rejectReasonHint": "Up to 500 characters.",
+   "rejectReasonTooLong": "The reason allows up to 500 characters.",
+   "period": "Period (YYYY-MM)",
+   "periodInvalid": "The period must be YYYY-MM, for example 2026-11.",
+   "installment": "Installment",
+   "amount": "Amount",
+   "dueDate": "Due date",
+   "multiBillHint": "The document has several bills: they are loaded as read.",
+   "serviceRequired": "Choose the service the bill belongs to."
+  },
+  "servicePicker": {
+   "label": "Service",
+   "search": "Search service",
+   "searchHint": "By property, provider, type or account.",
+   "list": "Services",
+   "loading": "Loading services…",
+   "loadError": "Could not load the services",
+   "none": "No services match.",
+   "option": "{property} · {type}{provider}{account}"
+  },
+  "reviewNotice": {
+   "one": "There is 1 received bill waiting for your review.",
+   "other": "There are {count} received bills waiting for your review.",
+   "link": "Review"
+  },
+  "nav": {
+   "pending": "{count, plural, one {# bill in review} other {# bills in review}}"
+  },
+  "settings": {
+   "title": "Automatic bill retrieval",
+   "description": "Once a day each enabled provider is queried for the bills of the services that have it set. Bills that arrive by file or email are always processed, whether this is on or not.",
+   "enabled": "Query the providers every day",
+   "enabledHint": "Off by default. A bill that is not read with certainty stays in Received bills for your review.",
+   "providers": "Enabled providers",
+   "providersHint": "Only the checked ones are queried.",
+   "save": "Save automatic retrieval",
+   "saving": "Saving…",
+   "saved": "Automatic bill retrieval saved",
+   "saveError": "Could not save the automatic bill retrieval settings"
   }
  }
 }

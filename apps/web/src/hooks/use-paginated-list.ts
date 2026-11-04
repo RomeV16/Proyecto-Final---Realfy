@@ -21,6 +21,8 @@ interface Options<F extends Record<string, string>> {
   limit: number;
   /** Valores iniciales (y de "limpiar") de los filtros; las claves son los parámetros de la consulta. */
   initialFilters: F;
+  /** Falso: no consulta (la pantalla no está habilitada para este usuario). Verdadero por defecto. */
+  enabled?: boolean;
 }
 
 /**
@@ -36,6 +38,7 @@ export function usePaginatedList<T, F extends Record<string, string>>({
   path,
   limit,
   initialFilters,
+  enabled = true,
 }: Options<F>) {
   const [filters, setFilters] = useState<F>(initialFilters);
   const [page, setPageState] = useState(1);
@@ -50,6 +53,7 @@ export function usePaginatedList<T, F extends Record<string, string>>({
       return apiClient<Paginated<T>>(`${path}?${params.toString()}`);
     },
     placeholderData: keepPreviousData,
+    enabled,
   });
 
   const setFilter = useCallback(<K extends keyof F & string>(name: K, value: F[K]) => {

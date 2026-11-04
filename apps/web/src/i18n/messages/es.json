@@ -114,6 +114,7 @@
   "notifications": "Notificaciones",
   "permissions": "Permisos",
   "serviceBills": "Boletas del mes",
+  "billDocuments": "Boletas recibidas",
   "charges": "Centro de carga",
   "fees": "Honorarios",
   "cash": "Caja",
@@ -159,6 +160,12 @@
   "copied": "Copiada",
   "codes": {
    "ADJUSTMENT_PENDING": "Falta aplicar un ajuste del alquiler que rige en el mes: aplicalo desde Ajustes del mes (o esperá el índice) antes de aprobar la liquidación.",
+   "DOCUMENT_NOT_REVIEWABLE": "Este documento ya no está en revisión: alguien lo resolvió antes. Actualizá la pantalla.",
+   "SERVICE_REQUIRED": "Elegí el servicio al que pertenece la boleta.",
+   "DOCUMENT_FILE_NOT_FOUND": "Este documento no tiene un PDF guardado.",
+   "NOTHING_TO_ACCEPT": "El documento no trae ninguna boleta: completá período e importe.",
+   "CORRECTIONS_NEED_SINGLE_BILL": "Las correcciones valen sólo para un documento con una boleta.",
+   "BILL_ALREADY_EXISTS": "Ya hay una boleta de ese servicio, período y cuota con otro importe.",
    "CONTRACT_NOT_ACTIVE": "Solo se puede hacer con un contrato activo o vencido.",
   "EXPIRED_CONTRACT_NEEDS_EXTENSION_OR_RENEWAL": "Un contrato vencido se vuelve a activar con una prórroga de palabra o una renovación.",
    "EXTENSION_NOT_AFTER_END": "La prórroga tiene que terminar después del fin actual del contrato.",
@@ -7977,6 +7984,178 @@
     "newTitle": "Nueva respuesta",
     "newBody": "Hola '{name}', "
    }
+  }
+ },
+ "billDocuments": {
+  "title": "Boletas recibidas",
+  "subtitle": "Los PDF de boletas que llegan por archivo, por mail o por consulta al proveedor. Las que se leen con certeza se cargan solas; las demás esperan acá tu revisión.",
+  "forbidden": "No tenés permiso para ver las boletas recibidas.",
+  "loadError": "No se pudieron cargar las boletas recibidas",
+  "detailLoadError": "No se pudo cargar el documento",
+  "notFound": "Documento no encontrado",
+  "back": "Volver a boletas recibidas",
+  "upload": {
+   "title": "Subir boletas",
+   "dropLabel": "Subir PDF de boletas",
+   "drop": "Arrastrá uno o varios PDF acá",
+   "or": "o",
+   "choose": "Elegir archivos",
+   "limits": "Sólo PDF, hasta 10 MB cada uno.",
+   "dragging": "Soltá los archivos para subirlos",
+   "progress": "{done} de {total} archivos procesados",
+   "uploading": "Subiendo…",
+   "clear": "Limpiar lista",
+   "notPdf": "No es un PDF",
+   "tooLarge": "Pesa más de 10 MB",
+   "failed": "No se pudo subir",
+   "duplicate": "Ya estaba cargado",
+   "billsCreated": "{count, plural, one {Se cargó # boleta} other {Se cargaron # boletas}}",
+   "viewDocument": "Ver documento",
+   "files": "Archivos"
+  },
+  "filters": {
+   "status": "Estado",
+   "allStatuses": "Todos los estados",
+   "channel": "Canal",
+   "allChannels": "Todos los canales"
+  },
+  "statuses": {
+   "Recibida": "Recibida",
+   "Procesada": "Procesada",
+   "RequiereRevision": "Requiere revisión",
+   "Rechazada": "Rechazada",
+   "Duplicada": "Duplicada"
+  },
+  "channels": {
+   "Consulta": "Consulta al proveedor",
+   "Mail": "Mail",
+   "Portal": "Portal",
+   "Archivo": "Archivo subido"
+  },
+  "providers": {
+   "aguas-cordobesas": "Aguas Cordobesas",
+   "muni-cordoba": "Municipalidad de Córdoba",
+   "rentas-cordoba": "Rentas de Córdoba",
+   "epec": "EPEC",
+   "ecogas": "Ecogas",
+   "generico": "Otro proveedor"
+  },
+  "reasons": {
+   "NO_ATTACHMENT": "El mail no traía ningún PDF adjunto.",
+   "UNREADABLE": "No se pudo leer el PDF (puede ser un escaneo, sin texto).",
+   "UNKNOWN_PROVIDER": "No se reconoció al proveedor de la boleta.",
+   "NO_ACCOUNT": "No se encontró el número de cuenta en el documento.",
+   "NO_MATCHING_SERVICE": "Ningún servicio cargado tiene esa cuenta.",
+   "AMBIGUOUS_SERVICE": "Más de un servicio tiene esa cuenta.",
+   "LOW_CONFIDENCE": "La lectura no es lo bastante confiable para cargarla sola.",
+   "INVALID_AMOUNT": "El importe leído no es válido.",
+   "PERIOD_OUT_OF_RANGE": "El período está fuera del rango esperado.",
+   "DUE_DATE_INCONSISTENT": "El vencimiento no es coherente con el período.",
+   "BILL_EXISTS_DIFFERENT_AMOUNT": "Ya hay una boleta de ese servicio y período con otro importe."
+  },
+  "columns": {
+   "received": "Recibida",
+   "document": "Documento",
+   "channel": "Canal",
+   "provider": "Proveedor",
+   "account": "Cuenta",
+   "status": "Estado",
+   "reason": "Motivo",
+   "bills": "Boletas"
+  },
+  "billsCount": "{count, plural, one {# boleta} other {# boletas}}",
+  "noDocumentName": "Sin archivo",
+  "empty": {
+   "title": "Sin boletas recibidas",
+   "subtitle": "Subí un PDF o esperá a que lleguen por mail.",
+   "filtered": "No hay boletas con esos filtros."
+  },
+  "detail": {
+   "title": "Boleta recibida",
+   "viewer": "Boleta en PDF",
+   "viewerTitle": "PDF de la boleta recibida",
+   "openFile": "Abrir el PDF en otra pestaña",
+   "noFile": "Este documento no tiene un PDF guardado.",
+   "fileError": "No se pudo abrir el PDF",
+   "read": "Lo que se leyó",
+   "provider": "Proveedor",
+   "account": "Cuenta",
+   "confidence": "Confianza de la lectura",
+   "service": "Servicio sugerido",
+   "noService": "Ninguno",
+   "received": "Recibida",
+   "reviewed": "Revisada",
+   "reason": "Motivo",
+   "rejectionReason": "Motivo del rechazo",
+   "warnings": "Avisos de la lectura",
+   "lines": "Boletas leídas",
+   "noLines": "No se leyó ninguna boleta.",
+   "line": {
+    "period": "Período",
+    "installment": "Cuota",
+    "amount": "Importe",
+    "dueDate": "Vencimiento"
+   },
+   "createdBills": "Boletas cargadas",
+   "goToBills": "Ver las boletas del mes",
+   "unknown": "Sin dato"
+  },
+  "review": {
+   "title": "Revisión",
+   "intro": "Elegí el servicio, corregí lo que haga falta y aceptala para cargar la boleta, o rechazala con el motivo.",
+   "readOnly": "Tenés acceso de lectura: no podés aceptar ni rechazar.",
+   "accept": "Aceptar…",
+   "reject": "Rechazar…",
+   "acceptTitle": "Aceptar la boleta",
+   "acceptDescription": "Se carga con lo leído y las correcciones que hagas.",
+   "acceptSubmit": "Aceptar y cargar",
+   "accepted": "Boleta cargada",
+   "acceptError": "No se pudo aceptar la boleta",
+   "rejectTitle": "Rechazar el documento",
+   "rejectDescription": "Queda descartado y no genera ninguna boleta.",
+   "rejectSubmit": "Rechazar",
+   "rejected": "Documento rechazado",
+   "rejectError": "No se pudo rechazar el documento",
+   "rejectReason": "Motivo",
+   "rejectReasonHint": "Hasta 500 caracteres.",
+   "rejectReasonTooLong": "El motivo admite hasta 500 caracteres.",
+   "period": "Período (AAAA-MM)",
+   "periodInvalid": "El período debe ser AAAA-MM, por ejemplo 2026-11.",
+   "installment": "Cuota",
+   "amount": "Importe",
+   "dueDate": "Vencimiento",
+   "multiBillHint": "El documento trae varias boletas: se cargan tal como se leyeron.",
+   "serviceRequired": "Elegí el servicio al que pertenece la boleta."
+  },
+  "servicePicker": {
+   "label": "Servicio",
+   "search": "Buscar servicio",
+   "searchHint": "Por propiedad, proveedor, tipo o cuenta.",
+   "list": "Servicios",
+   "loading": "Cargando servicios…",
+   "loadError": "No se pudieron cargar los servicios",
+   "none": "No hay servicios que coincidan.",
+   "option": "{property} · {type}{provider}{account}"
+  },
+  "reviewNotice": {
+   "one": "Hay 1 boleta recibida esperando tu revisión.",
+   "other": "Hay {count} boletas recibidas esperando tu revisión.",
+   "link": "Revisar"
+  },
+  "nav": {
+   "pending": "{count, plural, one {# boleta en revisión} other {# boletas en revisión}}"
+  },
+  "settings": {
+   "title": "Obtención automática de boletas",
+   "description": "Una vez por día se consulta a cada proveedor habilitado por las boletas de los servicios que lo tienen cargado. Las boletas que llegan por archivo o por mail se procesan siempre, con esto prendido o no.",
+   "enabled": "Consultar a los proveedores todos los días",
+   "enabledHint": "Apagado de fábrica. Una boleta que no se lee con certeza queda en Boletas recibidas para tu revisión.",
+   "providers": "Proveedores habilitados",
+   "providersHint": "Sólo se consulta a los tildados.",
+   "save": "Guardar obtención automática",
+   "saving": "Guardando…",
+   "saved": "Obtención automática de boletas guardada",
+   "saveError": "No se pudo guardar la obtención automática de boletas"
   }
  }
 }

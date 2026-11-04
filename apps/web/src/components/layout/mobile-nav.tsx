@@ -5,8 +5,9 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { Icon } from '@/components/ui/icon';
+import { BillReviewNavBadge } from './bill-review-nav-badge';
 import { InboxNavBadge } from './inbox-nav-badge';
-import { useVisibleNavItems } from './nav-items';
+import { isNavItemActive, useVisibleNavItems } from './nav-items';
 
 interface MobileNavProps {
   open: boolean;
@@ -20,7 +21,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
   const items = useVisibleNavItems();
 
   const isActive = (href: string) => {
-    return pathname === href || pathname.startsWith(`${href}/`);
+    return isNavItemActive(pathname, href, items);
   };
 
   useEffect(() => {
@@ -89,6 +90,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
                 </span>
                 <span className="flex-1">{t(item.key)}</span>
                 {item.badge === 'inbox' && <InboxNavBadge />}
+                {item.badge === 'billReview' && <BillReviewNavBadge />}
               </Link>
             );
           })}

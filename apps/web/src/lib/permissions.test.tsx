@@ -40,6 +40,7 @@ const EXPECTED: Record<Action, string[]> = {
   'serviceBills.manage': ['Admin', 'Gerente', 'Liquidaciones'],
   'services.manage': ['Admin', 'Gerente', 'Ventas'],
   'services.delete': ['Admin', 'Gerente'],
+  'billDocuments.view': ['Admin', 'Gerente', 'Liquidaciones', 'Lectura'],
   'charges.manage': ['Admin', 'Gerente', 'Liquidaciones'],
   'cash.view': ['Admin', 'Gerente', 'Liquidaciones', 'Lectura'],
   'cash.manage': ['Admin', 'Gerente', 'Liquidaciones'],
