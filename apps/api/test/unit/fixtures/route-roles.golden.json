@@ -1448,6 +1448,11 @@
   ],
   "src/modules/services/service-bills.controller.ts#ServiceBillsController.findAll": null,
   "src/modules/services/service-bills.controller.ts#ServiceBillsController.sheet": null,
+  "src/modules/services/service-bills.controller.ts#ServiceBillsController.unbilled": [
+    "Admin",
+    "Gerente",
+    "Liquidaciones"
+  ],
   "src/modules/services/service-bills.controller.ts#ServiceBillsController.findOne": null,
   "src/modules/services/service-bills.controller.ts#ServiceBillsController.allocations": null,
   "src/modules/services/service-bills.controller.ts#ServiceBillsController.bulk": [

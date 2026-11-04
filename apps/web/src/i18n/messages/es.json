@@ -1515,6 +1515,7 @@
   },
   "adjustmentPendingCount": "{count} con un ajuste pendiente (falta el índice): no se pueden aprobar hasta aplicarlo",
   "outOfRangeCount": "{count} fuera del período del contrato (omitidas)",
+  "withWarningsCount": "{count} con avisos (alquiler en cero o boletas sin trasladar)",
   "lineItemTypes": {
    "Alquiler": "Alquiler",
    "Ajuste": "Ajuste",

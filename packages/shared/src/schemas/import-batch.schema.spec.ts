@@ -73,6 +73,28 @@ describe('ImportContractSchema', () => {
     if (!r.success) expect(r.error.issues[0].path[0]).toBe(field);
   });
 
+  it.each(['Custom', 'FixedPercent'])('CP-1305 — un ajuste %s sin porcentaje se rechaza en la fila, con código estable', (adjustmentType) => {
+    const r = ImportContractSchema.safeParse({
+      ...contract,
+      terms: { adjustmentType, adjustmentPeriod: 'Anual' },
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      const issue = r.error.issues.find((i) => i.path.join('.') === 'terms.customPct');
+      expect(issue).toBeDefined();
+      expect((issue as { params?: { code?: string } }).params?.code).toBe('MISSING_ADJUSTMENT_PCT');
+    }
+  });
+
+  it('CP-1306 — con porcentaje, Custom y FixedPercent son válidos; un índice no lo necesita', () => {
+    for (const adjustmentType of ['Custom', 'FixedPercent']) {
+      expect(
+        ImportContractSchema.safeParse({ ...contract, terms: { adjustmentType, adjustmentPeriod: 'Anual', customPct: 8 } }).success,
+      ).toBe(true);
+    }
+    expect(ImportContractSchema.safeParse(contract).success).toBe(true);
+  });
+
   it('acepta fechas ISO con hora y lessors con todos sus campos', () => {
     const r = ImportContractSchema.safeParse({
       ...contract,

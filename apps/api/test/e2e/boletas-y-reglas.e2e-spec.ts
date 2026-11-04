@@ -800,4 +800,123 @@ describe('Boletas de servicios y reglas de traslado (e2e)', () => {
     }
     await post(b.tokens[UserRole.Admin], '/service-bills/preview', body).expect(404);
   });
+
+  // ─── Avisos: lo que no se factura no se pierde en silencio ───
+
+  it('CP-1300 — una boleta en pesos sobre un contrato en dólares avisa en la carga, en la boleta y al generar, y queda en el reporte', async () => {
+    const { tokens } = await agency('bol-20');
+    const token = tokens[UserRole.Admin];
+    const contract = await createContract(token, { rentCurrency: 'USD', rentAmount: '1000.00' });
+    const service = await createService(token, contract.propertyId, { currency: 'ARS' });
+    await addRule(token, contract, service.id, { payer: 'Propietario', tenantSharePct: '100' });
+
+    const loaded = await bulk(token, [{ serviceId: service.id, period: '2026-11', amount: '62000.00' }]).expect(200);
+    const row = loaded.body.results[0];
+    expect(row.status).toBe('created');
+    expect(row.warnings).toEqual([
+      expect.objectContaining({ code: 'BILL_CURRENCY_MISMATCH', contractId: contract.id, billCurrency: 'ARS', contractCurrency: 'USD' }),
+    ]);
+    expect(loaded.body.withWarnings).toBe(1);
+
+    const alloc = (await get(token, `/service-bills/${row.billId}/allocations`).expect(200)).body;
+    expect(alloc.warnings).toEqual([expect.objectContaining({ code: 'BILL_CURRENCY_MISMATCH', contractId: contract.id })]);
+
+    const generated = (await generate(token, 11, 2026)).body;
+    const result = generated.results.find((r: any) => r.contractId === contract.id);
+    expect(result.status).toBe('created');
+    expect(result.warningDetails).toEqual([
+      expect.objectContaining({ code: 'UNBILLED_BILL_CURRENCY_MISMATCH', billCurrency: 'ARS', contractCurrency: 'USD' }),
+    ]);
+    expect(generated.withWarnings).toBe(1);
+    const [liq] = await liquidaciones(token);
+    expect(liq.lineItems.map((l: any) => l.type)).toEqual(['Alquiler']);
+
+    const unbilled = (await get(token, '/service-bills/unbilled').expect(200)).body;
+    expect(unbilled.items).toEqual([
+      expect.objectContaining({
+        reason: 'BILL_CURRENCY_MISMATCH',
+        contractId: contract.id,
+        billId: row.billId,
+        amount: '62000',
+        billCurrency: 'ARS',
+        contractCurrency: 'USD',
+      }),
+    ]);
+  });
+
+  it('CP-1301 — el reporte de partes sin facturar queda vacío con la misma moneda y solo lo lee la facturación', async () => {
+    const { tokens } = await agency('bol-21');
+    const admin = tokens[UserRole.Admin];
+    const contract = await createContract(admin);
+    const service = await createService(admin, contract.propertyId);
+    await addRule(admin, contract, service.id, { payer: 'Propietario', tenantSharePct: '100' });
+    const loaded = await bulk(admin, [{ serviceId: service.id, period: '2026-11', amount: '1000.00' }]).expect(200);
+    expect(loaded.body.results[0].warnings).toEqual([]);
+    expect((await generate(admin, 11, 2026)).body.withWarnings).toBe(0);
+    expect((await get(admin, '/service-bills/unbilled').expect(200)).body.items).toEqual([]);
+
+    const readers = [UserRole.Admin, UserRole.Gerente, UserRole.Liquidaciones];
+    for (const role of ALL_ROLES) {
+      await get(tokens[role], '/service-bills/unbilled').expect(readers.includes(role) ? 200 : 403);
+    }
+  });
+
+  it('CP-1302 — una liquidación con alquiler en cero se genera y avisa', async () => {
+    const { tokens } = await agency('bol-22');
+    const token = tokens[UserRole.Admin];
+    const contract = await createContract(token);
+    await prisma.baseClient.contract.update({ where: { id: contract.id }, data: { rentAmount: '0' } });
+
+    const generated = (await generate(token, 11, 2026)).body;
+    const result = generated.results.find((r: any) => r.contractId === contract.id);
+    expect(result.status).toBe('created');
+    expect(result.warningDetails).toEqual([expect.objectContaining({ code: 'RENT_IS_ZERO' })]);
+    expect(generated.withWarnings).toBe(1);
+  });
+
+  it('CP-1303 — una boleta de un edificio con reglas por consumo y sin consumo por unidad avisa que no repartió', async () => {
+    const { tokens } = await agency('bol-23');
+    const token = tokens[UserRole.Admin];
+    const building = (await post(token, '/properties', { title: 'Edificio', type: PropertyType.Departamento }).expect(201)).body;
+    const unitA = (
+      await post(token, '/properties', { title: 'Unidad A', type: PropertyType.Departamento, parentPropertyId: building.id }).expect(201)
+    ).body;
+    const unitB = (
+      await post(token, '/properties', { title: 'Unidad B', type: PropertyType.Departamento, parentPropertyId: building.id }).expect(201)
+    ).body;
+    const contractA = await createContract(token, {}, unitA.id);
+    const contractB = await createContract(token, {}, unitB.id);
+    const water = await createService(token, building.id, { serviceType: 'Agua' });
+    await addRule(token, contractA, water.id, { splitMode: 'Consumo', payer: 'Propietario' });
+    await addRule(token, contractB, water.id, { splitMode: 'Consumo', payer: 'Inmobiliaria' });
+
+    const loaded = await bulk(token, [{ serviceId: water.id, period: '2026-11', amount: '1000.00' }]).expect(200);
+    const row = loaded.body.results[0];
+    expect(row.status).toBe('created');
+    expect(row.warnings.map((w: any) => [w.code, w.contractId]).sort()).toEqual(
+      [
+        ['CONSUMPTION_MISSING', contractA.id],
+        ['CONSUMPTION_MISSING', contractB.id],
+      ].sort(),
+    );
+    expect(loaded.body.withWarnings).toBe(1);
+    const stored = (await get(token, `/service-bills/${row.billId}/allocations`).expect(200)).body;
+    expect(stored.stored).toEqual([]);
+    expect(stored.warnings).toHaveLength(2);
+
+    // Con el consumo cargado el aviso desaparece.
+    const fixed = await bulk(token, [
+      {
+        serviceId: water.id,
+        period: '2026-11',
+        amount: '1000.00',
+        unitConsumptions: [
+          { propertyId: unitA.id, consumption: '100' },
+          { propertyId: unitB.id, consumption: '200' },
+        ],
+      },
+    ]).expect(200);
+    expect(fixed.body.results[0]).toMatchObject({ status: 'updated', warnings: [] });
+  });
+
 });

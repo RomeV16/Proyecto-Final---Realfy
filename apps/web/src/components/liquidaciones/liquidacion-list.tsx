@@ -376,6 +376,7 @@ export function LiquidacionList() {
         skipped: number;
         outOfRange?: number;
         adjustmentPending?: number;
+        withWarnings?: number;
       }>('/liquidaciones/generate', {
         method: 'POST',
         body: JSON.stringify({ month, year }),
@@ -384,6 +385,7 @@ export function LiquidacionList() {
       const parts = [t('generatedCount', { count: res.created ?? 0 })];
       if (res.outOfRange) parts.push(t('outOfRangeCount', { count: res.outOfRange }));
       if (res.adjustmentPending) parts.push(t('adjustmentPendingCount', { count: res.adjustmentPending }));
+      if (res.withWarnings) parts.push(t('withWarningsCount', { count: res.withWarnings }));
       setFeedback({ type: 'success', msg: parts.join(' · ') });
       fetchData(filters);
     } catch (err) {

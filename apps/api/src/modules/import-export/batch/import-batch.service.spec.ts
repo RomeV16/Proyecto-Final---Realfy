@@ -1,5 +1,6 @@
 import { ImportEntity, ImportRowAction } from '@realfy/shared';
-import { buildWorkItems, countResults, ENTITY_IMPORTERS, RowResult, rowsToCsv, toRowErrors } from './import-batch.service';
+import { ImportContractSchema } from '@realfy/shared';
+import { buildWorkItems, countResults, ENTITY_IMPORTERS, RowResult, rowsToCsv, toRowErrors, toValidationDetails } from './import-batch.service';
 import { ImportRowError } from './import-types';
 
 describe('toRowErrors', () => {
@@ -17,6 +18,33 @@ describe('toRowErrors', () => {
 
   it('cualquier otro error es INTERNAL_ERROR', () => {
     expect(toRowErrors(new Error('boom'))).toEqual([{ code: 'INTERNAL_ERROR', message: 'boom' }]);
+  });
+});
+
+describe('toValidationDetails', () => {
+  const base = {
+    externalRef: 'C-1',
+    propertyExternalRef: 'U-1',
+    status: 'Activo',
+    startDate: '2025-01-01',
+    endDate: '2027-12-31',
+    rentAmount: 150000,
+  };
+
+  it('CP-1307 — un ajuste Custom sin porcentaje da MISSING_ADJUSTMENT_PCT en terms.customPct', () => {
+    const r = ImportContractSchema.safeParse({ ...base, terms: { adjustmentType: 'Custom', adjustmentPeriod: 'Anual' } });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(toValidationDetails(r.error)).toEqual([
+        { code: 'MISSING_ADJUSTMENT_PCT', message: expect.any(String), field: 'terms.customPct' },
+      ]);
+    }
+  });
+
+  it('los demás errores de esquema siguen siendo VALIDATION_ERROR', () => {
+    const r = ImportContractSchema.safeParse({ ...base, rentAmount: -1, terms: { adjustmentType: 'IPC', adjustmentPeriod: 'Anual' } });
+    expect(r.success).toBe(false);
+    if (!r.success) expect(toValidationDetails(r.error)).toEqual([{ code: 'VALIDATION_ERROR', message: expect.any(String), field: 'rentAmount' }]);
   });
 });
 

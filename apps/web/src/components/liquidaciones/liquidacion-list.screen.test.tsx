@@ -240,6 +240,16 @@ describe('LiquidacionList', () => {
     ).toBeInTheDocument();
   });
 
+  it('CP-1313 — informa las liquidaciones generadas con avisos', async () => {
+    mockList(() => page([item('l-1')]), () => Promise.resolve({ created: 4, skipped: 0, withWarnings: 2 }));
+    const user = await mount();
+    await user.click(screen.getByRole('button', { name: 'Generar Mes' }));
+    await user.click(screen.getByRole('button', { name: 'Generar' }));
+    expect(
+      await screen.findByText('4 liquidaciones generadas · 2 con avisos (alquiler en cero o boletas sin trasladar)'),
+    ).toBeInTheDocument();
+  });
+
   it('marca el pago a cuenta y las liquidaciones provisionales', async () => {
     mockList(() =>
       page([item('l-1', { kind: 'PagoACuenta', isProvisional: true }), item('l-2', { kind: 'Mensual' })]),

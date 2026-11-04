@@ -3,6 +3,7 @@ import { TenantContextService } from '../../common/tenant/tenant-context.service
 import {
   ServiceBillsService,
   billConsumption,
+  billWarnings,
   defaultInstallmentLabel,
   parsePeriod,
   pickRulesFor,
@@ -149,6 +150,8 @@ describe('ServiceBillsService.bulk', () => {
   it('es idempotente: la misma fila no cambia nada', async () => {
     const existing = {
       id: BILL_ID,
+      serviceId: SERVICE_ID,
+      period: d('2026-11-01'),
       status: 'Pendiente',
       amount: { toString: () => '10000.00' },
       nominalAmount: null,
@@ -671,5 +674,93 @@ describe('ServiceBillsService: liquidación', () => {
     ]);
     await expect(service.reallocateService(client, SERVICE_ID, d('2026-10-15'))).resolves.toBe(1);
     expect(client.serviceBill.findMany.mock.calls[0][0].where.period).toEqual({ gte: d('2026-10-01') });
+  });
+});
+
+describe('avisos de la boleta', () => {
+  const contractOf = (over: Record<string, unknown>) => ({ ...rule().contract, rentCurrency: 'USD', ...over });
+
+  it('CP-1309 — la carga avisa de la parte en otra moneda y no la pierde: queda guardada sin facturar', async () => {
+    const { service, client } = build({ rules: [rule({ contract: contractOf({}) })] });
+    const res = await service.bulk([row()]);
+    expect(res.withWarnings).toBe(1);
+    expect(res.results[0]).toMatchObject({
+      status: 'created',
+      warnings: [
+        {
+          code: 'BILL_CURRENCY_MISMATCH',
+          contractId: 'con-1',
+          billCurrency: 'ARS',
+          contractCurrency: 'USD',
+          message: 'boleta en ARS sobre contrato en USD: no se trasladó',
+        },
+      ],
+    });
+    expect(client.serviceBillAllocation.createMany).toHaveBeenCalled();
+  });
+
+  it('CP-1310 — sin diferencia de moneda no hay avisos, y una fila sin cambios vuelve a avisar', async () => {
+    const same = build({ rules: [rule({ contract: contractOf({ rentCurrency: 'ARS' }) })] });
+    expect((await same.service.bulk([row()])).results[0]).toMatchObject({ warnings: [] });
+
+    const mismatch = build({
+      rules: [rule({ contract: contractOf({}) })],
+      bill: { id: BILL_ID, serviceId: SERVICE_ID, status: 'Pendiente', currency: 'ARS', period: d('2026-11-01'), installmentLabel: '11/2026', amount: { toString: () => '10000' }, nominalAmount: null, consumption: null, dueDate: null, notes: null, unitConsumptions: null },
+    });
+    const res = await mismatch.service.bulk([row()]);
+    expect(res.results[0]).toMatchObject({ status: 'unchanged' });
+    expect((res.results[0] as any).warnings).toHaveLength(1);
+  });
+
+  it('CP-1311 — billWarnings: consumo faltante por regla, un aviso de moneda por contrato y nada si no hay reparto', () => {
+    expect(billWarnings({ currency: 'ARS' }, undefined)).toEqual([]);
+    const split = {
+      allocations: [
+        { contractId: 'a' },
+        { contractId: 'a' },
+        { contractId: 'b' },
+      ],
+      skipped: [
+        { contractId: 'c', ruleId: 'r-c', reason: 'MissingConsumption' },
+        { contractId: 'd', ruleId: null, reason: 'PaidDirectly' },
+      ],
+      warnings: [],
+      contractCurrency: new Map([
+        ['a', 'USD'],
+        ['b', 'ARS'],
+      ]),
+    } as any;
+    expect(billWarnings({ currency: 'ARS' }, split).map((w) => [w.code, w.contractId])).toEqual([
+      ['BILL_CURRENCY_MISMATCH', 'a'],
+      ['CONSUMPTION_MISSING', 'c'],
+    ]);
+  });
+
+  it('CP-1312 — el reporte de partes sin facturar lista solo las de moneda distinta', async () => {
+    const { service, client } = build();
+    const alloc = (id: string, billCurrency: string, rentCurrency: string) => ({
+      id,
+      contractId: 'con-1',
+      billId: 'bill-' + id,
+      chargePeriod: d('2026-11-01'),
+      amount: { toString: () => '62000' },
+      payer: 'Propietario',
+      createdAt: d('2026-11-02'),
+      bill: { currency: billCurrency, period: d('2026-11-01'), service: { serviceType: 'Agua', providerName: null } },
+      contract: { rentCurrency },
+    });
+    client.serviceBillAllocation.findMany.mockResolvedValue([alloc('1', 'ARS', 'USD'), alloc('2', 'ARS', 'ARS')]);
+    const { items } = await service.unbilled();
+    expect(items).toEqual([
+      expect.objectContaining({ allocationId: '1', reason: 'BILL_CURRENCY_MISMATCH', billCurrency: 'ARS', contractCurrency: 'USD', amount: '62000', providerName: null }),
+    ]);
+    const where = client.serviceBillAllocation.findMany.mock.calls[0][0].where;
+    expect(where).toMatchObject({ billedAt: null });
+    expect(where.contractId).toBeUndefined();
+    await service.unbilledOtherCurrency('con-1', d('2026-11-01'));
+    expect(client.serviceBillAllocation.findMany.mock.calls[1][0].where).toMatchObject({
+      contractId: 'con-1',
+      chargePeriod: { lte: d('2026-11-01') },
+    });
   });
 });

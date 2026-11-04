@@ -1,12 +1,14 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   ImportBatchRequestSchema,
+  IMPORT_ERROR_CODES,
   ImportBatchRowsQuerySchema,
   ImportBatchStatus,
   ImportEntity,
   ImportRowAction,
 } from '@realfy/shared';
 import type { ImportBatchCounts, ImportRowErrorDetail } from '@realfy/shared';
+import type { ZodError } from 'zod';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { TenantContextService } from '../../../common/tenant/tenant-context.service';
 import { parseOrThrow } from '../../../common/validation/zod';
@@ -74,6 +76,15 @@ export function rowsToCsv(
 class RollbackBatch extends Error {}
 
 const TX_OPTIONS = { timeout: 10 * 60 * 1000, maxWait: 30 * 1000 };
+
+/** Errores de esquema de una fila: `VALIDATION_ERROR`, salvo los que el esquema marca con su propio código estable. */
+export function toValidationDetails(error: ZodError): ImportRowErrorDetail[] {
+  return error.issues.map((i) => {
+    const custom = (i as { params?: { code?: string } }).params?.code;
+    const code = IMPORT_ERROR_CODES.find((c) => c === custom) ?? 'VALIDATION_ERROR';
+    return { code, message: i.message, ...(i.path.length ? { field: i.path.join('.') } : {}) };
+  });
+}
 
 /** Pasa un error cualquiera a los detalles que se guardan en el registro de la fila. */
 export function toRowErrors(err: unknown): ImportRowErrorDetail[] {
@@ -205,13 +216,7 @@ export class ImportBatchService {
     const base = { entity: item.importer.entity, externalRef: item.externalRef, rowNumber: item.rowNumber };
     const parsed = item.importer.schema.safeParse(item.raw);
     if (!parsed.success) {
-      throw ImportRowError.fromDetails(
-        parsed.error.issues.map((i) => ({
-          code: 'VALIDATION_ERROR' as const,
-          message: i.message,
-          ...(i.path.length ? { field: i.path.join('.') } : {}),
-        })),
-      );
+      throw ImportRowError.fromDetails(toValidationDetails(parsed.error));
     }
     const rowKey = item.importer.keyOf ? item.importer.keyOf(parsed.data) : parsed.data.externalRef;
     const key = `${item.importer.entity}:${rowKey}`;

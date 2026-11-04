@@ -44,12 +44,14 @@ export const IMPORT_ERROR_CODES = [
   'MISSING_INQUILINO',
   'OVERLAPPING_ACTIVE_CONTRACT',
   'ADJUSTMENT_HISTORY_INVALID',
+  'MISSING_ADJUSTMENT_PCT',
   'RENT_MISMATCH',
   'PROPERTY_STATE_CONFLICT',
   'SERVICE_NOT_APPLICABLE',
   'CHARGE_RULE_IN_USE',
   'INTERNAL_ERROR',
 ] as const;
+const MISSING_ADJUSTMENT_PCT = 'MISSING_ADJUSTMENT_PCT' satisfies (typeof IMPORT_ERROR_CODES)[number];
 export type ImportErrorCode = (typeof IMPORT_ERROR_CODES)[number];
 
 export interface ImportRowErrorDetail {
@@ -158,7 +160,19 @@ const ImportTermsSchema = z
     paymentFlow: z.nativeEnum(PaymentFlow).default(PaymentFlow.Partido),
     customPct: z.number().finite().min(0).max(999).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((terms, ctx) => {
+    // Un ajuste por porcentaje sin el porcentaje entra al lote y falla recién al calcular el ajuste.
+    const needsPct = terms.adjustmentType === AdjustmentType.Custom || terms.adjustmentType === AdjustmentType.FixedPercent;
+    if (needsPct && terms.customPct === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['customPct'],
+        message: `customPct is required when adjustmentType is ${terms.adjustmentType}`,
+        params: { code: MISSING_ADJUSTMENT_PCT },
+      });
+    }
+  });
 
 const ImportCommissionSchema = z
   .object({

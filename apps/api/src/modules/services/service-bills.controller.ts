@@ -26,6 +26,16 @@ export class ServiceBillsController {
     return this.bills.sheet(period, propertyId);
   }
 
+  /**
+   * GET /service-bills/unbilled — Partes que no entran en ninguna liquidación (hoy: boleta en otra moneda que el
+   * contrato). Admin, Gerente, Liquidaciones.
+   */
+  @Roles(...BILLING_ROLES)
+  @Get('unbilled')
+  async unbilled() {
+    return this.bills.unbilled();
+  }
+
   /** GET /service-bills/:id — Boleta con sus partes. */
   @Get(':id')
   async findOne(@Param('id') id: string) {

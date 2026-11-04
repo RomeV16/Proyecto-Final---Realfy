@@ -1022,3 +1022,22 @@ Banda CP-1430 a CP-1439. ADR-0018. Remitentes y PDF sintéticos.
 | CP-1433 | Marca `automatic` | el mail marcado `automatic` se procesa igual | `bill-mail.service.spec.ts::CP-1433` | verde (3 nov) |
 | CP-1434 | Ingreso de punta a punta | `no-reply@` con `automatic: true` y un PDF deja un documento en la cola, con el remitente como origen | `boletas-automaticas.e2e-spec.ts::CP-1434` | verde (3 nov) |
 | CP-1435 | Esquema | `BillMailIngestSchema` acepta `automatic` booleano opcional y rechaza otro tipo | `bills-intake.spec.ts::CP-1435` | verde (3 nov) |
+
+## Avisos de liquidación y boletas (DEF-140 a DEF-143)
+
+| ID | Caso | Resultado esperado | Automatización | Estado |
+|---|---|---|---|---|
+| CP-1300 | Boleta en pesos sobre contrato en dólares | la carga y `GET /service-bills/:id/allocations` traen `BILL_CURRENCY_MISMATCH`; `POST /liquidaciones/generate` crea la liquidación solo con el alquiler y trae `UNBILLED_BILL_CURRENCY_MISMATCH` y `withWarnings` 1; `GET /service-bills/unbilled` lista la parte | `e2e/boletas-y-reglas.e2e-spec.ts::CP-1300` | verde (3 nov) |
+| CP-1301 | Reporte de partes sin facturar | con la misma moneda no hay avisos ni pendientes; lo leen Admin, Gerente y Liquidaciones y el resto recibe 403 | `e2e/boletas-y-reglas.e2e-spec.ts::CP-1301`; `role-groups.spec.ts` | verde (3 nov) |
+| CP-1302 | Alquiler en cero | la liquidación se crea y el contrato trae `RENT_IS_ZERO`; `withWarnings` cuenta 1 | `e2e/boletas-y-reglas.e2e-spec.ts::CP-1302` | verde (3 nov) |
+| CP-1303 | Reglas por consumo sin consumo por unidad | la fila queda `created` con un `CONSUMPTION_MISSING` por regla y sin partes; al cargar el consumo pasa a `updated` sin avisos | `e2e/boletas-y-reglas.e2e-spec.ts::CP-1303` | verde (3 nov) |
+| CP-1305 | Ajuste Custom o FixedPercent sin porcentaje en el esquema de la fila | el esquema falla en `terms.customPct` con el código `MISSING_ADJUSTMENT_PCT` | `shared/schemas/import-batch.schema.spec.ts::CP-1305` | verde (3 nov) |
+| CP-1306 | Ajuste con porcentaje o por índice | `Custom` y `FixedPercent` con `customPct` y un índice sin porcentaje son válidos | `shared/schemas/import-batch.schema.spec.ts::CP-1306` | verde (3 nov) |
+| CP-1307 | Error de fila del lote | un ajuste Custom sin porcentaje da `MISSING_ADJUSTMENT_PCT` en `terms.customPct`; los demás errores de esquema siguen siendo `VALIDATION_ERROR` | `import-batch.service.spec.ts::CP-1307` | verde (3 nov) |
+| CP-1308 | Avisos de la generación (unitario) | `UNBILLED_BILL_CURRENCY_MISMATCH` y `RENT_IS_ZERO` por contrato, ninguno si no corresponde, y `withWarnings` cuenta los contratos con aviso | `liquidaciones-generacion.spec.ts::CP-1308` | verde (3 nov) |
+| CP-1309 | Carga en otra moneda (unitario) | la fila `created` trae el aviso "boleta en ARS sobre contrato en USD: no se trasladó" y la parte se guarda sin facturar | `service-bills.service.spec.ts::CP-1309` | verde (3 nov) |
+| CP-1310 | Misma moneda y fila sin cambios | sin diferencia de moneda no hay avisos; una fila sin cambios vuelve a avisar | `service-bills.service.spec.ts::CP-1310` | verde (3 nov) |
+| CP-1311 | Avisos de una boleta | un aviso de moneda por contrato, un `CONSUMPTION_MISSING` por regla salteada por falta de consumo y nada sin reparto | `service-bills.service.spec.ts::CP-1311` | verde (3 nov) |
+| CP-1312 | Reporte de pendientes (unitario) | lista solo las partes sin facturar de moneda distinta; con `contractId` y mes filtra | `service-bills.service.spec.ts::CP-1312` | verde (3 nov) |
+| CP-1313 | Pantalla de liquidaciones | tras generar, muestra cuántas liquidaciones salieron con avisos | `LiquidacionList.screen.test.tsx::CP-1313` | verde (3 nov) |
+

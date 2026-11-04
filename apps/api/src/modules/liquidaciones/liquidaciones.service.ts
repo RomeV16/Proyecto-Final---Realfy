@@ -118,7 +118,22 @@ export interface GenerationResult {
   liquidacionId?: string;
   /** `ADJUSTMENT_PENDING`: un ajuste que cambia el alquiler del mes sigue sin aplicar y la liquidación no se aprueba. */
   warnings?: string[];
+  /** Avisos de una liquidación creada (alquiler en cero, boletas en otra moneda) con su detalle; sus códigos también van en `warnings`. */
+  warningDetails?: GenerationWarning[];
 }
+
+/** Aviso de la generación; los códigos son estables. */
+export type GenerationWarning =
+  | { code: 'RENT_IS_ZERO'; message: string }
+  | {
+      code: 'UNBILLED_BILL_CURRENCY_MISMATCH';
+      message: string;
+      allocationId: string;
+      billId: string;
+      amount: string;
+      billCurrency: string;
+      contractCurrency: string;
+    };
 
 export interface GenerationSummary {
   created: number;
@@ -131,6 +146,8 @@ export interface GenerationSummary {
   total: number;
   /** Liquidaciones del mes (nuevas o ya generadas, todavía editables) con un ajuste pendiente que las bloquea. */
   adjustmentPending: number;
+  /** Liquidaciones creadas con algún aviso (ver `warnings` de cada resultado). */
+  withWarnings: number;
   results: GenerationResult[];
   /**
    * Ajustes que vencen hasta el fin del mes, aplicados antes de liquidarlo
@@ -236,6 +253,7 @@ export class LiquidacionesService implements OnModuleInit {
     }
 
     const adjustmentPending = await this.attachWarnings(results);
+    const withWarnings = results.filter((r) => r.warningDetails?.length).length;
     const created = results.filter((r) => r.status === 'created').length;
     const skipped = results.filter((r) => r.status === 'skipped').length;
     const outOfRange = results.filter((r) => r.status === 'out_of_range').length;
@@ -265,6 +283,7 @@ export class LiquidacionesService implements OnModuleInit {
       failed,
       total: contracts.length,
       adjustmentPending,
+      withWarnings,
       results,
       adjustments: { applied: adjustmentRun.applied, pending: adjustmentRun.skipped },
     };
@@ -340,6 +359,8 @@ export class LiquidacionesService implements OnModuleInit {
       };
     }
 
+    const warningDetails = await this.generationWarnings(contract, period, String(rentPart.rent.monthlyAmount));
+
     try {
       const created = await this.prisma.client.$transaction(async (tx: any) => {
         const row = await tx.liquidacion.create({
@@ -393,7 +414,7 @@ export class LiquidacionesService implements OnModuleInit {
         );
         return row;
       });
-      return { contractId: contract.id, status: 'created', liquidacionId: created?.id };
+      return { contractId: contract.id, status: 'created', liquidacionId: created?.id, warningDetails };
     } catch (error) {
       // Dos generaciones simultáneas: la otra ganó el unique (contrato, período).
       if ((error as { code?: string }).code === 'P2002') {
@@ -482,6 +503,30 @@ export class LiquidacionesService implements OnModuleInit {
   }
 
   /**
+   * Avisos de una liquidación que se crea: alquiler en cero y partes de boletas que no se pueden cobrar acá
+   * porque están en otra moneda que el contrato (no se convierten: es una regla de dinero sin definir).
+   */
+  private async generationWarnings(contract: any, period: Date, rentAmount: string): Promise<GenerationWarning[]> {
+    const warnings: GenerationWarning[] = [];
+    if (new Decimal(rentAmount).isZero()) {
+      warnings.push({ code: 'RENT_IS_ZERO', message: 'el alquiler del mes es 0: la liquidación no cobra alquiler' });
+    }
+    const otherCurrency = await this.serviceBills.unbilledOtherCurrency(contract.id, period);
+    for (const u of otherCurrency) {
+      warnings.push({
+        code: 'UNBILLED_BILL_CURRENCY_MISMATCH',
+        message: `boleta en ${u.billCurrency} sobre contrato en ${u.contractCurrency}: no se trasladó`,
+        allocationId: u.allocationId,
+        billId: u.billId,
+        amount: u.amount,
+        billCurrency: u.billCurrency,
+        contractCurrency: u.contractCurrency,
+      });
+    }
+    return warnings;
+  }
+
+  /**
    * Proceso diario de una inmobiliaria: si hoy está a `leadDays` días o menos
    * del mes siguiente, genera sus liquidaciones. Lo llama el cron dentro del
    * contexto de cada inmobiliaria. Deja una fila de auditoría si generó alguna.
@@ -512,6 +557,7 @@ export class LiquidacionesService implements OnModuleInit {
           failed: summary.failed,
           adjustmentsApplied: summary.adjustments.applied.length,
           adjustmentsPending: summary.adjustments.pending.length,
+          withWarnings: summary.withWarnings,
         },
         metadata: { source, job: 'liquidaciones-generate' },
       });
@@ -1437,7 +1483,7 @@ export class LiquidacionesService implements OnModuleInit {
     let blocked = 0;
     for (const result of results) {
       const codes = result.liquidacionId ? byId.get(result.liquidacionId) ?? [] : [];
-      if (result.liquidacionId) result.warnings = codes;
+      if (result.liquidacionId) result.warnings = [...codes, ...(result.warningDetails ?? []).map((w) => w.code)];
       if (codes.length > 0) blocked++;
     }
     return blocked;

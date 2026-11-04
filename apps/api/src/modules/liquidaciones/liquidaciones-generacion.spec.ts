@@ -33,6 +33,7 @@ function build(
     findFirst?: jest.Mock;
     trueUps?: any[];
     serviceLines?: any[];
+    otherCurrency?: any[];
     chargeLines?: any[];
     penaltyLines?: any[];
     penaltyRowIds?: string[];
@@ -57,6 +58,7 @@ function build(
   };
   const serviceBills = {
     pendingLines: jest.fn().mockResolvedValue(opts.serviceLines ?? []),
+    unbilledOtherCurrency: jest.fn().mockResolvedValue(opts.otherCurrency ?? []),
     markBilled: jest.fn().mockResolvedValue(0),
     release: jest.fn().mockResolvedValue(0),
   };
@@ -432,6 +434,27 @@ describe('LiquidacionesService.generate: impuestos y servicios', () => {
     ]);
     expect(data.total).toBe('316500.00');
     expect(serviceBills.markBilled).toHaveBeenCalledWith(client, ['alloc-1', 'alloc-2'], 'liq-new');
+  });
+
+  it('CP-1308 — avisa de las partes en otra moneda y del alquiler en cero, y cuenta las liquidaciones con aviso', async () => {
+    const other = {
+      allocationId: 'alloc-9',
+      billId: 'bill-9',
+      amount: '62000',
+      billCurrency: 'ARS',
+      contractCurrency: 'USD',
+    };
+    const { service, serviceBills } = build([contract({ rentCurrency: 'USD' }), contract({ id: 'c-2', rentAmount: '0' }), contract({ id: 'c-3' })], {
+      otherCurrency: [other],
+    });
+    serviceBills.unbilledOtherCurrency.mockImplementation(async (id: string) => (id === 'c-1' ? [other] : []));
+    const summary = await service.generate({ month: 11, year: 2026 });
+    const warningsOf = (id: string) => summary.results.find((r) => r.contractId === id)?.warningDetails?.map((w) => w.code);
+    expect(warningsOf('c-1')).toEqual(['UNBILLED_BILL_CURRENCY_MISMATCH']);
+    expect(warningsOf('c-2')).toEqual(['RENT_IS_ZERO']);
+    expect(warningsOf('c-3')).toEqual([]);
+    expect(summary.withWarnings).toBe(2);
+    expect(serviceBills.unbilledOtherCurrency).toHaveBeenCalledWith('c-1', d('2026-11-01'));
   });
 
   it('una parte con dos renglones (diferencia por descuento) se marca una sola vez', async () => {
