@@ -408,3 +408,4 @@ cobranza escalonada.
   (el proceso corre una vez al día) y el importe que informa es el de ese día.
 - La política cierra un caso sin deuda vencida en la pasada siguiente al pago,
   no en el momento: durante ese lapso el caso sigue abierto con saldo cero.
+- Los mails entrantes de la bandeja (`consultas@`) llegan por un Cloudflare Email Worker (`infra/email-worker`) que los firma y los manda a `POST /inbox/email-ingest`; ver `../despliegue.md`.
