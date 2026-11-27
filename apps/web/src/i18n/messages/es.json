@@ -124,7 +124,28 @@
   "followUps": "Vencimientos",
   "messaging": "Mensajería",
   "inbox": "Bandeja de consultas",
-  "collections": "Cobranza"
+  "collections": "Cobranza",
+  "sections": {
+   "home": "Inicio",
+   "portfolio": "Cartera",
+   "commercial": "Comercial",
+   "rentals": "Alquileres",
+   "money": "Cobros y caja",
+   "owners": "Locadores",
+   "service": "Atención",
+   "admin": "Administración"
+  },
+  "aria": {
+   "main": "Navegación principal",
+   "drawer": "Menú de navegación",
+   "openMenu": "Abrir el menú",
+   "closeMenu": "Cerrar el menú",
+   "expandSidebar": "Expandir la barra lateral",
+   "collapseSidebar": "Contraer la barra lateral",
+   "back": "Volver",
+   "breadcrumb": "Ruta de navegación",
+   "userMenu": "Menú de la cuenta"
+  }
  },
  "dataTable": {
   "pagination": {

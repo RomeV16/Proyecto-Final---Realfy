@@ -42,14 +42,21 @@ export function Header({ onMenuToggle }: HeaderProps) {
         setDropdownOpen(false);
       }
     }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setDropdownOpen(false);
+    }
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
   }, []);
 
   /* Sin usuario todavia el avatar queda vacio: un '??' se lee como un dato
      roto durante el primer pintado. */
   const initials = user
-    ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+    ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : '';
 
   // Breadcrumb logic — drop record-id segments so detail pages never show a
@@ -79,9 +86,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
       {/* Left: hamburger (mobile) + breadcrumb */}
       <div className="flex items-center gap-3 min-w-0">
         <button
+          type="button"
           onClick={onMenuToggle}
           className="lg:hidden p-2 -ml-2 rounded-lg hover:bg-[var(--color-bg)] transition-colors shrink-0"
-          aria-label="Toggle menu"
+          aria-label={t('nav.aria.openMenu')}
         >
           <Icon name="menu" size={20} className="text-[var(--color-muted)]" />
         </button>
@@ -93,7 +101,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
               <button
                 onClick={() => router.push(parentHref)}
                 className="p-1 rounded-md hover:bg-[var(--color-bg)] transition-colors shrink-0"
-                aria-label="Go back"
+                aria-label={t('nav.aria.back')}
               >
                 <Icon name="arrowLeft" size={16} className="text-[var(--color-muted)]" />
               </button>
@@ -107,7 +115,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         {/* Desktop breadcrumb: full chain */}
         {crumbs.length > 0 && (
           <nav
-            aria-label="Breadcrumb"
+            aria-label={t('nav.aria.breadcrumb')}
             className="hidden md:flex items-center gap-1 min-w-0"
           >
             {crumbs.map((crumb, i) => {
@@ -156,12 +164,14 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
         <div className="relative" ref={dropdownRef}>
           <button
+            type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-[var(--color-bg)] transition-colors"
             aria-expanded={dropdownOpen}
             aria-haspopup="true"
+            aria-label={user ? `${t('nav.aria.userMenu')}: ${user.firstName} ${user.lastName}` : t('nav.aria.userMenu')}
           >
-            <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs font-semibold">
+            <div aria-hidden="true" className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs font-semibold">
               {initials}
             </div>
             <span className="hidden sm:block text-sm font-medium text-[var(--color-text)] max-w-[120px] truncate">
@@ -204,8 +214,9 @@ export function Header({ onMenuToggle }: HeaderProps) {
               </Link>
               <div className="border-t border-[var(--color-border)] mt-1">
                 <button
-                  onClick={logout}
-                  className="w-full text-left px-4 py-2 text-sm text-[var(--color-danger)] hover:bg-red-50 transition-colors"
+                  type="button"
+                    onClick={() => void logout()}
+                  className="w-full text-left px-4 py-2 text-sm text-[var(--color-danger)] hover:bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] transition-colors"
                 >
                   {t('nav.logout')}
                 </button>

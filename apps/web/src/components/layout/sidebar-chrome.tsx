@@ -22,7 +22,7 @@ const SIDEBAR_BRAND_CLASS =
   'flex items-center gap-2.5 px-5 h-16 border-b border-white/[0.08] shrink-0';
 
 export const SIDEBAR_NAV_CLASS =
-  'flex-1 py-5 px-3 space-y-0.5 overflow-y-auto';
+  'flex-1 py-3 px-3 overflow-y-auto';
 
 export const SIDEBAR_FOOTER_CLASS = 'px-3 py-4 border-t border-white/[0.08]';
 
@@ -32,7 +32,7 @@ export const SIDEBAR_FOOTER_BUTTON_CLASS =
 /** Row skin for one nav entry. Identical for links and for static replicas. */
 export function sidebarItemClass(active: boolean, collapsed = false): string {
   return [
-    'group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm',
+    'group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm',
     'transition-colors duration-300 [transition-timing-function:var(--ease-luxe)]',
     active
       ? 'bg-white/[0.07] text-white font-medium'
@@ -56,14 +56,57 @@ export function SidebarBrand({ collapsed = false }: { collapsed?: boolean }) {
   );
 }
 
-/** Section heading above the nav list — occupies real vertical space, so the
- *  transition has to render it too or every row below shifts on hand-off. */
-export function SidebarSectionLabel() {
-  return (
-    <p className="px-3 pb-2.5 text-[0.62rem] uppercase tracking-[0.18em] text-white/30 font-medium">
-      Gestión
-    </p>
+const SECTION_HEADER_CLASS =
+  'flex w-full items-center justify-between gap-2 px-3 pt-4 pb-1.5 text-[0.62rem] uppercase tracking-[0.18em] font-medium text-white/50';
+
+/**
+ * Section heading inside the nav list. With `onToggle` it is the button that
+ * folds the section; without it (the login → panel replica) it is a static
+ * label with the same box, so the rows below do not shift on hand-off.
+ */
+export function SidebarSectionHeader({
+  label,
+  collapsed = false,
+  controls,
+  onToggle,
+}: {
+  label: string;
+  collapsed?: boolean;
+  controls?: string;
+  onToggle?: () => void;
+}) {
+  const chevron = (
+    <Icon
+      name="chevronDown"
+      size={13}
+      className={`shrink-0 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}
+    />
   );
+  if (!onToggle) {
+    return (
+      <p className={SECTION_HEADER_CLASS}>
+        <span>{label}</span>
+        {chevron}
+      </p>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={!collapsed}
+      aria-controls={controls}
+      className={`${SECTION_HEADER_CLASS} rounded-md transition-colors hover:text-white/80`}
+    >
+      <span>{label}</span>
+      {chevron}
+    </button>
+  );
+}
+
+/** Thin rule between sections where there is no room for a heading (icon rail, collapsed sidebar). */
+export function SidebarSectionDivider() {
+  return <div aria-hidden="true" className="mx-auto my-2 h-px w-6 bg-white/10" />;
 }
 
 /** Brand marker on the active row. */
@@ -96,7 +139,7 @@ export function SidebarItemIcon({
 export const RAIL_ASIDE_CLASS =
   'hidden md:flex lg:hidden flex-col items-center bg-sidebar-bg text-sidebar-text w-16 sticky top-0 h-screen shrink-0';
 
-export const RAIL_NAV_CLASS = 'flex-1 py-4 w-full space-y-1 overflow-y-auto';
+export const RAIL_NAV_CLASS = 'flex-1 py-4 w-full overflow-y-auto';
 
 export function railItemClass(active: boolean): string {
   return [
@@ -110,7 +153,7 @@ export function railItemClass(active: boolean): string {
 export function RailBrand() {
   return (
     <div className="flex items-center justify-center h-16 w-full border-b border-white/10 shrink-0">
-      <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm">
+      <div className="w-8 h-8 rounded-md bg-brand-500 flex items-center justify-center text-white font-display italic text-base">
         R
       </div>
     </div>

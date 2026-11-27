@@ -5,6 +5,8 @@ import { useSyncExternalStore } from 'react';
 interface TransitionData {
   firstName?: string;
   lastName?: string;
+  /** Rol del usuario que ingresa: la portada dibuja el mismo menú que va a ver. */
+  role?: string;
 }
 
 interface State {

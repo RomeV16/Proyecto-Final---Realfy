@@ -5,7 +5,8 @@ import { Link, usePathname } from '@/i18n/navigation';
 import { Icon } from '@/components/ui/icon';
 import { BillReviewNavBadge } from './bill-review-nav-badge';
 import { InboxNavBadge } from './inbox-nav-badge';
-import { isNavItemActive, useVisibleNavItems } from './nav-items';
+import { useNavCollapse } from './nav-collapse';
+import { isNavItemActive, useVisibleNavSections, type NavSection } from './nav-items';
 import {
   RAIL_ASIDE_CLASS,
   RAIL_NAV_CLASS,
@@ -17,7 +18,8 @@ import {
   SidebarActiveBar,
   SidebarBrand,
   SidebarItemIcon,
-  SidebarSectionLabel,
+  SidebarSectionDivider,
+  SidebarSectionHeader,
   railItemClass,
   sidebarItemClass,
 } from './sidebar-chrome';
@@ -28,44 +30,39 @@ interface SidebarProps {
 }
 
 interface IconRailProps {
+  sections: NavSection[];
   isActive: (href: string) => boolean;
   t: (key: string) => string;
 }
 
-function IconRail({ isActive, t }: IconRailProps) {
-  const items = useVisibleNavItems();
+function IconRail({ sections, isActive, t }: IconRailProps) {
   return (
-    <aside aria-label="Navigation rail" className={RAIL_ASIDE_CLASS}>
+    <aside className={RAIL_ASIDE_CLASS}>
       <RailBrand />
-      <nav className={RAIL_NAV_CLASS} aria-label="Main navigation">
-        {items.map((item) => {
-          const label = t(item.key);
-          return (
-            <div key={item.key} className="relative group">
-              <Link
-                href={item.href}
-                aria-label={label}
-                title={label}
-                className={railItemClass(isActive(item.href))}
-              >
-                <Icon name={item.icon} size={20} />
-                {item.badge === 'inbox' && <InboxNavBadge floating />}
-                {item.badge === 'billReview' && <BillReviewNavBadge floating />}
-              </Link>
-              <span
-                aria-hidden="true"
-                className={[
-                  'pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2 z-50',
-                  'whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium',
-                  'bg-sidebar-hover text-white shadow-lg',
-                  'opacity-0 group-hover:opacity-100 transition-opacity duration-150',
-                ].join(' ')}
-              >
-                {label}
-              </span>
-            </div>
-          );
-        })}
+      <nav className={RAIL_NAV_CLASS} aria-label={t('aria.main')}>
+        {sections.map((section, index) => (
+          <div key={section.key} className="space-y-1">
+            {index > 0 && <SidebarSectionDivider />}
+            {section.items.map((item) => {
+              const label = t(item.key);
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  aria-label={label}
+                  title={label}
+                  aria-current={active ? 'page' : undefined}
+                  className={railItemClass(active)}
+                >
+                  <Icon name={item.icon} size={20} />
+                  {item.badge === 'inbox' && <InboxNavBadge floating />}
+                  {item.badge === 'billReview' && <BillReviewNavBadge floating />}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
     </aside>
   );
@@ -73,19 +70,21 @@ function IconRail({ isActive, t }: IconRailProps) {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const t = useTranslations('nav');
+  const label = t as unknown as (key: string) => string;
   const pathname = usePathname();
-  const items = useVisibleNavItems();
+  const sections = useVisibleNavSections();
+  const { isCollapsed, toggle } = useNavCollapse();
+  const items = sections.flatMap((section) => section.items);
 
   const isActive = (href: string) => {
     return isNavItemActive(pathname, href, items);
   };
 
+  const toggleLabel = collapsed ? t('aria.expandSidebar') : t('aria.collapseSidebar');
+
   return (
     <>
-      <IconRail
-        isActive={isActive}
-        t={t as unknown as (key: string) => string}
-      />
+      <IconRail sections={sections} isActive={isActive} t={label} />
 
       <aside
         className={`${SIDEBAR_ASIDE_CLASS} transition-[width] duration-300 [transition-timing-function:var(--ease-luxe)] ${
@@ -94,33 +93,58 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       >
         <SidebarBrand collapsed={collapsed} />
 
-        <nav className={SIDEBAR_NAV_CLASS}>
-          {!collapsed && <SidebarSectionLabel />}
-          {items.map((item) => {
-            const active = isActive(item.href);
+        <nav className={SIDEBAR_NAV_CLASS} aria-label={t('aria.main')}>
+          {sections.map((section, index) => {
+            // La primera sección (inicio) no lleva título ni se pliega.
+            const foldable = index > 0 && !collapsed;
+            const folded = foldable && isCollapsed(section.key);
+            const listId = `nav-section-${section.key}`;
+            // Plegada, la sección sigue mostrando el ítem de la pantalla actual.
+            const shown = folded ? section.items.filter((item) => isActive(item.href)) : section.items;
             return (
-              <Link
-                key={item.key}
-                href={item.href}
-                aria-label={collapsed ? t(item.key) : undefined}
-                className={sidebarItemClass(active, collapsed)}
-                title={collapsed ? t(item.key) : undefined}
-              >
-                {active && <SidebarActiveBar />}
-                <SidebarItemIcon name={item.icon} active={active} />
-                {!collapsed && <span className="flex-1">{t(item.key)}</span>}
-                {item.badge === 'inbox' && <InboxNavBadge floating={collapsed} />}
-                {item.badge === 'billReview' && <BillReviewNavBadge floating={collapsed} />}
-              </Link>
+              <div key={section.key}>
+                {index > 0 && collapsed && <SidebarSectionDivider />}
+                {foldable && (
+                  <SidebarSectionHeader
+                    label={label(`sections.${section.key}`)}
+                    collapsed={folded}
+                    controls={listId}
+                    onToggle={() => toggle(section.key)}
+                  />
+                )}
+                <div id={listId} className="space-y-0.5">
+                  {shown.map((item) => {
+                    const active = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        aria-label={collapsed ? label(item.key) : undefined}
+                        aria-current={active ? 'page' : undefined}
+                        className={sidebarItemClass(active, collapsed)}
+                        title={collapsed ? label(item.key) : undefined}
+                      >
+                        {active && <SidebarActiveBar />}
+                        <SidebarItemIcon name={item.icon} active={active} />
+                        {!collapsed && <span className="flex-1">{label(item.key)}</span>}
+                        {item.badge === 'inbox' && <InboxNavBadge floating={collapsed} />}
+                        {item.badge === 'billReview' && <BillReviewNavBadge floating={collapsed} />}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>
 
         <div className={SIDEBAR_FOOTER_CLASS}>
           <button
+            type="button"
             onClick={onToggle}
             className={SIDEBAR_FOOTER_BUTTON_CLASS}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={toggleLabel}
+            title={toggleLabel}
           >
             <span
               className={`transition-transform duration-300 ${

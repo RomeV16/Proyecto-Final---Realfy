@@ -22,7 +22,8 @@ vi.mock('next/navigation', async (importOriginal) => ({
 }));
 
 import { MobileNav } from './mobile-nav';
-import { navItems } from './nav-items';
+import { resetNavCollapse } from './nav-collapse';
+import { navItems, navSections } from './nav-items';
 
 const ana = {
   id: 'u1',
@@ -38,6 +39,8 @@ describe('MobileNav', () => {
     auth.logout.mockReset();
     nav.path = '/es/contracts';
     document.body.style.overflow = '';
+    window.localStorage.clear();
+    resetNavCollapse();
   });
 
   it('lista las entradas de navegación con enlaces con prefijo de idioma', () => {
@@ -48,6 +51,39 @@ describe('MobileNav', () => {
     expect(hrefs).toContain('/es/dashboard');
     expect(hrefs).toContain('/es/contracts');
     expect(hrefs.every((h) => h!.startsWith('/es/'))).toBe(true);
+  });
+
+  it('agrupa los ítems en secciones con título, salvo la de inicio', () => {
+    renderEs(<MobileNav open onClose={() => {}} />);
+    const titles = screen
+      .getAllByRole('button', { expanded: true })
+      .map((b) => b.textContent);
+    expect(titles).toEqual(['Cartera', 'Comercial', 'Alquileres', 'Cobros y caja', 'Locadores', 'Atención', 'Administración']);
+    expect(titles).toHaveLength(navSections.length - 1);
+  });
+
+  it('plegar una sección oculta sus ítems menos el de la pantalla actual, y lo recuerda', async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderEs(<MobileNav open onClose={() => {}} />);
+    await user.click(screen.getByRole('button', { name: 'Cartera' }));
+    expect(screen.getByRole('button', { name: 'Cartera' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('link', { name: 'Propiedades' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Contratos' })).toHaveAttribute('aria-current', 'page');
+    expect(JSON.parse(window.localStorage.getItem('realfy.nav.collapsed')!)).toEqual(['portfolio']);
+
+    unmount();
+    resetNavCollapse();
+    renderEs(<MobileNav open onClose={() => {}} />);
+    expect(screen.queryByRole('link', { name: 'Propiedades' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cartera' }));
+    expect(screen.getByRole('link', { name: 'Propiedades' })).toBeInTheDocument();
+  });
+
+  it('Escape cierra el menú', async () => {
+    const onClose = vi.fn();
+    renderEs(<MobileNav open onClose={onClose} />);
+    await userEvent.setup().keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('marca como activa la ruta actual y sus subrutas', () => {
@@ -62,7 +98,6 @@ describe('MobileNav', () => {
     expect(screen.getByText('Ana Prueba')).toBeInTheDocument();
     expect(screen.getByText('ana@example.test')).toBeInTheDocument();
     expect(screen.getByText('AP')).toBeInTheDocument();
-    expect(screen.getByText('A')).toBeInTheDocument();
   });
 
   it('sin sesión muestra la R de marca y sin bloque de usuario', () => {
@@ -88,7 +123,7 @@ describe('MobileNav', () => {
     const onClose = vi.fn();
     const { container } = renderEs(<MobileNav open onClose={onClose} />);
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: 'Close menu' }));
+    await user.click(screen.getByRole('button', { name: 'Cerrar el menú' }));
     expect(onClose).toHaveBeenCalledTimes(1);
     await user.click(container.querySelector('[aria-hidden="true"]')!);
     expect(onClose).toHaveBeenCalledTimes(2);

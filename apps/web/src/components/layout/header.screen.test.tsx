@@ -58,38 +58,38 @@ describe('Header', () => {
   it('el botón de menú invoca onMenuToggle', async () => {
     const onMenuToggle = vi.fn();
     renderEs(<Header onMenuToggle={onMenuToggle} />);
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Toggle menu' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Abrir el menú' }));
     expect(onMenuToggle).toHaveBeenCalledTimes(1);
   });
 
   it('una ruta de un nivel muestra una sola miga y sin botón de volver', () => {
     renderEs(<Header onMenuToggle={() => {}} />);
     expect(screen.getAllByText('Contratos').length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
   });
 
   it('en un detalle omite el identificador y enlaza la miga padre con prefijo', () => {
     nav.path = '/es/contracts/0b9a3c1e-1111-2222-3333-444455556666';
     renderEs(<Header onMenuToggle={() => {}} />);
     expect(screen.queryByText(/0b9a3c1e/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
   });
 
   it('en una ruta anidada muestra la cadena y vuelve al padre con el router', async () => {
     nav.path = '/es/contracts/12/new-thing';
     renderEs(<Header onMenuToggle={() => {}} />);
-    const nav_ = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const nav_ = screen.getByRole('navigation', { name: 'Ruta de navegación' });
     const parent = nav_.querySelector('a');
     expect(parent?.getAttribute('href')).toBe('/es/contracts');
     expect(screen.getAllByText('New Thing').length).toBeGreaterThan(0);
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Go back' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Volver' }));
     expect(nav.push).toHaveBeenCalledWith('/es/contracts');
   });
 
   it('sin segmentos no hay migas', () => {
     nav.path = '/es';
     renderEs(<Header onMenuToggle={() => {}} />);
-    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Ruta de navegación' })).not.toBeInTheDocument();
   });
 
   it('abre el menú de usuario con perfil, configuración y correo', async () => {

@@ -124,7 +124,28 @@
   "followUps": "Expirations",
   "messaging": "Messaging",
   "inbox": "Inbox",
-  "collections": "Collections"
+  "collections": "Collections",
+  "sections": {
+   "home": "Home",
+   "portfolio": "Portfolio",
+   "commercial": "Sales and leasing",
+   "rentals": "Rentals",
+   "money": "Payments and cash",
+   "owners": "Landlords",
+   "service": "Service",
+   "admin": "Administration"
+  },
+  "aria": {
+   "main": "Main navigation",
+   "drawer": "Navigation menu",
+   "openMenu": "Open menu",
+   "closeMenu": "Close menu",
+   "expandSidebar": "Expand sidebar",
+   "collapseSidebar": "Collapse sidebar",
+   "back": "Go back",
+   "breadcrumb": "Breadcrumb",
+   "userMenu": "Account menu"
+  }
  },
  "dataTable": {
   "pagination": {
