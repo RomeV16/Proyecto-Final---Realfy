@@ -176,7 +176,9 @@ export function ContractRow({ contract }: { contract: ContractItem }) {
   const expired = contract.status === ContractStatus.Vencido;
   const closed = contract.status === ContractStatus.Rescindido || contract.status === ContractStatus.Archivado;
   const barTone = expired ? 'danger' : expiringSoon ? 'warning' : ongoing ? 'success' : 'neutral';
-  const next = ongoing ? nextAdjustmentDate(contract) : null;
+  // Un borrador ya tiene cronograma; un contrato vencido o cerrado no espera más ajustes.
+  const scheduled = !expired && !closed;
+  const next = scheduled ? nextAdjustmentDate(contract) : null;
 
   let termCaption: string;
   if (!term) termCaption = t('list.openEnded', { start: formatDate(contract.startDate, 'medium', locale) });
@@ -281,7 +283,7 @@ export function ContractRow({ contract }: { contract: ContractItem }) {
           {contract.adjustmentType ? (
             <>
               <p className="truncate text-sm tabular-nums text-[var(--color-text)]">
-                {next ? formatDate(next, 'medium', locale) : t('list.noMoreAdjustments')}
+                {next ? formatDate(next, 'medium', locale) : scheduled ? t('list.noMoreAdjustments') : '—'}
               </p>
               <p className="truncate text-xs text-[var(--color-muted)]">
                 {[

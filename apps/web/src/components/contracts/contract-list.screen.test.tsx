@@ -140,6 +140,27 @@ describe('ContractList', () => {
     expect(text).toContain('US$');
   });
 
+  it('un borrador muestra su próximo ajuste y un contrato rescindido no dice que no quedan', async () => {
+    apiClient.mockResolvedValue(
+      page([
+        item({ id: 'c-b', status: 'Borrador', adjustmentPeriod: 'Trimestral', startDate: inDays(-10), endDate: inDays(700) }),
+      ]),
+    );
+    const first = renderEs(<ContractList />);
+    await screen.findByText(/Mario Muestra/);
+    expect(norm(first.container.textContent)).not.toContain('No quedan');
+    expect(norm(first.container.textContent)).toMatch(/\d{4}IPC · trimestral/);
+    first.unmount();
+
+    apiClient.mockResolvedValue(
+      page([item({ id: 'c-r', status: 'Rescindido', adjustmentPeriod: 'Trimestral', endDate: inDays(-30), startDate: inDays(-400) })]),
+    );
+    const second = renderEs(<ContractList />);
+    await screen.findByText(/Mario Muestra/);
+    expect(norm(second.container.textContent)).not.toContain('No quedan');
+    expect(norm(second.container.textContent)).toContain('—IPC · trimestral');
+  });
+
   it('filtra por estado y tipo de ajuste y permite limpiar', async () => {
     apiClient.mockResolvedValue(page([item()]));
     renderEs(<ContractList />);
