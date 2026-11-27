@@ -38,9 +38,13 @@ const ORIGINAL = {
   emittedAt: '2026-10-29T12:00:00.000Z',
 };
 
-function mockApi(emit: () => Promise<unknown> = () => Promise.resolve({ id: 'nc-9' }), certificate: unknown = null) {
+function mockApi(
+  emit: () => Promise<unknown> = () => Promise.resolve({ id: 'nc-9' }),
+  certificate: unknown = null,
+  original: unknown = ORIGINAL,
+) {
   apiClient.mockImplementation((path: string) => {
-    if (path === '/invoices/f-1') return Promise.resolve(ORIGINAL);
+    if (path === '/invoices/f-1') return Promise.resolve(original);
     if (path === '/invoices/certificate') return Promise.resolve(certificate);
     if (path === '/invoices/emit-nc') return emit();
     return Promise.reject(new Error(`unexpected ${path}`));
@@ -103,6 +107,40 @@ describe('NcInvoiceForm', () => {
     expect(amount).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByRole('button', { name: 'Emitir nota de crédito' })).toBeDisabled();
     expect(emitCalls()).toHaveLength(0);
+  });
+
+  it('descuenta las notas de crédito anteriores de lo que se puede acreditar', async () => {
+    const creditNotes = [{ id: 'nc-1', type: 'NotaCreditoC', puntoDeVenta: 1, numero: 1, impTotal: '134047.39' }];
+    mockApi(undefined, null, { ...ORIGINAL, creditNotes });
+    const { container } = renderEs(<NcInvoiceForm originalInvoiceId="f-1" />);
+    const amount = await screen.findByLabelText(/Importe a acreditar/);
+    expect(amount).toHaveValue(500000);
+    const text = (container.textContent ?? '').replaceAll('\u00a0', ' ');
+    expect(text).toContain('Hasta $ 500.000,00');
+    expect(text).toContain('Ya tiene notas de crédito por $ 134.047,39.');
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText(/Motivo/), 'Resto');
+    await user.clear(amount);
+    await user.type(amount, '500000.01');
+    expect(amount).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: 'Emitir nota de crédito' })).toBeDisabled();
+  });
+
+  it('un comprobante ya acreditado por completo no admite otra nota de crédito', async () => {
+    mockApi(undefined, null, { ...ORIGINAL, creditNotes: [{ id: 'nc-1', type: 'NotaCreditoC', puntoDeVenta: 1, numero: 1, impTotal: '634047.39' }] });
+    renderEs(<NcInvoiceForm originalInvoiceId="f-1" />);
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText(/Motivo/), 'Otra vez');
+    expect(screen.getByText(/ya está acreditado por completo/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Emitir nota de crédito' })).toBeDisabled();
+    expect(emitCalls()).toHaveLength(0);
+  });
+
+  it('una nota de crédito no se puede acreditar con otra', async () => {
+    mockApi(undefined, null, { ...ORIGINAL, type: 'NotaCreditoC', cbteTipo: 13 });
+    renderEs(<NcInvoiceForm originalInvoiceId="f-1" />);
+    expect(await screen.findByRole('heading', { level: 2 })).toHaveTextContent('No encontramos ese comprobante');
+    expect(screen.queryByRole('button', { name: 'Emitir nota de crédito' })).not.toBeInTheDocument();
   });
 
   it('si ARCA rechaza la emisión avisa y deja reintentar', async () => {

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { EmitNotaCreditoDtoSchema } from '@realfy/shared';
-import { buildCreditNotePayload, creditNoteType, localToday, type OriginalVoucher } from './credit-note-payload';
+import {
+  buildCreditNotePayload,
+  creditableAmount,
+  creditNoteType,
+  localToday,
+  type OriginalVoucher,
+} from './credit-note-payload';
 
 const ISSUER = '506bf2a6-1397-42e1-ac08-d585e18912dc';
 const REQUEST = '7f1f3b0e-6a52-4f0c-9d43-0c1f4f4f9a11';
@@ -99,6 +105,68 @@ describe('buildCreditNotePayload', () => {
     expect(EmitNotaCreditoDtoSchema.safeParse(payload).success).toBe(true);
     expect(payload).not.toHaveProperty('fchServDesde');
     expect(payload).not.toHaveProperty('fchVtoPago');
+  });
+
+  it('una nota de débito se acredita con la nota de crédito de su misma letra', () => {
+    expect(creditNoteType(2)).toBe(3);
+    expect(creditNoteType(7)).toBe(8);
+    expect(creditNoteType(12)).toBe(13);
+  });
+
+  it('una factura B al 0 % manda su alícuota para que no se le discrimine IVA', () => {
+    const original = facturaC({
+      type: 'FacturaB',
+      cbteTipo: 6,
+      impTotal: '50000',
+      impNeto: '50000',
+      impIva: '0',
+      ivaArray: [{ Id: 3, BaseImp: 50000, Importe: 0 }],
+    });
+    const payload = buildCreditNotePayload(original, { ...input, amount: 12345.67 });
+    expect(EmitNotaCreditoDtoSchema.safeParse(payload).success).toBe(true);
+    expect(payload).toMatchObject({
+      cbteTipo: 8,
+      impTotal: '12345.67',
+      impNeto: '12345.67',
+      impIVA: '0.00',
+      iva: [{ id: 3, baseImp: '12345.67', importe: '0.00' }],
+    });
+  });
+
+  it('con varias alícuotas las bases suman el neto y los importes el IVA, al centavo', () => {
+    const original = facturaC({
+      type: 'FacturaA',
+      cbteTipo: 1,
+      impTotal: '331.50',
+      impNeto: '300',
+      impIva: '31.50',
+      ivaArray: [
+        { Id: 5, BaseImp: 100, Importe: 21 },
+        { Id: 4, BaseImp: 100, Importe: 10.5 },
+        { Id: 3, BaseImp: 100, Importe: 0 },
+      ],
+    });
+    for (const amount of [331.5, 100, 0.05, 33.33, 211.11]) {
+      const payload = buildCreditNotePayload(original, { ...input, amount }) as {
+        impTotal: string;
+        impNeto: string;
+        impIVA: string;
+        iva: { baseImp: string; importe: string }[];
+      };
+      expect(EmitNotaCreditoDtoSchema.safeParse(payload).success).toBe(true);
+      const cents = (values: string[]) => values.reduce((sum, v) => sum + Math.round(Number(v) * 100), 0);
+      expect(cents(payload.iva.map((i) => i.baseImp))).toBe(cents([payload.impNeto]));
+      expect(cents(payload.iva.map((i) => i.importe))).toBe(cents([payload.impIVA]));
+      expect(cents([payload.impNeto, payload.impIVA])).toBe(cents([payload.impTotal]));
+    }
+  });
+
+  it('lo acreditable descuenta las notas de crédito que el comprobante ya tiene', () => {
+    expect(creditableAmount({ impTotal: '634047.39' })).toBe(634047.39);
+    expect(creditableAmount({ impTotal: '634047.39', creditNotes: [] })).toBe(634047.39);
+    expect(creditableAmount({ impTotal: '1000.10', creditNotes: [{ impTotal: '400.05' }, { impTotal: '100' }] })).toBe(500.05);
+    expect(creditableAmount({ impTotal: '1000', creditNotes: [{ impTotal: '1000' }] })).toBe(0);
+    expect(creditableAmount({ impTotal: '1000', creditNotes: [{ impTotal: '1200' }] })).toBe(0);
   });
 
   it('localToday da la fecha local en AAAA-MM-DD', () => {

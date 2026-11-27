@@ -11,8 +11,8 @@ import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { inputStyles } from '@/components/ui/input';
 import { TestingNotice, useArcaEnvironment } from '../arca-environment';
-import { formatDocNumber, voucherNumber } from '../voucher';
-import { buildCreditNotePayload, type OriginalVoucher } from './credit-note-payload';
+import { formatDocNumber, isCreditNote, voucherNumber } from '../voucher';
+import { buildCreditNotePayload, creditableAmount, type OriginalVoucher } from './credit-note-payload';
 
 function generateId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -51,7 +51,7 @@ export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
     try {
       const res = await apiClient<OriginalVoucher>(`/invoices/${originalInvoiceId}`);
       setOriginal(res);
-      setAmount(Number(res.impTotal).toFixed(2));
+      setAmount(creditableAmount(res).toFixed(2));
     } catch {
       setNotFound(true);
     } finally {
@@ -63,7 +63,8 @@ export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
     void fetchOriginal();
   }, [fetchOriginal]);
 
-  const maxAmount = original ? Number(original.impTotal) : 0;
+  const maxAmount = original ? creditableAmount(original) : 0;
+  const alreadyCredited = original ? Math.max(0, Number(original.impTotal) - maxAmount) : 0;
   const parsedAmount = Number(amount);
   const amountOk = Number.isFinite(parsedAmount) && parsedAmount > 0 && parsedAmount <= maxAmount + 0.001;
   const isValid = descripcion.trim() !== '' && amountOk;
@@ -103,7 +104,8 @@ export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
     );
   }
 
-  if (notFound || !original) {
+  // Una nota de crédito no se acredita con otra: solo se llega acá escribiendo la dirección a mano.
+  if (notFound || !original || isCreditNote(original.type)) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
         <h2 className="text-lg font-semibold text-[var(--color-text)]">{t('notFound')}</h2>
@@ -196,7 +198,8 @@ export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
               className={inputStyles({ invalid: amount !== '' && !amountOk, className: 'font-mono tabular-nums' })}
             />
             <p id="ncAmountHint" className="mt-1 text-xs text-[var(--color-muted)]">
-              {t('amountHint', { max: formatMoneyFixed(original.impTotal) })}
+              {maxAmount > 0 ? t('amountHint', { max: formatMoneyFixed(maxAmount) }) : t('fullyCredited')}
+              {alreadyCredited > 0 && maxAmount > 0 && <> {t('creditedHint', { credited: formatMoneyFixed(alreadyCredited) })}</>}
             </p>
           </div>
 

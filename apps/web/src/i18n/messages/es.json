@@ -2943,6 +2943,8 @@
    "descripcionPlaceholder": "Motivo de la nota de crédito…",
    "amount": "Importe a acreditar",
    "amountHint": "Hasta {max}",
+   "creditedHint": "Ya tiene notas de crédito por {credited}.",
+   "fullyCredited": "Este comprobante ya está acreditado por completo.",
    "fchServDesde": "Servicio desde",
    "fchServHasta": "Servicio hasta",
    "cancel": "Cancelar",

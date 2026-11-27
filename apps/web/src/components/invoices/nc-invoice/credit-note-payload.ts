@@ -26,6 +26,8 @@ export interface OriginalVoucher {
   fchVtoPago?: string | null;
   emittedAt?: string | null;
   createdAt?: string | null;
+  /** Notas de crédito ya vinculadas a este comprobante. */
+  creditNotes?: { impTotal?: string | number | null }[] | null;
 }
 
 export interface CreditNoteInput {
@@ -38,10 +40,18 @@ export interface CreditNoteInput {
   today?: string;
 }
 
-/** Tipo de nota de crédito que corresponde a cada factura: A -> 3, B -> 8, C -> 13. */
+/** Tipo de nota de crédito que corresponde a cada factura o nota de débito: A -> 3, B -> 8, C -> 13. */
 export function creditNoteType(invoiceType: number): number {
-  const map: Record<number, number> = { 1: 3, 6: 8, 11: 13 };
+  const map: Record<number, number> = { 1: 3, 2: 3, 6: 8, 7: 8, 11: 13, 12: 13 };
   return map[invoiceType] ?? 3;
+}
+
+/** Lo que todavía se puede acreditar de un comprobante: su total menos las notas de crédito que ya tiene. */
+export function creditableAmount(
+  original: Pick<OriginalVoucher, 'impTotal' | 'creditNotes'>,
+): number {
+  const credited = (original.creditNotes ?? []).reduce((sum, nc) => sum + num(nc.impTotal), 0);
+  return Math.max(0, round2(num(original.impTotal) - credited));
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -73,14 +83,20 @@ export function buildCreditNotePayload(original: OriginalVoucher, input: CreditN
   const today = input.today ?? localToday();
 
   const rates = original.ivaArray ?? [];
-  // Con una sola alícuota la base es el neto (así cierra con el redondeo); con varias, cada una guarda su proporción.
+  // Cada alícuota guarda su proporción y la última absorbe el redondeo, para que las bases sumen el neto y los importes
+  // el IVA. Se mandan también las de 0 %: sin ellas la API discrimina 21 % sobre el total.
+  let baseLeft = impNeto;
+  let ivaLeft = impIVA;
   const iva =
-    impIVA > 0 && rates.length > 0
-      ? rates.map((rate) => ({
-          id: rate.Id,
-          baseImp: (rates.length === 1 ? impNeto : round2(num(rate.BaseImp) * ratio)).toFixed(2),
-          importe: (rates.length === 1 ? impIVA : round2(num(rate.Importe) * ratio)).toFixed(2),
-        }))
+    rates.length > 0
+      ? rates.map((rate, index) => {
+          const last = index === rates.length - 1;
+          const baseImp = last ? round2(baseLeft) : round2(num(rate.BaseImp) * ratio);
+          const importe = last ? round2(ivaLeft) : round2(num(rate.Importe) * ratio);
+          baseLeft -= baseImp;
+          ivaLeft -= importe;
+          return { id: rate.Id, baseImp: baseImp.toFixed(2), importe: importe.toFixed(2) };
+        })
       : undefined;
 
   return {

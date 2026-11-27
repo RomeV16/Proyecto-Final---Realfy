@@ -2943,6 +2943,8 @@
    "descripcionPlaceholder": "Motivo de la nota de crédito…",
    "amount": "Importe a acreditar",
    "amountHint": "Up to {max}",
+   "creditedHint": "It already has credit notes for {credited}.",
+   "fullyCredited": "This voucher has already been credited in full.",
    "fchServDesde": "Service from",
    "fchServHasta": "Service to",
    "cancel": "Cancelar",
