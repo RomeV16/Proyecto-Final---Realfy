@@ -8483,8 +8483,14 @@
   }
  },
  "billDocuments": {
+  "confidenceLabel": "Confianza de la lectura: {pct} %",
+  "accountShort": "cuenta {account}",
+  "inbox": {
+   "label": "Bandeja de boletas recibidas",
+   "count": "{count, plural, one {# documento} other {# documentos}}"
+  },
   "title": "Boletas recibidas",
-  "subtitle": "Los PDF de boletas que llegan por archivo, por mail o por consulta al proveedor. Las que se leen con certeza se cargan solas; las demás esperan acá tu revisión.",
+  "subtitle": "Las boletas en PDF que llegan por archivo, por mail o por consulta al proveedor. Las que se leen bien se cargan solas; las demás quedan acá para que las revises.",
   "forbidden": "No tenés permiso para ver las boletas recibidas.",
   "loadError": "No se pudieron cargar las boletas recibidas",
   "detailLoadError": "No se pudo cargar el documento",
@@ -8496,7 +8502,7 @@
    "drop": "Arrastrá uno o varios PDF acá",
    "or": "o",
    "choose": "Elegir archivos",
-   "limits": "Sólo PDF, hasta 10 MB cada uno.",
+   "limits": "Solo PDF, hasta 10 MB cada uno.",
    "dragging": "Soltá los archivos para subirlos",
    "progress": "{done} de {total} archivos procesados",
    "uploading": "Subiendo…",
@@ -8562,9 +8568,10 @@
   "billsCount": "{count, plural, one {# boleta} other {# boletas}}",
   "noDocumentName": "Sin archivo",
   "empty": {
-   "title": "Sin boletas recibidas",
+   "filteredHint": "Con el estado «Requiere revisión» esto significa que no queda nada pendiente.",
+   "title": "Todavía no llegó ninguna boleta",
    "subtitle": "Subí un PDF o esperá a que lleguen por mail.",
-   "filtered": "No hay boletas con esos filtros."
+   "filtered": "No hay boletas con esos filtros"
   },
   "detail": {
    "title": "Boleta recibida",

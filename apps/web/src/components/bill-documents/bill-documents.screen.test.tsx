@@ -88,7 +88,17 @@ describe('BillDocumentsScreen', () => {
     expect((await screen.findAllByText('La lectura no es lo bastante confiable para cargarla sola.')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('EPEC').length).toBeGreaterThan(0);
     expect(screen.getAllByText('55 %')[0]).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: '2 boletas' })[0]).toHaveAttribute('href', expect.stringContaining('/boletas/recibidas/d2'));
+    // Cada documento es un renglón de la bandeja que abre su revisión.
+    const inbox = screen.getByRole('region', { name: 'Bandeja de boletas recibidas' });
+    const items = within(inbox).getAllByRole('link');
+    expect(items).toHaveLength(2);
+    expect(items[1]).toHaveAttribute('href', expect.stringContaining('/boletas/recibidas/d2'));
+    expect(items[1]).toHaveTextContent('a@demo.com');
+    expect(items[1]).toHaveTextContent('Mail');
+    expect(items[1]).toHaveTextContent('2 boletas');
+    expect(items[0]).toHaveTextContent('Requiere revisión');
+    expect(within(items[0]).getByText('Confianza de la lectura: 55 %')).toBeInTheDocument();
+    expect(inbox).toHaveTextContent('2 documentos');
     expect(apiClient.mock.calls[0][0]).toContain('status=RequiereRevision');
   });
 

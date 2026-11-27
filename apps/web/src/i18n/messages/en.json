@@ -8483,8 +8483,14 @@
   }
  },
  "billDocuments": {
+  "confidenceLabel": "Reading confidence: {pct} %",
+  "accountShort": "account {account}",
+  "inbox": {
+   "label": "Received bills inbox",
+   "count": "{count, plural, one {# document} other {# documents}}"
+  },
   "title": "Received bills",
-  "subtitle": "Bill PDFs that arrive by file upload, by email or by provider lookup. Those read with certainty are loaded automatically; the rest wait here for your review.",
+  "subtitle": "PDF bills that arrive by upload, by email or by querying the provider. The ones read reliably are loaded automatically; the rest wait here for your review.",
   "forbidden": "You do not have permission to see received bills.",
   "loadError": "Could not load the received bills",
   "detailLoadError": "Could not load the document",
@@ -8562,9 +8568,10 @@
   "billsCount": "{count, plural, one {# bill} other {# bills}}",
   "noDocumentName": "No file",
   "empty": {
-   "title": "No received bills",
+   "filteredHint": "With the “Needs review” status this means nothing is pending.",
+   "title": "No bills have arrived yet",
    "subtitle": "Upload a PDF or wait for them to arrive by email.",
-   "filtered": "No bills match those filters."
+   "filtered": "No bills match those filters"
   },
   "detail": {
    "title": "Received bill",
