@@ -340,12 +340,14 @@ progress {
   transition-delay: calc(var(--reveal-i, 0) * 70ms);
   will-change: opacity, transform;
 }
-.reveal.in-view { opacity: 1; transform: none; }
+.reveal.in-view { opacity: 1; transform: none; will-change: auto; }
 
 .reveal-blur { filter: blur(8px); }
-.reveal-blur.in-view { filter: blur(0); }
+.reveal-blur.in-view { filter: none; }
 
-.page-enter { animation: page-in 0.55s var(--ease-luxe) both; }
+/* `backwards` y un final sin transform: al terminar no queda ningún transform ni filter que
+   vuelva a esta capa el bloque contenedor de los elementos con position: fixed. */
+.page-enter { animation: page-in 0.26s var(--ease-luxe) backwards; }
 
 .magnetic { transition: transform 0.35s var(--ease-spring); }
 
@@ -358,8 +360,18 @@ progress {
 @keyframes ken-burns { from { transform: scale(1.08); } to { transform: scale(1.18); } }
 @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 @keyframes page-in {
-  from { opacity: 0; transform: translateY(12px); filter: blur(6px); }
-  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes overlay-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes dialog-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(4px) scale(0.985); }
 }
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
