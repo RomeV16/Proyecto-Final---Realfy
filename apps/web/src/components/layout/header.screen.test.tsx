@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderEs } from '../index-data/test-utils';
 
@@ -145,11 +145,25 @@ describe('Header', () => {
     await user.click(screen.getByRole('button', { name: /Ana Prueba/ }));
     expect(screen.getByText('ana@example.test')).toBeInTheDocument();
     await user.click(document.body);
-    expect(screen.queryByText('ana@example.test')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('ana@example.test')).not.toBeInTheDocument());
 
     await user.click(screen.getByRole('button', { name: /Ana Prueba/ }));
     await user.click(screen.getByRole('link', { name: 'Mi perfil' }));
-    expect(screen.queryByText('ana@example.test')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText('ana@example.test')).not.toBeInTheDocument());
+  });
+
+  it('al cerrarse con Escape el menú se desvanece antes de desmontarse', async () => {
+    renderEs(<Header onMenuToggle={() => {}} />);
+    const user = userEvent.setup();
+    const trigger = screen.getByRole('button', { name: /Ana Prueba/ });
+    await user.click(trigger);
+    expect(screen.getByText('ana@example.test').closest('[aria-hidden]')).toHaveAttribute('aria-hidden', 'false');
+    await user.keyboard('{Escape}');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    const leaving = screen.getByText('ana@example.test').closest('[aria-hidden]');
+    expect(leaving).toHaveAttribute('aria-hidden', 'true');
+    expect(leaving?.className).toContain('pointer-events-none');
+    await waitFor(() => expect(screen.queryByText('ana@example.test')).not.toBeInTheDocument());
   });
 
   it('cerrar sesión llama a logout', async () => {
@@ -158,5 +172,6 @@ describe('Header', () => {
     await user.click(screen.getByRole('button', { name: /Ana Prueba/ }));
     await user.click(screen.getByRole('button', { name: /Cerrar sesión/i }));
     expect(auth.logout).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: /Ana Prueba/ })).toHaveAttribute('aria-expanded', 'false');
   });
 });

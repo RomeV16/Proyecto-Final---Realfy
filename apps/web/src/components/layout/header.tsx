@@ -12,6 +12,9 @@ interface HeaderProps {
   onMenuToggle: () => void;
 }
 
+/** Lo que dura el desvanecido del menú de usuario al cerrarse. */
+const MENU_OUT_MS = 120;
+
 /** Convert a URL segment to TitleCase as a fallback label. */
 function toTitleCase(segment: string): string {
   return segment
@@ -32,6 +35,16 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  // El menú sigue montado un instante después de cerrarse, para que se desvanezca en vez de cortarse.
+  const [menuMounted, setMenuMounted] = useState(false);
+  useEffect(() => {
+    if (dropdownOpen) {
+      setMenuMounted(true);
+      return;
+    }
+    const timer = setTimeout(() => setMenuMounted(false), MENU_OUT_MS);
+    return () => clearTimeout(timer);
+  }, [dropdownOpen]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -192,8 +205,15 @@ export function Header({ onMenuToggle }: HeaderProps) {
           </button>
 
           {/* Dropdown */}
-          {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-[var(--color-surface)] rounded-xl shadow-lg border border-[var(--color-border)] py-1 z-50 animate-slide-down">
+          {(dropdownOpen || menuMounted) && (
+            <div
+              aria-hidden={!dropdownOpen}
+              className={`absolute right-0 mt-2 w-48 bg-[var(--color-surface)] rounded-xl shadow-lg border border-[var(--color-border)] py-1 z-50 ${
+                dropdownOpen
+                  ? 'animate-slide-down'
+                  : 'pointer-events-none animate-[overlay-out_0.12s_ease-in_forwards]'
+              }`}
+            >
               <div className="px-4 py-2.5 border-b border-[var(--color-border)]">
                 <p className="text-sm font-medium text-[var(--color-text)] truncate">
                   {user ? `${user.firstName} ${user.lastName}` : ''}
@@ -219,7 +239,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
               <div className="border-t border-[var(--color-border)] mt-1">
                 <button
                   type="button"
-                    onClick={() => void logout()}
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    void logout();
+                  }}
                   className="w-full text-left px-4 py-2 text-sm text-[var(--color-danger)] hover:bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] transition-colors"
                 >
                   {t('nav.logout')}
