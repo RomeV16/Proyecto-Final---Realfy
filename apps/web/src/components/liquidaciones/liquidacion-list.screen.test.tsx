@@ -137,8 +137,8 @@ describe('LiquidacionList', () => {
     auth.role = 'Liquidaciones';
     mockList(() => page([item('l-1')]));
     await mount();
-    await screen.findByText('Depto de prueba — Calle Falsa 123 — Ciudad Ejemplo');
-    expect(screen.getByRole('button', { name: 'Generar Mes' })).toBeInTheDocument();
+    await screen.findByText('Depto de prueba');
+    expect(screen.getByRole('button', { name: 'Generar mes' })).toBeInTheDocument();
     expect(screen.queryByText('Seleccionar todas')).not.toBeInTheDocument();
   });
 

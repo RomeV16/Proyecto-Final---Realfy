@@ -574,7 +574,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
                   <li key={p.id} className="py-2.5">
                     <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
                       <p className="w-full font-mono text-xs tabular-nums text-[var(--color-muted)] sm:w-40 sm:pt-0.5">
-                        {formatLocalDate(p.paidAt, 'long')}
+                        {formatDate(p.paidAt, 'long')}
                       </p>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm text-[var(--color-text)]">

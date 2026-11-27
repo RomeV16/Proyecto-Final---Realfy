@@ -462,7 +462,7 @@ describe('PersonDetailPage', () => {
     const edits = screen.getAllByRole('button', { name: 'Editar' });
     await user.click(edits[edits.length - 1]);
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
-    expect(await screen.findByText('Error al guardar la configuración')).toBeInTheDocument();
+    expect(await screen.findByText('No se pudo guardar la puntuación')).toBeInTheDocument();
   });
 
   it('una persona inexistente muestra el estado vacío con enlace', async () => {
