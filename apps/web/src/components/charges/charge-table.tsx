@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
+import { PendingChargeStatus } from '@realfy/shared';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { chargeActions, chargeMonth, type ChargeAction, type PendingChargeRow } from '@/lib/charges';
 import { cn } from '@/lib/cn';
@@ -124,7 +125,9 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
     );
   }
 
-  const totals = chargeTotals(items);
+  // Un cargo anulado sigue en la lista pero no es plata: no entra en el total.
+  const live = items.filter((row) => row.status !== PendingChargeStatus.Anulado);
+  const totals = chargeTotals(live);
   const leadingColumns = hideProperty ? 5 : 6;
 
   return (
@@ -240,7 +243,8 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
             {totals.map((total, i) => (
               <tr key={total.currency}>
                 <td colSpan={leadingColumns} className="px-2.5 py-2 text-left text-xs font-medium text-[var(--color-muted)] md:text-right">
-                  {i === 0 ? t('totals.rows', { count: items.length }) : ''} {t('totals.label', { currency: total.currency })}
+                  {i === 0 ? t(live.length < items.length ? 'totals.rowsLive' : 'totals.rows', { count: live.length }) : ''}{' '}
+                  {t(pagination ? 'totals.pageLabel' : 'totals.label', { currency: total.currency })}
                 </td>
                 <td className="whitespace-nowrap border-l border-[var(--color-border)] px-2.5 py-2 text-right font-mono text-[13px] font-semibold tabular-nums">
                   <MoneyText value={total.amount} currency={total.currency} decimals={2} />

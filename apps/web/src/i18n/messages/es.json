@@ -5916,6 +5916,8 @@
    "totals": {
     "rows": "{count, plural, one {# renglón} other {# renglones}} ·",
     "label": "Total en {currency}",
+    "rowsLive": "{count, plural, one {# renglón sin anular} other {# renglones sin anular}} ·",
+    "pageLabel": "Total de esta página en {currency}",
     "scrollHint": "Deslizá la planilla hacia el costado para ver el importe, el total y las acciones."
    },
    "actionsShort": {

@@ -5916,6 +5916,8 @@
    "totals": {
     "rows": "{count, plural, one {# row} other {# rows}} ·",
     "label": "Total in {currency}",
+    "rowsLive": "{count, plural, one {# row not cancelled} other {# rows not cancelled}} ·",
+    "pageLabel": "Total of this page in {currency}",
     "scrollHint": "Swipe the sheet sideways to see the amount, the total and the actions."
    },
    "actionsShort": {

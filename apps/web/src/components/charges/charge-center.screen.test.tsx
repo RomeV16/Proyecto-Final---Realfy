@@ -312,6 +312,20 @@ describe('Centro de carga: lista', () => {
     expect(rows[5]).toContain('US$ 100');
   });
 
+  it('los cargos anulados no suman al total y con más páginas el total dice que es de la página', async () => {
+    const list = [charge('a'), charge('b', { status: 'Anulado', amount: '999999' }), charge('c', { amount: '1000' })];
+    apiClient.mockImplementation(async (path: string) => {
+      if (path.startsWith('/charges?')) return { items: list, total: 120, page: 1, limit: 50, totalPages: 3 };
+      return { items: [] };
+    });
+    renderEs(<ChargeCenter />);
+    await screen.findAllByText('Gasto a');
+    const rows = screen.getAllByRole('row').map((r) => (r.textContent ?? '').replace(/[  ]/g, ' '));
+    expect(rows[4]).toContain('2 renglones sin anular · Total de esta página en ARS');
+    expect(rows[4]).toMatch(/9\.000,50/);
+    expect(rows).toHaveLength(5);
+  });
+
   it('sin cargos muestra el estado vacío y ofrece cargar uno', async () => {
     setup({ list: [] });
     expect(await screen.findByText('No hay cargos pendientes')).toBeInTheDocument();
