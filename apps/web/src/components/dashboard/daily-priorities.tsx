@@ -186,7 +186,10 @@ export function DailyPriorities() {
 
   const elapsedText = (elapsed: Elapsed) => tElapsed(elapsed.unit, { count: elapsed.count });
 
-  /** Dato duro que acompaña a la fila, distinto según el frente. */
+  /**
+   * Dato duro que acompaña a la fila, distinto según el frente. Lo que falta
+   * para un vencimiento va siempre en días, igual que en la agenda.
+   */
   function trailingFor(priority: DailyPriority) {
     if (priority.kind === 'cobranza' && priority.amount !== null) {
       const overdue = priority.daysOverdue !== null && priority.daysOverdue > 0;
@@ -205,7 +208,7 @@ export function DailyPriorities() {
     if (priority.kind === 'contrato' && priority.daysToDue !== null) {
       return (
         <EntityRow.Amount
-          value={priority.daysToDue === 0 ? t('today') : elapsedText(elapsedFromDays(priority.daysToDue))}
+          value={priority.daysToDue === 0 ? t('today') : tElapsed('days', { count: priority.daysToDue })}
           hint={priority.daysToDue === 0 ? t('expires') : t('toExpiry')}
           tone={priority.daysToDue <= 30 ? 'danger' : 'default'}
         />

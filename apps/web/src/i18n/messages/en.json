@@ -388,6 +388,7 @@
   "analytics": {
    "occupancyTitle": "Occupancy with a contract in force",
    "occupancyLabel": "Properties with a contract in force",
+   "occupancyNote": "Counts only properties with a contract in force at each month end. The Occupancy indicator above uses the status recorded on each property, with or without a contract.",
    "occupancyEmpty": "No occupancy data to chart yet",
    "occupancyEmptyHint": "Add rental contracts to see how the portfolio evolves.",
    "profitabilityTitle": "Income and expenses by property",

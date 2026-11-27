@@ -134,6 +134,39 @@ describe('DailyPriorities', () => {
     expect(hrefs).toContain('/es/leads/l7');
   });
 
+  it('lo que falta para que venza un contrato va en días, como en la agenda', async () => {
+    apiClient.mockResolvedValue(
+      response([priority({ ref: 'K1', kind: 'contrato', entityId: 'c9', title: 'Casa Tres', daysToDue: 75 })]),
+    );
+    renderEs(<DailyPriorities />);
+    await screen.findByText('Casa Tres');
+    expect(screen.getAllByText('75 días').length).toBeGreaterThan(0);
+    expect(document.body.textContent).not.toContain('2 meses');
+  });
+
+  it('acepta el reclamo con el atraso ya redactado por el servidor', async () => {
+    apiClient.mockResolvedValue(
+      response(
+        [
+          priority({
+            ref: 'R1',
+            title: 'Tablero sin energía',
+            reason: 'Plazo de atención vencido hace 105 días, sin responsable asignado',
+            slaHoursOverdue: 2521,
+            slaDaysOverdue: 105,
+            slaOverdueText: '105 días',
+          }),
+        ],
+        { source: 'model', model: 'modelo-de-prueba' },
+      ),
+    );
+    renderEs(<DailyPriorities />);
+    await screen.findByText('Tablero sin energía');
+    expect(screen.getAllByText('3 meses').length).toBeGreaterThan(0);
+    expect(screen.getByText('Plazo de atención vencido hace 105 días, sin responsable asignado')).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('2521');
+  });
+
   it('sin dato duro muestra el motivo, y pasa a duración el que llega en horas', async () => {
     apiClient.mockResolvedValue(
       response(

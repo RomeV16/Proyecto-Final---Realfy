@@ -161,6 +161,42 @@ describe('DashboardPage', () => {
     expect(norm(document.body.textContent)).not.toContain('0%');
   });
 
+  it('con el mes del ciclo informado por la API nombra ese mes y el anterior', async () => {
+    mockApi(
+      stats({
+        collections: {
+          total: 1000000, pagada: 600000, pendiente: 250000, vencida: 150000, rate: 60,
+          period: '2026-01', count: 3,
+        },
+      }),
+    );
+    renderEs(<DashboardPage />);
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.getByText('Cobrado en enero')).toBeInTheDocument();
+    expect(screen.getByText('Cobranza de diciembre')).toBeInTheDocument();
+    expect(screen.getByText('91% de $1,1M liquidados')).toBeInTheDocument();
+  });
+
+  it('si la API avisa que el mes no tiene liquidaciones emitidas no muestra una tasa', async () => {
+    mockApi(
+      stats({
+        collections: {
+          total: 150000, pagada: 0, pendiente: 0, vencida: 150000, rate: 0,
+          period: '2026-11', count: 0,
+        },
+        revenueTrend: [
+          { month: 'Oct', expected: 1000000, collected: 900000 },
+          { month: 'Nov', expected: 80000, collected: 0 },
+        ],
+      }),
+    );
+    renderEs(<DashboardPage />);
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.getByText('Cobrado en noviembre')).toBeInTheDocument();
+    expect(screen.getByText('Sin liquidaciones aún')).toBeInTheDocument();
+    expect(screen.getByText('Cobranza de octubre')).toBeInTheDocument();
+  });
+
   it('limita la agenda a tres filas y ofrece Ver todos con prefijo de idioma', async () => {
     mockApi(stats());
     renderEs(<DashboardPage />);

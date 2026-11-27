@@ -36,7 +36,16 @@ interface Stats {
   vacantUnits: number;
   occupancyRate: number;
   activeContracts: number;
-  collections: { total: number; pagada: number; pendiente: number; vencida: number; rate: number };
+  collections: {
+    total: number;
+    pagada: number;
+    pendiente: number;
+    vencida: number;
+    rate: number;
+    /** Mes del ciclo en curso (`2026-11`) y cuántas liquidaciones tiene; la API puede no mandarlos. */
+    period?: string;
+    count?: number;
+  };
   delinquency: { overdueAmount: number; rate: number };
   tickets: { open: number; urgent: number };
   pendingLiquidaciones: number;
@@ -57,6 +66,12 @@ const monthName = (date: Date) => formatLocalDate(date, { month: 'long' });
 
 const percentOf = (part: number, whole: number) =>
   whole > 0 ? Math.round((part / whole) * 100) : null;
+
+/** Primer día del mes que la API informa como ciclo en curso; sin ese dato, el del navegador. */
+function cycleMonth(period: string | undefined, fallback: Date | null): Date | null {
+  const match = /^(\d{4})-(\d{2})$/.exec(period ?? '');
+  return match ? new Date(Number(match[1]), Number(match[2]) - 1, 1) : fallback;
+}
 
 /* ──────────────── Small pieces ──────────────── */
 
@@ -239,8 +254,11 @@ export default function DashboardPage() {
   };
 
   const today = now ? formatLocalDate(now, { weekday: 'long', day: 'numeric', month: 'long' }) : '';
-  const currentMonth = now ? monthName(now) : '';
-  const previousMonth = now ? monthName(new Date(now.getFullYear(), now.getMonth() - 1, 1)) : '';
+  // El mes de los indicadores es el del servidor: cerca de la medianoche del
+  // día 1 el navegador puede estar ya en otro mes que la serie.
+  const cycle = cycleMonth(s?.collections.period, now);
+  const currentMonth = cycle ? monthName(cycle) : '';
+  const previousMonth = cycle ? monthName(new Date(cycle.getFullYear(), cycle.getMonth() - 1, 1)) : '';
 
   // La serie termina en el mes en curso; el anterior es el último mes cerrado.
   const trend = s?.revenueTrend ?? [];
@@ -296,7 +314,7 @@ export default function DashboardPage() {
               icon="wallet"
               tone="success"
               hint={
-                currentPoint && currentRate !== null
+                s.collections.count !== 0 && currentPoint && currentRate !== null
                   ? tp('kpi.collectedHint', {
                       pct: currentRate,
                       amount: formatMoneyCompact(currentPoint.expected),

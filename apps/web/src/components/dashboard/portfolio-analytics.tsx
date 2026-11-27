@@ -40,7 +40,7 @@ const TOP_PROPERTIES = 6;
 /* ──────────────── Formatting ──────────────── */
 
 /** Las etiquetas de propiedad son direcciones: se cortan para no comerse el eje. */
-const shortLabel = (label: string) => (label.length > 18 ? `${label.slice(0, 17)}…` : label);
+export const shortLabel = (label: string) => (label.length > 18 ? `${label.slice(0, 17)}…` : label);
 
 const TOOLTIP_STYLE = {
   background: 'var(--color-surface)',
@@ -191,6 +191,9 @@ export function PortfolioAnalytics() {
             </AreaChart>
           </ResponsiveContainer>
         )}
+        {!loading && occupancyData.length > 0 && (
+          <p className="mt-2 text-xs text-[var(--color-muted)]">{t('occupancyNote')}</p>
+        )}
       </AnalyticsCard>
 
       <AnalyticsCard title={t('profitabilityTitle')} hint={t('topProperties', { count: TOP_PROPERTIES })}>
@@ -226,8 +229,9 @@ export function PortfolioAnalytics() {
               <YAxis
                 type="category"
                 dataKey="label"
-                width={128}
-                tick={{ fontSize: 12, fill: 'var(--color-muted)' }}
+                width={138}
+                tick={{ fontSize: 11, fill: 'var(--color-muted)' }}
+                interval={0}
                 axisLine={false}
                 tickLine={false}
               />
