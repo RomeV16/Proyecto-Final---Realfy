@@ -41,8 +41,7 @@ function rendition(overrides: Record<string, unknown> = {}) {
   return {
     id: 'r-1',
     status: 'Borrador',
-    month: 11,
-    year: 2026,
+    period: '2026-11-01T00:00:00.000Z',
     rentCollected: '100000',
     commissionAmount: '5000',
     adminFeeAmount: '2000',
@@ -182,7 +181,7 @@ describe('RenditionDetail', () => {
   });
 
   it('sin período, locador ni propiedad muestra los textos de reemplazo', async () => {
-    mockApi(() => rendition({ month: undefined, year: undefined, ownerName: undefined, contract: undefined }));
+    mockApi(() => rendition({ period: undefined, ownerName: undefined, contract: undefined }));
     await mount();
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('—');
     expect(screen.getByText('Sin locador asignado')).toBeInTheDocument();

@@ -41,8 +41,7 @@ function item(id: string, overrides: Record<string, unknown> = {}) {
   return {
     id,
     status: 'Enviada',
-    month: 11,
-    year: 2026,
+    period: '2026-11-01T00:00:00.000Z',
     rentCollected: '100000',
     netDeposit: '91500',
     pdfUrl: 'https://example.test/r.pdf',

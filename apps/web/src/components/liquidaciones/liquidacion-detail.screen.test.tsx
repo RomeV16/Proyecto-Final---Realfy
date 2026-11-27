@@ -42,7 +42,7 @@ function liquidacion(overrides: Record<string, unknown> = {}) {
     status: 'Borrador',
     period: '2026-11-01T00:00:00.000Z',
     dueDate: '2026-11-10T12:00:00.000Z',
-    totalAmount: '110000',
+    total: '110000',
     currency: 'ARS',
     createdAt: '2026-11-01T12:00:00.000Z',
     updatedAt: '2026-11-02T12:00:00.000Z',

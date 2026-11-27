@@ -44,7 +44,7 @@ function item(id: string, overrides: Record<string, unknown> = {}) {
     status: 'Enviada',
     period: '2026-11-01T00:00:00.000Z',
     dueDate: '2026-11-10T12:00:00.000Z',
-    totalAmount: '100000',
+    total: '100000',
     contract: { id: 'c-1', property: { id: 'p-1', title: 'Depto de prueba', street: 'Calle Falsa 123', city: 'Ciudad Ejemplo' } },
     _count: { payments: 0 },
     ...overrides,
@@ -92,7 +92,7 @@ describe('LiquidacionList', () => {
         item('l-1', { _count: { payments: 2 } }),
         item('l-2', { status: 'Vencida' }),
         item('l-3', { status: 'Borrador', month: 12, year: 2026, period: undefined, dueDate: undefined, contract: undefined }),
-        item('l-4', { status: 'Pagada', total: undefined, totalAmount: undefined, subtotal: '5000' }),
+        item('l-4', { status: 'Pagada', total: undefined, subtotal: '5000' }),
         item('l-5', { status: 'Anulada' }),
       ]),
     );
@@ -167,18 +167,31 @@ describe('LiquidacionList', () => {
     expect(await screen.findByText('Noviembre 2026')).toBeInTheDocument();
   });
 
+  it('busca el inquilino en todas las páginas de contratos', async () => {
+    const tenant = (firstName: string) => [{ role: 'Inquilino', person: { firstName, lastName: 'Muestra' } }];
+    mockList((path) => {
+      if (path.startsWith('/contracts?page=1&')) return { items: [{ id: 'c-1', persons: tenant('Iris') }], totalPages: 2 };
+      if (path.startsWith('/contracts?page=2&')) return { items: [{ id: 'c-2', persons: tenant('Abel') }], totalPages: 2 };
+      return page([item('l-1'), item('l-2', { contract: { id: 'c-2', property: { id: 'p-2', title: 'Casa de prueba' } } })]);
+    });
+    await mount();
+    expect(await screen.findByText(/Iris Muestra/)).toBeInTheDocument();
+    expect(await screen.findByText(/Abel Muestra/)).toBeInTheDocument();
+    expect(apiClient.mock.calls.filter(([path]) => String(path).startsWith('/contracts'))).toHaveLength(2);
+  });
+
   it('agrupa por mes con los totales emitido, cobrado, pendiente y vencido', async () => {
     mockList((path) =>
       path.startsWith('/contracts')
         ? { items: [{ id: 'c-1', persons: [{ role: 'Inquilino', person: { firstName: 'Iris', lastName: 'Muestra' } }, { role: 'Propietario', person: { firstName: 'Otto', lastName: 'Dueño' } }] }] }
         : page([
-            item('l-1', { status: 'Pagada', totalAmount: '100', paidAt: '2026-11-05T15:00:00.000Z' }),
-            item('l-2', { status: 'Vencida', totalAmount: '40' }),
-            item('l-3', { status: 'Borrador', totalAmount: '60' }),
-            item('l-4', { status: 'Anulada', totalAmount: '999' }),
-            item('l-5', { status: 'Pagada', totalAmount: '10', currency: 'USD' }),
-            item('l-6', { status: 'Pagada', totalAmount: '70', period: '2026-10-01T00:00:00.000Z' }),
-            item('l-7', { status: 'Enviada', totalAmount: '5', period: undefined }),
+            item('l-1', { status: 'Pagada', total: '100', paidAt: '2026-11-05T15:00:00.000Z' }),
+            item('l-2', { status: 'Vencida', total: '40' }),
+            item('l-3', { status: 'Borrador', total: '60' }),
+            item('l-4', { status: 'Anulada', total: '999' }),
+            item('l-5', { status: 'Pagada', total: '10', currency: 'USD' }),
+            item('l-6', { status: 'Pagada', total: '70', period: '2026-10-01T00:00:00.000Z' }),
+            item('l-7', { status: 'Enviada', total: '5', period: undefined }),
           ]),
     );
     const user = await mount();

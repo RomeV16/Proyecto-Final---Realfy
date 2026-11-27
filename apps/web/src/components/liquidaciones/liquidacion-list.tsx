@@ -40,6 +40,8 @@ interface Filters {
 const INITIAL_FILTERS: Filters = { status: '', month: '', year: '', page: 1 };
 /* El libro agrupa por mes: se pide el máximo que acepta la API para que los meses lleguen enteros. */
 const LIMIT = 100;
+/* Los contratos llegan de a 100: tope de páginas para buscar el nombre de los inquilinos. */
+const MAX_CONTRACT_PAGES = 5;
 
 const SELECT_CLASS =
   'h-9 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-brand-500)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-brand-500)_30%,transparent)]';
@@ -193,17 +195,20 @@ export function LiquidacionList() {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await apiClient<{ items?: ContractParties[] }>('/contracts?page=1&limit=100');
-        if (cancelled) return;
         const names: Record<string, string> = {};
-        for (const contract of res.items ?? []) {
-          const tenants = (contract.persons ?? [])
-            .filter((p) => p.role === 'Inquilino' && p.person)
-            .map((p) => `${p.person?.firstName ?? ''} ${p.person?.lastName ?? ''}`.trim())
-            .filter(Boolean);
-          if (tenants.length > 0) names[contract.id] = tenants.join(', ');
+        for (let page = 1; page <= MAX_CONTRACT_PAGES; page++) {
+          const res = await apiClient<{ items?: ContractParties[]; totalPages?: number }>(`/contracts?page=${page}&limit=100`);
+          if (cancelled) return;
+          for (const contract of res.items ?? []) {
+            const tenants = (contract.persons ?? [])
+              .filter((p) => p.role === 'Inquilino' && p.person)
+              .map((p) => `${p.person?.firstName ?? ''} ${p.person?.lastName ?? ''}`.trim())
+              .filter(Boolean);
+            if (tenants.length > 0) names[contract.id] = tenants.join(', ');
+          }
+          setTenantNames({ ...names });
+          if (page >= (res.totalPages ?? 1)) break;
         }
-        setTenantNames(names);
       } catch {
         /* sin nombres de inquilinos */
       }
