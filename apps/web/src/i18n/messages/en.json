@@ -2721,7 +2721,7 @@
  },
  "scoring": {
   "title": "Scoring",
-  "description": "Set the weights of the scoring factors. Weights are relative, they don't need to add up to 100.",
+  "description": "Set how much each factor weighs when scoring an applicant. Weights are relative: they do not need to add up to 100.",
   "weightsTitle": "Factor weights",
   "factors": {
    "guarantee": "Guarantee",
@@ -2745,7 +2745,8 @@
   "notes": "Notes",
   "notesPlaceholder": "Notes about the score...",
   "scoredBy": "Scored by",
-  "scoredAt": "Scoring date"
+  "scoredAt": "Scoring date",
+  "cardSubtitle": "How much each factor weighs when scoring an applicant."
  },
  "invoices": {
   "environment": {
@@ -4996,7 +4997,24 @@
   "manageInbox": "Configure the inbox",
   "licenseNumber": "Professional license number",
   "address": "Agency address",
-  "manageTemplates": "Manage templates"
+  "manageTemplates": "Manage templates",
+  "logoHint": "Paste the link to the logo image.",
+  "cuitHint": "The CUIT cannot be changed here.",
+  "organization": {
+   "title": "Agency details",
+   "subtitle": "Shown on receipts, contracts and the messages the system sends."
+  },
+  "brand": {
+   "title": "Brand",
+   "subtitle": "Colours and logo the agency is presented with."
+  },
+  "groups": {
+   "team": "Team and access",
+   "contracts": "Contracts, collection and invoicing",
+   "sales": "Enquiries and sales",
+   "communication": "Communication",
+   "data": "Data"
+  }
  },
  "portalPublico": {
   "footer": {
@@ -7655,7 +7673,8 @@
    "staff_alert": "Staff alert",
    "payment_reminder_1": "Payment reminder (friendly)",
    "payment_reminder_2": "Payment reminder (firm)",
-   "payment_reminder_3": "Pending payment notice (last reminder)"
+   "payment_reminder_3": "Pending payment notice (last reminder)",
+   "inbox_message": "Reply to an enquiry"
   },
   "related": {
    "Receipt": "Receipt",
@@ -7798,15 +7817,15 @@
      "label": "Live",
      "description": "Sent to everyone, honoring each person's consent and the sending hours."
     },
-    "note": "The mode is set per environment by whoever deploys it (MESSAGING_MODE variable); it is not changed here. The pilot environment stays off or on the test list until the agency owner approves it."
+    "note": "The sending mode is set by whoever installs the system and is not changed from this screen. In the pilot it stays off or on the test list until the agency owner approves it."
    },
    "providers": {
     "title": "Providers",
-    "email": "Email (Resend)",
-    "whatsapp": "WhatsApp (Cloud API)",
+    "email": "Email",
+    "whatsapp": "WhatsApp",
     "configured": "Configured",
     "from": "Sender",
-    "webhook": "Delivery notices (webhook)",
+    "webhook": "Receives delivery notices",
     "yes": "Yes",
     "no": "No"
    },

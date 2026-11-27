@@ -122,7 +122,7 @@ export function ReadPolicyManager() {
           onChange={() => toggle(resource, role)}
           title={role === UserRole.Admin ? t('table.adminLocked') : undefined}
           aria-label={`${t(`resources.${resourceKey(resource)}.label`)} — ${roleLabel(role)}`}
-          className="h-4 w-4 rounded border-[var(--color-border)] text-brand-500 focus:ring-2 focus:ring-brand-400/50"
+          className="h-4 w-4 rounded border-[var(--color-border)] accent-[var(--color-brand-500)] focus:ring-2 focus:ring-brand-400/50"
         />
       ),
     })),

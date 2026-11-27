@@ -2138,8 +2138,8 @@
   }
  },
  "pipeline": {
-  "title": "Pipeline de ventas",
-  "subtitle": "Configurá las etapas del pipeline para alquileres y ventas.",
+  "title": "Etapas del pipeline",
+  "subtitle": "Las etapas por las que pasa una consulta de alquiler o de venta, y cuántos días puede estar quieta en cada una.",
   "tabs": {
    "Alquiler": "Alquiler",
    "Venta": "Venta"
@@ -2160,8 +2160,8 @@
   "saving": "Guardando…",
   "rename": "Renombrar",
   "noStages": "No hay etapas configuradas.",
-  "confirmDelete": "¿Estás seguro de que querés eliminar la etapa \"{name}\"?",
-  "confirmDeleteDesc": "Esta acción no se puede deshacer. Las consultas en esta etapa deberán moverse manualmente.",
+  "confirmDelete": "¿Eliminar la etapa \"{name}\"?",
+  "confirmDeleteDesc": "No se puede deshacer. Las consultas que estén en esta etapa hay que moverlas a mano.",
   "addModal": {
    "title": "Nueva etapa",
    "namePlaceholder": "Nombre de la etapa",
@@ -2721,8 +2721,8 @@
  },
  "scoring": {
   "title": "Puntuación",
-  "description": "Configure los pesos de los factores de puntuación. Los pesos son relativos — no necesitan sumar 100.",
-  "weightsTitle": "Pesos de factores",
+  "description": "Definí cuánto pesa cada factor al puntuar a un interesado. Los pesos son relativos: no hace falta que sumen 100.",
+  "weightsTitle": "Peso de cada factor",
   "factors": {
    "guarantee": "Garantía",
    "jobStability": "Estabilidad laboral",
@@ -2731,10 +2731,10 @@
    "manualRating": "Calificación manual"
   },
   "totalWeight": "Peso total",
-  "saveSuccess": "Configuración guardada correctamente",
-  "saveError": "Error al guardar la configuración",
-  "loadError": "Error al cargar la configuración",
-  "forbidden": "No tiene permisos para acceder a esta sección",
+  "saveSuccess": "Puntuación guardada",
+  "saveError": "No se pudo guardar la puntuación",
+  "loadError": "No se pudo cargar la puntuación",
+  "forbidden": "No tenés permiso para ver esta sección",
   "sectionTitle": "Puntuación",
   "totalScore": "Puntuación total",
   "noScore": "Sin puntuación",
@@ -2745,7 +2745,8 @@
   "notes": "Notas",
   "notesPlaceholder": "Observaciones sobre la puntuación...",
   "scoredBy": "Puntuado por",
-  "scoredAt": "Fecha de puntuación"
+  "scoredAt": "Fecha de puntuación",
+  "cardSubtitle": "Cuánto pesa cada factor al puntuar a un interesado."
  },
  "invoices": {
   "environment": {
@@ -4152,7 +4153,7 @@
  },
  "import": {
   "title": "Importar datos",
-  "subtitle": "Importá propiedades o personas desde un archivo CSV",
+  "subtitle": "Cargá propiedades o personas desde una planilla guardada como CSV.",
   "steps": {
    "upload": "Subir archivo",
    "mapping": "Mapeo de columnas",
@@ -4970,13 +4971,13 @@
  },
  "configuracion": {
   "title": "Configuración",
-  "subtitle": "Datos y personalización de la inmobiliaria",
+  "subtitle": "Los datos de la inmobiliaria y las reglas con las que trabaja el sistema.",
   "name": "Nombre de la inmobiliaria",
   "cuit": "CUIT",
   "province": "Provincia",
-  "brandPrimary": "Color primario",
+  "brandPrimary": "Color principal",
   "brandSecondary": "Color secundario",
-  "logoUrl": "URL del logo",
+  "logoUrl": "Dirección web del logo",
   "save": "Guardar cambios",
   "saving": "Guardando...",
   "saved": "Cambios guardados",
@@ -4996,7 +4997,24 @@
   "manageInbox": "Configurar la bandeja",
   "licenseNumber": "Matrícula profesional",
   "address": "Domicilio de la inmobiliaria",
-  "manageTemplates": "Gestionar plantillas"
+  "manageTemplates": "Gestionar plantillas",
+  "logoHint": "Pegá el enlace a la imagen del logo.",
+  "cuitHint": "El CUIT no se cambia desde acá.",
+  "organization": {
+   "title": "Datos de la inmobiliaria",
+   "subtitle": "Aparecen en los recibos, los contratos y los mensajes que salen del sistema."
+  },
+  "brand": {
+   "title": "Marca",
+   "subtitle": "Colores y logo con los que se presenta la inmobiliaria."
+  },
+  "groups": {
+   "team": "Equipo y accesos",
+   "contracts": "Contratos, cobranza y facturación",
+   "sales": "Consultas y ventas",
+   "communication": "Comunicación",
+   "data": "Datos"
+  }
  },
  "portalPublico": {
   "footer": {
@@ -7655,7 +7673,8 @@
    "staff_alert": "Aviso al personal",
    "payment_reminder_1": "Recordatorio de pago (amable)",
    "payment_reminder_2": "Recordatorio de pago (firme)",
-   "payment_reminder_3": "Aviso de pago pendiente (último recordatorio)"
+   "payment_reminder_3": "Aviso de pago pendiente (último recordatorio)",
+   "inbox_message": "Respuesta a una consulta"
   },
   "related": {
    "Receipt": "Recibo",
@@ -7784,7 +7803,7 @@
    "loadError": "No se pudo cargar la configuración de la mensajería",
    "mode": {
     "title": "Modo de envío",
-    "currentLabel": "Este ambiente está en:",
+    "currentLabel": "Hoy el envío está:",
     "current": "actual",
     "off": {
      "label": "Apagado",
@@ -7798,15 +7817,15 @@
      "label": "Activo",
      "description": "Se manda a todos, respetando el consentimiento de cada persona y el horario de envío."
     },
-    "note": "El modo se fija por ambiente y lo configura quien despliega (variable MESSAGING_MODE); no se cambia desde acá. El ambiente piloto queda apagado o con la lista de prueba hasta que el dueño de la inmobiliaria lo apruebe."
+    "note": "El modo de envío lo define quien instala el sistema y no se cambia desde esta pantalla. En el piloto queda apagado o con la lista de prueba hasta que el dueño de la inmobiliaria lo apruebe."
    },
    "providers": {
-    "title": "Proveedores",
-    "email": "Mail (Resend)",
-    "whatsapp": "WhatsApp (Cloud API)",
+    "title": "Servicios de envío",
+    "email": "Mail",
+    "whatsapp": "WhatsApp",
     "configured": "Configurado",
     "from": "Remitente",
-    "webhook": "Avisos de entrega (webhook)",
+    "webhook": "Recibe avisos de entrega",
     "yes": "Sí",
     "no": "No"
    },

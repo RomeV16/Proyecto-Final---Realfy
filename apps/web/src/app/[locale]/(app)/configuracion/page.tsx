@@ -7,8 +7,9 @@ import { Province } from '@realfy/shared';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
+import { Icon, type IconName } from '@/components/ui/icon';
 import { useCan } from '@/lib/permissions';
 
 interface TenantData {
@@ -24,6 +25,46 @@ interface TenantData {
 }
 
 const PROVINCES = Object.values(Province);
+
+interface SettingsEntry {
+  href: string;
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  /** Texto del acceso; también es el nombre accesible del enlace. */
+  action: string;
+  visible: boolean;
+}
+
+/** Acceso a una subpágina: toda la tarjeta es el enlace. */
+function SettingsCard({ entry }: { entry: SettingsEntry }) {
+  return (
+    <Link
+      href={entry.href}
+      aria-label={entry.action}
+      className="group flex items-start gap-3 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm transition-colors hover:border-[var(--color-brand-300)]"
+    >
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--color-brand-600)]"
+        style={{ backgroundColor: 'color-mix(in oklab, var(--color-brand-500) 12%, var(--color-surface))' }}
+      >
+        <Icon name={entry.icon} className="h-[1.125rem] w-[1.125rem]" strokeWidth={1.75} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-[var(--color-text)]">{entry.title}</span>
+        <span className="mt-0.5 block text-xs leading-relaxed text-[var(--color-muted)]">{entry.subtitle}</span>
+        <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[var(--color-brand-600)]">
+          {entry.action}
+          <Icon
+            name="arrowRight"
+            className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+            strokeWidth={2}
+          />
+        </span>
+      </span>
+    </Link>
+  );
+}
 
 export default function ConfiguracionPage() {
   const t = useTranslations('configuracion');
@@ -73,7 +114,7 @@ export default function ConfiguracionPage() {
         if (!cancelled) setLoading(false);
       }
     }
-    if (user) load();
+    if (user) void load();
     return () => {
       cancelled = true;
     };
@@ -129,355 +170,289 @@ export default function ConfiguracionPage() {
     );
   }
 
+  const groups: { key: string; title: string; entries: SettingsEntry[] }[] = [
+    {
+      key: 'team',
+      title: t('groups.team'),
+      entries: [
+        {
+          href: '/configuracion/usuarios',
+          icon: 'team',
+          title: tUsers('title'),
+          subtitle: tUsers('cardSubtitle'),
+          action: t('manageUsers'),
+          visible: canViewUsers,
+        },
+        {
+          href: '/configuracion/permisos',
+          icon: 'settings',
+          title: tPermissions('title'),
+          subtitle: tPermissions('cardSubtitle'),
+          action: t('managePermissions'),
+          visible: canManagePermissions,
+        },
+      ],
+    },
+    {
+      key: 'contracts',
+      title: t('groups.contracts'),
+      entries: [
+        {
+          href: '/configuracion/valores-por-defecto',
+          icon: 'percent',
+          title: tDefaults('title'),
+          subtitle: tDefaults('cardSubtitle'),
+          action: t('manageDefaults'),
+          visible: canManageDefaults,
+        },
+        {
+          href: '/configuracion/indices',
+          icon: 'trendingUp',
+          title: tIndices('title'),
+          subtitle: tIndices('cardSubtitle'),
+          action: t('manageIndices'),
+          visible: canEdit,
+        },
+        {
+          href: '/configuracion/plantillas',
+          icon: 'text',
+          title: tTemplates('title'),
+          subtitle: tTemplates('subtitle'),
+          action: t('manageTemplates'),
+          visible: canEdit,
+        },
+        {
+          href: '/configuracion/fiscal',
+          icon: 'invoices',
+          title: tFiscal('title'),
+          subtitle: tFiscal('subtitle'),
+          action: t('manageFiscal'),
+          visible: canEdit,
+        },
+      ],
+    },
+    {
+      key: 'sales',
+      title: t('groups.sales'),
+      entries: [
+        {
+          href: '/configuracion/pipeline',
+          icon: 'pipeline',
+          title: tPipeline('title'),
+          subtitle: tPipeline('subtitle'),
+          action: t('managePipeline'),
+          visible: canEdit,
+        },
+        {
+          href: '/configuracion/scoring',
+          icon: 'percent',
+          title: tScoring('title'),
+          subtitle: tScoring('cardSubtitle'),
+          action: t('manageScoring'),
+          visible: canEdit,
+        },
+      ],
+    },
+    {
+      key: 'communication',
+      title: t('groups.communication'),
+      entries: [
+        {
+          href: '/configuracion/mensajeria',
+          icon: 'mail',
+          title: tMessaging('title'),
+          subtitle: tMessaging('cardSubtitle'),
+          action: t('manageMessaging'),
+          visible: canManageMessaging,
+        },
+        {
+          href: '/configuracion/bandeja',
+          icon: 'inbox',
+          title: tInbox('title'),
+          subtitle: tInbox('cardSubtitle'),
+          action: t('manageInbox'),
+          visible: canConfigureInbox,
+        },
+      ],
+    },
+    {
+      key: 'data',
+      title: t('groups.data'),
+      entries: [
+        {
+          href: '/configuracion/importaciones',
+          icon: 'import',
+          title: tImports('title'),
+          subtitle: tImports('cardSubtitle'),
+          action: t('manageImports'),
+          visible: canViewImports,
+        },
+      ],
+    },
+  ];
+  const visibleGroups = groups
+    .map((group) => ({ ...group, entries: group.entries.filter((entry) => entry.visible) }))
+    .filter((group) => group.entries.length > 0);
+
+  const markDirty = () => setSaved(false);
+
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="h1">{t('title')}</h1>
-        <p className="mt-1 text-sm text-slate-500">{t('subtitle')}</p>
+        <p className="mt-1 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
       </div>
 
-      {canEdit && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="pipeline" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tPipeline('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tPipeline('subtitle')}</p>
-            </div>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        <form onSubmit={handleSubmit} className="card-lux space-y-5 p-5 sm:p-6">
+          <div>
+            <h2 className="h3">{t('organization.title')}</h2>
+            <p className="mt-1 text-sm text-[var(--color-muted)]">{t('organization.subtitle')}</p>
           </div>
-          <Link href={'/configuracion/pipeline'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('managePipeline')}
-            </Button>
-          </Link>
-        </div>
-      )}
 
-      {canEdit && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="invoices" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tFiscal('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tFiscal('subtitle')}</p>
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label={t('name')}
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                markDirty();
+              }}
+              disabled={!canEdit || saving}
+            />
+            <Input label={t('cuit')} value={tenant?.cuit ?? ''} hint={t('cuitHint')} disabled readOnly />
           </div>
-          <Link href={'/configuracion/fiscal'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('manageFiscal')}
-            </Button>
-          </Link>
-        </div>
-      )}
 
-      {canEdit && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="percent" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tScoring('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tScoring('description')}</p>
-            </div>
-          </div>
-          <Link href={'/configuracion/scoring'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('manageScoring')}
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {canEdit && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="trendingUp" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tIndices('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tIndices('cardSubtitle')}</p>
-            </div>
-          </div>
-          <Link href={'/configuracion/indices'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('manageIndices')}
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {canEdit && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="text" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tTemplates('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tTemplates('subtitle')}</p>
-            </div>
-          </div>
-          <Link href={'/configuracion/plantillas'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('manageTemplates')}
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {canViewUsers && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="team" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tUsers('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tUsers('cardSubtitle')}</p>
-            </div>
-          </div>
-          <Link href={'/configuracion/usuarios'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('manageUsers')}
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {canManagePermissions && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="settings" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tPermissions('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tPermissions('cardSubtitle')}</p>
-            </div>
-          </div>
-          <Link href={'/configuracion/permisos'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('managePermissions')}
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {canManageDefaults && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="percent" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tDefaults('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tDefaults('cardSubtitle')}</p>
-            </div>
-          </div>
-          <Link href={'/configuracion/valores-por-defecto'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('manageDefaults')}
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {canManageMessaging && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="mail" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tMessaging('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tMessaging('cardSubtitle')}</p>
-            </div>
-          </div>
-          <Link href={'/configuracion/mensajeria'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('manageMessaging')}
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {canConfigureInbox && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="inbox" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tInbox('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tInbox('cardSubtitle')}</p>
-            </div>
-          </div>
-          <Link href={'/configuracion/bandeja'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('manageInbox')}
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      {canViewImports && (
-        <div className="flex flex-col gap-3 bg-white rounded-xl border border-slate-200 p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-              <Icon name="import" className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{tImports('title')}</p>
-              <p className="text-sm text-slate-500 mt-0.5">{tImports('cardSubtitle')}</p>
-            </div>
-          </div>
-          <Link href={'/configuracion/importaciones'} className="shrink-0">
-            <Button variant="secondary" size="sm">
-              {t('manageImports')}
-            </Button>
-          </Link>
-        </div>
-      )}
-
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-xl border border-slate-200 p-6 space-y-5"
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input
-            label={t('name')}
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              setSaved(false);
-            }}
-            disabled={!canEdit || saving}
-          />
-          <Input label={t('cuit')} value={tenant?.cuit ?? ''} disabled readOnly />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="province"
-            className="text-sm font-medium text-[var(--color-text)]"
-          >
-            {t('province')}
-          </label>
-          <select
-            id="province"
-            value={province}
-            onChange={(e) => {
-              setProvince(e.target.value);
-              setSaved(false);
-            }}
-            disabled={!canEdit || saving}
-            className="h-10 w-full rounded-md border border-[var(--color-border)] px-3 py-2 text-sm bg-[var(--color-surface)] text-[var(--color-text)] focus:outline-2 focus:outline-brand-500 disabled:opacity-50"
-          >
-            {PROVINCES.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[var(--color-text)]">
-              {t('brandPrimary')}
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={brandPrimary}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label={t('licenseNumber')}
+              value={licenseNumber}
+              maxLength={60}
+              onChange={(e) => {
+                setLicenseNumber(e.target.value);
+                markDirty();
+              }}
+              disabled={!canEdit || saving}
+            />
+            <div className="flex flex-col gap-1">
+              <label htmlFor="province" className="text-sm font-medium text-[var(--color-text)]">
+                {t('province')}
+              </label>
+              <Select
+                id="province"
+                value={province}
                 onChange={(e) => {
-                  setBrandPrimary(e.target.value);
-                  setSaved(false);
+                  setProvince(e.target.value);
+                  markDirty();
                 }}
                 disabled={!canEdit || saving}
-                className="h-10 w-16 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] cursor-pointer disabled:opacity-50"
-              />
-              <span className="text-sm text-slate-500 tabular-nums">
-                {brandPrimary}
-              </span>
+              >
+                {PROVINCES.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-[var(--color-text)]">
-              {t('brandSecondary')}
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={brandSecondary}
-                onChange={(e) => {
-                  setBrandSecondary(e.target.value);
-                  setSaved(false);
-                }}
-                disabled={!canEdit || saving}
-                className="h-10 w-16 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] cursor-pointer disabled:opacity-50"
-              />
-              <span className="text-sm text-slate-500 tabular-nums">
-                {brandSecondary}
-              </span>
-            </div>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input
-            label={t('licenseNumber')}
-            value={licenseNumber}
-            maxLength={60}
-            onChange={(e) => {
-              setLicenseNumber(e.target.value);
-              setSaved(false);
-            }}
-            disabled={!canEdit || saving}
-          />
           <Input
             label={t('address')}
             value={address}
             maxLength={300}
             onChange={(e) => {
               setAddress(e.target.value);
-              setSaved(false);
+              markDirty();
             }}
             disabled={!canEdit || saving}
           />
-        </div>
 
-        <Input
-          label={t('logoUrl')}
-          value={logoUrl}
-          onChange={(e) => {
-            setLogoUrl(e.target.value);
-            setSaved(false);
-          }}
-          placeholder="https://..."
-          disabled={!canEdit || saving}
-        />
+          <div className="space-y-4 border-t border-[var(--color-border)] pt-5">
+            <div>
+              <h3 className="text-sm font-semibold text-[var(--color-text)]">{t('brand.title')}</h3>
+              <p className="mt-0.5 text-xs text-[var(--color-muted)]">{t('brand.subtitle')}</p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="brand-primary" className="text-sm font-medium text-[var(--color-text)]">
+                  {t('brandPrimary')}
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="brand-primary"
+                    type="color"
+                    value={brandPrimary}
+                    onChange={(e) => {
+                      setBrandPrimary(e.target.value);
+                      markDirty();
+                    }}
+                    disabled={!canEdit || saving}
+                    className="h-10 w-16 cursor-pointer rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] disabled:opacity-50"
+                  />
+                  <span className="text-sm tabular-nums text-[var(--color-muted)]">{brandPrimary}</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label htmlFor="brand-secondary" className="text-sm font-medium text-[var(--color-text)]">
+                  {t('brandSecondary')}
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="brand-secondary"
+                    type="color"
+                    value={brandSecondary}
+                    onChange={(e) => {
+                      setBrandSecondary(e.target.value);
+                      markDirty();
+                    }}
+                    disabled={!canEdit || saving}
+                    className="h-10 w-16 cursor-pointer rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] disabled:opacity-50"
+                  />
+                  <span className="text-sm tabular-nums text-[var(--color-muted)]">{brandSecondary}</span>
+                </div>
+              </div>
+            </div>
+            <Input
+              label={t('logoUrl')}
+              value={logoUrl}
+              onChange={(e) => {
+                setLogoUrl(e.target.value);
+                markDirty();
+              }}
+              placeholder="https://..."
+              hint={t('logoHint')}
+              disabled={!canEdit || saving}
+            />
+          </div>
 
-        {!canEdit && (
-          <p className="text-sm text-slate-500">{t('readOnly')}</p>
-        )}
-        {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
-        {saved && <p className="text-sm text-emerald-600">{t('saved')}</p>}
+          {!canEdit && <p className="text-sm text-[var(--color-muted)]">{t('readOnly')}</p>}
+          {error && <p className="text-sm text-[var(--color-danger)]">{error}</p>}
+          {saved && <p className="text-sm text-[var(--color-success)]">{t('saved')}</p>}
 
-        {canEdit && (
-          <div className="flex items-center gap-3 pt-2">
-            <Button type="submit" disabled={saving}>
-              {saving ? t('saving') : t('save')}
-            </Button>
+          {canEdit && (
+            <div className="flex items-center gap-3">
+              <Button type="submit" disabled={saving}>
+                {saving ? t('saving') : t('save')}
+              </Button>
+            </div>
+          )}
+        </form>
+
+        {visibleGroups.length > 0 && (
+          <div className="order-first space-y-5 xl:order-none">
+            {visibleGroups.map((group) => (
+              <section key={group.key} aria-label={group.title}>
+                <h2 className="micro mb-2">{group.title}</h2>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {group.entries.map((entry) => (
+                    <SettingsCard key={entry.href} entry={entry} />
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         )}
-      </form>
+      </div>
     </div>
   );
 }
