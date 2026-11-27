@@ -56,7 +56,7 @@ export function CashBalance({ data, failed, onViewAccounts }: Props) {
               className={cn(
                 'mt-2 break-words font-mono font-medium leading-tight tracking-tight tabular-nums',
                 index === 0 ? 'text-[34px]' : 'text-[26px]',
-                Number(total.total) < 0 ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]',
+                Number(total.total) < 0 ? 'text-[color-mix(in_oklab,var(--color-danger)_80%,var(--color-text))]' : 'text-[var(--color-text)]',
               )}
             >
               <MoneyText value={total.total} currency={total.currency} decimals={2} />

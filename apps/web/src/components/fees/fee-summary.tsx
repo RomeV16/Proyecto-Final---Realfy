@@ -68,7 +68,7 @@ export function FeeSummary() {
           <div>
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <dt className="text-[var(--color-text)]">{t('summary.collected')}</dt>
-              <dd className="font-mono font-medium text-[var(--color-success)] tabular-nums">
+              <dd className="font-mono font-medium text-[color-mix(in_oklab,var(--color-success)_70%,var(--color-text))] tabular-nums">
                 {money(data.collected)}
                 <span className="ml-2 text-xs font-normal text-[var(--color-muted)]">{formatPercent(collectedShare, { decimals: 0, locale })}</span>
               </dd>
@@ -85,7 +85,7 @@ export function FeeSummary() {
             <dt className="text-[var(--color-text)]">{t('summary.overdue')}</dt>
             <dd
               className="font-mono font-medium tabular-nums"
-              style={{ color: data.overdue > 0 ? 'var(--color-danger)' : 'var(--color-muted)' }}
+              style={{ color: data.overdue > 0 ? 'color-mix(in oklab, var(--color-danger) 80%, var(--color-text))' : 'var(--color-muted)' }}
             >
               {money(data.overdue)}
             </dd>

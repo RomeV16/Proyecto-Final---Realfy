@@ -381,7 +381,7 @@ describe('Caja: movimientos', () => {
     expect(ledger.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Fecha', 'Concepto', 'Cuenta', 'Ingresos', 'Egresos']);
     expect(ledger.getAllByText('Caja ARS')).toHaveLength(3);
     expect(screen.getByText(/Elegí una cuenta para ver el saldo/)).toBeInTheDocument();
-    expect(screen.queryByText('Saldo según el sistema')).not.toBeInTheDocument();
+    expect(screen.queryByText('Saldo del sistema')).not.toBeInTheDocument();
   });
 
   it('el arqueo compara lo contado con el saldo del sistema', async () => {

@@ -194,7 +194,7 @@ export function PaymentSummary({ items, debt, debtLoading }: SummaryProps) {
               label={t('overdueDebt')}
               amount={money(debt.vencida.monto, 'ARS', 0)}
               hint={t('summary.settlements', { count: debt.vencida.count })}
-              tone={debt.vencida.count > 0 ? 'var(--color-danger)' : undefined}
+              tone={debt.vencida.count > 0 ? 'color-mix(in oklab, var(--color-danger) 80%, var(--color-text))' : undefined}
             />
             <DebtLine
               label={t('pendingDebt')}

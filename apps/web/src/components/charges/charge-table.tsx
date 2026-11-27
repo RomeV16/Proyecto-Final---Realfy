@@ -53,8 +53,8 @@ export function chargeTotals(items: readonly Pick<PendingChargeRow, 'amount' | '
     .sort((a, b) => a.currency.localeCompare(b.currency));
 }
 
-const TH = 'border-b border-r border-[var(--color-border)] px-2.5 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-muted)] last:border-r-0';
-const TD = 'border-b border-r border-[var(--color-border)] px-2.5 py-1.5 align-middle last:border-r-0';
+const TH = 'whitespace-nowrap border-b border-r border-[var(--color-border)] px-2 py-2 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--color-muted)] last:border-r-0';
+const TD = 'border-b border-r border-[var(--color-border)] px-2 py-1.5 align-middle last:border-r-0';
 const ACTION =
   'inline-flex h-7 items-center whitespace-nowrap rounded-md border px-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50';
 
@@ -129,6 +129,7 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
 
   return (
     <>
+      <p className="mb-2 text-xs text-[var(--color-muted)] md:hidden">{t('totals.scrollHint')}</p>
       <div className="overflow-x-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
         <table className="w-full min-w-[900px] border-collapse text-[13px] text-[var(--color-text)]">
           <thead className="bg-[var(--color-surface-sunken)]">
@@ -174,11 +175,11 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
                   </td>
                   <td className={cn(TD, 'whitespace-nowrap font-mono text-xs tabular-nums')}>{chargeMonth(row)}</td>
                   {!hideProperty && (
-                    <td className={cn(TD, 'max-w-[180px] truncate')} title={row.property?.title ?? undefined}>
+                    <td className={cn(TD, 'max-w-[150px] truncate')} title={row.property?.title ?? undefined}>
                       {row.property?.title ?? ''}
                     </td>
                   )}
-                  <td className={cn(TD, 'max-w-[280px]')}>
+                  <td className={cn(TD, 'max-w-[240px]')}>
                     <p className="truncate font-medium" title={row.description}>
                       {row.description}
                     </p>
@@ -202,10 +203,10 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
                     className={cn(
                       TD,
                       'whitespace-nowrap text-right font-mono tabular-nums',
-                      Number(row.amount) < 0 && 'text-[var(--color-success)]',
+                      Number(row.amount) < 0 && 'text-[color-mix(in_oklab,var(--color-success)_70%,var(--color-text))]',
                     )}
                   >
-                    <MoneyText value={row.amount} currency={row.currency} />
+                    <MoneyText value={row.amount} currency={row.currency} decimals={2} />
                   </td>
                   {canManage && (
                     <td className={TD}>
@@ -221,7 +222,7 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
                             className={cn(
                               ACTION,
                               action === 'cancel'
-                                ? 'border-transparent text-[var(--color-danger)] hover:bg-[color-mix(in_oklab,var(--color-danger)_8%,var(--color-surface))]'
+                                ? 'border-transparent text-[color-mix(in_oklab,var(--color-danger)_80%,var(--color-text))] hover:bg-[color-mix(in_oklab,var(--color-danger)_8%,var(--color-surface))]'
                                 : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:border-[var(--color-slate-400)] hover:bg-[var(--color-surface-sunken)]',
                             )}
                           >
@@ -238,11 +239,11 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
           <tfoot className="bg-[var(--color-surface-sunken)]">
             {totals.map((total, i) => (
               <tr key={total.currency}>
-                <td colSpan={leadingColumns} className="px-2.5 py-2 text-right text-xs font-medium text-[var(--color-muted)]">
+                <td colSpan={leadingColumns} className="px-2.5 py-2 text-left text-xs font-medium text-[var(--color-muted)] md:text-right">
                   {i === 0 ? t('totals.rows', { count: items.length }) : ''} {t('totals.label', { currency: total.currency })}
                 </td>
                 <td className="whitespace-nowrap border-l border-[var(--color-border)] px-2.5 py-2 text-right font-mono text-[13px] font-semibold tabular-nums">
-                  <MoneyText value={total.amount} currency={total.currency} />
+                  <MoneyText value={total.amount} currency={total.currency} decimals={2} />
                 </td>
                 {canManage && <td />}
               </tr>

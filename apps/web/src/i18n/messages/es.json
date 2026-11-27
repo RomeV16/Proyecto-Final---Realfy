@@ -5915,7 +5915,8 @@
    },
    "totals": {
     "rows": "{count, plural, one {# renglón} other {# renglones}} ·",
-    "label": "Total en {currency}"
+    "label": "Total en {currency}",
+    "scrollHint": "Deslizá la planilla hacia el costado para ver el importe, el total y las acciones."
    },
    "actionsShort": {
     "forceImpute": "Imputar",
@@ -6363,7 +6364,7 @@
   },
   "count": {
    "title": "Arqueo de {name}",
-   "system": "Saldo según el sistema",
+   "system": "Saldo del sistema",
    "counted": "Contado ({currency})",
    "difference": "Diferencia",
    "match": "Coincide",

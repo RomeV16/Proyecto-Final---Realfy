@@ -123,7 +123,7 @@ export function ChargeCenter() {
             <label htmlFor="charges-kind" className="text-xs font-medium text-[var(--color-muted)]">
               {t('filters.kind')}
             </label>
-            <Select id="charges-kind" value={kind} onChange={(e) => setKind(e.target.value)} className="h-9 w-52">
+            <Select id="charges-kind" value={kind} onChange={(e) => setKind(e.target.value)} className="w-52">
               <option value="">{t('filters.allKinds')}</option>
               {CHARGE_KINDS.map((k) => (
                 <option key={k} value={k}>
@@ -142,7 +142,7 @@ export function ChargeCenter() {
               value={period}
               placeholder={currentMonth()}
               onChange={(e) => filter(() => setPeriod(e.target.value))}
-              className={inputStyles({ className: 'h-9 w-44' })}
+              className={inputStyles({ className: 'w-44' })}
             />
           </div>
           <label className="flex items-center gap-2 text-sm text-[var(--color-text)]">

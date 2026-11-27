@@ -5915,7 +5915,8 @@
    },
    "totals": {
     "rows": "{count, plural, one {# row} other {# rows}} ·",
-    "label": "Total in {currency}"
+    "label": "Total in {currency}",
+    "scrollHint": "Swipe the sheet sideways to see the amount, the total and the actions."
    },
    "actionsShort": {
     "forceImpute": "Charge",
@@ -6363,7 +6364,7 @@
   },
   "count": {
    "title": "Cash count for {name}",
-   "system": "Balance in the system",
+   "system": "System balance",
    "counted": "Counted ({currency})",
    "difference": "Difference",
    "match": "Matches",

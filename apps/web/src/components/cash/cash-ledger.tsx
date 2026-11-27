@@ -91,7 +91,7 @@ export function CashLedger({ rows, singleAccount, balances }: LedgerProps) {
             <div role="cell" className="col-start-1 row-start-2 min-w-0 md:col-start-auto md:row-start-auto">
               <p className="text-sm font-medium text-[var(--color-text)]">{t(`categories.${m.category}`)}</p>
               {(person || m.note || source) && (
-                <p className="flex flex-wrap gap-x-1.5 text-xs text-[var(--color-muted)] [&>span+span]:before:mr-1.5 [&>span+span]:before:text-[var(--color-muted)] [&>span+span]:before:content-['·']">
+                <p className="text-xs text-[var(--color-muted)] [&>span+span]:before:mx-1.5 [&>span+span]:before:text-[var(--color-muted)] [&>span+span]:before:content-['·']">
                   {person && <span>{person}</span>}
                   {m.note && <span className="text-[var(--color-text)]">{m.note}</span>}
                   {source && <span>{source}</span>}
@@ -105,13 +105,13 @@ export function CashLedger({ rows, singleAccount, balances }: LedgerProps) {
             )}
             <span
               role="cell"
-              className={cn(NUM, 'col-start-2 row-start-1 text-right font-medium text-[var(--color-success)] md:col-start-auto md:row-start-auto', !isIn && 'hidden md:block')}
+              className={cn(NUM, 'col-start-2 row-start-1 text-right font-medium text-[color-mix(in_oklab,var(--color-success)_70%,var(--color-text))] md:col-start-auto md:row-start-auto', !isIn && 'hidden md:block')}
             >
               {isIn && <MoneyText value={m.amount} currency={m.currency} decimals={2} />}
             </span>
             <span
               role="cell"
-              className={cn(NUM, 'col-start-2 row-start-1 text-right font-medium text-[var(--color-danger)] md:col-start-auto md:row-start-auto', isIn && 'hidden md:block')}
+              className={cn(NUM, 'col-start-2 row-start-1 text-right font-medium text-[color-mix(in_oklab,var(--color-danger)_80%,var(--color-text))] md:col-start-auto md:row-start-auto', isIn && 'hidden md:block')}
             >
               {!isIn && <MoneyText value={`-${m.amount}`} currency={m.currency} decimals={2} />}
             </span>
@@ -135,11 +135,11 @@ export function CashLedger({ rows, singleAccount, balances }: LedgerProps) {
             {totals.length > 1 ? t('ledger.pageTotalsIn', { currency: total.currency }) : t('ledger.pageTotals')}
           </span>
           {!singleAccount && <span role="cell" className="hidden md:block" />}
-          <span role="cell" className={cn(NUM, 'font-semibold text-[var(--color-success)] md:text-right')}>
+          <span role="cell" className={cn(NUM, 'font-semibold text-[color-mix(in_oklab,var(--color-success)_70%,var(--color-text))] md:text-right')}>
             <span className="mr-1.5 font-sans text-[11px] font-normal text-[var(--color-muted)] md:hidden">{t('ledger.columns.in')}</span>
             <MoneyText value={total.in} currency={total.currency} decimals={2} />
           </span>
-          <span role="cell" className={cn(NUM, 'text-right font-semibold text-[var(--color-danger)]')}>
+          <span role="cell" className={cn(NUM, 'text-right font-semibold text-[color-mix(in_oklab,var(--color-danger)_80%,var(--color-text))]')}>
             <span className="mr-1.5 font-sans text-[11px] font-normal text-[var(--color-muted)] md:hidden">{t('ledger.columns.out')}</span>
             <MoneyText value={Number(total.out) === 0 ? total.out : `-${total.out}`} currency={total.currency} decimals={2} />
           </span>
@@ -180,16 +180,16 @@ export function CashCount({ account }: { account: FinancialAccount }) {
     >
       <h3 className="text-sm font-semibold text-[var(--color-text)]">{t('count.title', { name: account.name })}</h3>
       <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 text-[13px]">
-        <dt className="text-[var(--color-muted)]">{t('count.system')}</dt>
+        <dt className="whitespace-nowrap text-[var(--color-muted)]">{t('count.system')}</dt>
         <dd className={cn(NUM, 'text-right text-[var(--color-text)]')}>
           <MoneyText value={account.balance} currency={account.currency} decimals={2} />
         </dd>
         <dt>
-          <label htmlFor={id} className="text-[var(--color-muted)]">
+          <label htmlFor={id} className="whitespace-nowrap text-[var(--color-muted)]">
             {t('count.counted', { currency: account.currency })}
           </label>
         </dt>
-        <dd>
+        <dd className="w-28">
           <input
             id={id}
             inputMode="decimal"
@@ -198,7 +198,7 @@ export function CashCount({ account }: { account: FinancialAccount }) {
             onChange={(e) => setCounted(e.target.value)}
             placeholder="0,00"
             aria-invalid={result.state === 'invalid'}
-            className={inputStyles({ className: 'h-9 w-32 text-right font-mono text-[13px] tabular-nums' })}
+            className={inputStyles({ className: 'px-2.5 text-right font-mono text-[13px] tabular-nums' })}
           />
         </dd>
         <dt className="text-[var(--color-muted)]">{t('count.difference')}</dt>
@@ -206,8 +206,8 @@ export function CashCount({ account }: { account: FinancialAccount }) {
           role="status"
           className={cn(
             'text-right text-sm font-medium',
-            result.state === 'match' && 'text-[var(--color-success)]',
-            (result.state === 'over' || result.state === 'short') && 'text-[var(--color-danger)]',
+            result.state === 'match' && 'text-[color-mix(in_oklab,var(--color-success)_70%,var(--color-text))]',
+            (result.state === 'over' || result.state === 'short') && 'text-[color-mix(in_oklab,var(--color-danger)_80%,var(--color-text))]',
             (result.state === 'empty' || result.state === 'invalid') && 'text-[var(--color-muted)]',
           )}
         >
