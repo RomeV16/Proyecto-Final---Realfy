@@ -17,7 +17,7 @@ beta el 18/08/2026 y completada con la revisión de calidad hasta el 28/10/2026:
 describen el sistema antes del piloto y sus cifras son las de esas mediciones, que
 se conservan sin reescribir para que se pueda ver de dónde partió el trabajo. La
 sección 9 es la validación en uso real en una inmobiliaria, que empezó el
-30/10/2026, e incluye la **tabla única de cifras del sistema** con su fecha y su
+30/10/2026, e incluye la tabla única de cifras del sistema, con su fecha y su
 fuente de medición (sección 9.10). Donde una cifra de las secciones 1 a 8 difiere de
 esa tabla, vale la de la tabla; los resultados de campo que todavía no existen
 figuran como «a completar» con la fecha del ciclo que los produce.
@@ -45,8 +45,8 @@ dominio, el cálculo de actualizaciones con tabla histórica de índices, las
 liquidaciones mensuales con líneas configurables y su comprobante electrónico, el
 portal de autogestión del inquilino, el módulo comercial con embudo configurable,
 y el esquema de auditoría, registro y permisos por rol operando en modo
-multi-inmobiliaria. El séptimo —documentar la solución y validarla con pruebas
-integrales y revisión de seguridad— se cumplió parcialmente: la documentación
+multi-inmobiliaria. El séptimo, que era documentar la solución y validarla con
+pruebas integrales y revisión de seguridad, se cumplió parcialmente: la documentación
 está, la revisión de seguridad sobre el aislamiento se hizo y dejó su registro en
 el ADR-0006, y la validación automatizada existe a nivel de API, pero las pruebas
 de navegador que el objetivo mencionaba no se entregaron. La sección 5 lo trata
@@ -55,56 +55,57 @@ en detalle.
 Del alcance funcional comprometido, los quince puntos enumerados en el documento
 de alcance están presentes en el sistema, con una salvedad sobre las modalidades
 de ajuste que la sección 5 detalla: las entregadas no son exactamente las que ese
-documento enumeraba. Las exclusiones se respetaron: no hay contabilidad completa,
-tampoco captura de dinero por pasarela
-de pago —se registra el pago, no se cobra—, no hay aplicación móvil nativa, no
-hay firma digital con certificación oficial, no hay integración con portales
-externos de publicación más allá de la exportación, no hay liquidación tributaria
-y no hay operaciones de venta con escrituración. Con el piloto, cuatro de esas
-fronteras se movieron —contabilidad, cobros, portales y ventas— sin levantar las
-exclusiones; la sección 9.2 lo detalla.
+documento enumeraba. Las exclusiones se respetaron: no hay contabilidad completa
+ni captura de dinero por pasarela de pago (se registra el pago, no se cobra), no
+hay aplicación móvil nativa, no hay firma digital con certificación oficial, no
+hay integración con portales externos de publicación más allá de la exportación,
+no hay liquidación tributaria y no hay operaciones de venta con escrituración.
+Con el piloto se movieron cuatro de esas fronteras (contabilidad, cobros,
+portales y ventas) sin levantar las exclusiones; la sección 9.2 lo detalla.
 
-En números, al cierre de este informe el sistema son treinta y un módulos en la
-API sobre un modelo de cincuenta y cinco entidades y treinta y nueve
-enumeraciones, con veintiuna migraciones versionadas; treinta y cuatro
-controladores que declaran doscientas veintiséis rutas; y una aplicación web con
-dieciocho secciones internas más el portal del inquilino y el micrositio público
-de cada inmobiliaria. Son unos treinta mil quinientos renglones de TypeScript
-en la API, treinta y dos mil novecientos en la web y cuatro mil cien en el
-paquete de tipos compartidos, sin contar las pruebas, que suman otros treinta mil
-ochocientos.
+En números, al cierre de la primera versión (28/10/2026) el sistema tenía
+treinta y un módulos en la API sobre un modelo de cincuenta y cinco entidades y
+treinta y nueve enumeraciones, con veintiuna migraciones versionadas; treinta y
+cuatro controladores que declaran doscientas veintiséis rutas, y una aplicación
+web con dieciocho secciones internas más el portal del inquilino y el micrositio
+público de cada inmobiliaria. Eran unos treinta mil quinientos renglones de
+TypeScript en la API, treinta y dos mil novecientos en la web y cuatro mil cien
+en el paquete de tipos compartidos, sin contar las pruebas, que sumaban otros
+treinta mil ochocientos. Las cifras vigentes, con el piloto incluido, están en la
+sección 9.10.
 
-El historial acumula doscientos ochenta y dos commits de trabajo repartidos
-entre los tres integrantes, incorporados a la rama principal a través de
-setenta pedidos de incorporación, sesenta y uno de ellos con revisión
-de otro integrante; los nueve restantes se incorporaron sin esa revisión. El cronograma tuvo veintinueve ítems y cuatro hitos.
+Al 4/10/2026 (commit `98e34b7`) el historial acumulaba doscientos ochenta y dos
+commits de trabajo repartidos entre los tres integrantes, incorporados a la rama
+principal a través de setenta pedidos de incorporación. Sesenta y uno de ellos
+tuvieron revisión de otro integrante y los nueve restantes se incorporaron sin
+ella. El cronograma original tuvo veintinueve ítems y cuatro hitos.
 
 ---
 
 ## 2. El sistema entregado
 
-Lo que sigue es un recorrido por dominio. Para el orden en que conviene mostrarlo
-frente al tribunal, `docs/demo.md`; para el detalle de cada pantalla,
-`docs/manual-de-usuario.md`; para el catálogo de rutas, `docs/api.md`.
+Lo que sigue es un recorrido por dominio. El orden de la demostración está en
+`docs/demo.md`; el detalle de cada pantalla, en
+`docs/manual-de-usuario.md`, y el catálogo de rutas, en `docs/api.md`.
 
 ### Propiedades y personas
 
 Las propiedades se cargan con su dirección, sus características y sus fotos, y
-llevan una o más operaciones —alquiler, venta— cada una con su precio, su moneda
-y su estado. El procesamiento de las imágenes es del servidor, que produce
-original y miniatura y las guarda en almacenamiento externo con enlaces firmados
-por petición. Resuelve el problema de que la ficha de la propiedad y su precio
-publicado dejen de vivir en una planilla y una carpeta compartida.
+llevan una o más operaciones (alquiler, venta), cada una con su precio, su moneda
+y su estado. Las imágenes las procesa el servidor, que produce original y
+miniatura y las guarda en almacenamiento externo con enlaces firmados por
+petición. Con esto la ficha de la propiedad y su precio publicado dejan de estar
+en una planilla y una carpeta compartida.
 
 Las personas son un único registro con varios roles simultáneos: la misma persona
 puede ser propietaria de un inmueble e inquilina de otro. Es una decisión de
-modelo, no una comodidad de pantalla, y evita el problema clásico de tener a la
-misma persona duplicada en tres listados con datos que se desincronizan.
+modelo: evita tener a la misma persona cargada en tres listados con datos que se
+desincronizan.
 
 ### Contratos, garantías y plantillas
 
-El contrato vincula una propiedad, un inquilino y sus garantías —propietarias,
-salariales o de caución—, y guarda la comisión pactada de la inmobiliaria, que es
+El contrato vincula una propiedad, un inquilino y sus garantías (propietarias,
+salariales o de caución), y guarda la comisión pactada de la inmobiliaria, que es
 el parámetro que después determina lo que recibe el propietario. El documento del
 contrato se genera a partir de plantillas con variables que se resuelven contra
 los datos reales, de modo que el texto que se firma no se copia y pega de un
@@ -117,20 +118,20 @@ mantiene un cronograma de ajustes que se calcula y se aplica en la fecha pactada
 Los valores de los índices se cargan en una tabla histórica, con obtención
 automática y carga manual como camino alternativo. La decisión de dominio más
 delicada del módulo es que los índices se consumen como variación del período y
-no como nivel absoluto; confundir las dos cosas produce factores de ajuste sin
-sentido, y es el tipo de error que ninguna prueba detecta si la prueba asume el
-mismo malentendido. Resuelve el cálculo que hoy la inmobiliaria hace a mano cada
-vez que un contrato entra en su ventana de actualización, que es donde se
+no como nivel absoluto. Confundir las dos cosas produce factores de ajuste sin
+sentido, y es un error que ninguna prueba detecta si la prueba parte del mismo
+malentendido. El módulo reemplaza el cálculo que la inmobiliaria hace a mano
+cada vez que un contrato entra en su ventana de actualización, que es donde se
 concentra el riesgo de error.
 
 ### Liquidaciones
 
 La liquidación del mes se genera para todos los contratos activos del período en
 una sola operación, que informa cuántas produjo y cuántas omitió porque ya
-existían. Cada liquidación tiene líneas —alquiler, ajuste, expensas, servicios,
-impuestos, honorarios, punitorios y líneas manuales—, una máquina de estados con
-transiciones válidas declaradas, y su comprobante en PDF. Es la operación que abre
-el mes, y la que reemplaza la planilla que se rearma cada treinta días.
+existían. Cada liquidación tiene líneas (alquiler, ajuste, expensas, servicios,
+impuestos, honorarios, punitorios y líneas manuales), una máquina de estados con
+transiciones válidas declaradas y su comprobante en PDF. Es la operación que abre
+el mes y reemplaza la planilla que se rearma cada treinta días.
 
 ### Pagos y morosidad
 
@@ -139,8 +140,8 @@ a la vista. Sobre eso se apoya la mirada agregada de deuda pendiente y deuda
 vencida, y el cálculo de punitorios, que corre como tarea programada según los
 parámetros configurados por cada inmobiliaria y no desde la pantalla. Los
 punitorios se pueden condonar con motivo, y esa es una operación restringida.
-Resuelve el problema de que la conciliación dependa del criterio de cada agente y
-no quede registrada.
+Así la conciliación deja de depender del criterio de cada agente y queda
+registrada.
 
 ### Rendición al propietario
 
@@ -149,8 +150,7 @@ comisión pactada en el contrato y los conceptos deducidos discriminados, y
 produce el depósito neto que recibe el propietario, con su comprobante en PDF y
 su envío por correo. Es el módulo que cierra el circuito del dinero: sin él el
 sistema sabía cuánto había cobrado pero no cuánto le correspondía a cada
-propietario, que es exactamente el número por el que el propietario llama por
-teléfono.
+propietario, que es el número por el que el propietario llama por teléfono.
 
 ### Facturación electrónica
 
@@ -159,8 +159,9 @@ operar con más de un emisor: los propios y los delegados por terceros. El siste
 sincroniza los puntos de venta, lleva la numeración por punto de venta, emite
 facturas A, B y C, consulta el padrón por identificación fiscal para completar los
 datos del receptor, produce notas de crédito contra un comprobante emitido y
-exporta el libro de IVA ventas. La anulación es fiscal —una nota de crédito— y no
-un borrado, que es la única forma en que puede ser.
+exporta el libro de IVA ventas. La anulación es fiscal: se emite una nota de
+crédito y no se borra nada, porque un comprobante autorizado no se puede
+eliminar.
 
 ### Reclamos y proveedores
 
@@ -169,59 +170,58 @@ proveedor asignado, costo del trabajo y vencimiento de acuerdo de nivel de
 servicio, con una máquina de estados y un hilo de comentarios que cruza el ámbito
 interno y el del inquilino. Los proveedores se habilitan por rubro y por zona, así
 que la asignación ofrece los que corresponden en lugar de una lista completa.
-Reemplaza la conversación de mensajería donde el reclamo se pierde y nadie sabe a
-quién se le había pedido el presupuesto.
+Reemplaza la conversación por mensajería, donde el reclamo se pierde y nadie sabe
+a quién se le había pedido el presupuesto.
 
 ### Portal del inquilino
 
-El inquilino entra con credenciales propias —un ámbito de sesión distinto del
+El inquilino entra con credenciales propias, en un ámbito de sesión distinto del
 personal, con su propio circuito de invitación, definición de contraseña y
-rotación del token de refresco— y ve su contrato, sus liquidaciones con el aviso
-de saldo pendiente y el PDF de cada una, y puede abrir un reclamo con adjunto y
-seguirlo. Resuelve la falta de un canal autogestionado: la consulta de saldo y la
-descarga del comprobante dejan de ser un pedido por teléfono.
+rotación del token de refresco. Ve su contrato, sus liquidaciones con el aviso de
+saldo pendiente y el PDF de cada una, y puede abrir un reclamo con adjunto y
+seguirlo. La consulta de saldo y la descarga del comprobante dejan de ser un
+pedido por teléfono.
 
 ### Micrositio público
 
 Cada inmobiliaria tiene su catálogo público con sus colores y su logo, filtrable
 por operación y ciudad, con ficha por propiedad y formulario de consulta que
 genera un interesado dentro del sistema. Es la única parte que se sirve sin
-sesión, y cierra el círculo entre la publicación y el seguimiento comercial.
+sesión, y conecta la publicación con el seguimiento comercial.
 
 ### Gestión comercial
 
 Los interesados se cargan con su origen, se ubican en una etapa de un embudo
 configurable por inmobiliaria, acumulan interacciones y visitas, y se convierten
 en contrato o se descartan con motivo. Sobre eso se apoya la analítica del embudo.
-Resuelve la pérdida del seguimiento comercial al no existir un registro
-integrado al ciclo del contrato.
+Antes el seguimiento comercial se perdía porque no había un registro integrado al
+ciclo del contrato.
 
-A eso se suman el puntaje interno del inquilino —cinco componentes ponderables por
-inmobiliaria, con el total calculado siempre en el servidor— y las tasaciones, con
-historial por propiedad y comparables de la propia cartera por ciudad, tipo y
-cantidad de ambientes.
+El módulo incluye también el puntaje interno del inquilino (cinco componentes
+ponderables por inmobiliaria, con el total calculado siempre en el servidor) y las
+tasaciones, con historial por propiedad y comparables de la propia cartera por
+ciudad, tipo y cantidad de ambientes.
 
 ### Reportes e indicadores
 
-Hay seis reportes —estado de cuenta del propietario, rentabilidad por propiedad,
-flujo de caja, resumen de comisiones, analítica del embudo comercial y
-morosidad—, cada uno descargable en Excel y en PDF, con envío programado por
-correo. El panel agrega la tendencia de ocupación de los últimos doce meses, la
+Hay seis reportes: estado de cuenta del propietario, rentabilidad por propiedad,
+flujo de caja, resumen de comisiones, analítica del embudo comercial y morosidad.
+Cada uno se descarga en Excel y en PDF y admite envío programado por correo. El panel agrega la tendencia de ocupación de los últimos doce meses, la
 composición de la cartera y las fichas de cobranzas, morosidad y reclamos, sobre
 un caché de métricas por inmobiliaria. El criterio de diseño del panel es que sea
 una lista de tareas y no un tablero: cada ficha lleva al listado que la explica, y
 la sección de lo que requiere atención enlaza al registro concreto.
 
-Se suman la importación desde planilla con validación previa fila por fila —el
-error se informa antes de escribir nada—, la exportación de los listados, las
-plantillas de correo con previsualización, y los avisos por vencimientos, deudas y
-cambios de estado.
+Completan el módulo la importación desde planilla con validación previa fila por
+fila (el error se informa antes de escribir nada), la exportación de los
+listados, las plantillas de correo con previsualización y los avisos por
+vencimientos, deudas y cambios de estado.
 
 ### Las dos funciones con modelo de lenguaje
 
-La primera ordena los pendientes del día. El sistema arma el contexto —cobranzas
+La primera ordena los pendientes del día. El sistema arma el contexto (cobranzas
 vencidas, reclamos con acuerdo de nivel de servicio pasado, interesados sin
-contacto reciente—, lo seudonimiza dejando una referencia opaca y los datos
+contacto reciente), lo seudonimiza dejando una referencia opaca y los datos
 objetivos de cada pendiente, y le pide al modelo el orden y una explicación de una
 línea por caso. La respuesta se valida contra un esquema y los datos locales se
 reponen contra el contexto: una referencia que no salió de ahí se descarta. Si no
@@ -229,20 +229,20 @@ hay modelo configurado, si la llamada no vuelve a tiempo o si la respuesta no
 cumple el esquema, el orden lo resuelven reglas propias, y la respuesta declara
 cuál de los dos caminos corrió.
 
-El panel además **nunca espera al modelo**: responde con el orden por reglas y pide
-el del modelo en segundo plano, que queda disponible unos segundos después. Es una
-decisión que se tomó después de medir: pedirlo en línea agregaba once segundos a la
-primera carga del día, sobre una pantalla que es la primera que alguien abre. El
-efecto lateral es que la pantalla muestra en vivo las dos capas, porque la leyenda
-al pie cambia sola cuando llega el orden del modelo.
+El panel no espera al modelo: responde con el orden por reglas y pide el del
+modelo en segundo plano, que queda disponible unos segundos después. La decisión
+se tomó después de medir: pedirlo en línea agregaba once segundos a la primera
+carga del día, en la primera pantalla que abre cualquier usuario. Como efecto
+lateral, la pantalla muestra en vivo las dos capas, porque la leyenda al pie
+cambia sola cuando llega el orden del modelo.
 
-La segunda redacta el resumen de gestión al cierre de un contrato. Acá la regla
-que ordena todo el módulo es que las cifras las calcula el servidor y el modelo
-sólo las redacta: las métricas del contrato —puntualidad de pago, atraso
-promedio, punitorios, reclamos, ajustes aplicados, variación del alquiler,
-rendiciones— se computan de forma determinista contra los registros reales, se
-proyectan a una vista sin un solo campo de datos personales, y se le manda esa
-grilla ya cerrada pidiéndole únicamente prosa. La estructura de respuesta que se
+La segunda redacta el resumen de gestión al cierre de un contrato. La regla del
+módulo es que las cifras las calcula el servidor y el modelo sólo las redacta. Las
+métricas del contrato (puntualidad de pago, atraso promedio, punitorios, reclamos,
+ajustes aplicados, variación del alquiler, rendiciones) se computan de forma
+determinista contra los registros reales, se proyectan a una vista sin campos de
+datos personales, y al modelo se le manda esa grilla ya cerrada pidiéndole
+únicamente prosa. La estructura de respuesta que se
 espera no tiene ningún campo numérico, así que no hay lugar donde pueda aparecer
 un número inventado; y por si el texto libre trae uno, una verificación recorre
 cada número del resumen y lo compara contra las cifras de la grilla, con sus
@@ -255,13 +255,13 @@ redactan las plantillas deterministas.
 
 La arquitectura general está en `03-arquitectura.md` y las decisiones, con su
 contexto, sus alternativas y sus consecuencias, en los registros de
-`docs/adr/`: seis al cierre de la primera versión, a los que el piloto sumó once
+`docs/adr/`: seis al cierre de la primera versión, a los que el piloto sumó trece
 (sección 9.4). El monorepo con Turborepo sobre espacios de trabajo de pnpm es el
 ADR-0001; la elección de NestJS, Next.js y Prisma sobre PostgreSQL, el ADR-0002;
 el aislamiento por fila, el ADR-0003; el sistema de tarjetas para las pantallas
 con registros repetidos, el ADR-0004; la respuesta uniforme de error, el ADR-0005;
-y el endurecimiento del aislamiento, el ADR-0006. No tiene sentido reescribirlos
-acá. Vale detenerse en las tres decisiones que un tribunal va a querer discutir.
+y el endurecimiento del aislamiento, el ADR-0006. No los repetimos acá. Nos
+detenemos en las tres decisiones que consideramos más discutibles.
 
 ### El aislamiento entre inmobiliarias, y por qué se lo hizo fallar cerrado
 
@@ -278,23 +278,22 @@ con contexto de petición propagado por almacenamiento asíncrono y una extensi�
 del cliente de base de datos que inyecta el filtro en las lecturas, en las
 mutaciones y en las creaciones.
 
-El problema, que la revisión previa a la etapa de pruebas encontró, era qué hacía
-esa extensión cuando **no** había inmobiliaria en el contexto: nada. La consulta
+El problema, que encontró la revisión previa a la etapa de pruebas, era qué hacía
+esa extensión cuando no había inmobiliaria en el contexto: nada. La consulta
 pasaba sin filtro. Eso es fallar abierto, y se combina mal con el resto del
 diseño: un endpoint sin guard, un servicio invocado desde una tarea programada
-—donde no hay petición y por lo tanto no hay contexto—, una llamada que perdió el
-contexto asíncrono. En todos esos casos la consulta no fallaba: devolvía las filas
-de todas las inmobiliarias, y el código que la había llamado las trataba como
-propias.
+(donde no hay petición y por lo tanto no hay contexto) o una llamada que perdió el
+contexto asíncrono. En esos casos la consulta devolvía las filas de todas las
+inmobiliarias, y el código que la había llamado las trataba como propias.
 
-Lo que vuelve grave ese defecto es que no se parece a un error. Un listado que
-devuelve más registros de los que corresponde se ve como un listado. En un
-ambiente con una sola inmobiliaria cargada es indistinguible del comportamiento
-correcto, y sólo se manifiesta cuando hay una segunda con datos: en producción. La
-revisión encontró dos consultas que ya lo estaban haciendo —la de los emisores
-fiscales en el resumen del panel y la de valores de índice en el servicio de
-aplicación de ajustes vencidos—, ninguna de las dos había fallado nunca, y las dos habían pasado
-revisión por pares.
+El defecto es grave porque no se manifiesta como un error. Un listado que
+devuelve más registros de los que corresponde se ve como cualquier listado. En un
+ambiente con una sola inmobiliaria cargada no se distingue del comportamiento
+correcto, y sólo aparece cuando hay una segunda con datos, es decir, en
+producción. La revisión encontró dos consultas que ya leían sin filtro: la de los
+emisores fiscales en el resumen del panel y la de valores de índice en el servicio
+de aplicación de ajustes vencidos. Ninguna había fallado nunca y las dos habían
+pasado revisión por pares.
 
 La decisión del ADR-0006 fue invertir el comportamiento por omisión: sin
 inmobiliaria en el contexto y sin exención explícita, la operación lanza un error
@@ -304,16 +303,16 @@ varias inmobiliarias —las tareas programadas, la resolución del micrositio—
 por el cliente sin extensión y escribe su filtro a mano al lado, y los flujos
 donde la inmobiliaria todavía no se conoce —ingreso, registro, refresco de
 sesión— usan una exención acotada dentro de un bloque que la apaga al terminar.
-La ganancia no es sólo la corrección de los dos casos: es que la superficie a
-auditar quedó reducida a un conjunto enumerable, y que el mismo defecto que antes
-era invisible ahora es ruidoso.
+Además de corregir los dos casos, el cambio redujo la superficie a auditar a un
+conjunto enumerable de excepciones, y el defecto que antes pasaba inadvertido
+ahora produce un error.
 
 Se evaluó y se descartó la seguridad a nivel de fila del propio motor, que es la
 solución más fuerte. Las razones están en el ADR: exige propagar la identidad a la
 sesión de base en cada transacción, lo que con un fondo común de conexiones no es
 directo, y partiría el aislamiento en dos lugares —las migraciones y la
-aplicación— en vez de uno. Queda como el camino natural si el proyecto crece más
-allá de este alcance.
+aplicación— en vez de uno. Es el paso siguiente si el proyecto crece más allá de
+este alcance.
 
 ### Multi-emisor en facturación electrónica
 
@@ -322,15 +321,15 @@ inmobiliaria: un certificado, una identificación fiscal, un conjunto de puntos 
 venta. Se eligió lo contrario: el certificado pertenece a la inmobiliaria, pero
 los emisores son entidades propias, y una inmobiliaria puede tener varios.
 
-La razón es del negocio y no del código. Una inmobiliaria factura sus honorarios
+La razón es de negocio. Una inmobiliaria factura sus honorarios
 con su propia identificación fiscal, pero además factura por cuenta y orden de
 propietarios que le delegaron la emisión, cada uno con su identificación, sus
 puntos de venta y su numeración independiente. Con una configuración única, esos
 casos se resuelven cargando y descargando certificados a mano o abriendo una
 inmobiliaria por propietario, que es peor. El costo de la decisión es un modelo
-más grande y un asistente de emisión con un paso más —elegir el emisor—; el
-beneficio es que la numeración por punto de venta y por emisor queda consistente
-sin trabajo manual.
+más grande y un asistente de emisión con un paso más, el de elegir el emisor. A
+cambio, la numeración por punto de venta y por emisor queda consistente sin
+trabajo manual.
 
 Ese modelo se extendió para facturar por cuenta del locador (ADR-0017): un emisor
 delegado es un emisor con la persona del locador, y la inmobiliaria factura el
@@ -367,7 +366,7 @@ puede venir de afuera, los datos nunca. En el resumen de cierre, la respuesta
 esperada no tiene campos numéricos y además se verifica que ningún número del
 texto sea ajeno a la grilla que se envió.
 
-Y hay respaldo determinista en las dos funciones. Sin credencial configurada, con
+Las dos funciones tienen respaldo determinista. Sin credencial configurada, con
 la llamada cortada por tiempo, con un error del proveedor o con una respuesta que
 no valida, el sistema entrega el mismo resultado calculado por reglas y
 plantillas propias, y declara en la respuesta qué camino corrió. El cliente del
@@ -383,14 +382,14 @@ afuera.
 
 ### Qué se prueba
 
-Hay dos suites con propósitos distintos. Las **unitarias** prueban servicios,
+Hay dos suites con propósitos distintos. Las unitarias prueban servicios,
 controladores, guards y utilidades con sus dependencias sustituidas, corren en
-memoria y no necesitan nada instalado: son sesenta y seis archivos —sesenta y
-dos al lado del código y cuatro en el directorio de piezas transversales— con
+memoria y no necesitan nada instalado: son sesenta y seis archivos (sesenta y
+dos al lado del código y cuatro en el directorio de piezas transversales) con
 setecientas diecinueve pruebas, a las que se suman las treinta del motor de
-comprobantes del paquete compartido. Las **de integración** levantan la
-aplicación completa, con sus guards, su filtro de errores, su extensión de
-aislamiento y su cliente de base de datos, y le pegan por HTTP: son treinta y dos
+comprobantes del paquete compartido. Las de integración levantan la aplicación
+completa, con sus guards, su filtro de errores, su extensión de aislamiento y su
+cliente de base de datos, y la ejercitan por HTTP: son treinta y dos
 archivos con cuatrocientas ochenta y cinco pruebas, que corren contra una base
 PostgreSQL creada desde cero y se limpian entre casos en orden de dependencia.
 
@@ -421,8 +420,8 @@ contra un PostgreSQL levantado como servicio. El de integración depende del de
 unitarias, así que sólo corre si esas pasaron, y los cinco tienen tiempo máximo
 declarado.
 
-El trabajo de migraciones desde cero merece una mención porque no es un trabajo
-obvio y existe por un incidente concreto. Los demás trabajos compilan pero nunca
+El trabajo de migraciones desde cero existe por un incidente concreto. Los demás
+trabajos compilan pero nunca
 ejecutan una migración, así que una migración con SQL inválido pasa la integración
 continua entera y falla recién contra la base real; y al quedar registrada como
 fallida, bloquea también todas las siguientes y traba el despliegue completo.
@@ -431,45 +430,47 @@ migraciones, es lo que detecta eso antes de producción.
 
 ### Cobertura
 
-La cobertura de líneas de la API es de **42,44 %**, con 43,52 % de funciones y
-32,28 % de ramas. El piso exigido en integración continua es más bajo a propósito
-—38 % de líneas, funciones y sentencias, y 27 % de ramas—, unos puntos por debajo
-de lo que las suites cubren hoy, de modo que la integración continua se pone en
-rojo cuando la cobertura baja y no cuando alguien no llega a una meta aspiracional.
+Al cierre de la primera versión la cobertura de líneas de la API era de 42,44 %,
+con 43,52 % de funciones y 32,28 % de ramas. El piso exigido en integración
+continua es más bajo a propósito (38 % de líneas, funciones y sentencias, y 27 %
+de ramas): quedó unos puntos por debajo de lo que las suites cubrían, de modo que
+la integración continua se pone en rojo cuando la cobertura baja y no cuando
+alguien no llega a una meta.
 
-Ese número no es un logro: es un objetivo a subir. Cuarenta y dos por ciento de
-líneas significa que más de la mitad del código de la API no está cubierto por
-pruebas unitarias. La distribución tampoco es uniforme: hay servicios centrales
-—el de reclamos, el de usuarios, el de servicios de la propiedad— con cobertura
-unitaria baja o nula, y los controladores de varios módulos no tienen prueba
-unitaria propia. Lo que compensa parcialmente ese hueco son las pruebas de
-integración, que atraviesan esos mismos servicios por HTTP y no cuentan para la
-medición de cobertura porque corren en una suite aparte; pero compensar
-parcialmente no es lo mismo que cubrir. Subir la cobertura, y en particular la de
-ramas, es la primera tarea de mantenimiento que el proyecto tiene pendiente.
+Es un número bajo. Cuarenta y dos por ciento de líneas significa que más de la
+mitad del código de la API no estaba cubierto por pruebas unitarias. La
+distribución tampoco era uniforme: había servicios centrales (el de reclamos, el
+de usuarios, el de servicios de la propiedad) con cobertura unitaria baja o nula,
+y los controladores de varios módulos no tenían prueba unitaria propia. Las
+pruebas de integración compensan en parte ese hueco, porque atraviesan esos
+mismos servicios por HTTP y no cuentan para la medición por correr en una suite
+aparte, pero no lo cubren. Subir la cobertura, y en particular la de ramas, quedó
+como la primera tarea de mantenimiento; la sección 9.5 informa cuánto subió
+durante el piloto.
 
 ### Qué quedó afuera
 
 **No hay pruebas de navegador.** Lo que este trabajo llama pruebas de integración
 son pruebas de nivel HTTP contra la API real, no recorridos de interfaz. La
-consecuencia es concreta y ya se pagó una vez: un error de contrato entre la
-pantalla y el servidor no lo detecta ninguna de las dos suites. La sección
-siguiente lo trata como desvío, que es lo que es.
+consecuencia ya se pagó una vez: un error de contrato entre la pantalla y el
+servidor no lo detecta ninguna de las dos suites. La sección siguiente lo trata
+como desvío.
 
-**No hay pruebas de carga.** El ítem 27 del cronograma las contemplaba, acotadas,
-sobre liquidaciones y reportes. No se hicieron. Los puntos donde el rendimiento
-podría doler están identificados —la generación del mes recorre todos los
-contratos activos, los reportes agregan sobre varias tablas— y sobre lo segundo se
-puso un caché, pero no hay medición que sostenga ninguna afirmación sobre
-capacidad, y por eso este informe no hace ninguna.
+**No hay pruebas de carga sobre liquidaciones ni reportes.** El ítem 27 del
+cronograma las contemplaba, acotadas a esas dos operaciones, y no se hicieron. Los
+puntos donde el rendimiento puede ser un problema están identificados (la
+generación del mes recorre todos los contratos activos y los reportes agregan
+sobre varias tablas) y sobre lo segundo se puso un caché, pero no hay medición
+que respalde una afirmación sobre capacidad, y por eso este informe no hace
+ninguna. Lo único medido es la lectura de índices, con una prueba de esfuerzo que
+se agregó el 20/10/2026 (`../calidad/10-stress.md`).
 
 **Las tareas programadas no están cubiertas.** Corren por fuera del ciclo de una
 petición, así que ninguna de las dos suites las ejercita como tales, y su lógica
-sólo está probada a través de los servicios que invocan. Es un hueco reconocido:
-una tarea programada que falla es invisible desde la interfaz, y ya pasó una vez
-—faltaba registrar el planificador y durante un tiempo no corrieron ni los avisos,
-ni el cálculo de punitorios, ni la obtención de índices, sin que nada lo
-indicara—.
+sólo está probada a través de los servicios que invocan. Una tarea programada
+que falla no se ve desde la interfaz, y ya pasó una vez: faltaba registrar el
+planificador y durante un tiempo no corrieron los avisos, el cálculo de punitorios
+ni la obtención de índices, sin que nada lo indicara.
 
 ---
 
