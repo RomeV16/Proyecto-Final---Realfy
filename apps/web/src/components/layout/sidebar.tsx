@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/navigation';
 import { Icon } from '@/components/ui/icon';
@@ -80,6 +81,19 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     return isNavItemActive(pathname, href, items);
   };
 
+  // Al entrar directo a una pantalla del final del menú, su ítem queda a la vista.
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const current = nav?.querySelector('[aria-current="page"]');
+    if (!nav || !current) return;
+    const frame = nav.getBoundingClientRect();
+    const item = current.getBoundingClientRect();
+    if (item.top < frame.top || item.bottom > frame.bottom) {
+      nav.scrollTop += item.top - frame.top - (frame.height - item.height) / 2;
+    }
+  }, [pathname, sections.length]);
+
   const toggleLabel = collapsed ? t('aria.expandSidebar') : t('aria.collapseSidebar');
 
   return (
@@ -93,7 +107,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       >
         <SidebarBrand collapsed={collapsed} />
 
-        <nav className={SIDEBAR_NAV_CLASS} aria-label={t('aria.main')}>
+        <nav ref={navRef} className={SIDEBAR_NAV_CLASS} aria-label={t('aria.main')}>
           {sections.map((section, index) => {
             // La primera sección (inicio) no lleva título ni se pliega.
             const foldable = index > 0 && !collapsed;

@@ -115,4 +115,25 @@ describe('Sidebar', () => {
     expect(within(expanded()).queryByRole('button', { name: 'Administración' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Contraer la barra lateral' })).toBeInTheDocument();
   });
+
+  it('desplaza el menú hasta el ítem de la pantalla actual si quedó fuera de la vista', () => {
+    const rect = (top: number, height: number) => ({ top, bottom: top + height, height }) as DOMRect;
+    const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      if (this.tagName === 'NAV') return rect(0, 600);
+      return this.getAttribute('aria-current') === 'page' ? rect(900, 36) : rect(0, 36);
+    });
+    renderEs(<Sidebar collapsed={false} onToggle={() => {}} />);
+    expect(expanded().scrollTop).toBe(900 - (600 - 36) / 2);
+    spy.mockRestore();
+  });
+
+  it('no mueve el menú si el ítem de la pantalla actual ya se ve', () => {
+    const rect = (top: number, height: number) => ({ top, bottom: top + height, height }) as DOMRect;
+    const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      return this.tagName === 'NAV' ? rect(0, 600) : rect(120, 36);
+    });
+    renderEs(<Sidebar collapsed={false} onToggle={() => {}} />);
+    expect(expanded().scrollTop).toBe(0);
+    spy.mockRestore();
+  });
 });
