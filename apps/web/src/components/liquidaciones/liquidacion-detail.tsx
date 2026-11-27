@@ -397,7 +397,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
               {pendingAdjustment && <Badge variant="warning">{t('adjustmentPending')}</Badge>}
             </div>
           </div>
-          <div className="text-right">
+          <div className="sm:text-right">
             <p className="font-mono text-xs tabular-nums text-[var(--color-muted)]">
               {data.receiptNumber ? tReceipt('number', { number: data.receiptNumber }) : tReceipt('pending')}
             </p>
