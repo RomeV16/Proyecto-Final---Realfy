@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
-import { formatLocalDate, formatMoneyFixed, formatPeriod } from '@/lib/format';
+import { formatLocalDate, formatMoneyFixed } from '@/lib/format';
 
 /* ──────────── Tipos y cálculo ──────────── */
 
@@ -36,9 +36,15 @@ export interface RenditionSummary {
   ownerName?: string;
 }
 
-export function renditionPeriodLabel(r: Pick<RenditionSummary, 'period' | 'month' | 'year'>): string {
-  if (r.year && r.month) return formatPeriod(r.year, r.month);
-  return formatPeriod(r.period);
+/** "Septiembre 2026", con el nombre del mes que da `monthName`; guion si no hay período. */
+export function renditionPeriodLabel(
+  r: Pick<RenditionSummary, 'period' | 'month' | 'year'>,
+  monthName: (month: number) => string,
+): string {
+  if (r.year && r.month) return `${monthName(r.month)} ${r.year}`;
+  const date = r.period ? new Date(r.period) : null;
+  if (!date || Number.isNaN(date.getTime())) return '—';
+  return `${monthName(date.getUTCMonth() + 1)} ${date.getUTCFullYear()}`;
 }
 
 export function renditionOwnerName(r: Pick<RenditionSummary, 'owner' | 'ownerName'>): string | null {
@@ -117,7 +123,8 @@ export function RenditionVoucher({ rendition, onDownloadPdf }: VoucherProps) {
   const tVoucher = useTranslations('renditions.voucher');
   const tCard = useTranslations('renditions.card');
 
-  const period = renditionPeriodLabel(rendition);
+  const tMonths = useTranslations('renditions.months');
+  const period = renditionPeriodLabel(rendition, (m) => tMonths(String(m) as '1'));
   const owner = renditionOwnerName(rendition);
   const property = rendition.contract?.property;
   const propertyLine = property
@@ -147,10 +154,10 @@ export function RenditionVoucher({ rendition, onDownloadPdf }: VoucherProps) {
       className="relative flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] sm:flex-row"
     >
       {/* Talón */}
-      <div className="relative flex shrink-0 flex-row items-center justify-between gap-3 border-b border-dashed border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-4 py-3 sm:w-44 sm:flex-col sm:items-start sm:justify-between sm:border-b-0 sm:border-r sm:py-4">
+      <div className="relative flex shrink-0 flex-row items-center justify-between gap-3 border-b border-dashed border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-4 py-3 sm:w-52 sm:flex-col sm:items-start sm:justify-between sm:border-b-0 sm:border-r sm:py-4">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[var(--color-muted)]">{tVoucher('stub')}</p>
-          <h3 className="font-display text-lg font-semibold leading-tight tracking-tight text-[var(--color-text)]">{period}</h3>
+          <h3 className="font-display text-base font-semibold leading-tight tracking-tight text-[var(--color-text)]">{period}</h3>
         </div>
         <div className="text-right sm:text-left">
           <p className="font-mono text-[11px] tabular-nums text-[var(--color-muted)]">

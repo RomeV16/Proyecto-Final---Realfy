@@ -93,7 +93,7 @@ describe('LiquidacionDetail', () => {
   it('muestra no encontrada si falla la carga', async () => {
     apiClient.mockRejectedValue(new Error('boom'));
     render(wrap());
-    expect(await screen.findByText('Liquidación no encontrada')).toBeInTheDocument();
+    expect(await screen.findByText('No encontramos esta liquidación')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Volver/ })).toHaveAttribute('href', '/es/liquidaciones');
   });
 
@@ -125,16 +125,16 @@ describe('LiquidacionDetail', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Noviembre 2026');
     const text = nb(document.body.textContent);
     expect(text).toContain('Calle Falsa 123, Ciudad Ejemplo');
-    expect(text).toContain('Fecha de vencimiento: 10 de noviembre de 2026');
+    expect(text).toContain('Fecha de vencimiento10 de noviembre de 2026');
     expect(text).toContain('$ 110.000,00');
     expect(text).toContain('$ 115.000,00');
-    expect(text).toContain('- $ 5.000,00');
+    expect(text).toContain('− $ 5.000,00');
     expect(text).toContain('$ 40.000,00');
     expect(text).toContain('5 de noviembre de 2026');
     expect(text).toContain('Transferencia bancaria');
     expect(text).toContain('REF-1');
     expect(text).toContain('$ 70.000,00');
-    expect(text).toContain('Creada el: 1 de noviembre de 2026');
+    expect(text).toContain('Generada1 de noviembre de 2026');
     expect(screen.getByText('Alquiler de noviembre')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Ver contrato/ })).toHaveAttribute('href', '/es/contracts/c-1');
     for (const a of screen.getAllByRole('link')) expect(a.getAttribute('href')).toMatch(/^\/es\//);
@@ -194,9 +194,9 @@ describe('LiquidacionDetail', () => {
         }),
     );
     const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Registrar Pago' }));
+    await user.click(screen.getByRole('button', { name: 'Registrar pago' }));
     await user.selectOptions(screen.getByLabelText(/Método/), 'Efectivo');
-    await user.click(screen.getAllByRole('button', { name: 'Registrar Pago' }).at(-1)!);
+    await user.click(screen.getAllByRole('button', { name: 'Registrar pago' }).at(-1)!);
     expect(await screen.findByText('Se emitió el recibo Nº 00000009.')).toBeInTheDocument();
     const before = calls;
     await user.click(screen.getByRole('button', { name: 'Listo' }));
@@ -225,6 +225,39 @@ describe('LiquidacionDetail', () => {
     expect(screen.getByText('No se registraron pagos')).toBeInTheDocument();
   });
 
+  it('muestra al inquilino, los días de atraso y el seguimiento', async () => {
+    mockApi(() =>
+      liquidacion({
+        status: 'Vencida',
+        dueDate: '2020-01-10T00:00:00.000Z',
+        sentAt: '2026-11-03T12:00:00.000Z',
+        contract: {
+          id: 'c-1',
+          property: { id: 'p-1', title: 'Depto de prueba', street: 'Calle Falsa', number: '123', city: 'Ciudad Ejemplo' },
+          persons: [
+            { role: 'Inquilino', person: { firstName: 'Iris', lastName: 'Muestra' } },
+            { role: 'Propietario', person: { firstName: 'Otto', lastName: 'Dueño' } },
+          ],
+        },
+      }),
+    );
+    await mount();
+    expect(screen.getByText('Iris Muestra')).toBeInTheDocument();
+    expect(screen.queryByText(/Otto Dueño/)).not.toBeInTheDocument();
+    const text = nb(document.body.textContent);
+    expect(text).toMatch(/Venció hace \d+ días/);
+    expect(text).toContain('Calle Falsa 123, Ciudad Ejemplo');
+    expect(text).toContain('Enviada al inquilino3 de noviembre de 2026');
+    expect(text).toContain('PagadaPendiente');
+  });
+
+  it('una pagada marca la fecha de pago en el seguimiento y no ofrece cambios', async () => {
+    mockApi(() => liquidacion({ status: 'Pagada', paidAt: '2026-11-08T15:00:00.000Z' }));
+    await mount();
+    expect(nb(document.body.textContent)).toContain('Pagada8 de noviembre de 2026');
+    expect(screen.queryByRole('button', { name: 'Anular' })).not.toBeInTheDocument();
+  });
+
   it('sin período muestra guion', async () => {
     mockApi(() => liquidacion({ period: undefined, lineItems: [], contract: undefined }));
     await mount();
@@ -235,7 +268,7 @@ describe('LiquidacionDetail', () => {
     auth.role = role;
     mockApi(() => liquidacion());
     await mount();
-    expect(screen.getByRole('button', { name: 'Enviar a Revisión' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enviar a revisión' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Anular' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Agregar concepto' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Editar' })).toHaveLength(3);
@@ -245,7 +278,7 @@ describe('LiquidacionDetail', () => {
     auth.role = role;
     mockApi(() => liquidacion());
     await mount();
-    expect(screen.queryByRole('button', { name: 'Enviar a Revisión' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Enviar a revisión' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Anular' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Agregar concepto' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
@@ -256,21 +289,21 @@ describe('LiquidacionDetail', () => {
     mockApi(() => liquidacion({ status: 'Enviada' }));
     const user = await mount();
     expect(screen.queryByRole('button', { name: 'Agregar concepto' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Registrar Pago' }));
-    expect(screen.getAllByText('Registrar Pago').length).toBeGreaterThan(1);
+    await user.click(screen.getByRole('button', { name: 'Registrar pago' }));
+    expect(screen.getAllByText('Registrar pago').length).toBeGreaterThan(1);
   });
 
   it('en Vencida un rol de solo lectura no ve registrar pago', async () => {
     auth.role = 'Lectura';
     mockApi(() => liquidacion({ status: 'Vencida' }));
     await mount();
-    expect(screen.queryByRole('button', { name: 'Registrar Pago' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Registrar pago' })).not.toBeInTheDocument();
   });
 
   it('transiciona sin confirmación y recarga', async () => {
     mockApi(() => liquidacion());
     const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Enviar a Revisión' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar a revisión' }));
     expect(await screen.findByText('Estado actualizado correctamente')).toBeInTheDocument();
     expect(apiClient).toHaveBeenCalledWith('/liquidaciones/l-1/transition', {
       method: 'POST',
@@ -282,7 +315,7 @@ describe('LiquidacionDetail', () => {
     mockApi(() => liquidacion());
     const user = await mount();
     await user.click(screen.getByRole('button', { name: 'Anular' }));
-    expect(await screen.findByRole('dialog')).toHaveTextContent('Esta acción no se puede revertir');
+    expect(await screen.findByRole('dialog')).toHaveTextContent('No se puede deshacer');
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     expect(apiClient).not.toHaveBeenCalledWith('/liquidaciones/l-1/transition', expect.anything());
     await user.click(screen.getByRole('button', { name: 'Anular' }));
@@ -298,14 +331,14 @@ describe('LiquidacionDetail', () => {
   it('muestra el mensaje de la API o el genérico si falla la transición', async () => {
     mockApi(() => liquidacion(), () => Promise.reject(new ApiRequestError(400, 'BAD', 'Transición inválida de prueba')));
     const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Enviar a Revisión' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar a revisión' }));
     expect(await screen.findByText('Transición inválida de prueba')).toBeInTheDocument();
   });
 
   it('muestra el error genérico si la transición falla sin ApiRequestError', async () => {
     mockApi(() => liquidacion(), () => Promise.reject(new Error('x')));
     const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Enviar a Revisión' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar a revisión' }));
     expect(await screen.findByText('Error al cambiar estado')).toBeInTheDocument();
   });
 
@@ -313,7 +346,7 @@ describe('LiquidacionDetail', () => {
     mockApi(() => liquidacion());
     const user = await mount();
     await user.click(screen.getByRole('button', { name: 'Agregar concepto' }));
-    expect(screen.getByRole('heading', { name: 'Nuevo Concepto' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Nuevo concepto' })).toBeInTheDocument();
     await user.selectOptions(screen.getByRole('combobox'), 'Extra');
     await user.type(screen.getByPlaceholderText('Descripción del concepto'), 'Cochera');
     await user.type(screen.getByPlaceholderText('0.00'), '2500.5');
@@ -329,7 +362,7 @@ describe('LiquidacionDetail', () => {
     mockApi(() => liquidacion());
     const user = await mount();
     await user.click(screen.getAllByRole('button', { name: 'Editar' })[1]!);
-    expect(screen.getByRole('heading', { name: 'Editar Concepto' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Editar concepto' })).toBeInTheDocument();
     const desc = screen.getByPlaceholderText('Descripción del concepto');
     expect(desc).toHaveValue('Expensas');
     await user.clear(desc);
@@ -347,7 +380,7 @@ describe('LiquidacionDetail', () => {
     const user = await mount();
     await user.click(screen.getByRole('button', { name: 'Agregar concepto' }));
     await user.click(screen.getAllByRole('button', { name: 'Cancelar' }).at(-1)!);
-    expect(screen.queryByRole('heading', { name: 'Nuevo Concepto' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Nuevo concepto' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Agregar concepto' }));
     await user.selectOptions(screen.getByRole('combobox'), 'Alquiler');
     await user.type(screen.getByPlaceholderText('Descripción del concepto'), 'X');

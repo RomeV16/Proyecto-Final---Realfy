@@ -54,6 +54,7 @@ const MINUS = '−';
 export function RenditionDetail({ renditionId }: RenditionDetailProps) {
   const t = useTranslations('renditions');
   const tDoc = useTranslations('renditions.document');
+  const tMonths = useTranslations('renditions.months');
   const tVoucher = useTranslations('renditions.voucher');
   const tLineItemTypes = useTranslations('renditions.lineItemTypes');
   const tCommon = useTranslations('common');
@@ -110,7 +111,7 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
     );
   }
 
-  const periodLabel = renditionPeriodLabel(rendition);
+  const periodLabel = renditionPeriodLabel(rendition, (m) => tMonths(String(m) as '1'));
   const ownerName = renditionOwnerName(rendition);
   const property = rendition.contract?.property;
   const address = property ? [[property.street, property.number].filter(Boolean).join(' '), property.city].filter(Boolean).join(', ') : '';

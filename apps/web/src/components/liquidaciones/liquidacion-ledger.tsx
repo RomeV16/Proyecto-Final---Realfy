@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Icon } from '@/components/ui/icon';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
-import { formatDate, formatLocalDate, formatMoneyFixed, formatPeriod, toUtcDay } from '@/lib/format';
+import { formatDate, formatLocalDate, formatMoneyFixed, toUtcDay } from '@/lib/format';
 
 /* ──────────── Tipos ──────────── */
 
@@ -365,7 +365,8 @@ export function LedgerMonth({ group, tenantNames, selectable, selectedIds, onTog
   const t = useTranslations('liquidaciones.ledger');
   const tTable = useTranslations('liquidaciones.table');
   const tBulk = useTranslations('liquidaciones.bulk');
-  const label = group.year && group.month ? formatPeriod(group.year, group.month) : t('noPeriod');
+  const tMonths = useTranslations('liquidaciones.months');
+  const label = group.year && group.month ? `${tMonths(String(group.month))} ${group.year}` : t('noPeriod');
   const ids = group.items.map((item) => item.id);
   const allSelected = ids.every((id) => selectedIds.has(id));
 
