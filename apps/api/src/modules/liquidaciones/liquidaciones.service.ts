@@ -41,6 +41,7 @@ import {
   periodKey,
   onBehalfOfText,
   formatDateAR,
+  formatMoneyAR,
   MessageChannel,
   ScheduleStatus,
   LateAdjustmentBilling,
@@ -636,7 +637,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (!liquidacion) {
       throw new NotFoundException({
         error: 'LIQUIDACION_NOT_FOUND',
-        message: 'Liquidación not found',
+        message: 'La liquidación ya no existe.',
       });
     }
 
@@ -700,7 +701,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (!lineItem) {
       throw new NotFoundException({
         error: 'LINE_ITEM_NOT_FOUND',
-        message: 'Line item not found',
+        message: 'Ese renglón ya no existe.',
       });
     }
 
@@ -737,7 +738,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (!lineItem) {
       throw new NotFoundException({
         error: 'LINE_ITEM_NOT_FOUND',
-        message: 'Line item not found',
+        message: 'Ese renglón ya no existe.',
       });
     }
 
@@ -794,7 +795,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (!liquidacion) {
       throw new NotFoundException({
         error: 'LIQUIDACION_NOT_FOUND',
-        message: 'Liquidación not found',
+        message: 'La liquidación ya no existe.',
       });
     }
 
@@ -809,12 +810,28 @@ export class LiquidacionesService implements OnModuleInit {
       if (pending) {
         throw new ConflictException({
           error: ADJUSTMENT_PENDING,
-          message: `The rent adjustment of ${pending.adjustmentDate} is still pending: apply it before approving`,
+          message: `El ajuste de alquiler del ${pending.adjustmentDate} todavía no se aplicó: aplicalo antes de aprobar la liquidación.`,
           adjustmentDate: pending.adjustmentDate,
           scheduleId: pending.scheduleId,
         });
       }
     }
+
+    // Pagada es consecuencia de los cobros: marcarla a mano sin que estén la deja
+    // saldada sin recibo, sin movimiento de caja y sin acreditar al locador.
+    if (
+      toStatus === LiquidacionStatus.Pagada &&
+      !isFullyPaid(
+        liquidacion.total.toString(),
+        (liquidacion.payments ?? []).map((p: any) => ({ amount: p.amount.toString() })),
+      )
+    ) {
+      throw new ConflictException({
+        error: 'PAYMENT_REQUIRED',
+        message: 'La liquidación pasa a pagada cuando se registra el cobro completo: registrá el cobro.',
+      });
+    }
+    this.assertNoPayments(toStatus, liquidacion.payments);
 
     const updateData: any = { status: toStatus };
 
@@ -934,7 +951,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (locked.length === 0) {
       throw new NotFoundException({
         error: 'LIQUIDACION_NOT_FOUND',
-        message: 'Liquidación not found',
+        message: 'La liquidación ya no existe.',
       });
     }
 
@@ -946,7 +963,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (!liquidacion) {
       throw new NotFoundException({
         error: 'LIQUIDACION_NOT_FOUND',
-        message: 'Liquidación not found',
+        message: 'La liquidación ya no existe.',
       });
     }
 
@@ -955,7 +972,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (status !== LiquidacionStatus.Enviada && status !== LiquidacionStatus.Vencida) {
       throw new BadRequestException({
         error: 'INVALID_STATUS_FOR_PAYMENT',
-        message: `Cannot register payment when status is ${status}. Must be Enviada or Vencida.`,
+        message: 'Solo se registra un cobro en una liquidación enviada o vencida.',
       });
     }
 
@@ -1007,7 +1024,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (new Decimal(validated.amount).gt(balanceBefore)) {
       throw new BadRequestException({
         error: 'PAYMENT_EXCEEDS_BALANCE',
-        message: `Payment amount exceeds the remaining balance of ${balanceBefore.toFixed(2)}`,
+        message: `El importe supera el saldo pendiente ($ ${formatMoneyAR(balanceBefore.toFixed(2))}).`,
         remainingBalance: balanceBefore.toFixed(2),
       });
     }
@@ -1018,7 +1035,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (penaltySettled && !penaltyFirst && !new Decimal(validated.amount).eq(balanceBefore)) {
       throw new BadRequestException({
         error: 'PAYOFF_REQUIRES_FULL_AMOUNT',
-        message: `A payment that settles penalties must cover the full amount of ${balanceBefore.toFixed(2)}`,
+        message: `Un cobro que incluye punitorios tiene que cubrir el total ($ ${formatMoneyAR(balanceBefore.toFixed(2))}).`,
         expectedAmount: balanceBefore.toFixed(2),
       });
     }
@@ -1028,7 +1045,7 @@ export class LiquidacionesService implements OnModuleInit {
       if (duplicate) {
         throw new ConflictException({
           error: 'PAYMENT_EXTERNAL_REF_EXISTS',
-          message: `A payment with external reference ${validated.externalRef} already exists`,
+          message: `Ya hay un cobro registrado con la referencia ${validated.externalRef}.`,
         });
       }
     }
@@ -1109,7 +1126,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (!liquidacion) {
       throw new NotFoundException({
         error: 'LIQUIDACION_NOT_FOUND',
-        message: 'Liquidación not found',
+        message: 'La liquidación ya no existe.',
       });
     }
 
@@ -1181,7 +1198,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (!ids || ids.length === 0) {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
-        message: 'ids array is required and must not be empty',
+        message: 'Elegí al menos una liquidación.',
       });
     }
 
@@ -1192,7 +1209,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (!ids || ids.length === 0) {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
-        message: 'ids array is required and must not be empty',
+        message: 'Elegí al menos una liquidación.',
       });
     }
 
@@ -1201,15 +1218,28 @@ export class LiquidacionesService implements OnModuleInit {
 
   // ─── Delete / Annul ─────────────────────────────────
 
+  /**
+   * Una liquidación con cobros no se anula: la plata ya está en caja y acreditada
+   * al locador, y quedaría imputada a una deuda que dejó de existir.
+   */
+  private assertNoPayments(toStatus: LiquidacionStatus, payments: unknown[] | null | undefined): void {
+    if (toStatus !== LiquidacionStatus.Anulada || !payments?.length) return;
+    throw new ConflictException({
+      error: 'HAS_PAYMENTS',
+      message: 'Esta liquidación tiene cobros registrados y no se puede anular.',
+    });
+  }
+
   async remove(id: string) {
     const liquidacion = await this.prisma.client.liquidacion.findFirst({
       where: { id },
+      include: { payments: { select: { id: true } } },
     });
 
     if (!liquidacion) {
       throw new NotFoundException({
         error: 'LIQUIDACION_NOT_FOUND',
-        message: 'Liquidación not found',
+        message: 'La liquidación ya no existe.',
       });
     }
 
@@ -1230,10 +1260,11 @@ export class LiquidacionesService implements OnModuleInit {
     }
 
     // For other states, transition to Anulada
+    this.assertNoPayments(LiquidacionStatus.Anulada, liquidacion.payments);
     if (!validateLiquidacionTransition(status, LiquidacionStatus.Anulada)) {
       throw new BadRequestException({
         error: 'CANNOT_ANNUL',
-        message: `Cannot annul liquidación in status ${status}`,
+        message: 'Esta liquidación no se puede anular en su estado actual.',
       });
     }
 
@@ -1525,7 +1556,7 @@ export class LiquidacionesService implements OnModuleInit {
     if (!liquidacion) {
       throw new NotFoundException({
         error: 'LIQUIDACION_NOT_FOUND',
-        message: 'Liquidación not found',
+        message: 'La liquidación ya no existe.',
       });
     }
 
@@ -1536,7 +1567,7 @@ export class LiquidacionesService implements OnModuleInit {
     ) {
       throw new BadRequestException({
         error: 'NOT_EDITABLE',
-        message: `Line items can only be modified when status is Borrador or Revision (current: ${status})`,
+        message: 'Los renglones solo se cambian con la liquidación en borrador o en revisión.',
       });
     }
 
