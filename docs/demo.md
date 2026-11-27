@@ -70,7 +70,7 @@ que llegar a la defensa con:
 - Liquidaciones de meses anteriores ya cerradas y cobradas, para que los reportes,
   la cuenta corriente y el panel tengan de dónde calcular, y un estado de cuenta
   del mes anterior emitido.
-- Una liquidación vencida sin pagar, con su punitorio acumulado, para Morosos y
+- Una liquidación vencida sin pagar, con su punitorio acumulado, para Morosidad y
   Cobranza; la cobranza escalonada activada en *Valores por defecto* y un caso
   abierto.
 - Un reclamo abierto y una reparación con presupuesto pendiente de aprobación.
@@ -106,13 +106,15 @@ dentro del sistema.
 
 ### 2. Ingreso y panel
 
-Entrar como Admin. El panel es la pantalla que resume el estado de la cartera:
-la masa de alquileres, la tendencia de facturación, las fichas de ocupación,
-cobranzas, morosidad y tickets.
+Entrar como Admin. El panel resume el estado de la cartera: arriba, los
+indicadores de ocupación, lo cobrado en el mes, el saldo vencido y los tickets
+abiertos; debajo, los alquileres de la cartera con la cobranza del último mes
+cerrado y el gráfico de lo liquidado y lo cobrado por mes.
 
-Lo que conviene destacar acá no son los números sino la sección de lo que requiere
-atención: contratos por vencer, cobranzas pendientes y tickets prioritarios, cada
-uno con acceso directo al registro. La idea a transmitir es que el panel sirve como
+Lo que conviene destacar acá no son los números sino la *Agenda*: contratos por
+vencer, liquidaciones sin cobrar y tickets prioritarios, cada uno con acceso
+directo al registro. De paso, mostrar el menú lateral, agrupado por tarea (Cartera,
+Comercial, Alquileres, Cobros y caja, Locadores, Atención y Administración). La idea a transmitir es que el panel sirve como
 lista de tareas del día.
 
 Mostrar de paso que el lead de la consulta del paso 1 ya está en el embudo.
@@ -167,7 +169,7 @@ quién paga según la regla del contrato, y que se puede pegar desde una planill
 cálculo. En *Centro de carga*, mostrar el cargo pendiente imputado al inquilino o al
 locador.
 
-En Liquidaciones, *Generar Mes*. La acción produce las liquidaciones de todos los
+En Liquidaciones, *Generar mes*. La acción produce las liquidaciones de todos los
 contratos activos del período e informa cuántas generó y cuántas omitió. Entrar a
 una liquidación y mostrar sus renglones con destino: el alquiler, la parte de
 cada boleta que le toca al inquilino, el cargo y el punitorio pendiente, y cuáles
@@ -179,7 +181,7 @@ mostrar el mismo circuito con un rol acotado.
 
 ### 7. El cobro por tres caminos
 
-Sobre la liquidación aprobada, *Registrar Pago*. El formulario pregunta quién
+Sobre la liquidación aprobada, *Registrar pago*. El formulario pregunta quién
 recibió el dinero: es el punto donde el modelo original no alcanzaba. Mostrar
 dos casos:
 
@@ -197,9 +199,11 @@ una compensación entre locadores. La secuencia completa de los flujos está en
 
 ### 8. Morosidad, punitorios y cobranza
 
-Volver a la sesión de Admin: Morosos es de Admin y Gerente. Ahí está el contrato
-con la liquidación vencida, con su deuda, su multa acumulada y sus días de atraso. Mostrar el punitorio y condonarlo con motivo, que
-es una operación de Admin y Gerente.
+Volver a la sesión de Admin: *Morosidad* (en el menú, sección *Cobros y caja*) es
+de Admin y Gerente. Muestra la deuda vencida por tramos de antigüedad y, debajo, los
+deudores con sus días de mora, sus punitorios y su deuda; ahí está el inquilino de
+la liquidación vencida. Abrir esa liquidación, mostrar el punitorio y condonarlo
+con motivo, que es una operación de Admin y Gerente.
 
 En *Cobranza*, abrir el caso del mismo contrato: la etapa, los recordatorios en la
 línea de tiempo y el borrador de la carta documento en PDF, con la marca de
@@ -332,7 +336,7 @@ los procesos programados, que recorren las inmobiliarias una por una.
 ### 18. Control de acceso por rol
 
 Entrar con el acceso de Lectura. El menú es más corto: desde el piloto la
-navegación se filtra por rol, y no aparecen Morosos, Reportes, Ajustes, Boletas,
+navegación se filtra por rol, y no aparecen Morosidad, Reportes, Ajustes, Boletas,
 Importación, Calidad de datos ni la configuración de usuarios y permisos. Las
 pantallas que sí ve no ofrecen acciones. Mostrar como Admin la
 pantalla de *Permisos de lectura*, donde la inmobiliaria decide qué datos sensibles
