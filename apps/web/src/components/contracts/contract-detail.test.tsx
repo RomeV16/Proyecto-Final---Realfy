@@ -221,7 +221,7 @@ describe('ContractDetailView — rescisión', () => {
     auth.role = 'Ventas';
     mockApi(() => contract({ status: 'Activo' }));
     await renderDetail();
-    expect(screen.queryByRole('button', { name: 'Rescindir Contrato' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rescindir contrato' })).not.toBeInTheDocument();
   });
 
   it('confirma con el foco en Cancelar y rescinde', async () => {
@@ -234,12 +234,12 @@ describe('ContractDetailView — rescisión', () => {
       },
     );
     const user = await renderDetail();
-    await user.click(screen.getByRole('button', { name: 'Rescindir Contrato' }));
+    await user.click(screen.getByRole('button', { name: 'Rescindir contrato' }));
     await screen.findByRole('dialog');
     await waitFor(() => expect(screen.getByRole('button', { name: 'Cancelar' })).toHaveFocus());
 
     await user.click(
-      screen.getAllByRole('button', { name: 'Rescindir Contrato' }).at(-1)!,
+      screen.getAllByRole('button', { name: 'Rescindir contrato' }).at(-1)!,
     );
     await waitFor(() => expect(screen.getByText('Contrato rescindido')).toBeInTheDocument());
     expect(apiClient).toHaveBeenCalledWith('/contracts/c-1/terminate', { method: 'POST' });
@@ -251,9 +251,9 @@ describe('ContractDetailView — rescisión', () => {
       () => Promise.reject(new ApiRequestError(400, 'X', 'No se pudo')),
     );
     const user = await renderDetail();
-    await user.click(screen.getByRole('button', { name: 'Rescindir Contrato' }));
+    await user.click(screen.getByRole('button', { name: 'Rescindir contrato' }));
     await screen.findByRole('dialog');
-    await user.click(screen.getAllByRole('button', { name: 'Rescindir Contrato' }).at(-1)!);
+    await user.click(screen.getAllByRole('button', { name: 'Rescindir contrato' }).at(-1)!);
     expect(await screen.findByText('No se pudo')).toBeInTheDocument();
   });
 });
