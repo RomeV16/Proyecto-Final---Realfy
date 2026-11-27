@@ -18,6 +18,18 @@ describe('elapsedParts', () => {
     expect(elapsedParts(800 * D)).toEqual({ unit: 'years', count: 2 });
   });
 
+  it('no retrocede al cambiar de unidad', () => {
+    expect(elapsedParts(59 * 60_000 + 59_000)).toEqual({ unit: 'minutes', count: 59 });
+    expect(elapsedParts(H)).toEqual({ unit: 'hours', count: 1 });
+    expect(elapsedParts(D - 1)).toEqual({ unit: 'hours', count: 23 });
+    expect(elapsedParts(13 * D)).toEqual({ unit: 'days', count: 13 });
+    expect(elapsedParts(14 * D)).toEqual({ unit: 'weeks', count: 2 });
+    expect(elapsedParts(60 * D)).toEqual({ unit: 'weeks', count: 8 });
+    expect(elapsedParts(61 * D)).toEqual({ unit: 'months', count: 2 });
+    expect(elapsedParts(730 * D)).toEqual({ unit: 'months', count: 23 });
+    expect(elapsedParts(731 * D)).toEqual({ unit: 'years', count: 2 });
+  });
+
   it('trata igual un plazo que falta y uno que ya pasó', () => {
     expect(elapsedParts(-3 * D)).toEqual({ unit: 'days', count: 3 });
   });

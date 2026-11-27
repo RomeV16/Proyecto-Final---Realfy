@@ -17,8 +17,8 @@ export function elapsedParts(ms: number): { unit: ElapsedUnit; count: number } {
   if (abs < DAY) return { unit: 'hours', count: Math.floor(abs / HOUR) };
   const days = Math.floor(abs / DAY);
   if (days < 14) return { unit: 'days', count: days };
-  if (days < 60) return { unit: 'weeks', count: Math.floor(days / 7) };
-  if (days < 730) return { unit: 'months', count: Math.floor(days / 30.44) };
+  if (days < 61) return { unit: 'weeks', count: Math.floor(days / 7) };
+  if (days < 731) return { unit: 'months', count: Math.floor(days / 30.44) };
   return { unit: 'years', count: Math.floor(days / 365.25) };
 }
 
