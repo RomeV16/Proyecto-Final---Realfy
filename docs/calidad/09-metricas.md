@@ -57,7 +57,9 @@ El pipeline, hasta el último empuje a `main` (`b47f335`, #244, 4 de noviembre):
   fallaron dos casos del Worker de mails (CP-1415 y CP-1419, en
   `infra/email-worker/src/index.test.ts`) que en el pedido #244 habían pasado sobre el
   mismo árbol. CP-1419 tardó 5,4 s contra un tope de 5 s. Es una prueba inestable por
-  tiempo, del mismo tipo que las dos anteriores, y queda por corregir. Las 2.772
+  tiempo, del mismo tipo que las dos anteriores. El tope de las pruebas del Worker
+  se subió a 30 s (`infra/email-worker/vitest.config.ts`); falta verlo en verde
+  sobre `main`. Las 2.772
   unitarias de la API, las 1.162 del paquete compartido y las 1.727 de la web pasaron
   en esa ejecución; la integración y SonarCloud no corrieron porque dependen de ese
   trabajo.

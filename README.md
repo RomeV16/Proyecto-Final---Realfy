@@ -206,7 +206,7 @@ Hay cuatro niveles y todos corren en cada pedido de incorporación de cambios:
   pruebas de valores conocidos de los motores de dinero.
 - De la web, con Vitest: funciones, hooks y pantallas, y la paridad de claves
   entre `es.json` y `en.json`.
-- De integración de la API: levantan la aplicación completa y le pegan por HTTP
+- De integración de la API: levantan la aplicación completa y la llaman por HTTP
   contra un PostgreSQL real con las migraciones aplicadas desde cero. Cubren
   sesión, aislamiento entre inmobiliarias, permisos por rol, auditoría y cada
   módulo.
