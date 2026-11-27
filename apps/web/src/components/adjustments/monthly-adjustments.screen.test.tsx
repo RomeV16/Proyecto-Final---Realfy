@@ -112,9 +112,9 @@ describe('Ajustes del mes', () => {
     expect(screen.getAllByText('Listo').length).toBeGreaterThan(0);
     expect(screen.getAllByText('A cuenta').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Calculado con índices estimados/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/2026-02 \(estimado\)/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/feb 2026 \(estimado\)/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Atrasado').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Faltan CVS, CER: 2026-02/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Falta cargar CVS, CER de feb 2026/).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('link', { name: 'Cargar el índice' })[0]).toHaveAttribute(
       'href',
       expect.stringContaining('/configuracion/indices'),
@@ -124,6 +124,28 @@ describe('Ajustes del mes', () => {
     expect(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto c' })[0]).toBeDisabled();
     expect(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto d' })[0]).toBeDisabled();
     expect(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto a' })[0]).toBeEnabled();
+  });
+
+  it('cada fila compara el alquiler actual con el nuevo: coeficiente, diferencia y resumen', async () => {
+    const { container } = setup();
+    await screen.findAllByText('Depto a');
+    const text = (container.textContent ?? '').replaceAll(' ', ' ');
+
+    expect(text).toContain('$ 100.000,00');
+    expect(text).toContain('× 1,0506');
+    expect(text).toContain('índice 5,06 %');
+    expect(text).toContain('$ 105.060,00');
+    expect(text).toContain('+$ 5.060,00');
+    expect(text).toContain('Ajusta el 01/04/2026');
+    expect(text).toContain('Índices usados: ene 2026, feb 2026');
+    expect(text).toContain('Sin calcular');
+    expect(text).toContain('5 ajustes en el mes · 3 listos para aplicar · 2 no se pueden calcular');
+
+    const user = userEvent.setup();
+    await user.click(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto a' })[0]);
+    await user.click(screen.getAllByRole('checkbox', { name: 'Elegir el ajuste de Depto b' })[0]);
+    const summary = (container.textContent ?? '').replaceAll(' ', ' ');
+    expect(summary).toContain('Suma de alquileres: $ 200.000,00 → $ 209.610,00 (+$ 9.610,00)');
   });
 
   it('elegir todos toma solo los aplicables y el botón cuenta lo elegido', async () => {
