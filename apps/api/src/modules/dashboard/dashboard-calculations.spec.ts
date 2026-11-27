@@ -93,6 +93,18 @@ describe('dashboard-calculations', () => {
       expect(totals.get('2026-02')).toBe(250);
     });
 
+    it('suma importes con centavos sin arrastrar error de coma flotante', () => {
+      const totals = aggregateIntoBuckets(
+        [554791.47, 634047.39, 726512.64, 726512.64].map((amount) => ({
+          date: new Date(Date.UTC(2026, 9, 10)),
+          amount,
+        })),
+        'month',
+      );
+
+      expect(totals.get('2026-10')).toBe(2641864.14);
+    });
+
     it('devuelve un mapa vacio cuando no hay registros', () => {
       expect(aggregateIntoBuckets([], 'week').size).toBe(0);
     });
