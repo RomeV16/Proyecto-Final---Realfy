@@ -313,6 +313,9 @@ export class DashboardService {
       delinquency: {
         overdueAmount: Math.round(vencida),
         rate: collectionsTotal > 0 ? Math.round((vencida / collectionsTotal) * 100) : 0,
+        // La deuda vencida contra lo que la cartera factura por mes. A diferencia
+        // de `rate`, no depende de que el mes en curso ya tenga liquidaciones.
+        rentRollRate: monthlyRentRoll > 0 ? Math.round((vencida / monthlyRentRoll) * 100) : null,
       },
       tickets: {
         open: openTickets.length,

@@ -121,7 +121,7 @@ describe('Lectores de deuda: escenario con pago parcial y liquidación vencida',
       period: '2026-08',
       count: 3,
     });
-    expect(stats.delinquency).toEqual({ overdueAmount: 200000, rate: 56 });
+    expect(stats.delinquency).toEqual({ overdueAmount: 200000, rate: 56, rentRollRate: null });
     expect(stats.pendingLiquidaciones).toBe(3);
     expect(stats.agenda.collections.map((p: any) => [p.id, p.amount])).toEqual([
       ['liq-1', 150000],

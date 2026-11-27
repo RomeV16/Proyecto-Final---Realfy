@@ -110,6 +110,15 @@ describe('DashboardService.getStats', () => {
       });
     });
 
+    it('la mora también se informa contra lo que la cartera factura por mes', async () => {
+      jest.useFakeTimers({ now: new Date('2026-11-27T15:00:00.000Z') });
+      const contracts = ['a', 'b', 'c', 'd'].map((id) => contrato(id, '2028-01-31'));
+      const stats = await build(contracts, [liquidacion('l1', '2026-10', 'Vencida', '100000.00')]).getStats();
+
+      // Sin liquidaciones en noviembre, `rate` da 100 %; contra el rent roll (400.000) es 25 %.
+      expect(stats.delinquency).toEqual({ overdueAmount: 100000, rate: 100, rentRollRate: 25 });
+    });
+
     it('cuenta las liquidaciones emitidas del mes en curso', async () => {
       jest.useFakeTimers({ now: new Date('2026-11-27T15:00:00.000Z') });
       const stats = await build(
