@@ -86,6 +86,35 @@ describe('Header', () => {
     expect(nav.push).toHaveBeenCalledWith('/es/contracts');
   });
 
+  it('no muestra identificadores de ningún formato ni segmentos en inglés', () => {
+    nav.path = '/es/cobranza/cmh8x2k9d0001abcdxyz12345';
+    const { unmount } = renderEs(<Header onMenuToggle={() => {}} />);
+    expect(screen.queryByText(/cmh8x2k9d/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText('Cobranza').length).toBeGreaterThan(0);
+    unmount();
+
+    nav.path = '/es/invoices/0b9a3c1e-1111-2222-3333-444455556666/nc';
+    renderEs(<Header onMenuToggle={() => {}} />);
+    expect(screen.getAllByText('Nota de crédito').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Nc')).not.toBeInTheDocument();
+    const parent = screen.getByRole('navigation', { name: 'Ruta de navegación' }).querySelector('a');
+    expect(parent?.getAttribute('href')).toBe('/es/invoices');
+  });
+
+  it('todas las rutas del panel tienen etiqueta en castellano', () => {
+    for (const [path, label] of [
+      ['/es/invoices/pending', 'Pendientes'],
+      ['/es/configuracion/fiscal', 'Configuración fiscal'],
+      ['/es/configuracion/permisos', 'Permisos'],
+      ['/es/configuracion/valores-por-defecto', 'Valores por defecto'],
+    ]) {
+      nav.path = path;
+      const { unmount } = renderEs(<Header onMenuToggle={() => {}} />);
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+      unmount();
+    }
+  });
+
   it('sin segmentos no hay migas', () => {
     nav.path = '/es';
     renderEs(<Header onMenuToggle={() => {}} />);

@@ -106,7 +106,7 @@
   "import": "Importar",
   "dataQuality": "Calidad de datos",
   "migration": "Migración",
-  "delinquency": "Morosos",
+  "delinquency": "Morosidad",
   "adjustments": "Ajustes del mes",
   "penalties": "Punitorios",
   "fiscal": "Configuración Fiscal",
@@ -3223,7 +3223,7 @@
    "Borrador": "Borrador",
    "Aprobada": "Aprobada",
    "Enviada": "Enviada",
-   "Depositada": "Depositada"
+   "Depositada": "Transferida"
   },
   "filters": {
    "status": "Estado",

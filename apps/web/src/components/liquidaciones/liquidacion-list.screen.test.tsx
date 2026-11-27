@@ -133,7 +133,16 @@ describe('LiquidacionList', () => {
     expect(await screen.findByText('Seleccionar todas')).toBeInTheDocument();
   });
 
-  it.each(['Ventas', 'Liquidaciones', 'Lectura', 'Soporte'])('%s no ve generar ni selección masiva', async (role) => {
+  it('Liquidaciones ve generar mes, como permite la API, pero no la selección masiva', async () => {
+    auth.role = 'Liquidaciones';
+    mockList(() => page([item('l-1')]));
+    await mount();
+    await screen.findByText('Depto de prueba — Calle Falsa 123 — Ciudad Ejemplo');
+    expect(screen.getByRole('button', { name: 'Generar Mes' })).toBeInTheDocument();
+    expect(screen.queryByText('Seleccionar todas')).not.toBeInTheDocument();
+  });
+
+  it.each(['Ventas', 'Lectura', 'Soporte'])('%s no ve generar ni selección masiva', async (role) => {
     auth.role = role;
     mockList(() => page([item('l-1')]));
     await mount();

@@ -36,13 +36,15 @@ export const ACTION_ROLES = {
   'contracts.administer': [Admin, Gerente],
 
   // Liquidaciones, rendiciones y comprobantes
-  'liquidaciones.generate': [Admin, Gerente],
+  /** Generar el mes: los mismos roles que acepta `POST /liquidaciones/generate`. */
+  'liquidaciones.generate': [Admin, Gerente, Liquidaciones],
   'liquidaciones.bulk': [Admin, Gerente],
   'liquidaciones.act': [Admin, Gerente, Ventas, Liquidaciones],
   /** Aviso de "solo lectura" en el listado de liquidaciones. */
   'liquidaciones.readOnlyNotice': [Lectura],
   'invoices.emit': [Admin, Gerente, Liquidaciones],
-  'fiscal.configure': [Admin, Gerente],
+  /** Emisores y puntos de venta: los roles de facturación de la API (el certificado sigue siendo del Admin). */
+  'fiscal.configure': [Admin, Gerente, Liquidaciones],
   /** Facturación por cuenta del locador: ver comprobantes, cola y configuración. */
   'lessorInvoicing.view': [Admin, Gerente, Liquidaciones, Lectura],
   /** Facturar un cobro o un estado por cuenta del locador y emitir lo pendiente. */

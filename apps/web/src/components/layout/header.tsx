@@ -59,21 +59,23 @@ export function Header({ onMenuToggle }: HeaderProps) {
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()
     : '';
 
-  // Breadcrumb logic — drop record-id segments so detail pages never show a
-  // raw UUID (e.g. /contracts/<uuid> shows just "Contratos").
-  const isIdSegment = (s: string) =>
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/i.test(s) || /^\d+$/.test(s);
-  const segments = parseSegments(pathname).filter(
-    (s) => !isIdSegment(s),
-  );
   // es-AR falls back to 'es' label map
   const labelMap = SEGMENT_LABELS[locale] ?? SEGMENT_LABELS['es'];
 
-  const crumbs = segments.map((seg, i) => {
-    const href = `/${segments.slice(0, i + 1).join('/')}`;
-    const label = labelMap[seg] ?? toTitleCase(seg);
-    return { seg, href, label };
-  });
+  // Breadcrumb logic — drop record-id segments so detail pages never show a
+  // raw id (e.g. /contracts/<uuid> shows just "Contratos"). Un segmento sin
+  // etiqueta que trae dígitos es un identificador (uuid, cuid o número).
+  const isIdSegment = (s: string) => !(s in labelMap) && /\d/.test(s);
+  const allSegments = parseSegments(pathname);
+
+  // Cada miga enlaza a su ruta real, con los identificadores intermedios.
+  const crumbs = allSegments
+    .map((seg, i) => ({
+      seg,
+      href: `/${allSegments.slice(0, i + 1).join('/')}`,
+      label: labelMap[seg] ?? toTitleCase(seg),
+    }))
+    .filter((crumb) => !isIdSegment(crumb.seg));
 
   const lastCrumb = crumbs[crumbs.length - 1];
   const parentHref =
