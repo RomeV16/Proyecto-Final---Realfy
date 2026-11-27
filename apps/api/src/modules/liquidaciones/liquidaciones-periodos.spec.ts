@@ -87,6 +87,25 @@ describe('LiquidacionesService: períodos independientes de la zona horaria', ()
     expect(where.period.toISOString()).toBe('2025-02-01T00:00:00.000Z');
   });
 
+  it('el listado trae el nombre del inquilino de cada liquidación', async () => {
+    client.liquidacion.findMany.mockResolvedValueOnce([
+      {
+        id: 'liq-1',
+        contractId: 'c-1',
+        period: new Date('2025-02-01T00:00:00.000Z'),
+        status: 'Pagada',
+        contract: { persons: [{ role: 'Inquilino', person: { id: 'p-1', firstName: 'Julieta', lastName: 'Ramos' } }] },
+      },
+      { id: 'liq-2', contractId: 'c-2', period: new Date('2025-02-01T00:00:00.000Z'), status: 'Pagada', contract: { persons: [] } },
+    ]);
+
+    const { items } = await service.findAll({});
+
+    expect(items.map((i: any) => i.tenantName)).toEqual(['Julieta Ramos', null]);
+    const include = client.liquidacion.findMany.mock.calls[0][0].include;
+    expect(include.contract.include.persons.where).toEqual({ role: 'Inquilino' });
+  });
+
   it('el filtro de solo año cubre de enero a enero en UTC', async () => {
     await service.findAll({ year: 2025 });
 

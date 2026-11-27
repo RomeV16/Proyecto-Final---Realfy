@@ -99,7 +99,8 @@ export class PenaltiesController {
       include: {
         payments: { select: { amount: true } },
         penalties: {
-          where: { status: 'active' },
+          // Lo ya cobrado en otra liquidación está en el saldo de esa: no se suma dos veces.
+          where: { status: 'active', settledLiquidacionId: null },
           select: { amount: true },
         },
         contract: {

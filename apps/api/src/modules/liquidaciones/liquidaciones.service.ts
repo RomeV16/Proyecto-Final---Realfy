@@ -594,7 +594,13 @@ export class LiquidacionesService implements OnModuleInit {
         where,
         include: {
           contract: {
-            include: { property: true },
+            include: {
+              property: true,
+              persons: {
+                where: { role: 'Inquilino' },
+                select: { role: true, person: { select: { id: true, firstName: true, lastName: true } } },
+              },
+            },
           },
           lineItems: { orderBy: { sortOrder: 'asc' } },
           _count: { select: { payments: true } },
@@ -608,7 +614,12 @@ export class LiquidacionesService implements OnModuleInit {
 
     const warnings = await this.warningsFor(items);
     return {
-      items: items.map((item: any, i: number) => ({ ...item, warnings: warnings[i] })),
+      items: items.map((item: any, i: number) => ({
+        ...item,
+        // Inquilino del contrato, para que el listado no tenga que ir a buscarlo.
+        tenantName: personName(getParty<any>(item.contract ?? {}, 'Inquilino')?.person) || null,
+        warnings: warnings[i],
+      })),
       total,
       page: filters.page,
       limit: filters.limit,
