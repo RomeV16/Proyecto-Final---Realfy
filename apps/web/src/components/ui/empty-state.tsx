@@ -5,7 +5,7 @@ import { Icon, type IconName } from './icon';
 interface EmptyStateProps {
   /** Legacy slot — a raw node rendered in the icon plate. */
   icon?: ReactNode;
-  /** Preferred: name from the icon registry, rendered in the gradient plate. */
+  /** Preferred: name from the icon registry, rendered in the icon plate. */
   iconName?: IconName;
   title: string;
   subtitle?: string;
@@ -27,9 +27,8 @@ interface EmptyStateProps {
  * Empty state.
  *
  * An empty list is the moment a user is most likely to bounce, so this is
- * treated as a real screen rather than a shrug: a gradient plate for visual
- * weight, one clear next action, and optional numbered steps for first-run
- * screens.
+ * treated as a real screen rather than a shrug: a quiet icon plate, one clear
+ * next action, and optional numbered steps for first-run screens.
  */
 export function EmptyState({
   icon,
@@ -53,34 +52,18 @@ export function EmptyState({
       )}
     >
       {(iconName || icon) && (
-        <div className="relative">
-          {/* Ambient glow — gives the empty screen a focal point. */}
-          {!filtered && (
-            <div
-              className="absolute -inset-6 rounded-full opacity-60 blur-2xl"
-              style={{
-                backgroundImage:
-                  'radial-gradient(circle, color-mix(in oklab, var(--color-brand-500) 22%, transparent), transparent 70%)',
-              }}
-              aria-hidden="true"
-            />
+        <div
+          aria-hidden="true"
+          className={cn(
+            'flex items-center justify-center rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-surface-sunken)] text-[var(--color-muted)]',
+            filtered ? 'h-12 w-12' : 'h-14 w-14',
           )}
-          <div
-            className={cn(
-              'relative flex items-center justify-center rounded-[var(--radius-2xl)] text-white shadow-md',
-              filtered ? 'h-12 w-12' : 'h-16 w-16',
-            )}
-            style={{
-              backgroundImage:
-                'linear-gradient(135deg, var(--color-brand-400), var(--color-brand-600))',
-            }}
-          >
-            {iconName ? (
-              <Icon name={iconName} className={filtered ? 'h-5 w-5' : 'h-7 w-7'} strokeWidth={1.75} />
-            ) : (
-              icon
-            )}
-          </div>
+        >
+          {iconName ? (
+            <Icon name={iconName} className={filtered ? 'h-5 w-5' : 'h-6 w-6'} strokeWidth={1.6} />
+          ) : (
+            icon
+          )}
         </div>
       )}
 

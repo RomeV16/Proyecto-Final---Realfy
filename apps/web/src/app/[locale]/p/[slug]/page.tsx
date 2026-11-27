@@ -86,23 +86,30 @@ export default async function PublicPortalHomePage({ params, searchParams }: Por
     <div className="space-y-10">
       <section className="space-y-3">
         {profile.province && <p className="eyebrow">{profile.province}</p>}
-        <h1 className="h1">{t('hero.title', { name: profile.name })}</h1>
+        <h1 className="h1 text-[2rem] sm:text-[2.5rem]">{t('hero.title', { name: profile.name })}</h1>
         <p className="max-w-2xl text-[var(--color-muted)]">{t('hero.subtitle')}</p>
       </section>
 
-      <section id="propiedades" className="space-y-5">
-        <div>
-          <h2 className="h3">{t('list.title')}</h2>
-          <p className="text-sm text-[var(--color-muted)]">{t('list.subtitle', { count: data.total })}</p>
-        </div>
+      <section id="propiedades" aria-labelledby="propiedades-titulo" className="scroll-mt-24 space-y-5">
+        <h2 id="propiedades-titulo" className="sr-only">
+          {t('list.title')}
+        </h2>
 
-        <PropertyFilters
-          initialOperation={sp.operation || ''}
-          initialType={sp.type || ''}
-          initialCity={sp.city || ''}
-          initialMinPrice={sp.minPrice || ''}
-          initialMaxPrice={sp.maxPrice || ''}
-        />
+        {/* Sin nada publicado no hay qué filtrar ni qué contar. */}
+        {(data.total > 0 || filtered) && (
+          <>
+            <PropertyFilters
+              initialOperation={sp.operation || ''}
+              initialType={sp.type || ''}
+              initialCity={sp.city || ''}
+              initialMinPrice={sp.minPrice || ''}
+              initialMaxPrice={sp.maxPrice || ''}
+            />
+            <p className="text-sm text-[var(--color-muted)]" aria-live="polite">
+              {t('list.subtitle', { count: data.total })}
+            </p>
+          </>
+        )}
 
         <PublicPropertyGrid items={data.items} locale={locale} slug={slug} filtered={filtered} />
 
@@ -140,7 +147,7 @@ export default async function PublicPortalHomePage({ params, searchParams }: Por
         )}
       </section>
 
-      <section id="consulta" className="scroll-mt-20 border-t border-[var(--color-border)] pt-8">
+      <section id="consulta" className="scroll-mt-24 border-t border-[var(--color-border)] pt-8">
         <div className="mx-auto w-full max-w-xl space-y-4">
           <h2 className="h3">{t('inquiry.title')}</h2>
           <p className="text-sm text-[var(--color-muted)]">{t('inquiry.subtitle')}</p>

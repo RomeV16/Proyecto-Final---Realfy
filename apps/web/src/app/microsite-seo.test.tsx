@@ -230,6 +230,53 @@ describe('páginas del sitio público', () => {
     expect(map).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
+  it('la portada sin nada publicado no ofrece filtros y deja la consulta a mano', async () => {
+    publicPortal.getPublicProperties.mockResolvedValue({ items: [], total: 0, page: 1, limit: 12 });
+    const ui = await HomePage({
+      params: Promise.resolve({ locale: 'es', slug: 'mi-inmo' }),
+      searchParams: Promise.resolve({}),
+    });
+    renderEs(ui);
+    expect(screen.getByRole('heading', { level: 1, name: 'Propiedades en venta y alquiler' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Zona')).not.toBeInTheDocument();
+    expect(screen.getByText('Todavía no hay propiedades publicadas')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enviar consulta' })).toBeInTheDocument();
+  });
+
+  it('la portada con filtros que no encuentran nada mantiene los filtros', async () => {
+    publicPortal.getPublicProperties.mockResolvedValue({ items: [], total: 0, page: 1, limit: 12 });
+    const ui = await HomePage({
+      params: Promise.resolve({ locale: 'es', slug: 'mi-inmo' }),
+      searchParams: Promise.resolve({ city: 'Salta' }),
+    });
+    renderEs(ui);
+    expect(screen.getByLabelText('Zona')).toHaveValue('Salta');
+    expect(screen.getByText('No encontramos propiedades con esos filtros')).toBeInTheDocument();
+  });
+
+  it('la ficha lleva a la consulta y sólo muestra descripción y comodidades si las hay', async () => {
+    publicPortal.getPublicProperty.mockResolvedValue({
+      ...listItem,
+      description: 'Luminoso y al frente',
+      amenities: ['Pileta'],
+      media: [],
+      location: null,
+    });
+    const ui = await DetailPage({ params: Promise.resolve({ locale: 'es', slug: 'mi-inmo', id: 'p1' }) });
+    const { unmount } = renderEs(ui);
+    expect(screen.getByRole('link', { name: 'Consultar por esta propiedad' })).toHaveAttribute('href', '#consulta');
+    expect(document.getElementById('consulta')).toContainElement(screen.getByRole('button', { name: 'Enviar consulta' }));
+    expect(screen.getByText('Descripción')).toBeInTheDocument();
+    expect(screen.getByText('Comodidades')).toBeInTheDocument();
+    unmount();
+
+    publicPortal.getPublicProperty.mockResolvedValue({ ...listItem, description: null, amenities: [], media: [], location: null });
+    renderEs(await DetailPage({ params: Promise.resolve({ locale: 'es', slug: 'mi-inmo', id: 'p1' }) }));
+    expect(screen.queryByText('Descripción')).not.toBeInTheDocument();
+    expect(screen.queryByText('Comodidades')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sin descripción cargada')).not.toBeInTheDocument();
+  });
+
   it('la ficha sin calle ni ubicación no muestra ninguna de las dos', async () => {
     publicPortal.getPublicProperty.mockResolvedValue({ ...listItem, description: null, amenities: [], media: [], location: null });
     const ui = await DetailPage({ params: Promise.resolve({ locale: 'es', slug: 'mi-inmo', id: 'p1' }) });
@@ -252,7 +299,7 @@ describe('formulario de consulta', () => {
 
     await user.type(screen.getByLabelText('Nombre'), 'Lucía');
     await user.type(screen.getByLabelText('Apellido'), 'Gómez');
-    await user.type(screen.getByLabelText('Email'), 'lucia@correo.test');
+    await user.type(screen.getByLabelText('Correo electrónico'), 'lucia@correo.test');
     await user.type(screen.getByLabelText('Mensaje'), 'Quisiera visitarla');
     await user.click(screen.getByRole('button', { name: 'Enviar consulta' }));
 
@@ -271,7 +318,7 @@ describe('formulario de consulta', () => {
     await user.type(document.getElementById('inquiry-website') as HTMLInputElement, 'http://spam.test');
     await user.type(screen.getByLabelText('Nombre'), 'Bot');
     await user.type(screen.getByLabelText('Apellido'), 'Bot');
-    await user.type(screen.getByLabelText('Email'), 'bot@spam.test');
+    await user.type(screen.getByLabelText('Correo electrónico'), 'bot@spam.test');
     await user.type(screen.getByLabelText('Mensaje'), 'comprá ya');
     await user.click(screen.getByRole('button', { name: 'Enviar consulta' }));
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).website).toBe('http://spam.test');

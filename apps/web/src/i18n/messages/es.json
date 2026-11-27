@@ -5042,17 +5042,20 @@
  },
  "portalPublico": {
   "footer": {
-   "poweredBy": "{name} · Sitio construido con Realfy"
+   "poweredBy": "{name} · Sitio hecho con Realfy"
+  },
+  "header": {
+   "contact": "Consultar"
   },
   "hero": {
-   "title": "Propiedades disponibles en {name}",
-   "subtitle": "Explorá el catálogo actualizado y dejanos tu consulta: te contactamos a la brevedad."
+   "title": "Propiedades en venta y alquiler",
+   "subtitle": "Mirá lo que tenemos publicado y escribinos por la que te interese."
   },
   "list": {
    "title": "Propiedades disponibles",
-   "subtitle": "{count} propiedades encontradas",
+   "subtitle": "{count, plural, =0 {Ninguna propiedad coincide con la búsqueda} one {1 propiedad publicada} other {# propiedades publicadas}}",
    "emptyTitle": "Todavía no hay propiedades publicadas",
-   "emptySubtitle": "Volvé a pasar más adelante, estamos actualizando el catálogo.",
+   "emptySubtitle": "Estamos actualizando el catálogo. Mientras tanto, dejanos tu consulta más abajo y te avisamos.",
    "emptyFilteredTitle": "No encontramos propiedades con esos filtros",
    "emptyFilteredSubtitle": "Probá ajustar la búsqueda o limpiar los filtros."
   },
@@ -5076,16 +5079,16 @@
   },
   "inquiry": {
    "title": "Dejanos tu consulta",
-   "subtitle": "Completá tus datos y te contactamos a la brevedad.",
+   "subtitle": "Dejanos un correo o un teléfono y te respondemos.",
    "firstName": "Nombre",
    "lastName": "Apellido",
-   "email": "Email",
+   "email": "Correo electrónico",
    "phone": "Teléfono",
    "message": "Mensaje",
    "messagePlaceholder": "Contanos qué estás buscando",
    "submit": "Enviar consulta",
    "submitting": "Enviando…",
-   "contactRequired": "Ingresá un email o un teléfono de contacto",
+   "contactRequired": "Ingresá un correo o un teléfono de contacto",
    "success": "¡Gracias! Recibimos tu consulta y te vamos a contactar pronto.",
    "errorValidation": "Revisá los datos ingresados e intentá de nuevo.",
    "errorClosed": "Esta inmobiliaria no está recibiendo consultas por el momento.",
@@ -5095,10 +5098,11 @@
   },
   "detail": {
    "backToList": "Volver a propiedades",
+   "askCta": "Consultar por esta propiedad",
    "descriptionTitle": "Descripción",
    "noDescription": "Sin descripción cargada",
    "specsTitle": "Características",
-   "amenitiesTitle": "Amenidades",
+   "amenitiesTitle": "Comodidades",
    "noAmenities": "Sin amenidades cargadas",
    "locationTitle": "Ubicación",
    "mapLink": "Ver la zona en el mapa",

@@ -127,7 +127,7 @@ export default async function PublicPropertyDetailPage({ params }: PropertyDetai
       </Link>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12 xl:gap-6">
-        <div className="min-w-0 xl:col-span-8 xl:col-start-1 xl:row-start-1">
+        <div className="order-1 min-w-0 xl:order-none xl:col-span-8 xl:col-start-1 xl:row-start-1">
           <PropertyGallery
             photos={photos}
             title={property.title}
@@ -137,7 +137,9 @@ export default async function PublicPropertyDetailPage({ params }: PropertyDetai
           />
         </div>
 
-        <aside className="min-w-0 space-y-4 self-start xl:col-span-4 xl:col-start-9 xl:row-span-2 xl:row-start-1">
+        {/* En móvil el resumen va bajo la galería y la consulta al final; en escritorio forman la columna lateral. */}
+        <aside className="contents xl:block xl:min-w-0 xl:space-y-4 xl:self-start xl:col-span-4 xl:col-start-9 xl:row-span-2 xl:row-start-1">
+          <div className="order-2 min-w-0 space-y-4 xl:order-none">
           <DetailSection>
             <h1 className="h3 [overflow-wrap:anywhere]">{property.title}</h1>
             {address && (
@@ -161,6 +163,13 @@ export default async function PublicPropertyDetailPage({ params }: PropertyDetai
               <PropertyTypeBadge type={property.type} />
               {operationLabel && <Badge variant="brand">{operationLabel}</Badge>}
             </div>
+
+            <a
+              href="#consulta"
+              className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition-colors hover:bg-brand-600 xl:hidden"
+            >
+              {tPortal('detail.askCta')}
+            </a>
           </DetailSection>
 
           {property.location && (
@@ -177,24 +186,26 @@ export default async function PublicPropertyDetailPage({ params }: PropertyDetai
             </DetailSection>
           )}
 
-          <DetailSection title={tPortal('inquiry.title')} icon="mail">
-            <p className="mb-4 text-sm text-[var(--color-muted)]">{tPortal('inquiry.subtitle')}</p>
-            <InquiryForm slug={slug} propertyId={property.id} />
-          </DetailSection>
+          </div>
+
+          <div id="consulta" className="order-4 min-w-0 scroll-mt-24 xl:order-none">
+            <DetailSection title={tPortal('inquiry.title')} icon="mail">
+              <p className="mb-4 text-sm text-[var(--color-muted)]">{tPortal('inquiry.subtitle')}</p>
+              <InquiryForm slug={slug} propertyId={property.id} />
+            </DetailSection>
+          </div>
         </aside>
 
-        <div className="min-w-0 space-y-5 xl:col-span-8 xl:col-start-1 xl:row-start-2">
-          <DetailSection title={tPortal('detail.descriptionTitle')} icon="text">
-            {property.description ? (
+        <div className="order-3 min-w-0 space-y-5 xl:order-none xl:col-span-8 xl:col-start-1 xl:row-start-2">
+          {property.description && (
+            <DetailSection title={tPortal('detail.descriptionTitle')} icon="text">
               <ExpandableText
                 text={property.description}
                 moreLabel={t('detail.showMore')}
                 lessLabel={t('detail.showLess')}
               />
-            ) : (
-              <p className="text-sm text-[var(--color-muted)]">{tPortal('detail.noDescription')}</p>
-            )}
-          </DetailSection>
+            </DetailSection>
+          )}
 
           {specs.length > 0 && (
             <DetailSection title={tPortal('detail.specsTitle')} icon="rooms">
@@ -202,10 +213,8 @@ export default async function PublicPropertyDetailPage({ params }: PropertyDetai
             </DetailSection>
           )}
 
-          <DetailSection title={tPortal('detail.amenitiesTitle')} icon="sparkles">
-            {amenities.length === 0 ? (
-              <p className="text-sm text-[var(--color-muted)]">{tPortal('detail.noAmenities')}</p>
-            ) : (
+          {amenities.length > 0 && (
+            <DetailSection title={tPortal('detail.amenitiesTitle')} icon="check">
               <div className="flex flex-wrap gap-2">
                 {amenities.map((amenity) => (
                   <Badge key={amenity} variant="brand" size="md">
@@ -213,8 +222,8 @@ export default async function PublicPropertyDetailPage({ params }: PropertyDetai
                   </Badge>
                 ))}
               </div>
-            )}
-          </DetailSection>
+            </DetailSection>
+          )}
 
           <DetailSection title={t('detail.factSheet')} icon="properties">
             <FactList items={facts} />

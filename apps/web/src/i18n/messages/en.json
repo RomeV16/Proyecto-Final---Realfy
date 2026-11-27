@@ -5044,13 +5044,16 @@
   "footer": {
    "poweredBy": "{name} · Site built with Realfy"
   },
+  "header": {
+   "contact": "Contact"
+  },
   "hero": {
-   "title": "Available properties at {name}",
+   "title": "Properties for sale and rent",
    "subtitle": "Browse the current catalog and leave us your inquiry — we'll get back to you shortly."
   },
   "list": {
    "title": "Available properties",
-   "subtitle": "{count} properties found",
+   "subtitle": "{count, plural, =0 {No properties match your search} one {1 property listed} other {# properties listed}}",
    "emptyTitle": "No properties published yet",
    "emptySubtitle": "Check back soon, we're updating the catalog.",
    "emptyFilteredTitle": "No properties match those filters",
@@ -5094,6 +5097,7 @@
    "honeypot": "Leave this field empty"
   },
   "detail": {
+   "askCta": "Ask about this property",
    "backToList": "Back to properties",
    "descriptionTitle": "Description",
    "noDescription": "No description available",
