@@ -33,7 +33,7 @@ export function NextActionText({ item }: { item: PlanFields }) {
 }
 
 /** Lo que conviene hacer ahora con un caso, como una orden corta. */
-export type StepKey = 'wait' | 'confirmLetter' | 'lawyer' | 'court' | 'person' | 'remind' | 'remindFirm' | 'letter' | 'derive' | 'call';
+export type StepKey = 'none' | 'wait' | 'confirmLetter' | 'lawyer' | 'court' | 'person' | 'remind' | 'remindFirm' | 'letter' | 'derive' | 'call';
 
 const STEP_OF_ACTION: Partial<Record<string, StepKey>> = {
   [CollectionActionKind.Recordatorio]: 'remind',
@@ -43,6 +43,8 @@ const STEP_OF_ACTION: Partial<Record<string, StepKey>> = {
 };
 
 export function suggestedStep(item: PlanFields & Pick<CollectionCaseItem, 'stage'>): StepKey {
+  // Cerrado o ya sin deuda vencida: no queda nada que reclamar.
+  if (item.stage === CollectionStage.Cerrado || item.planStatus === 'Close') return 'none';
   if (item.planStatus === 'Paused' && item.pausedUntil) return 'wait';
   if (item.planStatus === 'AwaitingLetterConfirmation') return 'confirmLetter';
   if (item.planStatus === 'Manual') {
@@ -63,6 +65,7 @@ export function SuggestedStep({ item }: { item: PlanFields & Pick<CollectionCase
     <div className="min-w-0">
       <p className="text-sm font-medium text-[var(--color-text)]">{t(`queue.steps.${step}`)}</p>
       <p className="text-xs text-[var(--color-muted)]">
+        {step === 'none' && t(item.stage === CollectionStage.Cerrado ? 'queue.hints.closed' : 'queue.hints.settled')}
         {step === 'wait' && (
           <>
             {t('plan.Paused')} <DateText value={item.pausedUntil} />

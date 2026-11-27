@@ -8099,13 +8099,16 @@
     "remindFirm": "Send a firm reminder",
     "letter": "Send a formal demand letter",
     "derive": "Refer to a lawyer",
-    "call": "Call the tenant"
+    "call": "Call the tenant",
+    "none": "Nothing to handle"
    },
    "hints": {
     "confirmLetter": "The draft is ready to print and post.",
     "call": "No notices scheduled.",
     "scheduled": "Scheduled for",
-    "pending": "No date yet."
+    "pending": "No date yet.",
+    "closed": "The case is closed.",
+    "settled": "No overdue debt left."
    }
   },
   "detail": {

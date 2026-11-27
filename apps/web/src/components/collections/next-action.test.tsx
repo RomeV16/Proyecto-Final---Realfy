@@ -23,6 +23,8 @@ describe('suggestedStep', () => {
     [item({ nextAction: 'DerivacionAbogado' } as Partial<Item>), 'derive'],
     [item({ nextAction: 'Nota' } as Partial<Item>), 'call'],
     [item(), 'call'],
+    [item({ stage: 'Cerrado', planStatus: 'Close' } as Partial<Item>), 'none'],
+    [item({ planStatus: 'Close', nextAction: 'Recordatorio' } as Partial<Item>), 'none'],
   ])('caso %# → %s', (input, expected) => {
     expect(suggestedStep(input)).toBe(expected);
   });
@@ -39,6 +41,18 @@ describe('SuggestedStep', () => {
     renderEs(<SuggestedStep item={item({ planStatus: 'AwaitingLetterConfirmation' } as Partial<Item>)} />);
     expect(screen.getByText('Confirmar el envío de la carta')).toBeInTheDocument();
     expect(screen.getByText('El borrador está listo para imprimir y mandar por correo.')).toBeInTheDocument();
+  });
+
+  it('a un caso cerrado no le sugiere llamar', () => {
+    renderEs(<SuggestedStep item={item({ stage: 'Cerrado', planStatus: 'Close' } as Partial<Item>)} />);
+    expect(screen.getByText('Nada para gestionar')).toBeInTheDocument();
+    expect(screen.getByText('El caso está cerrado.')).toBeInTheDocument();
+    expect(screen.queryByText('Llamar al inquilino')).toBeNull();
+  });
+
+  it('un caso abierto ya sin deuda vencida lo dice', () => {
+    renderEs(<SuggestedStep item={item({ planStatus: 'Close' } as Partial<Item>)} />);
+    expect(screen.getByText('No le queda deuda vencida.')).toBeInTheDocument();
   });
 });
 

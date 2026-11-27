@@ -8099,13 +8099,16 @@
     "remindFirm": "Mandar un recordatorio firme",
     "letter": "Intimar por carta documento",
     "derive": "Derivar a un abogado",
-    "call": "Llamar al inquilino"
+    "call": "Llamar al inquilino",
+    "none": "Nada para gestionar"
    },
    "hints": {
     "confirmLetter": "El borrador está listo para imprimir y mandar por correo.",
     "call": "No hay avisos programados.",
     "scheduled": "Programado para el",
-    "pending": "Todavía sin fecha."
+    "pending": "Todavía sin fecha.",
+    "closed": "El caso está cerrado.",
+    "settled": "No le queda deuda vencida."
    }
   },
   "detail": {
