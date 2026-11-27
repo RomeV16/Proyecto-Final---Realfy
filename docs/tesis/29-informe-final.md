@@ -1475,8 +1475,8 @@ en #237.
 
 Tres aclaraciones sobre la tabla. La primera: el catálogo de casos de prueba llegó
 a tener dos rangos asignados dos veces (CP-470 a CP-480, a la cuenta corriente y a
-los vencimientos, y CP-720 a CP-725, a la publicación y a las ventas). El pedido
-#185 los renumeró (vencimientos a CP-806 a CP-816; ventas y llaves a CP-800 a
+los vencimientos, y CP-720 a CP-725, a la publicación y a las ventas). El pedido #185
+los renumeró (vencimientos a CP-806 a CP-816; ventas y llaves a CP-800 a
 CP-805) y agregó una prueba de integridad de la documentación que falla si un
 identificador se repite; desde entonces cada pedido toma un rango propio de
 casos, defectos y casos de uso. La segunda: la versión del informe de la tesis fechada
@@ -1488,8 +1488,8 @@ del ensayo general) y no incluye lo integrado después: el saldo inicial de cust
 mails (#234) y la prórroga de contratos importados sin historial (#242). Todo eso
 está desplegado desde el 4/11 y figura en la remedición de cierre.
 
-**Remedición de cierre.** Las mismas dimensiones, medidas sobre `7759554` (pedido
-#243), que es el último commit de `main` con los nueve trabajos de la integración
+**Remedición de cierre.** Las mismas dimensiones, medidas sobre `7759554`
+(pedido #243), que es el último commit de `main` con los nueve trabajos de la integración
 continua en verde (ejecución 41782311632, del 4/11/2026) y con análisis de
 SonarCloud. El pedido #244, posterior, sólo cambia el flujo de integración
 continua y no mueve ninguna de estas cifras.
