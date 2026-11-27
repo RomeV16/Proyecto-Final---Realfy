@@ -160,6 +160,14 @@ select:not([multiple]):not([size]) {
 }
 select:disabled { cursor: not-allowed; }
 
+/* Casillas, opciones y barras nativas con el color de la marca en vez del azul del navegador. */
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"],
+progress {
+  accent-color: var(--color-brand-500);
+}
+
 ::selection {
   background: color-mix(in srgb, var(--color-brand-500) 25%, transparent);
   color: var(--color-brand-900);
