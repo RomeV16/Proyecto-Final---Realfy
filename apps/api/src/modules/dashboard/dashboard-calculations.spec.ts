@@ -95,14 +95,15 @@ describe('dashboard-calculations', () => {
 
     it('suma importes con centavos sin arrastrar error de coma flotante', () => {
       const totals = aggregateIntoBuckets(
-        [554791.47, 634047.39, 726512.64, 726512.64].map((amount) => ({
+        [100000.1, 200000.2, 300000.4].map((amount) => ({
           date: new Date(Date.UTC(2026, 9, 10)),
           amount,
         })),
         'month',
       );
 
-      expect(totals.get('2026-10')).toBe(2641864.14);
+      // En coma flotante 100000.1 + 200000.2 + 300000.4 da 600000.7000000001.
+      expect(totals.get('2026-10')).toBe(600000.7);
     });
 
     it('devuelve un mapa vacio cuando no hay registros', () => {
