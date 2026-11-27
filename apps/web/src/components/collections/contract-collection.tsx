@@ -8,7 +8,7 @@ import { useCan } from '@/lib/permissions';
 import { MoneyText } from '@/components/ui/money-text';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useApiData } from '@/components/messaging/use-api-data';
-import { NextActionText } from './case-table';
+import { NextActionText } from './next-action';
 
 /**
  * Cobranza de un contrato, en su detalle: el caso abierto por mora (etapa, lo que se debe hoy y lo que toca
