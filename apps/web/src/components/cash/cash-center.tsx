@@ -3,26 +3,28 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useCan } from '@/lib/permissions';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { Tabs } from '@/components/ui/tabs';
 import { AccountsPanel } from './accounts-panel';
+import { CashBalance } from './cash-balance';
 import { CustodyPanel } from './custody-panel';
 import { MovementsPanel } from './movements-panel';
 import { ReceiptsPanel } from './receipts-panel';
 import { useCashAccounts } from './use-cash-data';
 
-const TABS = ['accounts', 'movements', 'custody', 'receipts'] as const;
+const TABS = ['movements', 'accounts', 'custody', 'receipts'] as const;
 type Tab = (typeof TABS)[number];
 
 /**
- * Caja de la inmobiliaria: las cuentas (caja, banco y la custodia de cada locador) con sus saldos, el libro de
- * movimientos, la entrega del efectivo en custodia y los recibos de cobro para reimprimir.
+ * Caja de la inmobiliaria: el saldo actual arriba y, debajo, el libro de caja, las cuentas (caja, banco y la
+ * custodia de cada locador), la entrega del efectivo en custodia y los recibos de cobro para reimprimir.
  */
 export function CashCenter() {
   const t = useTranslations('cash');
   const canView = useCan('cash.view');
   const canManage = useCan('cash.manage');
   const canAccounts = useCan('cash.accounts');
-  const [tab, setTab] = useState<Tab>('accounts');
+  const [tab, setTab] = useState<Tab>('movements');
   const accounts = useCashAccounts(canView, true);
 
   if (!canView) {
@@ -42,6 +44,8 @@ export function CashCenter() {
         <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
       </header>
 
+      <CashBalance data={accounts.data} failed={accounts.error != null} onViewAccounts={() => setTab('accounts')} />
+
       <Tabs tabs={TABS} value={tab} onChange={setTab} label={t('title')} labelOf={(key) => t(`tabs.${key}`)}>
         {tab === 'accounts' && (
           <AccountsPanel
@@ -51,7 +55,17 @@ export function CashCenter() {
             onChanged={accounts.reload}
           />
         )}
-        {tab === 'movements' && <MovementsPanel accounts={items} canManage={canManage} onChanged={accounts.reload} />}
+        {tab === 'movements' && (
+          <>
+            {accounts.error != null && <ErrorNotice error={accounts.error} fallback={t('loadError')} className="mb-4" />}
+            <MovementsPanel
+              accounts={items}
+              ready={accounts.data !== null || accounts.error != null}
+              canManage={canManage}
+              onChanged={accounts.reload}
+            />
+          </>
+        )}
         {tab === 'custody' && (
           <CustodyPanel
             accounts={items}

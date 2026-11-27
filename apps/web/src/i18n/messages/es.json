@@ -6072,14 +6072,14 @@
  },
  "cash": {
   "title": "Caja",
-  "subtitle": "Las cuentas de la inmobiliaria (caja, banco y la custodia de cada locador) con sus saldos, el libro de movimientos y los recibos de cobro.",
+  "subtitle": "El saldo de la inmobiliaria, el libro de caja con cada ingreso y egreso, la custodia de los locadores y los recibos de cobro.",
   "forbidden": "No tenés permiso para ver la caja.",
   "loadError": "No se pudieron cargar las cuentas",
   "actionError": "No se pudo completar la acción",
   "saving": "Guardando...",
   "tabs": {
    "accounts": "Cuentas",
-   "movements": "Movimientos",
+   "movements": "Libro de caja",
    "custody": "Custodia",
    "receipts": "Recibos"
   },
@@ -6316,6 +6316,43 @@
    "confirmBody": "El saldo inicial de {name} queda en {amount}.",
    "confirmReason": "Motivo: {reason}",
    "confirmLabel": "Sí, guardar"
+  },
+  "balance": {
+   "title": "Saldo de la inmobiliaria",
+   "inCurrency": "Saldo en {currency}",
+   "empty": "Todavía no hay cuentas. La caja de cada moneda se crea sola con el primer cobro que registres en una liquidación; las cuentas de banco se crean desde Cuentas.",
+   "viewAccounts": "Ver las cuentas"
+  },
+  "ledger": {
+   "label": "Libro de caja",
+   "titleOf": "Libro de {name}",
+   "titleAll": "Libro de todas las cuentas",
+   "currentBalance": "Saldo actual:",
+   "columns": {
+    "date": "Fecha",
+    "concept": "Concepto",
+    "account": "Cuenta",
+    "in": "Ingresos",
+    "out": "Egresos",
+    "balance": "Saldo"
+   },
+   "pageTotals": "Totales de la página",
+   "pageTotalsIn": "Totales de la página en {currency}",
+   "openingRow": "Saldo anterior a estos movimientos",
+   "balanceHidden": "El saldo fila por fila se muestra sin filtros de categoría, contrato ni fecha «hasta», y recorriendo las páginas en orden desde la primera.",
+   "balanceNeedsAccount": "Elegí una cuenta para ver el saldo después de cada movimiento y hacer el arqueo.",
+   "emptyFiltered": "Ningún movimiento coincide con estos filtros."
+  },
+  "count": {
+   "title": "Arqueo de {name}",
+   "system": "Saldo según el sistema",
+   "counted": "Contado ({currency})",
+   "difference": "Diferencia",
+   "match": "Coincide",
+   "over": "Sobran",
+   "short": "Faltan",
+   "invalid": "Importe inválido",
+   "hint": "Escribí lo que contaste para compararlo con el sistema. La comparación no se guarda."
   }
  },
  "ownerAccounts": {

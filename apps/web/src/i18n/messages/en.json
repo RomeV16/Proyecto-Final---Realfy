@@ -6072,14 +6072,14 @@
  },
  "cash": {
   "title": "Cash",
-  "subtitle": "The agency accounts (cash box, bank and each lessor's custody) with their balances, the movement book and the payment receipts.",
+  "subtitle": "The agency balance, the cash book with every inflow and outflow, lessor custody and payment receipts.",
   "forbidden": "You do not have permission to see the cash book.",
   "loadError": "The accounts could not be loaded",
   "actionError": "The action could not be completed",
   "saving": "Saving...",
   "tabs": {
    "accounts": "Accounts",
-   "movements": "Movements",
+   "movements": "Cash book",
    "custody": "Custody",
    "receipts": "Receipts"
   },
@@ -6316,6 +6316,43 @@
    "confirmBody": "The opening balance of {name} will be {amount}.",
    "confirmReason": "Reason: {reason}",
    "confirmLabel": "Yes, save"
+  },
+  "balance": {
+   "title": "Agency balance",
+   "inCurrency": "Balance in {currency}",
+   "empty": "There are no accounts yet. The cash account for each currency is created with the first payment recorded on a settlement; bank accounts are created from Accounts.",
+   "viewAccounts": "View accounts"
+  },
+  "ledger": {
+   "label": "Cash book",
+   "titleOf": "{name} book",
+   "titleAll": "Book for all accounts",
+   "currentBalance": "Current balance:",
+   "columns": {
+    "date": "Date",
+    "concept": "Concept",
+    "account": "Account",
+    "in": "Inflows",
+    "out": "Outflows",
+    "balance": "Balance"
+   },
+   "pageTotals": "Page totals",
+   "pageTotalsIn": "Page totals in {currency}",
+   "openingRow": "Balance before these movements",
+   "balanceHidden": "The running balance is shown without category, contract or \"to\" date filters, and when pages are visited in order from the first one.",
+   "balanceNeedsAccount": "Choose an account to see the balance after each movement and run the cash count.",
+   "emptyFiltered": "No movements match these filters."
+  },
+  "count": {
+   "title": "Cash count for {name}",
+   "system": "Balance in the system",
+   "counted": "Counted ({currency})",
+   "difference": "Difference",
+   "match": "Matches",
+   "over": "Over by",
+   "short": "Short by",
+   "invalid": "Invalid amount",
+   "hint": "Type what you counted to compare it with the system. The comparison is not saved."
   }
  },
  "ownerAccounts": {
