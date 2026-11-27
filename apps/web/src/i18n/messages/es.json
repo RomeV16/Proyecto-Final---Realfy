@@ -4135,7 +4135,8 @@
   "forbiddenHint": "Pedile a un administrador que te habilite el acceso a morosidad.",
   "severeCount": "Casos graves",
   "severeHint": "Más de 30 días de mora",
-  "tenantCount": "{count, plural, =0 {Sin inquilinos en mora} one {# inquilino en mora} other {# inquilinos en mora}}",
+  "tenantCount": "{count, plural, =0 {Sin deudores} one {# deudor} other {# deudores}}",
+  "retry": "Reintentar",
   "aging": {
    "title": "Deuda por antigüedad",
    "oldest": "{days, plural, one {el atraso más viejo es de # día} other {el atraso más viejo es de # días}}",
@@ -6443,6 +6444,12 @@
    "listLabel": "Saldos por locador",
    "totalDue": "Falta pagar en total:",
    "nothingDue": "No hay pagos pendientes a locadores.",
+   "sort": "Ordenar por",
+   "sortBy": {
+    "name": "Nombre",
+    "balance": "Saldo, de mayor a menor",
+    "payoutDue": "Falta pagarle, de mayor a menor"
+   },
    "currency": "Moneda",
    "allCurrencies": "Todas las monedas",
    "noStatement": "Sin estados emitidos",

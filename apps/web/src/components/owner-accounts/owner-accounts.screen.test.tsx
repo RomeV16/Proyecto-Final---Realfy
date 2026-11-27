@@ -171,6 +171,25 @@ describe('Locadores: saldos', () => {
     expect(apiClient).not.toHaveBeenCalled();
   });
 
+  it('ordena por nombre, saldo o lo que falta pagarle, y muestra la custodia solo si hay', async () => {
+    const CARLA = { ...BALANCES[0], personId: 'c-1', name: 'Carla Tercera', balance: '900000.00', custody: '0.00', payoutDue: '10.00', lastStatement: null };
+    apiClient.mockImplementation(async () => ({ items: [CARLA, BALANCES[1], BALANCES[0]] }));
+    const user = userEvent.setup();
+    renderEs(<OwnerBalances />);
+    await screen.findByText('Carla Tercera');
+    const list = screen.getByRole('region', { name: 'Saldos por locador' });
+    const names = () => within(list).getAllByRole('listitem').map((li) => within(li).getAllByRole('link')[0].textContent);
+    expect(names()).toEqual(['Ana Locadora', 'Beto Dueño', 'Carla Tercera']);
+    await user.selectOptions(screen.getByLabelText('Ordenar por'), 'balance');
+    expect(names()).toEqual(['Carla Tercera', 'Ana Locadora', 'Beto Dueño']);
+    await user.selectOptions(screen.getByLabelText('Ordenar por'), 'payoutDue');
+    expect(names()).toEqual(['Ana Locadora', 'Carla Tercera', 'Beto Dueño']);
+    const row = (name: string) => nb(within(list).getByText(name).closest('li')!.textContent);
+    expect(row('Ana Locadora')).toContain('En custodia $ 500,00');
+    expect(row('Carla Tercera')).not.toContain('En custodia');
+    expect(row('Beto Dueño')).not.toContain('En custodia');
+  });
+
   it('suma lo que falta pagar por moneda', async () => {
     mockApi();
     renderEs(<OwnerBalances />);

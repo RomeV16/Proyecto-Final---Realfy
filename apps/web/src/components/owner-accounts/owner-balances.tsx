@@ -19,6 +19,16 @@ import { OwnerLedger } from './owner-ledger';
 
 const keyOf = (b: Pick<OwnerBalance, 'personId' | 'currency'>) => `${b.personId}-${b.currency}`;
 
+const SORTS = ['name', 'balance', 'payoutDue'] as const;
+type Sort = (typeof SORTS)[number];
+
+/** La lista en el orden elegido: por nombre, o de mayor a menor saldo o importe a pagar. */
+function sortBalances(items: readonly OwnerBalance[], sort: Sort): OwnerBalance[] {
+  const byName = (a: OwnerBalance, b: OwnerBalance) => a.name.localeCompare(b.name) || a.currency.localeCompare(b.currency);
+  if (sort === 'name') return [...items].sort(byName);
+  return [...items].sort((a, b) => Number(b[sort]) - Number(a[sort]) || byName(a, b));
+}
+
 /** En pantallas anchas la cuenta se abre al lado de la lista; en las angostas, el enlace lleva a su página. */
 function isWide(): boolean {
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1280px)').matches;
@@ -43,6 +53,7 @@ export function OwnerBalances() {
   const [items, setItems] = useState<OwnerBalance[] | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [sort, setSort] = useState<Sort>('name');
 
   useEffect(() => {
     if (!canView) return;
@@ -53,7 +64,7 @@ export function OwnerBalances() {
       try {
         const res = await apiClient<{ items: OwnerBalance[] }>(`/owners/balances${currency ? `?currency=${currency}` : ''}`);
         if (cancelled) return;
-        const next = res?.items ?? [];
+        const next = sortBalances(res?.items ?? [], 'name');
         setItems(next);
         // Con lugar para las dos columnas, la primera cuenta queda abierta.
         setSelected((current) => {
@@ -75,6 +86,7 @@ export function OwnerBalances() {
 
   const active = items?.find((b) => keyOf(b) === selected) ?? null;
   const totals = payoutTotals(items ?? []);
+  const sorted = sortBalances(items ?? [], sort);
 
   return (
     <div className="space-y-6">
@@ -127,8 +139,20 @@ export function OwnerBalances() {
                 </>
               )}
             </p>
+            <div className="flex items-center gap-2">
+              <label htmlFor="owner-balances-sort" className="shrink-0 text-xs font-medium text-[var(--color-muted)]">
+                {t('balances.sort')}
+              </label>
+              <Select id="owner-balances-sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="min-w-0 flex-1">
+                {SORTS.map((s) => (
+                  <option key={s} value={s}>
+                    {t(`balances.sortBy.${s}`)}
+                  </option>
+                ))}
+              </Select>
+            </div>
             <ul className="divide-y divide-[var(--color-border)] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
-              {items.map((b) => {
+              {sorted.map((b) => {
                 const key = keyOf(b);
                 const current = key === selected;
                 return (
@@ -158,6 +182,12 @@ export function OwnerBalances() {
                           {b.currency} · {t('balances.columns.payoutDue')}{' '}
                           <MoneyText value={b.payoutDue} currency={b.currency} decimals={2} className="tabular-nums text-[var(--color-text)]" />
                         </p>
+                        {Math.abs(Number(b.custody)) > 0.004 && (
+                          <p className="mt-0.5 text-xs text-[var(--color-muted)]">
+                            {t('balances.columns.custody')}{' '}
+                            <MoneyText value={b.custody} currency={b.currency} decimals={2} className="tabular-nums text-[var(--color-text)]" />
+                          </p>
+                        )}
                       </div>
                       <BalanceAmount value={b.balance} currency={b.currency} className="shrink-0" />
                     </div>

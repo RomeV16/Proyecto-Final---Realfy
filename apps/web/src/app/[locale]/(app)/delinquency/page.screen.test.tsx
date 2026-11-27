@@ -91,7 +91,7 @@ describe('DelinquencyPage', () => {
     renderEs(<DelinquencyPage />);
     const aging = within(await screen.findByRole('region', { name: 'Deuda por antigüedad' }));
     expect(aging.getByText('Punitorios acumulados')).toBeInTheDocument();
-    expect(norm(aging.getByText(/4 inquilinos en mora/).textContent)).toContain('el atraso más viejo es de 120 días');
+    expect(norm(aging.getByText(/4 deudores/).textContent)).toContain('el atraso más viejo es de 120 días');
     const bucket = (label: string) => norm(aging.getByText(label).closest('div')!.textContent);
     expect(bucket('1 a 30 días')).toContain('$ 51.000,00');
     expect(bucket('1 a 30 días')).toContain('2 deudores · 20 % de la deuda');
@@ -145,16 +145,20 @@ describe('DelinquencyPage', () => {
   it('avisa con el mensaje del servidor si la API falla', async () => {
     failure.error = new ApiRequestError(500, 'BOOM', 'Servicio caído');
     renderEs(<DelinquencyPage />);
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Servicio caído'));
     expect(await screen.findByRole('alert')).toHaveTextContent('Servicio caído');
     expect(screen.queryByText('No hay inquilinos en mora')).not.toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalled();
+    failure.error = null;
+    apiClient.mockResolvedValue(tenants);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByRole('region', { name: 'Deudores' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('usa el mensaje genérico ante un error desconocido', async () => {
     failure.error = new Error('red');
     renderEs(<DelinquencyPage />);
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith('No se pudo cargar la morosidad'),
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo cargar la morosidad');
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

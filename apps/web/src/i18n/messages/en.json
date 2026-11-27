@@ -4135,7 +4135,8 @@
   "forbiddenHint": "Ask an administrator to grant you access to delinquency.",
   "severeCount": "Severe cases",
   "severeHint": "Over 30 days overdue",
-  "tenantCount": "{count, plural, =0 {No tenants overdue} one {# tenant overdue} other {# tenants overdue}}",
+  "tenantCount": "{count, plural, =0 {No debtors} one {# debtor} other {# debtors}}",
+  "retry": "Retry",
   "aging": {
    "title": "Debt by age",
    "oldest": "{days, plural, one {oldest arrears: # day} other {oldest arrears: # days}}",
@@ -6443,6 +6444,12 @@
    "listLabel": "Balances by lessor",
    "totalDue": "Total still to be paid:",
    "nothingDue": "No payments pending to lessors.",
+   "sort": "Sort by",
+   "sortBy": {
+    "name": "Name",
+    "balance": "Balance, highest first",
+    "payoutDue": "Still to be paid, highest first"
+   },
    "currency": "Currency",
    "allCurrencies": "All currencies",
    "noStatement": "No issued statements",

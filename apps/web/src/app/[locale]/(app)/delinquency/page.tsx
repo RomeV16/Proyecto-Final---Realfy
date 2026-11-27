@@ -2,9 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { useState, useEffect, useCallback } from 'react';
-import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { apiClient } from '@/lib/api-client';
 import { Link } from '@/i18n/navigation';
-import { toast } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorNotice } from '@/components/ui/error-notice';
@@ -37,12 +36,10 @@ export default function DelinquencyPage() {
       setItems(data);
     } catch (err) {
       setError(err);
-      if (err instanceof ApiRequestError) toast.error(err.message);
-      else toast.error(t('loadError'));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     if (canAccess) void load();
@@ -86,7 +83,14 @@ export default function DelinquencyPage() {
         </div>
       )}
 
-      {!loading && error != null && <ErrorNotice error={error} fallback={t('loadError')} />}
+      {!loading && error != null && (
+        <div className="space-y-3">
+          <ErrorNotice error={error} fallback={t('loadError')} />
+          <Button variant="secondary" size="sm" onClick={() => void load()}>
+            {t('retry')}
+          </Button>
+        </div>
+      )}
 
       {!loading && error == null && ranked.length === 0 && (
         <EmptyState iconName="check" title={t('emptyTitle')} subtitle={t('emptyDescription')} />
@@ -94,7 +98,7 @@ export default function DelinquencyPage() {
 
       {!loading && error == null && ranked.length > 0 && (
         <>
-          <AgingSummary summary={summarizeAging(ranked)} debtors={new Set(ranked.map((i) => i.personId)).size} />
+          <AgingSummary summary={summarizeAging(ranked)} debtors={ranked.length} />
           <DebtorRanking items={ranked} />
         </>
       )}

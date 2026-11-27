@@ -6,7 +6,8 @@ import { AGING_COLOR, type AgingSummary as Summary } from './aging';
 
 /**
  * Cabecera de morosidad: la deuda vencida total y cómo se reparte según la antigüedad del atraso. La barra
- * muestra el peso de cada tramo; debajo, cada tramo con su importe y cuántos inquilinos tiene.
+ * muestra el peso de cada tramo; debajo, cada tramo con su importe y cuántos deudores tiene. Un deudor es un
+ * inquilino en una propiedad: la misma unidad en el total, en los tramos y en el ranking.
  */
 export function AgingSummary({ summary, debtors }: { summary: Summary; debtors: number }) {
   const t = useTranslations('delinquency');
