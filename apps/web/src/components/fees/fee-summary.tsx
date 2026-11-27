@@ -46,7 +46,10 @@ export function FeeSummary() {
   const data = summarizeInstallments(query.data, months, todayKey());
   const total = data.collected + data.pending;
   const money = (cents: number) => formatMoney(cents / 100, data.currency, { decimals: 0, locale });
-  const range = `${formatPeriod(monthDate(months[0]), undefined, locale)} – ${formatPeriod(monthDate(months[months.length - 1]), undefined, locale)}`;
+  const monthText = (month: string) => {
+    const text = formatPeriod(monthDate(month), undefined, locale);
+    return locale === 'es' ? text.toLowerCase() : text;
+  };
   const collectedShare = total > 0 ? (data.collected / total) * 100 : 0;
 
   return (
@@ -59,7 +62,7 @@ export function FeeSummary() {
         <p className="mt-2 break-words font-mono text-[32px] font-medium leading-tight tracking-tight text-[var(--color-text)] tabular-nums">
           {money(total)}
         </p>
-        <p className="mt-1 text-sm text-[var(--color-muted)]">{t('summary.totalHint', { count: data.count, range })}</p>
+        <p className="mt-1 text-sm text-[var(--color-muted)]">{t('summary.totalHint', { count: data.count, from: monthText(months[0]), to: monthText(months[months.length - 1]) })}</p>
 
         <dl className="mt-5 space-y-3">
           <div>

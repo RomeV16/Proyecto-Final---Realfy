@@ -91,7 +91,7 @@ export function CashLedger({ rows, singleAccount, balances }: LedgerProps) {
             <div role="cell" className="col-start-1 row-start-2 min-w-0 md:col-start-auto md:row-start-auto">
               <p className="text-sm font-medium text-[var(--color-text)]">{t(`categories.${m.category}`)}</p>
               {(person || m.note || source) && (
-                <p className="flex flex-wrap gap-x-1.5 text-xs text-[var(--color-muted)]">
+                <p className="flex flex-wrap gap-x-1.5 text-xs text-[var(--color-muted)] [&>span+span]:before:mr-1.5 [&>span+span]:before:text-[var(--color-muted)] [&>span+span]:before:content-['·']">
                   {person && <span>{person}</span>}
                   {m.note && <span className="text-[var(--color-text)]">{m.note}</span>}
                   {source && <span>{source}</span>}
@@ -179,7 +179,7 @@ export function CashCount({ account }: { account: FinancialAccount }) {
       className="rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-4"
     >
       <h3 className="text-sm font-semibold text-[var(--color-text)]">{t('count.title', { name: account.name })}</h3>
-      <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 text-sm">
+      <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 text-[13px]">
         <dt className="text-[var(--color-muted)]">{t('count.system')}</dt>
         <dd className={cn(NUM, 'text-right text-[var(--color-text)]')}>
           <MoneyText value={account.balance} currency={account.currency} decimals={2} />
@@ -198,7 +198,7 @@ export function CashCount({ account }: { account: FinancialAccount }) {
             onChange={(e) => setCounted(e.target.value)}
             placeholder="0,00"
             aria-invalid={result.state === 'invalid'}
-            className={inputStyles({ className: 'h-9 w-36 text-right font-mono text-[13px] tabular-nums' })}
+            className={inputStyles({ className: 'h-9 w-32 text-right font-mono text-[13px] tabular-nums' })}
           />
         </dd>
         <dt className="text-[var(--color-muted)]">{t('count.difference')}</dt>

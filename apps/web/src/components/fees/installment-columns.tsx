@@ -63,7 +63,7 @@ export function useInstallmentColumns<R extends FeeInstallment>(
       key: 'status',
       header: t('columns.status'),
       render: (row) => (
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col items-start gap-0.5">
           <StatusBadge domain="cuotaHonorario" status={row.status} />
           {row.settlement && <span className="text-xs text-[var(--color-muted)]">{t(`pay.settlements.${row.settlement}`)}</span>}
           {row.receipt && (

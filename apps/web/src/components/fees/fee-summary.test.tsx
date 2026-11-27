@@ -91,7 +91,7 @@ describe('resumen de honorarios: pantalla', () => {
     expect(apiClient).toHaveBeenCalledWith('/fees/installments?page=1&limit=200&period=2026-11');
     const text = nb(document.body.textContent);
     expect(text).toContain('$ 400.000');
-    expect(text).toContain('3 cuotas con vencimiento entre Junio de 2026 – Noviembre de 2026');
+    expect(text).toContain('3 cuotas con vencimiento de junio de 2026 a noviembre de 2026');
     expect(text).toContain('$ 100.00025 %');
     expect(text).toContain('Por cobrar$ 300.000');
     expect(text).toContain('De eso, ya vencido$ 50.000');
@@ -107,7 +107,7 @@ describe('resumen de honorarios: pantalla', () => {
     byMonth({});
     renderEsWithQuery(<FeeSummary />);
     expect(await screen.findByText(/No hay cuotas con vencimiento en estos meses/)).toBeInTheDocument();
-    expect(nb(document.body.textContent)).toContain('Sin cuotas con vencimiento entre');
+    expect(nb(document.body.textContent)).toContain('Sin cuotas con vencimiento de');
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 

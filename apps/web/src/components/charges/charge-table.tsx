@@ -125,12 +125,12 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
   }
 
   const totals = chargeTotals(items);
-  const leadingColumns = hideProperty ? 6 : 7;
+  const leadingColumns = hideProperty ? 5 : 6;
 
   return (
     <>
       <div className="overflow-x-auto rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
-        <table className="w-full min-w-[920px] border-collapse text-[13px] text-[var(--color-text)]">
+        <table className="w-full min-w-[900px] border-collapse text-[13px] text-[var(--color-text)]">
           <thead className="bg-[var(--color-surface-sunken)]">
             <tr>
               <th scope="col" className={cn(TH, 'w-10 text-center')}>
@@ -147,9 +147,6 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
               )}
               <th scope="col" className={TH}>
                 {t('columns.concept')}
-              </th>
-              <th scope="col" className={TH}>
-                {t('columns.kind')}
               </th>
               <th scope="col" className={TH}>
                 {t('columns.chargedTo')}
@@ -176,13 +173,19 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
                     {offset + index + 1}
                   </td>
                   <td className={cn(TD, 'whitespace-nowrap font-mono text-xs tabular-nums')}>{chargeMonth(row)}</td>
-                  {!hideProperty && <td className={cn(TD, 'max-w-[200px] truncate')}>{row.property?.title ?? ''}</td>}
-                  <td className={cn(TD, 'max-w-[260px] truncate font-medium')} title={row.description}>
-                    {row.description}
-                  </td>
-                  <td className={cn(TD, 'whitespace-nowrap text-[var(--color-muted)]')}>
-                    {t(`kinds.${row.kind}`)}
-                    {row.installmentOf > 1 ? ` · ${t('installment', { no: row.installmentNo, of: row.installmentOf })}` : ''}
+                  {!hideProperty && (
+                    <td className={cn(TD, 'max-w-[180px] truncate')} title={row.property?.title ?? undefined}>
+                      {row.property?.title ?? ''}
+                    </td>
+                  )}
+                  <td className={cn(TD, 'max-w-[280px]')}>
+                    <p className="truncate font-medium" title={row.description}>
+                      {row.description}
+                    </p>
+                    <p className="truncate text-[11.5px] leading-tight text-[var(--color-muted)]">
+                      {t(`kinds.${row.kind}`)}
+                      {row.installmentOf > 1 ? ` · ${t('installment', { no: row.installmentNo, of: row.installmentOf })}` : ''}
+                    </p>
                   </td>
                   <td className={cn(TD, 'whitespace-nowrap')}>{t(`targets.${row.chargedTo}`)}</td>
                   <td className={TD}>
@@ -212,6 +215,8 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
                             key={action}
                             type="button"
                             disabled={busyId === row.id}
+                            aria-label={t(`actions.${action}`)}
+                            title={t(`actions.${action}`)}
                             onClick={() => void run(row, action)}
                             className={cn(
                               ACTION,
@@ -220,7 +225,7 @@ export function ChargeTable({ items, loading, error, canManage, onChanged, pagin
                                 : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:border-[var(--color-slate-400)] hover:bg-[var(--color-surface-sunken)]',
                             )}
                           >
-                            {t(`actions.${action}`)}
+                            {t(`actionsShort.${action}`)}
                           </button>
                         ))}
                       </div>

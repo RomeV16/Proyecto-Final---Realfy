@@ -5755,8 +5755,7 @@
     "amount": "Importe",
     "status": "Estado",
     "actions": "Acciones",
-    "row": "Renglón",
-    "kind": "Clase"
+    "row": "Renglón"
    },
    "empty": {
     "title": "No hay cargos pendientes",
@@ -5917,6 +5916,13 @@
    "totals": {
     "rows": "{count, plural, one {# renglón} other {# renglones}} ·",
     "label": "Total en {currency}"
+   },
+   "actionsShort": {
+    "forceImpute": "Imputar",
+    "markPaidUpfront": "Ya cobrado",
+    "cancel": "Anular",
+    "release": "Liberar",
+    "agencyExpense": "Pasar a gasto"
    }
   },
  "propertyServices": {
@@ -7119,7 +7125,7 @@
   "summary": {
    "label": "Resumen de honorarios",
    "total": "Honorarios del período",
-   "totalHint": "{count, plural, =0 {Sin cuotas con vencimiento entre {range}} one {# cuota con vencimiento entre {range}} other {# cuotas con vencimiento entre {range}}}",
+   "totalHint": "{count, plural, =0 {Sin cuotas con vencimiento de {from} a {to}} one {# cuota con vencimiento de {from} a {to}} other {# cuotas con vencimiento de {from} a {to}}}",
    "collected": "Cobrado",
    "pending": "Por cobrar",
    "overdue": "De eso, ya vencido",

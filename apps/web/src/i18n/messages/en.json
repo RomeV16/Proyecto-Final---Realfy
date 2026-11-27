@@ -5755,8 +5755,7 @@
     "amount": "Amount",
     "status": "Status",
     "actions": "Actions",
-    "row": "Row",
-    "kind": "Kind"
+    "row": "Row"
    },
    "empty": {
     "title": "No charges",
@@ -5917,6 +5916,13 @@
    "totals": {
     "rows": "{count, plural, one {# row} other {# rows}} ·",
     "label": "Total in {currency}"
+   },
+   "actionsShort": {
+    "forceImpute": "Charge",
+    "markPaidUpfront": "Already paid",
+    "cancel": "Void",
+    "release": "Release",
+    "agencyExpense": "Expense it"
    }
   },
  "propertyServices": {
@@ -7119,7 +7125,7 @@
   "summary": {
    "label": "Fee summary",
    "total": "Fees in the period",
-   "totalHint": "{count, plural, =0 {No installments due between {range}} one {# installment due between {range}} other {# installments due between {range}}}",
+   "totalHint": "{count, plural, =0 {No installments due from {from} to {to}} one {# installment due from {from} to {to}} other {# installments due from {from} to {to}}}",
    "collected": "Collected",
    "pending": "To collect",
    "overdue": "Of which overdue",
