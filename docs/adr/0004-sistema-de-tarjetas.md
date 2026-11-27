@@ -88,3 +88,22 @@ color de identidad y la repisa de chapas, y le devuelve el alto al contenido.
 - `SmartImage` se queda con un `<img>` plano en lugar de `next/image`: las URLs
   de media son enlaces firmados que se generan por request, así que el host no
   se conoce en build time y `images.remotePatterns` no puede cubrirlo.
+
+## Addendum (27/11/2026): tarjetas para propiedades, estructuras propias para el resto
+
+Con el sistema en uso, casi todos los listados terminaron siendo la misma grilla
+de tarjetas con portada generada, y eso escondía que cada pantalla sirve para una
+tarea distinta. Se decide:
+
+- Las tarjetas con portada quedan para las propiedades, que son las únicas con
+  fotos en el modelo de datos.
+- Los listados de dinero y de trabajo usan la estructura que corresponde a su
+  tarea: libro por mes con totales (liquidaciones), extracto por día (pagos),
+  libro con saldo por fila y arqueo (caja), planilla (centro de carga), cola con
+  la próxima gestión (cobranza), tramos de antigüedad (morosidad), agenda
+  (vencimientos) y tablero por tenedor (llaves). Contratos, personas, proveedores,
+  tickets y leads pasan a listas de filas.
+- Los tokens de color y tipografía, los estados de carga y vacío y las chapas de
+  estado de este ADR siguen vigentes para todas las pantallas.
+
+El resto del ADR se conserva como registro de la decisión original.
