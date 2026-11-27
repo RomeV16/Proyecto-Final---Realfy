@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
+import { useDocumentTitle } from '@/lib/use-document-title';
 import { loginSchema } from '@realfy/shared/schemas';
 import { setStoredUser, safeRedirectTarget, ApiRequestError } from '@/lib/api-client';
 import type { AuthResponse } from '@realfy/shared';
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
   const [exiting, setExiting] = useState(false);
+  useDocumentTitle(t('auth.login.title'));
 
   const validate = () => {
     const result = loginSchema.safeParse({ email, password });
@@ -83,16 +85,13 @@ export default function LoginPage() {
       }`}
     >
       <div className="mb-9">
-        <p className="eyebrow mb-3">Bienvenido de vuelta</p>
         <h1 className="h1">{t('auth.login.title')}</h1>
-        <p className="lead mt-3 text-base">
-          Administrá propiedades, contratos y liquidaciones desde un solo lugar.
-        </p>
+        <p className="lead mt-3 text-base">{t('auth.login.subtitle')}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         {serverError && (
-          <div className="bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] text-[var(--color-danger)] text-sm rounded-lg px-4 py-3 border border-[color-mix(in_srgb,var(--color-danger)_30%,transparent)] animate-[fade-in_0.4s_var(--ease-luxe)]">
+          <div role="alert" className="bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] text-[var(--color-danger)] text-sm rounded-lg px-4 py-3 border border-[color-mix(in_srgb,var(--color-danger)_30%,transparent)] animate-[fade-in_0.4s_var(--ease-luxe)]">
             {serverError}
           </div>
         )}
@@ -118,12 +117,9 @@ export default function LoginPage() {
           autoComplete="current-password"
         />
         <div className="text-right -mt-2">
-          <a
-            href={'/auth/password-reset'}
-            className="link-underline text-sm text-[var(--color-muted)]"
-          >
+          <Link href="/auth/password-reset" className="link-underline text-sm text-[var(--color-muted)]">
             {t('auth.forgot.link')}
-          </a>
+          </Link>
         </div>
         <Button type="submit" size="lg" disabled={loading} className="w-full mt-2">
           {loading && <Spinner className="w-4 h-4 text-white" />}
@@ -132,12 +128,9 @@ export default function LoginPage() {
       </form>
 
       <p className="mt-8 text-sm text-[var(--color-muted)]">
-        <a
-          href={'/auth/register'}
-          className="link-underline font-medium text-[var(--color-text)]"
-        >
+        <Link href="/auth/register" className="link-underline font-medium text-[var(--color-text)]">
           {t('auth.login.registerLink')}
-        </a>
+        </Link>
       </p>
     </div>
   );

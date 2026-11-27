@@ -2,6 +2,7 @@
  "auth": {
   "login": {
    "title": "Iniciar sesión",
+   "subtitle": "Ingresá con el correo y la contraseña de tu cuenta.",
    "email": "Correo electrónico",
    "password": "Contraseña",
    "submit": "Ingresar",
@@ -13,6 +14,7 @@
   },
   "register": {
    "title": "Crear cuenta",
+   "subtitle": "Registrá tu inmobiliaria para empezar a cargar la cartera.",
    "email": "Correo electrónico",
    "password": "Contraseña",
    "confirmPassword": "Confirmar contraseña",
@@ -37,7 +39,7 @@
   "forgot": {
    "link": "¿Olvidaste tu contraseña?",
    "title": "Recuperar contraseña",
-   "subtitle": "Ingresá tu correo y, si la cuenta existe y el envío de correos está activo, te mandamos las instrucciones.",
+   "subtitle": "Ingresá tu correo y te mandamos un enlace para elegir una contraseña nueva.",
    "email": "Correo electrónico",
    "submit": "Enviar instrucciones",
    "sending": "Enviando…",

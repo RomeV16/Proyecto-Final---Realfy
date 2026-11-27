@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Realfy',
-  description: 'Gestión inmobiliaria inteligente',
+  description: 'Administración de alquileres para inmobiliarias: contratos, liquidaciones, cobranza y rendiciones.',
 };
 
 export default function RootLayout({

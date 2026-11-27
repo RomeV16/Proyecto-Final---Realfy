@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
+import { useDocumentTitle } from '@/lib/use-document-title';
 import { registerSchema } from '@realfy/shared/schemas';
 import { apiClient, setStoredUser, ApiRequestError } from '@/lib/api-client';
 import type { AuthResponse } from '@realfy/shared';
@@ -24,6 +25,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
+  useDocumentTitle(t('auth.register.title'));
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -103,21 +105,18 @@ export default function RegisterPage() {
   return (
     <div className="w-full">
       <div className="mb-8">
-        <p className="eyebrow mb-3">Creá tu cuenta</p>
         <h1 className="h1">{t('auth.register.title')}</h1>
-        <p className="lead mt-3 text-base">
-          Empezá a administrar tu cartera en minutos.
-        </p>
+        <p className="lead mt-3 text-base">{t('auth.register.subtitle')}</p>
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         {serverError && (
-          <div className="bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] text-[var(--color-danger)] text-sm rounded-lg px-4 py-3 border border-[color-mix(in_srgb,var(--color-danger)_30%,transparent)]">
+          <div role="alert" className="bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] text-[var(--color-danger)] text-sm rounded-lg px-4 py-3 border border-[color-mix(in_srgb,var(--color-danger)_30%,transparent)]">
             {serverError}
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-3">
           <Input
             id="firstName"
             label={t('auth.register.firstName')}
@@ -175,12 +174,9 @@ export default function RegisterPage() {
       </form>
 
       <p className="mt-8 text-sm text-[var(--color-muted)]">
-        <a
-          href={'/auth/login'}
-          className="link-underline font-medium text-[var(--color-text)]"
-        >
+        <Link href="/auth/login" className="link-underline font-medium text-[var(--color-text)]">
           {t('auth.register.loginLink')}
-        </a>
+        </Link>
       </p>
     </div>
   );

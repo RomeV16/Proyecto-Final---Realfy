@@ -115,6 +115,11 @@ describe('Header', () => {
     }
   });
 
+  it('pone el nombre de la pantalla en el título de la pestaña', () => {
+    renderEs(<Header onMenuToggle={() => {}} />);
+    expect(document.title).toBe('Contratos · Realfy');
+  });
+
   it('sin segmentos no hay migas', () => {
     nav.path = '/es';
     renderEs(<Header onMenuToggle={() => {}} />);

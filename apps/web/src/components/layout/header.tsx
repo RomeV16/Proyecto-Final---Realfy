@@ -5,6 +5,7 @@ import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { useState, useRef, useEffect } from 'react';
 import { Icon } from '@/components/ui/icon';
+import { useDocumentTitle } from '@/lib/use-document-title';
 import { SEGMENT_LABELS } from './segment-labels';
 
 interface HeaderProps {
@@ -78,6 +79,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
     .filter((crumb) => !isIdSegment(crumb.seg));
 
   const lastCrumb = crumbs[crumbs.length - 1];
+  useDocumentTitle(lastCrumb?.label);
   const parentHref =
     crumbs.length > 1
       ? crumbs[crumbs.length - 2].href
