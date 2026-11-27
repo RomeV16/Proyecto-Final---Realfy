@@ -10,7 +10,7 @@ La inmobiliaria piloto es una empresa familiar de administración de alquileres 
 
 Dos hechos organizan todo el piloto:
 
-- **El ciclo mensual es el corazón de la operación y su mayor costo.** Empieza unos diez días antes del mes que se cobra, con el índice de dos meses antes, y termina con las transferencias a los locadores. Hoy se hace con doble carga de datos y con un atraso sistemático en el estado de cuenta que recibe cada locador.
+- **El ciclo mensual es la tarea central de la operación y la que más trabajo lleva.** Empieza unos diez días antes del mes que se cobra, con el índice de dos meses antes, y termina con las transferencias a los locadores. Hoy se hace con doble carga de datos y con un atraso sistemático en el estado de cuenta que recibe cada locador.
 - **Las reglas del negocio son pactables.** Cada contrato puede apartarse de los valores habituales de la inmobiliaria, y los cambios posteriores son acuerdos con fecha. Un sistema con reglas fijas en el código no sirve para este uso.
 
 La validación en uso real corrige una limitación que el alcance original de la tesis reconocía: hasta el Hito 4 el sistema se había probado con datos sintéticos y en un ambiente de demostración, sin usuarios que dependieran de él.
