@@ -112,13 +112,15 @@ export function LinkDialog({ conversation, onClose, onLinked }: Props) {
   return (
     <Dialog open onClose={onClose} busy={saving} size="md">
       <DialogHeader>
-        <h2 className="text-base font-semibold text-[var(--color-text)]">{t('title')}</h2>
-        <p className="mt-1 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-[var(--color-text)]">{t('title')}</h2>
+          <p className="mt-1 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
+        </div>
       </DialogHeader>
       <DialogBody className="space-y-4">
         {error != null && <ErrorNotice error={error} fallback={t('error')} />}
-        <div className="flex flex-wrap gap-2">
-          <Select aria-label={t('kind')} value={kind} onChange={(e) => setKind(e.target.value as Kind)} className="w-auto">
+        <div className={kind === 'contract' ? 'grid gap-2' : 'grid gap-2 sm:grid-cols-[11rem_minmax(0,1fr)]'}>
+          <Select aria-label={t('kind')} value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
             <option value="person">{t('kinds.person')}</option>
             <option value="property">{t('kinds.property')}</option>
             <option value="contract">{t('kinds.contract')}</option>
@@ -129,7 +131,6 @@ export function LinkDialog({ conversation, onClose, onLinked }: Props) {
               placeholder={t('search')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="min-w-0 flex-1"
             />
           )}
         </div>

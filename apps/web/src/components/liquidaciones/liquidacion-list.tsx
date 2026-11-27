@@ -66,12 +66,13 @@ function Feedback({ type, children }: { type: 'success' | 'error'; children: Rea
 /* ──────────── Generate dialog ──────────── */
 
 interface GenerateDialogProps {
+  open: boolean;
   onClose: () => void;
   /** Devuelve el mensaje de error, o null si generó. */
   onGenerate: (month: number, year: number) => Promise<string | null>;
 }
 
-function GenerateDialog({ onClose, onGenerate }: GenerateDialogProps) {
+function GenerateDialog({ open, onClose, onGenerate }: GenerateDialogProps) {
   const t = useTranslations('liquidaciones.generate');
   const tMonths = useTranslations('liquidaciones.months');
   const tCommon = useTranslations('common');
@@ -80,6 +81,11 @@ function GenerateDialog({ onClose, onGenerate }: GenerateDialogProps) {
   const [year, setYear] = useState(String(now.getFullYear()));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Queda montado para animar el cierre: cada apertura arranca sin el error anterior.
+  useEffect(() => {
+    if (open) setError(null);
+  }, [open]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -95,7 +101,7 @@ function GenerateDialog({ onClose, onGenerate }: GenerateDialogProps) {
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 1 + i);
 
   return (
-    <Dialog open onClose={onClose} size="sm" busy={submitting}>
+    <Dialog open={open} onClose={onClose} size="sm" className="max-sm:max-w-none" busy={submitting}>
       <form onSubmit={handleSubmit}>
         <DialogHeader>
           <h3 className="text-base font-semibold text-[var(--color-text)]">{t('title')}</h3>
@@ -543,7 +549,7 @@ export function LiquidacionList() {
         </div>
       )}
 
-      {showGenerate && <GenerateDialog onClose={() => setShowGenerate(false)} onGenerate={handleGenerate} />}
+      <GenerateDialog open={showGenerate} onClose={() => setShowGenerate(false)} onGenerate={handleGenerate} />
     </div>
   );
 }

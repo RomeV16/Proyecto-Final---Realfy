@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderEs } from '../index-data/test-utils';
 
@@ -52,6 +52,55 @@ const postBody = () => JSON.parse(apiClient.mock.calls.find(([, init]) => init?.
 
 beforeEach(() => {
   vi.clearAllMocks();
+});
+
+describe('PaymentForm: diálogo', () => {
+  it('cerrado no dibuja nada; abierto es un diálogo con el foco en el monto', () => {
+    apiClient.mockResolvedValue(ACCOUNTS);
+    const closed = renderEs(
+      <PaymentForm open={false} liquidacionId="l-1" remainingBalance={100000} onSuccess={vi.fn()} onClose={vi.fn()} />,
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    closed.unmount();
+    renderEs(<PaymentForm open liquidacionId="l-1" remainingBalance={100000} onSuccess={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.getByRole('dialog', { name: 'Pagos' })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Monto/)).toHaveFocus();
+    expect(screen.getByLabelText(/Monto/)).toHaveValue(100000);
+  });
+
+  it('Esc y Cancelar cierran sin registrar nada', async () => {
+    const onClose = vi.fn();
+    const { onSuccess, user } = setup(() => ({}), { onClose });
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(apiClient).not.toHaveBeenCalled();
+  });
+
+  it('un monto en cero se rechaza sin llamar a la API', async () => {
+    const { user } = setup(() => ({}));
+    await user.clear(screen.getByLabelText(/Monto/));
+    await user.type(screen.getByLabelText(/Monto/), '0');
+    await user.selectOptions(screen.getByLabelText(/Método/), 'Efectivo');
+    fireEvent.submit(screen.getByLabelText(/Monto/).closest('form')!);
+    expect(await screen.findByRole('alert')).toHaveTextContent('El monto debe ser mayor a 0');
+    expect(apiClient).not.toHaveBeenCalled();
+  });
+
+  it('con el recibo emitido, Esc equivale a "Listo"', async () => {
+    const onClose = vi.fn();
+    const { onSuccess, user } = setup(
+      () => ({ registeredPayment: { id: 'pay-9', receivedBy: 'Inmobiliaria', inCustody: false, account: null, receipt: { id: RECEIPT, series: 'RECIBO_COBRO', number: 9, label: '00000009' } } }),
+      { onClose },
+    );
+    await user.selectOptions(screen.getByLabelText(/Método/), 'Efectivo');
+    await user.click(screen.getByRole('button', { name: 'Registrar pago' }));
+    expect(await screen.findByText('Se emitió el recibo Nº 00000009.')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(onSuccess).toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });
 
 describe('PaymentForm: quién recibió el cobro', () => {

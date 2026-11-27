@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
+import es from '@/i18n/messages/es.json';
 
-const { replaceLocation, apiClient } = vi.hoisted(() => ({ replaceLocation: vi.fn(), apiClient: vi.fn() }));
-vi.mock('./hard-navigation', () => ({ replaceLocation, assignLocation: vi.fn() }));
+const { replaceLocation, assignLocation, apiClient } = vi.hoisted(() => ({
+  replaceLocation: vi.fn(),
+  assignLocation: vi.fn(),
+  apiClient: vi.fn(),
+}));
+vi.mock('./hard-navigation', () => ({ replaceLocation, assignLocation }));
 vi.mock('./api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./api-client')>()),
   apiClient,
@@ -15,13 +21,14 @@ import { AuthProvider, useAuth, useOptionalAuth } from './auth-context';
 const ana = { id: 'u1', email: 'ana@example.test', firstName: 'Ana', lastName: 'Prueba', role: 'Admin', tenantId: 't1' };
 
 function Probe() {
-  const { user, isLoading, isAuthenticated, updateUser, login } = useAuth();
+  const { user, isLoading, isAuthenticated, updateUser, login, logout } = useAuth();
   return (
     <div>
       <p>{isLoading ? 'cargando' : 'listo'}</p>
       <p>{isAuthenticated ? `${user!.firstName} ${user!.lastName}` : 'sin usuario'}</p>
       <button onClick={() => updateUser({ firstName: 'Anita' })}>renombrar</button>
       <button onClick={() => void login('ana@example.test', 'secreta')}>ingresar</button>
+      <button onClick={() => void logout()}>salir</button>
     </div>
   );
 }
@@ -30,6 +37,7 @@ describe('AuthProvider', () => {
   beforeEach(() => {
     localStorage.clear();
     replaceLocation.mockReset();
+    assignLocation.mockReset();
     apiClient.mockReset();
     window.history.replaceState(null, '', '/es/pagos?estado=pendiente');
   });
@@ -90,6 +98,54 @@ describe('AuthProvider', () => {
     act(() => screen.getByText('ingresar').click());
     expect(await screen.findByText('Bea Otra')).toBeInTheDocument();
     expect(getStoredUser()?.lastName).toBe('Otra');
+  });
+
+  it('al salir tapa la pantalla sin vaciar el usuario y recién después abre el ingreso', async () => {
+    setStoredUser(ana);
+    let finish: () => void = () => undefined;
+    apiClient.mockReturnValue(new Promise<void>((resolve) => (finish = resolve)));
+    render(
+      <NextIntlClientProvider locale="es" messages={es}>
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>
+      </NextIntlClientProvider>,
+    );
+    await screen.findByText('Ana Prueba');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    act(() => screen.getByText('salir').click());
+    act(() => screen.getByText('salir').click());
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText('Ana Prueba')).toBeInTheDocument();
+    expect(assignLocation).not.toHaveBeenCalled();
+    expect(apiClient).toHaveBeenCalledTimes(1);
+
+    await act(async () => finish());
+    expect(assignLocation).toHaveBeenCalledWith('/es/auth/login');
+    expect(getStoredUser()).toBeNull();
+    expect(screen.getByText('Ana Prueba')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeInTheDocument();
+
+    // Página restaurada con "atrás" después de salir.
+    const restored = new Event('pageshow') as PageTransitionEvent;
+    Object.defineProperty(restored, 'persisted', { value: true });
+    act(() => void window.dispatchEvent(restored));
+    expect(replaceLocation).toHaveBeenCalledWith('/es/auth/login');
+  });
+
+  it('sale igual aunque la API falle', async () => {
+    setStoredUser(ana);
+    apiClient.mockRejectedValue(new Error('sin red'));
+    render(
+      <NextIntlClientProvider locale="es" messages={es}>
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>
+      </NextIntlClientProvider>,
+    );
+    await screen.findByText('Ana Prueba');
+    act(() => screen.getByText('salir').click());
+    await waitFor(() => expect(assignLocation).toHaveBeenCalledWith('/es/auth/login'));
   });
 
   it('useAuth exige el proveedor y useOptionalAuth no', () => {

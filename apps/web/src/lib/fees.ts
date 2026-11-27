@@ -175,7 +175,8 @@ export const FEE_PAYER_ROLES = Object.values(FeePayerRole);
 export const FEE_VAT_MODES = Object.values(FeeVatMode);
 export const FEE_PAYER_MODES = Object.values(FeePayerMode);
 export const FEE_SETTLEMENTS = Object.values(FeeSettlement);
-export const PAYMENT_METHODS = Object.values(PaymentMethod);
+/* El depósito aplicado lo registra el sistema al liquidar el egreso: no es un medio que se elija a mano. */
+export const PAYMENT_METHODS = Object.values(PaymentMethod).filter((m) => m !== PaymentMethod.AplicacionDeposito);
 
 const RENTAL_KINDS: readonly string[] = [FeeKind.AltaAlquiler, FeeKind.Renovacion];
 

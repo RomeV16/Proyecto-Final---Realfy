@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import type { ParamCacheItem, PreviewResult, EmitResult } from '@/lib/schemas/invoices';
 import { StepIssuer, type StepIssuerData } from './step-issuer';
@@ -11,6 +12,7 @@ import { StepReceptor, type StepReceptorData } from './step-receptor';
 import { StepItems, type StepItemsData } from './step-items';
 import { StepAdvanced, type StepAdvancedData } from './step-advanced';
 import { formatMoneyFixed } from '@/lib/format';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 
 /* ── UUID fallback without uuid pkg ── */
 
@@ -78,17 +80,15 @@ interface PreviewDialogProps {
 
 function PreviewDialog({ preview, onClose, onEmit, emitting }: PreviewDialogProps) {
   const t = useTranslations('invoices.newInvoice.preview');
-  if (!preview) return null;
-
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div role="dialog" aria-modal="true" aria-labelledby="preview-title" className="relative z-10 w-full max-w-md bg-white rounded-xl shadow-xl">
-        <div className="px-6 py-4 border-b border-slate-200">
-          <h2 id="preview-title" className="text-base font-semibold text-slate-900">{t('title')}</h2>
-        </div>
-        <div className="px-6 py-5 space-y-3">
+    <Dialog open={preview !== null} onClose={onClose} busy={emitting} size="sm" className="max-sm:max-w-none">
+      {preview && (
+        <>
+        <DialogHeader>
+          <h2 className="text-base font-semibold text-slate-900">{t('title')}</h2>
+        </DialogHeader>
+        <DialogBody className="space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-slate-500">{t('nextNumber')}</span>
             <span className="font-mono font-semibold text-slate-900">
@@ -106,8 +106,8 @@ function PreviewDialog({ preview, onClose, onEmit, emitting }: PreviewDialogProp
           <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs">
             {t('noCaeYet')}
           </div>
-        </div>
-        <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+        </DialogBody>
+        <DialogFooter>
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
             {t('cancel')}
           </button>
@@ -125,9 +125,10 @@ function PreviewDialog({ preview, onClose, onEmit, emitting }: PreviewDialogProp
             )}
             {emitting ? t('emitting') : t('emit')}
           </button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+        </>
+      )}
+    </Dialog>
   );
 }
 
@@ -338,11 +339,13 @@ export function NewInvoiceForm() {
         )}
       </div>
 
-      {previewing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full" />
-        </div>
-      )}
+      {previewing &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 animate-[overlay-in_0.18s_ease-out]">
+            <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full" />
+          </div>,
+          document.body,
+        )}
 
       <PreviewDialog
         preview={preview}

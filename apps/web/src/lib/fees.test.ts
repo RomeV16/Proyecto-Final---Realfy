@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { PaymentMethod } from '@realfy/shared';
 import {
+  PAYMENT_METHODS,
   canCancelFee,
   canPayInstallment,
   canSettleToLessor,
@@ -294,5 +296,12 @@ describe('cobro y pago', () => {
       success: true,
       data: { accountId: ACCOUNT, date: '2026-11-02', note: 'ok' },
     });
+  });
+});
+
+describe('medios de pago', () => {
+  it('no ofrece el depósito aplicado, que lo registra el sistema', () => {
+    expect(PAYMENT_METHODS).toContain(PaymentMethod.Transferencia);
+    expect(PAYMENT_METHODS).not.toContain(PaymentMethod.AplicacionDeposito);
   });
 });

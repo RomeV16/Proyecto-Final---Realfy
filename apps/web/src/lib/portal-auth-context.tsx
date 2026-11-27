@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
 import {
@@ -15,6 +16,8 @@ import {
   getPortalAccessToken,
 } from './portal-api-client';
 import { localizedPath } from '@/i18n/locale-path';
+import { assignLocation, replaceLocation } from './hard-navigation';
+import { SessionExitCover } from '@/components/transition/session-exit-cover';
 import type { PortalAuthResponse } from '@realfy/shared';
 
 interface PortalPerson {
@@ -61,6 +64,8 @@ function loadPersistedPortalPerson(): PortalPerson | null {
 export function PortalAuthProvider({ children }: { children: ReactNode }) {
   const [person, setPerson] = useState<PortalPerson | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const loggingOut = useRef(false);
 
   // Hydrate from localStorage on mount
   useEffect(() => {
@@ -97,15 +102,29 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
     setPerson(personData);
   }, []);
 
+  // Igual que en el panel: la pantalla queda como estaba, tapada, hasta que carga el ingreso.
   const logout = useCallback(async () => {
+    if (loggingOut.current) return;
+    loggingOut.current = true;
+    setIsLoggingOut(true);
     try {
       await portalApiClient('/portal/auth/logout', { method: 'POST' });
     } catch {
       // Ignore errors — we're logging out anyway
     }
     clearPortalTokens();
-    setPerson(null);
-    window.location.href = localizedPath('/portal/auth/login');
+    assignLocation(localizedPath('/portal/auth/login'));
+  }, []);
+
+  // Página restaurada con "atrás" después de salir: vuelve al ingreso.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && loggingOut.current) {
+        replaceLocation(localizedPath('/portal/auth/login'));
+      }
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
   return (
@@ -119,6 +138,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      {isLoggingOut && <SessionExitCover />}
     </PortalAuthContext.Provider>
   );
 }

@@ -21,7 +21,9 @@ vi.mock('next/navigation', async (importOriginal) => ({
   usePathname: () => nav.path,
 }));
 
+import { act } from '@testing-library/react';
 import { resetNavCollapse } from './nav-collapse';
+import { navProgress } from './nav-progress';
 import { navItems, navSections, visibleNavSections } from './nav-items';
 import { Sidebar } from './sidebar';
 
@@ -135,5 +137,19 @@ describe('Sidebar', () => {
     renderEs(<Sidebar collapsed={false} onToggle={() => {}} />);
     expect(expanded().scrollTop).toBe(0);
     spy.mockRestore();
+  });
+
+  it('marca la pantalla elegida apenas se hace clic, antes de que termine de cargar', () => {
+    nav.path = '/es/dashboard';
+    renderEs(<Sidebar collapsed={false} onToggle={() => {}} />);
+    const current = () => within(expanded()).getByRole('link', { current: 'page' });
+    expect(current()).toHaveTextContent('Panel');
+    act(() => navProgress.start('/es/contracts'));
+    expect(current()).toHaveTextContent('Contratos');
+    // Un destino que no es del menú no deja el menú sin marca.
+    act(() => navProgress.start('/es/perfil'));
+    expect(current()).toHaveTextContent('Panel');
+    act(() => navProgress.done());
+    expect(current()).toHaveTextContent('Panel');
   });
 });

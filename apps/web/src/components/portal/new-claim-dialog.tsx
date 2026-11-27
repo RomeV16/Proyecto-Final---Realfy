@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useMutation } from '@tanstack/react-query';
 import { portalApiClient, PortalApiRequestError } from '@/lib/portal-api-client';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Icon } from '@/components/ui/icon';
@@ -62,7 +63,7 @@ export function NewClaimDialog({
     },
   });
 
-  // Fresh form every time the sheet opens, and no page scrolling behind it.
+  // Fresh form every time the sheet opens.
   useEffect(() => {
     if (!open) return;
     setPropertyId('');
@@ -70,21 +71,9 @@ export function NewClaimDialog({
     setTitle('');
     setDescription('');
     setError('');
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open, onClose]);
-
-  if (!open) return null;
+    // The dialog focuses its first control (the close button); the title is where typing starts.
+    document.getElementById('claim-title')?.focus();
+  }, [open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,23 +98,12 @@ export function NewClaimDialog({
     'h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-sm text-[var(--color-text)] focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="absolute inset-0 bg-black/45" onClick={onClose} aria-hidden="true" />
-
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="new-claim-title"
-        className="relative z-10 max-h-[90vh] w-full overflow-y-auto rounded-t-[var(--radius-3xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-xl sm:max-w-md sm:rounded-[var(--radius-3xl)] sm:p-6"
-      >
-        <div className="mb-5 flex items-start justify-between gap-4">
+    <Dialog open={open} onClose={onClose} busy={mutation.isPending} size="md">
+      <form onSubmit={handleSubmit} noValidate>
+        <DialogHeader className="gap-4">
           <div className="min-w-0">
-            <h2 id="new-claim-title" className="h3">
-              {t('portal.claims.newClaim')}
-            </h2>
-            <p className="mt-1 text-sm text-[var(--color-muted)]">
-              {t('portal.claims.form.hint')}
-            </p>
+            <h2 className="h3">{t('portal.claims.newClaim')}</h2>
+            <p className="mt-1 text-sm text-[var(--color-muted)]">{t('portal.claims.form.hint')}</p>
           </div>
           <button
             type="button"
@@ -135,9 +113,9 @@ export function NewClaimDialog({
           >
             <Icon name="close" className="h-4 w-4" strokeWidth={2} />
           </button>
-        </div>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+        <DialogBody className="space-y-4">
           {error && (
             <p
               role="alert"
@@ -178,7 +156,6 @@ export function NewClaimDialog({
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t('portal.claims.form.titlePlaceholder')}
             maxLength={500}
-            autoFocus
           />
 
           {categories && categories.length > 0 && (
@@ -222,13 +199,14 @@ export function NewClaimDialog({
               className="w-full resize-none rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]"
             />
           </div>
-
+        </DialogBody>
+        <DialogFooter>
           <Button type="submit" className="w-full" disabled={mutation.isPending}>
             {mutation.isPending && <Spinner className="h-4 w-4 text-white" />}
             {mutation.isPending ? t('portal.claims.form.submitting') : t('portal.claims.form.submit')}
           </Button>
-        </form>
-      </div>
-    </div>
+        </DialogFooter>
+      </form>
+    </Dialog>
   );
 }

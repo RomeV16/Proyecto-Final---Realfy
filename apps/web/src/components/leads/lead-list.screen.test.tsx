@@ -228,9 +228,8 @@ describe('LeadList', () => {
     mockApi();
     const user = await renderList();
     await user.click(screen.getByRole('button', { name: 'Activos' }));
-    await waitFor(() =>
-      expect(apiClient).toHaveBeenLastCalledWith(expect.stringContaining('status=Nuevo%2CContactado%2CCalificado')),
-    );
+    await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith(expect.stringContaining('limit=500')));
+    expect(apiClient.mock.lastCall?.[0]).not.toContain('status=');
     await user.click(screen.getByRole('button', { name: 'Convertidos' }));
     await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith(expect.stringContaining('status=Convertido')));
     await user.click(screen.getByRole('button', { name: 'Perdidos' }));
@@ -266,6 +265,43 @@ describe('LeadList', () => {
     expect(await screen.findByText('Sin resultados')).toBeInTheDocument();
     await user.click(screen.getAllByRole('button', { name: 'Limpiar filtros' })[0]);
     expect(await screen.findByText('No hay leads')).toBeInTheDocument();
+  });
+
+  it('la pestaña Activos pide sin estado y muestra solo los leads en curso', async () => {
+    mockApi();
+    const user = await renderList();
+    expect(screen.getByText('Luis Inventado d')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Activos' }));
+    await waitFor(() => expect(screen.queryByText('Luis Inventado d')).not.toBeInTheDocument());
+    expect(screen.queryByText('Luis Inventado e')).not.toBeInTheDocument();
+    for (const id of ['a', 'b', 'c']) expect(screen.getByText(`Luis Inventado ${id}`)).toBeInTheDocument();
+    const leadCalls = apiClient.mock.calls.map(([path]) => String(path)).filter((path) => path.startsWith('/leads?'));
+    expect(leadCalls.at(-1)).toContain('limit=500');
+    expect(leadCalls.some((path) => path.includes('status=') && path.includes('%2C'))).toBe(false);
+  });
+
+  it('la pestaña Activos pagina sobre lo filtrado y junta las páginas de la API', async () => {
+    const many = [
+      ...Array.from({ length: 14 }, (_, i) => lead(`n${i}`, { status: i % 2 ? 'Contactado' : 'Calificado' })),
+      lead('x', { status: 'Perdido' }),
+    ];
+    apiClient.mockImplementation((path: string) => {
+      if (!path.startsWith('/leads')) return Promise.resolve([]);
+      if (!path.includes('limit=500')) return Promise.resolve(page());
+      const second = path.includes('page=2');
+      return Promise.resolve({ items: second ? many.slice(8) : many.slice(0, 8), total: 15, page: second ? 2 : 1, limit: 500, totalPages: 2 });
+    });
+    renderEs(<LeadList />);
+    const user = userEvent.setup();
+    await screen.findByText('Luis Inventado a');
+    await user.click(screen.getByRole('button', { name: 'Activos' }));
+    expect(await screen.findByText('Mostrando 1-12 de 14')).toBeInTheDocument();
+    expect(screen.getByText('Luis Inventado n11')).toBeInTheDocument();
+    expect(screen.queryByText('Luis Inventado n12')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(await screen.findByText('Mostrando 13-14 de 14')).toBeInTheDocument();
+    expect(screen.getByText('Luis Inventado n13')).toBeInTheDocument();
+    expect(screen.queryByText('Luis Inventado x')).not.toBeInTheDocument();
   });
 
   it('pagina hacia adelante y atrás', async () => {

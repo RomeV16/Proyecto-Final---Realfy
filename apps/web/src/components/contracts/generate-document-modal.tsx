@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { downloadFile } from '@/lib/download';
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 
 // ─── Types ──────────────────────────────────────────────
@@ -124,27 +125,25 @@ export function GenerateDocumentModal({ open, contractId, onClose }: GenerateDoc
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-5 animate-zoom-in">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <IconDocument />
-            <h2 className="text-lg font-semibold text-slate-900">{t('title')}</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-            aria-label={tCommon('close')}
-          >
-            <IconX />
-          </button>
+    <Dialog open={open} onClose={onClose} busy={generating} size="md">
+      {/* Header */}
+      <DialogHeader>
+        <div className="flex items-center gap-2">
+          <IconDocument />
+          <h2 className="text-lg font-semibold text-slate-900">{t('title')}</h2>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          aria-label={tCommon('close')}
+        >
+          <IconX />
+        </button>
+      </DialogHeader>
 
+      <DialogBody className="space-y-5">
         {loading ? (
           <div className="space-y-3 py-4">
             <div className="h-10 bg-slate-100 rounded-lg animate-pulse" />
@@ -253,28 +252,29 @@ export function GenerateDocumentModal({ open, contractId, onClose }: GenerateDoc
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3">
+      </DialogBody>
+
+      {/* Actions */}
+      <DialogFooter>
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2.5 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+        >
+          {tCommon('cancel')}
+        </button>
+        {templates.length > 0 && (
           <button
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 transition-colors"
+            type="button"
+            onClick={handleGenerate}
+            disabled={generating || !selectedTemplateId}
+            className="px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {tCommon('cancel')}
+            {generating && <Spinner className="w-3 h-3 text-white" />}
+            {generating ? t('generating') : t('generate')}
           </button>
-          {templates.length > 0 && (
-            <button
-              onClick={handleGenerate}
-              disabled={generating || !selectedTemplateId}
-              className="px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {generating && (
-                <Spinner className="w-3 h-3 text-white" />
-              )}
-              {generating ? t('generating') : t('generate')}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+        )}
+      </DialogFooter>
+    </Dialog>
   );
 }

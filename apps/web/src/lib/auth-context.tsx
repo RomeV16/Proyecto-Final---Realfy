@@ -6,6 +6,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
 import {
@@ -16,7 +17,8 @@ import {
   ApiRequestError,
 } from './api-client';
 import { localizedPath } from '@/i18n/locale-path';
-import { replaceLocation } from './hard-navigation';
+import { assignLocation, replaceLocation } from './hard-navigation';
+import { SessionExitCover } from '@/components/transition/session-exit-cover';
 import type { AuthResponse } from '@realfy/shared';
 
 interface User {
@@ -65,6 +67,8 @@ export function useAuth(): AuthContextValue {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const loggingOut = useRef(false);
 
   // Hydrate user info from localStorage on mount (user data only, not tokens)
   useEffect(() => {
@@ -137,15 +141,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // La salida no vacía el usuario en pantalla: el panel queda como estaba, tapado, hasta que el
+  // navegador carga el ingreso. Vaciarlo antes mostraba un instante el panel sin nombre ni menú.
   const logout = useCallback(async () => {
+    if (loggingOut.current) return;
+    loggingOut.current = true;
+    setIsLoggingOut(true);
     try {
       await apiClient('/auth/logout', { method: 'POST' });
     } catch {
       // Ignore errors — we're logging out anyway
     }
     clearStoredUser();
-    setUser(null);
-    window.location.href = localizedPath('/auth/login');
+    assignLocation(localizedPath('/auth/login'));
+  }, []);
+
+  // Al volver con "atrás" después de salir, el navegador puede restaurar esta página tal como
+  // quedó (tapada y sin sesión): en ese caso se vuelve a pedir el ingreso.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted && loggingOut.current) {
+        replaceLocation(localizedPath('/auth/login'));
+      }
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
   return (
@@ -161,6 +181,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      {isLoggingOut && <SessionExitCover />}
     </AuthContext.Provider>
   );
 }

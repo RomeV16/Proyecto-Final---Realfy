@@ -1,10 +1,11 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { FiscalCondition } from '@realfy/shared';
 import type { ArcaIssuerDTO } from '@/lib/schemas/invoices';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 
 /* ── Delegation badge ── */
 
@@ -38,11 +39,30 @@ function validateCuit(raw: string): boolean {
 /* ── Add Issuer Modal ── */
 
 interface AddIssuerModalProps {
+  open: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-function AddIssuerModal({ onClose, onSuccess }: AddIssuerModalProps) {
+/* El formulario se monta al abrir y se desmonta al terminar de cerrarse: cada apertura arranca vacía. */
+function AddIssuerModal({ open, onClose, onSuccess }: AddIssuerModalProps) {
+  const [busy, setBusy] = useState(false);
+  // El diálogo enfoca su primer control (el botón de cerrar); se empieza a escribir por el CUIT.
+  useEffect(() => {
+    if (open) document.getElementById('issuerCuit')?.focus();
+  }, [open]);
+  return (
+    <Dialog open={open} onClose={onClose} busy={busy} size="md">
+      <AddIssuerForm onClose={onClose} onSuccess={onSuccess} onBusyChange={setBusy} />
+    </Dialog>
+  );
+}
+
+function AddIssuerForm({
+  onClose,
+  onSuccess,
+  onBusyChange,
+}: Omit<AddIssuerModalProps, 'open'> & { onBusyChange: (busy: boolean) => void }) {
   const t = useTranslations('invoices.fiscal.issuers');
   const tFc = useTranslations('persons.fiscalConditions');
 
@@ -52,9 +72,14 @@ function AddIssuerModal({ onClose, onSuccess }: AddIssuerModalProps) {
   const [iibb, setIibb] = useState('');
   const [activityStartDate, setActivityStartDate] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmittingState] = useState(false);
   const [error, setError] = useState('');
   const [cuitError, setCuitError] = useState('');
+
+  function setSubmitting(value: boolean) {
+    setSubmittingState(value);
+    onBusyChange(value);
+  }
 
   function handleCuitBlur() {
     if (cuit && !validateCuit(cuit)) {
@@ -91,132 +116,125 @@ function AddIssuerModal({ onClose, onSuccess }: AddIssuerModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="add-issuer-title"
-        className="relative z-10 w-full max-w-lg bg-white rounded-xl shadow-xl"
-      >
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 id="add-issuer-title" className="text-base font-semibold text-slate-900">{t('addTitle')}</h2>
-          <button
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <form onSubmit={handleSubmit}>
+      <DialogHeader>
+        <h2 className="text-base font-semibold text-slate-900">{t('addTitle')}</h2>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </DialogHeader>
+
+      <DialogBody className="space-y-4">
+        {/* CUIT */}
+        <div>
+          <label htmlFor="issuerCuit" className="block text-xs font-medium text-slate-500 mb-1">{t('cuit')} *</label>
+          <input
+            id="issuerCuit"
+            type="text"
+            value={cuit}
+            onChange={(e) => setCuit(e.target.value)}
+            onBlur={handleCuitBlur}
+            placeholder="20-12345678-9"
+            required
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          />
+          {cuitError && <p className="text-xs text-red-600 mt-1" role="alert">{cuitError}</p>}
         </div>
 
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          {/* CUIT */}
-          <div>
-            <label htmlFor="issuerCuit" className="block text-xs font-medium text-slate-500 mb-1">{t('cuit')} *</label>
-            <input
-              id="issuerCuit"
-              type="text"
-              value={cuit}
-              onChange={(e) => setCuit(e.target.value)}
-              onBlur={handleCuitBlur}
-              placeholder="20-12345678-9"
-              required
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            />
-            {cuitError && <p className="text-xs text-red-600 mt-1" role="alert">{cuitError}</p>}
-          </div>
+        {/* Business name */}
+        <div>
+          <label htmlFor="issuerName" className="block text-xs font-medium text-slate-500 mb-1">{t('businessName')} *</label>
+          <input
+            id="issuerName"
+            type="text"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            required
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          />
+        </div>
 
-          {/* Business name */}
-          <div>
-            <label htmlFor="issuerName" className="block text-xs font-medium text-slate-500 mb-1">{t('businessName')} *</label>
-            <input
-              id="issuerName"
-              type="text"
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              required
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            />
-          </div>
+        {/* Fiscal condition */}
+        <div>
+          <label htmlFor="issuerFc" className="block text-xs font-medium text-slate-500 mb-1">{t('fiscalCondition')} *</label>
+          <select
+            id="issuerFc"
+            value={fiscalCondition}
+            onChange={(e) => setFiscalCondition(e.target.value)}
+            required
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          >
+            {Object.values(FiscalCondition).map((fc) => (
+              <option key={fc} value={fc}>{tFc(fc)}</option>
+            ))}
+          </select>
+        </div>
 
-          {/* Fiscal condition */}
-          <div>
-            <label htmlFor="issuerFc" className="block text-xs font-medium text-slate-500 mb-1">{t('fiscalCondition')} *</label>
-            <select
-              id="issuerFc"
-              value={fiscalCondition}
-              onChange={(e) => setFiscalCondition(e.target.value)}
-              required
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            >
-              {Object.values(FiscalCondition).map((fc) => (
-                <option key={fc} value={fc}>{tFc(fc)}</option>
-              ))}
-            </select>
-          </div>
+        {/* IIBB (optional) */}
+        <div>
+          <label htmlFor="issuerIibb" className="block text-xs font-medium text-slate-500 mb-1">{t('iibb')}</label>
+          <input
+            id="issuerIibb"
+            type="text"
+            value={iibb}
+            onChange={(e) => setIibb(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          />
+        </div>
 
-          {/* IIBB (optional) */}
-          <div>
-            <label htmlFor="issuerIibb" className="block text-xs font-medium text-slate-500 mb-1">{t('iibb')}</label>
-            <input
-              id="issuerIibb"
-              type="text"
-              value={iibb}
-              onChange={(e) => setIibb(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            />
-          </div>
+        {/* Activity start date (optional) */}
+        <div>
+          <label htmlFor="issuerActivity" className="block text-xs font-medium text-slate-500 mb-1">{t('activityStartDate')}</label>
+          <input
+            id="issuerActivity"
+            type="date"
+            value={activityStartDate}
+            onChange={(e) => setActivityStartDate(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          />
+        </div>
 
-          {/* Activity start date (optional) */}
-          <div>
-            <label htmlFor="issuerActivity" className="block text-xs font-medium text-slate-500 mb-1">{t('activityStartDate')}</label>
-            <input
-              id="issuerActivity"
-              type="date"
-              value={activityStartDate}
-              onChange={(e) => setActivityStartDate(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            />
-          </div>
+        {/* Business address (optional) */}
+        <div>
+          <label htmlFor="issuerAddress" className="block text-xs font-medium text-slate-500 mb-1">{t('businessAddress')}</label>
+          <input
+            id="issuerAddress"
+            type="text"
+            value={businessAddress}
+            onChange={(e) => setBusinessAddress(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          />
+        </div>
 
-          {/* Business address (optional) */}
-          <div>
-            <label htmlFor="issuerAddress" className="block text-xs font-medium text-slate-500 mb-1">{t('businessAddress')}</label>
-            <input
-              id="issuerAddress"
-              type="text"
-              value={businessAddress}
-              onChange={(e) => setBusinessAddress(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            />
-          </div>
+        {error && (
+          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm" role="alert">{error}</div>
+        )}
+      </DialogBody>
 
-          {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm" role="alert">{error}</div>
-          )}
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? t('adding') : t('add')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      <DialogFooter>
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {submitting ? t('adding') : t('add')}
+        </button>
+      </DialogFooter>
+    </form>
   );
 }
 
@@ -391,12 +409,11 @@ export function IssuersSection({ issuers, selectedIssuerId, onSelectIssuer, onRe
         </>
       )}
 
-      {addOpen && (
-        <AddIssuerModal
-          onClose={() => setAddOpen(false)}
-          onSuccess={() => { setAddOpen(false); onRefresh(); }}
-        />
-      )}
+      <AddIssuerModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSuccess={() => { setAddOpen(false); onRefresh(); }}
+      />
     </div>
   );
 }

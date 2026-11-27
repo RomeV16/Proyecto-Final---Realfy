@@ -12,11 +12,18 @@ import { Skeleton } from './skeleton';
  * cada segmento son una línea que reexporta uno de estos, así el aspecto y los textos están en un solo lugar.
  */
 
-/** `loading.tsx`: esqueleto de una pantalla (título, filtros y tarjetas) mientras carga el segmento. */
+/**
+ * `loading.tsx`: esqueleto de una pantalla (título, filtros y tarjetas) mientras carga el segmento.
+ * Aparece recién a los 250 ms: si la pantalla llega antes, no se ve un esqueleto que salta al de la pantalla.
+ */
 export function SegmentLoading() {
   const t = useTranslations('errors.segment');
   return (
-    <div role="status" aria-busy="true" className="space-y-6">
+    <div
+      role="status"
+      aria-busy="true"
+      className="space-y-6 animate-[fade-in_0.2s_ease-out_0.25s_backwards] motion-reduce:animate-none"
+    >
       <span className="sr-only">{t('loading')}</span>
       <div className="space-y-2" aria-hidden="true">
         <Skeleton className="h-7 w-56" />

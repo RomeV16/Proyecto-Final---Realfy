@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from '@/i18n/navigation';
 import { msSince, useElapsedText } from '@/components/tickets/elapsed';
 import { useCan, can } from '@/lib/permissions';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 
 /* ──────────── Types ──────────── */
 
@@ -108,11 +109,16 @@ const INITIAL_FILTERS: Filters = {
 
 const LIMIT = 12;
 
-/** Mapea las pestañas de estado al filtro que espera la API. */
+/** Estados de un lead en curso: los que muestra la pestaña "Activos". */
+const ACTIVE_STATUSES = ['Nuevo', 'Contactado', 'Calificado'];
+
+/** Tamaño de página al traer todos los leads para filtrarlos acá (el máximo que acepta la API). */
+const ALL_LIMIT = 500;
+const ALL_MAX_PAGES = 10;
+
+/** Mapea las pestañas de estado al filtro que espera la API, que acepta un solo estado. */
 function statusTabToFilter(tab: StatusTab): string | undefined {
   switch (tab) {
-    case 'active':
-      return 'Nuevo,Contactado,Calificado';
     case 'Convertido':
       return 'Convertido';
     case 'Perdido':
@@ -377,18 +383,15 @@ function CreateLeadModal({ open, onClose, onCreated, pipelines, users, propertie
     }
   }
 
-  if (!open) return null;
-
   const ventasUsers = users.filter(u => can(u.role, 'leads.assignable'));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-zoom-in" onClick={e => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-slate-200">
+    <Dialog open={open} onClose={onClose} busy={submitting} size="md">
+      <form onSubmit={handleSubmit}>
+        <DialogHeader>
           <h2 className="text-lg font-semibold text-slate-900">{t('title')}</h2>
-        </div>
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+        </DialogHeader>
+        <DialogBody className="space-y-4">
           {error && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
           )}
@@ -478,19 +481,19 @@ function CreateLeadModal({ open, onClose, onCreated, pipelines, users, propertie
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none" />
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
-              {tCommon('cancel')}
-            </button>
-            <button type="submit" disabled={submitting}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 active:bg-brand-700 transition-colors shadow-sm disabled:opacity-50">
-              {submitting && <Spinner className="w-4 h-4 text-white" />}
-              {submitting ? t('creating') : t('submit')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </DialogBody>
+        <DialogFooter>
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors">
+            {tCommon('cancel')}
+          </button>
+          <button type="submit" disabled={submitting}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 active:bg-brand-700 transition-colors shadow-sm disabled:opacity-50">
+            {submitting && <Spinner className="w-4 h-4 text-white" />}
+            {submitting ? t('creating') : t('submit')}
+          </button>
+        </DialogFooter>
+      </form>
+    </Dialog>
   );
 }
 
@@ -525,16 +528,13 @@ function ReassignModal({ open, lead, users, onClose, onDone }: {
     } finally { setSubmitting(false); }
   }
 
-  if (!open || !lead) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm animate-zoom-in" onClick={e => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-slate-200">
+    <Dialog open={open && !!lead} onClose={onClose} busy={submitting} size="sm">
+      <form onSubmit={handleSubmit}>
+        <DialogHeader>
           <h2 className="text-lg font-semibold text-slate-900">{t('reassignTitle')}</h2>
-        </div>
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+        </DialogHeader>
+        <DialogBody className="space-y-4">
           {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           <select required value={userId} onChange={e => setUserId(e.target.value)}
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500">
@@ -543,15 +543,15 @@ function ReassignModal({ open, lead, users, onClose, onDone }: {
               <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
             ))}
           </select>
-          <div className="flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors">{tCommon('cancel')}</button>
-            <button type="submit" disabled={submitting || !userId} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50">
-              {submitting && <Spinner className="w-4 h-4 text-white" />}
-              {tCommon('confirm')}</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </DialogBody>
+        <DialogFooter>
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors">{tCommon('cancel')}</button>
+          <button type="submit" disabled={submitting || !userId} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50">
+            {submitting && <Spinner className="w-4 h-4 text-white" />}
+            {tCommon('confirm')}</button>
+        </DialogFooter>
+      </form>
+    </Dialog>
   );
 }
 
@@ -586,16 +586,13 @@ function ConvertModal({ open, lead, onClose, onDone }: {
     } finally { setSubmitting(false); }
   }
 
-  if (!open || !lead) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm animate-zoom-in" onClick={e => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-slate-200">
+    <Dialog open={open && !!lead} onClose={onClose} busy={submitting} size="sm">
+      <form onSubmit={handleSubmit}>
+        <DialogHeader>
           <h2 className="text-lg font-semibold text-slate-900">{t('convertTitle')}</h2>
-        </div>
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+        </DialogHeader>
+        <DialogBody className="space-y-4">
           {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           <label className="block text-xs font-medium text-slate-500 mb-1">{t('convertAs')}</label>
           <div className="flex gap-3">
@@ -606,15 +603,15 @@ function ConvertModal({ open, lead, onClose, onDone }: {
               </label>
             ))}
           </div>
-          <div className="flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors">{tCommon('cancel')}</button>
-            <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50">
-              {submitting && <Spinner className="w-4 h-4 text-white" />}
-              {t('convert')}</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </DialogBody>
+        <DialogFooter>
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors">{tCommon('cancel')}</button>
+          <button type="submit" disabled={submitting} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50">
+            {submitting && <Spinner className="w-4 h-4 text-white" />}
+            {t('convert')}</button>
+        </DialogFooter>
+      </form>
+    </Dialog>
   );
 }
 
@@ -649,16 +646,13 @@ function LoseModal({ open, lead, onClose, onDone }: {
     } finally { setSubmitting(false); }
   }
 
-  if (!open || !lead) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm animate-zoom-in" onClick={e => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-slate-200">
+    <Dialog open={open && !!lead} onClose={onClose} busy={submitting} size="sm">
+      <form onSubmit={handleSubmit}>
+        <DialogHeader>
           <h2 className="text-lg font-semibold text-slate-900">{t('markLostTitle')}</h2>
-        </div>
-        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+        </DialogHeader>
+        <DialogBody className="space-y-4">
           {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">{t('lostReason')}</label>
@@ -666,15 +660,15 @@ function LoseModal({ open, lead, onClose, onDone }: {
               placeholder={t('lostReasonPlaceholder')}
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none" />
           </div>
-          <div className="flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors">{tCommon('cancel')}</button>
-            <button type="submit" disabled={submitting || !reason.trim()} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50">
-              {submitting && <Spinner className="w-4 h-4 text-white" />}
-              {t('markLost')}</button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </DialogBody>
+        <DialogFooter>
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 transition-colors">{tCommon('cancel')}</button>
+          <button type="submit" disabled={submitting || !reason.trim()} className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50">
+            {submitting && <Spinner className="w-4 h-4 text-white" />}
+            {t('markLost')}</button>
+        </DialogFooter>
+      </form>
+    </Dialog>
   );
 }
 
@@ -728,8 +722,9 @@ export function LeadList() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set('page', String(f.page));
-      params.set('limit', String(LIMIT));
+      const activeTab = f.statusTab === 'active';
+      params.set('page', activeTab ? '1' : String(f.page));
+      params.set('limit', String(activeTab ? ALL_LIMIT : LIMIT));
       if (f.search) params.set('search', f.search);
       if (f.pipelineId) params.set('pipelineId', f.pipelineId);
       if (f.currentStageId) params.set('currentStageId', f.currentStageId);
@@ -739,7 +734,28 @@ export function LeadList() {
       if (statusVal) params.set('status', statusVal);
 
       const res = await apiClient<PaginatedLeads>(`/leads?${params.toString()}`);
-      setData(res);
+      if (!activeTab) {
+        setData(res);
+        return;
+      }
+
+      // "Activos" reúne tres estados: se trae todo y se filtra y pagina acá.
+      const all = [...res.items];
+      for (let next = 2; next <= Math.min(res.totalPages, ALL_MAX_PAGES); next++) {
+        params.set('page', String(next));
+        const more = await apiClient<PaginatedLeads>(`/leads?${params.toString()}`);
+        all.push(...more.items);
+      }
+      const active = all.filter((lead) => ACTIVE_STATUSES.includes(lead.status));
+      const totalPages = Math.ceil(active.length / LIMIT);
+      const page = Math.min(f.page, Math.max(totalPages, 1));
+      setData({
+        items: active.slice((page - 1) * LIMIT, page * LIMIT),
+        total: active.length,
+        page,
+        limit: LIMIT,
+        totalPages,
+      });
     } catch (err) {
       if (err instanceof ApiRequestError) {
         console.error(`[LeadList] fetch error: ${err.statusCode} ${err.errorCode}`);

@@ -1,26 +1,52 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import type { ArcaIssuerDTO, ArcaPdvDTO } from '@/lib/schemas/invoices';
 import { formatDateTime } from '@/lib/format';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 
 /* ── Add PdV modal ── */
 
 interface AddPdvModalProps {
+  open: boolean;
   issuerId: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-function AddPdvModal({ issuerId, onClose, onSuccess }: AddPdvModalProps) {
+/* El formulario se monta al abrir y se desmonta al terminar de cerrarse: cada apertura arranca vacía. */
+function AddPdvModal({ open, issuerId, onClose, onSuccess }: AddPdvModalProps) {
+  const [busy, setBusy] = useState(false);
+  // El diálogo enfoca su primer control (el botón de cerrar); se empieza a escribir por el número.
+  useEffect(() => {
+    if (open) document.getElementById('pdvNumber')?.focus();
+  }, [open]);
+  return (
+    <Dialog open={open} onClose={onClose} busy={busy} size="sm" className="max-sm:max-w-none">
+      <AddPdvForm issuerId={issuerId} onClose={onClose} onSuccess={onSuccess} onBusyChange={setBusy} />
+    </Dialog>
+  );
+}
+
+function AddPdvForm({
+  issuerId,
+  onClose,
+  onSuccess,
+  onBusyChange,
+}: Omit<AddPdvModalProps, 'open'> & { onBusyChange: (busy: boolean) => void }) {
   const t = useTranslations('invoices.fiscal.pdv');
   const [number, setNumber] = useState('');
   const [nombre, setNombre] = useState('');
   const [tipo, setTipo] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmittingState] = useState(false);
   const [error, setError] = useState('');
+
+  function setSubmitting(value: boolean) {
+    setSubmittingState(value);
+    onBusyChange(value);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,70 +68,62 @@ function AddPdvModal({ issuerId, onClose, onSuccess }: AddPdvModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="add-pdv-title"
-        className="relative z-10 w-full max-w-md bg-white rounded-xl shadow-xl"
-      >
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 id="add-pdv-title" className="text-base font-semibold text-slate-900">{t('addTitle')}</h2>
-          <button onClick={onClose} aria-label="Cerrar" className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <form onSubmit={handleSubmit}>
+      <DialogHeader>
+        <h2 className="text-base font-semibold text-slate-900">{t('addTitle')}</h2>
+        <button type="button" onClick={onClose} aria-label="Cerrar" className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </DialogHeader>
+      <DialogBody className="space-y-4">
+        <div>
+          <label htmlFor="pdvNumber" className="block text-xs font-medium text-slate-500 mb-1">{t('number')} *</label>
+          <input
+            id="pdvNumber"
+            type="number"
+            min={1}
+            value={number}
+            onChange={(e) => setNumber(e.target.value)}
+            required
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          />
         </div>
-        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          <div>
-            <label htmlFor="pdvNumber" className="block text-xs font-medium text-slate-500 mb-1">{t('number')} *</label>
-            <input
-              id="pdvNumber"
-              type="number"
-              min={1}
-              value={number}
-              onChange={(e) => setNumber(e.target.value)}
-              required
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="pdvNombre" className="block text-xs font-medium text-slate-500 mb-1">{t('nombre')}</label>
-            <input
-              id="pdvNombre"
-              type="text"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="pdvTipo" className="block text-xs font-medium text-slate-500 mb-1">{t('tipo')}</label>
-            <input
-              id="pdvTipo"
-              type="text"
-              value={tipo}
-              placeholder="Web Services"
-              onChange={(e) => setTipo(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-            />
-          </div>
-          {error && (
-            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm" role="alert">{error}</div>
-          )}
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
-              Cancelar
-            </button>
-            <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              {submitting ? t('adding') : t('add')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div>
+          <label htmlFor="pdvNombre" className="block text-xs font-medium text-slate-500 mb-1">{t('nombre')}</label>
+          <input
+            id="pdvNombre"
+            type="text"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="pdvTipo" className="block text-xs font-medium text-slate-500 mb-1">{t('tipo')}</label>
+          <input
+            id="pdvTipo"
+            type="text"
+            value={tipo}
+            placeholder="Web Services"
+            onChange={(e) => setTipo(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+          />
+        </div>
+        {error && (
+          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm" role="alert">{error}</div>
+        )}
+      </DialogBody>
+      <DialogFooter>
+        <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
+          Cancelar
+        </button>
+        <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          {submitting ? t('adding') : t('add')}
+        </button>
+      </DialogFooter>
+    </form>
   );
 }
 
@@ -221,13 +239,12 @@ export function PdvSection({ issuer, onRefresh }: PdvSectionProps) {
         </div>
       )}
 
-      {addOpen && (
-        <AddPdvModal
-          issuerId={issuer.id}
-          onClose={() => setAddOpen(false)}
-          onSuccess={() => { setAddOpen(false); onRefresh(); }}
-        />
-      )}
+      <AddPdvModal
+        open={addOpen}
+        issuerId={issuer.id}
+        onClose={() => setAddOpen(false)}
+        onSuccess={() => { setAddOpen(false); onRefresh(); }}
+      />
     </div>
   );
 }
