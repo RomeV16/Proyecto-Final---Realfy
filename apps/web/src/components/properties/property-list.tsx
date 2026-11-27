@@ -44,6 +44,7 @@ interface PropertyItem {
   title: string;
   type: string;
   street?: string;
+  number?: string | null;
   city?: string;
   province?: string;
   /** Superficie en m². La API la expone como `area`. */
@@ -96,7 +97,14 @@ function PropertyCard({ property }: { property: PropertyItem }) {
   const cover =
     photos.find((m) => m.isPrimary)?.thumbnailUrl || photos[0]?.thumbnailUrl || null;
 
-  const address = [property.street, property.city, property.province].filter(Boolean).join(', ');
+  // "Guatemala 4521, CABA": calle con altura, y la provincia solo si no repite la ciudad.
+  const address = [
+    [property.street, property.number].filter(Boolean).join(' '),
+    property.city,
+    property.province !== property.city ? property.province : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
   /* La operación puede fijar su propio precio (p. ej. venta y alquiler con
      valores distintos); si no lo hace, vale el precio de referencia de la ficha. */
   const price = primaryOp?.price ?? property.price;

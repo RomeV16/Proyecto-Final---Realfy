@@ -98,6 +98,18 @@ describe('PropertyList', () => {
     auth.role = 'Admin';
   });
 
+
+  it('la dirección lleva la altura y no repite la provincia cuando coincide con la ciudad', async () => {
+    apiClient.mockResolvedValue({
+      items: [{ ...items[0], number: '742', city: 'Urbe', province: 'Urbe' }],
+      total: 1,
+      page: 1,
+      limit: 12,
+      totalPages: 1,
+    });
+    renderEs(<PropertyList />);
+    expect(await screen.findByText('Calle Falsa 742, Urbe')).toBeInTheDocument();
+  });
   it('muestra tarjetas con precio de la operación, precio de ficha y avisos', async () => {
     apiClient.mockResolvedValue(page());
     renderEs(<PropertyList />);
@@ -186,7 +198,7 @@ describe('PropertyList', () => {
     await user.selectOptions(screen.getByLabelText('Tipo'), 'Casa');
     expect(await screen.findByText('Sin resultados')).toBeInTheDocument();
     expect(
-      screen.getByText('No se encontraron propiedades con los filtros aplicados'),
+      screen.getByText('Ninguna propiedad coincide con los filtros.'),
     ).toBeInTheDocument();
     await user.click(screen.getAllByRole('button', { name: 'Limpiar filtros' })[0]);
     expect(await screen.findByText('No hay propiedades')).toBeInTheDocument();

@@ -23,7 +23,7 @@ export default function NewPropertyPage() {
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('createTitle')}</h1>
       </div>
 
-      <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-sm flex items-center gap-2">
+      <div className="flex max-w-2xl items-center gap-2 text-sm text-[var(--color-muted)]">
         <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
         </svg>
