@@ -40,7 +40,7 @@ export function CashCenter() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-2xl font-semibold text-[var(--color-text)]">{t('title')}</h1>
+        <h1 className="h1">{t('title')}</h1>
         <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
       </header>
 

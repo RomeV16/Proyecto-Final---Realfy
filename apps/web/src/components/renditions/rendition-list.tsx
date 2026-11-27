@@ -95,7 +95,7 @@ export function RenditionList() {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text)]">{t('title')}</h1>
+        <h1 className="h1">{t('title')}</h1>
         <p className="mt-0.5 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
       </div>
 

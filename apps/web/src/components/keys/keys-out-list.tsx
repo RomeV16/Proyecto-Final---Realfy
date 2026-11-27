@@ -140,7 +140,7 @@ export function KeysOutList() {
     <div className="space-y-5">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text)]">{t('out.title')}</h1>
+          <h1 className="h1">{t('out.title')}</h1>
           <p className="mt-0.5 max-w-2xl text-sm text-[var(--color-muted)]">{t('out.subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

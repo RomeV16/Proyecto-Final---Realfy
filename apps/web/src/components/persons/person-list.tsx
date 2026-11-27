@@ -161,7 +161,7 @@ export function PersonList() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text)]">{t('title')}</h1>
+          <h1 className="h1">{t('title')}</h1>
           <p className="mt-0.5 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">

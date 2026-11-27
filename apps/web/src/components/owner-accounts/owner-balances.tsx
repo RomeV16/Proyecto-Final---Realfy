@@ -92,7 +92,7 @@ export function OwnerBalances() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--color-text)]">{t('balances.title')}</h1>
+          <h1 className="h1">{t('balances.title')}</h1>
           <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('balances.subtitle')}</p>
         </div>
         <div className="flex flex-col gap-1">

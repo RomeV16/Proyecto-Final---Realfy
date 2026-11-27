@@ -56,7 +56,7 @@ export default function DelinquencyPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--color-text)]">{t('title')}</h1>
+          <h1 className="h1">{t('title')}</h1>
           <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('description')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

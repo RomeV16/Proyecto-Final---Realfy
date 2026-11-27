@@ -174,7 +174,7 @@ export default function ProviderListPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text)]">{t('title')}</h1>
+          <h1 className="h1">{t('title')}</h1>
           <p className="mt-0.5 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
         <Link href={'/providers/new'} className="shrink-0">

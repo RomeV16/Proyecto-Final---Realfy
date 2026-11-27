@@ -473,7 +473,7 @@ export function ContractForm() {
         </Link>
       </div>
 
-      <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">{t('title')}</h1>
+      <h1 className="h1 mb-2">{t('title')}</h1>
 
       <StepIndicator current={step + 1} total={STEPS.length} t={t} />
 
