@@ -139,16 +139,20 @@ function StepIndicator({ current, total, t }: { current: number; total: number; 
   return (
     <div className="mb-6">
       <p className="text-xs text-slate-500 mb-2">{t('step', { current, total })}</p>
-      <div className="flex gap-2">
-        {Array.from({ length: total }).map((_, i) => (
-          <div
-            key={i}
-            className={`h-1.5 flex-1 rounded-full transition-colors ${
-              i < current ? 'bg-brand-500' : 'bg-slate-200'
-            }`}
-          />
+      <ol className="flex gap-2">
+        {STEPS.slice(0, total).map((name, i) => (
+          <li key={name} className="min-w-0 flex-1" aria-current={i === current - 1 ? 'step' : undefined}>
+            <div className={`h-1.5 rounded-full transition-colors ${i < current ? 'bg-brand-500' : 'bg-slate-200'}`} />
+            <span
+              className={`mt-1.5 block truncate text-xs ${
+                i === current - 1 ? 'font-medium text-slate-900' : 'hidden text-slate-500 sm:block'
+              }`}
+            >
+              {t(`${name}.short`)}
+            </span>
+          </li>
         ))}
-      </div>
+      </ol>
     </div>
   );
 }
@@ -206,6 +210,8 @@ export function ContractForm() {
   const [propertySearch, setPropertySearch] = useState('');
   const [propertyResults, setPropertyResults] = useState<PropertyResult[]>([]);
   const [searchingProperty, setSearchingProperty] = useState(false);
+  const [propertySearched, setPropertySearched] = useState(false);
+  const [personSearched, setPersonSearched] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<PropertyResult | null>(null);
 
   function update<K extends keyof FormData>(key: K, value: FormData[K]) {
@@ -216,6 +222,7 @@ export function ContractForm() {
   /* ── Property search ── */
   async function searchProperties(query: string) {
     setPropertySearch(query);
+    setPropertySearched(false);
     if (query.length < 2) { setPropertyResults([]); return; }
     setSearchingProperty(true);
     try {
@@ -225,6 +232,7 @@ export function ContractForm() {
       setPropertyResults([]);
     } finally {
       setSearchingProperty(false);
+      setPropertySearched(true);
     }
   }
 
@@ -233,11 +241,13 @@ export function ContractForm() {
     update('propertyId', p.id);
     setPropertySearch(p.title);
     setPropertyResults([]);
+    setPropertySearched(false);
   }
 
   /* ── Person search ── */
   async function searchPersons(query: string) {
     setPersonSearch(query);
+    setPersonSearched(false);
     if (query.length < 2) { setPersonResults([]); return; }
     setSearchingPerson(true);
     try {
@@ -252,6 +262,7 @@ export function ContractForm() {
       setPersonResults([]);
     } finally {
       setSearchingPerson(false);
+      setPersonSearched(true);
     }
   }
 
@@ -332,16 +343,22 @@ export function ContractForm() {
   function validateStep(s: number): boolean {
     const errors: Record<string, string> = {};
     if (s === 0) {
-      if (!form.propertyId) errors.propertyId = tCommon('error');
-      if (!form.contractType) errors.contractType = tCommon('error');
-      if (!form.startDate) errors.startDate = tCommon('error');
+      if (!form.propertyId) errors.propertyId = t('validation.property');
+      if (!form.contractType) errors.contractType = t('validation.contractType');
+      if (!form.startDate) errors.startDate = t('validation.startDate');
+      if (!form.endDate) errors.endDate = t('validation.endDateRequired');
+      else if (form.startDate && form.endDate <= form.startDate) errors.endDate = t('validation.endDate');
     } else if (s === 1) {
       const hasPropietario = form.lessors.length > 0;
       const hasInquilino = form.persons.some((p) => p.role === 'Inquilino');
       if (!hasPropietario && form.contractType !== 'Venta') errors.propietario = t('step2.propietarioRequired');
       if (!hasInquilino && form.contractType !== 'Venta') errors.inquilino = t('step2.inquilinoRequired');
     } else if (s === 2) {
-      if (!form.rentAmount || Number(form.rentAmount) <= 0) errors.rentAmount = tCommon('error');
+      if (!form.rentAmount || Number(form.rentAmount) <= 0) errors.rentAmount = t('validation.rentAmount');
+      if (!form.adjustmentType) errors.adjustmentType = t('validation.adjustmentType');
+      if (!form.adjustmentPeriod) errors.adjustmentPeriod = t('validation.adjustmentPeriod');
+      const needsPct = form.adjustmentType === 'FixedPercent' || form.adjustmentType === 'Custom';
+      if (needsPct && !(Number(form.customAdjustmentPct) > 0)) errors.customAdjustmentPct = t('validation.customPct');
     }
     setStepErrors(errors);
     return Object.keys(errors).length === 0;
@@ -466,9 +483,13 @@ export function ContractForm() {
 
             {/* Property search */}
             <div className="max-w-sm">
-              <label className="block text-xs font-medium text-slate-500 mb-1">{t('step1.property')}</label>
+              <label htmlFor="contract-property" className="block text-xs font-medium text-slate-500 mb-1">{t('step1.property')} *</label>
               <div className="relative">
                 <input
+                  id="contract-property"
+                  autoFocus
+                  autoComplete="off"
+                  aria-invalid={Boolean(stepErrors.propertyId)}
                   type="text"
                   value={propertySearch}
                   onChange={(e) => searchProperties(e.target.value)}
@@ -496,15 +517,31 @@ export function ContractForm() {
                   ))}
                 </div>
               )}
-              {selectedProperty && (
-                <p className="mt-1 text-xs text-emerald-600">✓ {selectedProperty.title}</p>
+              {propertySearched && !searchingProperty && propertyResults.length === 0 && !selectedProperty && (
+                <p className="mt-1 text-xs text-slate-500">
+                  {t('step1.propertyNoResults')}{' '}
+                  <Link href={'/properties/new'} className="text-brand-600 underline-offset-2 hover:underline">
+                    {t('step1.propertyCreate')}
+                  </Link>
+                </p>
               )}
+              {selectedProperty && (
+                <p className="mt-1 text-xs text-emerald-600">
+                  ✓ {[selectedProperty.title, selectedProperty.street].filter(Boolean).join(' · ')}
+                </p>
+              )}
+              {!selectedProperty && !propertySearched && !stepErrors.propertyId && (
+                <p className="mt-1 text-xs text-slate-400">{t('step1.propertyHint')}</p>
+              )}
+              {stepErrors.propertyId && <p className="mt-1 text-xs text-red-600">{stepErrors.propertyId}</p>}
             </div>
 
             {/* Contract type */}
             <div className="max-w-sm">
-              <label className="block text-xs font-medium text-slate-500 mb-1">{t('step1.contractType')}</label>
+              <label htmlFor="contract-type" className="block text-xs font-medium text-slate-500 mb-1">{t('step1.contractType')} *</label>
               <select
+                id="contract-type"
+                aria-invalid={Boolean(stepErrors.contractType)}
                 value={form.contractType}
                 onChange={(e) => update('contractType', e.target.value)}
                 className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 ${stepErrors.contractType ? 'border-red-300' : 'border-slate-200'}`}
@@ -514,34 +551,44 @@ export function ContractForm() {
                   <option key={ct} value={ct}>{tContracts(`types.${ct}`)}</option>
                 ))}
               </select>
+              {stepErrors.contractType && <p className="mt-1 text-xs text-red-600">{stepErrors.contractType}</p>}
             </div>
 
             {/* Start date */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-sm">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('step1.startDate')}</label>
+                <label htmlFor="contract-start" className="block text-xs font-medium text-slate-500 mb-1">{t('step1.startDate')} *</label>
                 <input
+                  id="contract-start"
+                  aria-invalid={Boolean(stepErrors.startDate)}
                   type="date"
                   value={form.startDate}
                   onChange={(e) => update('startDate', e.target.value)}
                   className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${stepErrors.startDate ? 'border-red-300' : 'border-slate-200'}`}
                 />
+                {stepErrors.startDate && <p className="mt-1 text-xs text-red-600">{stepErrors.startDate}</p>}
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('step1.endDate')}</label>
+                <label htmlFor="contract-end" className="block text-xs font-medium text-slate-500 mb-1">{t('step1.endDate')} *</label>
                 <input
+                  id="contract-end"
+                  aria-invalid={Boolean(stepErrors.endDate)}
                   type="date"
+                  min={form.startDate || undefined}
                   value={form.endDate}
                   onChange={(e) => update('endDate', e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                  className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${stepErrors.endDate ? 'border-red-300' : 'border-slate-200'}`}
                 />
+                {stepErrors.endDate && <p className="mt-1 text-xs text-red-600">{stepErrors.endDate}</p>}
               </div>
             </div>
+            <p className="-mt-2 max-w-sm text-xs text-slate-400">{t('step1.endDateHint')}</p>
 
             {/* Notes */}
             <div className="max-w-sm">
-              <label className="block text-xs font-medium text-slate-500 mb-1">{t('step1.notes')}</label>
+              <label htmlFor="contract-notes" className="block text-xs font-medium text-slate-500 mb-1">{t('step1.notes')}</label>
               <textarea
+                id="contract-notes"
                 value={form.notes}
                 onChange={(e) => update('notes', e.target.value)}
                 placeholder={t('step1.notesPlaceholder')}
@@ -562,9 +609,12 @@ export function ContractForm() {
 
             {/* Person search */}
             <div className="max-w-sm">
-              <label className="block text-xs font-medium text-slate-500 mb-1">{t('step2.searchPerson')}</label>
+              <label htmlFor="contract-person-search" className="block text-xs font-medium text-slate-500 mb-1">{t('step2.searchLabel')}</label>
               <div className="relative">
                 <input
+                  id="contract-person-search"
+                  autoFocus
+                  autoComplete="off"
                   type="text"
                   value={personSearch}
                   onChange={(e) => searchPersons(e.target.value)}
@@ -608,6 +658,16 @@ export function ContractForm() {
               )}
             </div>
 
+            {personSearched && !searchingPerson && personResults.length === 0 && (
+              <p className="text-xs text-slate-500">
+                {t('step2.noResults')}{' '}
+                <Link href={'/persons/new'} className="text-brand-600 underline-offset-2 hover:underline">
+                  {t('step2.createPerson')}
+                </Link>
+              </p>
+            )}
+            <p className="max-w-lg text-xs text-slate-400">{t('step2.roleHint')}</p>
+
             {stepErrors.personRole && (
               <p className="text-xs text-red-600">{stepErrors.personRole}</p>
             )}
@@ -646,6 +706,7 @@ export function ContractForm() {
                     {t('step2.noPropietario')}
                   </p>
                 )}
+                {stepErrors.propietario && <p className="mt-1 text-xs text-red-600">{stepErrors.propietario}</p>}
                 {form.lessors.length > 0 && (
                   <p
                     role="status"
@@ -680,6 +741,7 @@ export function ContractForm() {
                     {t('step2.noInquilino')}
                   </p>
                 )}
+                {stepErrors.inquilino && <p className="mt-1 text-xs text-red-600">{stepErrors.inquilino}</p>}
               </div>
 
               {/* Garantes */}
@@ -714,8 +776,13 @@ export function ContractForm() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-sm">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('step3.rentAmount')}</label>
+                <label htmlFor="contract-rent" className="block text-xs font-medium text-slate-500 mb-1">{t('step3.rentAmount')} *</label>
                 <input
+                  id="contract-rent"
+                  autoFocus
+                  min="0"
+                  inputMode="decimal"
+                  aria-invalid={Boolean(stepErrors.rentAmount)}
                   type="number"
                   step="0.01"
                   value={form.rentAmount}
@@ -723,24 +790,29 @@ export function ContractForm() {
                   placeholder={t('step3.rentAmountPlaceholder')}
                   className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${stepErrors.rentAmount ? 'border-red-300' : 'border-slate-200'}`}
                 />
+                {stepErrors.rentAmount && <p className="mt-1 text-xs text-red-600">{stepErrors.rentAmount}</p>}
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('step3.currency')}</label>
+                <label htmlFor="contract-currency" className="block text-xs font-medium text-slate-500 mb-1">{t('step3.currency')}</label>
                 <select
+                  id="contract-currency"
                   value={form.currency}
                   onChange={(e) => update('currency', e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                 >
                   {Object.values(Currency).map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>{tCommon.has(`currencies.${c}`) ? tCommon(`currencies.${c}`) : c}</option>
                   ))}
                 </select>
               </div>
             </div>
 
             <div className="max-w-sm">
-              <label className="block text-xs font-medium text-slate-500 mb-1">{t('step3.depositAmount')}</label>
+              <label htmlFor="contract-deposit" className="block text-xs font-medium text-slate-500 mb-1">{t('step3.depositAmount')}</label>
               <input
+                id="contract-deposit"
+                min="0"
+                inputMode="decimal"
                 type="number"
                 step="0.01"
                 value={form.depositAmount}
@@ -752,54 +824,70 @@ export function ContractForm() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-sm">
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('step3.adjustmentType')}</label>
+                <label htmlFor="contract-adj-type" className="block text-xs font-medium text-slate-500 mb-1">{t('step3.adjustmentType')} *</label>
                 <select
+                  id="contract-adj-type"
+                  aria-invalid={Boolean(stepErrors.adjustmentType)}
                   value={form.adjustmentType}
                   onChange={(e) => update('adjustmentType', e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                  className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${stepErrors.adjustmentType ? 'border-red-300' : 'border-slate-200'}`}
                 >
                   <option value="">{t('step3.adjustmentTypePlaceholder')}</option>
                   {Object.values(AdjustmentType).filter((at) => !PENDING_ADJUSTMENT_TYPES.includes(at)).map((at) => (
                     <option key={at} value={at}>{tContracts(`adjustmentTypes.${at}`)}</option>
                   ))}
                 </select>
+                {stepErrors.adjustmentType && <p className="mt-1 text-xs text-red-600">{stepErrors.adjustmentType}</p>}
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('step3.adjustmentPeriod')}</label>
+                <label htmlFor="contract-adj-period" className="block text-xs font-medium text-slate-500 mb-1">{t('step3.adjustmentPeriod')} *</label>
                 <select
+                  id="contract-adj-period"
+                  aria-invalid={Boolean(stepErrors.adjustmentPeriod)}
                   value={form.adjustmentPeriod}
                   onChange={(e) => update('adjustmentPeriod', e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                  className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${stepErrors.adjustmentPeriod ? 'border-red-300' : 'border-slate-200'}`}
                 >
                   <option value="">{t('step3.adjustmentPeriodPlaceholder')}</option>
                   {Object.values(AdjustmentPeriod).map((ap) => (
                     <option key={ap} value={ap}>{tContracts(`adjustmentPeriods.${ap}`)}</option>
                   ))}
                 </select>
+                {stepErrors.adjustmentPeriod && <p className="mt-1 text-xs text-red-600">{stepErrors.adjustmentPeriod}</p>}
               </div>
             </div>
 
             {showCustomPct && (
               <div className="max-w-sm">
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('step3.customPercentage')}</label>
+                <label htmlFor="contract-custom-pct" className="block text-xs font-medium text-slate-500 mb-1">{t('step3.customPercentage')} *</label>
                 <input
+                  id="contract-custom-pct"
+                  min="0"
+                  inputMode="decimal"
+                  aria-invalid={Boolean(stepErrors.customAdjustmentPct)}
                   type="number"
                   step="0.01"
                   value={form.customAdjustmentPct}
                   onChange={(e) => update('customAdjustmentPct', e.target.value)}
                   placeholder={t('step3.customPercentagePlaceholder')}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                  className={`w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 ${stepErrors.customAdjustmentPct ? 'border-red-300' : 'border-slate-200'}`}
                 />
+                {stepErrors.customAdjustmentPct && <p className="mt-1 text-xs text-red-600">{stepErrors.customAdjustmentPct}</p>}
               </div>
             )}
 
             {/* Convenciones de liquidación pactables */}
-            <div className="space-y-3 border-t border-slate-100 pt-4">
-              <div>
-                <h3 className="text-sm font-semibold text-slate-900">{tConv('title')}</h3>
-                <p className="text-xs text-slate-500">{tConv('description')}</p>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <details className="group border-t border-slate-100 pt-4">
+              <summary className="cursor-pointer list-none rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 [&::-webkit-details-marker]:hidden">
+                <span className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-semibold text-slate-900">{tConv('title')}</span>
+                  <span className="text-xs text-brand-600 group-open:hidden">{t('step3.conventionsShow')}</span>
+                  <span className="hidden text-xs text-brand-600 group-open:inline">{t('step3.conventionsHide')}</span>
+                </span>
+                <span className="mt-0.5 block text-xs text-slate-500">{t('step3.conventionsHint')}</span>
+              </summary>
+              <p className="mt-3 text-xs text-slate-500">{tConv('description')}</p>
+              <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {CONVENTION_FIELDS.map((field) => (
                   <div key={field}>
                     <label className="mb-1 block text-xs font-medium text-slate-500" htmlFor={`conv-${field}`}>
@@ -884,7 +972,7 @@ export function ContractForm() {
                   <p className="mt-1 text-xs text-slate-400">{tConv('repairPreauthLimit.hint')}</p>
                 </div>
               </div>
-            </div>
+            </details>
 
             {/* Adjustment summary */}
             {form.adjustmentType && (

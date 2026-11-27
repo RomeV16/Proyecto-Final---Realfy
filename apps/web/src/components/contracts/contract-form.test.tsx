@@ -60,9 +60,8 @@ async function fillWizard() {
   await user.type(screen.getByPlaceholderText('Buscar propiedad…'), 'Depto');
   await user.click(await screen.findByRole('button', { name: /Depto de prueba/ }));
   await user.selectOptions(screen.getAllByRole('combobox')[0], 'Alquiler');
-  fireEvent.change(container.querySelector('input[type=date]')!, {
-    target: { value: '2026-01-01' },
-  });
+  fireEvent.change(container.querySelector('#contract-start')!, { target: { value: '2026-01-01' } });
+  fireEvent.change(container.querySelector('#contract-end')!, { target: { value: '2027-12-31' } });
   await user.click(screen.getByRole('button', { name: 'Siguiente' }));
 
   const search = screen.getByPlaceholderText('Buscar persona por nombre o CUIT…');
@@ -73,6 +72,8 @@ async function fillWizard() {
   await user.click(screen.getByRole('button', { name: 'Siguiente' }));
 
   await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+  await user.selectOptions(screen.getByLabelText(/^Índice o tipo de ajuste/), 'IPC');
+  await user.selectOptions(screen.getByLabelText(/^Cada cuánto se ajusta/), 'Trimestral');
   await user.click(screen.getByRole('button', { name: 'Siguiente' }));
   return user;
 }
@@ -171,8 +172,8 @@ describe('ContractForm — guardar como borrador o activo', () => {
 
     postResult = () => Promise.reject(new Error('red caída'));
     await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
-    expect(await screen.findByText('Error al crear el contrato')).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent('Error al crear el contrato');
+    expect(await screen.findByText('No se pudo crear el contrato. Revisá los datos e intentá de nuevo.')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudo crear el contrato. Revisá los datos e intentá de nuevo.');
   });
 
   it('no avanza si falta un dato obligatorio del paso actual', async () => {
@@ -180,7 +181,64 @@ describe('ContractForm — guardar como borrador o activo', () => {
     renderEs(<ContractForm />);
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     expect(screen.getByText('Paso 1 de 4')).toBeInTheDocument();
+    expect(screen.getByText('Elegí la propiedad del contrato.')).toBeInTheDocument();
+    expect(screen.getByText('Elegí el tipo de contrato.')).toBeInTheDocument();
+    expect(screen.getByText('Indicá la fecha de inicio.')).toBeInTheDocument();
+    expect(screen.getByText('Indicá la fecha de fin.')).toBeInTheDocument();
     expect(apiClient.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+  });
+
+  it('la fecha de fin tiene que ser posterior a la de inicio', async () => {
+    const user = userEvent.setup();
+    const { container } = renderEs(<ContractForm />);
+    fireEvent.change(container.querySelector('#contract-start')!, { target: { value: '2026-05-01' } });
+    fireEvent.change(container.querySelector('#contract-end')!, { target: { value: '2026-04-01' } });
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(screen.getByText('La fecha de fin tiene que ser posterior a la de inicio.')).toBeInTheDocument();
+  });
+
+  it('si la búsqueda de propiedad no encuentra nada lo dice y ofrece cargarla', async () => {
+    const user = userEvent.setup();
+    apiClient.mockImplementation(() => Promise.resolve({ items: [] }));
+    renderEs(<ContractForm />);
+    await user.type(screen.getByPlaceholderText('Buscar propiedad…'), 'zzzz');
+    expect(await screen.findByText(/No hay propiedades con ese nombre o dirección/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Cargar una propiedad' })).toHaveAttribute('href', '/es/properties/new');
+  });
+
+  it('el paso de precio exige alquiler, tipo y período de ajuste, y el porcentaje si es fijo', async () => {
+    const user = userEvent.setup();
+    const { container } = renderEs(<ContractForm />);
+    await user.type(screen.getByPlaceholderText('Buscar propiedad…'), 'Depto');
+    await user.click(await screen.findByRole('button', { name: /Depto de prueba/ }));
+    await user.selectOptions(screen.getAllByRole('combobox')[0], 'Alquiler');
+    fireEvent.change(container.querySelector('#contract-start')!, { target: { value: '2026-01-01' } });
+    fireEvent.change(container.querySelector('#contract-end')!, { target: { value: '2027-12-31' } });
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    const search = screen.getByPlaceholderText('Buscar persona por nombre o CUIT…');
+    await user.type(search, 'zzzz');
+    expect(await screen.findByText(/No encontramos a nadie con ese nombre o CUIT/)).toBeInTheDocument();
+    await user.clear(search);
+    await user.type(search, 'Propietaria');
+    await user.click(await screen.findByRole('button', { name: /Agregar locador/ }));
+    await user.type(search, 'Inquilino');
+    await user.click(await screen.findByRole('button', { name: /Agregar inquilino/ }));
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(screen.getByText('Paso 3 de 4')).toBeInTheDocument();
+    expect(screen.getByText('Ingresá el alquiler mensual, mayor que cero.')).toBeInTheDocument();
+    expect(screen.getByText('Elegí cómo se ajusta el alquiler.')).toBeInTheDocument();
+    expect(screen.getByText('Elegí cada cuánto se ajusta.')).toBeInTheDocument();
+
+    await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.selectOptions(screen.getByLabelText(/^Índice o tipo de ajuste/), 'FixedPercent');
+    await user.selectOptions(screen.getByLabelText(/^Cada cuánto se ajusta/), 'Semestral');
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(screen.getByText('Ingresá el porcentaje de ajuste.')).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/^Porcentaje de ajuste/), '8');
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    expect(screen.getByText('Paso 4 de 4')).toBeInTheDocument();
   });
 });
 
@@ -199,7 +257,8 @@ describe('ContractForm — locadores con su porcentaje de cobro', () => {
     await user.type(screen.getByPlaceholderText('Buscar propiedad…'), 'Depto');
     await user.click(await screen.findByRole('button', { name: /Depto de prueba/ }));
     await user.selectOptions(screen.getAllByRole('combobox')[0], 'Alquiler');
-    fireEvent.change(container.querySelector('input[type=date]')!, { target: { value: '2026-01-01' } });
+    fireEvent.change(container.querySelector('#contract-start')!, { target: { value: '2026-01-01' } });
+    fireEvent.change(container.querySelector('#contract-end')!, { target: { value: '2027-12-31' } });
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     return user;
   }
@@ -243,6 +302,8 @@ describe('ContractForm — locadores con su porcentaje de cobro', () => {
     await addLessorTenant(user);
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.selectOptions(screen.getByLabelText(/^Índice o tipo de ajuste/), 'IPC');
+    await user.selectOptions(screen.getByLabelText(/^Cada cuánto se ajusta/), 'Trimestral');
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
 
     expect(screen.getByRole('button', { name: 'Guardar y activar' })).toBeDisabled();
@@ -304,7 +365,8 @@ describe('ContractForm — convenciones de liquidación', () => {
     await user.type(screen.getByPlaceholderText('Buscar propiedad…'), 'Depto');
     await user.click(await screen.findByRole('button', { name: /Depto de prueba/ }));
     await user.selectOptions(screen.getAllByRole('combobox')[0], 'Alquiler');
-    fireEvent.change(container.querySelector('input[type=date]')!, { target: { value: '2026-01-01' } });
+    fireEvent.change(container.querySelector('#contract-start')!, { target: { value: '2026-01-01' } });
+    fireEvent.change(container.querySelector('#contract-end')!, { target: { value: '2027-12-31' } });
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     const search = screen.getByPlaceholderText('Buscar persona por nombre o CUIT…');
     await user.type(search, 'Propietaria');
@@ -331,6 +393,8 @@ describe('ContractForm — convenciones de liquidación', () => {
     expect(screen.getByLabelText('Si el inquilino le paga al locador')).toHaveValue('');
     await user.selectOptions(screen.getByLabelText('Si el inquilino le paga al locador'), 'SoloInmobiliaria');
     await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.selectOptions(screen.getByLabelText(/^Índice o tipo de ajuste/), 'IPC');
+    await user.selectOptions(screen.getByLabelText(/^Cada cuánto se ajusta/), 'Trimestral');
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
 
@@ -354,6 +418,8 @@ describe('ContractForm — convenciones de liquidación', () => {
     await user.selectOptions(screen.getByLabelText('Moneda del límite'), 'USD');
     await user.type(limit, '500,5');
     await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.selectOptions(screen.getByLabelText(/^Índice o tipo de ajuste/), 'IPC');
+    await user.selectOptions(screen.getByLabelText(/^Cada cuánto se ajusta/), 'Trimestral');
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
     await waitFor(() => expect(router.push).toHaveBeenCalled());
@@ -367,6 +433,8 @@ describe('ContractForm — convenciones de liquidación', () => {
     const user = await toPriceStep();
     await user.type(await screen.findByLabelText('Límite de reparaciones propio'), 'mucho');
     await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.selectOptions(screen.getByLabelText(/^Índice o tipo de ajuste/), 'IPC');
+    await user.selectOptions(screen.getByLabelText(/^Cada cuánto se ajusta/), 'Trimestral');
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
     await waitFor(() => expect(router.push).toHaveBeenCalled());
@@ -380,6 +448,8 @@ describe('ContractForm — convenciones de liquidación', () => {
     expect(screen.getAllByRole('option', { name: 'Valor por defecto de la inmobiliaria' })).toHaveLength(8);
 
     await user.type(screen.getAllByPlaceholderText('0.00')[0], '100000');
+    await user.selectOptions(screen.getByLabelText(/^Índice o tipo de ajuste/), 'IPC');
+    await user.selectOptions(screen.getByLabelText(/^Cada cuánto se ajusta/), 'Trimestral');
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     await user.click(screen.getByRole('button', { name: 'Guardar como borrador' }));
 
