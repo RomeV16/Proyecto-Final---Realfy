@@ -1920,7 +1920,7 @@
    "InboundMessageReceived": "WhatsApp message received"
   },
   "list": {
-   "title": "All notifications",
+   "title": "Filter notifications",
    "filter": {
     "all": "All",
     "unread": "Unread",
@@ -1929,7 +1929,7 @@
    "filterByType": "Filter by type",
    "allTypes": "All types",
    "noResults": "No notifications found",
-   "noUnread": "No unread notifications",
+   "noUnread": "No unread notifications left.",
    "loading": "Loading notifications..."
   },
   "detail": {
@@ -1965,6 +1965,17 @@
   "success": {
    "markedAsRead": "Notification marked as read",
    "allMarkedAsRead": "All notifications marked as read"
+  },
+  "page": {
+   "unread": "{count, plural, one {You have # unread notification} other {You have # unread notifications}}",
+   "allRead": "You're up to date: no unread notifications.",
+   "today": "Today",
+   "yesterday": "Yesterday",
+   "markRead": "Mark as read",
+   "view": "View",
+   "emptyTitle": "You have no notifications",
+   "emptySubtitle": "Due dates, debts and contract changes will show up here.",
+   "loadError": "We couldn't load the notifications."
   }
  },
  "pipeline": {
@@ -7483,7 +7494,7 @@
    "CollectionCase": "Collections"
   },
   "reasons": {
-   "MESSAGING_OFF": "Sending is off in this environment: it stays queued until it is turned on.",
+   "MESSAGING_OFF": "Sending is turned off in this environment. It stays queued until it is turned on.",
    "PROVIDER_NOT_CONFIGURED": "The provider for this channel is not configured: it stays queued.",
    "QUIET_HOURS": "Outside sending hours: it goes out when they open.",
    "NOT_IN_ALLOWLIST": "Test mode: the address is not on the allowed list.",
@@ -7649,6 +7660,17 @@
     "emailOnly": "Email only",
     "empty": "No templates"
    }
+  },
+  "modeBanner": {
+   "off": {
+    "title": "Message sending is turned off",
+    "body": "No email or WhatsApp goes out in this environment. Whatever the system generates stays queued in this list and is sent only once sending is turned on."
+   },
+   "allowlist": {
+    "title": "Sending is in test mode",
+    "body": "Only messages to addresses on the test list go out. The rest stay blocked in this list."
+   },
+   "link": "View settings"
   }
  },
  "publication": {
@@ -8357,7 +8379,7 @@
   },
   "summary": {
    "unread": "{count} unread",
-   "breached": "{count} past deadline",
+   "breached": "{count, plural, one {# past the deadline} other {# past the deadline}}",
    "unassigned": "{count} unassigned"
   },
   "filters": {
@@ -8372,7 +8394,7 @@
    "anyAssignee": "Any owner",
    "mine": "My inquiries",
    "unassigned": "Unassigned",
-   "breached": "Past deadline"
+   "breached": "Past the deadline only"
   },
   "channels": {
    "WhatsApp": "WhatsApp",
@@ -8403,8 +8425,8 @@
   },
   "sla": {
    "met": "Answered",
-   "dueIn": "Due in {time}",
-   "overdue": "Overdue by {time}"
+   "dueIn": "Reply within {time}",
+   "overdue": "Unanswered for {time}"
   },
   "thread": {
    "label": "Inquiry",

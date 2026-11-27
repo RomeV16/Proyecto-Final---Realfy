@@ -1920,7 +1920,7 @@
    "InboundMessageReceived": "Mensaje de WhatsApp recibido"
   },
   "list": {
-   "title": "Todas las notificaciones",
+   "title": "Filtrar notificaciones",
    "filter": {
     "all": "Todas",
     "unread": "Sin leer",
@@ -1929,7 +1929,7 @@
    "filterByType": "Filtrar por tipo",
    "allTypes": "Todos los tipos",
    "noResults": "No se encontraron notificaciones",
-   "noUnread": "No hay notificaciones sin leer",
+   "noUnread": "No quedan avisos sin leer.",
    "loading": "Cargando notificaciones..."
   },
   "detail": {
@@ -1965,6 +1965,17 @@
   "success": {
    "markedAsRead": "Notificación marcada como leída",
    "allMarkedAsRead": "Todas las notificaciones marcadas como leídas"
+  },
+  "page": {
+   "unread": "{count, plural, one {Tenés # aviso sin leer} other {Tenés # avisos sin leer}}",
+   "allRead": "Estás al día: no hay avisos sin leer.",
+   "today": "Hoy",
+   "yesterday": "Ayer",
+   "markRead": "Marcar leída",
+   "view": "Ver",
+   "emptyTitle": "No tenés notificaciones",
+   "emptySubtitle": "Acá vas a ver los vencimientos, las deudas y los cambios en tus contratos.",
+   "loadError": "No pudimos cargar las notificaciones."
   }
  },
  "pipeline": {
@@ -7483,7 +7494,7 @@
    "CollectionCase": "Cobranza"
   },
   "reasons": {
-   "MESSAGING_OFF": "El envío está apagado en este ambiente: queda en cola hasta que se active.",
+   "MESSAGING_OFF": "El envío está apagado en este ambiente. Queda en cola hasta que se active.",
    "PROVIDER_NOT_CONFIGURED": "Falta configurar el proveedor de este canal: queda en cola.",
    "QUIET_HOURS": "Fuera del horario de envío: sale cuando abra.",
    "NOT_IN_ALLOWLIST": "Modo de prueba: la dirección no está en la lista permitida.",
@@ -7649,6 +7660,17 @@
     "emailOnly": "Solo mail",
     "empty": "No hay plantillas"
    }
+  },
+  "modeBanner": {
+   "off": {
+    "title": "El envío de mensajes está apagado",
+    "body": "En este ambiente no sale ningún mail ni WhatsApp. Lo que el sistema genera queda en esta lista, en cola, y sale recién cuando se active el envío."
+   },
+   "allowlist": {
+    "title": "El envío está en modo de prueba",
+    "body": "Solo salen los mensajes a las direcciones de la lista de prueba. El resto queda bloqueado en esta lista."
+   },
+   "link": "Ver la configuración"
   }
  },
  "publication": {
@@ -8357,7 +8379,7 @@
   },
   "summary": {
    "unread": "{count, plural, one {# sin leer} other {# sin leer}}",
-   "breached": "{count, plural, one {# con el plazo vencido} other {# con el plazo vencido}}",
+   "breached": "{count, plural, one {# fuera de plazo} other {# fuera de plazo}}",
    "unassigned": "{count, plural, one {# sin responsable} other {# sin responsable}}"
   },
   "filters": {
@@ -8372,7 +8394,7 @@
    "anyAssignee": "Cualquier responsable",
    "mine": "Mis consultas",
    "unassigned": "Sin responsable",
-   "breached": "Plazo vencido"
+   "breached": "Solo fuera de plazo"
   },
   "channels": {
    "WhatsApp": "WhatsApp",
@@ -8403,8 +8425,8 @@
   },
   "sla": {
    "met": "Respondida",
-   "dueIn": "Vence en {time}",
-   "overdue": "Vencida hace {time}"
+   "dueIn": "Responder en {time}",
+   "overdue": "Sin responder hace {time}"
   },
   "thread": {
    "label": "Consulta",
