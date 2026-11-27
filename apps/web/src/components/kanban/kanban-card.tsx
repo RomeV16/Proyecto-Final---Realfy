@@ -7,6 +7,8 @@ import { cn } from '@/lib/cn';
 import { Avatar } from '@/components/ui/avatar';
 import { Icon } from '@/components/ui/icon';
 import { formatMoney } from '@/lib/format';
+import { Link } from '@/i18n/navigation';
+import { msSince, useElapsedText } from '@/components/tickets/elapsed';
 
 /* ──────────── Types ──────────── */
 
@@ -61,6 +63,7 @@ function formatBudget(value: string | number | null | undefined, currency?: stri
 export function KanbanCard({ id, index, column, lead, staleDays }: KanbanCardProps) {
   const t = useTranslations('kanban.card');
   const tSources = useTranslations('leads.sources');
+  const elapsed = useElapsedText();
 
   const { ref, isDragging } = useSortable({
     id,
@@ -72,7 +75,6 @@ export function KanbanCard({ id, index, column, lead, staleDays }: KanbanCardPro
 
   const fullName = `${lead.person.firstName} ${lead.person.lastName}`;
   const propertyName = lead.property?.title || t('noProperty');
-  const days = daysAgo(lead.updatedAt);
   const budgetLabel = formatBudget(lead.budget, lead.budgetCurrency);
 
   // Sin contacto: compara lastContactAt (o updatedAt) contra el staleDays de la etapa.
@@ -103,9 +105,14 @@ export function KanbanCard({ id, index, column, lead, staleDays }: KanbanCardPro
       {/* Avatar + nombre */}
       <div className="flex items-center gap-2.5">
         <Avatar name={fullName} seed={lead.person.id || fullName} size="sm" />
-        <p className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight text-[var(--color-text)]">
+        <Link
+          href={`/leads/${lead.id}`}
+          draggable={false}
+          title={t('open', { name: fullName })}
+          className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight text-[var(--color-text)] hover:text-brand-600 hover:underline focus-visible:outline-2 focus-visible:outline-brand-500"
+        >
           {fullName}
-        </p>
+        </Link>
       </div>
 
       {/* Propiedad */}
@@ -139,7 +146,7 @@ export function KanbanCard({ id, index, column, lead, staleDays }: KanbanCardPro
             </span>
           )}
           <span className="whitespace-nowrap text-[11px] tabular-nums text-[var(--color-muted)]">
-            {t('daysInStage', { days })}
+            {t('unchanged', { time: elapsed(msSince(lead.updatedAt)) })}
           </span>
         </div>
       </div>

@@ -2022,7 +2022,7 @@
  },
  "leads": {
   "title": "Leads",
-  "subtitle": "Manage business opportunities and prospect follow-up",
+  "subtitle": "People interested in renting or buying, with the next thing to do for each one.",
   "newLead": "New lead",
   "filters": {
    "search": "Search",
@@ -2045,14 +2045,15 @@
    "Perdido": "Lost"
   },
   "table": {
-   "name": "Name",
+   "name": "Lead",
    "contact": "Contact",
    "pipeline": "Pipeline",
    "stage": "Stage",
    "source": "Source",
    "assignedTo": "Assigned to",
    "daysInStage": "Days in stage",
-   "createdAt": "Created"
+   "createdAt": "Created",
+   "nextStep": "Next step"
   },
   "sources": {
    "WebInquiry": "Web",
@@ -2090,7 +2091,7 @@
    "property": "Property (optional)",
    "propertyPlaceholder": "Select property",
    "assignedTo": "Assign to (optional)",
-   "assignedToPlaceholder": "Automatic round-robin assignment",
+   "assignedToPlaceholder": "Automatic assignment",
    "notes": "Notes",
    "notesPlaceholder": "Notes about the lead…",
    "submit": "Create lead",
@@ -2113,7 +2114,8 @@
    "lostReasonPlaceholder": "Explain the reason…",
    "lostReasonRequired": "The reason is required",
    "lostSuccess": "Lead marked as lost",
-   "error": "Could not complete the action"
+   "error": "The action could not be completed. Try again.",
+   "reassignPlaceholder": "Pick a user…"
   },
   "roles": {
    "Inquilino": "Tenant",
@@ -2125,21 +2127,34 @@
    "unassigned": "Unassigned",
    "daysAgo": "{days}d",
    "stale": "No contact for {days} days",
-   "view": "View record"
+   "view": "View record",
+   "noContact": "No contact details"
   },
   "empty": {
    "title": "No leads",
-   "subtitle": "Create your first lead to start managing opportunities",
-   "filtered": "No leads match the applied filters",
+   "subtitle": "Add the first lead to start following up.",
+   "filtered": "No leads match the filters.",
    "description": "Leads are sales opportunities: inquiries from people interested in your properties. Follow each one through to closing.",
-   "step1": "Click 'New lead'",
-   "step2": "Enter the prospect's details and the property of interest",
-   "step3": "Assign a person in charge and log interactions"
+   "step1": "Click “New lead”.",
+   "step2": "Enter the person's details and the property they are interested in.",
+   "step3": "Assign someone and log every contact."
   },
   "pagination": {
    "showing": "Showing {from}-{to} of {total}",
    "prev": "Previous",
    "next": "Next"
+  },
+  "next": {
+   "assign": "Assign someone",
+   "firstContact": "Make first contact",
+   "followUp": "Follow up",
+   "onTrack": "On track",
+   "converted": "Nothing pending",
+   "lost": "Nothing pending",
+   "lastContact": "Last contact {time} ago",
+   "enteredAgo": "Came in {time} ago, not contacted yet",
+   "lostNoReason": "No reason recorded",
+   "convertedDetail": "Already a client"
   }
  },
  "kanban": {
@@ -2160,25 +2175,27 @@
    "daysInStage": "{days}d in stage",
    "noProperty": "No property",
    "unassigned": "Unassigned",
-   "stale": "Inactive",
-   "staleBadge": "No contact for {days} days"
+   "stale": "No contact",
+   "staleBadge": "No contact for {days} days",
+   "unchanged": "No changes for {time}",
+   "open": "Open {name}'s record"
   },
   "loading": "Loading pipeline…",
-  "loadingError": "Could not load the pipeline",
+  "loadingError": "We couldn't load the pipeline.",
   "empty": {
-   "title": "Empty pipeline",
+   "title": "No pipelines set up",
    "subtitle": "There are no active leads in this pipeline",
-   "noPipelines": "No pipelines configured",
+   "noPipelines": "The board needs at least one pipeline with its stages.",
    "description": "The Kanban board shows your leads by sales pipeline stage. Drag cards to update their status.",
-   "step1": "Set up the pipeline stages in Settings",
-   "step2": "Add leads from the Leads module",
-   "step3": "Drag cards between columns to move each lead forward"
+   "step1": "Define the stages in Settings.",
+   "step2": "Add leads from Leads.",
+   "step3": "Drag each card to the stage it is in."
   },
   "drag": {
    "moving": "Moving lead…",
    "success": "Lead moved to {stage}",
-   "error": "Could not move the lead. The change was reverted.",
-   "rollback": "Could not move the lead, it went back to {stage}"
+   "error": "The lead could not be moved. It stayed where it was.",
+   "rollback": "The lead could not be moved to {stage}. It stayed where it was."
   },
   "mobile": {
    "title": "Pipeline",
@@ -2189,7 +2206,10 @@
   "rbac": {
    "noAccess": "You don't have permission to access the pipeline."
   },
-  "retry": "Retry"
+  "retry": "Retry",
+  "subtitle": "Each column is a pipeline stage. Drag a lead to change its stage.",
+  "boardEmpty": "There are no active leads in this pipeline yet. They are added from Leads.",
+  "mobileHint": "On small screens the board is shown as a list. Moving a lead to another stage needs a wider screen."
  },
  "interactions": {
   "title": "Interactions",
@@ -2241,7 +2261,7 @@
    "visitUpdateFailed": "Could not update the visit"
   },
   "leadDetail": {
-   "title": "Lead detail",
+   "title": "Lead",
    "source": "Source",
    "budget": "Budget",
    "property": "Property",
@@ -2250,7 +2270,10 @@
    "stage": "Stage",
    "pipeline": "Pipeline",
    "back": "Back to Leads",
-   "notFound": "Lead not found"
+   "notFound": "Lead not found",
+   "justNow": "just now",
+   "ago": "{time} ago",
+   "loadError": "We couldn't load the lead. Check your connection and try again."
   },
   "sendEmail": "Send email",
   "selectTemplate": "Select template",

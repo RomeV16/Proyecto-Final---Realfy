@@ -21,7 +21,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { RowList } from '@/components/ui/card-grid';
 import { EntityRow } from '@/components/ui/entity-card';
 import { ListTransition, AnimatedList, StaggerItem, type ListState } from '@/components/ui/motion';
-import { formatNumber, formatLocalDate, formatDateTime } from '@/lib/format';
+import { formatMoney, formatLocalDate, formatDateTime } from '@/lib/format';
+import { msSince, useElapsedText } from '@/components/tickets/elapsed';
 import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
@@ -124,22 +125,6 @@ const INTERACTION_ICON: Record<string, 'phone' | 'mail' | 'calendar' | 'edit'> =
   Nota: 'edit',
 };
 
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffHrs = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMin < 1) return 'ahora';
-  if (diffMin < 60) return `hace ${diffMin} min`;
-  if (diffHrs < 24) return `hace ${diffHrs}h`;
-  if (diffDays < 7) return `hace ${diffDays}d`;
-  return formatLocalDate(date, 'numeric');
-}
-
-
 function visitAddress(visit: Visit): string | undefined {
   if (!visit.property) return undefined;
   const p = visit.property;
@@ -164,6 +149,15 @@ export default function LeadDetailPage() {
   const t = useTranslations('interactions');
   const tLeads = useTranslations('leads');
   const tCommon = useTranslations('common');
+  const elapsed = useElapsedText();
+
+  /** "hace 3 horas" durante la primera semana; después, la fecha. */
+  const formatRelativeTime = (dateStr: string): string => {
+    const ms = msSince(dateStr);
+    if (ms < 60_000) return t('leadDetail.justNow');
+    if (ms < 7 * 86_400_000) return t('leadDetail.ago', { time: elapsed(ms) });
+    return formatLocalDate(new Date(dateStr), 'numeric');
+  };
   const params = useParams();
   const { user } = useAuth();
   const leadId = params.id as string;
@@ -228,7 +222,7 @@ export default function LeadDetailPage() {
       if (err instanceof ApiRequestError && err.statusCode === 404) {
         setNotFound(true);
       } else {
-        setError(err instanceof Error ? err.message : 'Error al cargar datos');
+        setError(t('leadDetail.loadError'));
       }
     } finally {
       setLoading(false);
@@ -236,7 +230,7 @@ export default function LeadDetailPage() {
   }, [leadId]);
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, [loadData]);
 
   // ── Handlers ──
@@ -427,8 +421,12 @@ export default function LeadDetailPage() {
       {error && (
         <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
           {error}
-          <button onClick={() => setError(null)} className="ml-2 text-red-500 hover:text-red-700">
-            ✕
+          <button
+            onClick={() => setError(null)}
+            aria-label={tCommon('close')}
+            className="ml-2 inline-flex align-middle text-red-500 hover:text-red-700"
+          >
+            <Icon name="close" className="h-4 w-4" strokeWidth={2} />
           </button>
         </div>
       )}
@@ -448,10 +446,13 @@ export default function LeadDetailPage() {
           <p className="eyebrow">{t('leadDetail.title')}</p>
           <h1 className="h2">{fullName}</h1>
           <div className="flex items-center gap-2 mt-1">
-            <StatusBadge domain="lead" status={lead.status} dot={false} />
-            <span className="text-sm text-[var(--color-muted)]">
-              {lead.pipeline.name} · {lead.currentStage.name}
-            </span>
+            {/* La etapa del embudo manda; el estado solo se muestra cuando el lead ya se cerró. */}
+            {lead.status === 'Convertido' || lead.status === 'Perdido' ? (
+              <StatusBadge domain="lead" status={lead.status} dot={false} />
+            ) : (
+              <Badge variant="info">{lead.currentStage.name}</Badge>
+            )}
+            <span className="text-sm text-[var(--color-muted)]">{lead.pipeline.name}</span>
           </div>
         </div>
       </div>
@@ -463,7 +464,7 @@ export default function LeadDetailPage() {
           {lead.budget != null && (
             <DetailRow
               label={t('leadDetail.budget')}
-              value={`${lead.budgetCurrency} ${formatNumber(lead.budget)}`}
+              value={formatMoney(Number(lead.budget), lead.budgetCurrency)}
             />
           )}
           <DetailRow label={t('leadDetail.pipeline')} value={lead.pipeline.name} />
@@ -477,8 +478,8 @@ export default function LeadDetailPage() {
           {lead.lastContactAt && (
             <DetailRow label={t('leadDetail.lastContact')} value={formatRelativeTime(lead.lastContactAt)} />
           )}
-          {lead.person.email && <DetailRow label="Email" value={lead.person.email} />}
-          {phone && <DetailRow label="Teléfono" value={phone} />}
+          {lead.person.email && <DetailRow label={tLeads('form.email')} value={lead.person.email} />}
+          {phone && <DetailRow label={tLeads('form.phone')} value={phone} />}
         </div>
       </div>
 
@@ -832,7 +833,7 @@ export default function LeadDetailPage() {
 
               {lead?.person.email && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">{tLeads('form.email')}</label>
                   <p className="text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-200">
                     {lead.person.email}
                   </p>

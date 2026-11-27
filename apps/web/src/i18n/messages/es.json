@@ -2022,7 +2022,7 @@
  },
  "leads": {
   "title": "Leads",
-  "subtitle": "Gestioná oportunidades de negocio y seguimiento de prospectos",
+  "subtitle": "Personas interesadas en alquilar o comprar, con lo próximo que hay que hacer con cada una.",
   "newLead": "Nuevo lead",
   "filters": {
    "search": "Buscar",
@@ -2045,20 +2045,21 @@
    "Perdido": "Perdidos"
   },
   "table": {
-   "name": "Nombre",
+   "name": "Interesado",
    "contact": "Contacto",
    "pipeline": "Pipeline",
    "stage": "Etapa",
    "source": "Origen",
    "assignedTo": "Asignado a",
    "daysInStage": "Días en etapa",
-   "createdAt": "Creado"
+   "createdAt": "Creado",
+   "nextStep": "Próxima acción"
   },
   "sources": {
    "WebInquiry": "Web",
    "PhoneCall": "Teléfono",
    "Email": "Email",
-   "WalkIn": "Walk-in",
+   "WalkIn": "En persona",
    "Referral": "Referido",
    "Portal": "Portal",
    "SocialMedia": "Redes sociales",
@@ -2072,7 +2073,7 @@
    "Perdido": "Perdido"
   },
   "form": {
-   "title": "Nuevo Lead",
+   "title": "Nuevo lead",
    "firstName": "Nombre",
    "firstNamePlaceholder": "Ej: María",
    "lastName": "Apellido",
@@ -2090,30 +2091,31 @@
    "property": "Propiedad (opcional)",
    "propertyPlaceholder": "Seleccionar propiedad",
    "assignedTo": "Asignar a (opcional)",
-   "assignedToPlaceholder": "Auto-asignación round-robin",
+   "assignedToPlaceholder": "Asignación automática",
    "notes": "Notas",
    "notesPlaceholder": "Observaciones sobre el lead…",
    "submit": "Crear lead",
    "creating": "Creando…",
-   "created": "Lead creado exitosamente",
+   "created": "Lead creado",
    "error": "No se pudo crear el lead",
    "contactRequired": "Se requiere al menos email o teléfono"
   },
   "actions": {
    "reassign": "Reasignar",
    "reassignTitle": "Reasignar lead",
-   "reassignSuccess": "Lead reasignado exitosamente",
+   "reassignSuccess": "Lead reasignado",
    "convert": "Convertir",
    "convertTitle": "Convertir lead",
    "convertAs": "Convertir como",
-   "convertSuccess": "Lead convertido exitosamente",
+   "convertSuccess": "Lead convertido",
    "markLost": "Marcar como perdido",
    "markLostTitle": "Marcar lead como perdido",
    "lostReason": "Motivo de pérdida",
    "lostReasonPlaceholder": "Explicá el motivo…",
    "lostReasonRequired": "El motivo es obligatorio",
    "lostSuccess": "Lead marcado como perdido",
-   "error": "Error al realizar la acción"
+   "error": "No se pudo completar la acción. Probá de nuevo.",
+   "reassignPlaceholder": "Elegí un usuario…"
   },
   "roles": {
    "Inquilino": "Inquilino",
@@ -2125,21 +2127,34 @@
    "unassigned": "Sin asignar",
    "daysAgo": "{days}d",
    "stale": "Sin contacto hace {days} días",
-   "view": "Ver ficha"
+   "view": "Ver ficha",
+   "noContact": "Sin datos de contacto"
   },
   "empty": {
    "title": "No hay leads",
-   "subtitle": "Creá tu primer lead para empezar a gestionar oportunidades",
-   "filtered": "No se encontraron leads con los filtros aplicados",
+   "subtitle": "Cargá el primer interesado para empezar a seguirlo.",
+   "filtered": "Ningún lead coincide con los filtros.",
    "description": "Los leads representan oportunidades comerciales: consultas de interesados en tus propiedades. Seguí cada uno hasta el cierre.",
-   "step1": "Hacé clic en 'Nuevo lead'",
-   "step2": "Ingresá datos del interesado y propiedad de interés",
-   "step3": "Asigná un responsable y registrá interacciones"
+   "step1": "Tocá «Nuevo lead».",
+   "step2": "Cargá los datos de la persona y la propiedad que le interesa.",
+   "step3": "Asignale un responsable y anotá cada contacto."
   },
   "pagination": {
    "showing": "Mostrando {from}-{to} de {total}",
    "prev": "Anterior",
    "next": "Siguiente"
+  },
+  "next": {
+   "assign": "Asignar un responsable",
+   "firstContact": "Hacer el primer contacto",
+   "followUp": "Retomar el contacto",
+   "onTrack": "Al día",
+   "converted": "Nada pendiente",
+   "lost": "Nada pendiente",
+   "lastContact": "Último contacto hace {time}",
+   "enteredAgo": "Entró hace {time} y nadie lo contactó",
+   "lostNoReason": "Sin motivo cargado",
+   "convertedDetail": "Ya es cliente"
   }
  },
  "kanban": {
@@ -2160,25 +2175,27 @@
    "daysInStage": "{days}d en etapa",
    "noProperty": "Sin propiedad",
    "unassigned": "Sin asignar",
-   "stale": "Inactivo",
-   "staleBadge": "Sin contacto hace {days} días"
+   "stale": "Sin contacto",
+   "staleBadge": "Sin contacto hace {days} días",
+   "unchanged": "Sin cambios hace {time}",
+   "open": "Abrir la ficha de {name}"
   },
   "loading": "Cargando pipeline…",
-  "loadingError": "Error al cargar el pipeline",
+  "loadingError": "No pudimos cargar el pipeline.",
   "empty": {
-   "title": "Pipeline vacío",
+   "title": "No hay embudos configurados",
    "subtitle": "No hay leads activos en este pipeline",
-   "noPipelines": "No hay pipelines configurados",
+   "noPipelines": "Hace falta al menos un embudo con sus etapas para usar el tablero.",
    "description": "El tablero Kanban visualiza tus leads por etapa del pipeline comercial. Arrastrá tarjetas para actualizar el estado.",
-   "step1": "Configurá las etapas del pipeline desde Configuración",
-   "step2": "Cargá leads desde el módulo de Leads",
-   "step3": "Arrastrá las tarjetas entre columnas para avanzar cada lead"
+   "step1": "Definí las etapas en Configuración.",
+   "step2": "Cargá los interesados desde Leads.",
+   "step3": "Arrastrá cada tarjeta a la etapa en la que está."
   },
   "drag": {
    "moving": "Moviendo lead…",
    "success": "Lead movido a {stage}",
-   "error": "Error al mover el lead. Se revirtió el cambio.",
-   "rollback": "No se pudo mover el lead — volvió a {stage}"
+   "error": "No se pudo mover el lead. Quedó donde estaba.",
+   "rollback": "No se pudo mover el lead a {stage}. Quedó donde estaba."
   },
   "mobile": {
    "title": "Pipeline",
@@ -2189,7 +2206,10 @@
   "rbac": {
    "noAccess": "No tenés permisos para acceder al pipeline."
   },
-  "retry": "Reintentar"
+  "retry": "Reintentar",
+  "subtitle": "Cada columna es una etapa del embudo. Arrastrá un lead para cambiarlo de etapa.",
+  "boardEmpty": "Todavía no hay leads activos en este embudo. Se cargan desde Leads.",
+  "mobileHint": "En pantallas chicas el tablero se ve como lista. Para mover un lead de etapa hace falta una pantalla más ancha."
  },
  "interactions": {
   "title": "Interacciones",
@@ -2241,7 +2261,7 @@
    "visitUpdateFailed": "Error al actualizar visita"
   },
   "leadDetail": {
-   "title": "Detalle de Lead",
+   "title": "Lead",
    "source": "Origen",
    "budget": "Presupuesto",
    "property": "Propiedad",
@@ -2250,7 +2270,10 @@
    "stage": "Etapa",
    "pipeline": "Pipeline",
    "back": "Volver a Leads",
-   "notFound": "Lead no encontrado"
+   "notFound": "Lead no encontrado",
+   "justNow": "recién",
+   "ago": "hace {time}",
+   "loadError": "No pudimos cargar el lead. Revisá la conexión y volvé a intentar."
   },
   "sendEmail": "Enviar Email",
   "selectTemplate": "Seleccionar plantilla",

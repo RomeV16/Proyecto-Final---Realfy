@@ -6,11 +6,12 @@ import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { LeadSource } from '@realfy/shared';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { EmptyState } from '@/components/ui/empty-state';
-import { EntityCard } from '@/components/ui/entity-card';
-import { CardGrid } from '@/components/ui/card-grid';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { statusEntry } from '@/lib/status-registry';
+import { Icon, type IconName } from '@/components/ui/icon';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Link } from '@/i18n/navigation';
+import { msSince, useElapsedText } from '@/components/tickets/elapsed';
 import { useCan, can } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
@@ -123,123 +124,170 @@ function statusTabToFilter(tab: StatusTab): string | undefined {
 
 /* ──────────── Helpers ──────────── */
 
-function daysAgo(dateStr: string): number {
-  const now = new Date();
-  const d = new Date(dateStr);
-  return Math.max(0, Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24)));
+const DAY_MS = 86_400_000;
+
+/** `/pipelines` y `/users` devuelven la lista directa; se acepta también la forma paginada. */
+function listOf<T>(res: T[] | { items?: T[] } | null | undefined): T[] {
+  if (Array.isArray(res)) return res;
+  return res?.items ?? [];
 }
 
-/* ──────────── Lead Card ──────────── */
+type NextStep = 'assign' | 'firstContact' | 'followUp' | 'onTrack' | 'converted' | 'lost';
 
-function LeadCard({
+/** Qué hay que hacer ahora con el lead. Sin responsable pesa más que sin contacto: nadie lo va a llamar. */
+function nextStepOf(lead: LeadItem, now: Date): NextStep {
+  if (lead.status === 'Convertido') return 'converted';
+  if (lead.status === 'Perdido') return 'lost';
+  if (!lead.assignedToUser) return 'assign';
+  if (!lead.lastContactAt) return 'firstContact';
+  const staleDays = lead.currentStage.staleDays;
+  if (staleDays != null && msSince(lead.lastContactAt, now) > staleDays * DAY_MS) return 'followUp';
+  return 'onTrack';
+}
+
+const STEP_TONE: Record<NextStep, string> = {
+  assign: 'text-[var(--color-warning)]',
+  firstContact: 'text-[var(--color-warning)]',
+  followUp: 'text-[var(--color-danger)]',
+  onTrack: 'text-[var(--color-text)]',
+  converted: 'text-[var(--color-success)]',
+  lost: 'text-[var(--color-muted)]',
+};
+
+const STEP_ICON: Record<NextStep, IconName> = {
+  assign: 'persons',
+  firstContact: 'phone',
+  followUp: 'clock',
+  onTrack: 'check',
+  converted: 'check',
+  lost: 'close',
+};
+
+/* ──────────── Lead Row ──────────── */
+
+const ROW_GRID =
+  'grid gap-x-4 gap-y-2 px-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_9.5rem] lg:items-center';
+
+function RowAction({ title, icon, onClick }: { title: string; icon: IconName; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--color-muted)] transition-colors hover:bg-[var(--color-surface-sunken)] hover:text-[var(--color-text)] focus-visible:outline-2 focus-visible:outline-brand-500"
+    >
+      <Icon name={icon} className="h-4 w-4" strokeWidth={2} />
+    </button>
+  );
+}
+
+function LeadRow({
   lead,
+  now,
   onAction,
 }: {
   lead: LeadItem;
+  now: Date;
   onAction: (action: string, lead: LeadItem) => void;
 }) {
   const t = useTranslations('leads');
   const tCard = useTranslations('leads.card');
+  const tNext = useTranslations('leads.next');
   const tSources = useTranslations('leads.sources');
-  const tTable = useTranslations('leads.table');
+  const elapsed = useElapsedText();
 
   const fullName = `${lead.person.firstName} ${lead.person.lastName}`;
   const isTerminal = lead.status === 'Convertido' || lead.status === 'Perdido';
-  const days = daysAgo(lead.updatedAt);
-  const contactDays = daysAgo(lead.lastContactAt ?? lead.updatedAt);
-  const isStale = !isTerminal && lead.currentStage.staleDays != null && contactDays > lead.currentStage.staleDays;
-  const unassigned = !isTerminal && !lead.assignedToUser;
+  const step = nextStepOf(lead, now);
   const href = `/leads/${lead.id}`;
+  const contact = lead.person.phone || lead.person.email || tCard('noContact');
 
-  /* La tarjeta muestra lo que necesita atención ahora, así la grilla también
-     sirve como lista de tareas. Sin contacto pesa más que sin asignar — es
-     la señal más urgente. */
-  const blocker = isStale
-    ? { icon: 'clock' as const, text: tCard('stale', { days: contactDays }) }
-    : unassigned
-      ? { icon: 'alert' as const, text: tCard('unassigned') }
-      : null;
-
-  const accent: 'brand' | 'success' | 'warning' | 'danger' =
-    lead.status === 'Perdido'
-      ? 'danger'
-      : lead.status === 'Convertido'
-        ? 'success'
-        : blocker
-          ? 'warning'
-          : 'brand';
+  let detail: string;
+  if (step === 'lost') detail = lead.lostReason || tNext('lostNoReason');
+  else if (step === 'converted') detail = tNext('convertedDetail');
+  else if (lead.lastContactAt) detail = tNext('lastContact', { time: elapsed(msSince(lead.lastContactAt, now)) });
+  else detail = tNext('enteredAgo', { time: elapsed(msSince(lead.createdAt, now)) });
 
   return (
-    <EntityCard href={href} label={fullName} accent={accent}>
-      <EntityCard.Body>
-        <div className="flex items-start gap-3">
-          <Avatar name={fullName} seed={lead.person.id} size="md" />
-          <div className="min-w-0 flex-1">
-            <EntityCard.Title>{fullName}</EntityCard.Title>
-            <EntityCard.Subtitle>{lead.pipeline.name}</EntityCard.Subtitle>
-          </div>
+    <li className={`${ROW_GRID} py-3.5`}>
+      <div className="flex min-w-0 items-center gap-3">
+        <Avatar name={fullName} seed={lead.person.id} size="sm" />
+        <div className="min-w-0">
+          <Link
+            href={href}
+            className="block truncate font-medium text-[var(--color-text)] hover:text-brand-600 hover:underline focus-visible:outline-2 focus-visible:outline-brand-500"
+          >
+            {fullName}
+          </Link>
+          <p className="truncate text-xs text-[var(--color-muted)]">{contact}</p>
         </div>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant={statusEntry('lead', lead.status)?.tone ?? 'neutral'}>{lead.currentStage.name}</Badge>
-          <Badge variant="neutral">{tSources(lead.source as keyof typeof LeadSource)}</Badge>
-        </div>
-
-        <EntityCard.Meta
-          items={[
-            {
-              icon: 'persons',
-              label: lead.assignedToUser
-                ? `${lead.assignedToUser.firstName} ${lead.assignedToUser.lastName.charAt(0)}.`
-                : tCard('unassigned'),
-            },
-          ]}
-        />
-
-        {blocker && (
-          <EntityCard.Alert tone="warning" icon={blocker.icon}>
-            {blocker.text}
-          </EntityCard.Alert>
+      {/* La etapa manda: el estado solo se muestra cuando el lead ya se cerró. */}
+      <div className="min-w-0">
+        {isTerminal ? (
+          <Badge variant={lead.status === 'Convertido' ? 'success' : 'danger'}>{t(`statuses.${lead.status}`)}</Badge>
+        ) : (
+          <Badge variant="neutral">{lead.currentStage.name}</Badge>
         )}
-      </EntityCard.Body>
+        <p className="mt-1 truncate text-xs text-[var(--color-muted)]">
+          {isTerminal ? `${lead.currentStage.name} · ${lead.pipeline.name}` : lead.pipeline.name}
+        </p>
+      </div>
 
-      <EntityCard.Footer>
-        <EntityCard.Amount value={`${days}d`} hint={tTable('daysInStage')} tone={isStale ? 'danger' : 'muted'} />
-        <EntityCard.Actions>
-          {!isTerminal && (
-            <>
-              <EntityCard.Action
-                onClick={() => onAction('reassign', lead)}
-                icon="refresh"
-                variant="quiet"
-                title={t('actions.reassign')}
-              >
-                <span className="sr-only">{t('actions.reassign')}</span>
-              </EntityCard.Action>
-              <EntityCard.Action
-                onClick={() => onAction('convert', lead)}
-                icon="check"
-                variant="quiet"
-                title={t('actions.convert')}
-              >
-                <span className="sr-only">{t('actions.convert')}</span>
-              </EntityCard.Action>
-              <EntityCard.Action
-                onClick={() => onAction('lose', lead)}
-                icon="close"
-                variant="quiet"
-                title={t('actions.markLost')}
-              >
-                <span className="sr-only">{t('actions.markLost')}</span>
-              </EntityCard.Action>
-            </>
-          )}
-          <EntityCard.Action href={href} icon="arrowRight" variant="ghost">
-            {tCard('view')}
-          </EntityCard.Action>
-        </EntityCard.Actions>
-      </EntityCard.Footer>
-    </EntityCard>
+      <div className="min-w-0">
+        <p className={`flex items-center gap-1.5 text-sm font-medium ${STEP_TONE[step]}`}>
+          <Icon name={STEP_ICON[step]} className="h-3.5 w-3.5 shrink-0" strokeWidth={2.25} />
+          <span className="truncate">{tNext(step)}</span>
+        </p>
+        <p className="mt-0.5 truncate text-xs text-[var(--color-muted)]" title={detail}>
+          {detail}
+        </p>
+      </div>
+
+      <div className="min-w-0 text-xs">
+        <p className="truncate text-[var(--color-text)]">
+          {lead.assignedToUser
+            ? `${lead.assignedToUser.firstName} ${lead.assignedToUser.lastName.charAt(0)}.`
+            : tCard('unassigned')}
+        </p>
+        <p className="mt-0.5 truncate text-[var(--color-muted)]">{tSources(lead.source as keyof typeof LeadSource)}</p>
+      </div>
+
+      <div className="flex items-center justify-end gap-0.5">
+        {!isTerminal && (
+          <>
+            <RowAction title={t('actions.reassign')} icon="refresh" onClick={() => onAction('reassign', lead)} />
+            <RowAction title={t('actions.convert')} icon="check" onClick={() => onAction('convert', lead)} />
+            <RowAction title={t('actions.markLost')} icon="close" onClick={() => onAction('lose', lead)} />
+          </>
+        )}
+        <Link
+          href={href}
+          aria-label={`${tCard('view')}: ${fullName}`}
+          className="inline-flex h-9 items-center gap-1 rounded-md px-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-sunken)] focus-visible:outline-2 focus-visible:outline-brand-500"
+        >
+          <span className="lg:hidden">{tCard('view')}</span>
+          <Icon name="chevronRight" className="h-4 w-4" strokeWidth={2} />
+        </Link>
+      </div>
+    </li>
+  );
+}
+
+function ListSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]" aria-hidden="true">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 border-b border-[var(--color-border)] px-4 py-4 last:border-b-0">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <Skeleton className="h-4 flex-1" />
+          <Skeleton className="hidden h-4 w-28 lg:block" />
+          <Skeleton className="hidden h-4 w-40 lg:block" />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -254,6 +302,7 @@ function CreateLeadModal({ open, onClose, onCreated, pipelines, users, propertie
   properties: PropertyOption[];
 }) {
   const t = useTranslations('leads.form');
+  const tSources = useTranslations('leads.sources');
   const tCommon = useTranslations('common');
 
   const [form, setForm] = useState({
@@ -399,7 +448,7 @@ function CreateLeadModal({ open, onClose, onCreated, pipelines, users, propertie
             <select value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))}
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500">
               <option value="">{t('sourcePlaceholder')}</option>
-              {Object.values(LeadSource).map(s => <option key={s} value={s}>{s}</option>)}
+              {Object.values(LeadSource).map(s => <option key={s} value={s}>{tSources(s)}</option>)}
             </select>
           </div>
 
@@ -456,8 +505,9 @@ function ReassignModal({ open, lead, users, onClose, onDone }: {
   const tCommon = useTranslations('common');
   const [userId, setUserId] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => { if (open) setUserId(''); }, [open]);
+  useEffect(() => { if (open) { setUserId(''); setError(''); } }, [open]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -470,7 +520,9 @@ function ReassignModal({ open, lead, users, onClose, onDone }: {
       });
       onDone();
       onClose();
-    } catch { /* silencioso */ } finally { setSubmitting(false); }
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error'));
+    } finally { setSubmitting(false); }
   }
 
   if (!open || !lead) return null;
@@ -483,9 +535,10 @@ function ReassignModal({ open, lead, users, onClose, onDone }: {
           <h2 className="text-lg font-semibold text-slate-900">{t('reassignTitle')}</h2>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           <select required value={userId} onChange={e => setUserId(e.target.value)}
             className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500">
-            <option value="">Seleccionar usuario…</option>
+            <option value="">{t('reassignPlaceholder')}</option>
             {users.filter(u => can(u.role, 'leads.assignable')).map(u => (
               <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
             ))}
@@ -513,6 +566,9 @@ function ConvertModal({ open, lead, onClose, onDone }: {
   const tCommon = useTranslations('common');
   const [role, setRole] = useState('Inquilino');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => { if (open) setError(''); }, [open]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -525,7 +581,9 @@ function ConvertModal({ open, lead, onClose, onDone }: {
       });
       onDone();
       onClose();
-    } catch { /* silencioso */ } finally { setSubmitting(false); }
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error'));
+    } finally { setSubmitting(false); }
   }
 
   if (!open || !lead) return null;
@@ -538,6 +596,7 @@ function ConvertModal({ open, lead, onClose, onDone }: {
           <h2 className="text-lg font-semibold text-slate-900">{t('convertTitle')}</h2>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
+          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           <label className="block text-xs font-medium text-slate-500 mb-1">{t('convertAs')}</label>
           <div className="flex gap-3">
             {(['Inquilino', 'Comprador'] as const).map(r => (
@@ -585,7 +644,9 @@ function LoseModal({ open, lead, onClose, onDone }: {
       });
       onDone();
       onClose();
-    } catch { /* silencioso */ } finally { setSubmitting(false); }
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : t('error'));
+    } finally { setSubmitting(false); }
   }
 
   if (!open || !lead) return null;
@@ -598,7 +659,7 @@ function LoseModal({ open, lead, onClose, onDone }: {
           <h2 className="text-lg font-semibold text-slate-900">{t('markLostTitle')}</h2>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-4">
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
           <div>
             <label className="block text-xs font-medium text-slate-500 mb-1">{t('lostReason')}</label>
             <textarea required rows={3} value={reason} onChange={e => setReason(e.target.value)}
@@ -646,18 +707,18 @@ export function LeadList() {
     async function loadRefs() {
       try {
         const [pRes, uRes, prRes] = await Promise.all([
-          apiClient<{ items: PipelineOption[] }>('/pipelines'),
-          apiClient<{ items: UserOption[] }>('/users'),
+          apiClient<PipelineOption[] | { items: PipelineOption[] }>('/pipelines'),
+          apiClient<UserOption[] | { items: UserOption[] }>('/users'),
           apiClient<{ items: PropertyOption[] }>('/properties?limit=100'),
         ]);
-        setPipelines(pRes.items || []);
-        setUsers(uRes.items || []);
+        setPipelines(listOf(pRes));
+        setUsers(listOf(uRes));
         setProperties(prRes.items || []);
       } catch (err) {
         console.error('[LeadList] ref data error:', err);
       }
     }
-    loadRefs();
+    void loadRefs();
   }, []);
 
   const selectedPipelineStages = pipelines.find(p => p.id === filters.pipelineId)?.stages || [];
@@ -689,7 +750,7 @@ export function LeadList() {
   }, []);
 
   useEffect(() => {
-    fetchLeads(filters);
+    void fetchLeads(filters);
   }, [filters, fetchLeads]);
 
   function updateFilter(key: keyof Filters, value: string | number) {
@@ -707,13 +768,14 @@ export function LeadList() {
   }
 
   function refresh() {
-    fetchLeads(filters);
+    void fetchLeads(filters);
   }
 
   const hasFilters = filters.search || filters.pipelineId || filters.currentStageId || filters.assignedToUserId || filters.source || filters.statusTab !== 'all';
   const items = data?.items || [];
   const total = data?.total || 0;
   const totalPages = data?.totalPages || 0;
+  const now = new Date();
 
   const statusTabs: { key: StatusTab; label: string }[] = [
     { key: 'all', label: t('statusTabs.all') },
@@ -727,8 +789,8 @@ export function LeadList() {
       {/* Encabezado */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('title')}</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{t('subtitle')}</p>
+          <h1 className="h1">{t('title')}</h1>
+          <p className="mt-2 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
         {canCreate && (
           <button
@@ -817,8 +879,9 @@ export function LeadList() {
                   onClick={clearFilters}
                   className="px-3 py-2 rounded-lg border border-slate-200 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap"
                   title={tFilters('clear')}
+                  aria-label={tFilters('clear')}
                 >
-                  ✕
+                  <Icon name="close" className="h-4 w-4" strokeWidth={2} />
                 </button>
               )}
             </div>
@@ -826,54 +889,63 @@ export function LeadList() {
         </div>
       </div>
 
-      {/* Grilla — dueña de la transición carga → contenido → vacío */}
-      <CardGrid
-        items={items}
-        loading={loading && !data}
-        busy={loading && !!data}
-        columns={3}
-        skeletonCount={6}
-        skeletonMedia={false}
-        keyOf={(lead) => lead.id}
-        renderItem={(lead) => (
-          <LeadCard lead={lead} onAction={handleAction} />
-        )}
-        empty={
-          hasFilters ? (
-            <EmptyState
-              variant="filtered"
-              iconName="search"
-              title={tCommon('noResults')}
-              subtitle={t('empty.filtered')}
-              action={
+      {loading && !data ? (
+        <ListSkeleton />
+      ) : items.length === 0 ? (
+        hasFilters ? (
+          <EmptyState
+            variant="filtered"
+            iconName="search"
+            title={tCommon('noResults')}
+            subtitle={t('empty.filtered')}
+            action={
+              <button
+                onClick={clearFilters}
+                className="rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg)]"
+              >
+                {tFilters('clear')}
+              </button>
+            }
+          />
+        ) : (
+          <EmptyState
+            iconName="leads"
+            title={t('empty.title')}
+            subtitle={t('empty.subtitle')}
+            steps={[t('empty.step1'), t('empty.step2'), t('empty.step3')]}
+            action={
+              canCreate && (
                 <button
-                  onClick={clearFilters}
-                  className="rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg)]"
+                  onClick={() => setShowCreate(true)}
+                  className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-brand-500)] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-brand-600)]"
                 >
-                  {tFilters('clear')}
+                  {t('newLead')}
                 </button>
-              }
-            />
-          ) : (
-            <EmptyState
-              iconName="leads"
-              title={t('empty.title')}
-              subtitle={t('empty.subtitle')}
-              steps={[t('empty.step1'), t('empty.step2'), t('empty.step3')]}
-              action={
-                canCreate && (
-                  <button
-                    onClick={() => setShowCreate(true)}
-                    className="inline-flex items-center gap-2 rounded-[var(--radius-lg)] bg-[var(--color-brand-500)] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-brand-600)]"
-                  >
-                    {t('newLead')}
-                  </button>
-                )
-              }
-            />
-          )
-        }
-      />
+              )
+            }
+          />
+        )
+      ) : (
+        <div
+          className={`overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] transition-opacity ${loading ? 'opacity-60' : ''}`}
+        >
+          <div
+            aria-hidden="true"
+            className={`${ROW_GRID} hidden border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)] py-2 text-[11px] font-medium uppercase tracking-wide text-[var(--color-muted)] lg:grid`}
+          >
+            <span>{t('table.name')}</span>
+            <span>{t('table.stage')}</span>
+            <span>{t('table.nextStep')}</span>
+            <span>{t('table.assignedTo')}</span>
+            <span />
+          </div>
+          <ul aria-label={t('title')} className="divide-y divide-[var(--color-border)]">
+            {items.map((lead) => (
+              <LeadRow key={lead.id} lead={lead} now={now} onAction={handleAction} />
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Paginación */}
       {!loading && totalPages > 1 && (

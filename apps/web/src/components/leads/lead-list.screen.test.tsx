@@ -91,6 +91,8 @@ function page(over: Record<string, unknown> = {}) {
 }
 
 interface Opts {
+  /** `/pipelines` y `/users` con la forma paginada en vez de la lista directa. */
+  paged?: boolean;
   leads?: () => unknown;
   mutate?: (path: string, init: { method?: string }) => unknown;
 }
@@ -98,8 +100,8 @@ interface Opts {
 function mockApi(opts: Opts = {}) {
   apiClient.mockImplementation((path: string, init?: { method?: string }) => {
     if (init?.method) return Promise.resolve().then(() => (opts.mutate ? opts.mutate(path, init) : {}));
-    if (path === '/pipelines') return Promise.resolve({ items: pipelines });
-    if (path === '/users') return Promise.resolve({ items: users });
+    if (path === '/pipelines') return Promise.resolve(opts.paged ? { items: pipelines } : pipelines);
+    if (path === '/users') return Promise.resolve(opts.paged ? { items: users } : users);
     if (path.startsWith('/properties')) {
       return Promise.resolve({ items: [{ id: 'p-1', title: 'Depto de prueba' }] });
     }
@@ -121,14 +123,60 @@ describe('LeadList', () => {
     auth.role = 'Admin';
   });
 
-  it('muestra tarjetas con avisos de sin contacto y sin asignar', async () => {
+  it('cada fila dice la próxima acción y hace cuánto fue el último contacto', async () => {
     mockApi();
     await renderList();
-    expect(screen.getByText('Sin contacto hace 9 días')).toBeInTheDocument();
+    expect(screen.getByText('Retomar el contacto')).toBeInTheDocument();
+    expect(screen.getByText('Último contacto hace 9 días')).toBeInTheDocument();
+    expect(screen.getByText('Asignar un responsable')).toBeInTheDocument();
+    expect(screen.getAllByText('Al día').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Sin asignar').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Carla E.').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Web').length).toBeGreaterThan(0);
-    expect(screen.getByText('9d')).toBeInTheDocument();
+  });
+
+  it('un lead sin ningún contacto pide el primero y dice hace cuánto entró', async () => {
+    mockApi({
+      leads: () =>
+        page({
+          items: [
+            lead('a', { lastContactAt: null, person: { id: 'pe-a', firstName: 'Luis', lastName: 'Inventado a', phone: '1155550000' } }),
+            lead('p', { status: 'Perdido', lostReason: 'Eligió otra propiedad' }),
+            lead('q', { status: 'Perdido' }),
+            lead('r', { status: 'Convertido' }),
+          ],
+        }),
+    });
+    await renderList();
+    expect(screen.getByText('Hacer el primer contacto')).toBeInTheDocument();
+    expect(screen.getByText('Entró hace 10 días y nadie lo contactó')).toBeInTheDocument();
+    expect(screen.getByText('1155550000')).toBeInTheDocument();
+    expect(screen.getAllByText('Sin datos de contacto').length).toBeGreaterThan(0);
+    expect(screen.getByText('Eligió otra propiedad')).toBeInTheDocument();
+    expect(screen.getByText('Sin motivo cargado')).toBeInTheDocument();
+    expect(screen.getByText('Ya es cliente')).toBeInTheDocument();
+  });
+
+  it('la etapa manda: el estado solo aparece cuando el lead ya se cerró', async () => {
+    mockApi({
+      leads: () =>
+        page({
+          items: [
+            lead('a', { status: 'Nuevo', currentStage: { id: 'st-2', name: 'Oferta realizada', staleDays: 3 } }),
+            lead('d', { status: 'Convertido' }),
+          ],
+        }),
+    });
+    await renderList();
+    expect(screen.getByText('Oferta realizada')).toBeInTheDocument();
+    expect(screen.queryByText('Nuevo')).not.toBeInTheDocument();
+    expect(screen.getByText('Convertido')).toBeInTheDocument();
+  });
+
+  it('acepta los embudos y los usuarios también con la forma paginada', async () => {
+    mockApi({ paged: true });
+    await renderList();
+    expect(screen.getByRole('option', { name: 'Carla Ejemplo' })).toBeInTheDocument();
   });
 
   it('los enlaces de las fichas llevan el prefijo de idioma', async () => {
@@ -258,7 +306,7 @@ describe('LeadList', () => {
     mockApi();
     const user = await renderList();
     await user.click(screen.getByRole('button', { name: /Nuevo lead/ }));
-    const dialogTitle = await screen.findByRole('heading', { name: 'Nuevo Lead' });
+    const dialogTitle = await screen.findByRole('heading', { name: 'Nuevo lead' });
     const form = dialogTitle.closest('div')!.parentElement!;
     const scope = within(form as HTMLElement);
     await user.type(scope.getByPlaceholderText('Ej: María'), 'Nora');
@@ -294,7 +342,7 @@ describe('LeadList', () => {
       assignedToUserId: 'u2',
       notes: 'Nota',
     });
-    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Nuevo Lead' })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Nuevo lead' })).not.toBeInTheDocument());
   });
 
   it('un error al crear muestra el mensaje de la API o el genérico y se puede cancelar', async () => {
@@ -316,7 +364,7 @@ describe('LeadList', () => {
     expect(await screen.findByText('No se pudo crear el lead')).toBeInTheDocument();
     const cancel = screen.getAllByRole('button', { name: 'Cancelar' }).at(-1)!;
     await user.click(cancel);
-    expect(screen.queryByRole('heading', { name: 'Nuevo Lead' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Nuevo lead' })).not.toBeInTheDocument();
   });
 
   it('reasigna un lead eligiendo un usuario asignable', async () => {
@@ -370,7 +418,25 @@ describe('LeadList', () => {
     );
   });
 
-  it('un fallo al reasignar, convertir o perder se ignora sin cerrar la pantalla', async () => {
+  it('un fallo al reasignar o al marcar como perdido se avisa en el diálogo', async () => {
+    mockApi({
+      mutate: () => {
+        throw new Error('x');
+      },
+    });
+    const user = await renderList();
+    await user.click(screen.getAllByTitle('Reasignar')[0]);
+    await user.selectOptions(screen.getAllByRole('combobox').at(-1)!, 'u2');
+    await user.click(screen.getByRole('button', { name: 'Confirmar' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo completar la acción. Probá de nuevo.');
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await user.click(screen.getAllByTitle('Marcar como perdido')[0]);
+    await user.type(screen.getByPlaceholderText('Explicá el motivo…'), 'Motivo');
+    await user.click(screen.getAllByRole('button', { name: 'Marcar como perdido' }).at(-1)!);
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo completar la acción. Probá de nuevo.');
+  });
+
+  it('un fallo al convertir se avisa sin cerrar el diálogo', async () => {
     mockApi({
       mutate: () => {
         throw new Error('x');
@@ -381,6 +447,7 @@ describe('LeadList', () => {
     await user.click(screen.getAllByRole('button', { name: 'Convertir' }).at(-1)!);
     await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/leads/a/convert', expect.anything()));
     expect(screen.getByRole('heading', { name: 'Convertir lead' })).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
     await waitFor(() => expect(screen.queryByRole('heading', { name: 'Convertir lead' })).not.toBeInTheDocument());
   });
