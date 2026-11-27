@@ -245,11 +245,12 @@ describe('Locadores: cuenta corriente', () => {
     const user = userEvent.setup();
     renderEs(<OwnerLedger personId={ANA} />);
     const table = await screen.findByRole('table');
-    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Fecha', 'Concepto', 'Debe', 'Haber', 'Saldo', 'Estado de cuenta']);
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Fecha', 'Concepto', 'Debe', 'Haber', 'Importe', 'Saldo', 'Estado de cuenta']);
     const cells = (text: string) => within(within(table).getByText(text).closest('tr')!).getAllByRole('cell').map((c) => nb(c.textContent));
-    expect(cells('Alquiler').slice(2, 5)).toEqual(['', '$ 50.000,00', '$ 50.000,00']);
-    expect(cells('Comisión').slice(2, 5)).toEqual(['$ 3.500,00', '', '$ 46.500,00']);
-    expect(cells('Saldo final')[2]).toBe('$ 46.500,00');
+    // Celdas: fecha, concepto, debe, haber, importe con signo (pantallas angostas) y saldo.
+    expect(cells('Alquiler').slice(2, 6)).toEqual(['', '$ 50.000,00', 'Haber$ 50.000,00', '$ 50.000,00']);
+    expect(cells('Comisión').slice(2, 6)).toEqual(['$ 3.500,00', '', 'Debe$ 3.500,00', '$ 46.500,00']);
+    expect(cells('Saldo final')[4]).toBe('$ 46.500,00');
     expect(within(table).queryByText('Saldo anterior')).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Desde'), '2026-10-01');
     expect(await within(screen.getByRole('table')).findByText('Saldo anterior')).toBeInTheDocument();

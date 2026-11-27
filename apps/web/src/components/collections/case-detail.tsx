@@ -42,11 +42,11 @@ const DOT: Partial<Record<string, string>> = {
 function TimelineItem({ action, last }: { action: CollectionActionItem; last: boolean }) {
   const t = useTranslations('collections');
   return (
-    <li className="relative grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3 pb-6 last:pb-0 sm:grid-cols-[9.5rem_1.25rem_minmax(0,1fr)]">
+    <li className="relative grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3 pb-6 last:pb-0 sm:grid-cols-[11.5rem_1.25rem_minmax(0,1fr)]">
       <DateText
         value={action.at}
         kind="datetime"
-        className="col-start-2 row-start-1 text-xs tabular-nums text-[var(--color-muted)] sm:col-start-1 sm:pt-0.5 sm:text-right"
+        className="col-start-2 row-start-1 text-xs tabular-nums text-[var(--color-muted)] sm:col-start-1 sm:whitespace-nowrap sm:pt-0.5 sm:text-right"
       />
       <span aria-hidden className="relative col-start-1 row-span-2 row-start-1 flex justify-center sm:col-start-2 sm:row-span-1">
         {!last && <span className="absolute -bottom-6 top-3 w-px bg-[var(--color-border)]" />}

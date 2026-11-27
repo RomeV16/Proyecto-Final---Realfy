@@ -14,12 +14,12 @@ export const AGING_KEYS = ['d30', 'd60', 'd90', 'over'] as const;
 
 export type AgingKey = (typeof AGING_KEYS)[number];
 
-/** Color de cada tramo: del ámbar (primer mes) al rojo oscuro (más de 90 días). */
+/** Color de cada tramo: del ámbar (primer mes) al rojo (más de 90 días). */
 export const AGING_COLOR: Record<AgingKey, string> = {
   d30: 'var(--color-warning)',
-  d60: 'color-mix(in oklab, var(--color-warning) 45%, var(--color-danger))',
-  d90: 'var(--color-danger)',
-  over: 'color-mix(in oklab, var(--color-danger) 62%, var(--color-text))',
+  d60: 'color-mix(in oklab, var(--color-warning) 62%, var(--color-danger))',
+  d90: 'color-mix(in oklab, var(--color-warning) 28%, var(--color-danger))',
+  over: 'var(--color-danger)',
 };
 
 /** Tramo al que pertenece una deuda según los días del vencimiento impago más viejo. */

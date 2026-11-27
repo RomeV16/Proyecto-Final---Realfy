@@ -60,8 +60,8 @@ function AgendaRow({ followUp, userId, onOpen, tone }: { followUp: FollowUp; use
       </div>
 
       <div className="min-w-0">
-        <p className="truncate font-medium text-[var(--color-text)]">{followUp.property ?? t('agenda.noProperty')}</p>
-        <p className="truncate text-sm text-[var(--color-muted)]">
+        <p className="font-medium text-[var(--color-text)] lg:truncate">{followUp.property ?? t('agenda.noProperty')}</p>
+        <p className="text-sm text-[var(--color-muted)] lg:truncate">
           {followUp.tenantName ?? t('agenda.noTenant')}
           {followUp.effectiveEnd !== followUp.signedEnd && <> · {t('oralExtension.badge')}</>}
         </p>

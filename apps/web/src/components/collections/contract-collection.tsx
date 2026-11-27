@@ -22,9 +22,9 @@ export function ContractCollection({ contractId }: { contractId: string }) {
   if (!canView || !data || data.items.length === 0) return null;
 
   return (
-    <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-6" aria-label={t('contract.title')}>
+    <section className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6" aria-label={t('contract.title')}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-slate-900">{t('contract.title')}</h2>
+        <h2 className="text-sm font-semibold text-[var(--color-text)]">{t('contract.title')}</h2>
         <Link href="/cobranza" className="text-sm text-[var(--color-brand-600)] hover:underline">
           {t('contract.viewAll')}
         </Link>

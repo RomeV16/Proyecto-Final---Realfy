@@ -44,10 +44,10 @@ export function CaseQueue({ items, firstRank = 1 }: Props) {
           </span>
 
           <div className="min-w-0">
-            <Link href={caseHref(c.id)} className="block truncate font-medium text-[var(--color-text)] hover:underline">
+            <Link href={caseHref(c.id)} className="block font-medium text-[var(--color-text)] hover:underline lg:truncate">
               {c.propertyLabel || t('noProperty')}
             </Link>
-            <p className="truncate text-sm text-[var(--color-muted)]">{c.tenantNames || t('noTenant')}</p>
+            <p className="text-sm text-[var(--color-muted)] lg:truncate">{c.tenantNames || t('noTenant')}</p>
             <p className="mt-0.5 truncate text-xs text-[var(--color-muted)]">
               {c.assigneeName ? (
                 <>

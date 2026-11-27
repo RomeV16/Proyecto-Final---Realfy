@@ -56,7 +56,7 @@ export function AgingSummary({ summary, debtors }: { summary: Summary; debtors: 
             </dt>
             <dd className="mt-1 pl-[18px]">
               <MoneyText value={b.amount} decimals={2} className="block font-semibold tabular-nums text-[var(--color-text)]" />
-              <span className="text-xs text-[var(--color-muted)]">
+              <span className="mt-0.5 block text-xs leading-snug text-[var(--color-muted)]">
                 {t('aging.bucketCount', { count: b.count })}
                 {b.amount > 0 && <> · {t('aging.share', { pct: Math.round(b.share) })}</>}
               </span>
