@@ -8483,6 +8483,7 @@
   }
  },
  "billDocuments": {
+  "unknownProvider": "Unrecognized provider",
   "confidenceLabel": "Reading confidence: {pct} %",
   "accountShort": "account {account}",
   "inbox": {

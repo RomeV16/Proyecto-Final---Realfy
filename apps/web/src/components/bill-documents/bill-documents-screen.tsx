@@ -96,7 +96,7 @@ function InboxItem({ doc }: { doc: BillDocumentRow }) {
         <span className="min-w-0">
           <span className="flex flex-wrap items-baseline gap-x-2">
             <span className={cn('text-sm text-[var(--color-text)]', waiting ? 'font-semibold' : 'font-medium')}>
-              <ProviderText providerKey={doc.providerKey} />
+              {doc.providerKey ? <ProviderText providerKey={doc.providerKey} /> : t('unknownProvider')}
             </span>
             <span className="text-xs text-[var(--color-muted)]">
               {t(`channels.${doc.channel as BillChannel}`)}
