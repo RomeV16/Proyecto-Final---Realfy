@@ -149,7 +149,7 @@ export function InvoiceList() {
           aria-label={tFilters('type')}
           value={filters.type}
           onChange={(e) => setFilters({ type: e.target.value, page: 1 })}
-          className="w-56"
+          className="w-full sm:w-56"
         >
           <option value="">{tFilters('typePlaceholder')}</option>
           {Object.values(ComprobanteType).map((ct) => (

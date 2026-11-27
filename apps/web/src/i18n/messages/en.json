@@ -5712,8 +5712,21 @@
   }
  },
  "serviceBills": {
+  "sheetTitle": "Enter amounts",
+  "sheetHint": "Fill in the amount of each bill and save them all together. You can also paste rows copied from a spreadsheet.",
+  "board": {
+   "label": "This month's bills by service",
+   "overall": "{count, plural, one {bill loaded for {period}} other {bills loaded for {period}}}",
+   "overallLabel": "Bills loaded this month",
+   "allLoaded": "All of them are loaded",
+   "missing": "{count, plural, one {# bill missing} other {# bills missing}}",
+   "groupCount": "{loaded} of {total}",
+   "pending": "Missing",
+   "due": "due {date}",
+   "noProperty": "No property"
+  },
   "title": "Monthly bills",
-  "subtitle": "Enter the month's tax and utility bills. Each row shows who pays according to the contract rules; the tenant's share goes into their next settlement.",
+  "subtitle": "Which utility and tax bills are already loaded this month and which are missing. The tenant's share goes into their next settlement.",
   "period": "Month",
   "forbidden": "You do not have permission to enter bills.",
   "loadError": "The month's services could not be loaded",
@@ -5732,7 +5745,7 @@
    "status": "Status"
   },
   "payer": {
-   "none": "No rules",
+   "none": "No rule in the contract",
    "Inquilino": "Tenant (pays directly)",
    "Inmobiliaria": "Agency",
    "Propietario": "Owner",

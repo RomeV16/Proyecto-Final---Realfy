@@ -5712,8 +5712,21 @@
   }
  },
  "serviceBills": {
+  "sheetTitle": "Cargar importes",
+  "sheetHint": "Completá el importe de cada boleta y guardá todas juntas. También podés pegar filas copiadas de una planilla.",
+  "board": {
+   "label": "Boletas del mes por servicio",
+   "overall": "{count, plural, one {boleta cargada de {period}} other {boletas cargadas de {period}}}",
+   "overallLabel": "Boletas cargadas del mes",
+   "allLoaded": "Están todas cargadas",
+   "missing": "{count, plural, one {Falta # boleta} other {Faltan # boletas}}",
+   "groupCount": "{loaded} de {total}",
+   "pending": "Falta",
+   "due": "vence {date}",
+   "noProperty": "Sin propiedad"
+  },
   "title": "Boletas del mes",
-  "subtitle": "Cargá las boletas de impuestos y servicios del mes. Cada fila muestra quién paga según las reglas de los contratos; lo que le toca al inquilino entra en su próxima liquidación.",
+  "subtitle": "Qué boletas de servicios e impuestos ya están cargadas este mes y cuáles faltan. Lo que le toca al inquilino entra en su próxima liquidación.",
   "period": "Mes",
   "forbidden": "No tenés permiso para cargar boletas.",
   "loadError": "No se pudieron cargar los servicios del mes",
@@ -5732,7 +5745,7 @@
    "status": "Estado"
   },
   "payer": {
-   "none": "Sin reglas",
+   "none": "Sin regla en el contrato",
    "Inquilino": "Inquilino (paga directo)",
    "Inmobiliaria": "Inmobiliaria",
    "Propietario": "Propietario",
