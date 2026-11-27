@@ -23,7 +23,7 @@ lugar en el sistema (`ServiceBill`) y de ahí sale el reparto al inquilino
 
 No hay una vía única para obtenerlas. La investigación previa encontró:
 
-- **Ningún proveedor ofrece una API pública** de consulta de boletas por cliente. El
+- Ningún proveedor ofrece una API pública de consulta de boletas por cliente. El
   Portal Tributario de la Municipalidad de Córdoba (`tributariomuni.cordoba.gob.ar`)
   permite consultar un inmueble y bajar el cedulón sin iniciar sesión, pero por una API
   interna sin documentar y con un captcha del que no está claro el alcance.
@@ -33,7 +33,7 @@ No hay una vía única para obtenerlas. La investigación previa encontró:
   desde Córdoba.
 - El `robots.txt` de Rentas de Córdoba excluye expresamente «Mi Rentas» y los
   servicios de consulta: automatizarlos no es una opción sin un acuerdo con Rentas.
-- Los proveedores de servicios ofrecen **factura digital por mail** con el PDF, y toda
+- Los proveedores de servicios ofrecen factura digital por mail con el PDF, y toda
   boleta puede llegar además como PDF subido a mano. Esas dos vías no dependen de
   ningún sitio ni de ninguna credencial.
 
@@ -42,15 +42,15 @@ falta una entrada que no dependa del canal.
 
 ## Decisión
 
-**Toda boleta, venga de donde venga, pasa por el mismo circuito y termina en
-`ServiceBill`. Los canales y los proveedores son piezas intercambiables.**
+Toda boleta, venga de donde venga, pasa por el mismo circuito y termina en
+`ServiceBill`. Los canales y los proveedores son piezas intercambiables.
 
 ### Catálogo de proveedores en código
 
 `apps/api/src/modules/bills-intake/providers/` es un registro de
 `BillProviderDefinition`. Cada proveedor es un archivo con su nombre, los tipos de
 servicio que cubre, el esquema del identificador de cuenta (con su normalización), los
-canales por los que entrega boletas, las **firmas** que reconocen un documento suyo por
+canales por los que entrega boletas, las firmas que reconocen un documento suyo por
 el texto y su función `parse(texto)`. Sumar un proveedor es agregar su archivo, su
 entrada en el registro y su prueba.
 
@@ -64,15 +64,15 @@ entrada en el registro y su prueba.
 | `generico` | Otro proveedor | cualquiera | Letras y dígitos, de 3 a 30 |
 
 Un documento se reconoce por el proveedor que más firmas coincide; un empate o ninguna
-firma lo deja sin reconocer y lo lee el **lector genérico** (total a pagar,
+firma lo deja sin reconocer y lo lee el lector genérico (total a pagar,
 vencimiento y período por sus etiquetas habituales), cuya confianza está topada en 0,5.
 Las firmas de la Municipalidad piden el título «Contribución sobre los Inmuebles»: una
 página de datos, un informe de deuda o un plano de la Municipalidad no son una boleta.
 
 Cada lector devuelve una `FetchedBillData`: los identificadores de cuenta leídos
 (puede haber más de uno por documento, el circuito prueba con todos), la fecha de
-emisión y una o más **boletas** (período, cuota, importe, vencimiento 1.º y 2.º con su
-importe, código de pago, consumo), con una **confianza** de 0 a 1 y los avisos de la
+emisión y una o más boletas (período, cuota, importe, vencimiento 1.º y 2.º con su
+importe, código de pago, consumo), con una confianza de 0 a 1 y los avisos de la
 lectura. La confianza suma cuenta (0,25), importe (0,30), vencimiento (0,25) y período
 (0,20), y descuenta 0,1 por aviso. Un cedulón con varias cuotas (una liquidación de
 deuda) no es una boleta: queda con confianza topada en 0,5. No se guardan nombres ni
@@ -93,7 +93,7 @@ no se cumpla.
 **EPEC y Ecogas están a ajustar con la primera boleta real.** No hay una boleta de
 esos proveedores a la vista: su lectura se apoya en las etiquetas del formato público
 («Contrato», «N.° de cuenta», «Total a pagar», «Vencimiento», «Período») y su
-confianza está topada en 0,6. Mientras no se ajusten, **nunca dan de alta solos**: sus
+confianza está topada en 0,6. Mientras no se ajusten, nunca dan de alta solos: sus
 documentos reconocidos quedan en revisión con el motivo `LOW_CONFIDENCE` y el servicio
 sugerido. Cuando llegue la primera boleta real se ajusta el lector, se sube el tope y
 se agrega el caso a la prueba.
@@ -103,7 +103,7 @@ se agrega el caso a la prueba.
 Una migración nueva (`20261103180412_boletas_automaticas`), sin backfill:
 
 - `Service.providerKey` (clave del catálogo). El `accountNumber` existente es el
-  identificador de cuenta y, con proveedor, se guarda **normalizado**; no se agregó un
+  identificador de cuenta y, con proveedor, se guarda normalizado; no se agregó un
   campo de datos adicionales porque ningún proveedor necesita otro identificador (el
   circuito prueba con todos los que lea el documento). Dar de alta un servicio con
   proveedor valida la cuenta con el formato del proveedor (`INVALID_PROVIDER_ACCOUNT`) y
@@ -145,13 +145,13 @@ los adjuntos de personas, con una clave determinista por inmobiliaria y contenid
    no antes que el primero (`DUE_DATE_INCONSISTENT`).
 6. **Boleta existente.** Para cada boleta leída se busca `[servicio, período, cuota]`.
    Con el mismo importe no se hace nada (si todas estaban, el documento queda
-   `Duplicada`). Con otro importe, **nunca se pisa**: el documento queda en
+   `Duplicada`). Con otro importe, nunca se pisa: el documento queda en
    `BILL_EXISTS_DIFFERENT_AMOUNT` para que una persona decida.
 7. **Alta.** Si todo cierra, se da de alta cada boleta nueva con
    `ServiceBillsService.createAutomatic`, que comparte el alta con la carga manual (la
    misma creación y `materialize`), de modo que el reparto al inquilino sale igual. La
    boleta queda `Pendiente`, `Automatica` y ligada al documento. Las altas y el estado
-   del documento van en **una transacción**: o quedan las boletas con su documento
+   del documento van en una transacción: o quedan las boletas con su documento
    `Procesada`, o ninguna. Un fallo inesperado deja el documento en revisión en lugar de
    perderlo.
 
@@ -163,8 +163,8 @@ ventana de fechas, el documento entero va a revisión.
 El circuito asocia la boleta a un `Service` por `providerKey` y `accountNumber`. Para que
 esa comparación no dependa de cómo se escribió la cuenta, hay una sola normalización,
 la del esquema de cuenta de cada proveedor del catálogo (`accountSchema`), y se aplica
-en las dos puntas: al **guardar** (alta y edición manual, y lote de importación, con la
-misma función `resolveProviderFields`) y al **buscar** (`matchService` normaliza las
+en las dos puntas: al guardar (alta y edición manual, y lote de importación, con la
+misma función `resolveProviderFields`) y al buscar (`matchService` normaliza las
 cuentas del documento con el proveedor reconocido). Sin proveedor la cuenta se guarda
 tal cual: no hay formato que aplicar. Para sugerir el servicio de un documento sin
 proveedor reconocido se prueba la cuenta tal cual y la del lector genérico.
@@ -193,10 +193,10 @@ datos reales y sin beneficio.
   servicio de recepción reenvía el mail con los adjuntos en base64. La inmobiliaria
   sale de `tenantSlug`, como en la bandeja, o de la dirección de destino
   `boletas+<slug>@...`. Cada PDF adjunto entra al circuito con canal `Mail`. Un mail sin
-  PDF queda en revisión como `NO_ATTACHMENT`, una sola vez por mensaje; **los mails con
-  un enlace en lugar de un adjunto se tratan en un pedido posterior**. A diferencia de la
-  bandeja de consultas, **los remitentes automáticos (`no-reply`, marca `automatic`) se
-  aceptan**: los proveedores mandan la factura digital desde ellos. La protección es que
+  PDF queda en revisión como `NO_ATTACHMENT`, una sola vez por mensaje; los mails con
+  un enlace en lugar de un adjunto se tratan en un pedido posterior. A diferencia de la
+  bandeja de consultas, los remitentes automáticos (`no-reply`, marca `automatic`) se
+  aceptan: los proveedores mandan la factura digital desde ellos. La protección es que
   solo se procesan PDF y que la boleta se da de alta sola únicamente si el lector
   reconoce proveedor y cuenta.
 - **`consulta`**: en esta base solo existe la interfaz `BillFetcher` (`providerKey`,
@@ -234,7 +234,7 @@ revisión.
   «Boletas recibidas» (subida, lista con filtros, PDF junto a lo leído, aceptar con
   correcciones o rechazar con motivo).
 - Todo lo dudoso queda en una cola con el motivo, el servicio sugerido y el PDF, en
-  lugar de cargarse mal en silencio. Mientras EPEC y Ecogas no se ajusten, **todas**
+  lugar de cargarse mal en silencio. Mientras EPEC y Ecogas no se ajusten, todas
   sus boletas pasan por revisión.
 - La seguridad del ingreso por mail es la de la bandeja: quien tenga el secreto puede
   cargar documentos a cualquier inmobiliaria por su `slug`. Ese secreto es de la
@@ -244,13 +244,13 @@ revisión.
   meses la manda a revisión. Es intencional (un cedulón de deuda atrasada no es la
   boleta del mes).
 - Se agrega una dependencia, `unpdf` 1.8.1 (la más reciente que anda en Node 20 y
-  en Node 22; las posteriores requieren Node 22). Carga PDF.js con un `import()` dinámico que Jest no admite sin banderas
-  especiales: las pruebas leen los PDF con la misma librería en un proceso de Node
+  en Node 22; las posteriores requieren Node 22). Carga PDF.js con un `import()`
+  dinámico que Jest no admite sin banderas especiales: las pruebas leen los PDF con la misma librería en un proceso de Node
   aparte (`NodePdfTextService`), y la API en producción la usa en proceso.
 - Se agregan dos tablas y columnas sin backfill; la reversa está anotada en la
   migración.
-- Queda para los pedidos siguientes: el conector de consulta
+- Quedan para los pedidos siguientes: el conector de consulta
   de la Municipalidad (el único con consulta pública sin sesión, a tasa baja y
   desactivable, idealmente con un convenio), los mails con enlace, el ajuste de EPEC y
   Ecogas con boletas reales, el OCR de escaneos y el canal de portal.
-- El "servicio de recepción" del canal `mail` es un Cloudflare Email Worker (`infra/email-worker`): `boletas@` y `boletas+<slug>@` llegan a él por Email Routing, y manda los PDF en base64 a `POST /bills-intake/email-ingest` firmados con `INBOX_EMAIL_INGEST_SECRET`.
+- El «servicio de recepción» del canal `mail` es un Cloudflare Email Worker (`infra/email-worker`): `boletas@` y `boletas+<slug>@` llegan a él por Email Routing, y manda los PDF en base64 a `POST /bills-intake/email-ingest` firmados con `INBOX_EMAIL_INGEST_SECRET`.

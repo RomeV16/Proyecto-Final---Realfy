@@ -16,7 +16,7 @@ El dominio implica reglas de negocio densas (ajustes por IPC/UVA, liquidaciones 
 
 ## Decisión
 
-- **Backend**: NestJS 10. Se elige por su modelo de módulos, su sistema de inyección de dependencias y la facilidad para componer guards, interceptors y pipes (clave para el aislamiento multi-tenant y la auditoría). Los DTOs validados con `class-validator` o `zod` se integran naturalmente con los controladores.
+- **Backend**: NestJS 11. Se elige por su modelo de módulos, su sistema de inyección de dependencias y la facilidad para componer guards, interceptors y pipes (clave para el aislamiento multi-tenant y la auditoría). Los DTOs validados con `class-validator` o `zod` se integran naturalmente con los controladores.
 - **Frontend**: Next.js 15 con App Router. Permite resolver el portal público con SSR/SSG y el área administrativa como aplicación interactiva, todo dentro del mismo proyecto. Se integra con `next-intl` para i18n.
 - **ORM**: Prisma sobre PostgreSQL. Define el esquema en un único archivo, genera tipos al cliente automáticamente y gestiona migraciones versionadas en `apps/api/prisma/migrations`.
 
@@ -32,7 +32,7 @@ Positivas:
 
 - Tipado consistente desde el `schema.prisma` hasta los componentes de Next.js gracias a los tipos generados y a `packages/shared`.
 - Estructura de NestJS familiar para revisores académicos; se separan claramente las capas controller/service/persistencia.
-- Migraciones reproducibles en cada entorno (dev, staging, producción).
+- Migraciones reproducibles en cada entorno.
 
 Negativas:
 

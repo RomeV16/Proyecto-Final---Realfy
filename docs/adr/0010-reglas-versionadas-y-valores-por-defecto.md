@@ -32,8 +32,8 @@ historia en el registro de auditoría, de donde no se puede calcular nada.
 
 ## Decisión
 
-**Una regla se resuelve por capas: defecto, contrato, acuerdo, y las reglas del
-contrato se versionan en lugar de pisarse.**
+Una regla se resuelve por capas: defecto, contrato, acuerdo, y las reglas del
+contrato se versionan en lugar de pisarse.
 
 - **Defecto.** `Tenant.operationalDefaults` (JSON, validado con
   `OperationalDefaultsSchema` del paquete compartido) guarda los valores de
@@ -60,8 +60,8 @@ contrato se versionan en lugar de pisarse.**
   acuerdo. Un acuerdo se corrige o se borra solo si ninguna versión posterior
   depende de él.
 - **Nunca se pisa la historia.** Un cambio de reglas es una versión nueva. Las
-  columnas de ajuste de `contracts` quedan como la **vista vigente
-  desnormalizada** y se actualizan en la misma transacción que crea o borra una
+  columnas de ajuste de `contracts` quedan como la vista vigente
+  desnormalizada y se actualizan en la misma transacción que crea o borra una
   versión cuando esta rige desde hoy o antes. Para un contrato sin convenios, la
   corrección directa de esas columnas (`PATCH /contracts/:id`) corrige también su
   versión inicial; con más de una versión, cambiar la modalidad por `PATCH` se
@@ -76,9 +76,9 @@ contrato se versionan en lugar de pisarse.**
   REM) permiten cargar un valor esperado; el oficial lo reemplaza bajo la misma
   clave `[tenantId, indexType, period]`, y queda registrado qué se había estimado
   (`GET /index-data/estimates-replaced`). El cálculo de ajustes sigue usando solo
-  valores oficiales hasta que el motor de ajuste (PR siguiente) use los
+  valores oficiales hasta que el motor de ajuste use los
   estimados con ajuste provisional (`ContractAdjustment.isProvisional`,
-  `trueUpOfId`).
+  `trueUpOfId`); eso lo fija el ADR-0011.
 - **Migración.** Cada contrato existente recibe un período original y una
   versión inicial con sus columnas de hoy: base `Vigente` (es lo que el motor
   actual hace, aplica el índice sobre el alquiler vigente), rezago 0 (el motor
@@ -121,7 +121,8 @@ Negativas:
   anterior. Los lectores nuevos deben pedir la versión a la fecha.
 - Los tableros y las notificaciones de vencimiento siguen leyendo `endDate`;
   pasar al fin efectivo es un cambio posterior.
-- Base, rezago, escalonado y UVA se guardan pero todavía no cambian el cálculo.
+- Base, rezago, escalonado y UVA se guardan pero todavía no cambian el cálculo
+  (lo hacen desde el ADR-0011).
 
 ## Addendum: liquidaciones y numeración de recibos
 
@@ -142,7 +143,7 @@ hace falta, es otra serie.
 Cuatro criterios de la generación de liquidaciones no son una decisión técnica sino
 un acuerdo entre las partes, y Manuel decidió que todo es pactable: cada uno es una
 regla del contrato, versionada en `ContractTermsVersion`, con un valor por defecto
-en `Tenant.operationalDefaults` (defecto -> contrato -> acuerdo, igual que
+en `Tenant.operationalDefaults` (defecto, contrato y acuerdo, igual que
 `dueDay`).
 
 | Regla | Opciones (la primera es la de fábrica) |
@@ -151,14 +152,14 @@ en `Tenant.operationalDefaults` (defecto -> contrato -> acuerdo, igual que
 | `midMonthAdjustmentMode` | `DesdePeriodoSiguiente`, `Prorrateado` (dos renglones de alquiler partidos por días, con el conteo de `prorationMode`; con `SinProrrateo` se cuentan días reales), `DesdeEsePeriodo` (todo el mes al alquiler nuevo) |
 | `firstDueMode` | `DiaDeInicio` (vence el día de inicio si es posterior al vencimiento), `VencimientoMesSiguiente`, `AlFirmar` |
 | `fixedDiscountProration` | `Proporcional`, `Completo` |
-| `lateAdjustmentBilling` | `Retroactivo` (la diferencia de un ajuste aplicado después de emitir el mes se cobra en la próxima liquidación como cargo `AjusteRetroactivo`), `SinRetroactivo` (rige desde la próxima). Adenda del 3 de noviembre de 2026, ADR-0011 |
+| `lateAdjustmentBilling` | `Retroactivo` (la diferencia de un ajuste aplicado después de emitir el mes se cobra en la próxima liquidación como cargo `AjusteRetroactivo`), `SinRetroactivo` (rige desde la próxima). Addendum del 3 de noviembre de 2026, ADR-0011 |
 | `upfrontBasis` | `ComisionPactada` (la comisión del contrato; sin ella, el porcentaje por defecto), `PorcentajePorDefecto` |
 | `skippedAdjustmentsMode` | `NoRecuperar` (de fábrica: el primer ajuste de un contrato importado parte del último período salteado, porque el alquiler importado ya viene actualizado), `Recuperar` (acumula desde el inicio del contrato) |
 | `upfrontThresholdFees` | entero de 0 a 24 comisiones mensuales; `null` = el de la inmobiliaria (2 de fábrica) |
 
-Adenda (2 de noviembre de 2026): el centro de carga suma a las reglas del contrato el umbral de anticipo de un gasto (`upfrontThresholdFees`, opcional) y la comisión con que se mide (`upfrontBasis`), con la misma resolución defecto, contrato y convenio, a la fecha del gasto.
+Addendum (2 de noviembre de 2026): el centro de carga suma a las reglas del contrato el umbral de anticipo de un gasto (`upfrontThresholdFees`, opcional) y la comisión con que se mide (`upfrontBasis`), con la misma resolución defecto, contrato y convenio, a la fecha del gasto.
 
-Adenda (3 de noviembre de 2026): `skippedAdjustmentsMode` resuelve una regla que ni el ADR-0011 ni la inmobiliaria habían definido, la de la inflación de los períodos de ajuste salteados al importar. Se tomó como valor de fábrica reproducir la práctica de la inmobiliaria piloto (el alquiler importado ya está actualizado, por lo que no se recupera) y se dejó pactable por contrato. Con cualquier ajuste ya aplicado, del cronograma o del historial importado, la ventana arranca en el último y la convención no interviene; solo decide el primer ajuste de un contrato sin ninguno. Queda pendiente de confirmar con la inmobiliaria.
+Addendum (3 de noviembre de 2026): `skippedAdjustmentsMode` resuelve una regla que ni el ADR-0011 ni la inmobiliaria habían definido, la de la inflación de los períodos de ajuste salteados al importar. Se tomó como valor de fábrica reproducir la práctica de la inmobiliaria piloto (el alquiler importado ya está actualizado, por lo que no se recupera) y se dejó pactable por contrato. Con cualquier ajuste ya aplicado, del cronograma o del historial importado, la ventana arranca en el último y la convención no interviene; solo decide el primer ajuste de un contrato sin ninguno. Queda pendiente de confirmar con la inmobiliaria.
 
 Decisiones de modelado:
 

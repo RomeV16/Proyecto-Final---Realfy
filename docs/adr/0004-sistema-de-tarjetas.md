@@ -1,7 +1,12 @@
-# ADR 0004 — Sistema de tarjetas para pantallas con registros repetidos
+# ADR-0004: Sistema de tarjetas para pantallas con registros repetidos
 
-- Estado: aceptada
-- Fecha: 2026-08-13
+## Estado
+
+Aceptado.
+
+## Fecha
+
+2026-08-13.
 
 ## Contexto
 
@@ -29,9 +34,9 @@ Se incorpora un vocabulario compartido en `apps/web/src/components/ui/`:
 | Pieza | Rol |
 |---|---|
 | `EntityCard` / `EntityRow` | La tarjeta de registro y su variante horizontal |
-| `CardGrid` / `RowList` | Contenedores: son dueños de la transición carga → contenido → vacío |
+| `CardGrid` / `RowList` | Contenedores: son dueños de la transición entre carga, contenido y vacío |
 | `EntityCover` / `GeneratedCover` / `SmartImage` | Portadas: foto real, o arte generado a partir del id |
-| `Avatar` / `AvatarStack` | Identidad de personas y proveedores (no tienen foto) |
+| `Avatar` | Identidad de personas y proveedores (no tienen foto) |
 | `ProgressRing` / `Sparkline` / `Meter` / `TrendDelta` | Marcas de datos que le dan peso informativo a las tarjetas sin foto |
 | `StatTile` | Métrica accionable, con acceso directo al listado que la explica |
 | `Badge` | Chapa de estado, derivada de los tokens `--color-*` |
@@ -41,12 +46,12 @@ Se incorpora un vocabulario compartido en `apps/web/src/components/ui/`:
 
 ### Identidad vs. estado
 
-La **identidad** la da la portada. Los registros sin foto reciben un degradado,
+La identidad la da la portada. Los registros sin foto reciben un degradado,
 una textura y un ícono fantasma derivados de su id (`lib/entity-visuals.ts`),
 de modo que el mismo contrato se ve siempre igual y una grilla se lee como un
 conjunto de objetos distintos.
 
-El **estado** lo dan la chapa y la barra de acento lateral. Mantenerlos
+El estado lo dan la chapa y la barra de acento lateral. Mantenerlos
 separados es lo que permite que el color siga siendo informativo mientras la
 identidad varía.
 

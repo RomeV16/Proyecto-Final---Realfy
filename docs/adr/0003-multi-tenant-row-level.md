@@ -10,7 +10,7 @@ Aceptado.
 
 ## Contexto
 
-Realfy se ofrece como SaaS multi-inmobiliaria. Cada inmobiliaria (entidad `Tenant`) administra su propia cartera de propiedades, personas, contratos, liquidaciones, leads y tickets. El aislamiento entre tenants es un requisito funcional crítico: una fuga de datos entre inmobiliarias implicaría un incidente regulatorio y reputacional grave.
+Realfy se ofrece como SaaS multi-inmobiliaria. Cada inmobiliaria (entidad `Tenant`) administra su propia cartera de propiedades, personas, contratos, liquidaciones, leads y tickets. El aislamiento entre tenants es un requisito funcional crítico: una fuga de datos entre inmobiliarias sería un incidente grave, legal y de confianza.
 
 Existen tres patrones canónicos para implementar multi-tenancy con PostgreSQL:
 
@@ -48,6 +48,10 @@ Negativas:
 
 ## Riesgos y mitigaciones
 
-- **Riesgo**: un endpoint nuevo se implementa sin filtrar por `tenantId` y un agente de una inmobiliaria recupera datos de otra. **Mitigación**: pruebas e2e de Playwright con dos tenants ficticios que recorren los endpoints sensibles y verifican respuestas 403/404; revisión obligatoria de PR sobre cualquier archivo bajo `apps/api/src/modules/**`.
-- **Riesgo**: una migración masiva (por ejemplo, recálculo de punitorios) actualiza filas sin restringir por tenant. **Mitigación**: los scripts batch reciben el `tenantId` como argumento obligatorio o iteran tenant por tenant.
-- **Riesgo**: un agente con acceso a más de una inmobiliaria recibe un JWT con el `tenantId` equivocado. **Mitigación**: el endpoint de switch de tenant emite un nuevo JWT y rota el refresh token.
+- Riesgo: un endpoint nuevo se implementa sin filtrar por `tenantId` y un agente de una inmobiliaria recupera datos de otra. Mitigación: pruebas e2e de la API con dos tenants ficticios que recorren los endpoints sensibles y verifican que ninguno llega a los datos del otro (`apps/api/test/tenant-isolation.e2e-spec.ts`); revisión obligatoria de PR sobre cualquier archivo bajo `apps/api/src/modules/`.
+- Riesgo: una migración masiva (por ejemplo, recálculo de punitorios) actualiza filas sin restringir por tenant. Mitigación: los scripts batch reciben el `tenantId` como argumento obligatorio o iteran tenant por tenant.
+- Riesgo: un agente con acceso a más de una inmobiliaria recibe un JWT con el `tenantId` equivocado. Mitigación**: el endpoint de switch de tenant emite un nuevo JWT y rota el refresh token.
+
+## Decisiones relacionadas
+
+El ADR-0006 describe la implementación vigente del filtro (contexto de la petición y extensión del cliente de Prisma) y la endurece: sin inmobiliaria en el contexto, la consulta falla en lugar de ejecutarse sin filtro.

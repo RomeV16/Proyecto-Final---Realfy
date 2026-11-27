@@ -19,8 +19,8 @@ alcanza:
 - Un mismo modelo tiene variantes por contrato: con o sin depósito, uno a tres
   locatarios, cero a cuatro garantes, singular y plural. Con solo variables hace
   falta una plantilla por combinación o editar el documento a mano.
-- Había un solo `inquilino`: con varios locatarios el armador pisaba al anterior y,
-  peor, mezclaba campos opcionales (DEF-110). Los garantes eran `garante`,
+- Había un solo `inquilino`: con varios locatarios el armador pisaba al anterior y
+  mezclaba campos opcionales (DEF-110). Los garantes eran `garante`,
   `garante2`, … y no había cantidad ni lista.
 - Faltaban datos que el contrato cita: descripción, catastro, cuenta de Rentas y
   unidad de Aguas del inmueble; matrícula y domicilio de la inmobiliaria; el canon
@@ -33,7 +33,7 @@ El motor lo usan solo las plantillas de contrato (las de correo tienen su propio
 
 ## Decisión
 
-**Dos construcciones de bloque, sin evaluar código.**
+Dos construcciones de bloque, sin evaluar código.
 
 - `{{#si condición}}…{{#sino}}…{{/si}}`. La condición es una variable (se cumple si
   tiene valor distinto de vacío, `0`, `0,00` o `false`), `no variable`, o una
@@ -58,7 +58,7 @@ que no es del motor ahora es un error en lugar de quedar escrita, y una barra
 invertida pegada a `{{` ahora escapa. Un texto entre llaves que no es un nombre de
 variable (`{{ esto no }}`) sigue quedando igual.
 
-**Errores claros.** Una plantilla mal formada lanza `TemplateSyntaxError` con un
+**Errores.** Una plantilla mal formada lanza `TemplateSyntaxError` con un
 código (`UNCLOSED_BLOCK`, `UNEXPECTED_CLOSE`, `MISPLACED_ELSE`, `DUPLICATE_ELSE`,
 `BAD_CONDITION`, `BAD_LOOP`, `UNKNOWN_BLOCK`, `UNKNOWN_LIST`, `TOO_DEEP`,
 `TOO_LARGE`), la línea y la columna. La API la rechaza al crear o editar la
@@ -82,7 +82,7 @@ nuevas en `tenants`). Los importes y las fechas en letras reutilizan `amountInWo
 y suman `dateInWords`; las fechas del contrato se leen en UTC (son fechas sin hora).
 
 **Documento.** El PDF y el Word siguen siendo texto resuelto, un renglón por párrafo,
-ahora justificado; `# ` abre un título centrado y `**x**` es negrita
+ahora justificado; `# ` abre un título centrado y `x` es negrita
 (`parseDocumentText`, compartido). No se agregan más formatos.
 
 ## Alternativas descartadas

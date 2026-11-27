@@ -12,7 +12,7 @@ Aceptado.
 
 La inmobiliaria cobra el alquiler y lo reparte, pero el alquiler es del locador: la
 factura del alquiler la tiene que emitir el locador, no la inmobiliaria. La
-inmobiliaria la emite por él con la **delegación** del servicio de facturación
+inmobiliaria la emite por él con la delegación del servicio de facturación
 electrónica que el locador le da en ARCA (el locador designa a la inmobiliaria como
 representante del servicio; la inmobiliaria se autentica con su propio certificado y
 factura con el CUIT del locador). El relevamiento lo fijó así: «por cuenta del
@@ -22,7 +22,7 @@ locador, nunca a nombre de la inmobiliaria; la inmobiliaria factura lo que decid
 El modelo ya permitía varios emisores por inmobiliaria (informe final, «Multi-emisor
 en facturación electrónica»): el emisor `ArcaIssuer` tiene su CUIT, sus puntos de
 venta y su numeración independiente, y el certificado cifrado pertenece a la
-inmobiliaria. Faltaba saber a **qué persona** corresponde un emisor delegado, qué se
+inmobiliaria. Faltaba saber a qué persona corresponde un emisor delegado, qué se
 factura de cada cobro, cuándo, y cómo se evita que un fallo de ARCA rompa el cobro o
 que se facture dos veces lo mismo.
 
@@ -67,7 +67,7 @@ clave de idempotencia derivada del origen, el locador y el contrato (también es
 por el proceso, no factura dos veces. Un trabajo fallido guarda el motivo y se
 reintenta (cada 30 minutos, hasta 5 intentos; «Emitir pendientes» reintenta todos).
 
-**La emisión es manual o automática, siempre por la misma cola.**
+La emisión es manual o automática, siempre por la misma cola.
 
 - Manual: `POST /payments/:id/invoices` y `POST /owner-statements/:id/invoices`.
 - Automática: cada 30 minutos y con `POST /invoices/pending/run`, el sistema pone en

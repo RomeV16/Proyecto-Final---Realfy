@@ -36,9 +36,9 @@ Tres hechos condicionan cómo se carga:
 
 ## Decisión
 
-**El importador es una API de lotes en JSON que hace upsert por la referencia
+El importador es una API de lotes en JSON que hace upsert por la referencia
 externa de cada registro, con ensayo (`dryRun`) y un registro por fila; las
-extracciones y los mapeos se quedan en scripts externos.**
+extracciones y los mapeos se quedan en scripts externos.
 
 - **Contrato JSON, no archivo.** `POST /import/batches` recibe
   `{ dryRun, atomic?, kind?, persons?, properties?, contracts?, services?,
@@ -102,8 +102,8 @@ extracciones y los mapeos se quedan en scripts externos.**
   alta manual también exige a un contrato activo: locadores que suman 100 %, al
   menos un inquilino y ningún otro contrato activo que se superponga en la
   propiedad.
-- **El rezago de un contrato nuevo es el de la inmobiliaria; el de uno ya cargado
-  no se pisa** (ADR-0011): al crear, `indexLagMonths` toma el valor de la fila o el
+- El rezago de un contrato nuevo es el de la inmobiliaria; el de uno ya cargado
+  no se pisa (ADR-0011): al crear, `indexLagMonths` toma el valor de la fila o el
   `ipcLagMonths` de los valores por defecto; al actualizar se conserva el
   guardado, de modo que cambiar el valor por defecto no mueve contratos ya
   importados.

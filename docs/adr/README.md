@@ -1,8 +1,8 @@
 # Registro de decisiones de arquitectura
 
-Índice de las decisiones de arquitectura (ADR) del proyecto. Cada decisión vive en su propio archivo de esta carpeta, con contexto, decisión y consecuencias. Una decisión aceptada no se reescribe: si cambia, se escribe una nueva que la reemplaza y la anterior pasa a «Reemplazada»; las precisiones posteriores que no la cambian se agregan como addendum fechado al final del mismo archivo.
+Índice de las decisiones de arquitectura (ADR) del proyecto. Cada decisión vive en su propio archivo de esta carpeta, con contexto, decisión y consecuencias. Una decisión aceptada no se reescribe: si cambia, se escribe una nueva que la reemplaza y la anterior pasa a «Reemplazado»; las precisiones posteriores que no la cambian se agregan como addendum fechado al final del mismo archivo.
 
-Índice verificado el 3 de noviembre de 2026 contra los archivos de la carpeta: diecinueve decisiones, todas aceptadas. Las seis primeras son del desarrollo original de la tesis; de la 0007 en adelante, del piloto en una inmobiliaria real (`../tesis/30-piloto.md`).
+Índice verificado el 27 de noviembre de 2026 contra los archivos de la carpeta: diecinueve decisiones, todas aceptadas. Las seis primeras son del desarrollo original de la tesis; de la 0007 en adelante, del piloto en una inmobiliaria real (`../tesis/30-piloto.md`).
 
 ## Decisiones
 
@@ -17,13 +17,13 @@
 | [0007](0007-locadores-apoderados-y-titularidad.md) | Locadores por contrato, apoderados y titularidad de propiedades | Aceptado | 2026-10-31 | Piloto, ítem 33 |
 | [0008](0008-impuestos-y-servicios-trasladables.md) | Impuestos y servicios trasladables: tres pagadores, reglas con vigencia y boletas | Aceptado | 2026-11-01 | Piloto, ítem 35 |
 | [0009](0009-cuenta-corriente-y-estado-de-cuenta-del-locador.md) | Cuenta corriente y estado de cuenta del locador | Aceptado; deja la rendición por contrato como histórico de solo lectura | 2026-11-02 | Piloto, ítem 37 |
-| [0010](0010-reglas-versionadas-y-valores-por-defecto.md) | Reglas versionadas del contrato y valores por defecto de la inmobiliaria | Aceptado, con dos addenda (numeración de recibos y convenciones de liquidación pactables, 2026-11-01) | 2026-10-31 | Piloto, ítem 34 |
-| [0011](0011-ajuste-con-rezago-estimacion-y-correccion.md) | Ajuste con rezago, estimación y corrección | Aceptado | 2026-10-31 | Piloto, ítem 34 |
+| [0010](0010-reglas-versionadas-y-valores-por-defecto.md) | Reglas versionadas del contrato y valores por defecto de la inmobiliaria | Aceptado, con dos addenda (numeración de recibos y convenciones de liquidación pactables, 2026-11-01) y precisiones del 2 y 3 de noviembre | 2026-10-31 | Piloto, ítem 34 |
+| [0011](0011-ajuste-con-rezago-estimacion-y-correccion.md) | Ajuste con rezago, estimación y corrección | Aceptado, con addenda del 2026-11-03 y del 2026-11-04 | 2026-10-31 | Piloto, ítem 34 |
 | [0012](0012-flujos-de-cobro-caja-y-custodia.md) | Flujos de cobro, caja y custodia | Aceptado | 2026-11-02 | Piloto, ítem 36 |
-| [0013](0013-mensajeria-saliente-con-outbox-y-cobranza-escalonada.md) | Mensajería saliente con outbox y cobranza escalonada | Aceptado; cubre también la bandeja de consultas entrante (PR 5.3). Las decisiones legales de la cobranza siguen pendientes de revisión por el abogado de la inmobiliaria | 2026-11-03 | Piloto, ítem 43 |
+| [0013](0013-mensajeria-saliente-con-outbox-y-cobranza-escalonada.md) | Mensajería saliente con outbox y cobranza escalonada | Aceptado; cubre también la bandeja de consultas entrante. Las decisiones legales de la cobranza siguen pendientes de revisión por el abogado de la inmobiliaria | 2026-11-03 | Piloto, ítem 43 |
 | [0014](0014-ambiente-piloto-con-datos-reales.md) | Ambiente piloto con datos reales | Aceptado | 2026-10-31 | Piloto, ítem 31 |
 | [0015](0015-importacion-idempotente-desde-el-sistema-anterior.md) | Importación idempotente desde el sistema anterior | Aceptado | 2026-11-01 | Piloto, ítem 39 |
-| [0016](0016-diagramas-como-codigo.md) | Diagramas como código (mermaid) | Aceptado | 2026-10-30 | Piloto, ítem 31 |
+| [0016](0016-diagramas-como-codigo.md) | Los diagramas se escriben como código dentro del documento | Aceptado | 2026-10-30 | Piloto, ítem 31 |
 | [0017](0017-facturacion-por-cuenta-del-locador-con-emisor-delegado.md) | Facturación por cuenta del locador con emisor delegado | Aceptado | 2026-11-02 | Piloto, ítem 38 |
 | [0018](0018-obtencion-automatica-de-boletas.md) | Obtención automática de boletas de servicios e impuestos | Aceptado; los lectores de EPEC y Ecogas quedan a ajustar con la primera boleta real | 2026-11-03 | Piloto, uso real |
 | [0019](0019-motor-de-plantillas-de-contrato-con-bloques.md) | Motor de plantillas de contrato con condicionales y listas | Aceptado | 2026-11-03 | Piloto, paso M11 |
@@ -40,12 +40,8 @@ La fecha es la de aceptación que figura en cada archivo. El orden de los númer
 
 ## Decisiones planificadas
 
-No quedan decisiones planificadas. Las diez que el plan del piloto previó (0007 a 0016) están aceptadas, y la 0017 y la 0018 se sumaron al implementar la facturación por cuenta del locador y la obtención automática de boletas. Una decisión nueva se escribe en el pedido que la implementa y se agrega a esta tabla con su fecha cuando se acepta.
-
-## Ajustes pendientes a decisiones existentes
-
-- ADR-0004: unificar su encabezado con el formato del resto (secciones «Estado» y «Fecha»); hoy los declara como lista al principio del archivo.
+No quedan decisiones planificadas. Las diez que el plan del piloto previó (0007 a 0016) están aceptadas, y la 0017, la 0018 y la 0019 se sumaron al implementar la facturación por cuenta del locador, la obtención automática de boletas y las plantillas de contrato. Una decisión nueva se escribe en el pedido que la implementa y se agrega a esta tabla con su fecha cuando se acepta.
 
 ## Formato
 
-Cada decisión usa las secciones Estado, Fecha, Contexto, Decisión y Consecuencias. Los estados posibles son Propuesta, Aceptado, Reemplazada y Rechazada.
+Cada decisión usa las secciones Estado, Fecha, Contexto, Decisión y Consecuencias. Los estados posibles son Propuesto, Aceptado, Reemplazado y Rechazado.

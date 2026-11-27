@@ -44,7 +44,7 @@ apoderado, o un locador que no fuera titular, no podía figurar.
 
 ## Decisión
 
-**El locador es una relación del contrato, no un rol de la persona.**
+El locador es una relación del contrato, no un rol de la persona.
 
 - Se agrega `ContractLessor`: persona, capacidad (`Propietario`, `Usufructuario`,
   `Sublocador`, `Acreedor` u `Otro`), porcentaje de cobro (`payoutPct`, hasta 4
