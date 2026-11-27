@@ -105,7 +105,7 @@ export function StatTile({
           el dato, la tarjeta cambia de alto y la grilla entera se mueve. */}
       <div className="relative mt-1 flex min-h-[1.125rem] items-center gap-2">
         {trend !== undefined && <TrendDelta value={trend} invert={trendInvert} />}
-        {hint && <span className="truncate text-xs text-[var(--color-muted)]">{hint}</span>}
+        {hint && <span className="max-sm:line-clamp-2 sm:truncate text-xs text-[var(--color-muted)]">{hint}</span>}
       </div>
 
       {spark && spark.length > 1 && (
