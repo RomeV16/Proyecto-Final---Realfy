@@ -725,26 +725,25 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
       </Dialog>
 
       {/* PaymentForm modal */}
-      {(showPaymentForm || payoff) && (
-        <PaymentForm
-          liquidacionId={liquidacionId}
-          remainingBalance={remainingBalance}
-          currency={data.currency}
-          initialAmount={payoff?.amount}
-          initialPaidAt={payoff?.date}
-          settlePenalties={payoff !== null}
-          onSuccess={() => {
-            setShowPaymentForm(false);
-            setPayoff(null);
-            setFeedback({ type: 'success', msg: tPayments('registerSuccess') });
-            void fetchData();
-          }}
-          onClose={() => {
-            setShowPaymentForm(false);
-            setPayoff(null);
-          }}
-        />
-      )}
+      <PaymentForm
+        open={showPaymentForm || payoff !== null}
+        liquidacionId={liquidacionId}
+        remainingBalance={remainingBalance}
+        currency={data.currency}
+        initialAmount={payoff?.amount}
+        initialPaidAt={payoff?.date}
+        settlePenalties={payoff !== null}
+        onSuccess={() => {
+          setShowPaymentForm(false);
+          setPayoff(null);
+          setFeedback({ type: 'success', msg: tPayments('registerSuccess') });
+          void fetchData();
+        }}
+        onClose={() => {
+          setShowPaymentForm(false);
+          setPayoff(null);
+        }}
+      />
 
       {compensating && (
         <CompensationDialog
