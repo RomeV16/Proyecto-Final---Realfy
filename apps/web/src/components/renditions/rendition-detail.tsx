@@ -7,10 +7,21 @@ import { toast } from '@/lib/toast';
 import { RendicionStatus, RendicionLineItemType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from '@/i18n/navigation';
-import { EntityRow, Badge } from '@/components/ui/entity-card';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { cn } from '@/lib/cn';
 import { formatMoneyFixed, formatLocalDate } from '@/lib/format';
 import { RenditionsHistoricalNotice } from './historical-notice';
+import {
+  BreakdownBar,
+  renditionBreakdown,
+  renditionNumber,
+  renditionOwnerName,
+  renditionPeriodLabel,
+  type RenditionSummary,
+} from './rendition-voucher';
 
 /* ──────────── Types ──────────── */
 
@@ -22,26 +33,13 @@ interface LineItem {
   isDebit: boolean;
 }
 
-interface RenditionDetail {
-  id: string;
-  status: RendicionStatus;
-  month: number;
-  year: number;
-  rentCollected: string | number;
+interface RenditionDetail extends RenditionSummary {
   commissionAmount: string | number;
   adminFeeAmount: string | number;
   deductionTotal: string | number;
-  netDeposit: string | number;
   notes?: string | null;
-  sentAt?: string | null;
-  depositedAt?: string | null;
   createdAt: string;
   updatedAt: string;
-  ownerName?: string;
-  contract?: {
-    id: string;
-    property?: { id: string; title: string; street?: string; city?: string };
-  };
   lineItems: LineItem[];
 }
 
@@ -49,23 +47,14 @@ interface RenditionDetailProps {
   renditionId: string;
 }
 
-/* ──────────── Helpers ──────────── */
-
-
-
-const LINE_ITEM_ICONS: Record<string, string> = {
-  [RendicionLineItemType.Alquiler]: '🏠',
-  [RendicionLineItemType.Comision]: '💼',
-  [RendicionLineItemType.AdminFee]: '🧾',
-  [RendicionLineItemType.Deduccion]: '🏷️',
-  [RendicionLineItemType.Ajuste]: '📊',
-};
+const MINUS = '−';
 
 /* ──────────── Main Component ──────────── */
 
 export function RenditionDetail({ renditionId }: RenditionDetailProps) {
   const t = useTranslations('renditions');
-  const tMonths = useTranslations('renditions.months');
+  const tDoc = useTranslations('renditions.document');
+  const tVoucher = useTranslations('renditions.voucher');
   const tLineItemTypes = useTranslations('renditions.lineItemTypes');
   const tCommon = useTranslations('common');
 
@@ -85,7 +74,7 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
   }, [renditionId]);
 
   useEffect(() => {
-    fetchRendition();
+    void fetchRendition();
   }, [fetchRendition]);
 
   async function handleDownloadPdf() {
@@ -101,8 +90,10 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full" />
+      <div role="status" aria-busy="true" className="mx-auto max-w-3xl space-y-4">
+        <span className="sr-only">{tCommon('loading')}</span>
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-[28rem] w-full rounded-[var(--radius-xl)]" />
       </div>
     );
   }
@@ -110,163 +101,188 @@ export function RenditionDetail({ renditionId }: RenditionDetailProps) {
   if (!rendition) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <h2 className="text-lg font-semibold text-slate-900">{t('errors.notFound')}</h2>
-        <Link href={'/renditions'} className="mt-4 text-sm text-brand-600 hover:text-brand-700">
-          ← {tCommon('back')}
+        <h2 className="text-lg font-semibold text-[var(--color-text)]">{t('errors.notFound')}</h2>
+        <Link href={'/renditions'} className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-brand-600)] hover:underline">
+          <Icon name="arrowLeft" className="h-4 w-4" />
+          {tDoc('back')}
         </Link>
       </div>
     );
   }
 
-  const periodLabel = `${tMonths(String(rendition.month) as '1')} ${rendition.year}`;
+  const periodLabel = renditionPeriodLabel(rendition);
+  const ownerName = renditionOwnerName(rendition);
+  const property = rendition.contract?.property;
+  const address = property ? [[property.street, property.number].filter(Boolean).join(' '), property.city].filter(Boolean).join(', ') : '';
+  const breakdown = renditionBreakdown(rendition);
+  const money = (value: string | number) => formatMoneyFixed(value, rendition.currency);
+  const deposited = rendition.status === RendicionStatus.Depositada;
+
+  const calculation = [
+    { key: 'commission', label: t('summary.commission'), value: Number(rendition.commissionAmount), always: true },
+    { key: 'adminFee', label: t('summary.adminFee'), value: Number(rendition.adminFeeAmount), always: false },
+    { key: 'deductions', label: t('summary.deductions'), value: Number(rendition.deductionTotal), always: false },
+  ].filter((row) => row.always || row.value > 0);
+
+  const steps = [
+    { key: 'created', label: tDoc('created'), at: rendition.createdAt },
+    { key: 'sent', label: tDoc('sent'), at: rendition.sentAt },
+    { key: 'deposited', label: tDoc('deposited'), at: rendition.depositedAt },
+  ];
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Back link */}
-      <Link href={'/renditions'} className="text-sm text-brand-600 hover:text-brand-700">
-        ← {tCommon('back')}
-      </Link>
+    <div className="mx-auto max-w-3xl space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href={'/renditions'} className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-brand-600)] hover:underline">
+          <Icon name="arrowLeft" className="h-4 w-4" />
+          {tDoc('back')}
+        </Link>
+        <Button variant="secondary" size="sm" onClick={() => void handleDownloadPdf()}>
+          <Icon name="download" className="h-4 w-4" strokeWidth={2} />
+          {t('pdf.download')}
+        </Button>
+      </div>
 
       <RenditionsHistoricalNotice />
 
-      {/* Header */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <StatusBadge domain="rendicion" status={rendition.status} size="md" />
-            </div>
-            <h1 className="text-xl font-bold text-slate-900">
-              {t('detail.title')} — {periodLabel}
-            </h1>
-            <div className="text-sm text-slate-500 space-y-0.5">
-              {rendition.contract?.property && (
-                <p>{rendition.contract.property.title}</p>
-              )}
-              {rendition.ownerName && (
-                <p>{t('detail.owner')}: {rendition.ownerName}</p>
-              )}
-            </div>
+      <article className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)]">
+        {/* Encabezado del comprobante */}
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-5 sm:px-8">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--color-muted)]">{t('detail.title')}</p>
+            <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-[var(--color-text)]">{periodLabel}</h1>
           </div>
-
-          {/* Action buttons */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={handleDownloadPdf}
-              className="px-3 py-2 rounded-lg border border-slate-300 text-sm text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg>
-              {t('pdf.download')}
-            </button>
+          <div className="text-right">
+            <p className="font-mono text-xs tabular-nums text-[var(--color-muted)]">
+              {tVoucher('number', { number: renditionNumber(rendition.id) })}
+            </p>
+            <StatusBadge domain="rendicion" status={rendition.status} size="md" className="mt-1.5" />
           </div>
-        </div>
+        </header>
 
-        {rendition.depositedAt && (
-          <p className="mt-2 text-sm text-slate-500">
-            {t('depositedAt')}: {formatLocalDate(rendition.depositedAt, 'long')}
-          </p>
-        )}
-
-        {/* Timestamps */}
-        {rendition.sentAt && (
-          <p className="text-xs text-slate-400 mt-2">
-            {t('sentAt')}: {formatLocalDate(rendition.sentAt, 'long')}
-          </p>
-        )}
-
-      </div>
-
-      {/* Summary Card */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <h2 className="text-sm font-semibold text-slate-900 mb-4">{t('summary.title')}</h2>
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-slate-600">{t('summary.rentCollected')}</span>
-            <span className="text-sm font-medium text-slate-900 tabular-nums">{formatMoneyFixed(rendition.rentCollected)}</span>
+        {/* Partes */}
+        <dl className="grid gap-4 border-b border-[var(--color-border)] px-5 py-4 sm:grid-cols-2 sm:px-8">
+          <div>
+            <dt className="text-[11px] uppercase tracking-wider text-[var(--color-muted)]">{t('detail.owner')}</dt>
+            <dd className="mt-0.5 text-sm font-medium text-[var(--color-text)]">{ownerName ?? t('card.noOwner')}</dd>
+            {rendition.owner?.cuit && (
+              <dd className="font-mono text-xs tabular-nums text-[var(--color-muted)]">{tDoc('cuit', { cuit: rendition.owner.cuit })}</dd>
+            )}
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-slate-600">{t('summary.commission')}</span>
-            <span className="text-sm text-red-600 tabular-nums">- {formatMoneyFixed(rendition.commissionAmount)}</span>
+          <div>
+            <dt className="text-[11px] uppercase tracking-wider text-[var(--color-muted)]">{t('detail.property')}</dt>
+            <dd className="mt-0.5 text-sm font-medium text-[var(--color-text)]">{property?.title ?? t('card.noProperty')}</dd>
+            {address && <dd className="text-xs text-[var(--color-muted)]">{address}</dd>}
+            {rendition.contract && (
+              <dd className="mt-1">
+                <Link href={`/contracts/${rendition.contract.id}`} className="text-xs font-medium text-[var(--color-brand-600)] hover:underline">
+                  {t('detail.viewContract')}
+                </Link>
+              </dd>
+            )}
           </div>
-          {Number(rendition.adminFeeAmount) > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600">{t('summary.adminFee')}</span>
-              <span className="text-sm text-red-600 tabular-nums">- {formatMoneyFixed(rendition.adminFeeAmount)}</span>
-            </div>
+        </dl>
+
+        {/* Conceptos */}
+        <section className="border-b border-[var(--color-border)] px-5 py-4 sm:px-8">
+          <h2 className="text-[11px] uppercase tracking-wider text-[var(--color-muted)]">{t('lineItems.title')}</h2>
+          {(rendition.lineItems || []).length === 0 ? (
+            <p className="mt-2 text-sm text-[var(--color-muted)]">{t('lineItems.empty')}</p>
+          ) : (
+            <table className="mt-2 w-full text-sm">
+              <thead className="sr-only">
+                <tr>
+                  <th>{tDoc('concept')}</th>
+                  <th>{t('lineItems.type')}</th>
+                  <th>{t('lineItems.amount')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {(rendition.lineItems || []).map((li) => (
+                  <tr key={li.id}>
+                    <td className="py-2 pr-3 text-[var(--color-text)]">{li.description}</td>
+                    <td className="hidden py-2 pr-3 text-xs text-[var(--color-muted)] sm:table-cell">{tLineItemTypes(li.type)}</td>
+                    <td
+                      className={cn(
+                        'whitespace-nowrap py-2 text-right font-mono tabular-nums',
+                        li.isDebit ? 'text-[var(--color-muted)]' : 'text-[var(--color-text)]',
+                      )}
+                    >
+                      {li.isDebit ? `${MINUS} ` : ''}
+                      {money(li.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
-          {Number(rendition.deductionTotal) > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-600">{t('summary.deductions')}</span>
-              <span className="text-sm text-red-600 tabular-nums">- {formatMoneyFixed(rendition.deductionTotal)}</span>
+        </section>
+
+        {/* La cuenta: cobrado − honorarios − gastos = neto */}
+        <section className="px-5 py-5 sm:px-8">
+          <h2 className="text-[11px] uppercase tracking-wider text-[var(--color-muted)]">{t('summary.title')}</h2>
+          <dl className="mt-2 space-y-1.5 sm:ml-auto sm:max-w-sm">
+            <div className="flex items-baseline justify-between gap-4 text-sm">
+              <dt className="text-[var(--color-text)]">{t('summary.rentCollected')}</dt>
+              <dd className="font-mono tabular-nums text-[var(--color-text)]">{money(rendition.rentCollected)}</dd>
             </div>
-          )}
-          <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-            <span className="text-base font-bold text-slate-900">{t('summary.netDeposit')}</span>
-            <span className="text-lg font-bold text-emerald-600 tabular-nums">{formatMoneyFixed(rendition.netDeposit)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Line Items */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-slate-900">{t('lineItems.title')}</h2>
-        </div>
-
-        {(rendition.lineItems || []).length === 0 ? (
-          <p className="text-sm text-slate-400 italic">{t('lineItems.empty')}</p>
-        ) : (
-          <div className="space-y-2.5">
-            {(rendition.lineItems || []).map((li) => (
-              <EntityRow
-                key={li.id}
-                accent={li.isDebit ? 'danger' : 'none'}
-                leading={
-                  <span
-                    className="flex h-10 w-10 items-center justify-center rounded-full text-lg"
-                    style={{
-                      backgroundColor: li.isDebit
-                        ? 'color-mix(in oklab, var(--color-danger) 12%, var(--color-surface))'
-                        : 'var(--color-surface-sunken)',
-                    }}
-                  >
-                    {LINE_ITEM_ICONS[li.type] || '📄'}
-                  </span>
-                }
-                title={li.description}
-                meta={
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant={li.isDebit ? 'danger' : 'neutral'}>{tLineItemTypes(li.type)}</Badge>
-                  </div>
-                }
-                trailing={
-                  <EntityRow.Amount
-                    value={`${li.isDebit ? '- ' : ''}${formatMoneyFixed(li.amount)}`}
-                    tone={li.isDebit ? 'danger' : 'default'}
-                  />
-                }
-              />
+            {calculation.map((row) => (
+              <div key={row.key} className="flex items-baseline justify-between gap-4 text-sm">
+                <dt className="text-[var(--color-muted)]">{row.label}</dt>
+                <dd className="font-mono tabular-nums text-[var(--color-muted)]">
+                  {MINUS} {money(row.value)}
+                </dd>
+              </div>
             ))}
-          </div>
+            <div className="flex items-baseline justify-between gap-4 border-t-2 border-[var(--color-text)] pt-2">
+              <dt className="text-sm font-semibold text-[var(--color-text)]">
+                {deposited ? tVoucher('netPaid') : t('summary.netDeposit')}
+              </dt>
+              <dd className="font-mono text-xl font-semibold tabular-nums text-[var(--color-text)]">{money(rendition.netDeposit)}</dd>
+            </div>
+            <BreakdownBar
+              breakdown={breakdown}
+              label={tVoucher('barLabel', { net: money(breakdown.net), collected: money(breakdown.collected) })}
+              className="mt-2"
+            />
+          </dl>
+        </section>
+
+        {rendition.notes && (
+          <section className="border-t border-[var(--color-border)] px-5 py-4 sm:px-8">
+            <h2 className="text-[11px] uppercase tracking-wider text-[var(--color-muted)]">{t('notes.title')}</h2>
+            <p className="mt-1 whitespace-pre-line text-sm text-[var(--color-text)]">{rendition.notes}</p>
+          </section>
         )}
 
-      </div>
-
-      {/* Notes */}
-      {rendition.notes && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <h2 className="text-sm font-semibold text-slate-900 mb-3">{t('notes.title')}</h2>
-          <p className="text-sm text-slate-600">{rendition.notes}</p>
-        </div>
-      )}
-
-      {/* Metadata */}
-      <div className="text-xs text-slate-400 flex gap-4">
-        <span>{t('detail.createdAt')}: {formatLocalDate(rendition.createdAt, 'long')}</span>
-        <span>{t('detail.updatedAt')}: {formatLocalDate(rendition.updatedAt, 'long')}</span>
-      </div>
+        {/* Seguimiento */}
+        <footer className="border-t border-dashed border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-5 py-4 sm:px-8">
+          <h2 className="text-[11px] uppercase tracking-wider text-[var(--color-muted)]">{tDoc('timeline')}</h2>
+          <ol className="mt-2 grid gap-2 sm:grid-cols-3">
+            {steps.map((step) => (
+              <li key={step.key} className="flex items-start gap-2">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                    step.at
+                      ? 'border-[var(--color-success)] bg-[var(--color-success)] text-white'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface)]',
+                  )}
+                >
+                  {step.at && <Icon name="check" className="h-2.5 w-2.5" strokeWidth={3} />}
+                </span>
+                <div>
+                  <p className={cn('text-sm', step.at ? 'text-[var(--color-text)]' : 'text-[var(--color-muted)]')}>{step.label}</p>
+                  <p className="text-xs text-[var(--color-muted)]">
+                    {step.at ? formatLocalDate(step.at, 'long') : tDoc('pendingStep')}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </footer>
+      </article>
     </div>
   );
 }

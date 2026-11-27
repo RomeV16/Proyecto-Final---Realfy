@@ -1,52 +1,27 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { RendicionStatus } from '@realfy/shared';
+import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
-import { RendicionStatus } from '@realfy/shared';
-import { useState, useEffect, useCallback } from 'react';
+import { cn } from '@/lib/cn';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { EntityCard } from '@/components/ui/entity-card';
-import { CardGrid } from '@/components/ui/card-grid';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { statusAccent } from '@/lib/status-registry';
-import type { IconName } from '@/components/ui/icon';
-import { Avatar } from '@/components/ui/avatar';
-import { Meter } from '@/components/ui/micro-viz';
-import { formatMoneyFixed } from '@/lib/format';
+import { Spinner } from '@/components/ui/spinner';
 import { RenditionsHistoricalNotice } from './historical-notice';
+import { RenditionVoucher, VoucherSkeleton, type RenditionSummary } from './rendition-voucher';
 
 /* ──────────── Types ──────────── */
 
-interface RenditionItem {
-  id: string;
-  status: RendicionStatus;
-  month: number;
-  year: number;
-  rentCollected: string | number;
-  netDeposit: string | number;
-  pdfUrl?: string | null;
-  sentAt?: string | null;
-  depositedAt?: string | null;
-  contract?: {
-    id: string;
-    property?: { id: string; title: string; street?: string; city?: string };
-  };
-  ownerId?: string;
-  owner?: { firstName: string; lastName: string } | null;
-  ownerName?: string;
-}
-
 interface PaginatedResponse {
-  items: RenditionItem[];
+  items: RenditionSummary[];
   total: number;
   page: number;
   limit: number;
   totalPages: number;
 }
-
-/* ──────────── Filters ──────────── */
 
 interface Filters {
   status: string;
@@ -58,98 +33,8 @@ interface Filters {
 const INITIAL_FILTERS: Filters = { status: '', month: '', year: '', page: 1 };
 const LIMIT = 12;
 
-/* ──────────── Helpers ──────────── */
-
-
-/* ──────────── Card ──────────── */
-
-interface CardProps {
-  item: RenditionItem;
-  onDownloadPdf: (id: string) => void;
-}
-
-function RenditionCard({ item, onDownloadPdf }: CardProps) {
-  const t = useTranslations('renditions');
-  const tCard = useTranslations('renditions.card');
-  const tMonths = useTranslations('renditions.months');
-
-  const periodLabel = `${tMonths(String(item.month) as '1')} ${item.year}`;
-  const ownerName = item.owner
-    ? `${item.owner.firstName} ${item.owner.lastName}`.trim()
-    : item.ownerName || null;
-  const propertyText = item.contract?.property?.title || tCard('noProperty');
-  const href = `/renditions/${item.id}`;
-
-  const rentCollected = Number(item.rentCollected || 0);
-  const netDeposit = Number(item.netDeposit || 0);
-  const retainedPct = rentCollected > 0 ? Math.round((netDeposit / rentCollected) * 100) : 0;
-
-  const isSent = item.status === RendicionStatus.Enviada || item.status === RendicionStatus.Depositada;
-
-  const metaItems: Array<{ icon?: IconName; label: string }> = [{ icon: 'mapPin', label: propertyText }];
-
-  /* One blocker at a time, so the grid doubles as a worklist. */
-  const alert = !item.pdfUrl
-    ? { tone: 'warning' as const, icon: 'alert' as const, text: tCard('missingPdf') }
-    : !isSent
-      ? { tone: 'info' as const, icon: 'clock' as const, text: tCard('notSent') }
-      : null;
-
-  return (
-    <EntityCard href={href} label={`${periodLabel} — ${propertyText}`} accent={statusAccent('rendicion', item.status)}>
-      <EntityCard.Cover
-        seed={item.id}
-        icon="renditions"
-        aspect="aspect-[3/1]"
-        alt={periodLabel}
-        topRight={<StatusBadge domain="rendicion" status={item.status} onCover />}
-        bottomLeft={
-          <h3 className="text-sm font-semibold leading-snug text-white drop-shadow-sm">{periodLabel}</h3>
-        }
-      />
-
-      <EntityCard.Body>
-        <div className="flex items-center gap-2">
-          <Avatar name={ownerName} seed={item.ownerId || ownerName || item.id} size="xs" />
-          <span className="truncate text-xs font-medium text-[var(--color-text)]">
-            {ownerName || tCard('noOwner')}
-          </span>
-        </div>
-
-        <EntityCard.Amount value={formatMoneyFixed(netDeposit)} hint={t('summary.netDeposit')} />
-
-        <Meter value={retainedPct} tone="brand" label={t('table.rentCollected')} hint={formatMoneyFixed(rentCollected)} />
-
-        <EntityCard.Meta items={metaItems} />
-
-        {alert && (
-          <EntityCard.Alert tone={alert.tone} icon={alert.icon}>
-            {alert.text}
-          </EntityCard.Alert>
-        )}
-      </EntityCard.Body>
-
-      <EntityCard.Footer>
-        <p className="min-w-0 truncate text-[11px] text-[var(--color-muted)]">{propertyText}</p>
-        <EntityCard.Actions>
-          <EntityCard.Action
-            onClick={(e) => {
-              e.preventDefault();
-              onDownloadPdf(item.id);
-            }}
-            icon="download"
-            variant="quiet"
-          >
-            {t('pdf.download')}
-          </EntityCard.Action>
-          <EntityCard.Action href={href} icon="arrowRight" variant="ghost">
-            {tCard('view')}
-          </EntityCard.Action>
-        </EntityCard.Actions>
-      </EntityCard.Footer>
-    </EntityCard>
-  );
-}
+const SELECT_CLASS =
+  'h-9 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-brand-500)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-brand-500)_30%,transparent)]';
 
 /* ──────────── Main Component ──────────── */
 
@@ -160,6 +45,7 @@ export function RenditionList() {
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
 
   const fetchData = useCallback(async () => {
@@ -174,15 +60,17 @@ export function RenditionList() {
 
       const res = await apiClient<PaginatedResponse>(`/renditions?${params.toString()}`);
       setData(res);
+      setLoadFailed(false);
     } catch {
       setData(null);
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
   }, [filters]);
 
   useEffect(() => {
-    fetchData();
+    void fetchData();
   }, [fetchData]);
 
   function updateFilter(key: keyof Filters, value: string | number) {
@@ -198,30 +86,28 @@ export function RenditionList() {
   }
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  const years = Array.from({ length: 4 }, (_, i) => currentYear - 2 + i);
 
   const items = data?.items || [];
-  const totalPages = data?.totalPages || 0;
   const hasFilters = Boolean(filters.status || filters.month || filters.year);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('title')}</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{t('subtitle')}</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text)]">{t('title')}</h1>
+        <p className="mt-0.5 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
       </div>
 
       <RenditionsHistoricalNotice />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <select
+          aria-label={t('filters.status')}
           value={filters.status}
           onChange={(e) => updateFilter('status', e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          className={SELECT_CLASS}
         >
           <option value="">{t('filters.statusPlaceholder')}</option>
           {Object.values(RendicionStatus).map((s) => (
@@ -229,9 +115,10 @@ export function RenditionList() {
           ))}
         </select>
         <select
+          aria-label={t('filters.month')}
           value={filters.month}
           onChange={(e) => updateFilter('month', e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          className={SELECT_CLASS}
         >
           <option value="">{t('filters.monthPlaceholder')}</option>
           {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
@@ -239,9 +126,10 @@ export function RenditionList() {
           ))}
         </select>
         <select
+          aria-label={t('filters.year')}
           value={filters.year}
           onChange={(e) => updateFilter('year', e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+          className={SELECT_CLASS}
         >
           <option value="">{t('filters.yearPlaceholder')}</option>
           {years.map((y) => (
@@ -250,55 +138,58 @@ export function RenditionList() {
         </select>
         {hasFilters && (
           <button
+            type="button"
             onClick={() => setFilters(INITIAL_FILTERS)}
-            className="text-sm text-slate-500 hover:text-slate-700"
+            className="h-9 rounded-[var(--radius-lg)] px-2.5 text-sm text-[var(--color-muted)] underline-offset-2 hover:text-[var(--color-text)] hover:underline"
           >
             {t('filters.clear')}
           </button>
         )}
       </div>
 
-      {/* Grid — owns the loading → content → empty transition */}
-      <CardGrid
-        items={items}
-        loading={loading && !data}
-        busy={loading && !!data}
-        columns={3}
-        skeletonCount={6}
-        keyOf={(item) => item.id}
-        renderItem={(item) => (
-          <RenditionCard item={item} onDownloadPdf={handleDownloadPdf} />
-        )}
-        empty={
-          hasFilters ? (
-            <EmptyState
-              variant="filtered"
-              iconName="search"
-              title={tCommon('noResults')}
-              subtitle={t('empty.filtered')}
-              action={
-                <button
-                  onClick={() => setFilters(INITIAL_FILTERS)}
-                  className="rounded-[var(--radius-lg)] border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg)]"
-                >
-                  {t('filters.clear')}
-                </button>
-              }
-            />
-          ) : (
-            <EmptyState
-              iconName="renditions"
-              title={t('empty.title')}
-              subtitle={t('empty.description')}
-            />
-          )
-        }
-      />
+      {/* Talones */}
+      {loading && !data && !loadFailed ? (
+        <VoucherSkeleton />
+      ) : loadFailed ? (
+        <EmptyState
+          iconName="alert"
+          title={t('errors.loadFailed')}
+          subtitle={t('voucher.loadFailedHint')}
+          action={
+            <Button variant="secondary" size="sm" onClick={() => void fetchData()} disabled={loading}>
+              {loading && <Spinner className="h-4 w-4" />}
+              {t('voucher.retry')}
+            </Button>
+          }
+        />
+      ) : items.length === 0 ? (
+        hasFilters ? (
+          <EmptyState
+            variant="filtered"
+            iconName="search"
+            title={tCommon('noResults')}
+            subtitle={t('empty.filtered')}
+            action={
+              <Button variant="secondary" size="sm" onClick={() => setFilters(INITIAL_FILTERS)}>
+                {t('filters.clear')}
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState iconName="renditions" title={t('empty.title')} subtitle={t('empty.description')} />
+        )
+      ) : (
+        <div className={cn('space-y-4 transition-opacity', loading && 'opacity-60')} aria-busy={loading || undefined}>
+          {items.map((item) => (
+            <RenditionVoucher key={item.id} rendition={item} onDownloadPdf={(id) => void handleDownloadPdf(id)} />
+          ))}
+        </div>
+      )}
 
       {/* Pagination */}
       {data && data.totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-slate-200 sm:rounded-none sm:border-x-0 sm:border-b-0 sm:border-t sm:border-slate-100">
-          <p className="text-xs text-slate-500">
+        <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+          <p className="text-sm text-[var(--color-muted)]">
             {t('pagination.showing', {
               from: (data.page - 1) * LIMIT + 1,
               to: Math.min(data.page * LIMIT, data.total),
@@ -306,24 +197,20 @@ export function RenditionList() {
             })}
           </p>
           <div className="flex gap-2">
-            <button
-              onClick={() => updateFilter('page', filters.page - 1)}
-              disabled={filters.page <= 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-            >
+            <Button variant="secondary" size="sm" onClick={() => updateFilter('page', filters.page - 1)} disabled={filters.page <= 1}>
               {t('pagination.prev')}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => updateFilter('page', filters.page + 1)}
               disabled={filters.page >= data.totalPages}
-              className="px-3 py-1.5 rounded-lg border border-slate-300 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-50"
             >
               {t('pagination.next')}
-            </button>
+            </Button>
           </div>
         </div>
       )}
-
     </div>
   );
 }
