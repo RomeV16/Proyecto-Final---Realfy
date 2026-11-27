@@ -43,8 +43,7 @@ export const ACTION_ROLES = {
   /** Aviso de "solo lectura" en el listado de liquidaciones. */
   'liquidaciones.readOnlyNotice': [Lectura],
   'invoices.emit': [Admin, Gerente, Liquidaciones],
-  /** Emisores y puntos de venta: los roles de facturación de la API (el certificado sigue siendo del Admin). */
-  'fiscal.configure': [Admin, Gerente, Liquidaciones],
+  'fiscal.configure': [Admin, Gerente],
   /** Facturación por cuenta del locador: ver comprobantes, cola y configuración. */
   'lessorInvoicing.view': [Admin, Gerente, Liquidaciones, Lectura],
   /** Facturar un cobro o un estado por cuenta del locador y emitir lo pendiente. */

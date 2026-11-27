@@ -32,7 +32,7 @@ const EXPECTED: Record<Action, string[]> = {
   'liquidaciones.act': ['Admin', 'Gerente', 'Ventas', 'Liquidaciones'],
   'liquidaciones.readOnlyNotice': ['Lectura'],
   'invoices.emit': ['Admin', 'Gerente', 'Liquidaciones'],
-  'fiscal.configure': ['Admin', 'Gerente', 'Liquidaciones'],
+  'fiscal.configure': ['Admin', 'Gerente'],
   'reports.view': ['Admin', 'Gerente', 'Liquidaciones'],
   'reports.schedule': ['Admin', 'Gerente'],
   'delinquency.view': ['Admin', 'Gerente'],
