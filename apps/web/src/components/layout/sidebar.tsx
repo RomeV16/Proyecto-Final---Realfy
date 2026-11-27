@@ -8,6 +8,7 @@ import { BillReviewNavBadge } from './bill-review-nav-badge';
 import { InboxNavBadge } from './inbox-nav-badge';
 import { useNavCollapse } from './nav-collapse';
 import { isNavItemActive, useVisibleNavSections, type NavSection } from './nav-items';
+import { usePendingPath } from './nav-progress';
 import {
   RAIL_ASIDE_CLASS,
   RAIL_NAV_CLASS,
@@ -77,8 +78,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { isCollapsed, toggle } = useNavCollapse();
   const items = sections.flatMap((section) => section.items);
 
+  // Mientras carga la pantalla elegida, el menú ya la marca: el clic se nota al instante.
+  const pending = usePendingPath();
+  const current =
+    pending && items.some((item) => isNavItemActive(pending, item.href, items)) ? pending : pathname;
+
   const isActive = (href: string) => {
-    return isNavItemActive(pathname, href, items);
+    return isNavItemActive(current, href, items);
   };
 
   // Al entrar directo a una pantalla del final del menú, su ítem queda a la vista.
