@@ -102,9 +102,11 @@ function PortalNav() {
 
 function PortalChrome({ children }: { children: React.ReactNode }) {
   const { person, isLoading } = usePortalAuth();
+  const pathname = usePathname();
 
-  // Auth pages (login / set-password) render their own full-screen surface.
-  if (!isLoading && !person) {
+  // Auth pages (login / set-password) render their own full-screen surface, también mientras
+  // se lee la sesión guardada: si no, el ingreso aparecía un instante dentro del marco del portal.
+  if ((!isLoading && !person) || pathname.startsWith('/portal/auth')) {
     return <>{children}</>;
   }
 
