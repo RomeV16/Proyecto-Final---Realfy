@@ -50,7 +50,7 @@ Negativas:
 
 - Riesgo: un endpoint nuevo se implementa sin filtrar por `tenantId` y un agente de una inmobiliaria recupera datos de otra. Mitigación: pruebas e2e de la API con dos tenants ficticios que recorren los endpoints sensibles y verifican que ninguno llega a los datos del otro (`apps/api/test/tenant-isolation.e2e-spec.ts`); revisión obligatoria de PR sobre cualquier archivo bajo `apps/api/src/modules/`.
 - Riesgo: una migración masiva (por ejemplo, recálculo de punitorios) actualiza filas sin restringir por tenant. Mitigación: los scripts batch reciben el `tenantId` como argumento obligatorio o iteran tenant por tenant.
-- Riesgo: un agente con acceso a más de una inmobiliaria recibe un JWT con el `tenantId` equivocado. Mitigación**: el endpoint de switch de tenant emite un nuevo JWT y rota el refresh token.
+- Riesgo: un agente con acceso a más de una inmobiliaria recibe un JWT con el `tenantId` equivocado. Mitigación: el endpoint de switch de tenant emite un nuevo JWT y rota el refresh token.
 
 ## Decisiones relacionadas
 
