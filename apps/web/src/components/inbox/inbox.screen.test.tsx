@@ -141,12 +141,12 @@ describe('Bandeja de consultas: lista', () => {
     expect(rows).toHaveLength(3);
     expect(within(rows[2]).getByText('Respondida')).toBeInTheDocument();
     expect(within(rows[0]).getByText('Iris Demo')).toBeInTheDocument();
-    expect(within(rows[0]).getByText(/Vence en/)).toBeInTheDocument();
+    expect(within(rows[0]).getByText(/Responder en/)).toBeInTheDocument();
     expect(within(rows[0]).getByLabelText('2 mensajes sin leer')).toBeInTheDocument();
     expect(within(rows[1]).getByText('a@b.com')).toBeInTheDocument();
-    expect(within(rows[1]).getByText(/Vencida hace/)).toBeInTheDocument();
+    expect(within(rows[1]).getByText(/Sin responder hace/)).toBeInTheDocument();
     expect(within(rows[1]).getByText('Ana Demo')).toBeInTheDocument();
-    expect(await screen.findByText('1 con el plazo vencido')).toBeInTheDocument();
+    expect(await screen.findByText('1 fuera de plazo')).toBeInTheDocument();
     expect(calls('GET /conversations')[0][0]).toContain('open=true');
   });
 
@@ -158,7 +158,7 @@ describe('Bandeja de consultas: lista', () => {
     await user.selectOptions(screen.getByLabelText('Canal'), 'Email');
     await user.selectOptions(screen.getByLabelText('Responsable'), 'me');
     await user.selectOptions(screen.getByLabelText('Estado'), 'Resuelta');
-    await user.click(screen.getByLabelText('Plazo vencido'));
+    await user.click(screen.getByLabelText('Solo fuera de plazo'));
     await user.type(screen.getByLabelText('Buscar por nombre, dirección o asunto'), 'iris');
     await user.selectOptions(screen.getByLabelText('Estado'), 'all');
     await waitFor(() => {

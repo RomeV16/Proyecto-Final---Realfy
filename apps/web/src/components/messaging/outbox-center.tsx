@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import type { OutboxItem } from '@realfy/shared';
+import type { MessagingSettings, OutboxItem } from '@realfy/shared';
 import { Link } from '@/i18n/navigation';
 import { usePaginatedList } from '@/hooks/use-paginated-list';
 import {
@@ -13,10 +13,12 @@ import {
 } from '@/lib/messaging';
 import { useCan } from '@/lib/permissions';
 import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
 import { Select } from '@/components/ui/select';
 import { listPagination } from '@/components/fees/fee-filters';
 import { OutboxTable } from './outbox-table';
 import { useMessageText } from './use-message-text';
+import { useApiData } from './use-api-data';
 
 const LIMIT = 50;
 
@@ -29,6 +31,9 @@ export function OutboxCenter({ initialFilters = EMPTY_OUTBOX_FILTERS }: { initia
   const text = useMessageText();
   const canView = useCan('messaging.view');
   const canManage = useCan('messaging.manage');
+  // El modo de envío solo lo puede leer quien administra la mensajería; al resto no se le muestra el aviso.
+  const settings = useApiData<MessagingSettings>(canView && canManage ? '/messaging/settings' : null);
+  const mode = settings.data?.mode;
   const list = usePaginatedList<OutboxItem, OutboxFilterValues>({
     key: 'outbox',
     path: '/outbox',
@@ -62,8 +67,8 @@ export function OutboxCenter({ initialFilters = EMPTY_OUTBOX_FILTERS }: { initia
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--color-text)]">{t('title')}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
+          <h1 className="h1">{t('title')}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
         {canManage && (
           <Link href="/configuracion/mensajeria" className="text-sm text-[var(--color-brand-600)] hover:underline">
@@ -71,6 +76,25 @@ export function OutboxCenter({ initialFilters = EMPTY_OUTBOX_FILTERS }: { initia
           </Link>
         )}
       </header>
+
+      {(mode === 'off' || mode === 'allowlist') && (
+        <div
+          role="status"
+          className="flex flex-wrap items-start gap-3 rounded-xl border border-[color-mix(in_oklab,var(--color-warning)_40%,var(--color-border))] bg-[color-mix(in_oklab,var(--color-warning)_9%,var(--color-surface))] px-4 py-3"
+        >
+          <Icon name="alert" className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-warning)]" strokeWidth={2} />
+          <div className="min-w-0 flex-1 basis-64">
+            <p className="text-sm font-semibold text-[var(--color-text)]">{t(`modeBanner.${mode}.title`)}</p>
+            <p className="mt-0.5 text-sm text-[var(--color-muted)]">{t(`modeBanner.${mode}.body`)}</p>
+          </div>
+          <Link
+            href="/configuracion/mensajeria"
+            className="shrink-0 text-sm font-medium text-[var(--color-brand-600)] hover:underline"
+          >
+            {t('modeBanner.link')}
+          </Link>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1">

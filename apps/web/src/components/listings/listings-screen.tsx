@@ -127,8 +127,8 @@ export function ListingsScreen() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="h2">{t('overview.title')}</h1>
-          <p className="max-w-2xl text-sm text-[var(--color-muted)]">{t('overview.subtitle')}</p>
+          <h1 className="h1">{t('overview.title')}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-[var(--color-muted)]">{t('overview.subtitle')}</p>
         </div>
         {canConfigure && (
           <Button type="button" variant="secondary" onClick={() => setSettingsOpen(true)}>

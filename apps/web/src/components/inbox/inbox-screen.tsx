@@ -136,8 +136,8 @@ export function InboxScreen() {
     <div className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="h2">{t('title')}</h1>
-          <p className="max-w-2xl text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
+          <h1 className="h1">{t('title')}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canConfigure && (
@@ -162,13 +162,16 @@ export function InboxScreen() {
       </p>
 
       <div className="flex flex-wrap items-center gap-2" role="search" aria-label={t('filters.label')}>
-        <Input
-          aria-label={t('filters.search')}
-          placeholder={t('filters.search')}
-          value={filters.search}
-          onChange={(e) => setFilter('search', e.target.value)}
-          className="min-w-0 flex-1 basis-48"
-        />
+        {/* Cada control va en su propio contenedor: el ancho y la base flexible no se le pueden dar al control. */}
+        <div className="min-w-0 flex-1 basis-full sm:basis-56">
+          <Input
+            aria-label={t('filters.search')}
+            placeholder={t('filters.search')}
+            value={filters.search}
+            onChange={(e) => setFilter('search', e.target.value)}
+          />
+        </div>
+        <div className="min-w-0 flex-1 basis-40 sm:flex-none sm:basis-auto">
         <Select
           aria-label={t('filters.scope')}
           value={filters.status || filters.scope}
@@ -177,7 +180,6 @@ export function InboxScreen() {
             if (v === 'open' || v === 'all') setFilters((f) => ({ ...f, scope: v, status: '' }));
             else setFilters((f) => ({ ...f, status: v as InboxFilters['status'] }));
           }}
-          className="w-auto"
         >
           <option value="open">{t('filters.open')}</option>
           <option value="all">{t('filters.all')}</option>
@@ -187,11 +189,12 @@ export function InboxScreen() {
             </option>
           ))}
         </Select>
+        </div>
+        <div className="min-w-0 flex-1 basis-40 sm:flex-none sm:basis-auto">
         <Select
           aria-label={t('filters.channel')}
           value={filters.channel}
           onChange={(e) => setFilter('channel', e.target.value as InboxFilters['channel'])}
-          className="w-auto"
         >
           <option value="">{t('filters.anyChannel')}</option>
           {INBOX_CHANNELS.map((c) => (
@@ -200,16 +203,18 @@ export function InboxScreen() {
             </option>
           ))}
         </Select>
+        </div>
+        <div className="min-w-0 flex-1 basis-40 sm:flex-none sm:basis-auto">
         <Select
           aria-label={t('filters.assignee')}
           value={filters.assignee}
           onChange={(e) => setFilter('assignee', e.target.value as InboxFilters['assignee'])}
-          className="w-auto"
         >
           <option value="">{t('filters.anyAssignee')}</option>
           <option value="me">{t('filters.mine')}</option>
           <option value="none">{t('filters.unassigned')}</option>
         </Select>
+        </div>
         <label className="flex items-center gap-2 text-sm text-[var(--color-text)]">
           <input type="checkbox" checked={filters.slaBreached} onChange={(e) => setFilter('slaBreached', e.target.checked)} />
           {t('filters.breached')}
