@@ -104,7 +104,7 @@ describe('Llaves de la propiedad', () => {
     expect(screen.getByText('Guardadas en: Caja fuerte, gancho 4')).toBeInTheDocument();
     expect(screen.getByText('2 copias')).toBeInTheDocument();
     expect(screen.getByText('Empleado: Vera Vendedora')).toBeInTheDocument();
-    expect(screen.getByText('Atrasadas 3 d')).toBeInTheDocument();
+    expect(screen.getByText('Atrasadas 3 días')).toBeInTheDocument();
     expect(screen.getByText('Historial (2)')).toBeInTheDocument();
     expect(screen.getByText(/sigue afuera/)).toBeInTheDocument();
     expect(screen.getByText(/Plomero/)).toBeInTheDocument();
@@ -202,23 +202,39 @@ function setupOut(items: KeyOut[], role = 'Admin') {
 describe('Llaves fuera', () => {
   it('lista las salidas con quién las tiene y marca las atrasadas', async () => {
     setupOut([out({ overdue: true, daysOverdue: 3 }), out({ id: 'mv-2', holderUser: null, holderName: 'Plomero', holder: 'Tercero', reason: null, expectedReturnAt: null })]);
-    const table = within(await screen.findByRole('table'));
-    expect(table.getByText('Vera Vendedora')).toBeInTheDocument();
-    expect(table.getByText('Atrasadas 3 d')).toBeInTheDocument();
-    expect(table.getByText('Plomero')).toBeInTheDocument();
-    expect(table.getAllByRole('link', { name: 'Depto Sintético · Calle Ficticia 100' })[0]).toHaveAttribute('href', `/properties/${PROPERTY_ID}`);
+    const staff = within(await screen.findByRole('region', { name: /Personal/ }));
+    expect(staff.getByText('Vera Vendedora')).toBeInTheDocument();
+    expect(staff.getByText('Atrasadas 3 días')).toBeInTheDocument();
+    expect(staff.getByText('Visita con interesado')).toBeInTheDocument();
+    expect(staff.getByText('Juego Cochera · 1 copia')).toBeInTheDocument();
+    expect(staff.getByRole('link', { name: 'Depto Sintético · Calle Ficticia 100' })).toHaveAttribute('href', `/properties/${PROPERTY_ID}`);
+    const others = within(screen.getByRole('region', { name: /Terceros/ }));
+    expect(others.getByText('Plomero')).toBeInTheDocument();
+    expect(others.getByText('Sin fecha')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: /Inquilinos/ })).getByText('Nadie tiene llaves')).toBeInTheDocument();
+    expect(screen.getByText('2 juegos fuera')).toBeInTheDocument();
+    expect(screen.getByText(/1 atrasado/)).toBeInTheDocument();
+  });
+
+  it('sin llaves fuera explica dónde se registran las salidas', async () => {
+    setupOut([]);
+    expect(await screen.findByText('No hay llaves fuera')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir a propiedades' })).toHaveAttribute('href', '/properties');
+    await userEvent.click(screen.getByRole('button', { name: 'Solo atrasadas' }));
+    expect(await screen.findByText('No hay llaves atrasadas')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Ver todas' }));
+    expect(await screen.findByText('No hay llaves fuera')).toBeInTheDocument();
   });
 
   it('los filtros viajan a la API', async () => {
     setupOut([out()]);
-    await screen.findByRole('table');
-    await userEvent.selectOptions(screen.getByLabelText('Quién las tiene'), 'Tercero');
-    await userEvent.selectOptions(screen.getByLabelText('Atraso'), 'true');
+    await screen.findByText('Vera Vendedora');
+    await userEvent.click(screen.getByRole('button', { name: 'Solo atrasadas' }));
     await waitFor(() => {
-      const last = apiClient.mock.calls.at(-1)![0] as string;
-      expect(last).toContain('holder=Tercero');
+      const last = apiClient.mock.calls.filter(([path]) => String(path).startsWith('/keys/out')).at(-1)![0] as string;
       expect(last).toContain('overdue=true');
     });
+    expect(screen.getByRole('button', { name: 'Solo atrasadas' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('registra la devolución desde la lista', async () => {
@@ -231,7 +247,7 @@ describe('Llaves fuera', () => {
 
   it('Lectura ve la lista sin el botón de devolución; sin permiso avisa', async () => {
     setupOut([out()], 'Lectura');
-    await screen.findByRole('table');
+    await screen.findByText('Vera Vendedora');
     expect(screen.queryByRole('button', { name: 'Registrar devolución' })).not.toBeInTheDocument();
   });
 

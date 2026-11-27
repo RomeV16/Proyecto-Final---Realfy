@@ -877,7 +877,7 @@
  },
  "persons": {
   "title": "Personas",
-  "subtitle": "Gestioná propietarios, inquilinos, garantes y contactos",
+  "subtitle": "Propietarios, inquilinos, garantes y demás contactos de la inmobiliaria.",
   "newPerson": "Nueva persona",
   "createTitle": "Crear persona",
   "editTitle": "Editar persona",
@@ -885,10 +885,11 @@
   "backToList": "Volver a personas",
   "filters": {
    "search": "Buscar",
-   "searchPlaceholder": "Nombre, apellido o CUIT…",
+   "searchPlaceholder": "Buscar por nombre, apellido o CUIT",
    "role": "Rol",
    "rolePlaceholder": "Todos los roles",
-   "clear": "Limpiar filtros"
+   "clear": "Limpiar filtros",
+   "allRoles": "Todos"
   },
   "form": {
    "personalInfo": "Información personal",
@@ -985,14 +986,14 @@
    "view": "Ver ficha"
   },
   "empty": {
-   "title": "No hay personas",
+   "title": "Todavía no hay personas",
    "subtitle": "Registrá tu primer propietario, inquilino o contacto",
-   "filtered": "No se encontraron personas con los filtros aplicados",
+   "filtered": "Ninguna persona coincide con la búsqueda o el rol elegido.",
    "detail": "Persona no encontrada",
-   "description": "Las personas son los actores de tu inmobiliaria: propietarios, inquilinos y garantes. Creá fichas con datos de contacto y documentación.",
-   "step1": "Hacé clic en 'Nueva persona'",
-   "step2": "Ingresá nombre, CUIT/CUIL y contacto",
-   "step3": "Asigná roles (Propietario, Inquilino, Garante)",
+   "description": "Acá van los propietarios, inquilinos y garantes, con sus datos de contacto y su documentación.",
+   "step1": "Hacé clic en «Nueva persona»",
+   "step2": "Cargá nombre, CUIT o CUIL y un contacto",
+   "step3": "Asignale un rol: propietario, inquilino o garante",
    "tourButton": "Iniciar tour de personas"
   },
   "validation": {
@@ -1024,12 +1025,35 @@
    "Transferencia": "Transferencia",
    "Efectivo": "Efectivo",
    "Custodia": "Custodia"
+  },
+  "directory": {
+   "clear": "Limpiar",
+   "cuit": "CUIT {value}",
+   "dni": "DNI {value}",
+   "noContact": "Sin datos de contacto",
+   "sendEmail": "Escribirle un correo",
+   "call": "Llamar",
+   "count": "{count, plural, =1 {1 persona} other {# personas}}",
+   "columns": {
+    "person": "Persona",
+    "roles": "Roles",
+    "contact": "Contacto"
+   },
+   "rolePlural": {
+    "Propietario": "Propietarios",
+    "Inquilino": "Inquilinos",
+    "Garante": "Garantes",
+    "Lead": "Interesados",
+    "Comprador": "Compradores",
+    "Proveedor": "Proveedores",
+    "Apoderado": "Apoderados"
+   }
   }
  },
  "contracts": {
   "title": "Contratos",
-  "subtitle": "Gestioná los contratos de alquiler, venta y temporarios",
-  "newContract": "Nuevo Contrato",
+  "subtitle": "Vigencia, próximo ajuste y alquiler actual de cada contrato.",
+  "newContract": "Nuevo contrato",
   "filters": {
    "status": "Estado",
    "statusPlaceholder": "Todos los estados",
@@ -1046,7 +1070,7 @@
    "rent": "Alquiler",
    "noProperty": "Sin propiedad",
    "persons": "Personas vinculadas",
-   "expired": "El contrato venció",
+   "expired": "Venció y sigue sin renovar",
    "needsProperty": "Sin propiedad vinculada",
    "needsRent": "Falta definir el monto de alquiler",
    "noEndDate": "Sin fecha de fin definida",
@@ -1103,13 +1127,13 @@
    "noExpiry": "Sin vencimiento"
   },
   "empty": {
-   "title": "No hay contratos",
+   "title": "Todavía no hay contratos",
    "subtitle": "Creá tu primer contrato de alquiler o venta",
-   "filtered": "No se encontraron contratos con los filtros aplicados",
-   "description": "Los contratos vinculan propiedades con inquilinos y propietarios. Definí plazos, montos y condiciones de ajuste.",
-   "step1": "Primero cargá al menos una propiedad y las personas involucradas",
-   "step2": "Hacé clic en 'Nuevo contrato'",
-   "step3": "Seleccioná propiedad, asigná personas y definí las condiciones",
+   "filtered": "Ningún contrato coincide con la búsqueda o los filtros.",
+   "description": "Un contrato une una propiedad con su locador y su inquilino, y fija plazo, alquiler y ajuste.",
+   "step1": "Cargá primero la propiedad y las personas que intervienen",
+   "step2": "Hacé clic en «Nuevo contrato»",
+   "step3": "Elegí la propiedad, sumá las partes y definí alquiler y ajuste",
    "tourButton": "Iniciar tour de contratos"
   },
   "pagination": {
@@ -1398,6 +1422,31 @@
     "RENTAL_OPERATION_ARCHIVED": "La operación de alquiler de la propiedad está archivada; reactivala antes de activar el contrato.",
     "UNKNOWN": "El contrato no cumple las condiciones para activarse."
    }
+  },
+  "list": {
+   "searchLabel": "Buscar contratos",
+   "searchPlaceholder": "Buscar por inquilino, locador o dirección",
+   "clear": "Limpiar",
+   "count": "{count, plural, =1 {1 contrato} other {# contratos}}",
+   "columns": {
+    "tenant": "Inquilino",
+    "property": "Propiedad",
+    "term": "Vigencia",
+    "nextAdjustment": "Próximo ajuste",
+    "rent": "Alquiler actual",
+    "status": "Estado"
+   },
+   "noTenant": "Sin inquilino asignado",
+   "noLessor": "Sin locador asignado",
+   "lessor": "Locador: {name}",
+   "lessors": "Locadores: {name} y {count} más",
+   "termProgress": "Mes {current} de {total}",
+   "endsIn": "{days, plural, =0 {Vence hoy} =1 {Vence mañana} other {Vence en # días}}",
+   "startsOn": "Empieza el {date}",
+   "openEnded": "Desde el {start}, sin fecha de fin",
+   "closedTerm": "Contrato finalizado",
+   "noAdjustment": "Sin ajuste",
+   "noMoreAdjustments": "Sin ajustes pendientes"
   }
  },
  "liquidaciones": {
@@ -3739,7 +3788,7 @@
  },
  "providers": {
   "title": "Proveedores",
-  "subtitle": "Gestión del pool de proveedores de mantenimiento",
+  "subtitle": "Plomeros, electricistas y demás oficios que atienden los reclamos.",
   "newProvider": "Nuevo proveedor",
   "backToList": "Volver a proveedores",
   "createTitle": "Crear proveedor",
@@ -3749,7 +3798,7 @@
    "rubroPlaceholder": "Todos los rubros",
    "zonePlaceholder": "Todas las zonas",
    "search": "Buscar",
-   "searchPlaceholder": "Nombre o apellido…",
+   "searchPlaceholder": "Buscar por nombre o apellido",
    "activeOnly": "Solo activos",
    "clear": "Limpiar filtros"
   },
@@ -3788,7 +3837,9 @@
    "noPhone": "Sin teléfono",
    "inactive": "Inactivo",
    "noProfile": "Falta cargar rubros y zona de cobertura",
-   "view": "Ver ficha"
+   "view": "Ver ficha",
+   "call": "Llamar",
+   "sendEmail": "Escribirle un correo"
   },
   "detail": {
    "edit": "Editar",
@@ -3805,14 +3856,14 @@
    "deleteError": "No se pudo eliminar el proveedor"
   },
   "empty": {
-   "title": "No hay proveedores",
-   "subtitle": "Registrá tu primer proveedor de mantenimiento",
-   "filtered": "No se encontraron proveedores con los filtros aplicados",
+   "title": "Todavía no hay proveedores",
+   "subtitle": "Tené a mano a los plomeros, electricistas y cerrajeros de confianza para asignarlos cuando entra un reclamo.",
+   "filtered": "Ningún proveedor coincide con la búsqueda.",
    "detail": "Proveedor no encontrado",
    "description": "Centralizá los datos de plomeros, electricistas, cerrajeros y otros profesionales para asignarlos rápido ante un reclamo.",
-   "step1": "Hacé clic en 'Nuevo proveedor'",
-   "step2": "Ingresá nombre, especialidad y datos de contacto",
-   "step3": "Asigná proveedores a tickets cuando surjan reparaciones"
+   "step1": "Hacé clic en «Nuevo proveedor»",
+   "step2": "Cargá nombre, rubros, zonas y un teléfono",
+   "step3": "Asignalo a un reclamo cuando haga falta una reparación"
   },
   "pagination": {
    "showing": "Mostrando {from}-{to} de {total}",
@@ -8081,7 +8132,7 @@
    "inactive": "Dado de baja",
    "inOffice": "En la oficina",
    "heldBy": "{holder}: {name}",
-   "overdue": "Atrasadas {days} d",
+   "overdue": "{days, plural, =1 {Atrasadas 1 día} other {Atrasadas # días}}",
    "checkIn": "Registrar devolución",
    "checkOut": "Registrar salida",
    "location": "Guardadas en: {location}",
@@ -8119,7 +8170,7 @@
   },
   "out": {
    "title": "Llaves fuera",
-   "subtitle": "Los juegos que no están en la oficina: quién los tiene, desde cuándo y cuáles están atrasados.",
+   "subtitle": "Quién tiene cada juego que salió de la oficina, desde cuándo y cuáles ya deberían haber vuelto.",
    "columns": {
     "property": "Propiedad",
     "holder": "Las tiene",
@@ -8135,7 +8186,26 @@
     "overdueOnly": "Solo atrasadas"
    },
    "empty": "No hay llaves fuera",
-   "emptySubtitle": "Todas las llaves están en la oficina."
+   "emptySubtitle": "Todos los juegos están en la oficina. Las salidas se registran desde la ficha de cada propiedad, en la sección Llaves."
+  },
+  "board": {
+   "summary": "{count, plural, =1 {1 juego fuera} other {# juegos fuera}}",
+   "overdueCount": "{count, plural, =1 {1 atrasado} other {# atrasados}}",
+   "columns": {
+    "Propietario": "Propietarios",
+    "Inquilino": "Inquilinos",
+    "Empleado": "Personal",
+    "Tercero": "Terceros"
+   },
+   "emptyColumn": "Nadie tiene llaves",
+   "keySet": "Juego {label}",
+   "since": "Desde",
+   "daysOut": "{days, plural, =0 {hoy} =1 {hace 1 día} other {hace # días}}",
+   "noReturnDate": "Sin fecha",
+   "unknownHolder": "Sin nombre",
+   "noOverdue": "No hay llaves atrasadas",
+   "showAll": "Ver todas",
+   "goToProperties": "Ir a propiedades"
   }
  },
  "collections": {

@@ -877,7 +877,7 @@
  },
  "persons": {
   "title": "Personas",
-  "subtitle": "Gestioná propietarios, inquilinos, garantes y contactos",
+  "subtitle": "Owners, tenants, guarantors and the agency's other contacts.",
   "newPerson": "Nueva persona",
   "createTitle": "Crear persona",
   "editTitle": "Editar persona",
@@ -885,10 +885,11 @@
   "backToList": "Volver a personas",
   "filters": {
    "search": "Buscar",
-   "searchPlaceholder": "Nombre, apellido o CUIT…",
+   "searchPlaceholder": "Search by first name, last name or CUIT",
    "role": "Rol",
    "rolePlaceholder": "Todos los roles",
-   "clear": "Limpiar filtros"
+   "clear": "Limpiar filtros",
+   "allRoles": "All"
   },
   "form": {
    "personalInfo": "Información personal",
@@ -985,14 +986,14 @@
    "view": "View details"
   },
   "empty": {
-   "title": "No hay personas",
+   "title": "No people yet",
    "subtitle": "Registrá tu primer propietario, inquilino o contacto",
-   "filtered": "No se encontraron personas con los filtros aplicados",
+   "filtered": "No person matches the search or the selected role.",
    "detail": "Persona no encontrada",
-   "description": "Las personas son los actores de tu inmobiliaria: propietarios, inquilinos y garantes. Creá fichas con datos de contacto y documentación.",
-   "step1": "Hacé clic en 'Nueva persona'",
-   "step2": "Ingresá nombre, CUIT/CUIL y contacto",
-   "step3": "Asigná roles (Propietario, Inquilino, Garante)",
+   "description": "Owners, tenants and guarantors live here, with their contact details and documents.",
+   "step1": "Click “New person”",
+   "step2": "Enter the name, CUIT or CUIL and a contact",
+   "step3": "Assign a role: owner, tenant or guarantor",
    "tourButton": "Iniciar tour de personas"
   },
   "validation": {
@@ -1024,12 +1025,35 @@
    "Transferencia": "Bank transfer",
    "Efectivo": "Cash",
    "Custodia": "Held in custody"
+  },
+  "directory": {
+   "clear": "Clear",
+   "cuit": "CUIT {value}",
+   "dni": "DNI {value}",
+   "noContact": "No contact details",
+   "sendEmail": "Send an email",
+   "call": "Call",
+   "count": "{count, plural, =1 {1 person} other {# people}}",
+   "columns": {
+    "person": "Person",
+    "roles": "Roles",
+    "contact": "Contact"
+   },
+   "rolePlural": {
+    "Propietario": "Owners",
+    "Inquilino": "Tenants",
+    "Garante": "Guarantors",
+    "Lead": "Leads",
+    "Comprador": "Buyers",
+    "Proveedor": "Providers",
+    "Apoderado": "Attorneys-in-fact"
+   }
   }
  },
  "contracts": {
   "title": "Contratos",
-  "subtitle": "Gestioná los contratos de alquiler, venta y temporarios",
-  "newContract": "Nuevo Contrato",
+  "subtitle": "Term, next adjustment and current rent of each contract.",
+  "newContract": "New contract",
   "filters": {
    "status": "Estado",
    "statusPlaceholder": "Todos los estados",
@@ -1046,7 +1070,7 @@
    "rent": "Alquiler",
    "noProperty": "Sin propiedad",
    "persons": "Personas vinculadas",
-   "expired": "The contract has expired",
+   "expired": "Expired and not renewed",
    "needsProperty": "No property linked",
    "needsRent": "Rent amount not set",
    "noEndDate": "No end date set",
@@ -1103,13 +1127,13 @@
    "noExpiry": "Sin vencimiento"
   },
   "empty": {
-   "title": "No hay contratos",
+   "title": "No contracts yet",
    "subtitle": "Creá tu primer contrato de alquiler o venta",
-   "filtered": "No se encontraron contratos con los filtros aplicados",
-   "description": "Los contratos vinculan propiedades con inquilinos y propietarios. Definí plazos, montos y condiciones de ajuste.",
-   "step1": "Primero cargá al menos una propiedad y las personas involucradas",
-   "step2": "Hacé clic en 'Nuevo contrato'",
-   "step3": "Seleccioná propiedad, asigná personas y definí las condiciones",
+   "filtered": "No contract matches the search or filters.",
+   "description": "A contract links a property with its lessor and tenant, and sets the term, rent and adjustment.",
+   "step1": "First add the property and the people involved",
+   "step2": "Click “New contract”",
+   "step3": "Pick the property, add the parties and set rent and adjustment",
    "tourButton": "Iniciar tour de contratos"
   },
   "pagination": {
@@ -1398,6 +1422,31 @@
     "RENTAL_OPERATION_ARCHIVED": "The property rental operation is archived; reactivate it before activating the contract.",
     "UNKNOWN": "The contract does not meet the conditions to be activated."
    }
+  },
+  "list": {
+   "searchLabel": "Search contracts",
+   "searchPlaceholder": "Search by tenant, lessor or address",
+   "clear": "Clear",
+   "count": "{count, plural, =1 {1 contract} other {# contracts}}",
+   "columns": {
+    "tenant": "Tenant",
+    "property": "Property",
+    "term": "Term",
+    "nextAdjustment": "Next adjustment",
+    "rent": "Current rent",
+    "status": "Status"
+   },
+   "noTenant": "No tenant assigned",
+   "noLessor": "No lessor assigned",
+   "lessor": "Lessor: {name}",
+   "lessors": "Lessors: {name} and {count} more",
+   "termProgress": "Month {current} of {total}",
+   "endsIn": "{days, plural, =0 {Ends today} =1 {Ends tomorrow} other {Ends in # days}}",
+   "startsOn": "Starts on {date}",
+   "openEnded": "Since {start}, no end date",
+   "closedTerm": "Contract ended",
+   "noAdjustment": "No adjustment",
+   "noMoreAdjustments": "No adjustments left"
   }
  },
  "liquidaciones": {
@@ -3739,7 +3788,7 @@
  },
  "providers": {
   "title": "Proveedores",
-  "subtitle": "Gestión del pool de proveedores de mantenimiento",
+  "subtitle": "Plumbers, electricians and the other trades that handle maintenance requests.",
   "newProvider": "Nuevo proveedor",
   "backToList": "Volver a proveedores",
   "createTitle": "Crear proveedor",
@@ -3749,7 +3798,7 @@
    "rubroPlaceholder": "Todos los rubros",
    "zonePlaceholder": "Todas las zonas",
    "search": "Buscar",
-   "searchPlaceholder": "Nombre o apellido…",
+   "searchPlaceholder": "Search by first or last name",
    "activeOnly": "Solo activos",
    "clear": "Limpiar filtros"
   },
@@ -3788,7 +3837,9 @@
    "noPhone": "Sin teléfono",
    "inactive": "Inactivo",
    "noProfile": "Missing trades and coverage zone",
-   "view": "View details"
+   "view": "View details",
+   "call": "Call",
+   "sendEmail": "Send an email"
   },
   "detail": {
    "edit": "Editar",
@@ -3805,14 +3856,14 @@
    "deleteError": "No se pudo eliminar el proveedor"
   },
   "empty": {
-   "title": "No hay proveedores",
-   "subtitle": "Registrá tu primer proveedor de mantenimiento",
-   "filtered": "No se encontraron proveedores con los filtros aplicados",
+   "title": "No providers yet",
+   "subtitle": "Keep trusted plumbers, electricians and locksmiths at hand to assign them when a request comes in.",
+   "filtered": "No provider matches the search.",
    "detail": "Proveedor no encontrado",
    "description": "Centralizá los datos de plomeros, electricistas, cerrajeros y otros profesionales para asignarlos rápido ante un reclamo.",
-   "step1": "Hacé clic en 'Nuevo proveedor'",
-   "step2": "Ingresá nombre, especialidad y datos de contacto",
-   "step3": "Asigná proveedores a tickets cuando surjan reparaciones"
+   "step1": "Click “New provider”",
+   "step2": "Enter the name, trades, areas and a phone number",
+   "step3": "Assign them to a request when a repair is needed"
   },
   "pagination": {
    "showing": "Mostrando {from}-{to} de {total}",
@@ -8081,7 +8132,7 @@
    "inactive": "Retired",
    "inOffice": "In the office",
    "heldBy": "{holder}: {name}",
-   "overdue": "Overdue {days} d",
+   "overdue": "{days, plural, =1 {1 day overdue} other {# days overdue}}",
    "checkIn": "Record return",
    "checkOut": "Record check-out",
    "location": "Kept at: {location}",
@@ -8119,7 +8170,7 @@
   },
   "out": {
    "title": "Keys out",
-   "subtitle": "The sets that are not in the office: who has them, since when and which ones are overdue.",
+   "subtitle": "Who holds each set that left the office, since when, and which ones should be back already.",
    "columns": {
     "property": "Property",
     "holder": "Held by",
@@ -8135,7 +8186,26 @@
     "overdueOnly": "Overdue only"
    },
    "empty": "No keys out",
-   "emptySubtitle": "All the keys are in the office."
+   "emptySubtitle": "Every set is in the office. Check-outs are recorded from each property's page, in the Keys section."
+  },
+  "board": {
+   "summary": "{count, plural, =1 {1 set out} other {# sets out}}",
+   "overdueCount": "{count, plural, =1 {1 overdue} other {# overdue}}",
+   "columns": {
+    "Propietario": "Owners",
+    "Inquilino": "Tenants",
+    "Empleado": "Staff",
+    "Tercero": "Third parties"
+   },
+   "emptyColumn": "No keys held",
+   "keySet": "Set: {label}",
+   "since": "Since",
+   "daysOut": "{days, plural, =0 {today} =1 {1 day ago} other {# days ago}}",
+   "noReturnDate": "No date",
+   "unknownHolder": "No name",
+   "noOverdue": "No overdue keys",
+   "showAll": "Show all",
+   "goToProperties": "Go to properties"
   }
  },
  "collections": {
