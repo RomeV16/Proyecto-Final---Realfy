@@ -4,19 +4,37 @@ import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api-client';
 import { Link } from '@/i18n/navigation';
+import { cn } from '@/lib/cn';
 import { useCan } from '@/lib/permissions';
 import { OWNER_CURRENCIES, periodOf, type OwnerBalance } from '@/lib/owner-accounts';
 import { formatPeriod } from '@/lib/format';
-import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { MoneyText } from '@/components/ui/money-text';
 import { Select } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { BalanceAmount } from './balance-amount';
+import { OwnerLedger } from './owner-ledger';
+
+const keyOf = (b: Pick<OwnerBalance, 'personId' | 'currency'>) => `${b.personId}-${b.currency}`;
+
+/** En pantallas anchas la cuenta se abre al lado de la lista; en las angostas, el enlace lleva a su página. */
+function isWide(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1280px)').matches;
+}
+
+/** Lo que falta pagar a los locadores, sumado por moneda. */
+function payoutTotals(items: readonly OwnerBalance[]): [string, number][] {
+  const totals = new Map<string, number>();
+  for (const b of items) totals.set(b.currency, (totals.get(b.currency) ?? 0) + Number(b.payoutDue));
+  return [...totals.entries()].filter(([, total]) => total > 0.004).sort(([a], [b]) => a.localeCompare(b));
+}
 
 /**
  * Locadores con su saldo por moneda: lo que la inmobiliaria les debe (o ellos
- * le deben), cuánto de eso está en custodia y lo que falta pagarles. Cada fila
- * abre la cuenta corriente del locador.
+ * le deben) y lo que falta pagarles. Al elegir uno, su cuenta corriente se abre
+ * al lado (en pantallas angostas, en su propia página).
  */
 export function OwnerBalances() {
   const t = useTranslations('ownerAccounts');
@@ -24,6 +42,7 @@ export function OwnerBalances() {
   const [currency, setCurrency] = useState('');
   const [items, setItems] = useState<OwnerBalance[] | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const [selected, setSelected] = useState<string | null>(null);
 
   useEffect(() => {
     if (!canView) return;
@@ -33,7 +52,14 @@ export function OwnerBalances() {
     void (async () => {
       try {
         const res = await apiClient<{ items: OwnerBalance[] }>(`/owners/balances${currency ? `?currency=${currency}` : ''}`);
-        if (!cancelled) setItems(res?.items ?? []);
+        if (cancelled) return;
+        const next = res?.items ?? [];
+        setItems(next);
+        // Con lugar para las dos columnas, la primera cuenta queda abierta.
+        setSelected((current) => {
+          if (current && next.some((b) => keyOf(b) === current)) return current;
+          return isWide() && next.length > 0 ? keyOf(next[0]) : null;
+        });
       } catch (err) {
         if (!cancelled) setError(err);
       }
@@ -47,55 +73,8 @@ export function OwnerBalances() {
     return <p className="text-sm text-[var(--color-muted)]">{t('forbidden')}</p>;
   }
 
-  const columns: DataTableColumn<OwnerBalance>[] = [
-    {
-      key: 'name',
-      header: t('balances.columns.name'),
-      sortable: true,
-      sortValue: (b) => b.name,
-      render: (b) => (
-        <Link href={`/locadores/${b.personId}?currency=${b.currency}`} className="font-medium text-[var(--color-brand-600)] hover:underline">
-          {b.name}
-        </Link>
-      ),
-    },
-    { key: 'currency', header: t('balances.columns.currency'), render: (b) => b.currency },
-    {
-      key: 'balance',
-      header: t('balances.columns.balance'),
-      alignRight: true,
-      sortable: true,
-      sortValue: (b) => Number(b.balance),
-      render: (b) => <BalanceAmount value={b.balance} currency={b.currency} />,
-    },
-    {
-      key: 'custody',
-      header: t('balances.columns.custody'),
-      alignRight: true,
-      render: (b) => <MoneyText value={b.custody} currency={b.currency} decimals={2} className="tabular-nums" />,
-    },
-    {
-      key: 'payoutDue',
-      header: t('balances.columns.payoutDue'),
-      alignRight: true,
-      sortable: true,
-      sortValue: (b) => Number(b.payoutDue),
-      render: (b) => <MoneyText value={b.payoutDue} currency={b.currency} decimals={2} className="tabular-nums font-medium" />,
-    },
-    {
-      key: 'lastStatement',
-      header: t('balances.columns.lastStatement'),
-      render: (b) =>
-        b.lastStatement ? (
-          <Link href={`/estados-de-cuenta/${b.lastStatement.id}`} className="inline-flex items-center gap-2 hover:underline">
-            <span>{formatPeriod(`${periodOf(b.lastStatement.period)}-01T00:00:00.000Z`)}</span>
-            <StatusBadge domain="estadoCuenta" status={b.lastStatement.status} />
-          </Link>
-        ) : (
-          <span className="text-[var(--color-muted)]">{t('balances.noStatement')}</span>
-        ),
-    },
-  ];
+  const active = items?.find((b) => keyOf(b) === selected) ?? null;
+  const totals = payoutTotals(items ?? []);
 
   return (
     <div className="space-y-6">
@@ -118,14 +97,98 @@ export function OwnerBalances() {
           </Select>
         </div>
       </header>
-      <DataTable
-        items={items ?? []}
-        columns={columns}
-        keyExtractor={(b) => `${b.personId}-${b.currency}`}
-        loading={items === null && error == null}
-        error={error}
-        empty={{ title: t('balances.empty.title'), subtitle: t('balances.empty.subtitle'), iconName: 'building' }}
-      />
+
+      {error != null && <ErrorNotice error={error} />}
+      {items === null && error == null && (
+        <div className="space-y-2" aria-busy="true">
+          <Skeleton className="h-20 w-full rounded-2xl xl:w-96" />
+          <Skeleton className="h-20 w-full rounded-2xl xl:w-96" />
+        </div>
+      )}
+      {items !== null && items.length === 0 && (
+        <EmptyState iconName="building" title={t('balances.empty.title')} subtitle={t('balances.empty.subtitle')} />
+      )}
+
+      {items !== null && items.length > 0 && (
+        <div className="grid items-start gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
+          <section aria-label={t('balances.listLabel')} className="space-y-3">
+            <p className="text-sm text-[var(--color-muted)]">
+              {totals.length === 0 ? (
+                t('balances.nothingDue')
+              ) : (
+                <>
+                  {t('balances.totalDue')}{' '}
+                  {totals.map(([c, total], i) => (
+                    <span key={c}>
+                      {i > 0 && ' · '}
+                      <MoneyText value={total} currency={c} decimals={2} className="font-medium tabular-nums text-[var(--color-text)]" />
+                    </span>
+                  ))}
+                </>
+              )}
+            </p>
+            <ul className="divide-y divide-[var(--color-border)] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+              {items.map((b) => {
+                const key = keyOf(b);
+                const current = key === selected;
+                return (
+                  <li
+                    key={key}
+                    className={cn(
+                      'relative px-4 py-3 transition-colors hover:bg-[var(--color-surface-sunken)]',
+                      current && 'bg-[var(--color-surface-sunken)]',
+                    )}
+                  >
+                    {current && <span aria-hidden className="absolute inset-y-0 left-0 w-1 bg-[var(--color-brand-500)]" />}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/locadores/${b.personId}?currency=${b.currency}`}
+                          aria-current={current ? 'true' : undefined}
+                          onClick={(e) => {
+                            if (!isWide()) return;
+                            e.preventDefault();
+                            setSelected(key);
+                          }}
+                          className="block truncate font-medium text-[var(--color-text)] after:absolute after:inset-0 hover:underline"
+                        >
+                          {b.name}
+                        </Link>
+                        <p className="mt-0.5 text-xs text-[var(--color-muted)]">
+                          {b.currency} · {t('balances.columns.payoutDue')}{' '}
+                          <MoneyText value={b.payoutDue} currency={b.currency} decimals={2} className="tabular-nums text-[var(--color-text)]" />
+                        </p>
+                      </div>
+                      <BalanceAmount value={b.balance} currency={b.currency} className="shrink-0" />
+                    </div>
+                    <p className="mt-1.5 text-xs text-[var(--color-muted)]">
+                      {b.lastStatement ? (
+                        <Link
+                          href={`/estados-de-cuenta/${b.lastStatement.id}`}
+                          className="relative z-10 inline-flex items-center gap-2 hover:underline"
+                        >
+                          <span>
+                            {t('balances.columns.lastStatement')}: {formatPeriod(`${periodOf(b.lastStatement.period)}-01T00:00:00.000Z`)}
+                          </span>
+                          <StatusBadge domain="estadoCuenta" status={b.lastStatement.status} />
+                        </Link>
+                      ) : (
+                        t('balances.noStatement')
+                      )}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          {active && (
+            <div className="hidden min-w-0 xl:block">
+              <OwnerLedger key={keyOf(active)} personId={active.personId} initialCurrency={active.currency} embedded />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -7,14 +7,16 @@ import { Link } from '@/i18n/navigation';
 import { cn } from '@/lib/cn';
 import { formatDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
-import { suggestedPayout, type LedgerEntry, type LedgerResponse } from '@/lib/owner-accounts';
+import { suggestedPayout, type LedgerResponse } from '@/lib/owner-accounts';
 import { Button } from '@/components/ui/button';
-import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
-import { DateText } from '@/components/ui/date-text';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { inputStyles } from '@/components/ui/input';
 import { MoneyText } from '@/components/ui/money-text';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { BalanceAmount, SignedAmount } from './balance-amount';
+import { PaginationBar } from '@/components/ui/pagination';
+import { Skeleton } from '@/components/ui/skeleton';
+import { BalanceAmount } from './balance-amount';
+import { LedgerTable } from './ledger-table';
 import { OpeningBalanceDialog } from './opening-balance-dialog';
 import { PayoutDialog } from './payout-dialog';
 
@@ -23,13 +25,15 @@ const LIMIT = 50;
 interface Props {
   personId: string;
   initialCurrency?: string;
+  /** Dentro del maestro-detalle de locadores: sin el enlace de vuelta y con el título como subtítulo. */
+  embedded?: boolean;
 }
 
 /**
- * Cuenta corriente de un locador: los movimientos de una moneda con el saldo
- * después de cada uno, el saldo inicial (gerencia) y el pago al locador.
+ * Cuenta corriente de un locador: los movimientos de una moneda en debe y haber
+ * con el saldo acumulado, el saldo inicial (gerencia) y el pago al locador.
  */
-export function OwnerLedger({ personId, initialCurrency = 'ARS' }: Props) {
+export function OwnerLedger({ personId, initialCurrency = 'ARS', embedded = false }: Props) {
   const t = useTranslations('ownerAccounts');
   const canView = useCan('ownerAccounts.view');
   const canManage = useCan('ownerAccounts.manage');
@@ -72,46 +76,30 @@ export function OwnerLedger({ personId, initialCurrency = 'ARS' }: Props) {
   const name = data?.person.name ?? '';
   const currencies = [...new Set([...(data?.currencies ?? []), currency])].sort((a, b) => a.localeCompare(b));
 
-  const columns: DataTableColumn<LedgerEntry>[] = [
-    { key: 'date', header: t('ledger.columns.date'), render: (e) => <DateText value={e.date} className="whitespace-nowrap" /> },
-    { key: 'type', header: t('ledger.columns.type'), render: (e) => t(`types.${e.type}`) },
-    { key: 'description', header: t('ledger.columns.description'), render: (e) => e.description },
-    { key: 'property', header: t('ledger.columns.property'), render: (e) => e.property ?? '—' },
-    {
-      key: 'amount',
-      header: t('ledger.columns.amount'),
-      alignRight: true,
-      render: (e) => <SignedAmount value={e.amount} currency={currency} />,
-    },
-    {
-      key: 'balance',
-      header: t('ledger.columns.balance'),
-      alignRight: true,
-      render: (e) => <MoneyText value={e.balance} currency={currency} decimals={2} className="tabular-nums" />,
-    },
-    {
-      key: 'statement',
-      header: t('ledger.columns.statement'),
-      render: (e) =>
-        e.statement ? (
-          <Link href={`/estados-de-cuenta/${e.statement.id}`} className="hover:underline">
-            <StatusBadge domain="estadoCuenta" status={e.statement.status} />
-          </Link>
-        ) : (
-          <span className="text-xs text-[var(--color-muted)]">{t('ledger.unlocked')}</span>
-        ),
-    },
-  ];
+  const Heading = embedded ? 'h2' : 'h1';
+  const lastPage = !data || data.page >= Math.max(data.totalPages, 1);
 
   return (
     <div className="space-y-6">
-      <Link href="/locadores" className="text-sm text-[var(--color-brand-600)] hover:underline">
-        ← {t('ledger.back')}
-      </Link>
+      {!embedded && (
+        <Link href="/locadores" className="text-sm text-[var(--color-brand-600)] hover:underline">
+          ← {t('ledger.back')}
+        </Link>
+      )}
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--color-text)]">{name ? t('ledger.title', { name }) : t('ledger.titleLoading')}</h1>
+          <Heading className={cn('font-semibold text-[var(--color-text)]', embedded ? 'text-lg' : 'text-2xl')}>
+            {name ? t('ledger.title', { name }) : t('ledger.titleLoading')}
+          </Heading>
           <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('ledger.subtitle')}</p>
+          {embedded && (
+            <Link
+              href={`/locadores/${personId}?currency=${currency}`}
+              className="mt-1 inline-block text-sm text-[var(--color-brand-600)] hover:underline"
+            >
+              {t('ledger.fullPage')}
+            </Link>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {canAdminister && (
@@ -152,23 +140,26 @@ export function OwnerLedger({ personId, initialCurrency = 'ARS' }: Props) {
       </div>
 
       {data && (
-        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label={t('ledger.summary', { currency })}>
-          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-            <dt className="text-xs text-[var(--color-muted)]">{from ? t('ledger.openingAt', { date: formatDate(from) }) : t('ledger.opening')}</dt>
-            <dd className="mt-1">
-              <MoneyText value={data.opening} currency={currency} decimals={2} className="tabular-nums font-semibold" />
-            </dd>
-          </div>
-          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-            <dt className="text-xs text-[var(--color-muted)]">{t('ledger.closing')}</dt>
-            <dd className="mt-1">
+        <dl
+          className="grid grid-cols-1 divide-y divide-[var(--color-border)] overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+          aria-label={t('ledger.summary', { currency })}
+        >
+          <div className="p-4">
+            <dt className="text-xs text-[var(--color-muted)]">{to ? t('ledger.closingAt', { date: formatDate(to) }) : t('ledger.closing')}</dt>
+            <dd className="mt-1 text-lg">
               <BalanceAmount value={data.closing} currency={currency} className="items-start" />
             </dd>
           </div>
-          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+          <div className="p-4">
             <dt className="text-xs text-[var(--color-muted)]">{t('ledger.custody')}</dt>
             <dd className="mt-1">
               <MoneyText value={data.custody} currency={currency} decimals={2} className="tabular-nums font-semibold" />
+            </dd>
+          </div>
+          <div className="p-4">
+            <dt className="text-xs text-[var(--color-muted)]">{from ? t('ledger.openingAt', { date: formatDate(from) }) : t('ledger.opening')}</dt>
+            <dd className="mt-1">
+              <MoneyText value={data.opening} currency={currency} decimals={2} className="tabular-nums font-semibold" />
             </dd>
           </div>
         </dl>
@@ -189,19 +180,24 @@ export function OwnerLedger({ personId, initialCurrency = 'ARS' }: Props) {
         </div>
       </div>
 
-      <DataTable
-        items={data?.items ?? []}
-        columns={columns}
-        keyExtractor={(e) => e.id}
-        loading={data === null && error == null}
-        error={error}
-        pagination={
-          data && data.totalPages > 1
-            ? { page: data.page, totalPages: data.totalPages, total: data.total, limit: data.limit, onPageChange: setPage }
-            : undefined
-        }
-        empty={{ title: t('ledger.empty.title'), subtitle: t('ledger.empty.subtitle'), iconName: 'wallet' }}
-      />
+      {error != null && <ErrorNotice error={error} />}
+      {data === null && error == null && <Skeleton className="h-48 w-full rounded-2xl" />}
+      {data && data.items.length === 0 && (
+        <EmptyState variant="filtered" iconName="wallet" title={t('ledger.empty.title')} subtitle={t('ledger.empty.subtitle')} />
+      )}
+      {data && data.items.length > 0 && (
+        <div>
+          <LedgerTable
+            entries={data.items}
+            currency={currency}
+            opening={from && data.page === 1 ? data.opening : undefined}
+            closing={lastPage ? data.closing : undefined}
+          />
+          {data.totalPages > 1 && (
+            <PaginationBar page={data.page} totalPages={data.totalPages} total={data.total} limit={data.limit} onPageChange={setPage} />
+          )}
+        </div>
+      )}
 
       {dialog === 'opening' && (
         <OpeningBalanceDialog personId={personId} personName={name} currency={currency} onClose={() => setDialog(null)} onDone={refresh} />
