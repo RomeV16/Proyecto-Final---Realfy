@@ -80,10 +80,7 @@ export default function ProviderCreatePage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
           </svg>
         </Link>
-        <div>
-          <p className="eyebrow mb-1">Pool de proveedores</p>
-          <h1 className="h1">{t('createTitle')}</h1>
-        </div>
+        <h1 className="h1">{t('createTitle')}</h1>
       </div>
 
       <Reveal>

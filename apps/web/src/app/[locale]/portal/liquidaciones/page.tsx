@@ -10,7 +10,7 @@ import { RowList } from '@/components/ui/card-grid';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InvoiceRow } from '@/components/portal/invoice-row';
 import { INVOICE_PAGE_SIZE, buildOverview, usePortalInvoices, type PortalInvoice } from '@/components/portal/portal-data';
-import { formatMoney } from '@/lib/format';
+import { formatDate, formatMoney, formatPeriod } from '@/lib/format';
 
 /**
  * Invoices.
@@ -33,6 +33,8 @@ export default function PortalInvoicesPage() {
   const items = useMemo(() => data?.items ?? [], [data]);
   const total = data?.total ?? 0;
   const summary = useMemo(() => buildOverview([], items, []), [items]);
+  const summaryTone = summary.state === 'clear' ? 'success' : summary.state === 'overdue' ? 'danger' : 'warning';
+  const showSplit = summary.overdueCount > 0 && summary.pendingCount > 0;
 
   /**
    * PDFs are rendered on demand and the endpoint is bearer-authenticated, so
@@ -64,26 +66,59 @@ export default function PortalInvoicesPage() {
         <p className="mt-1.5 text-sm text-[var(--color-muted)]">{t('portal.invoices.subtitle')}</p>
       </header>
 
-      {/* Height reserved so the list doesn't jump once the balance is known. */}
-      <div className="mb-5 mt-4 min-h-[2.25rem]">
-        {summary.balance > 0 && (
-          <p
-            className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[var(--radius-lg)] border px-3 py-1.5 text-sm"
+      {/* Lo primero: cuánto hay que pagar y cuándo vence. Alto reservado para que la lista no salte. */}
+      <div className="mb-5 mt-4 min-h-[4.5rem]">
+        {!isPending && items.length > 0 && (
+          <section
+            aria-label={t('portal.account.label')}
+            className="flex items-start gap-3 rounded-[var(--radius-xl)] border px-4 py-3"
             style={{
-              borderColor: `color-mix(in oklab, var(--color-${summary.state === 'overdue' ? 'danger' : 'warning'}) 28%, var(--color-border))`,
-              backgroundColor: `color-mix(in oklab, var(--color-${summary.state === 'overdue' ? 'danger' : 'warning'}) 10%, var(--color-surface))`,
+              borderColor: `color-mix(in oklab, var(--color-${summaryTone}) 28%, var(--color-border))`,
+              backgroundColor: `color-mix(in oklab, var(--color-${summaryTone}) 8%, var(--color-surface))`,
             }}
           >
-            <Icon name="wallet" className="h-4 w-4 shrink-0" strokeWidth={1.9} />
-            <strong className="font-semibold tabular-nums">
-              {formatMoney(summary.balance, summary.currency)}
-            </strong>
-            <span className="text-[var(--color-muted)]">
-              {t('portal.invoices.pendingSummary', {
-                count: summary.overdueCount + summary.pendingCount,
-              })}
-            </span>
-          </p>
+            <Icon
+              name={summary.state === 'clear' ? 'check' : summary.state === 'overdue' ? 'alert' : 'calendarClock'}
+              className="mt-1 h-5 w-5 shrink-0"
+              strokeWidth={1.9}
+              style={{ color: `var(--color-${summaryTone})` }}
+            />
+            <div className="min-w-0">
+              <p className="text-lg font-semibold tabular-nums text-[var(--color-text)]">
+                {summary.state === 'clear'
+                  ? t('portal.account.clearTitle')
+                  : formatMoney(summary.balance, summary.currency)}
+              </p>
+              <p className="text-sm text-[var(--color-muted)]">
+                {summary.state === 'clear'
+                  ? t('portal.account.clearDetail')
+                  : summary.state === 'overdue'
+                    ? t('portal.account.overdueDetail', { count: summary.overdueCount, days: summary.daysLate })
+                    : t('portal.invoices.pendingSummary', { count: summary.pendingCount })}
+              </p>
+              {summary.focusInvoice && (
+                <p className="mt-0.5 text-sm text-[var(--color-text)]">
+                  {summary.state === 'overdue'
+                    ? t('portal.account.focusOverdue', {
+                        period: formatPeriod(summary.focusInvoice.period),
+                        date: formatDate(summary.focusInvoice.dueDate),
+                      })
+                    : t('portal.account.focusDue', {
+                        period: formatPeriod(summary.focusInvoice.period),
+                        days: Math.max(0, summary.daysToDue ?? 0),
+                      })}
+                </p>
+              )}
+              {showSplit && (
+                <p className="mt-0.5 text-xs text-[var(--color-muted)]">
+                  {t('portal.account.split', {
+                    overdue: formatMoney(summary.overdueAmount, summary.currency),
+                    pending: formatMoney(summary.balance - summary.overdueAmount, summary.currency),
+                  })}
+                </p>
+              )}
+            </div>
+          </section>
         )}
       </div>
 

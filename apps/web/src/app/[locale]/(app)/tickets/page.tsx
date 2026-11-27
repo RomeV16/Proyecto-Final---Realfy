@@ -7,8 +7,8 @@ import { apiClient } from '@/lib/api-client';
 import { TicketStatus, TicketPriority } from '@realfy/shared';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { TicketPriorityBadge } from '@/components/tickets/ticket-priority-badge';
-import { EntityCard } from '@/components/ui/entity-card';
-import { CardGrid } from '@/components/ui/card-grid';
+import { Skeleton } from '@/components/ui/skeleton';
+import { msSince, useElapsedText } from '@/components/tickets/elapsed';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -32,107 +32,134 @@ interface ListResponse {
   meta: { total: number; page: number; limit: number; totalPages: number };
 }
 
-/** Estados en los que el ticket ya no corre contra el SLA. */
+/** Estados en los que el plazo de respuesta ya no corre. */
 const CLOSED_STATUSES = [
   TicketStatus.Resuelto,
   TicketStatus.Cerrado,
   TicketStatus.Cancelado,
 ] as string[];
 
-/** Priority drives the accent bar, so a grid can be triaged at a glance. */
-const PRIORITY_ACCENT: Record<string, 'danger' | 'warning' | 'info' | 'none'> = {
-  [TicketPriority.Urgente]: 'danger',
-  [TicketPriority.Alta]: 'warning',
-  [TicketPriority.Media]: 'info',
-  [TicketPriority.Baja]: 'none',
+const PRIORITY_ORDER: Record<string, number> = {
+  [TicketPriority.Urgente]: 0,
+  [TicketPriority.Alta]: 1,
+  [TicketPriority.Media]: 2,
+  [TicketPriority.Baja]: 3,
 };
 
-/* ──────────── Card ──────────── */
+const PRIORITY_BAR: Record<string, string> = {
+  [TicketPriority.Urgente]: 'var(--color-danger)',
+  [TicketPriority.Alta]: 'var(--color-warning)',
+  [TicketPriority.Media]: 'var(--color-info)',
+  [TicketPriority.Baja]: 'var(--color-border)',
+};
 
-function TicketCard({
-  ticket,
-  now,
-}: {
-  ticket: TicketItem;
-  now: Date;
-}) {
+type GroupKey = 'overdue' | 'open' | 'closed';
+const GROUPS: GroupKey[] = ['overdue', 'open', 'closed'];
+
+function groupOf(ticket: TicketItem, now: Date): GroupKey {
+  if (CLOSED_STATUSES.includes(ticket.status)) return 'closed';
+  return ticket.slaDeadline && new Date(ticket.slaDeadline) < now ? 'overdue' : 'open';
+}
+
+/** Dentro de cada grupo: primero lo más urgente y, a igual prioridad, lo que vence antes. */
+function byPriorityAndDeadline(a: TicketItem, b: TicketItem): number {
+  const priority = (PRIORITY_ORDER[a.priority] ?? 9) - (PRIORITY_ORDER[b.priority] ?? 9);
+  if (priority !== 0) return priority;
+  const da = a.slaDeadline ? new Date(a.slaDeadline).getTime() : Number.POSITIVE_INFINITY;
+  const db = b.slaDeadline ? new Date(b.slaDeadline).getTime() : Number.POSITIVE_INFINITY;
+  return da - db;
+}
+
+/* ──────────── Row ──────────── */
+
+function TicketRow({ ticket, group, now }: { ticket: TicketItem; group: GroupKey; now: Date }) {
   const t = useTranslations('tickets');
+  const elapsed = useElapsedText();
   const href = `/tickets/${ticket.id}`;
-  const sla = ticket.slaDeadline ? new Date(ticket.slaDeadline) : null;
-  /* Un ticket cerrado ya no corre contra el SLA: avisar ahi solo suma ruido. */
-  const isOpen = !CLOSED_STATUSES.includes(ticket.status);
-  const slaOverdue = sla ? isOpen && sla < now : false;
-  const ageDays = Math.max(
-    0,
-    Math.floor((now.getTime() - new Date(ticket.createdAt).getTime()) / 86_400_000),
-  );
+  const deadline = ticket.slaDeadline ? new Date(ticket.slaDeadline) : null;
   const assignedName = ticket.assignedTo
     ? `${ticket.assignedTo.firstName} ${ticket.assignedTo.lastName}`
     : null;
+  const context = [ticket.category?.name || t('card.noCategory'), ticket.property?.title].filter(Boolean).join(' · ');
 
-  /* The card says what's blocking this ticket, so the grid doubles as a
-     worklist. An SLA breach outranks a missing assignee. */
-  const alert = slaOverdue
-    ? { tone: 'danger' as const, icon: 'clock' as const, text: t('card.slaOverdue') }
-    : isOpen && !assignedName
-      ? { tone: 'warning' as const, icon: 'alert' as const, text: t('card.noAssignee') }
-      : null;
+  let deadlineText: string;
+  if (group === 'closed') deadlineText = '';
+  else if (!deadline) deadlineText = t('list.noDeadline');
+  else if (group === 'overdue') deadlineText = t('list.overdueFor', { time: elapsed(msSince(deadline, now)) });
+  else deadlineText = t('list.dueIn', { time: elapsed(msSince(deadline, now)) });
 
   return (
-    <EntityCard href={href} label={ticket.title} accent={PRIORITY_ACCENT[ticket.priority] ?? 'none'}>
-      <EntityCard.Cover
-        seed={ticket.id}
-        icon="tickets"
-        band
-        topLeft={<TicketPriorityBadge priority={ticket.priority} onCover />}
-        topRight={
-          sla && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-black/45 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-md">
-              <Icon name="clock" className="h-3 w-3" strokeWidth={2} />
-              {formatLocalDate(sla, { day: '2-digit', month: 'short' })}
-            </span>
-          )
-        }
+    <li className="relative">
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 w-1"
+        style={{ backgroundColor: PRIORITY_BAR[ticket.priority] ?? 'var(--color-border)' }}
       />
+      <Link
+        href={href}
+        className="grid gap-x-4 gap-y-2 py-3.5 pl-5 pr-4 transition-colors hover:bg-[var(--color-surface-sunken)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500 md:grid-cols-[minmax(0,1fr)_11rem_13rem_11rem] md:items-center"
+      >
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <TicketPriorityBadge priority={ticket.priority} />
+            <span className="min-w-0 truncate font-medium text-[var(--color-text)]">{ticket.title}</span>
+          </div>
+          <p className="mt-1 truncate text-xs text-[var(--color-muted)]">{context}</p>
+        </div>
 
-      <EntityCard.Body>
-        <EntityCard.Title>{ticket.title}</EntityCard.Title>
-        <EntityCard.Subtitle>{ticket.category?.name || t('card.noCategory')}</EntityCard.Subtitle>
-
-        <EntityCard.Meta
-          items={[
-            ...(ticket.property ? [{ icon: 'mapPin' as const, label: ticket.property.title }] : []),
-            { icon: 'clock' as const, label: t('card.age', { days: ageDays }) },
-          ]}
-        />
-
-        {/* Wrapped so the pill hugs its label — Body is a flex column, and a
-            bare badge would stretch to the full card width. */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center md:justify-start">
           <StatusBadge domain="ticket" status={ticket.status} />
         </div>
 
-        {alert && (
-          <EntityCard.Alert tone={alert.tone} icon={alert.icon}>
-            {alert.text}
-          </EntityCard.Alert>
-        )}
-      </EntityCard.Body>
+        <div className="min-w-0 text-xs">
+          {deadlineText && (
+            <p
+              className={
+                group === 'overdue'
+                  ? 'flex items-center gap-1.5 font-medium text-[var(--color-danger)]'
+                  : 'flex items-center gap-1.5 text-[var(--color-text)]'
+              }
+            >
+              <Icon name="clock" className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+              <span>{deadlineText}</span>
+            </p>
+          )}
+          <p className="mt-0.5 text-[var(--color-muted)]">
+            {deadline && group !== 'closed'
+              ? t('list.deadlineOn', { date: formatLocalDate(deadline, 'dayMonth') })
+              : t('list.openedAgo', { time: elapsed(msSince(ticket.createdAt, now)) })}
+          </p>
+        </div>
 
-      <EntityCard.Footer>
         <div className="flex min-w-0 items-center gap-2">
-          <Avatar name={assignedName} seed={ticket.assignedTo?.id} size="sm" />
-          <span className="truncate text-xs text-[var(--color-muted)]">
+          <Avatar name={assignedName} seed={ticket.assignedTo?.id} size="xs" />
+          <span
+            className={
+              assignedName || group === 'closed'
+                ? 'truncate text-xs text-[var(--color-muted)]'
+                : 'truncate text-xs font-medium text-[var(--color-warning)]'
+            }
+          >
             {assignedName || t('card.noAssignee')}
           </span>
         </div>
-        <EntityCard.Actions>
-          <EntityCard.Action href={href} icon="arrowRight" variant="ghost">
-            {t('card.view')}
-          </EntityCard.Action>
-        </EntityCard.Actions>
-      </EntityCard.Footer>
-    </EntityCard>
+      </Link>
+    </li>
+  );
+}
+
+function ListSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]" aria-hidden="true">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 border-b border-[var(--color-border)] px-5 py-4 last:border-b-0">
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-4 flex-1" />
+          <Skeleton className="hidden h-4 w-32 md:block" />
+          <Skeleton className="hidden h-4 w-28 md:block" />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -172,7 +199,7 @@ export default function TicketListPage() {
   }, [page, statusFilter, priorityFilter]);
 
   useEffect(() => {
-    loadTickets();
+    void loadTickets();
   }, [loadTickets]);
 
   const totalPages = Math.ceil(total / limit);
@@ -240,48 +267,60 @@ export default function TicketListPage() {
         )}
       </div>
 
-      {/* Grid — owns the loading → content → empty transition */}
-      <CardGrid
-        items={items}
-        loading={loading && !loaded}
-        busy={loading && loaded}
-        columns={3}
-        skeletonCount={6}
-        keyOf={(ticket) => ticket.id}
-        renderItem={(ticket) => (
-          <TicketCard ticket={ticket} now={now} />
-        )}
-        empty={
-          hasFilters ? (
-            <EmptyState
-              variant="filtered"
-              iconName="search"
-              title={tCommon('noResults')}
-              subtitle={t('empty.filtered')}
-              action={
-                <Button variant="secondary" size="sm" onClick={clearFilters}>
-                  {t('filters.clear')}
+      {loading && !loaded ? (
+        <ListSkeleton />
+      ) : items.length === 0 ? (
+        hasFilters ? (
+          <EmptyState
+            variant="filtered"
+            iconName="search"
+            title={tCommon('noResults')}
+            subtitle={t('empty.filtered')}
+            action={
+              <Button variant="secondary" size="sm" onClick={clearFilters}>
+                {t('filters.clear')}
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState
+            iconName="tickets"
+            title={t('empty.title')}
+            subtitle={t('empty.subtitle')}
+            steps={[t('empty.step1'), t('empty.step2'), t('empty.step3')]}
+            action={
+              <Link href={'/tickets/new'}>
+                <Button variant="primary">
+                  <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
+                  {t('newTicket')}
                 </Button>
-              }
-            />
-          ) : (
-            <EmptyState
-              iconName="tickets"
-              title={t('empty.title')}
-              subtitle={t('empty.subtitle')}
-              steps={[t('empty.step1'), t('empty.step2'), t('empty.step3')]}
-              action={
-                <Link href={'/tickets/new'}>
-                  <Button variant="primary">
-                    <Icon name="plus" className="h-4 w-4" strokeWidth={2.25} />
-                    {t('newTicket')}
-                  </Button>
-                </Link>
-              }
-            />
-          )
-        }
-      />
+              </Link>
+            }
+          />
+        )
+      ) : (
+        <div className={loading ? 'space-y-6 opacity-60 transition-opacity' : 'space-y-6 transition-opacity'}>
+          {GROUPS.map((group) => {
+            const rows = items.filter((ticket) => groupOf(ticket, now) === group).sort(byPriorityAndDeadline);
+            if (rows.length === 0) return null;
+            return (
+              <section key={group} aria-label={t(`list.groups.${group}`)}>
+                <h2 className="mb-2 flex items-baseline gap-2 text-sm font-semibold text-[var(--color-text)]">
+                  <span className={group === 'overdue' ? 'text-[var(--color-danger)]' : undefined}>
+                    {t(`list.groups.${group}`)}
+                  </span>
+                  <span className="text-xs font-normal tabular-nums text-[var(--color-muted)]">{rows.length}</span>
+                </h2>
+                <ul className="divide-y divide-[var(--color-border)] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+                  {rows.map((ticket) => (
+                    <TicketRow key={ticket.id} ticket={ticket} group={group} now={now} />
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      )}
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between">

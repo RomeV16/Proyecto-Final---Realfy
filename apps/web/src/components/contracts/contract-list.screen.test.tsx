@@ -64,14 +64,26 @@ describe('ContractList', () => {
     auth.role = 'Admin';
   });
 
-  it('muestra la tarjeta con monto, rango de fechas y enlace con prefijo de idioma', async () => {
-    apiClient.mockResolvedValue(page([item()]));
+  it('muestra la fila con partes, propiedad, vigencia, ajuste, alquiler y enlace con prefijo de idioma', async () => {
+    apiClient.mockResolvedValue(
+      page([
+        item({
+          adjustmentPeriod: 'Trimestral',
+          persons: [person('per-1', 'Inquilino', 'Mario', 'Muestra'), person('per-2', 'Propietario', 'Olga', 'Dueña')],
+        }),
+      ]),
+    );
     const { container } = renderEs(<ContractList />);
-    await screen.findByText(/Mario Muestra → Depto de prueba/);
+    await screen.findByText('Mario Muestra');
     const text = norm(container.textContent);
+    expect(text).toContain('Locador: Olga Dueña');
+    expect(text).toContain('Depto de prueba');
     expect(text).toContain('100.000,00');
-    expect(text).toContain('1 de ene de 2026');
-    expect(text).toContain('1 de ene de 2028');
+    expect(text).toContain('ene 2026');
+    expect(text).toContain('ene 2028');
+    expect(text).toContain('IPC · trimestral');
+    expect(text).toContain('1 contrato');
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
     expect(text).toContain('Calle Falsa 123, Ciudad Ejemplo');
     expect(apiClient).toHaveBeenCalledWith('/contracts?page=1&limit=12');
     const hrefs = screen.getAllByRole('link').map((a) => a.getAttribute('href'));
@@ -128,6 +140,27 @@ describe('ContractList', () => {
     expect(text).toContain('US$');
   });
 
+  it('un borrador muestra su próximo ajuste y un contrato rescindido no dice que no quedan', async () => {
+    apiClient.mockResolvedValue(
+      page([
+        item({ id: 'c-b', status: 'Borrador', adjustmentPeriod: 'Trimestral', startDate: inDays(-10), endDate: inDays(700) }),
+      ]),
+    );
+    const first = renderEs(<ContractList />);
+    await screen.findByText(/Mario Muestra/);
+    expect(norm(first.container.textContent)).not.toContain('No quedan');
+    expect(norm(first.container.textContent)).toMatch(/\d{4}IPC · trimestral/);
+    first.unmount();
+
+    apiClient.mockResolvedValue(
+      page([item({ id: 'c-r', status: 'Rescindido', adjustmentPeriod: 'Trimestral', endDate: inDays(-30), startDate: inDays(-400) })]),
+    );
+    const second = renderEs(<ContractList />);
+    await screen.findByText(/Mario Muestra/);
+    expect(norm(second.container.textContent)).not.toContain('No quedan');
+    expect(norm(second.container.textContent)).toContain('—IPC · trimestral');
+  });
+
   it('filtra por estado y tipo de ajuste y permite limpiar', async () => {
     apiClient.mockResolvedValue(page([item()]));
     renderEs(<ContractList />);
@@ -141,6 +174,60 @@ describe('ContractList', () => {
     );
     await user.click(screen.getByTitle('Limpiar filtros'));
     await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith('/contracts?page=1&limit=12'));
+  });
+
+  it('la búsqueda trae el máximo y filtra por partes, propiedad o dirección sin importar acentos', async () => {
+    apiClient.mockResolvedValue(
+      page([
+        item(),
+        item({
+          id: 'c-2',
+          property: { id: 'p-2', title: 'Casa del fondo', street: 'Pasaje Ñandú', number: '45', city: 'Otra' },
+          persons: [person('per-9', 'Inquilino', 'Inés', 'Ejemplo'), person('per-8', 'Propietario', 'Raúl', 'Titular')],
+        }),
+      ]),
+    );
+    renderEs(<ContractList />);
+    await screen.findByText('Mario Muestra');
+    const user = userEvent.setup();
+    await user.type(document.getElementById('filter-search') as HTMLInputElement, 'ines');
+    await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith('/contracts?page=1&limit=100'));
+    await waitFor(() => expect(screen.queryByText('Mario Muestra')).not.toBeInTheDocument());
+    expect(screen.getByText('Inés Ejemplo')).toBeInTheDocument();
+    expect(screen.getByText('Pasaje Ñandú 45, Otra')).toBeInTheDocument();
+    await user.clear(document.getElementById('filter-search') as HTMLInputElement);
+    await user.type(document.getElementById('filter-search') as HTMLInputElement, 'titular fondo');
+    expect(await screen.findByText('Inés Ejemplo')).toBeInTheDocument();
+  });
+
+  it('sin inquilino, sin locador, sin ajuste y con varios locadores no rompe y lo dice', async () => {
+    apiClient.mockResolvedValue(
+      page([
+        item({ id: 'c-a', persons: [], adjustmentType: undefined, contractType: 'Venta' }),
+        item({
+          id: 'c-b',
+          persons: [
+            person('per-1', 'Inquilino', 'Mario', 'Muestra'),
+            person('per-2', 'Propietario', 'Olga', 'Dueña'),
+            person('per-3', 'Propietario', 'Pía', 'Socia'),
+          ],
+          startDate: inDays(40),
+          endDate: inDays(400),
+        }),
+        item({ id: 'c-c', status: 'Rescindido' }),
+        item({ id: 'c-d', endDate: undefined }),
+      ]),
+    );
+    const { container } = renderEs(<ContractList />);
+    await screen.findByText('Sin inquilino asignado');
+    const text = norm(container.textContent);
+    expect(text).toContain('Sin locador asignado · Venta');
+    expect(text).toContain('Sin ajuste');
+    expect(text).toContain('Locadores: Olga Dueña y 1 más');
+    expect(text).toContain('Empieza el');
+    expect(text).toContain('Contrato finalizado');
+    expect(text).toContain('sin fecha de fin');
+    expect(text).toContain('4 contratos');
   });
 
   it('con filtros y sin resultados ofrece limpiarlos', async () => {

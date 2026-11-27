@@ -22,7 +22,7 @@
   --color-slate-200: #e4dac7;      /* bordes hairline */
   --color-slate-300: #d3c6ac;
   --color-slate-400: #ab9d85;
-  --color-slate-500: #8a7e6d;      /* texto atenuado */
+  --color-slate-500: #70665a;      /* texto atenuado (4,6:1 sobre el papel) */
   --color-slate-600: #6c6153;
   --color-slate-700: #514840;
   --color-slate-800: #35302a;
@@ -60,7 +60,7 @@
   --color-surface-sunken: #f4ecdd;
   --color-border: #e4dac7;
   --color-text: #211c17;
-  --color-muted: #8a7e6d;
+  --color-muted: #70665a;
   --color-ink: #211c17;
 
   /* ── Estados (cálidos pero legibles) ── */
@@ -144,6 +144,28 @@ body::before {
 *:focus-visible {
   outline: 2px solid var(--color-brand-500);
   outline-offset: 2px;
+}
+
+/* Selects nativos: la misma flecha y el mismo aire en toda la app, en cualquier navegador. */
+select:not([multiple]):not([size]) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2370665a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1rem;
+  padding-right: 2.25rem;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+select:disabled { cursor: not-allowed; }
+
+/* Casillas, opciones y barras nativas con el color de la marca en vez del azul del navegador. */
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"],
+progress {
+  accent-color: var(--color-brand-500);
 }
 
 ::selection {

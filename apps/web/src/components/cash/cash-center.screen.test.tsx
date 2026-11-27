@@ -173,6 +173,15 @@ async function openTab(user: ReturnType<typeof userEvent.setup>, name: string) {
   await user.click(screen.getByRole('tab', { name }));
 }
 
+/** La pantalla ya leyó las cuentas: el saldo de arriba está a la vista. */
+const loaded = () => screen.findByRole('group', { name: 'Totales en ARS' });
+
+async function openAccounts() {
+  await loaded();
+  await userEvent.setup().click(screen.getByRole('tab', { name: 'Cuentas' }));
+  await screen.findAllByText('Caja ARS');
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   auth.role = 'Admin';
@@ -181,7 +190,7 @@ beforeEach(() => {
 describe('Caja: cuentas', () => {
   it('muestra los totales por moneda, las cuentas con su clase y saldo, y explica la custodia', async () => {
     setup();
-    expect((await screen.findAllByText('Caja ARS')).length).toBeGreaterThan(0);
+    await openAccounts();
     expect(apiClient).toHaveBeenCalledWith('/financial-accounts?includeInactive=true');
     const ars = screen.getByLabelText('Totales en ARS');
     expect(nb(ars.textContent)).toContain('$ 150.000,00');
@@ -208,7 +217,7 @@ describe('Caja: cuentas', () => {
   it('Liquidaciones y Lectura ven las cuentas pero no las administran', async () => {
     auth.role = 'Lectura';
     setup();
-    expect((await screen.findAllByText('Caja ARS')).length).toBeGreaterThan(0);
+    await openAccounts();
     expect(screen.queryByRole('button', { name: 'Nueva cuenta' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Renombrar' })).not.toBeInTheDocument();
   });
@@ -234,7 +243,7 @@ describe('Caja: cuentas', () => {
   it('da de alta una cuenta de banco en euros', async () => {
     setup({ write: () => ({ id: 'new' }) });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await openAccounts();
     await user.click(screen.getByRole('button', { name: 'Nueva cuenta' }));
     const dialog = await screen.findByRole('dialog');
     await user.selectOptions(within(dialog).getByLabelText('Clase'), 'Banco');
@@ -253,7 +262,7 @@ describe('Caja: cuentas', () => {
   it('una cuenta de custodia pide el locador y lo busca por nombre', async () => {
     setup({ write: () => ({ id: 'new' }) });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await openAccounts();
     await user.click(screen.getByRole('button', { name: 'Nueva cuenta' }));
     const dialog = await screen.findByRole('dialog');
     await user.selectOptions(within(dialog).getByLabelText('Clase'), 'Custodia');
@@ -272,7 +281,7 @@ describe('Caja: cuentas', () => {
   it('renombra una cuenta y valida el nombre', async () => {
     setup({ write: () => ({}) });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await openAccounts();
     await user.click(screen.getAllByRole('button', { name: 'Renombrar' })[0]);
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('Renombrar la cuenta')).toBeInTheDocument();
@@ -295,7 +304,7 @@ describe('Caja: cuentas', () => {
       },
     });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await openAccounts();
     await user.click(screen.getAllByRole('button', { name: 'Dar de baja' })[0]);
     const confirm = await screen.findByRole('dialog');
     expect(within(confirm).getByText('¿Dar de baja la cuenta?')).toBeInTheDocument();
@@ -308,7 +317,7 @@ describe('Caja: cuentas', () => {
   it('cancelar la baja no manda nada; reactivar no pide confirmación', async () => {
     setup({ write: () => ({}) });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await openAccounts();
     await user.click(screen.getAllByRole('button', { name: 'Dar de baja' })[0]);
     const confirm = await screen.findByRole('dialog');
     await user.click(within(confirm).getByRole('button', { name: 'Cancelar' }));
@@ -328,44 +337,85 @@ describe('Caja: cuentas', () => {
       },
     });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await openAccounts();
     await user.click(screen.getAllByRole('button', { name: 'Reactivar' })[0]);
     await waitFor(() => expect(toastError).toHaveBeenCalledWith('No se pudo completar la acción'));
   });
 });
 
 describe('Caja: movimientos', () => {
-  it('lista el libro con categoría, sentido, importe con signo, persona y origen', async () => {
+  it('abre el libro de la caja con ingresos, egresos, saldo fila por fila, persona y origen', async () => {
     setup();
-    const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
-    await openTab(user, 'Movimientos');
     expect((await screen.findAllByText('Plomero sintético')).length).toBeGreaterThan(0);
-    expect(apiClient).toHaveBeenCalledWith('/cash-movements?page=1&limit=50');
-    expect(screen.getAllByText('Alquiler cobrado').length).toBeGreaterThan(1);
-    expect(screen.getAllByText('Pago a proveedor').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Entrada').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Salida').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Beto Prueba').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Plomero sintético').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Cobro de una liquidación').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Conversión de moneda · cambio 0.0008').length).toBeGreaterThan(0);
-    expect(nb(document.body.textContent)).toContain('-$ 5.000,00');
+    expect(apiClient).toHaveBeenCalledWith(`/cash-movements?page=1&limit=50&accountId=${CAJA}`);
+    expect(screen.getByRole('heading', { name: 'Libro de Caja ARS' })).toBeInTheDocument();
+    const ledger = within(screen.getByRole('table', { name: 'Libro de caja' }));
+    expect(ledger.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Fecha', 'Concepto', 'Ingresos', 'Egresos', 'Saldo']);
+    expect(ledger.getByText('Alquiler cobrado')).toBeInTheDocument();
+    expect(ledger.getByText('Pago a proveedor')).toBeInTheDocument();
+    expect(ledger.getByText('Beto Prueba')).toBeInTheDocument();
+    expect(ledger.getByText('Cobro de una liquidación')).toBeInTheDocument();
+    expect(ledger.getByText('Conversión de moneda · cambio 0.0008')).toBeInTheDocument();
+    const rows = ledger.getAllByRole('row').map((r) => nb(r.textContent));
+    // Del más nuevo al más viejo: cada fila muestra el saldo que quedó después del movimiento.
+    expect(rows[1]).toContain('$ 100.000,00');
+    expect(rows[1]).toContain('$ 150.000,00');
+    expect(rows[2]).toContain('-$ 5.000,00');
+    expect(rows[2]).toContain('$ 50.000,00');
+    expect(rows[3]).toContain('-$ 100.000,00');
+    expect(rows[3]).toContain('$ 55.000,00');
+    expect(rows[4]).toContain('Totales de la página');
+    expect(rows[4]).toContain('-$ 105.000,00');
+    expect(rows[5]).toContain('Saldo anterior a estos movimientos');
+    expect(rows[5]).toContain('$ 155.000,00');
   });
 
-  it('los filtros y la página se mandan a la API', async () => {
+  it('con todas las cuentas muestra la cuenta de cada fila y no el saldo', async () => {
+    setup();
+    const user = userEvent.setup();
+    await screen.findAllByText('Plomero sintético');
+    await user.selectOptions(screen.getByLabelText('Cuenta'), '');
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/cash-movements?page=1&limit=50'));
+    expect(await screen.findByRole('heading', { name: 'Libro de todas las cuentas' })).toBeInTheDocument();
+    const ledger = within(screen.getByRole('table', { name: 'Libro de caja' }));
+    expect(ledger.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Fecha', 'Concepto', 'Cuenta', 'Ingresos', 'Egresos']);
+    expect(ledger.getAllByText('Caja ARS')).toHaveLength(3);
+    expect(screen.getByText(/Elegí una cuenta para ver el saldo/)).toBeInTheDocument();
+    expect(screen.queryByText('Saldo del sistema')).not.toBeInTheDocument();
+  });
+
+  it('el arqueo compara lo contado con el saldo del sistema', async () => {
+    setup();
+    const user = userEvent.setup();
+    await screen.findAllByText('Plomero sintético');
+    const count = within(screen.getByRole('complementary', { name: 'Arqueo de Caja ARS' }));
+    const status = count.getByRole('status');
+    expect(status).toHaveTextContent('—');
+    const input = count.getByLabelText('Contado (ARS)');
+    await user.type(input, '150.000');
+    expect(status).toHaveTextContent('Coincide');
+    await user.clear(input);
+    await user.type(input, '149000,50');
+    expect(nb(status.textContent)).toBe('Faltan $ 999,50');
+    await user.clear(input);
+    await user.type(input, '150100');
+    expect(nb(status.textContent)).toBe('Sobran $ 100,00');
+    await user.clear(input);
+    await user.type(input, 'abc');
+    expect(status).toHaveTextContent('Importe inválido');
+  });
+
+  it('los filtros y la página se mandan a la API; el saldo sigue de una página a la otra', async () => {
     setup({ movementPages: 2 });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
-    await openTab(user, 'Movimientos');
     await screen.findAllByText('Plomero sintético');
     await waitFor(() => expect(screen.getByRole('option', { name: /Depto Sintético · 2026-01/ })).toBeInTheDocument());
 
-    await user.click(screen.getAllByRole('button', { name: 'Siguiente' })[0]);
-    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/cash-movements?page=2&limit=50'));
+    await user.click(screen.getByRole('button', { name: 'Siguiente' }));
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith(`/cash-movements?page=2&limit=50&accountId=${CAJA}`));
+    // La segunda página arranca con el saldo anterior de la primera.
+    await waitFor(() => expect(nb(screen.getAllByRole('row')[1].textContent)).toContain('$ 155.000,00'));
 
-    await user.selectOptions(screen.getByLabelText('Cuenta'), CAJA);
-    await waitFor(() => expect(apiClient).toHaveBeenCalledWith(`/cash-movements?page=1&limit=50&accountId=${CAJA}`));
     await user.selectOptions(screen.getByLabelText('Categoría'), 'Gasto');
     await user.selectOptions(screen.getByLabelText('Contrato'), CONTRACT);
     await user.type(screen.getByLabelText('Desde'), '2026-11-01');
@@ -375,13 +425,65 @@ describe('Caja: movimientos', () => {
         `/cash-movements?page=1&limit=50&accountId=${CAJA}&category=Gasto&contractId=${CONTRACT}&from=2026-11-01&to=2026-11-30`,
       ),
     );
+    // Con filtros que saltean movimientos no hay saldo fila por fila.
+    expect(await screen.findByText(/El saldo fila por fila se muestra sin filtros/)).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Saldo' })).not.toBeInTheDocument();
+  });
+
+  it('sin movimientos explica qué va a aparecer; con filtros dice que nada coincide', async () => {
+    apiClient.mockImplementation(async (path: string) => {
+      if (path.startsWith('/financial-accounts')) return ACCOUNTS;
+      if (path.startsWith('/cash-movements?')) return paged([]);
+      return { items: [] };
+    });
+    renderEs(<CashCenter />);
+    const user = userEvent.setup();
+    expect(await screen.findByText('Los cobros, pagos, gastos y conversiones aparecen acá.')).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Categoría'), 'Gasto');
+    expect(await screen.findByText('Ningún movimiento coincide con estos filtros.')).toBeInTheDocument();
+  });
+
+  it('una respuesta vieja que llega tarde no pisa la del filtro elegido', async () => {
+    let releaseSlow: (value: unknown) => void = () => undefined;
+    apiClient.mockImplementation(async (path: string) => {
+      if (path.startsWith('/financial-accounts')) return ACCOUNTS;
+      if (path.includes('category=Gasto')) return new Promise((resolve) => (releaseSlow = resolve));
+      if (path.includes('category=PagoProveedor')) return paged([MOVEMENTS[1]]);
+      if (path.startsWith('/cash-movements?')) return paged(MOVEMENTS);
+      return { items: [] };
+    });
+    renderEs(<CashCenter />);
+    const user = userEvent.setup();
+    await screen.findAllByText('Plomero sintético');
+    await user.selectOptions(screen.getByLabelText('Categoría'), 'Gasto');
+    await user.selectOptions(screen.getByLabelText('Categoría'), 'PagoProveedor');
+    await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(3));
+    releaseSlow(paged([]));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.getAllByText('Plomero sintético').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('row')).toHaveLength(3);
+  });
+
+  it('sin cuentas el saldo lo explica y lleva a la solapa de cuentas', async () => {
+    apiClient.mockImplementation(async (path: string) => {
+      if (path.startsWith('/financial-accounts')) return { items: [], totals: [], custodyInAgencyBalance: false };
+      if (path.startsWith('/cash-movements?')) return paged([]);
+      return { items: [] };
+    });
+    renderEs(<CashCenter />);
+    const user = userEvent.setup();
+    expect(await screen.findByText(/Todavía no hay cuentas/)).toBeInTheDocument();
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/cash-movements?page=1&limit=50'));
+    await user.click(screen.getByRole('button', { name: 'Ver las cuentas' }));
+    expect(screen.getByRole('tab', { name: 'Cuentas' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByText('No hay cuentas')).toBeInTheDocument();
   });
 
   it('un error del libro se muestra', async () => {
     setup({ failMovements: true });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
-    await openTab(user, 'Movimientos');
+    await loaded();
+    await openTab(user, 'Libro de caja');
     expect(await screen.findByText(/problema/i)).toBeInTheDocument();
   });
 
@@ -389,8 +491,8 @@ describe('Caja: movimientos', () => {
     auth.role = 'Liquidaciones';
     setup({ write: () => ({ id: 'mv' }) });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
-    await openTab(user, 'Movimientos');
+    await loaded();
+    await openTab(user, 'Libro de caja');
     await user.click(screen.getByRole('button', { name: 'Cargar movimiento' }));
     const dialog = await screen.findByRole('dialog');
 
@@ -437,8 +539,8 @@ describe('Caja: movimientos', () => {
       },
     });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
-    await openTab(user, 'Movimientos');
+    await loaded();
+    await openTab(user, 'Libro de caja');
     await user.click(screen.getByRole('button', { name: 'Cargar movimiento' }));
     const dialog = await screen.findByRole('dialog');
     await user.type(within(dialog).getByLabelText(/^Importe/), '10');
@@ -451,8 +553,8 @@ describe('Caja: movimientos', () => {
   it('una conversión ofrece cuentas de otra moneda y muestra cuánto entra', async () => {
     setup({ write: () => ({}) });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
-    await openTab(user, 'Movimientos');
+    await loaded();
+    await openTab(user, 'Libro de caja');
     await user.click(screen.getByRole('button', { name: 'Conversión de moneda' }));
     const dialog = await screen.findByRole('dialog');
 
@@ -486,8 +588,8 @@ describe('Caja: movimientos', () => {
     auth.role = 'Lectura';
     setup();
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
-    await openTab(user, 'Movimientos');
+    await loaded();
+    await openTab(user, 'Libro de caja');
     await screen.findAllByText('Plomero sintético');
     expect(screen.queryByRole('button', { name: 'Cargar movimiento' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Conversión de moneda' })).not.toBeInTheDocument();
@@ -498,7 +600,7 @@ describe('Caja: custodia', () => {
   it('lista las custodias y entrega una parte', async () => {
     setup({ write: () => ({ movement: { id: 'mv' }, balance: '45500.00' }) });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await loaded();
     await openTab(user, 'Custodia');
     expect(screen.getAllByText('Ana Ejemplo').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Beto Prueba').length).toBeGreaterThan(0);
@@ -528,7 +630,7 @@ describe('Caja: custodia', () => {
       },
     });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await loaded();
     await openTab(user, 'Custodia');
     await user.click(screen.getAllByRole('button', { name: 'Entregar' }).find((b) => !b.hasAttribute('disabled'))!);
     const dialog = await screen.findByRole('dialog');
@@ -542,7 +644,7 @@ describe('Caja: custodia', () => {
   it('un importe inválido se marca y no se manda', async () => {
     setup();
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await loaded();
     await openTab(user, 'Custodia');
     await user.click(screen.getAllByRole('button', { name: 'Entregar' }).find((b) => !b.hasAttribute('disabled'))!);
     const dialog = await screen.findByRole('dialog');
@@ -558,7 +660,7 @@ describe('Caja: custodia', () => {
     auth.role = 'Lectura';
     setup();
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await loaded();
     await openTab(user, 'Custodia');
     expect(screen.getAllByText('Ana Ejemplo').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: 'Entregar' })).not.toBeInTheDocument();
@@ -570,7 +672,7 @@ describe('Caja: recibos', () => {
     downloadFile.mockResolvedValue(undefined);
     setup();
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await loaded();
     await openTab(user, 'Recibos');
     expect((await screen.findAllByText('00000002')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Inquilina Ficticia').length).toBeGreaterThan(0);
@@ -590,7 +692,7 @@ describe('Caja: recibos', () => {
   it('un error de la lista de recibos se muestra', async () => {
     setup({ failReceipts: true });
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await loaded();
     await openTab(user, 'Recibos');
     expect(await screen.findByText(/problema/i)).toBeInTheDocument();
   });
@@ -599,7 +701,7 @@ describe('Caja: recibos', () => {
     downloadFile.mockRejectedValue(new Error('offline'));
     setup();
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await loaded();
     await openTab(user, 'Recibos');
     await screen.findAllByText('00000002');
     await user.click(screen.getAllByRole('button', { name: 'Imprimir' })[0]);
@@ -609,7 +711,7 @@ describe('Caja: recibos', () => {
   it('cada recibo se puede mandar a quien pagó desde su diálogo de envío', async () => {
     setup();
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await loaded();
     await openTab(user, 'Recibos');
     await screen.findAllByText('00000002');
     await user.click(screen.getAllByRole('button', { name: 'Enviar' })[0]);
@@ -631,7 +733,7 @@ describe('Caja: recibos', () => {
     auth.role = 'Lectura';
     setup();
     const user = userEvent.setup();
-    await screen.findAllByText('Caja ARS');
+    await loaded();
     await openTab(user, 'Recibos');
     await screen.findAllByText('00000002');
     expect(screen.queryByRole('button', { name: 'Enviar' })).not.toBeInTheDocument();
@@ -640,7 +742,7 @@ describe('Caja: recibos', () => {
 
 describe('Caja: saldo inicial de una cuenta', () => {
   const openFor = async (user: ReturnType<typeof userEvent.setup>, rowName: string) => {
-    await screen.findAllByText('Caja ARS');
+    await openAccounts();
     const row = screen.getAllByRole('row').find((r) => within(r).queryByText(rowName)) as HTMLElement;
     await user.click(within(row).getByRole('button', { name: 'Saldo inicial' }));
     return screen.findByRole('dialog');
@@ -700,7 +802,7 @@ describe('Caja: saldo inicial de una cuenta', () => {
   it('Gerencia lo ve; Liquidaciones y Lectura no', async () => {
     auth.role = 'Liquidaciones';
     setup();
-    await screen.findAllByText('Caja ARS');
+    await openAccounts();
     expect(screen.queryByRole('button', { name: 'Saldo inicial' })).not.toBeInTheDocument();
   });
 });

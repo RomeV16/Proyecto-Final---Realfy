@@ -22,40 +22,63 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { useApiData } from '@/components/messaging/use-api-data';
 import { useErrorText } from '@/components/cash/use-cash-data';
 import { CaseActionDialog, type ActionField } from './case-action-dialog';
-import { NextActionText } from './case-table';
+import { SuggestedStep } from './next-action';
+import { StageSteps } from './stage-steps';
 
 type DialogKind = 'note' | 'agreement' | 'derive' | 'judicial' | 'close' | 'letterSent' | 'letterEdit';
 type DebtLine = CollectionCaseDetail['debt'][number];
 
+/** Color del punto de un renglón: los avisos en azul y ámbar, lo legal en rojo, los pagos y acuerdos en verde. */
+const DOT: Partial<Record<string, string>> = {
+  Recordatorio: 'var(--color-info)',
+  RecordatorioFirme: 'var(--color-warning)',
+  CartaDocumento: 'var(--color-danger)',
+  DerivacionAbogado: 'var(--color-danger)',
+  Pago: 'var(--color-success)',
+  Acuerdo: 'var(--color-success)',
+};
+
 /** Un renglón de la línea de tiempo: qué se hizo, cuándo, con qué importe y, si fue un aviso, cómo salió. */
-function TimelineItem({ action, children }: { action: CollectionActionItem; children?: ReactNode }) {
+function TimelineItem({ action, last }: { action: CollectionActionItem; last: boolean }) {
   const t = useTranslations('collections');
   return (
-    <li className="space-y-1 border-l-2 border-[var(--color-border)] pl-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm font-medium text-[var(--color-text)]">
-          {t(`actionKinds.${action.kind}`)}
-          {action.level ? ` · ${t('level', { n: action.level })}` : ''}
-        </span>
-        {action.status === CollectionActionStatus.Preparada && <Badge variant="warning">{t('statuses.Preparada')}</Badge>}
-        {action.messageStatus && <StatusBadge domain="mensaje" status={action.messageStatus} />}
-        {action.channel && <span className="text-xs text-[var(--color-muted)]">{t(`channels.${action.channel}`)}</span>}
-        <DateText value={action.at} kind="datetime" className="text-xs text-[var(--color-muted)]" />
+    <li className="relative grid grid-cols-[1.25rem_minmax(0,1fr)] gap-x-3 pb-6 last:pb-0 sm:grid-cols-[11.5rem_1.25rem_minmax(0,1fr)]">
+      <DateText
+        value={action.at}
+        kind="datetime"
+        className="col-start-2 row-start-1 text-xs tabular-nums text-[var(--color-muted)] sm:col-start-1 sm:whitespace-nowrap sm:pt-0.5 sm:text-right"
+      />
+      <span aria-hidden className="relative col-start-1 row-span-2 row-start-1 flex justify-center sm:col-start-2 sm:row-span-1">
+        {!last && <span className="absolute -bottom-6 top-3 w-px bg-[var(--color-border)]" />}
+        <span
+          className="relative mt-1 h-2.5 w-2.5 rounded-full ring-4 ring-[var(--color-bg)]"
+          style={{ background: DOT[action.kind] ?? 'var(--color-muted)' }}
+        />
+      </span>
+      <div className="col-start-2 space-y-1 sm:col-start-3 sm:row-start-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-[var(--color-text)]">
+            {t(`actionKinds.${action.kind}`)}
+            {action.level ? ` · ${t('level', { n: action.level })}` : ''}
+          </span>
+          {action.status === CollectionActionStatus.Preparada && <Badge variant="warning">{t('statuses.Preparada')}</Badge>}
+          {action.messageStatus && <StatusBadge domain="mensaje" status={action.messageStatus} />}
+          {action.channel && <span className="text-xs text-[var(--color-muted)]">{t(`channels.${action.channel}`)}</span>}
+        </div>
+        {action.amount && (
+          <p className="text-sm text-[var(--color-muted)]">
+            {t('timeline.amount')}: <MoneyText value={action.amount} decimals={2} />
+          </p>
+        )}
+        {action.onDate && (
+          <p className="text-sm text-[var(--color-muted)]">
+            {t('timeline.onDate')}: <DateText value={action.onDate} />
+          </p>
+        )}
+        {isReminder(action.kind) && !action.channel && <p className="text-sm text-[var(--color-muted)]">{t('timeline.noChannel')}</p>}
+        {action.note && <p className="text-sm text-[var(--color-text)]">{action.note}</p>}
+        {action.createdByName && <p className="text-xs text-[var(--color-muted)]">{t('timeline.by', { name: action.createdByName })}</p>}
       </div>
-      {action.amount && (
-        <p className="text-sm text-[var(--color-muted)]">
-          {t('timeline.amount')}: <MoneyText value={action.amount} decimals={2} />
-        </p>
-      )}
-      {action.onDate && (
-        <p className="text-sm text-[var(--color-muted)]">
-          {t('timeline.onDate')}: <DateText value={action.onDate} />
-        </p>
-      )}
-      {isReminder(action.kind) && !action.channel && <p className="text-sm text-[var(--color-muted)]">{t('timeline.noChannel')}</p>}
-      {action.note && <p className="text-sm text-[var(--color-text)]">{action.note}</p>}
-      {action.createdByName && <p className="text-xs text-[var(--color-muted)]">{t('timeline.by', { name: action.createdByName })}</p>}
-      {children}
     </li>
   );
 }
@@ -86,6 +109,7 @@ export function CaseDetail({ id }: { id: string }) {
   if (!data) return <Skeleton className="h-64 w-full" />;
 
   const open = isOpen(data.stage);
+  const penalties = data.debt.reduce((sum, l) => sum + Number(l.penalty), 0);
   const letter = data.actions.find((a) => isLetterPending(a));
 
   /** POST/PATCH que devuelve el caso actualizado. */
@@ -260,7 +284,7 @@ export function CaseDetail({ id }: { id: string }) {
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold text-[var(--color-text)]">{data.propertyLabel || t('noProperty')}</h1>
-          <StatusBadge domain="cobranza" status={data.stage} size="md" />
+          {!open && <StatusBadge domain="cobranza" status={data.stage} size="md" />}
           <Badge variant={overdueTone(data.daysOverdue)} size="md">
             {t('days', { n: data.daysOverdue })}
           </Badge>
@@ -272,62 +296,81 @@ export function CaseDetail({ id }: { id: string }) {
           </Link>
           {data.assigneeName ? ` · ${t('detail.assignedTo', { name: data.assigneeName })}` : ''}
         </p>
+        {open && <StageSteps stage={data.stage} variant="full" className="mt-5 max-w-3xl" />}
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-3" aria-label={t('detail.summary')}>
-        <div className="rounded-xl border border-[var(--color-border)] p-4">
-          <p className="text-xs text-[var(--color-muted)]">{t('detail.payoffToday')}</p>
-          <MoneyText value={data.payoffToday} currency={data.currency} decimals={2} className="text-xl font-semibold" />
-          <p className="mt-1 text-xs text-[var(--color-muted)]">{t('detail.payoffHint')}</p>
+      <section
+        className="grid overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]"
+        aria-label={t('detail.summary')}
+      >
+        <div className="p-5">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">{t('detail.payoffToday')}</p>
+          <MoneyText value={data.payoffToday} currency={data.currency} decimals={2} className="numeric-xl block" />
+          <p className="mt-1 max-w-sm text-xs text-[var(--color-muted)]">{t('detail.payoffHint')}</p>
+          <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+            <div>
+              <dt className="text-xs text-[var(--color-muted)]">{t('detail.balance')}</dt>
+              <dd>
+                <MoneyText value={data.balance} currency={data.currency} decimals={2} className="font-semibold tabular-nums" />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-[var(--color-muted)]">{t('debt.penalty')}</dt>
+              <dd>
+                <MoneyText value={penalties} currency={data.currency} decimals={2} className="font-semibold tabular-nums" />
+              </dd>
+            </div>
+          </dl>
         </div>
-        <div className="rounded-xl border border-[var(--color-border)] p-4">
-          <p className="text-xs text-[var(--color-muted)]">{t('detail.balance')}</p>
-          <MoneyText value={data.balance} currency={data.currency} decimals={2} className="text-xl font-semibold" />
-        </div>
-        <div className="rounded-xl border border-[var(--color-border)] p-4">
-          <p className="text-xs text-[var(--color-muted)]">{t('detail.next')}</p>
-          <p className="text-sm font-medium text-[var(--color-text)]">{open ? <NextActionText item={data} /> : t('detail.closed')}</p>
+        <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-5 lg:border-l lg:border-t-0">
+          <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-muted)]">{t('detail.next')}</p>
+          <div className="mt-1.5">
+            {open ? <SuggestedStep item={data} /> : <p className="text-sm font-medium text-[var(--color-text)]">{t('detail.closed')}</p>}
+          </div>
           {data.nextActionManual && open && <p className="mt-1 text-xs text-[var(--color-muted)]">{t('detail.manualHint')}</p>}
           {data.closeReason && <p className="mt-1 text-xs text-[var(--color-muted)]">{t(`closeReasons.${data.closeReason}`)}</p>}
+
+          {open && canManage && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button type="button" size="sm" onClick={() => setDialog({ kind: 'agreement' })}>
+                {t('actions.agreement')}
+              </Button>
+              <Button type="button" size="sm" variant="secondary" onClick={() => setDialog({ kind: 'note' })}>
+                {t('actions.note')}
+              </Button>
+              {canEscalate && canDerive(data.stage) && (
+                <Button type="button" size="sm" variant="secondary" onClick={() => setDialog({ kind: 'derive' })}>
+                  {t('actions.derive')}
+                </Button>
+              )}
+              {canEscalate && canJudicialize(data.stage) && (
+                <Button type="button" size="sm" variant="secondary" onClick={() => setDialog({ kind: 'judicial' })}>
+                  {t('actions.judicial')}
+                </Button>
+              )}
+              {user?.id && data.assigneeId !== user.id && (
+                <Button type="button" size="sm" variant="ghost" onClick={() => void assignToMe(user.id)}>
+                  {t('actions.assignToMe')}
+                </Button>
+              )}
+              {data.assigneeId && (
+                <Button type="button" size="sm" variant="ghost" onClick={() => void assignToMe(null)}>
+                  {t('actions.unassign')}
+                </Button>
+              )}
+              <Button type="button" size="sm" variant="ghost" onClick={() => setDialog({ kind: 'close' })}>
+                {t('actions.close')}
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
-      {open && canManage && (
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="secondary" onClick={() => setDialog({ kind: 'note' })}>
-            {t('actions.note')}
-          </Button>
-          <Button type="button" size="sm" variant="secondary" onClick={() => setDialog({ kind: 'agreement' })}>
-            {t('actions.agreement')}
-          </Button>
-          {user?.id && data.assigneeId !== user.id && (
-            <Button type="button" size="sm" variant="ghost" onClick={() => void assignToMe(user.id)}>
-              {t('actions.assignToMe')}
-            </Button>
-          )}
-          {data.assigneeId && (
-            <Button type="button" size="sm" variant="ghost" onClick={() => void assignToMe(null)}>
-              {t('actions.unassign')}
-            </Button>
-          )}
-          {canEscalate && canDerive(data.stage) && (
-            <Button type="button" size="sm" variant="secondary" onClick={() => setDialog({ kind: 'derive' })}>
-              {t('actions.derive')}
-            </Button>
-          )}
-          {canEscalate && canJudicialize(data.stage) && (
-            <Button type="button" size="sm" variant="secondary" onClick={() => setDialog({ kind: 'judicial' })}>
-              {t('actions.judicial')}
-            </Button>
-          )}
-          <Button type="button" size="sm" variant="ghost" onClick={() => setDialog({ kind: 'close' })}>
-            {t('actions.close')}
-          </Button>
-        </div>
-      )}
-
       {letter?.letter && (
-        <section className="space-y-3 rounded-xl border border-[var(--color-border)] p-4" aria-label={t('letter.title')}>
+        <section
+          className="space-y-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
+          aria-label={t('letter.title')}
+        >
           <h2 className="text-base font-semibold text-[var(--color-text)]">{t('letter.title')}</h2>
           <p className="text-sm text-[var(--color-muted)]">{t('letter.notice')}</p>
           <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
@@ -370,9 +413,9 @@ export function CaseDetail({ id }: { id: string }) {
         {data.actions.length === 0 ? (
           <p className="text-sm text-[var(--color-muted)]">{t('timeline.empty')}</p>
         ) : (
-          <ol className="space-y-4">
-            {data.actions.map((a) => (
-              <TimelineItem key={a.id} action={a} />
+          <ol>
+            {data.actions.map((a, i) => (
+              <TimelineItem key={a.id} action={a} last={i === data.actions.length - 1} />
             ))}
           </ol>
         )}

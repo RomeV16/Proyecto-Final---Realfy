@@ -19,9 +19,8 @@ export default function PipelinePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          {t('pageTitle')}
-        </h1>
+        <h1 className="h1">{t('pageTitle')}</h1>
+        <p className="mt-2 hidden text-sm text-[var(--color-muted)] lg:block">{t('subtitle')}</p>
       </div>
       <KanbanBoard />
     </div>

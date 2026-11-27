@@ -1,61 +1,112 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api-client';
-import { EntityRow } from '@/components/ui/entity-card';
-import { RowList } from '@/components/ui/card-grid';
-import { EmptyState } from '@/components/ui/empty-state';
-import { StatTile, StatTileSkeleton } from '@/components/ui/stat-tile';
-import { Icon } from '@/components/ui/icon';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogBody, DialogHeader } from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorNotice } from '@/components/ui/error-notice';
+import { Skeleton } from '@/components/ui/skeleton';
 import { SourceInvoicesPanel } from '@/components/invoices/lessor/source-invoices-panel';
+import {
+  MonthNav,
+  PaymentStatement,
+  PaymentSummary,
+  type ContractLabel,
+  type DebtSummary,
+} from '@/components/payments/payment-statement';
+import {
+  availableMonths,
+  currentMonthKey,
+  defaultMonth,
+  neighbourMonth,
+  paymentsOfMonth,
+  type PaymentRow,
+} from '@/components/payments/statement';
 import { useCan } from '@/lib/permissions';
-import { formatMoneyRounded, formatLocalDate, formatPeriod } from '@/lib/format';
 
-interface Payment {
+/** Cobros que se traen para armar el extracto. */
+const LIMIT = 200;
+
+interface PaymentsResponse {
+  items?: PaymentRow[];
+  total?: number;
+}
+
+interface ContractListItem {
   id: string;
-  amount: string;
-  currency: string;
-  method: string;
-  paidAt: string;
-  liquidacion?: { period?: string };
-}
-interface Debt {
-  pendiente: { count: number; monto: number };
-  vencida: { count: number; monto: number };
+  property?: { title?: string | null } | null;
+  persons?: { role: string; person?: { firstName: string; lastName: string } | null }[];
 }
 
-
-
-const METHOD_LABELS: Record<string, string> = {
-  Transferencia: 'Transferencia bancaria',
-  Efectivo: 'Efectivo',
-  MercadoPago: 'Mercado Pago',
-  Cheque: 'Cheque',
-  AplicacionDeposito: 'Aplicación del depósito',
-};
+function contractLabels(items: ContractListItem[]): Record<string, ContractLabel> {
+  const labels: Record<string, ContractLabel> = {};
+  for (const c of items) {
+    const tenant = c.persons?.find((p) => p.role === 'Inquilino')?.person;
+    labels[c.id] = {
+      property: c.property?.title ?? '',
+      tenant: tenant ? `${tenant.firstName} ${tenant.lastName}`.trim() : '',
+    };
+  }
+  return labels;
+}
 
 export default function PagosPage() {
   const t = useTranslations('payments');
-  const [payments, setPayments] = useState<Payment[] | null>(null);
-  const [debt, setDebt] = useState<Debt | null>(null);
+  const [payments, setPayments] = useState<PaymentRow[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState<unknown>(null);
+  const [debt, setDebt] = useState<DebtSummary | null>(null);
   const [debtLoading, setDebtLoading] = useState(true);
+  const [contracts, setContracts] = useState<Record<string, ContractLabel>>({});
+  const [chosenMonth, setChosenMonth] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
   const canInvoice = useCan('lessorInvoicing.view');
   const [invoicing, setInvoicing] = useState<string | null>(null);
 
   useEffect(() => {
-    apiClient<{ items: Payment[] }>('/payments?limit=30')
-      .then((r) => setPayments(r.items))
-      .catch(() => setPayments([]));
-    apiClient<Debt>('/payments/debt')
-      .then(setDebt)
-      .catch(() => setDebt(null))
-      .finally(() => setDebtLoading(false));
-  }, []);
+    let cancelled = false;
+    setError(null);
+    void apiClient<PaymentsResponse>(`/payments?limit=${LIMIT}`)
+      .then((r) => {
+        if (cancelled) return;
+        setPayments(r?.items ?? []);
+        setTotal(r?.total ?? r?.items?.length ?? 0);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err);
+      });
+    void apiClient<DebtSummary>('/payments/debt')
+      .then((d) => {
+        if (!cancelled) setDebt(d?.pendiente && d?.vencida ? d : null);
+      })
+      .catch(() => {
+        if (!cancelled) setDebt(null);
+      })
+      .finally(() => {
+        if (!cancelled) setDebtLoading(false);
+      });
+    // Los nombres de la propiedad y del inquilino son un agregado: sin ellos el extracto muestra el período.
+    void apiClient<{ items?: ContractListItem[] }>('/contracts?limit=100')
+      .then((r) => {
+        if (!cancelled) setContracts(contractLabels(r?.items ?? []));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [version]);
 
-  const totalCollected = (payments || []).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  const months = useMemo(() => availableMonths(payments ?? []), [payments]);
+  const month = chosenMonth && months.includes(chosenMonth) ? chosenMonth : defaultMonth(months);
+  const monthItems = useMemo(() => paymentsOfMonth(payments ?? [], month), [payments, month]);
+  const older = neighbourMonth(months, month, 'older');
+  const newer = neighbourMonth(months, month, 'newer');
+  const retry = useCallback(() => setVersion((v) => v + 1), []);
+
+  const loading = payments === null && error == null;
+  const empty = payments !== null && payments.length === 0;
 
   return (
     <div className="space-y-6">
@@ -64,97 +115,66 @@ export default function PagosPage() {
         <p className="mt-2 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
       </div>
 
-      {/* Debt snapshot — the two numbers the screen exists to answer */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {debtLoading ? (
-          <>
-            <StatTileSkeleton />
-            <StatTileSkeleton />
-            <StatTileSkeleton />
-          </>
-        ) : (
-          <>
-            <StatTile
-              label={t('pendingDebt')}
-              value={formatMoneyRounded(debt?.pendiente.monto ?? 0)}
-              icon="clock"
-              tone="warning"
-              hint={`${debt?.pendiente.count ?? 0} ${t('settlements')}`}
-            />
-            <StatTile
-              label={t('overdueDebt')}
-              value={formatMoneyRounded(debt?.vencida.monto ?? 0)}
-              icon="alert"
-              tone="danger"
-              hint={`${debt?.vencida.count ?? 0} ${t('settlements')}`}
-            />
-            <StatTile
-              label={t('collected')}
-              value={formatMoneyRounded(totalCollected)}
-              icon="wallet"
-              tone="success"
-              hint={t('collectedHint', { count: payments?.length ?? 0 })}
-            />
-          </>
-        )}
-      </div>
+      {error != null && (
+        <div className="space-y-3">
+          <ErrorNotice error={error} fallback={t('loadError')} />
+          <Button type="button" variant="secondary" size="sm" onClick={retry}>
+            {t('retry')}
+          </Button>
+        </div>
+      )}
 
-      <div className="space-y-3">
-        <h2 className="h3">{t('recentPayments')}</h2>
+      {loading && (
+        <div className="space-y-4" aria-busy="true" aria-label={t('loading')}>
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-36 w-full rounded-xl" />
+          <Skeleton className="h-72 w-full rounded-xl" />
+        </div>
+      )}
 
-        <RowList
-          items={payments || []}
-          loading={payments === null}
-          skeletonCount={4}
-          keyOf={(p) => p.id}
-          renderItem={(p) => (
-            <EntityRow
-              accent="success"
-              leading={
-                <span
-                  className="flex h-10 w-10 items-center justify-center rounded-full"
-                  style={{
-                    backgroundColor:
-                      'color-mix(in oklab, var(--color-success) 14%, var(--color-surface))',
-                    color: 'var(--color-success)',
-                  }}
-                >
-                  <Icon name="check" className="h-5 w-5" strokeWidth={2} />
-                </span>
-              }
-              title={formatPeriod(p.liquidacion?.period)}
-              subtitle={METHOD_LABELS[p.method] ?? p.method}
-              meta={
-                <EntityRow.Meta
-                  items={[
-                    {
-                      icon: 'calendar',
-                      label: formatLocalDate(p.paidAt, 'mediumPadded'),
-                    },
-                  ]}
-                />
-              }
-              trailing={
-                <div className="flex items-center gap-3">
-                  {canInvoice && (
-                    <Button type="button" size="sm" variant="secondary" onClick={() => setInvoicing(p.id)}>
-                      {t('invoicing')}
-                    </Button>
-                  )}
-                  <EntityRow.Amount value={formatMoneyRounded(p.amount)} hint={p.currency} tone="success" />
-                </div>
-              }
+      {payments !== null && error == null && (
+        <>
+          {!empty && (
+            <MonthNav
+              month={month}
+              isCurrent={month === currentMonthKey()}
+              onOlder={older ? () => setChosenMonth(older) : undefined}
+              onNewer={newer ? () => setChosenMonth(newer) : undefined}
             />
           )}
-          empty={
-            <EmptyState
-              iconName="wallet"
-              title={t('noPayments')}
-              subtitle={t('noPaymentsSubtitle')}
-            />
-          }
-        />
-      </div>
+
+          <PaymentSummary items={monthItems} debt={debt} debtLoading={debtLoading} />
+
+          {empty ? (
+            <div className="rounded-xl border border-dashed border-[var(--color-border)]">
+              <EmptyState iconName="wallet" title={t('noPayments')} subtitle={t('noPaymentsSubtitle')} />
+            </div>
+          ) : (
+            <section className="space-y-3" aria-label={t('statement.label')}>
+              <PaymentStatement
+                items={monthItems}
+                contracts={contracts}
+                renderAction={
+                  canInvoice
+                    ? (p) => (
+                        <button
+                          type="button"
+                          onClick={() => setInvoicing(p.id)}
+                          className="rounded-md px-2 py-1 text-xs font-medium text-[var(--color-brand-600)] hover:bg-[var(--color-surface-sunken)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+                        >
+                          {t('invoicing')}
+                        </button>
+                      )
+                    : undefined
+                }
+              />
+              {total > payments.length && (
+                <p className="text-xs text-[var(--color-muted)]">{t('statement.truncated', { shown: payments.length, total })}</p>
+              )}
+            </section>
+          )}
+        </>
+      )}
 
       <Dialog open={invoicing !== null} onClose={() => setInvoicing(null)} size="lg">
         <DialogHeader>

@@ -3,12 +3,12 @@
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
-import { Reveal } from '@/components/ui/reveal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { EntityRow } from '@/components/ui/entity-card';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { formatMoneyRounded } from '@/lib/format';
+import { elapsedFromDays, elapsedFromHours, type Elapsed } from './elapsed';
 
 /* ──────────────── Types ──────────────── */
 
@@ -70,7 +70,8 @@ const URGENCY_TONE: Record<Urgency, 'danger' | 'warning' | 'brand'> = {
   baja: 'brand',
 };
 
-/* ──────────────── Formatting ──────────────── */
+/** El motivo que arma el servidor trae el atraso de un reclamo en horas. */
+const SLA_REASON = /SLA excedido en (\d+) h/;
 
 
 /* ──────────────── Small pieces ──────────────── */
@@ -128,11 +129,12 @@ function PriorityRowSkeleton() {
 
 /**
  * Prioridades del día. Cuelga de `/ai/priorities`, restringido a Admin y
- * Gerencia, y muestra al pie de qué lado salió el orden: del modelo de lenguaje
- * configurado o de las reglas propias del sistema.
+ * Gerencia. Si el orden lo sugirió el modelo de lenguaje configurado, se aclara
+ * al pie; el orden por reglas propias no lleva aclaración.
  */
 export function DailyPriorities() {
   const t = useTranslations('dashboard.priorities');
+  const tElapsed = useTranslations('dashboard.elapsed');
 
   const [data, setData] = useState<DailyPrioritiesResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -152,7 +154,7 @@ export function DailyPriorities() {
         // deja el del modelo listo unos segundos después. Se vuelve a preguntar
         // una sola vez para mostrarlo sin que haya que recargar la página.
         if (result.modelPending && !esRelectura) {
-          reintento = setTimeout(() => load(true), MODEL_RETRY_MS);
+          reintento = setTimeout(() => void load(true), MODEL_RETRY_MS);
         }
       } catch {
         // Una relectura que falla deja lo que ya se estaba mostrando.
@@ -162,7 +164,7 @@ export function DailyPriorities() {
       }
     }
 
-    load();
+    void load();
     return () => {
       cancelled = true;
       if (reintento) clearTimeout(reintento);
@@ -182,34 +184,40 @@ export function DailyPriorities() {
     }
   }
 
-  /** Dato duro que acompaña a la fila, distinto según el frente. */
+  const elapsedText = (elapsed: Elapsed) => tElapsed(elapsed.unit, { count: elapsed.count });
+
+  /**
+   * Dato duro que acompaña a la fila, distinto según el frente. Lo que falta
+   * para un vencimiento va siempre en días, igual que en la agenda.
+   */
   function trailingFor(priority: DailyPriority) {
     if (priority.kind === 'cobranza' && priority.amount !== null) {
+      const overdue = priority.daysOverdue !== null && priority.daysOverdue > 0;
       return (
         <EntityRow.Amount
           value={formatMoneyRounded(priority.amount, priority.currency)}
           hint={
-            priority.daysOverdue && priority.daysOverdue > 0
-              ? t('overdueDays', { days: priority.daysOverdue })
+            overdue
+              ? t('overdueFor', { elapsed: elapsedText(elapsedFromDays(priority.daysOverdue ?? 0)) })
               : t('pending')
           }
-          tone={priority.daysOverdue && priority.daysOverdue > 0 ? 'danger' : 'default'}
+          tone={overdue ? 'danger' : 'default'}
         />
       );
     }
     if (priority.kind === 'contrato' && priority.daysToDue !== null) {
       return (
         <EntityRow.Amount
-          value={t('daysValue', { days: priority.daysToDue })}
-          hint={t('toExpiry')}
+          value={priority.daysToDue === 0 ? t('today') : tElapsed('days', { count: priority.daysToDue })}
+          hint={priority.daysToDue === 0 ? t('expires') : t('toExpiry')}
           tone={priority.daysToDue <= 30 ? 'danger' : 'default'}
         />
       );
     }
-    if (priority.kind === 'reclamo' && priority.slaHoursOverdue !== null) {
+    if (priority.kind === 'reclamo' && priority.slaHoursOverdue !== null && priority.slaHoursOverdue > 0) {
       return (
         <EntityRow.Amount
-          value={t('hoursValue', { hours: priority.slaHoursOverdue })}
+          value={elapsedText(elapsedFromHours(priority.slaHoursOverdue))}
           hint={t('overSla')}
           tone="danger"
         />
@@ -218,7 +226,7 @@ export function DailyPriorities() {
     if (priority.kind === 'lead' && priority.daysSinceContact !== null) {
       return (
         <EntityRow.Amount
-          value={t('daysValue', { days: priority.daysSinceContact })}
+          value={elapsedText(elapsedFromDays(priority.daysSinceContact))}
           hint={t('withoutContact')}
           tone="muted"
         />
@@ -227,11 +235,15 @@ export function DailyPriorities() {
     return undefined;
   }
 
+  /** El motivo, con el atraso de los reclamos pasado a una duración legible. */
+  function reasonFor(priority: DailyPriority): string {
+    return priority.reason.replace(SLA_REASON, (_match, hours: string) =>
+      t('overSlaFor', { elapsed: elapsedText(elapsedFromHours(Number(hours))) }),
+    );
+  }
+
   const priorities = data?.priorities ?? [];
-  const attribution =
-    data?.source === 'model' && data.model
-      ? t('sourceModel', { model: data.model })
-      : t('sourceRules');
+  const fromModel = data?.source === 'model' && Boolean(data.model);
 
   if (error) {
     return (
@@ -242,8 +254,7 @@ export function DailyPriorities() {
   }
 
   return (
-    <Reveal>
-      <div className="card-lux p-6">
+      <div className="card-lux p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h3 className="h3">{t('title')}</h3>
           <span className="micro">{t('hint')}</span>
@@ -256,52 +267,53 @@ export function DailyPriorities() {
             ))}
           </div>
         ) : priorities.length === 0 ? (
-          <EmptyState iconName="sparkles" title={t('emptyTitle')} subtitle={t('emptySubtitle')} />
+          <EmptyState iconName="check" title={t('emptyTitle')} subtitle={t('emptySubtitle')} />
         ) : (
           <div className="space-y-2.5">
-            {priorities.slice(0, VISIBLE).map((priority) => (
-              <EntityRow
-                key={priority.ref}
-                href={hrefFor(priority)}
-                label={priority.title}
-                accent={URGENCY_TONE[priority.urgency]}
-                leading={<PriorityIcon kind={priority.kind} urgency={priority.urgency} />}
-                title={priority.title}
-                subtitle={priority.subtitle ?? undefined}
-                meta={
-                  <div className="flex flex-wrap items-center gap-2">
-                    <UrgencyBadge
-                      urgency={priority.urgency}
-                      label={t(`urgency.${priority.urgency}`)}
-                    />
-                    <span className="text-xs text-[var(--color-muted)]">{priority.reason}</span>
-                  </div>
-                }
-                trailing={trailingFor(priority)}
-                actions={
-                  <EntityRow.Action
-                    href={hrefFor(priority)}
-                    icon="arrowRight"
-                    variant="ghost"
-                  >
-                    {t(`kind.${priority.kind}`)}
-                  </EntityRow.Action>
-                }
-                alert={<EntityRow.Alert icon="check" tone="info">{priority.action}</EntityRow.Alert>}
-              />
-            ))}
+            {priorities.slice(0, VISIBLE).map((priority) => {
+              const trailing = trailingFor(priority);
+              return (
+                <EntityRow
+                  key={priority.ref}
+                  href={hrefFor(priority)}
+                  label={priority.title}
+                  accent={URGENCY_TONE[priority.urgency]}
+                  leading={<PriorityIcon kind={priority.kind} urgency={priority.urgency} />}
+                  title={priority.title}
+                  subtitle={priority.subtitle ?? undefined}
+                  meta={
+                    <div className="flex flex-wrap items-center gap-2">
+                      <UrgencyBadge
+                        urgency={priority.urgency}
+                        label={t(`urgency.${priority.urgency}`)}
+                      />
+                      <span className="text-xs text-[var(--color-muted)]">
+                        {fromModel || !trailing ? reasonFor(priority) : priority.action}
+                      </span>
+                    </div>
+                  }
+                  trailing={trailing}
+                  actions={
+                    <EntityRow.Action
+                      href={hrefFor(priority)}
+                      icon="arrowRight"
+                      variant="ghost"
+                    >
+                      {t(`kind.${priority.kind}`)}
+                    </EntityRow.Action>
+                  }
+                />
+              );
+            })}
           </div>
         )}
 
-        {/* Atribución explícita: en el panel tiene que quedar claro qué parte del
-            orden es del modelo y qué parte es de las reglas del sistema. */}
-        {!loading && (
-          <p className="mt-4 flex items-center gap-1.5 text-[11px] text-[var(--color-muted)]">
-            <Icon name="sparkles" className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} />
-            {attribution}
+        {/* Solo se aclara el origen cuando el orden no salió de las reglas propias. */}
+        {!loading && fromModel && (
+          <p className="mt-4 text-[11px] text-[var(--color-muted)]">
+            {t('sourceModel', { model: data?.model ?? '' })}
           </p>
         )}
       </div>
-    </Reveal>
   );
 }

@@ -249,7 +249,7 @@ describe('TicketDetailPage', () => {
   it('un ticket sin transiciones lo indica y uno cerrado muestra su estado', async () => {
     mockApi({ ticket: () => ticket({ validTransitions: [], status: 'Cerrado', priority: 'Baja' }) });
     await renderPage();
-    expect(screen.getByText('Sin transiciones disponibles')).toBeInTheDocument();
+    expect(screen.getByText('Este ticket ya no admite cambios de estado.')).toBeInTheDocument();
     expect(screen.getAllByText('Cerrado').length).toBeGreaterThan(0);
     expect(screen.getByText('Baja')).toBeInTheDocument();
   });
@@ -396,5 +396,33 @@ describe('TicketDetailPage', () => {
     renderEs(<TicketDetailPage />);
     expect(await screen.findByText('Ticket no encontrado')).toBeInTheDocument();
     expect(screen.getByRole('link').getAttribute('href')).toBe('/es/tickets');
+  });
+  it('si falla la carga ofrece reintentar en vez de decir que no existe', async () => {
+    let fail = true;
+    apiClient.mockImplementation((path: string) => {
+      if (path === '/users') return Promise.resolve([]);
+      if (path === '/tickets/t-1' && fail) return Promise.reject(new Error('red'));
+      if (path === '/tickets/t-1') return Promise.resolve(ticket());
+      return Promise.resolve({});
+    });
+    renderEs(<TicketDetailPage />);
+    expect(await screen.findByText(/No pudimos cargar el ticket/)).toBeInTheDocument();
+    expect(screen.queryByText('Ticket no encontrado')).not.toBeInTheDocument();
+    fail = false;
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByRole('heading', { name: 'Pérdida de agua de prueba' })).toBeInTheDocument();
+  });
+
+  it('el plazo se lee en palabras: cuánto falta o hace cuánto venció', async () => {
+    mockApi({ ticket: () => ticket({ status: 'Abierto', slaDeadline: new Date(Date.now() - 105 * 86400000).toISOString() }) });
+    await renderPage();
+    expect(screen.getByText('Plazo de respuesta')).toBeInTheDocument();
+    expect(screen.getByText('fuera de plazo hace 3 meses')).toBeInTheDocument();
+  });
+
+  it('un plazo que todavía no venció dice cuánto falta', async () => {
+    mockApi({ ticket: () => ticket({ status: 'Abierto', slaDeadline: new Date(Date.now() + 3 * 86400000 + 60000).toISOString() }) });
+    await renderPage();
+    expect(screen.getByText('vence en 3 días')).toBeInTheDocument();
   });
 });

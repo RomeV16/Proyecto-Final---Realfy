@@ -1,11 +1,18 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import type { EmitResult } from '@/lib/schemas/invoices';
 import { formatMoneyFixed, formatLocalDate } from '@/lib/format';
+import { Button } from '@/components/ui/button';
+import { Icon } from '@/components/ui/icon';
+import { Skeleton } from '@/components/ui/skeleton';
+import { inputStyles } from '@/components/ui/input';
+import { TestingNotice, useArcaEnvironment } from '../arca-environment';
+import { formatDocNumber, isCreditNote, voucherNumber } from '../voucher';
+import { buildCreditNotePayload, creditableAmount, type OriginalVoucher } from './credit-note-payload';
 
 function generateId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
@@ -16,35 +23,17 @@ function generateId(): string {
   });
 }
 
-function toAFIPDate(iso: string): string { return iso.replace(/-/g, ''); }
-
-/* ── Types ── */
-
-interface OriginalComprobante {
-  id: string;
-  type: string;
-  puntoDeVenta: number;
-  numero: number;
-  cbteTipo: number;
-  issuerId: string;
-  issuer?: { id: string; cuit: string };
-  impTotal: number;
-  receptorName: string;
-  docNro: string;
-  docTipo: number;
-  condicionIVAReceptorId?: number;
-  emittedAt: string;
-}
-
 interface NcInvoiceFormProps {
   originalInvoiceId: string;
 }
 
 export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
   const t = useTranslations('invoices.nc');
+  const tTypes = useTranslations('invoices.typesLong');
+  const environment = useArcaEnvironment();
   const router = useRouter();
 
-  const [original, setOriginal] = useState<OriginalComprobante | null>(null);
+  const [original, setOriginal] = useState<OriginalVoucher | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -60,9 +49,9 @@ export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
   const fetchOriginal = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient<OriginalComprobante>(`/invoices/${originalInvoiceId}`);
+      const res = await apiClient<OriginalVoucher>(`/invoices/${originalInvoiceId}`);
       setOriginal(res);
-      setAmount(String(res.impTotal));
+      setAmount(creditableAmount(res).toFixed(2));
     } catch {
       setNotFound(true);
     } finally {
@@ -70,204 +59,196 @@ export function NcInvoiceForm({ originalInvoiceId }: NcInvoiceFormProps) {
     }
   }, [originalInvoiceId]);
 
-  useEffect(() => { fetchOriginal(); }, [fetchOriginal]);
+  useEffect(() => {
+    void fetchOriginal();
+  }, [fetchOriginal]);
+
+  const maxAmount = original ? creditableAmount(original) : 0;
+  const alreadyCredited = original ? Math.max(0, Number(original.impTotal) - maxAmount) : 0;
+  const parsedAmount = Number(amount);
+  const amountOk = Number.isFinite(parsedAmount) && parsedAmount > 0 && parsedAmount <= maxAmount + 0.001;
+  const isValid = descripcion.trim() !== '' && amountOk;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!original) return;
+    if (!original || !isValid) return;
     setSubmitting(true);
     setError('');
-
-    const impTotal = parseFloat(amount) || 0;
-    const ivaRate = 0.21;
-    const impIva = impTotal / (1 + ivaRate) * ivaRate;
-    const impNeto = impTotal - impIva;
-
     try {
-      const payload = {
-        clientRequestId,
-        issuerId: original.issuerId,
-        originalComprobanteId: original.id,
-        cbteTipo: getNcType(original.cbteTipo),
-        concepto: 2,
-        cbteFch: toAFIPDate(new Date().toISOString().slice(0, 10)),
-        receptor: {
-          docTipo: original.docTipo,
-          docNro: original.docNro,
-          razonSocial: original.receptorName,
-          condicionIvaReceptorId: original.condicionIVAReceptorId ?? 5,
-        },
-        items: [{ descripcion, cantidad: 1, precioUnitario: impNeto, alicuotaIvaId: 5 }],
-        impNeto,
-        impIva,
-        impTotal,
-        impTotConc: 0,
-        impOpEx: 0,
-        impTrib: 0,
-        monId: 'PES',
-        monCotiz: 1,
-        fchServDesde: fchServDesde ? toAFIPDate(fchServDesde) : undefined,
-        fchServHasta: fchServHasta ? toAFIPDate(fchServHasta) : undefined,
-        cbtesAsoc: [{
-          tipo: original.cbteTipo,
-          ptoVta: original.puntoDeVenta,
-          nro: original.numero,
-          cuit: original.issuer?.cuit,
-        }],
-      };
-
       const res = await apiClient<EmitResult>('/invoices/emit-nc', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(
+          buildCreditNotePayload(original, {
+            amount: parsedAmount,
+            description: descripcion.trim(),
+            serviceFrom: fchServDesde,
+            serviceTo: fchServHasta,
+            clientRequestId,
+          }),
+        ),
       });
-
       router.push(`/invoices/${res.id}`);
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : t('emitError'));
+      setError(err instanceof ApiRequestError && err.message ? err.message : t('emitError'));
     } finally {
       setSubmitting(false);
     }
   }
 
-  // Determine NC tipo from original factura type
-  function getNcType(originalTipo: number): number {
-    // A → NC A (3), B → NC B (8), C → NC C (13)
-    const map: Record<number, number> = { 1: 3, 6: 8, 11: 13 };
-    return map[originalTipo] ?? 3;
-  }
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full" />
+      <div className="mx-auto max-w-xl space-y-4" aria-busy="true">
+        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-80 w-full" />
       </div>
     );
   }
 
-  if (notFound || !original) {
+  // Una nota de crédito no se acredita con otra: solo se llega acá escribiendo la dirección a mano.
+  if (notFound || !original || isCreditNote(original.type)) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <h2 className="text-lg font-semibold text-slate-900">{t('notFound')}</h2>
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <h2 className="text-lg font-semibold text-[var(--color-text)]">{t('notFound')}</h2>
+        <Link href="/invoices" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+          {t('backToList')}
+        </Link>
       </div>
     );
   }
 
-  const isValid = !!descripcion && parseFloat(amount) > 0;
+  const label = 'mb-1 block text-xs font-medium text-[var(--color-muted)]';
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
+    <div className="mx-auto max-w-xl space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('title')}</h1>
-        <p className="text-sm text-slate-500 mt-1">{t('subtitle')}</p>
+        <Link
+          href={`/invoices/${original.id}`}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
+        >
+          <Icon name="arrowLeft" className="h-4 w-4" />
+          {t('backToVoucher')}
+        </Link>
+        <h1 className="h1 mt-2">{t('title')}</h1>
+        <p className="mt-1 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
       </div>
 
-      {/* Original comprobante card */}
-      <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2">
-        <p className="text-xs font-medium text-slate-500">{t('originalLabel')}</p>
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-slate-900">
-            {String(original.puntoDeVenta).padStart(4, '0')}-{String(original.numero).padStart(8, '0')}
+      <TestingNotice environment={environment} />
+
+      <form
+        onSubmit={(e) => void handleSubmit(e)}
+        className="overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]"
+      >
+        {/* El comprobante que se acredita */}
+        <div className="space-y-1 border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)] p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]">
+            {t('originalLabel')}
           </p>
-          <p className="text-sm font-semibold text-slate-900">{formatMoneyFixed(original.impTotal)}</p>
-        </div>
-        <div className="flex items-center justify-between text-xs text-slate-500">
-          <span>{original.receptorName}</span>
-          <span>{formatLocalDate(original.emittedAt, 'medium')}</span>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
-        {/* Receptor (pre-filled, read-only display) */}
-        <div>
-          <p className="text-xs font-medium text-slate-500 mb-1">{t('receptor')}</p>
-          <p className="text-sm font-medium text-slate-900">{original.receptorName}</p>
-          <p className="text-xs text-slate-400 font-mono">{original.docNro}</p>
-        </div>
-
-        {/* Description */}
-        <div>
-          <label htmlFor="ncDescripcion" className="block text-xs font-medium text-slate-500 mb-1">{t('descripcion')} *</label>
-          <input
-            id="ncDescripcion"
-            type="text"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            placeholder={t('descripcionPlaceholder')}
-            required
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-          />
-        </div>
-
-        {/* Amount */}
-        <div>
-          <label htmlFor="ncAmount" className="block text-xs font-medium text-slate-500 mb-1">{t('amount')} *</label>
-          <input
-            id="ncAmount"
-            type="number"
-            min="0.01"
-            step="0.01"
-            max={original.impTotal}
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-          />
-          <p className="text-xs text-slate-400 mt-1">
-            {t('amountHint', { max: formatMoneyFixed(original.impTotal) })}
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+            <p className="font-mono text-sm font-medium tabular-nums text-[var(--color-text)]">
+              {tTypes.has(original.type) ? tTypes(original.type) : original.type} {voucherNumber(original)}
+            </p>
+            <p className="font-mono text-sm font-semibold tabular-nums text-[var(--color-text)]">
+              {formatMoneyFixed(original.impTotal)}
+            </p>
+          </div>
+          <p className="text-sm text-[var(--color-muted)]">
+            {[
+              original.receptorName,
+              formatDocNumber(original.docNro),
+              formatLocalDate(original.emittedAt ?? original.createdAt, 'numeric'),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </p>
         </div>
 
-        {/* Service dates (optional) */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4 p-5">
           <div>
-            <label htmlFor="ncFchDesde" className="block text-xs font-medium text-slate-500 mb-1">{t('fchServDesde')}</label>
+            <label htmlFor="ncDescripcion" className={label}>
+              {t('descripcion')} *
+            </label>
             <input
-              id="ncFchDesde"
-              type="date"
-              value={fchServDesde}
-              onChange={(e) => setFchServDesde(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              id="ncDescripcion"
+              type="text"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              placeholder={t('descripcionPlaceholder')}
+              maxLength={500}
+              required
+              className={inputStyles({})}
             />
           </div>
+
           <div>
-            <label htmlFor="ncFchHasta" className="block text-xs font-medium text-slate-500 mb-1">{t('fchServHasta')}</label>
+            <label htmlFor="ncAmount" className={label}>
+              {t('amount')} *
+            </label>
             <input
-              id="ncFchHasta"
-              type="date"
-              value={fchServHasta}
-              onChange={(e) => setFchServHasta(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              id="ncAmount"
+              type="number"
+              inputMode="decimal"
+              min="0.01"
+              step="0.01"
+              max={maxAmount}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              required
+              aria-invalid={amount !== '' && !amountOk}
+              aria-describedby="ncAmountHint"
+              className={inputStyles({ invalid: amount !== '' && !amountOk, className: 'font-mono tabular-nums' })}
             />
+            <p id="ncAmountHint" className="mt-1 text-xs text-[var(--color-muted)]">
+              {maxAmount > 0 ? t('amountHint', { max: formatMoneyFixed(maxAmount) }) : t('fullyCredited')}
+              {alreadyCredited > 0 && maxAmount > 0 && <> {t('creditedHint', { credited: formatMoneyFixed(alreadyCredited) })}</>}
+            </p>
           </div>
-        </div>
 
-        {error && (
-          <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm" role="alert" aria-live="polite">
-            {error}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="ncFchDesde" className={label}>
+                {t('fchServDesde')}
+              </label>
+              <input
+                id="ncFchDesde"
+                type="date"
+                value={fchServDesde}
+                onChange={(e) => setFchServDesde(e.target.value)}
+                className={inputStyles({})}
+              />
+            </div>
+            <div>
+              <label htmlFor="ncFchHasta" className={label}>
+                {t('fchServHasta')}
+              </label>
+              <input
+                id="ncFchHasta"
+                type="date"
+                value={fchServHasta}
+                onChange={(e) => setFchServHasta(e.target.value)}
+                className={inputStyles({})}
+              />
+            </div>
           </div>
-        )}
 
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            {t('cancel')}
-          </button>
-          <button
-            type="submit"
-            disabled={submitting || !isValid}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting && (
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            )}
-            {submitting ? t('submitting') : t('submit')}
-          </button>
+          {error && (
+            <div
+              className="rounded-lg border border-[color-mix(in_oklab,var(--color-danger)_35%,var(--color-border))] bg-[color-mix(in_oklab,var(--color-danger)_8%,var(--color-surface))] p-3 text-sm text-[var(--color-danger)]"
+              role="alert"
+            >
+              {error}
+            </div>
+          )}
+
+          <p className="text-xs text-[var(--color-muted)]">{t('irreversible')}</p>
+
+          <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" size="sm" onClick={() => router.push(`/invoices/${original.id}`)}>
+              {t('cancel')}
+            </Button>
+            <Button type="submit" size="sm" disabled={submitting || !isValid}>
+              {submitting ? t('submitting') : t('submit')}
+            </Button>
+          </div>
         </div>
       </form>
     </div>

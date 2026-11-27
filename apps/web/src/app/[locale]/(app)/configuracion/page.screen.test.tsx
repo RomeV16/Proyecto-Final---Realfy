@@ -134,7 +134,7 @@ describe('ConfiguracionPage', () => {
     expect(screen.getByLabelText('Nombre de la inmobiliaria')).toHaveValue('Inmobiliaria Prueba');
     expect(screen.getByLabelText('CUIT')).toHaveValue('30-00000000-0');
     expect(screen.getByLabelText('Provincia')).toHaveValue('CABA');
-    expect(screen.getByLabelText('URL del logo')).toHaveValue('https://ejemplo.invalid/logo.png');
+    expect(screen.getByLabelText('Dirección web del logo')).toHaveValue('https://ejemplo.invalid/logo.png');
     expect(screen.getByText('#112233')).toBeInTheDocument();
   });
 
@@ -163,7 +163,7 @@ describe('ConfiguracionPage', () => {
     await user.clear(name);
     await user.type(name, '  Nueva Prueba ');
     await user.selectOptions(screen.getByLabelText('Provincia'), 'Córdoba');
-    await user.clear(screen.getByLabelText('URL del logo'));
+    await user.clear(screen.getByLabelText('Dirección web del logo'));
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
     expect(await screen.findByText('Cambios guardados')).toBeInTheDocument();
     const call = apiClient.mock.calls.find((c) => c[1]?.method === 'PATCH');

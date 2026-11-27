@@ -7,7 +7,8 @@ import { useAuth } from '@/lib/auth-context';
 import { Icon } from '@/components/ui/icon';
 import { BillReviewNavBadge } from './bill-review-nav-badge';
 import { InboxNavBadge } from './inbox-nav-badge';
-import { isNavItemActive, useVisibleNavItems } from './nav-items';
+import { useNavCollapse } from './nav-collapse';
+import { isNavItemActive, useVisibleNavSections } from './nav-items';
 
 interface MobileNavProps {
   open: boolean;
@@ -18,7 +19,10 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const items = useVisibleNavItems();
+  const label = t as unknown as (key: string) => string;
+  const sections = useVisibleNavSections();
+  const { isCollapsed, toggle } = useNavCollapse();
+  const items = sections.flatMap((section) => section.items);
 
   const isActive = (href: string) => {
     return isNavItemActive(pathname, href, items);
@@ -35,6 +39,15 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   return (
     <>
       <div
@@ -46,52 +59,82 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
       />
 
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[calc(100vw-3rem)] bg-sidebar-bg transform transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[calc(100vw-3rem)] flex-col bg-sidebar-bg transform transition-transform duration-300 ease-in-out lg:hidden ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
         role="dialog"
         aria-modal="true"
-        aria-label="Navigation menu"
+        aria-label={t('aria.drawer')}
+        inert={!open}
       >
         <div className="flex items-center justify-between px-4 h-16 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm">
-              {user?.firstName?.[0]?.toUpperCase() || 'R'}
+            <div className="w-8 h-8 rounded-md bg-brand-500 flex items-center justify-center text-white font-display italic text-base">
+              R
             </div>
-            <span className="font-semibold text-white text-sm tracking-tight">
+            <span className="font-display italic text-[1.3rem] leading-none text-[#f0e6d4] tracking-tight">
               Realfy
             </span>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-2 rounded-lg text-sidebar-text hover:bg-sidebar-hover transition-colors"
-            aria-label="Close menu"
+            aria-label={t('aria.closeMenu')}
           >
             <Icon name="close" size={20} />
           </button>
         </div>
 
-        <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-          {items.map((item) => {
-            const active = isActive(item.href);
+        <nav className="flex-1 py-3 px-2 overflow-y-auto" aria-label={t('aria.main')}>
+          {sections.map((section, index) => {
+            const folded = index > 0 && isCollapsed(section.key);
+            const listId = `mobile-nav-section-${section.key}`;
+            const shown = folded ? section.items.filter((item) => isActive(item.href)) : section.items;
             return (
-              <Link
-                key={item.key}
-                href={item.href}
-                onClick={onClose}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 ${
-                  active
-                    ? 'bg-brand-500/15 text-brand-400 font-medium'
-                    : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'
-                }`}
-              >
-                <span className={active ? 'text-brand-400' : ''}>
-                  <Icon name={item.icon} size={20} />
-                </span>
-                <span className="flex-1">{t(item.key)}</span>
-                {item.badge === 'inbox' && <InboxNavBadge />}
-                {item.badge === 'billReview' && <BillReviewNavBadge />}
-              </Link>
+              <div key={section.key}>
+                {index > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => toggle(section.key)}
+                    aria-expanded={!folded}
+                    aria-controls={listId}
+                    className="flex w-full items-center justify-between gap-2 rounded-md px-3 pt-4 pb-1.5 text-[0.65rem] font-medium uppercase tracking-[0.18em] text-white/50"
+                  >
+                    <span>{label(`sections.${section.key}`)}</span>
+                    <Icon
+                      name="chevronDown"
+                      size={14}
+                      className={`shrink-0 transition-transform duration-200 ${folded ? '-rotate-90' : ''}`}
+                    />
+                  </button>
+                )}
+                <div id={listId} className="space-y-0.5">
+                  {shown.map((item) => {
+                    const active = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.key}
+                        href={item.href}
+                        onClick={onClose}
+                        aria-current={active ? 'page' : undefined}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors duration-150 ${
+                          active
+                            ? 'bg-brand-500/15 text-brand-400 font-medium'
+                            : 'text-sidebar-text hover:bg-sidebar-hover hover:text-white'
+                        }`}
+                      >
+                        <span className={active ? 'text-brand-400' : ''}>
+                          <Icon name={item.icon} size={20} />
+                        </span>
+                        <span className="flex-1">{label(item.key)}</span>
+                        {item.badge === 'inbox' && <InboxNavBadge />}
+                        {item.badge === 'billReview' && <BillReviewNavBadge />}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>
@@ -100,8 +143,7 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
           {user && (
             <div className="flex items-center gap-3 mb-3">
               <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-xs font-semibold">
-                {user.firstName[0]}
-                {user.lastName[0]}
+                {`${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase()}
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white truncate">
@@ -114,9 +156,10 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
             </div>
           )}
           <button
+            type="button"
             onClick={() => {
               onClose();
-              logout();
+              void logout();
             }}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
           >

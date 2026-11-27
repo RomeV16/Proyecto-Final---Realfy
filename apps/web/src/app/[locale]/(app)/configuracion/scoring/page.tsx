@@ -121,7 +121,7 @@ export default function ScoringConfigPage() {
     <div className="space-y-6 max-w-2xl">
       {/* Encabezado */}
       <div>
-        <h1 className="text-2xl font-bold text-[var(--color-text)] tracking-tight">{t('title')}</h1>
+        <h1 className="h1">{t('title')}</h1>
         <p className="text-sm text-[var(--color-muted)] mt-0.5">{t('description')}</p>
       </div>
 

@@ -28,6 +28,7 @@ import { ErrorNotice } from '@/components/ui/error-notice';
 import { Skeleton } from '@/components/ui/skeleton';
 import { inputStyles } from '@/components/ui/input';
 import { BillReviewNotice } from '@/components/bill-documents/bill-review-notice';
+import { ServiceBoard } from './service-board';
 import { UnitConsumptionsPanel } from './unit-consumptions-panel';
 
 type Translate = ReturnType<typeof useTranslations>;
@@ -332,7 +333,7 @@ export function MonthlyServiceBills() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--color-text)]">{t('title')}</h1>
+          <h1 className="h1">{t('title')}</h1>
           <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
         <div className="flex flex-col gap-1">
@@ -358,12 +359,23 @@ export function MonthlyServiceBills() {
         </p>
       )}
       {sheet !== null && sheet.rows.length > 0 && (
-        <BillsGrid
-          key={`${sheet.period}:${version}`}
-          sheet={sheet}
-          canManage={canManage}
-          onSaved={() => setVersion((v) => v + 1)}
-        />
+        <>
+          <ServiceBoard sheet={sheet} />
+          <div className="space-y-3">
+            <div>
+              <h2 id="service-bills-sheet-title" className="text-base font-semibold text-[var(--color-text)]">
+                {t('sheetTitle')}
+              </h2>
+              <p className="mt-0.5 max-w-2xl text-sm text-[var(--color-muted)]">{t('sheetHint')}</p>
+            </div>
+            <BillsGrid
+              key={`${sheet.period}:${version}`}
+              sheet={sheet}
+              canManage={canManage}
+              onSaved={() => setVersion((v) => v + 1)}
+            />
+          </div>
+        </>
       )}
       <p className="text-xs text-[var(--color-muted)]">{t('lateNote')}</p>
     </div>

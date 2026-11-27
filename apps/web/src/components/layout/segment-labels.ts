@@ -44,6 +44,11 @@ export const SEGMENT_LABELS: Record<string, Record<string, string>> = {
     providers: 'Proveedores',
     usuarios: 'Usuarios',
     importaciones: 'Importaciones',
+    permisos: 'Permisos',
+    fiscal: 'Configuración fiscal',
+    'valores-por-defecto': 'Valores por defecto',
+    pending: 'Pendientes',
+    nc: 'Nota de crédito',
     new: 'Nuevo',
   },
   en: {
@@ -86,6 +91,11 @@ export const SEGMENT_LABELS: Record<string, Record<string, string>> = {
     providers: 'Providers',
     usuarios: 'Users',
     importaciones: 'Imports',
+    permisos: 'Permissions',
+    fiscal: 'Tax settings',
+    'valores-por-defecto': 'Defaults',
+    pending: 'Pending',
+    nc: 'Credit note',
     new: 'New',
   },
 };

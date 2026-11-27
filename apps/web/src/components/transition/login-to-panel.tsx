@@ -4,7 +4,8 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton';
-import { useVisibleNavItems } from '@/components/layout/nav-items';
+import { useNavCollapse } from '@/components/layout/nav-collapse';
+import { useVisibleNavSections } from '@/components/layout/nav-items';
 import { SEGMENT_LABELS } from '@/components/layout/segment-labels';
 import {
   RAIL_ASIDE_CLASS,
@@ -17,7 +18,8 @@ import {
   SidebarActiveBar,
   SidebarBrand,
   SidebarItemIcon,
-  SidebarSectionLabel,
+  SidebarSectionDivider,
+  SidebarSectionHeader,
   railItemClass,
   sidebarItemClass,
 } from '@/components/layout/sidebar-chrome';
@@ -48,8 +50,9 @@ type Offset = { x?: number; y?: number };
 export function LoginToPanel() {
   const { active, data, runId } = useTransitionState();
   const reduceMotion = useReducedMotion();
-  const t = useTranslations('nav');
-  const items = useVisibleNavItems();
+  const t = useTranslations('nav') as unknown as (key: string) => string;
+  const sections = useVisibleNavSections(data.role);
+  const { isCollapsed } = useNavCollapse();
   const locale = useLocale();
 
   useEffect(() => {
@@ -64,7 +67,7 @@ export function LoginToPanel() {
   const firstName = data.firstName || '';
   const lastName = data.lastName || '';
   const initials =
-    `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase() || '??';
+    `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
   const fullName = [firstName, lastName].filter(Boolean).join(' ');
   const dashboardLabel =
     (SEGMENT_LABELS[locale] ?? SEGMENT_LABELS['es'])[ACTIVE_KEY] ?? 'Panel';
@@ -107,14 +110,19 @@ export function LoginToPanel() {
           >
             <RailBrand />
             <div className={RAIL_NAV_CLASS}>
-              {items.map((item, i) => (
-                <motion.div
-                  key={item.key}
-                  className={railItemClass(item.key === ACTIVE_KEY)}
-                  {...enter(0.5 + i * 0.04, 0.4, { x: -8 })}
-                >
-                  <Icon name={item.icon} size={20} />
-                </motion.div>
+              {sections.map((section, s) => (
+                <div key={section.key} className="space-y-1">
+                  {s > 0 && <SidebarSectionDivider />}
+                  {section.items.map((item) => (
+                    <motion.div
+                      key={item.key}
+                      className={railItemClass(item.key === ACTIVE_KEY)}
+                      {...enter(0.5 + s * 0.06, 0.4, { x: -8 })}
+                    >
+                      <Icon name={item.icon} size={20} />
+                    </motion.div>
+                  ))}
+                </div>
               ))}
             </div>
           </motion.aside>
@@ -127,18 +135,25 @@ export function LoginToPanel() {
             <SidebarBrand />
 
             <div className={SIDEBAR_NAV_CLASS}>
-              <SidebarSectionLabel />
-              {items.map((item, i) => {
-                const isActive = item.key === ACTIVE_KEY;
+              {sections.map((section, s) => {
+                const folded = s > 0 && isCollapsed(section.key);
                 return (
-                  <motion.div
-                    key={item.key}
-                    className={sidebarItemClass(isActive)}
-                    {...enter(0.5 + i * 0.045, 0.4, { x: -12 })}
-                  >
-                    {isActive && <SidebarActiveBar />}
-                    <SidebarItemIcon name={item.icon} active={isActive} />
-                    <span className="flex-1">{t(item.key)}</span>
+                  <motion.div key={section.key} {...enter(0.5 + s * 0.07, 0.45, { x: -12 })}>
+                    {s > 0 && (
+                      <SidebarSectionHeader label={t(`sections.${section.key}`)} collapsed={folded} />
+                    )}
+                    <div className="space-y-0.5">
+                      {(folded ? [] : section.items).map((item) => {
+                        const isActive = item.key === ACTIVE_KEY;
+                        return (
+                          <div key={item.key} className={sidebarItemClass(isActive)}>
+                            {isActive && <SidebarActiveBar />}
+                            <SidebarItemIcon name={item.icon} active={isActive} />
+                            <span className="flex-1">{t(item.key)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </motion.div>
                 );
               })}

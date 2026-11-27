@@ -36,7 +36,8 @@ export const ACTION_ROLES = {
   'contracts.administer': [Admin, Gerente],
 
   // Liquidaciones, rendiciones y comprobantes
-  'liquidaciones.generate': [Admin, Gerente],
+  /** Generar el mes: los mismos roles que acepta `POST /liquidaciones/generate`. */
+  'liquidaciones.generate': [Admin, Gerente, Liquidaciones],
   'liquidaciones.bulk': [Admin, Gerente],
   'liquidaciones.act': [Admin, Gerente, Ventas, Liquidaciones],
   /** Aviso de "solo lectura" en el listado de liquidaciones. */

@@ -70,7 +70,7 @@ const items = [
 ];
 
 function page(over: Record<string, unknown> = {}) {
-  return { items, total: 2, page: 1, limit: 12, totalPages: 1, ...over };
+  return { items, total: 2, page: 1, limit: 20, totalPages: 1, ...over };
 }
 
 describe('PersonList', () => {
@@ -79,18 +79,18 @@ describe('PersonList', () => {
     auth.role = 'Admin';
   });
 
-  it('muestra tarjetas con datos y valores por defecto', async () => {
+  it('muestra el directorio con documento, roles y contacto', async () => {
     apiClient.mockResolvedValue(page());
     renderEs(<PersonList />);
     expect(await screen.findByText('Luis Inventado')).toBeInTheDocument();
-    expect(screen.getByText('20-00000000-1')).toBeInTheDocument();
-    expect(screen.getByText('luis@prueba.test')).toBeInTheDocument();
+    expect(screen.getByText('CUIT 20-00000000-1')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /luis@prueba.test/ })).toHaveAttribute('href', 'mailto:luis@prueba.test');
+    expect(screen.getByRole('link', { name: /1111-0000/ })).toHaveAttribute('href', 'tel:11110000');
     expect(screen.getByText('Marta Ficticia')).toBeInTheDocument();
-    expect(screen.getByText('Sin CUIT')).toBeInTheDocument();
-    expect(screen.getByText('Sin email')).toBeInTheDocument();
-    expect(screen.getByText('Sin teléfono')).toBeInTheDocument();
+    expect(screen.getByText('Sin datos de contacto')).toBeInTheDocument();
     expect(screen.getByText('Sin roles asignados')).toBeInTheDocument();
-    expect(apiClient).toHaveBeenCalledWith('/persons?page=1&limit=12');
+    expect(screen.getByText('2 personas')).toBeInTheDocument();
+    expect(apiClient).toHaveBeenCalledWith('/persons?page=1&limit=20');
   });
 
   it('los enlaces llevan el prefijo de idioma', async () => {
@@ -100,7 +100,7 @@ describe('PersonList', () => {
     const hrefs = screen.getAllByRole('link').map((l) => l.getAttribute('href'));
     expect(hrefs).toContain('/es/persons/pe-1');
     expect(hrefs).toContain('/es/persons/new');
-    expect(hrefs.every((h) => !h || h.startsWith('/es/'))).toBe(true);
+    expect(hrefs.every((h) => !h || h.startsWith('/es/') || /^(mailto|tel):/.test(h))).toBe(true);
   });
 
   it.each(['Admin', 'Gerente', 'Ventas'])('%s ve Nueva persona', async (role) => {
@@ -122,7 +122,7 @@ describe('PersonList', () => {
   it('el vacío ofrece crear solo a quien puede', async () => {
     apiClient.mockResolvedValue(page({ items: [], total: 0, totalPages: 0 }));
     renderEs(<PersonList />);
-    expect(await screen.findByText('No hay personas')).toBeInTheDocument();
+    expect(await screen.findByText('Todavía no hay personas')).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: /Nueva persona/ }).length).toBeGreaterThan(1);
   });
 
@@ -130,7 +130,7 @@ describe('PersonList', () => {
     auth.role = 'Lectura';
     apiClient.mockResolvedValue(page({ items: [], total: 0, totalPages: 0 }));
     renderEs(<PersonList />);
-    expect(await screen.findByText('No hay personas')).toBeInTheDocument();
+    expect(await screen.findByText('Todavía no hay personas')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Nueva persona/ })).not.toBeInTheDocument();
   });
 
@@ -141,35 +141,36 @@ describe('PersonList', () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText('Buscar'), 'Inv');
     await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith(expect.stringContaining('search=Inv')));
-    await user.selectOptions(screen.getByLabelText('Rol'), 'Garante');
+    await user.click(screen.getByRole('button', { name: 'Garantes' }));
     await waitFor(() =>
       expect(apiClient).toHaveBeenLastCalledWith(expect.stringContaining('role=Garante')),
     );
+    expect(screen.getByRole('button', { name: 'Garantes' })).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByTitle('Limpiar filtros'));
-    await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith('/persons?page=1&limit=12'));
+    await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith('/persons?page=1&limit=20'));
   });
 
   it('sin resultados con filtros muestra el vacío filtrado y permite limpiar', async () => {
     apiClient.mockResolvedValue(page({ items: [], total: 0, totalPages: 0 }));
     renderEs(<PersonList />);
-    await screen.findByText('No hay personas');
+    await screen.findByText('Todavía no hay personas');
     const user = userEvent.setup();
-    await user.selectOptions(screen.getByLabelText('Rol'), 'Lead');
+    await user.click(screen.getByRole('button', { name: 'Interesados' }));
     expect(await screen.findByText('Sin resultados')).toBeInTheDocument();
-    await user.click(screen.getAllByRole('button', { name: 'Limpiar filtros' })[0]);
-    expect(await screen.findByText('No hay personas')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
+    expect(await screen.findByText('Todavía no hay personas')).toBeInTheDocument();
   });
 
   it('pagina hacia adelante y atrás', async () => {
-    apiClient.mockResolvedValue(page({ total: 30, totalPages: 3 }));
+    apiClient.mockResolvedValue(page({ total: 50, totalPages: 3 }));
     renderEs(<PersonList />);
     await screen.findByText('Luis Inventado');
     const user = userEvent.setup();
-    expect(screen.getByText('Mostrando 1-12 de 30')).toBeInTheDocument();
+    expect(screen.getByText('Mostrando 1-20 de 50')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
     await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith(expect.stringContaining('page=2')));
-    expect(await screen.findByText('Mostrando 13-24 de 30')).toBeInTheDocument();
+    expect(await screen.findByText('Mostrando 21-40 de 50')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Anterior' }));
     await waitFor(() => expect(apiClient).toHaveBeenLastCalledWith(expect.stringContaining('page=1')));
   });
@@ -181,7 +182,7 @@ describe('PersonList', () => {
     expect(alert).toHaveTextContent('falló');
     expect(alert).toHaveTextContent('BOOM');
     expect(alert).toHaveTextContent('corr-1');
-    expect(screen.queryByText('No hay personas')).not.toBeInTheDocument();
+    expect(screen.queryByText('Todavía no hay personas')).not.toBeInTheDocument();
   });
 
   it('un fallo genérico también se avisa', async () => {

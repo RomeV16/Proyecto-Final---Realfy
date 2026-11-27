@@ -128,7 +128,9 @@ describe('Cobranza: detalle del caso', () => {
     mockApi();
     renderEs(<CollectionCasePage />);
     expect(await screen.findByRole('heading', { name: 'Calle Demo 742' })).toBeInTheDocument();
-    expect(screen.getByText('Prejudicial')).toBeInTheDocument();
+    const steps = screen.getByRole('list', { name: 'Etapas de la gestión' });
+    expect(within(steps).getByText('2. Prejudicial').closest('li')).toHaveAttribute('aria-current', 'step');
+    expect(within(steps).getByText('1. Recordatorio').closest('li')).not.toHaveAttribute('aria-current');
     expect(screen.getByText('32 días')).toBeInTheDocument();
     expect(screen.getAllByText(/203\.000,00/).length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Ver el contrato' })).toHaveAttribute('href', '/es/contracts/k1');

@@ -16,6 +16,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import type { KanbanLead } from './kanban-card';
 import { formatMoney } from '@/lib/format';
+import { Link } from '@/i18n/navigation';
+import { Button } from '@/components/ui/button';
+import { msSince, useElapsedText } from '@/components/tickets/elapsed';
 
 /* ──────────── Types ──────────── */
 
@@ -120,6 +123,8 @@ export function KanbanBoard() {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>('');
   const [pipelinesLoading, setPipelinesLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // ─── Datos de leads ─────────────────────────────
   const [leadsLoading, setLeadsLoading] = useState(true);
@@ -147,6 +152,7 @@ export function KanbanBoard() {
     let cancelled = false;
     async function load() {
       setPipelinesLoading(true);
+      setLoadError(false);
       try {
         const data = await apiClient<Pipeline[]>('/pipelines');
         const list = Array.isArray(data) ? data : [];
@@ -158,14 +164,17 @@ export function KanbanBoard() {
         }
       } catch (err) {
         console.error('[KanbanBoard] pipeline fetch error:', err);
-        if (!cancelled) setPipelines([]);
+        if (!cancelled) {
+          setPipelines([]);
+          setLoadError(true);
+        }
       } finally {
         if (!cancelled) setPipelinesLoading(false);
       }
     }
-    load();
+    void load();
     return () => { cancelled = true; };
-  }, []);
+  }, [reloadKey]);
 
   // ─── Carga de leads al cambiar de pipeline ──────
   useEffect(() => {
@@ -210,12 +219,13 @@ export function KanbanBoard() {
         if (!cancelled) {
           setLeadMap(new Map());
           setItems({});
+          setLoadError(true);
         }
       } finally {
         if (!cancelled) setLeadsLoading(false);
       }
     }
-    loadLeads();
+    void loadLeads();
     return () => { cancelled = true; };
   }, [selectedPipelineId, pipelines]);
 
@@ -300,6 +310,18 @@ export function KanbanBoard() {
 
   const pipelinesState: ListState = pipelinesLoading ? 'loading' : pipelines.length === 0 ? 'empty' : 'ready';
   const boardState: ListState = leadsLoading ? 'loading' : 'ready';
+  const boardIsEmpty = !leadsLoading && !loadError && leadMap.size === 0;
+
+  if (loadError && !pipelinesLoading) {
+    return (
+      <div role="alert" className="flex flex-col items-center gap-3 py-16 text-center">
+        <p className="text-sm text-[var(--color-muted)]">{t('loadingError')}</p>
+        <Button variant="secondary" size="sm" onClick={() => setReloadKey((k) => k + 1)}>
+          {t('retry')}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -356,6 +378,12 @@ export function KanbanBoard() {
             </div>
           )}
 
+          {boardIsEmpty && (
+            <p className="rounded-[var(--radius-lg)] border border-dashed border-[var(--color-border)] px-4 py-3 text-sm text-[var(--color-muted)]">
+              {t('boardEmpty')}
+            </p>
+          )}
+
           {/* Tablero Kanban de escritorio */}
           <div className="hidden lg:block">
             <ListTransition state={boardState} skeleton={<BoardSkeleton count={sortedStages.length || 4} />} empty={null}>
@@ -399,6 +427,7 @@ export function KanbanBoard() {
 
           {/* Fallback móvil: lista agrupada por acordeón */}
           <div className="lg:hidden space-y-3">
+            <p className="text-xs text-[var(--color-muted)]">{t('mobileHint')}</p>
             {leadsLoading ? (
               <div className="space-y-3" aria-hidden="true">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -455,18 +484,20 @@ export function KanbanBoard() {
 
 function MobileLeadCard({ lead, tSources, staleDays }: { lead: KanbanLead; tSources: any; staleDays?: number | null }) {
   const t = useTranslations('kanban.card');
+  const elapsed = useElapsedText();
 
   const fullName = `${lead.person.firstName} ${lead.person.lastName}`;
   const propertyName = lead.property?.title || t('noProperty');
-  const days = daysAgo(lead.updatedAt);
 
   const contactDays = daysAgo(lead.lastContactAt ?? lead.updatedAt);
   const isStale = staleDays != null && contactDays > staleDays;
 
   return (
-    <div
+    <Link
+      href={`/leads/${lead.id}`}
+      aria-label={t('open', { name: fullName })}
       className={cn(
-        'flex items-center gap-3 rounded-[var(--radius-lg)] border bg-[var(--color-surface)] p-3',
+        'flex items-center gap-3 rounded-[var(--radius-lg)] border bg-[var(--color-surface)] p-3 transition-colors hover:bg-[var(--color-surface-sunken)]',
         isStale ? 'border-[color-mix(in_oklab,var(--color-warning)_45%,var(--color-border))]' : 'border-[var(--color-border)]',
       )}
     >
@@ -474,6 +505,9 @@ function MobileLeadCard({ lead, tSources, staleDays }: { lead: KanbanLead; tSour
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-[var(--color-text)]">{fullName}</p>
         <p className="truncate text-xs text-[var(--color-muted)]">{propertyName}</p>
+        <p className="truncate text-[11px] tabular-nums text-[var(--color-muted)]">
+          {t('unchanged', { time: elapsed(msSince(lead.updatedAt)) })}
+        </p>
       </div>
       <div className="shrink-0 text-right">
         <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium text-[var(--color-muted)]">
@@ -491,11 +525,8 @@ function MobileLeadCard({ lead, tSources, staleDays }: { lead: KanbanLead; tSour
               {t('stale')}
             </span>
           )}
-          <p className="text-[11px] tabular-nums text-[var(--color-muted)]">
-            {t('daysInStage', { days })}
-          </p>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

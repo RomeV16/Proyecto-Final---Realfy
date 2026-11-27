@@ -58,38 +58,72 @@ describe('Header', () => {
   it('el botón de menú invoca onMenuToggle', async () => {
     const onMenuToggle = vi.fn();
     renderEs(<Header onMenuToggle={onMenuToggle} />);
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Toggle menu' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Abrir el menú' }));
     expect(onMenuToggle).toHaveBeenCalledTimes(1);
   });
 
   it('una ruta de un nivel muestra una sola miga y sin botón de volver', () => {
     renderEs(<Header onMenuToggle={() => {}} />);
     expect(screen.getAllByText('Contratos').length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
   });
 
   it('en un detalle omite el identificador y enlaza la miga padre con prefijo', () => {
     nav.path = '/es/contracts/0b9a3c1e-1111-2222-3333-444455556666';
     renderEs(<Header onMenuToggle={() => {}} />);
     expect(screen.queryByText(/0b9a3c1e/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Volver' })).not.toBeInTheDocument();
   });
 
   it('en una ruta anidada muestra la cadena y vuelve al padre con el router', async () => {
     nav.path = '/es/contracts/12/new-thing';
     renderEs(<Header onMenuToggle={() => {}} />);
-    const nav_ = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    const nav_ = screen.getByRole('navigation', { name: 'Ruta de navegación' });
     const parent = nav_.querySelector('a');
     expect(parent?.getAttribute('href')).toBe('/es/contracts');
     expect(screen.getAllByText('New Thing').length).toBeGreaterThan(0);
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Go back' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Volver' }));
     expect(nav.push).toHaveBeenCalledWith('/es/contracts');
+  });
+
+  it('no muestra identificadores de ningún formato ni segmentos en inglés', () => {
+    nav.path = '/es/cobranza/cmh8x2k9d0001abcdxyz12345';
+    const { unmount } = renderEs(<Header onMenuToggle={() => {}} />);
+    expect(screen.queryByText(/cmh8x2k9d/i)).not.toBeInTheDocument();
+    expect(screen.getAllByText('Cobranza').length).toBeGreaterThan(0);
+    unmount();
+
+    nav.path = '/es/invoices/0b9a3c1e-1111-2222-3333-444455556666/nc';
+    renderEs(<Header onMenuToggle={() => {}} />);
+    expect(screen.getAllByText('Nota de crédito').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Nc')).not.toBeInTheDocument();
+    const parent = screen.getByRole('navigation', { name: 'Ruta de navegación' }).querySelector('a');
+    expect(parent?.getAttribute('href')).toBe('/es/invoices');
+  });
+
+  it('todas las rutas del panel tienen etiqueta en castellano', () => {
+    for (const [path, label] of [
+      ['/es/invoices/pending', 'Pendientes'],
+      ['/es/configuracion/fiscal', 'Configuración fiscal'],
+      ['/es/configuracion/permisos', 'Permisos'],
+      ['/es/configuracion/valores-por-defecto', 'Valores por defecto'],
+    ]) {
+      nav.path = path;
+      const { unmount } = renderEs(<Header onMenuToggle={() => {}} />);
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+      unmount();
+    }
+  });
+
+  it('pone el nombre de la pantalla en el título de la pestaña', () => {
+    renderEs(<Header onMenuToggle={() => {}} />);
+    expect(document.title).toBe('Contratos · Realfy');
   });
 
   it('sin segmentos no hay migas', () => {
     nav.path = '/es';
     renderEs(<Header onMenuToggle={() => {}} />);
-    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Ruta de navegación' })).not.toBeInTheDocument();
   });
 
   it('abre el menú de usuario con perfil, configuración y correo', async () => {

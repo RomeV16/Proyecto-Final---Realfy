@@ -1,12 +1,12 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
 import { toast } from '@/lib/toast';
 import { downloadFile } from '@/lib/download';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
 import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -14,7 +14,8 @@ import { StatTile } from '@/components/ui/stat-tile';
 import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
 import { ReportSchedulingSection } from './report-scheduling';
-import { formatNumber, formatDateTime } from '@/lib/format';
+import { ReportChart, type ReportChartSpec } from './report-chart';
+import { formatNumber, formatDateTime, formatPercent } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
@@ -75,6 +76,113 @@ const ROW_ACCENT: Record<ReportType, 'brand' | 'info' | 'warning' | 'danger'> = 
   morosidad: 'danger',
 };
 
+/** Filtro propio de cada reporte: qué parámetro manda y de dónde salen las opciones. */
+type EntityFilterKey = 'ownerId' | 'propertyId' | 'contractId' | 'pipelineId';
+
+interface EntityOption {
+  id: string;
+  label: string;
+}
+
+interface PersonItem {
+  id: string;
+  firstName?: string | null;
+  lastName?: string | null;
+}
+interface PropertyItem {
+  id: string;
+  title?: string | null;
+}
+interface ContractItem {
+  id: string;
+  status?: string | null;
+  property?: { title?: string | null } | null;
+}
+interface PipelineItem {
+  id: string;
+  name: string;
+}
+
+const listOf = <T,>(res: { items?: T[] } | T[] | null | undefined): T[] =>
+  Array.isArray(res) ? res : (res?.items ?? []);
+
+const ENTITY_FILTER: Partial<
+  Record<ReportType, { key: EntityFilterKey; required: boolean; load: () => Promise<EntityOption[]> }>
+> = {
+  ownerStatement: {
+    key: 'ownerId',
+    required: true,
+    load: async () =>
+      listOf(await apiClient<{ items: PersonItem[] }>('/persons?role=Propietario&limit=100')).map((person) => ({
+        id: person.id,
+        label: [person.lastName, person.firstName].filter(Boolean).join(', '),
+      })),
+  },
+  propertyProfitability: {
+    key: 'propertyId',
+    required: false,
+    load: async () =>
+      listOf(await apiClient<{ items: PropertyItem[] }>('/properties?limit=100')).map((property) => ({
+        id: property.id,
+        label: property.title ?? '',
+      })),
+  },
+  commissionSummary: {
+    key: 'contractId',
+    required: false,
+    load: async () =>
+      listOf(await apiClient<{ items: ContractItem[] }>('/contracts?limit=100')).map((contract) => ({
+        id: contract.id,
+        label: [contract.property?.title, contract.status].filter(Boolean).join(' · '),
+      })),
+  },
+  pipelineAnalytics: {
+    key: 'pipelineId',
+    required: false,
+    load: async () =>
+      listOf(await apiClient<PipelineItem[]>('/pipelines')).map((pipeline) => ({
+        id: pipeline.id,
+        label: pipeline.name,
+      })),
+  },
+};
+
+const SERIES_COLORS = {
+  primary: 'var(--color-brand-500)',
+  secondary: 'color-mix(in oklab, var(--color-warning) 75%, var(--color-surface))',
+  muted: 'color-mix(in oklab, var(--color-muted) 42%, var(--color-surface))',
+} as const;
+
+/** Reportes que además de la tabla se dibujan. */
+const CHARTS: Partial<Record<ReportType, ReportChartSpec>> = {
+  cashFlow: {
+    category: 'mes',
+    series: [
+      { key: 'ingresos', color: SERIES_COLORS.primary },
+      { key: 'egresos', color: SERIES_COLORS.secondary },
+    ],
+    unit: 'money',
+  },
+  propertyProfitability: {
+    category: 'propiedad',
+    series: [
+      { key: 'cobrado', color: SERIES_COLORS.primary },
+      { key: 'comisiones', color: SERIES_COLORS.secondary },
+    ],
+    unit: 'money',
+    horizontal: true,
+  },
+  pipelineAnalytics: {
+    category: 'etapa',
+    series: [{ key: 'leadsActuales', color: SERIES_COLORS.primary }],
+    unit: 'count',
+    horizontal: true,
+  },
+};
+
+/** Valores que la API manda como clave interna y necesitan nombre. */
+const COMMISSION_TYPES = new Set(['FixedPercent', 'FixedAmount', 'Mixed']);
+
 interface ReportResult {
   type: string;
   title: string;
@@ -87,6 +195,11 @@ interface ReportResult {
 
 /* ──────────── Helpers ──────────── */
 
+const PERCENT_VALUE = /^-?\d+(\.\d+)?%$/;
+
+/** En el eje del gráfico la etapa va sin el prefijo que repiten todos los embudos. */
+const PIPELINE_PREFIX = /^Embudo de /;
+
 /** Muestra el valor tal cual si no es numérico (columnas de texto en un reporte). */
 function formatReportNumber(value: string, decimals: number): string {
   return Number.isNaN(Number(value)) ? value : formatNumber(value, { decimals });
@@ -97,16 +210,29 @@ function formatReportNumber(value: string, decimals: number): string {
 function formatCell(key: string, value: string | undefined): string {
   if (CURRENCY_COLUMNS.has(key)) return `$${formatReportNumber(value ?? '0', 2)}`;
   if (COUNT_COLUMNS.has(key)) return formatReportNumber(value ?? '0', 0);
+  // "Embudo — Etapa" llega con raya larga: se muestra con un separador liviano.
+  if (key === 'etapa') return (value ?? '—').replace(' — ', ' · ');
+  // Las tasas llegan como "8.3%": se escriben con la coma y el espacio del resto de la app.
+  if (value && PERCENT_VALUE.test(value)) return formatPercent(value.slice(0, -1));
   return value ?? '—';
 }
 
-function currentYearRange(): { from: string; to: string } {
-  const year = new Date().getFullYear();
-  return { from: `${year}-01-01`, to: `${year}-12-31` };
+/**
+ * Del 1 de enero al último día del mes en curso: los meses que todavía no
+ * llegaron no aportan filas vacías, y lo cobrado hoy entra en el reporte (la
+ * API toma "hasta" a las 0 h, así que cortar en hoy lo dejaría afuera).
+ */
+function yearToDateRange(now: Date = new Date()): { from: string; to: string } {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return {
+    from: `${now.getFullYear()}-01-01`,
+    to: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(lastDay)}`,
+  };
 }
 
 const EMPTY_FILTERS = {
-  ...currentYearRange(),
+  ...yearToDateRange(),
   ownerId: '',
   propertyId: '',
   contractId: '',
@@ -123,7 +249,7 @@ export function ReportsPage() {
   const tColumns = useTranslations('reports.columns');
   const tSummary = useTranslations('reports.summaryLabels');
   const tEmpty = useTranslations('emptyStates.reports');
-  
+
   const [reportType, setReportType] = useState<ReportType | ''>('');
   const [filters, setFilters] = useState({ ...EMPTY_FILTERS });
 
@@ -135,51 +261,73 @@ export function ReportsPage() {
   const canAccess = useCan('reports.view');
   const canSchedule = useCan('reports.schedule');
 
-  /** Query string shared by the JSON fetch and both file downloads. */
-  const buildParams = useCallback(() => {
-    const params = new URLSearchParams();
-    if (filters.from) params.set('from', filters.from);
-    if (filters.to) params.set('to', filters.to);
-    if (reportType === 'ownerStatement' && filters.ownerId) {
-      params.set('ownerId', filters.ownerId.trim());
-    }
-    if (reportType === 'propertyProfitability' && filters.propertyId) {
-      params.set('propertyId', filters.propertyId.trim());
-    }
-    if (reportType === 'commissionSummary' && filters.contractId) {
-      params.set('contractId', filters.contractId.trim());
-    }
-    if (reportType === 'pipelineAnalytics' && filters.pipelineId) {
-      params.set('pipelineId', filters.pipelineId.trim());
-    }
-    return params;
-  }, [filters, reportType]);
+  const [options, setOptions] = useState<EntityOption[]>([]);
+  // Sólo se muestra el resultado del último pedido: cambiar de reporte o de
+  // filtro mientras otro está en viaje no debe pisar lo que se ve.
+  const requestSeq = useRef(0);
 
-  const fetchReport = useCallback(async () => {
-    if (!reportType) return;
+  const entityFilter = reportType ? ENTITY_FILTER[reportType] : undefined;
 
-    // El estado de cuenta se emite contra un propietario concreto.
-    if (reportType === 'ownerStatement' && !filters.ownerId.trim()) {
-      toast.error(t('errors.ownerIdRequired'));
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await apiClient<ReportResult>(`/reports/${reportType}?${buildParams().toString()}`);
-      // Las filas del reporte son agregaciones sin id propio: la posición es la
-      // única clave estable que tienen para la lista.
-      setData({
-        ...res,
-        rows: (res.rows ?? []).map((row, index) => ({ ...row, [ROW_ID]: String(index) })),
+  // Las opciones del filtro propio (propietarios, propiedades, …) se cargan al elegir el reporte.
+  useEffect(() => {
+    let cancelled = false;
+    setOptions([]);
+    if (!entityFilter) return;
+    void entityFilter
+      .load()
+      .then((loaded) => {
+        if (!cancelled) setOptions(loaded.filter((option) => option.label));
+      })
+      .catch(() => {
+        if (!cancelled) setOptions([]);
       });
-    } catch (err) {
-      setData(null);
-      toast.error(err instanceof ApiRequestError ? err.message : t('errors.loadFailed'));
-    } finally {
-      setLoading(false);
-    }
-  }, [reportType, filters.ownerId, buildParams, t]);
+    return () => {
+      cancelled = true;
+    };
+  }, [entityFilter]);
+
+  /** Query string shared by the JSON fetch and both file downloads. */
+  const buildParams = useCallback(
+    (type: ReportType, current: typeof filters) => {
+      const params = new URLSearchParams();
+      if (current.from) params.set('from', current.from);
+      if (current.to) params.set('to', current.to);
+      const entity = ENTITY_FILTER[type];
+      if (entity && current[entity.key]) params.set(entity.key, current[entity.key].trim());
+      return params;
+    },
+    [],
+  );
+
+  const runReport = useCallback(
+    async (type: ReportType, current: typeof filters) => {
+      // El estado de cuenta se emite contra un propietario concreto.
+      if (type === 'ownerStatement' && !current.ownerId.trim()) {
+        toast.error(t('errors.ownerIdRequired'));
+        return;
+      }
+
+      const seq = ++requestSeq.current;
+      setLoading(true);
+      try {
+        const res = await apiClient<ReportResult>(`/reports/${type}?${buildParams(type, current).toString()}`);
+        if (seq !== requestSeq.current) return;
+        // Las filas del reporte son agregaciones sin id propio: la posición es la
+        // única clave estable que tienen para la lista.
+        setData({
+          ...res,
+          rows: (res.rows ?? []).map((row, index) => ({ ...row, [ROW_ID]: String(index) })),
+        });
+      } catch (err) {
+        if (seq !== requestSeq.current) return;
+        setData(null);
+        toast.error(err instanceof ApiRequestError ? err.message : t('errors.loadFailed'));
+      } finally {
+        if (seq === requestSeq.current) setLoading(false);
+      }
+    },
+    [buildParams, t],
+  );
 
   async function handleDownload(format: 'excel' | 'pdf') {
     if (!reportType) return;
@@ -190,7 +338,7 @@ export function ReportsPage() {
     try {
       const ext = format === 'excel' ? 'xlsx' : 'pdf';
       await downloadFile(
-        `/reports/${reportType}/${format}?${buildParams().toString()}`,
+        `/reports/${reportType}/${format}?${buildParams(reportType, filters).toString()}`,
         `reporte-${reportType}-${new Date().toISOString().slice(0, 10)}.${ext}`,
         { preferServerName: true },
       );
@@ -204,10 +352,30 @@ export function ReportsPage() {
   function selectType(rt: ReportType) {
     setReportType(rt);
     setData(null);
+    requestSeq.current += 1;
+    setLoading(false);
+    // Todo reporte que no necesita un dato obligatorio se genera al elegirlo.
+    if (!ENTITY_FILTER[rt]?.required) void runReport(rt, filters);
   }
 
   function updateFilter(key: keyof typeof filters, value: string) {
     setFilters((prev) => ({ ...prev, [key]: value }));
+  }
+
+  /** Elegir propietario, propiedad, contrato o embudo vuelve a generar el reporte. */
+  function selectEntity(key: EntityFilterKey, value: string) {
+    if (!reportType) return;
+    const next = { ...filters, [key]: value };
+    setFilters(next);
+    if (value || !ENTITY_FILTER[reportType]?.required) {
+      void runReport(reportType, next);
+      return;
+    }
+    // Sin el dato obligatorio no hay reporte: se saca el anterior de la vista
+    // para que no quede a nombre de nadie ni se pueda descargar.
+    requestSeq.current += 1;
+    setLoading(false);
+    setData(null);
   }
 
   if (!canAccess) {
@@ -215,6 +383,11 @@ export function ReportsPage() {
   }
 
   const columnKeys = reportType ? COLUMN_KEYS[reportType] : [];
+  const cellText = (key: string, value: string | undefined) =>
+    key === 'tipoComision' && value && COMMISSION_TYPES.has(value)
+      ? t(`commissionTypes.${value}`)
+      : formatCell(key, value);
+  const chart = reportType ? CHARTS[reportType] : undefined;
   const labelOf = (key: string) =>
     SUMMARY_ONLY_KEYS.has(key) && !columnKeys.includes(key)
       ? tSummary(key)
@@ -232,7 +405,7 @@ export function ReportsPage() {
             : 'text-[var(--color-text)]',
         )}
       >
-        {formatCell(key, row[key])}
+        {cellText(key, row[key])}
       </span>
     ),
   }));
@@ -253,7 +426,7 @@ export function ReportsPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => handleDownload('excel')}
+              onClick={() => void handleDownload('excel')}
               disabled={excelDownloading}
             >
               <Icon name="download" className="h-4 w-4" strokeWidth={2} />
@@ -262,7 +435,7 @@ export function ReportsPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => handleDownload('pdf')}
+              onClick={() => void handleDownload('pdf')}
               disabled={pdfDownloading}
             >
               <Icon name="download" className="h-4 w-4" strokeWidth={2} />
@@ -335,47 +508,34 @@ export function ReportsPage() {
               />
             </div>
 
-            {reportType === 'ownerStatement' && (
-              <Input
-                label={`${t('filters.ownerId')} *`}
-                value={filters.ownerId}
-                onChange={(e) => updateFilter('ownerId', e.target.value)}
-                placeholder={t('filters.ownerIdPlaceholder')}
-                hint={t('filters.required')}
-                required
-              />
-            )}
-
-            {reportType === 'propertyProfitability' && (
-              <Input
-                label={t('filters.propertyId')}
-                value={filters.propertyId}
-                onChange={(e) => updateFilter('propertyId', e.target.value)}
-                placeholder={t('filters.propertyIdPlaceholder')}
-              />
-            )}
-
-            {reportType === 'commissionSummary' && (
-              <Input
-                label={t('filters.contractId')}
-                value={filters.contractId}
-                onChange={(e) => updateFilter('contractId', e.target.value)}
-                placeholder={t('filters.contractIdPlaceholder')}
-              />
-            )}
-
-            {reportType === 'pipelineAnalytics' && (
-              <Input
-                label={t('filters.pipelineId')}
-                value={filters.pipelineId}
-                onChange={(e) => updateFilter('pipelineId', e.target.value)}
-                placeholder={t('filters.pipelineIdPlaceholder')}
-              />
+            {entityFilter && (
+              <div className="flex flex-col gap-1 sm:col-span-2">
+                <label
+                  htmlFor="report-entity"
+                  className="text-[0.8rem] font-medium text-[var(--color-text)]"
+                >
+                  {t(`filters.${entityFilter.key}`)}
+                </label>
+                <Select
+                  id="report-entity"
+                  value={filters[entityFilter.key]}
+                  onChange={(e) => selectEntity(entityFilter.key, e.target.value)}
+                >
+                  <option value="">
+                    {t(`filters.${entityFilter.key}${entityFilter.required ? 'Choose' : 'All'}`)}
+                  </option>
+                  {options.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             )}
           </div>
 
           <div className="flex items-center gap-3">
-            <Button size="sm" onClick={fetchReport} disabled={loading}>
+            <Button size="sm" onClick={() => reportType && void runReport(reportType, filters)} disabled={loading}>
               <Icon name="reports" className="h-4 w-4" strokeWidth={2} />
               {t('generate')}
             </Button>
@@ -397,7 +557,7 @@ export function ReportsPage() {
             <p className="eyebrow">{t('summary')}</p>
             <Badge variant="neutral">{t('rowCount', { count: rows.length })}</Badge>
             <span className="text-xs text-[var(--color-muted)]">
-              {t('generatedAt')}: {formatDateTime(data.generatedAt, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' })}
+              {t('generatedAt')}: {formatDateTime(data.generatedAt, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
             </span>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -407,10 +567,27 @@ export function ReportsPage() {
                 label={labelOf(key)}
                 value={formatCell(key, value)}
                 tone={reportType === 'morosidad' ? 'danger' : 'brand'}
+                className="!min-h-0"
               />
             ))}
           </div>
         </div>
+      )}
+
+      {/* Chart of the generated report */}
+      {data && reportType && chart && rows.length > 0 && (
+        <ReportChart
+          title={t(`types.${reportType}`)}
+          unitHint={t(chart.unit === 'money' ? 'chart.money' : 'chart.count')}
+          rows={rows.map((row) => ({
+            ...row,
+            [chart.category]: cellText(chart.category, row[chart.category]).replace(PIPELINE_PREFIX, ''),
+          }))}
+          category={chart.category}
+          series={chart.series.map((serie) => ({ ...serie, label: labelOf(serie.key) }))}
+          unit={chart.unit}
+          horizontal={chart.horizontal}
+        />
       )}
 
       {/* Results */}
@@ -429,14 +606,14 @@ export function ReportsPage() {
           cardRenderer={(row) => (
             <EntityRow
               accent={ROW_ACCENT[reportType]}
-              title={formatCell(columnKeys[0], row[columnKeys[0]])}
+              title={cellText(columnKeys[0], row[columnKeys[0]])}
               subtitle={
-                columnKeys[1] ? `${labelOf(columnKeys[1])}: ${formatCell(columnKeys[1], row[columnKeys[1]])}` : undefined
+                columnKeys[1] ? `${labelOf(columnKeys[1])}: ${cellText(columnKeys[1], row[columnKeys[1]])}` : undefined
               }
               meta={
                 <EntityRow.Meta
                   items={columnKeys.slice(2).map((key) => ({
-                    label: `${labelOf(key)}: ${formatCell(key, row[key])}`,
+                    label: `${labelOf(key)}: ${cellText(key, row[key])}`,
                   }))}
                 />
               }
@@ -444,11 +621,9 @@ export function ReportsPage() {
           )}
         />
       ) : (
-        <EmptyState
-          iconName="reports"
-          title={tEmpty('noTypeTitle')}
-          subtitle={tEmpty('noTypeSubtitle')}
-        />
+        <p className="rounded-[var(--radius-xl)] border border-dashed border-[var(--color-border)] px-4 py-6 text-center text-sm text-[var(--color-muted)]">
+          {tEmpty('noTypeSubtitle')}
+        </p>
       )}
 
       {/* Scheduled deliveries */}

@@ -34,19 +34,16 @@ export function KanbanColumn({ id, stageName, leadCount, totalValueLabel, childr
   return (
     <div className="flex min-w-[280px] w-[280px] max-w-[320px] shrink-0 flex-col">
       {/* Encabezado de columna */}
-      <div className="mb-2 flex items-start justify-between gap-2 px-3 py-2.5">
-        <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-[var(--color-text)]" title={stageName}>
-            {stageName}
-          </h3>
-          <p className="mt-0.5 truncate text-[11px] text-[var(--color-muted)]" title={countLabel}>
-            {countLabel}
-            {totalValueLabel && <span className="tabular-nums"> · {totalValueLabel}</span>}
-          </p>
-        </div>
-        <span className="inline-flex h-5 min-w-[28px] shrink-0 items-center justify-center rounded-full bg-[var(--color-bg)] px-1.5 text-xs font-medium tabular-nums text-[var(--color-muted)]">
-          {leadCount}
-        </span>
+      <div className="mb-2 px-3 py-2.5">
+        <h3 className="truncate text-sm font-semibold text-[var(--color-text)]" title={stageName}>
+          {stageName}
+        </h3>
+        <p className="mt-0.5 flex items-baseline justify-between gap-2 text-xs text-[var(--color-muted)]">
+          <span className="truncate">{countLabel}</span>
+          {totalValueLabel && (
+            <span className="shrink-0 font-medium tabular-nums text-[var(--color-text)]">{totalValueLabel}</span>
+          )}
+        </p>
       </div>
 
       {/* Área de tarjetas con scroll */}

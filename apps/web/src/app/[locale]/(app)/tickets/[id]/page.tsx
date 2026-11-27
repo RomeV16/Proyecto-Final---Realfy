@@ -14,6 +14,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { formatDateTime } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 import { RepairSection } from '@/components/tickets/repair-section';
+import { msSince, useElapsedText } from '@/components/tickets/elapsed';
 import type { RepairTicket } from '@/lib/ticket-repairs';
 
 /* ──────────── Types ──────────── */
@@ -141,6 +142,8 @@ export default function TicketDetailPage() {
   const [ticket, setTicket] = useState<TicketWithRepair | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const elapsed = useElapsedText();
 
   // Transition state
   const [transitioning, setTransitioning] = useState('');
@@ -167,15 +170,17 @@ export default function TicketDetailPage() {
     try {
       const data = await apiClient<TicketWithRepair>(`/tickets/${ticketId}`);
       setTicket(data);
+      setLoadFailed(false);
     } catch (err) {
       if (err instanceof ApiRequestError && err.statusCode === 404) setNotFound(true);
+      else setLoadFailed(true);
     } finally {
       setLoading(false);
     }
   }, [ticketId]);
 
   useEffect(() => {
-    loadTicket();
+    void loadTicket();
   }, [loadTicket]);
 
   async function loadProviders() {
@@ -200,7 +205,7 @@ export default function TicketDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (canManage) loadUsers();
+    if (canManage) void loadUsers();
   }, [canManage, loadUsers]);
 
   async function handleReassign() {
@@ -291,6 +296,28 @@ export default function TicketDetailPage() {
     );
   }
 
+  if (!ticket && loadFailed && !notFound) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+        <p className="max-w-sm text-sm text-[var(--color-muted)]">{t('detail.loadError')}</p>
+        <div className="flex gap-2">
+          <Button
+            variant="primary"
+            onClick={() => {
+              setLoading(true);
+              void loadTicket();
+            }}
+          >
+            {t('detail.retry')}
+          </Button>
+          <Link href={'/tickets'}>
+            <Button variant="secondary">{t('backToList')}</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (notFound || !ticket) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -310,6 +337,12 @@ export default function TicketDetailPage() {
   const propertyLabel = ticket.property
     ? [ticket.property.title, ticket.property.street, ticket.property.city].filter(Boolean).join(' · ')
     : '—';
+
+  const isClosed = ([TicketStatus.Resuelto, TicketStatus.Cerrado, TicketStatus.Cancelado] as string[]).includes(
+    ticket.status,
+  );
+  const deadlineMs = ticket.slaDeadline ? msSince(ticket.slaDeadline) : null;
+  const deadlineOverdue = deadlineMs != null && deadlineMs > 0 && !isClosed;
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -359,8 +392,29 @@ export default function TicketDetailPage() {
               value={ticket.assignedTo ? partyName(ticket.assignedTo) : t('card.noAssignee')}
             />
             <DetailRow
-              label="Fecha límite"
-              value={ticket.slaDeadline ? formatDateTime(ticket.slaDeadline, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+              label={t('detail.slaDeadline')}
+              value={
+                ticket.slaDeadline && deadlineMs != null ? (
+                  <>
+                    {formatDateTime(ticket.slaDeadline, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    {!isClosed && (
+                      <span
+                        className={
+                          deadlineOverdue
+                            ? 'ml-2 font-medium text-[var(--color-danger)]'
+                            : 'ml-2 font-normal text-[var(--color-muted)]'
+                        }
+                      >
+                        {deadlineOverdue
+                          ? t('detail.slaOverdue', { time: elapsed(deadlineMs) })
+                          : t('detail.slaRemaining', { time: elapsed(deadlineMs) })}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  '—'
+                )
+              }
             />
             <DetailRow label={t('detail.createdAt')} value={formatDateTime(ticket.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })} />
           </div>
@@ -419,7 +473,7 @@ export default function TicketDetailPage() {
           <div className="card-lux p-6 space-y-4">
             <div>
               <p className="eyebrow">{t('detail.transition')}</p>
-              <h2 className="h3">¿Qué pasó con este ticket?</h2>
+              <h2 className="h3">{t('detail.transitionQuestion')}</h2>
             </div>
             {ticket.validTransitions.length === 0 ? (
               <p className="text-sm text-[var(--color-muted)]">{t('detail.noTransitions')}</p>

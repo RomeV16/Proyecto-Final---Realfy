@@ -111,10 +111,7 @@ export default function ProviderDetailPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
           </svg>
         </Link>
-        <div>
-          <p className="eyebrow mb-1">Pool de proveedores</p>
-          <h1 className="h1">{t('detailTitle')}</h1>
-        </div>
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text)]">{t('detailTitle')}</h1>
       </div>
 
       <Reveal className="w-full max-w-2xl space-y-6">

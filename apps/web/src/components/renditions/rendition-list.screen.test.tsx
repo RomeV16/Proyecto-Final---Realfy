@@ -41,8 +41,7 @@ function item(id: string, overrides: Record<string, unknown> = {}) {
   return {
     id,
     status: 'Enviada',
-    month: 11,
-    year: 2026,
+    period: '2026-11-01T00:00:00.000Z',
     rentCollected: '100000',
     netDeposit: '91500',
     pdfUrl: 'https://example.test/r.pdf',
@@ -79,13 +78,15 @@ describe('RenditionList', () => {
     auth.role = 'Admin';
   });
 
-  it('muestra tarjetas con importes, propietario y enlaces con locale', async () => {
+  it('muestra un talón por rendición con la cuenta del neto, el locador y enlaces con locale', async () => {
     mockList(() =>
       page([
         item('r-1'),
         item('r-2', { status: 'Borrador', owner: null, ownerName: 'Nora Muestra', netDeposit: '0', rentCollected: '0' }),
         item('r-3', { status: 'Aprobada', pdfUrl: null, owner: null, contract: undefined }),
-        item('r-4', { status: 'Depositada' }),
+        item('r-4', { status: 'Depositada', depositedAt: '2026-11-12T12:00:00.000Z', commissionAmount: '6000', adminFeeAmount: '1000', deductionTotal: '1500' }),
+        item('r-5', { month: undefined, year: undefined, period: '2026-09-01T00:00:00.000Z', sentAt: '2026-10-02T12:00:00.000Z' }),
+        item('r-6', { month: undefined, year: undefined, period: null }),
       ]),
     );
     await mount();
@@ -96,10 +97,17 @@ describe('RenditionList', () => {
     expect(text).toContain('Noviembre 2026');
     expect(text).toContain('Carla Ejemplo');
     expect(text).toContain('Nora Muestra');
-    expect(text).toContain('Sin propietario asignado');
+    expect(text).toContain('Sin locador asignado');
+    expect(text).toContain('Septiembre 2026');
+    expect(text).not.toContain('undefined');
+    expect(text).toContain('Honorarios− $ 7.000,00');
+    expect(text).toContain('Gastos− $ 1.500,00');
+    expect(text).toContain('Neto transferido$ 91.500,00');
+    expect(text).toMatch(/Transferida el 12 de nov/);
+    expect(text).toMatch(/Enviada el 2 de oct/);
+    expect(text).toContain('N.º R-1');
+    expect(screen.getAllByRole('img', { name: /Neto \$\s91.500,00 sobre \$\s100.000,00 cobrados/ }).length).toBeGreaterThan(0);
     expect(text).toContain('Sin propiedad asociada');
-    expect(text).toContain('PDF no generado aún');
-    expect(text).toContain('Aún no enviada al propietario');
     const hrefs = screen.getAllByRole('link').map((a) => a.getAttribute('href'));
     expect(hrefs).toContain('/es/renditions/r-1');
     for (const h of hrefs) expect(h).toMatch(/^\/es\//);
@@ -108,11 +116,11 @@ describe('RenditionList', () => {
   it('descarga el PDF con la ruta esperada y avisa si falla', async () => {
     mockList(() => page([item('r-1')]));
     const user = await mount();
-    await user.click(await screen.findByRole('button', { name: 'Descargar PDF' }));
+    await user.click(await screen.findByRole('button', { name: /Descargar PDF/ }));
     expect(downloadFile).toHaveBeenCalledWith('/renditions/r-1/pdf', 'rendicion-r-1.pdf');
 
     downloadFile.mockRejectedValueOnce(new Error('x'));
-    await user.click(screen.getByRole('button', { name: 'Descargar PDF' }));
+    await user.click(screen.getByRole('button', { name: /Descargar PDF/ }));
     await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringContaining('No se pudo descargar')));
   });
 
@@ -133,10 +141,14 @@ describe('RenditionList', () => {
     expect(screen.queryByRole('button', { name: /Generar Rendición/ })).not.toBeInTheDocument();
   });
 
-  it('si la API falla muestra el vacío', async () => {
+  it('si la API falla lo avisa y permite reintentar', async () => {
     apiClient.mockRejectedValue(new Error('boom'));
-    await mount();
-    expect(await screen.findByText('No hay rendiciones')).toBeInTheDocument();
+    const user = await mount();
+    expect(await screen.findByText('No pudimos cargar las rendiciones')).toBeInTheDocument();
+    expect(screen.queryByText('No hay rendiciones')).not.toBeInTheDocument();
+    mockList(() => page([item('r-1')]));
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText('Noviembre 2026')).toBeInTheDocument();
   });
 
   it('filtra por estado, mes y año y permite limpiar', async () => {

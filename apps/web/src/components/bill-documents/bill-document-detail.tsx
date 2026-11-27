@@ -15,10 +15,11 @@ import {
 import { useCan } from '@/lib/permissions';
 import { DateText } from '@/components/ui/date-text';
 import { ErrorNotice } from '@/components/ui/error-notice';
+import { Icon } from '@/components/ui/icon';
 import { MoneyText } from '@/components/ui/money-text';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { ProviderText, ReasonText } from './bill-documents-screen';
+import { ConfidenceMeter, ProviderText, ReasonText } from './bill-documents-screen';
 import { ReviewActions } from './review-actions';
 
 function Fact({ label, children }: { label: string; children: ReactNode }) {
@@ -65,7 +66,7 @@ function ReadData({ doc }: { doc: BillDocumentDetail }) {
           <ProviderText providerKey={doc.providerKey} />
         </Fact>
         <Fact label={t('account')}>{doc.accountNumber ?? t('unknown')}</Fact>
-        <Fact label={t('confidence')}>{pct === null ? t('unknown') : `${pct} %`}</Fact>
+        <Fact label={t('confidence')}>{pct === null ? t('unknown') : <ConfidenceMeter confidence={doc.confidence} />}</Fact>
         <Fact label={t('service')}>
           {doc.service ? [tTypes(doc.service.serviceType), doc.service.providerName].filter(Boolean).join(' · ') : t('noService')}
         </Fact>
@@ -160,7 +161,11 @@ export function BillDocumentDetailScreen({ id }: { id: string }) {
   if (!canView) return <p className="text-sm text-[var(--color-muted)]">{t('forbidden')}</p>;
 
   const back = (
-    <Link href="/boletas/recibidas" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+    <Link
+      href="/boletas/recibidas"
+      className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700"
+    >
+      <Icon name="arrowLeft" className="h-4 w-4" aria-hidden="true" />
       {t('back')}
     </Link>
   );
@@ -185,7 +190,9 @@ export function BillDocumentDetailScreen({ id }: { id: string }) {
       <header className="space-y-2">
         {back}
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="h1">{data.fileName ?? data.origin ?? t('detail.title')}</h1>
+          <h1 className="min-w-0 break-words text-2xl font-semibold text-[var(--color-text)]">
+            {data.fileName ?? data.origin ?? t('detail.title')}
+          </h1>
           <StatusBadge domain="boletaRecibida" status={data.status} size="md" />
         </div>
       </header>

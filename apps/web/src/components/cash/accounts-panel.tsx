@@ -30,7 +30,7 @@ const KIND_BADGE: Record<string, 'info' | 'brand' | 'warning'> = {
   [FinancialAccountKind.Custodia]: 'warning',
 };
 
-/** Totales por moneda y la lista de cuentas con su saldo. */
+/** Las cuentas con su clase, moneda y saldo, y su alta, renombre, saldo inicial y baja. */
 export function AccountsPanel({ data, error, canAccounts, onChanged }: Props) {
   const t = useTranslations('cash');
   const confirm = useConfirm();
@@ -134,42 +134,6 @@ export function AccountsPanel({ data, error, canAccounts, onChanged }: Props) {
       </div>
 
       {error != null && <ErrorNotice error={error} fallback={t('loadError')} />}
-
-      {data && data.totals.length > 0 && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {data.totals.map((total) => (
-              <div
-                key={total.currency}
-                className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"
-                aria-label={t('totals.label', { currency: total.currency })}
-              >
-                <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-muted)]">{total.currency}</p>
-                <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--color-text)]">
-                  <MoneyText value={total.total} currency={total.currency} decimals={2} />
-                </p>
-                <dl className="mt-2 space-y-0.5 text-xs text-[var(--color-muted)]">
-                  <div className="flex justify-between gap-2">
-                    <dt>{t('totals.agency')}</dt>
-                    <dd className="tabular-nums">
-                      <MoneyText value={total.agency} currency={total.currency} decimals={2} />
-                    </dd>
-                  </div>
-                  <div className="flex justify-between gap-2">
-                    <dt>{t('totals.custody')}</dt>
-                    <dd className="tabular-nums">
-                      <MoneyText value={total.custody} currency={total.currency} decimals={2} />
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-[var(--color-muted)]">
-            {data.custodyInAgencyBalance ? t('totals.includesCustody') : t('totals.excludesCustody')}
-          </p>
-        </div>
-      )}
 
       {error == null && (
         <DataTable

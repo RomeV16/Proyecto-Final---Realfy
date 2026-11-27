@@ -54,13 +54,13 @@ describe('Configuración → Mensajería', () => {
     mockApi();
     renderEs(<MessagingSettingsPage />);
     const mode = within(await screen.findByRole('region', { name: 'Modo de envío' }));
-    expect(mode.getByText('Este ambiente está en:')).toBeInTheDocument();
+    expect(mode.getByText('Hoy el envío está:')).toBeInTheDocument();
     expect(mode.getAllByText('Solo la lista de prueba').length).toBe(2);
     expect(mode.getByText(/lista de prueba \(2 direcciones\); el resto queda bloqueado/)).toBeInTheDocument();
     expect(mode.getByText(/No se manda nada: los mensajes quedan en cola/)).toBeInTheDocument();
     expect(mode.getByText(/respetando el consentimiento de cada persona/)).toBeInTheDocument();
-    expect(mode.getByText(/variable MESSAGING_MODE/)).toBeInTheDocument();
-    expect(mode.getByText(/El ambiente piloto queda apagado/)).toBeInTheDocument();
+    expect(mode.getByText(/lo define quien instala el sistema/)).toBeInTheDocument();
+    expect(mode.getByText(/En el piloto queda apagado/)).toBeInTheDocument();
     const current = mode.getAllByRole('listitem').find((li) => li.getAttribute('aria-current') === 'true');
     expect(current).toHaveTextContent('Solo la lista de prueba');
   });
@@ -75,10 +75,10 @@ describe('Configuración → Mensajería', () => {
   it('muestra el estado de los proveedores', async () => {
     mockApi();
     renderEs(<MessagingSettingsPage />);
-    const providers = within(await screen.findByRole('region', { name: 'Proveedores' }));
-    expect(providers.getByText('Mail (Resend)')).toBeInTheDocument();
+    const providers = within(await screen.findByRole('region', { name: 'Servicios de envío' }));
+    expect(providers.getByText('Mail')).toBeInTheDocument();
     expect(providers.getByText('avisos@example.com')).toBeInTheDocument();
-    expect(providers.getByText('WhatsApp (Cloud API)')).toBeInTheDocument();
+    expect(providers.getByText('WhatsApp')).toBeInTheDocument();
     expect(providers.getAllByText('Sí')).toHaveLength(1);
     expect(providers.getAllByText('No')).toHaveLength(3);
   });
@@ -86,7 +86,7 @@ describe('Configuración → Mensajería', () => {
   it('sin remitente muestra un guion', async () => {
     mockApi(settings({ providers: { email: { configured: false, from: null, webhook: true }, whatsapp: { configured: true, webhook: true } } }));
     renderEs(<MessagingSettingsPage />);
-    const providers = within(await screen.findByRole('region', { name: 'Proveedores' }));
+    const providers = within(await screen.findByRole('region', { name: 'Servicios de envío' }));
     expect(providers.getByText('—')).toBeInTheDocument();
     expect(providers.getAllByText('Sí')).toHaveLength(3);
   });

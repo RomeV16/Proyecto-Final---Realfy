@@ -75,15 +75,18 @@ interface Setup {
   fail?: boolean;
   totalPages?: number;
   write?: (path: string) => unknown;
+  /** Modo de envío que devuelve la configuración; sin él la consulta falla, como para un rol sin permiso. */
+  mode?: 'off' | 'allowlist' | 'live';
 }
 
-function mockApi({ items = ITEMS, fail, totalPages = 1, write }: Setup = {}) {
+function mockApi({ items = ITEMS, fail, totalPages = 1, write, mode }: Setup = {}) {
   apiClient.mockImplementation(async (path: string, init?: { method?: string }) => {
     if (init?.method) return write ? write(path) : message('x');
     if (path.startsWith('/outbox?')) {
       if (fail) throw new ApiRequestError(500, 'INTERNAL_ERROR', 'boom');
       return { items, total: items.length, page: 1, limit: 50, totalPages };
     }
+    if (path === '/messaging/settings' && mode) return { mode, allowlistCount: 0 };
     throw new Error(`unexpected ${path}`);
   });
 }
@@ -119,6 +122,26 @@ describe('Mensajería: bandeja de salida', () => {
     expect(screen.getAllByText('Invitación').length).toBeGreaterThan(0);
     expect(screen.getAllByRole('link', { name: 'Ana Prueba' })[0]).toHaveAttribute('href', `/es/persons/${PERSON}`);
     expect(screen.getByRole('link', { name: 'Configuración de mensajería' })).toHaveAttribute('href', '/es/configuracion/mensajeria');
+  });
+
+  it('con el envío apagado lo explica arriba de la lista', async () => {
+    mockApi({ mode: 'off', items: [] });
+    renderEsWithQuery(<MessagingPage />);
+    const banner = await screen.findByRole('status');
+    expect(banner).toHaveTextContent('El envío de mensajes está apagado');
+    expect(banner).toHaveTextContent('no sale ningún mail ni WhatsApp');
+    expect(screen.getByRole('link', { name: 'Configuración de mensajería' })).toHaveAttribute('href', '/es/configuracion/mensajeria');
+  });
+
+  it('en modo de prueba avisa que solo sale la lista de prueba, y con el envío activo no avisa nada', async () => {
+    mockApi({ mode: 'allowlist' });
+    const { unmount } = renderEsWithQuery(<MessagingPage />);
+    expect(await screen.findByRole('status')).toHaveTextContent('El envío está en modo de prueba');
+    unmount();
+    mockApi({ mode: 'live' });
+    renderEsWithQuery(<MessagingPage />);
+    await screen.findAllByText('ana@example.test');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('ofrece reintentar y cancelar solo en los estados permitidos', async () => {

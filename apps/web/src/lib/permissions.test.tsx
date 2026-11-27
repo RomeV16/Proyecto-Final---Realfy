@@ -27,7 +27,7 @@ const EXPECTED: Record<Action, string[]> = {
   'scoring.configure': ['Admin', 'Gerente'],
   'contracts.manage': ['Admin', 'Gerente', 'Ventas'],
   'contracts.administer': ['Admin', 'Gerente'],
-  'liquidaciones.generate': ['Admin', 'Gerente'],
+  'liquidaciones.generate': ['Admin', 'Gerente', 'Liquidaciones'],
   'liquidaciones.bulk': ['Admin', 'Gerente'],
   'liquidaciones.act': ['Admin', 'Gerente', 'Ventas', 'Liquidaciones'],
   'liquidaciones.readOnlyNotice': ['Lectura'],

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderEs } from '@/components/index-data/test-utils';
 
@@ -72,13 +72,22 @@ describe('NotificationsPage', () => {
     for (const h of hrefs) expect(h).toMatch(/^\/es\//);
   });
 
-  it('muestra la fecha con el formato de la web', async () => {
-    mockApi([notif({ id: 'n1', title: 'Aviso fechado' })]);
+  it('agrupa por día: hoy, ayer y después la fecha completa', async () => {
+    const now = Date.now();
+    mockApi([
+      notif({ id: 'n1', title: 'De hoy', createdAt: new Date(now).toISOString() }),
+      notif({ id: 'n2', title: 'De ayer', createdAt: new Date(now - 86400000).toISOString() }),
+      notif({ id: 'n3', title: 'Vieja uno', createdAt: '2026-11-01T15:30:00.000Z' }),
+      notif({ id: 'n4', title: 'Vieja dos', createdAt: '2026-11-01T12:00:00.000Z' }),
+    ]);
     renderEs(<NotificationsPage />);
-    await screen.findByText('Tenés 1 aviso sin leer');
-    await screen.findAllByText('Aviso fechado');
-    const text = (document.body.textContent ?? '').replaceAll(' ', ' ');
-    expect(text).toContain('01 de nov de 2026, 03:30');
+    await screen.findByText('De hoy');
+    expect(within(screen.getByRole('region', { name: 'Hoy' })).getByText('De hoy')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Ayer' })).getByText('De ayer')).toBeInTheDocument();
+    const old = screen.getByRole('region', { name: /domingo, 1 de noviembre/ });
+    expect(within(old).getByText('Vieja uno')).toBeInTheDocument();
+    expect(within(old).getByText('Vieja dos')).toBeInTheDocument();
+    expect(within(old).getByText(/03:30/)).toBeInTheDocument();
   });
 
   it('marca una como leída con PATCH y actualiza el contador', async () => {
@@ -89,8 +98,8 @@ describe('NotificationsPage', () => {
     await screen.findAllByText('Solo una');
     await user.click(screen.getByRole('button', { name: /Marcar leída/ }));
     expect(apiClient).toHaveBeenCalledWith('/notifications/n1/read', { method: 'PATCH' });
-    expect(await screen.findByText('Vencimientos, deudas y cambios de estado')).toBeInTheDocument();
-    expect(screen.queryByText('Nuevo')).not.toBeInTheDocument();
+    expect(await screen.findByText('Estás al día: no hay avisos sin leer.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Marcar leída/ })).not.toBeInTheDocument();
   });
 
   it('marca todas como leídas', async () => {
@@ -104,6 +113,45 @@ describe('NotificationsPage', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Marcar todas como leídas' })).toBeDisabled(),
     );
+  });
+
+  it('el filtro Sin leer deja solo las pendientes y avisa cuando no queda ninguna', async () => {
+    mockApi();
+    const user = userEvent.setup();
+    renderEs(<NotificationsPage />);
+    await screen.findByText('Pago recibido');
+    await user.click(screen.getByRole('button', { name: /Sin leer/ }));
+    expect(screen.queryByText('Pago recibido')).not.toBeInTheDocument();
+    expect(screen.getByText('Deuda vencida')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Marcar todas como leídas' }));
+    expect(await screen.findByText('No quedan avisos sin leer.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Todas' }));
+    expect(screen.getByText('Pago recibido')).toBeInTheDocument();
+  });
+
+  it('si marcar como leída falla vuelve a leer la lista', async () => {
+    let reads = 0;
+    apiClient.mockImplementation((path: string, init?: { method?: string }) => {
+      if (init?.method) return Promise.reject(new Error('red'));
+      reads += 1;
+      return Promise.resolve({ items: [notif({ id: 'n1', title: 'Solo una' })] });
+    });
+    const user = userEvent.setup();
+    renderEs(<NotificationsPage />);
+    await screen.findByText('Solo una');
+    await user.click(screen.getByRole('button', { name: /Marcar leída/ }));
+    await waitFor(() => expect(reads).toBe(2));
+    await user.click(screen.getByRole('button', { name: 'Marcar todas como leídas' }));
+    await waitFor(() => expect(reads).toBe(3));
+  });
+
+  it('si la carga falla lo dice y deja reintentar', async () => {
+    apiClient.mockRejectedValueOnce(new Error('red'));
+    renderEs(<NotificationsPage />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar las notificaciones.');
+    mockApi([notif({ id: 'n1', title: 'Ya cargó' })]);
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Actualizar' }));
+    expect(await screen.findByText('Ya cargó')).toBeInTheDocument();
   });
 
   it('sin avisos muestra el estado vacío y deshabilita el botón', async () => {

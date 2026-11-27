@@ -3,6 +3,8 @@
 import { useTranslations } from 'next-intl';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { PropertyType, PropertyOperationType } from '@realfy/shared';
+import { inputStyles } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 
 /**
  * Filtros de la grilla pública. Al cambiar, actualizan la query string y
@@ -45,16 +47,16 @@ export function PropertyFilters({
 
   return (
     <div className="rounded-[var(--radius-2xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <div>
           <label htmlFor="filter-operation" className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
             {tFilters('operationLabel')}
           </label>
-          <select
+          <Select
             id="filter-operation"
             value={initialOperation}
             onChange={(e) => applyFilter('operation', e.target.value)}
-            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]"
+            
           >
             <option value="">{tFilters('operationPlaceholder')}</option>
             {Object.values(PropertyOperationType).map((op) => (
@@ -62,18 +64,18 @@ export function PropertyFilters({
                 {t(`operationTypes.${op}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <div>
           <label htmlFor="filter-type" className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
             {tFilters('typeLabel')}
           </label>
-          <select
+          <Select
             id="filter-type"
             value={initialType}
             onChange={(e) => applyFilter('type', e.target.value)}
-            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]"
+            
           >
             <option value="">{tFilters('typePlaceholder')}</option>
             {Object.values(PropertyType).map((pt) => (
@@ -81,10 +83,10 @@ export function PropertyFilters({
                 {t(`types.${pt}`)}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
-        <div>
+        <div className="col-span-2 lg:col-span-1">
           <label htmlFor="filter-city" className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
             {tFilters('cityLabel')}
           </label>
@@ -97,7 +99,7 @@ export function PropertyFilters({
             onKeyDown={(e) => {
               if (e.key === 'Enter') applyFilter('city', e.currentTarget.value);
             }}
-            className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]"
+            className={inputStyles()}
           />
         </div>
 
@@ -117,22 +119,22 @@ export function PropertyFilters({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') applyFilter(key, e.currentTarget.value);
               }}
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-brand-500)_15%,transparent)]"
+              className={inputStyles()}
             />
           </div>
         ))}
 
-        <div className="flex items-end">
-          {hasFilters && (
+        {hasFilters && (
+          <div className="col-span-2 flex items-end lg:col-span-1">
             <button
               type="button"
               onClick={() => router.push(pathname)}
-              className="w-full rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-muted)] transition-colors hover:bg-[var(--color-surface-sunken)] hover:text-[var(--color-text)]"
+              className="h-11 w-full rounded-lg border border-[var(--color-border)] px-3 text-sm text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-sunken)]"
             >
               {tFilters('clear')}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

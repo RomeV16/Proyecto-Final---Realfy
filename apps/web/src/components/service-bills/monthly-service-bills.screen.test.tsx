@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import es from '@/i18n/messages/es.json';
@@ -89,6 +89,28 @@ beforeEach(() => {
 });
 
 describe('Boletas del mes', () => {
+  it('el tablero agrupa por servicio y marca qué propiedades tienen la boleta y cuáles faltan', async () => {
+    setup();
+    const board = await screen.findByRole('group', { name: 'Boletas del mes por servicio' });
+    const text = (board.textContent ?? '').replaceAll('\u00a0', ' ');
+    expect(text).toContain('1/5');
+    expect(text).toContain('boletas cargadas de noviembre de 2026');
+    expect(text).toContain('Faltan 4 boletas');
+    expect(within(board).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
+
+    const municipal = within(board).getByRole('group', { name: 'Municipal' });
+    expect(municipal).toHaveTextContent('1 de 1');
+    expect((municipal.textContent ?? '').replaceAll('\u00a0', ' ')).toContain('$ 9.000,00');
+    expect(municipal).toHaveTextContent('vence 15 nov');
+
+    const luz = within(board).getByRole('group', { name: 'Electricidad' });
+    expect(luz).toHaveTextContent('0 de 1');
+    expect(luz).toHaveTextContent('Depto s1');
+    expect(luz).toHaveTextContent('Ente de prueba');
+    expect(luz).toHaveTextContent('Falta');
+    expect(luz).toHaveTextContent('vence 10 nov');
+  });
+
   it('muestra una fila por servicio con quién paga según las reglas', async () => {
     setup();
     expect(await screen.findByLabelText('Importe 1')).toBeInTheDocument();
@@ -98,8 +120,8 @@ describe('Boletas del mes', () => {
     expect(screen.getByText(/Propietario \(2.500,00 fijo, anual\)|Propietario \(\$\s?2\.500,00 fijo, anual\)/)).toBeInTheDocument();
     expect(screen.getByText('Inquilino (paga directo)')).toBeInTheDocument();
     expect(screen.getByText('Inmobiliaria (por consumo)')).toBeInTheDocument();
-    expect(screen.getByText('Sin reglas')).toBeInTheDocument();
-    expect(screen.getByText('Municipal')).toBeInTheDocument();
+    expect(screen.getByText('Sin regla en el contrato')).toBeInTheDocument();
+    expect(screen.getAllByText('Municipal').length).toBeGreaterThan(0);
     // La boleta cargada trae su importe y estado; los demás servicios se proponen vacíos con la cuota del mes.
     expect(screen.getByLabelText('Importe 2')).toHaveValue('9000');
     expect(screen.getByLabelText('Cuota 2')).toHaveValue('11/2026');

@@ -60,7 +60,7 @@ describe('PaymentForm: quién recibió el cobro', () => {
     expect(screen.getByLabelText('¿Quién recibió el cobro?')).toHaveValue('');
     expect(screen.queryByLabelText('Cuenta donde entró')).not.toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText(/Método/), 'Efectivo');
-    await user.click(screen.getByRole('button', { name: 'Registrar Pago' }));
+    await user.click(screen.getByRole('button', { name: 'Registrar pago' }));
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     const body = postBody();
     expect(body).not.toHaveProperty('receivedBy');
@@ -92,7 +92,7 @@ describe('PaymentForm: quién recibió el cobro', () => {
     await user.click(screen.getByLabelText(/Guardar la parte de los locadores en custodia/));
     await user.type(screen.getByLabelText('Referencia externa'), ' ANT-001 ');
     await user.selectOptions(screen.getByLabelText(/Método/), 'Transferencia');
-    await user.click(screen.getByRole('button', { name: 'Registrar Pago' }));
+    await user.click(screen.getByRole('button', { name: 'Registrar pago' }));
 
     expect(await screen.findByText('Se emitió el recibo Nº ARS-00000007.')).toBeInTheDocument();
     expect(postBody()).toMatchObject({ receivedBy: 'Inmobiliaria', accountId: BANCO, inCustody: true, externalRef: 'ANT-001' });
@@ -117,7 +117,7 @@ describe('PaymentForm: quién recibió el cobro', () => {
     }));
     await user.selectOptions(screen.getByLabelText('¿Quién recibió el cobro?'), 'Inmobiliaria');
     await user.selectOptions(screen.getByLabelText(/Método/), 'Efectivo');
-    await user.click(screen.getByRole('button', { name: 'Registrar Pago' }));
+    await user.click(screen.getByRole('button', { name: 'Registrar pago' }));
     expect(await screen.findByText('Se emitió el recibo Nº 00000003.')).toBeInTheDocument();
     expect(postBody()).toMatchObject({ receivedBy: 'Inmobiliaria' });
     expect(postBody()).not.toHaveProperty('accountId');
@@ -135,7 +135,7 @@ describe('PaymentForm: quién recibió el cobro', () => {
     await user.selectOptions(screen.getByLabelText('¿Quién recibió el cobro?'), 'Locador');
     expect(screen.queryByLabelText('Cuenta donde entró')).not.toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText(/Método/), 'Transferencia');
-    await user.click(screen.getByRole('button', { name: 'Registrar Pago' }));
+    await user.click(screen.getByRole('button', { name: 'Registrar pago' }));
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
     expect(postBody()).toMatchObject({ receivedBy: 'Locador' });
     expect(postBody()).not.toHaveProperty('inCustody');
@@ -147,7 +147,7 @@ describe('PaymentForm: quién recibió el cobro', () => {
     });
     await user.type(screen.getByLabelText('Referencia externa'), 'ANT-001');
     await user.selectOptions(screen.getByLabelText(/Método/), 'Efectivo');
-    await user.click(screen.getByRole('button', { name: 'Registrar Pago' }));
+    await user.click(screen.getByRole('button', { name: 'Registrar pago' }));
     expect(await screen.findByText('Ya hay un pago con esa referencia externa.')).toBeInTheDocument();
   });
 });

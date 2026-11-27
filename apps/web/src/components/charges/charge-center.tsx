@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api-client';
-import { CHARGE_STATUSES, type ChargesResponse } from '@/lib/charges';
+import { CHARGE_KINDS, CHARGE_STATUSES, CHARGE_TARGETS, type ChargesResponse } from '@/lib/charges';
+import { cn } from '@/lib/cn';
 import { useCan } from '@/lib/permissions';
 import { currentMonth } from '@/lib/service-bills';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,8 @@ export function ChargeCenter() {
   const targets = useChargeTargets(canManage);
 
   const [status, setStatus] = useState('Pendiente');
+  const [chargedTo, setChargedTo] = useState('');
+  const [kind, setKind] = useState('');
   const [period, setPeriod] = useState('');
   const [upfrontOnly, setUpfrontOnly] = useState(false);
   const [page, setPage] = useState(1);
@@ -42,6 +45,7 @@ export function ChargeCenter() {
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(LIMIT) });
       if (status) params.set('status', status);
+      if (chargedTo) params.set('chargedTo', chargedTo);
       if (period) params.set('period', period);
       if (upfrontOnly) params.set('requiresUpfront', 'true');
       setData(await apiClient<ChargesResponse>(`/charges?${params.toString()}`));
@@ -49,7 +53,7 @@ export function ChargeCenter() {
       setError(err);
       setData(null);
     }
-  }, [status, period, upfrontOnly, page]);
+  }, [status, chargedTo, period, upfrontOnly, page]);
 
   useEffect(() => {
     if (canManage) void load();
@@ -64,6 +68,8 @@ export function ChargeCenter() {
   }
 
   const refresh = () => setVersion((v) => v + 1);
+  const visible = (data?.items ?? []).filter((row) => !kind || row.kind === kind);
+  const hasFilters = status !== 'Pendiente' || !!chargedTo || !!kind || !!period || upfrontOnly;
   const filter = (apply: () => void) => {
     apply();
     setPage(1);
@@ -73,7 +79,7 @@ export function ChargeCenter() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-[var(--color-text)]">{t('title')}</h1>
+          <h1 className="h1">{t('title')}</h1>
           <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -97,45 +103,62 @@ export function ChargeCenter() {
         />
       )}
 
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="charges-status" className="text-xs font-medium text-[var(--color-muted)]">
-            {t('filters.status')}
-          </label>
-          <Select id="charges-status" value={status} onChange={(e) => filter(() => setStatus(e.target.value))} className="w-48">
-            <option value="">{t('filters.all')}</option>
-            {CHARGE_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {t(`statuses.${s}`)}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="charges-period" className="text-xs font-medium text-[var(--color-muted)]">
-            {t('filters.period')}
-          </label>
-          <input
-            id="charges-period"
-            type="month"
-            value={period}
-            placeholder={currentMonth()}
-            onChange={(e) => filter(() => setPeriod(e.target.value))}
-            className={inputStyles({ className: 'w-44' })}
+      <div className="space-y-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <ChipGroup
+            label={t('filters.status')}
+            value={status}
+            onChange={(value) => filter(() => setStatus(value))}
+            options={[...CHARGE_STATUSES.map((s) => ({ value: s as string, label: t(`statuses.${s}`) })), { value: '', label: t('filters.all') }]}
+          />
+          <ChipGroup
+            label={t('filters.chargedTo')}
+            value={chargedTo}
+            onChange={(value) => filter(() => setChargedTo(value))}
+            options={[{ value: '', label: t('filters.all') }, ...CHARGE_TARGETS.map((c) => ({ value: c as string, label: t(`targets.${c}`) }))]}
           />
         </div>
-        <label className="flex items-center gap-2 pb-2 text-sm text-[var(--color-text)]">
-          <input
-            type="checkbox"
-            checked={upfrontOnly}
-            onChange={(e) => filter(() => setUpfrontOnly(e.target.checked))}
-          />
-          {t('filters.upfrontOnly')}
-        </label>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--color-border)] pt-3">
+          <div className="flex items-center gap-2">
+            <label htmlFor="charges-kind" className="text-xs font-medium text-[var(--color-muted)]">
+              {t('filters.kind')}
+            </label>
+            <Select id="charges-kind" value={kind} onChange={(e) => setKind(e.target.value)} className="w-52">
+              <option value="">{t('filters.allKinds')}</option>
+              {CHARGE_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {t(`kinds.${k}`)}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="charges-period" className="text-xs font-medium text-[var(--color-muted)]">
+              {t('filters.period')}
+            </label>
+            <input
+              id="charges-period"
+              type="month"
+              value={period}
+              placeholder={currentMonth()}
+              onChange={(e) => filter(() => setPeriod(e.target.value))}
+              className={inputStyles({ className: 'w-44' })}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-[var(--color-text)]">
+            <input
+              type="checkbox"
+              checked={upfrontOnly}
+              onChange={(e) => filter(() => setUpfrontOnly(e.target.checked))}
+            />
+            {t('filters.upfrontOnly')}
+          </label>
+        </div>
       </div>
 
       <ChargeTable
-        items={data?.items ?? []}
+        items={visible}
+        filtered={hasFilters}
         loading={data === null && error == null}
         error={error}
         canManage={canManage}
@@ -151,6 +174,7 @@ export function ChargeCenter() {
           </Button>
         }
       />
+      {kind && data && data.totalPages > 1 && <p className="text-xs text-[var(--color-muted)]">{t('filters.kindPageNote')}</p>}
       <p className="text-xs text-[var(--color-muted)]">{t('lateNote')}</p>
 
       {showAdd && (
@@ -161,6 +185,41 @@ export function ChargeCenter() {
           onSaved={refresh}
         />
       )}
+    </div>
+  );
+}
+
+interface ChipGroupProps {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}
+
+/** Filtro rápido: una fila de chapas donde siempre hay una elegida. */
+function ChipGroup({ label, value, options, onChange }: ChipGroupProps) {
+  return (
+    <div role="group" aria-label={label} className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-xs font-medium text-[var(--color-muted)]">{label}</span>
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value || 'all'}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              'h-7 whitespace-nowrap rounded-md border px-2.5 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-500',
+              active
+                ? 'border-[var(--color-text)] bg-[var(--color-text)] text-[var(--color-surface)]'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-muted)] hover:border-[var(--color-slate-400)] hover:text-[var(--color-text)]',
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

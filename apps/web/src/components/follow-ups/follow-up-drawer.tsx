@@ -59,8 +59,8 @@ export function FollowUpDrawer({ followUp, onClose, onChanged }: Props) {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await apiClient<{ items: StaffOption[] }>('/users');
-        if (!cancelled) setStaff(res?.items ?? []);
+        const res = await apiClient<StaffOption[]>('/users');
+        if (!cancelled) setStaff(Array.isArray(res) ? res : []);
       } catch {
         if (!cancelled) setStaff([]);
       }

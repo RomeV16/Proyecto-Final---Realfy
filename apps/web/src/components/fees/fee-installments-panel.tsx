@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePaginatedList } from '@/hooks/use-paginated-list';
 import { FEE_INSTALLMENT_STATUSES, feePlace, type InstallmentItem } from '@/lib/fees';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
@@ -21,6 +22,7 @@ export function FeeInstallmentsPanel() {
     limit: LIMIT,
     initialFilters: INITIAL_FILTERS,
   });
+  const queryClient = useQueryClient();
   const [paying, setPaying] = useState<PayTarget | null>(null);
   const installmentColumns = useInstallmentColumns<InstallmentItem>((row) => row.fee, setPaying);
 
@@ -70,7 +72,7 @@ export function FeeInstallmentsPanel() {
         pagination={listPagination(list)}
         empty={{ title: t('installmentsEmpty.title'), subtitle: t('installmentsEmpty.subtitle'), iconName: 'percent' }}
       />
-      {paying && <FeePayDialog target={paying} onClose={() => setPaying(null)} onDone={() => void list.refetch()} />}
+      {paying && <FeePayDialog target={paying} onClose={() => setPaying(null)} onDone={() => void queryClient.invalidateQueries({ queryKey: ['fee-installments'] })} />}
     </div>
   );
 }

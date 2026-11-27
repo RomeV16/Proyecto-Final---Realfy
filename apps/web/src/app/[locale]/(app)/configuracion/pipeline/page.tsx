@@ -702,7 +702,7 @@ export default function PipelineSettingsPage() {
 
       {/* Encabezado */}
       <div>
-        <h1 className="text-2xl font-bold text-[var(--color-text)] tracking-tight">{t('title')}</h1>
+        <h1 className="h1">{t('title')}</h1>
         <p className="text-sm text-[var(--color-muted)] mt-0.5">{t('subtitle')}</p>
       </div>
 

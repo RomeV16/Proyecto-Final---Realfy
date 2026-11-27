@@ -22,7 +22,7 @@ vi.mock('@/lib/toast', () => ({ toast }));
 
 import { ApiRequestError } from '@/lib/api-client';
 import { BillDocumentDetailScreen } from './bill-document-detail';
-import { BillDocumentsScreen } from './bill-documents-screen';
+import { BillDocumentsScreen, confidenceTone } from './bill-documents-screen';
 import { BillReviewNotice } from './bill-review-notice';
 import { acceptBody } from './review-actions';
 
@@ -88,7 +88,17 @@ describe('BillDocumentsScreen', () => {
     expect((await screen.findAllByText('La lectura no es lo bastante confiable para cargarla sola.')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('EPEC').length).toBeGreaterThan(0);
     expect(screen.getAllByText('55 %')[0]).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: '2 boletas' })[0]).toHaveAttribute('href', expect.stringContaining('/boletas/recibidas/d2'));
+    // Cada documento es un renglón de la bandeja que abre su revisión.
+    const inbox = screen.getByRole('region', { name: 'Bandeja de boletas recibidas' });
+    const items = within(inbox).getAllByRole('link');
+    expect(items).toHaveLength(2);
+    expect(items[1]).toHaveAttribute('href', expect.stringContaining('/boletas/recibidas/d2'));
+    expect(items[1]).toHaveTextContent('a@demo.com');
+    expect(items[1]).toHaveTextContent('Mail');
+    expect(items[1]).toHaveTextContent('2 boletas');
+    expect(items[0]).toHaveTextContent('Requiere revisión');
+    expect(within(items[0]).getByText('Confianza de la lectura: 55 %')).toBeInTheDocument();
+    expect(inbox).toHaveTextContent('2 documentos');
     expect(apiClient.mock.calls[0][0]).toContain('status=RequiereRevision');
   });
 
@@ -387,6 +397,17 @@ describe('acceptBody', () => {
       period: '2026-10',
       amount: '50',
     });
+  });
+});
+
+describe('confidenceTone', () => {
+  it('es verde desde la confianza con la que la boleta se carga sola', () => {
+    expect(confidenceTone('0.8')).toBe('success');
+    expect(confidenceTone('0.97')).toBe('success');
+    expect(confidenceTone('0.799')).toBe('warning');
+    expect(confidenceTone('0.6')).toBe('warning');
+    expect(confidenceTone('0.55')).toBe('danger');
+    expect(confidenceTone(null)).toBe('danger');
   });
 });
 

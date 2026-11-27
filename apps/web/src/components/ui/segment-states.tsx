@@ -81,3 +81,55 @@ export function SegmentNotFound() {
     />
   );
 }
+
+/**
+ * `not-found.tsx` fuera del panel (sitio público, portal, acceso): pantalla completa, sin navegación,
+ * con un único camino de vuelta al inicio del sitio en el que está la persona.
+ */
+export function PageNotFound() {
+  const t = useTranslations('errors.segment');
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4">
+      <EmptyState
+        iconName="search"
+        title={t('pageNotFoundTitle')}
+        subtitle={t('pageNotFoundMessage')}
+        action={
+          <Link
+            href="/"
+            className="inline-flex h-11 items-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600"
+          >
+            {t('pageHome')}
+          </Link>
+        }
+      />
+    </main>
+  );
+}
+
+/** `error.tsx` fuera del panel: lo mismo que `SegmentError`, a pantalla completa. */
+export function PageError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  const t = useTranslations('errors.segment');
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4">
+      <div className="flex w-full max-w-xl flex-col gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-[var(--color-text)]">{t('errorTitle')}</h1>
+          <p className="mt-1 text-sm text-[var(--color-muted)]">{t('pageErrorMessage')}</p>
+        </div>
+        <ErrorNotice error={error} />
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" onClick={reset}>
+            {t('retry')}
+          </Button>
+          <Link
+            href="/"
+            className="inline-flex h-11 items-center rounded-lg border border-[var(--color-border)] px-5 text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-sunken)]"
+          >
+            {t('pageHome')}
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}

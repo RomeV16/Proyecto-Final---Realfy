@@ -44,7 +44,7 @@ function item(id: string, overrides: Record<string, unknown> = {}) {
     status: 'Enviada',
     period: '2026-11-01T00:00:00.000Z',
     dueDate: '2026-11-10T12:00:00.000Z',
-    totalAmount: '100000',
+    total: '100000',
     contract: { id: 'c-1', property: { id: 'p-1', title: 'Depto de prueba', street: 'Calle Falsa 123', city: 'Ciudad Ejemplo' } },
     _count: { payments: 0 },
     ...overrides,
@@ -86,13 +86,13 @@ describe('LiquidacionList', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  it('muestra tarjetas con importe, período, vencimiento y enlaces con locale', async () => {
+  it('muestra filas con importe, período, vencimiento y enlaces con locale', async () => {
     mockList(() =>
       page([
         item('l-1', { _count: { payments: 2 } }),
         item('l-2', { status: 'Vencida' }),
         item('l-3', { status: 'Borrador', month: 12, year: 2026, period: undefined, dueDate: undefined, contract: undefined }),
-        item('l-4', { status: 'Pagada', total: undefined, totalAmount: undefined, subtotal: '5000' }),
+        item('l-4', { status: 'Pagada', total: undefined, subtotal: '5000' }),
         item('l-5', { status: 'Anulada' }),
       ]),
     );
@@ -102,11 +102,11 @@ describe('LiquidacionList', () => {
     expect(text).toContain('$ 100.000,00');
     expect(text).toContain('$ 5.000,00');
     expect(text).toContain('Noviembre 2026');
-    expect(text).toMatch(/Vence: 10 de nov/);
-    expect(text).toMatch(/Vencida desde el 10 de nov/);
+    expect(text).toContain('10/11/2026');
+    expect(text).toMatch(/Venció hace \d+ días/);
     expect(text).toContain('Sin propiedad asociada');
     expect(text).toContain('Calle Falsa 123');
-    expect(text).toContain('Pendiente de aprobación');
+    expect(text).toContain('Falta aprobar');
     const hrefs = screen.getAllByRole('link').map((a) => a.getAttribute('href'));
     expect(hrefs).toContain('/es/liquidaciones/l-1');
     for (const h of hrefs) expect(h).toMatch(/^\/es\//);
@@ -129,16 +129,25 @@ describe('LiquidacionList', () => {
     auth.role = role;
     mockList(() => page([item('l-1'), item('l-2')]));
     await mount();
-    expect(screen.getByRole('button', { name: 'Generar Mes' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Generar mes' })).toBeInTheDocument();
     expect(await screen.findByText('Seleccionar todas')).toBeInTheDocument();
   });
 
-  it.each(['Ventas', 'Liquidaciones', 'Lectura', 'Soporte'])('%s no ve generar ni selección masiva', async (role) => {
+  it('Liquidaciones ve generar mes, como permite la API, pero no la selección masiva', async () => {
+    auth.role = 'Liquidaciones';
+    mockList(() => page([item('l-1')]));
+    await mount();
+    await screen.findByText('Depto de prueba');
+    expect(screen.getByRole('button', { name: 'Generar mes' })).toBeInTheDocument();
+    expect(screen.queryByText('Seleccionar todas')).not.toBeInTheDocument();
+  });
+
+  it.each(['Ventas', 'Lectura', 'Soporte'])('%s no ve generar ni selección masiva', async (role) => {
     auth.role = role;
     mockList(() => page([item('l-1')]));
     await mount();
-    await screen.findByText('Depto de prueba — Calle Falsa 123 — Ciudad Ejemplo');
-    expect(screen.queryByRole('button', { name: 'Generar Mes' })).not.toBeInTheDocument();
+    await screen.findByText('Depto de prueba');
+    expect(screen.queryByRole('button', { name: 'Generar mes' })).not.toBeInTheDocument();
     expect(screen.queryByText('Seleccionar todas')).not.toBeInTheDocument();
   });
 
@@ -146,7 +155,7 @@ describe('LiquidacionList', () => {
     mockList(() => page([]));
     await mount();
     expect(await screen.findByText('No hay liquidaciones')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Generar Mes/ }).length).toBeGreaterThan(1);
+    expect(screen.getAllByRole('button', { name: /Generar mes/ }).length).toBeGreaterThan(1);
   });
 
   it('vacío para un rol sin permiso no ofrece generar', async () => {
@@ -154,13 +163,84 @@ describe('LiquidacionList', () => {
     mockList(() => page([]));
     await mount();
     expect(await screen.findByText('No hay liquidaciones')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Generar Mes/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Generar mes/ })).not.toBeInTheDocument();
   });
 
-  it('si la API falla muestra el vacío', async () => {
+  it('si la API falla lo avisa y permite reintentar', async () => {
     apiClient.mockRejectedValue(new ApiRequestError(500, 'BOOM', 'caída de prueba'));
+    const user = await mount();
+    expect(await screen.findByText('No pudimos cargar las liquidaciones')).toBeInTheDocument();
+    expect(screen.queryByText('No hay liquidaciones')).not.toBeInTheDocument();
+    mockList(() => page([item('l-1')]));
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText('Noviembre 2026')).toBeInTheDocument();
+  });
+
+  it('busca el inquilino en todas las páginas de contratos', async () => {
+    const tenant = (firstName: string) => [{ role: 'Inquilino', person: { firstName, lastName: 'Muestra' } }];
+    mockList((path) => {
+      if (path.startsWith('/contracts?page=1&')) return { items: [{ id: 'c-1', persons: tenant('Iris') }], totalPages: 2 };
+      if (path.startsWith('/contracts?page=2&')) return { items: [{ id: 'c-2', persons: tenant('Abel') }], totalPages: 2 };
+      return page([item('l-1'), item('l-2', { contract: { id: 'c-2', property: { id: 'p-2', title: 'Casa de prueba' } } })]);
+    });
     await mount();
-    expect(await screen.findByText('No hay liquidaciones')).toBeInTheDocument();
+    expect(await screen.findByText(/Iris Muestra/)).toBeInTheDocument();
+    expect(await screen.findByText(/Abel Muestra/)).toBeInTheDocument();
+    expect(apiClient.mock.calls.filter(([path]) => String(path).startsWith('/contracts'))).toHaveLength(2);
+  });
+
+  it('agrupa por mes con los totales emitido, cobrado, pendiente y vencido', async () => {
+    mockList((path) =>
+      path.startsWith('/contracts')
+        ? { items: [{ id: 'c-1', persons: [{ role: 'Inquilino', person: { firstName: 'Iris', lastName: 'Muestra' } }, { role: 'Propietario', person: { firstName: 'Otto', lastName: 'Dueño' } }] }] }
+        : page([
+            item('l-1', { status: 'Pagada', total: '100', paidAt: '2026-11-05T15:00:00.000Z' }),
+            item('l-2', { status: 'Vencida', total: '40' }),
+            item('l-3', { status: 'Borrador', total: '60' }),
+            item('l-4', { status: 'Anulada', total: '999' }),
+            item('l-5', { status: 'Pagada', total: '10', currency: 'USD' }),
+            item('l-6', { status: 'Pagada', total: '70', period: '2026-10-01T00:00:00.000Z' }),
+            item('l-7', { status: 'Enviada', total: '5', period: undefined }),
+          ]),
+    );
+    const user = await mount();
+    const november = await screen.findByRole('region', { name: 'Noviembre 2026' });
+    const text = nb(november.textContent);
+    expect(text).toContain('5 liquidaciones');
+    expect(text).toMatch(/Emitido\$ 200,00/);
+    expect(text).toMatch(/Cobrado\$ 100,00/);
+    expect(text).toMatch(/Pendiente\$ 60,00/);
+    expect(text).toMatch(/Vencido\$ 40,00/);
+    expect(text).toContain('US$ 10,00');
+    expect(within(november).getByRole('img', { name: /Cobrado \$\s100,00 de \$\s200,00/ })).toBeInTheDocument();
+    expect(await within(november).findAllByText(/Iris Muestra/)).not.toHaveLength(0);
+    expect(november.textContent).not.toContain('Otto Dueño');
+    const titles = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'));
+    expect(titles).toEqual(['Noviembre 2026', 'Octubre 2026', 'Sin período']);
+    // primero lo que hay que atender: vencida, sin aprobar, y al final pagadas y anulada
+    const rows = within(november).getAllByRole('listitem').map((li) => nb(li.textContent));
+    expect(rows[0]).toContain('Vencida');
+    expect(rows[1]).toContain('Falta aprobar');
+    expect(rows.at(-1)).toContain('Anulada');
+
+    await user.click(screen.getByRole('button', { name: /1 vencida/ }));
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith(expect.stringContaining('status=Vencida')));
+    await user.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
+    await user.click(await screen.findByRole('button', { name: /1 sin aprobar/ }));
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith(expect.stringContaining('status=Borrador')));
+  });
+
+  it('selecciona una fila suelta y la deselecciona', async () => {
+    mockList(() => page([item('l-1'), item('l-2')]));
+    const user = await mount();
+    const boxes = await screen.findAllByLabelText('Seleccionar Depto de prueba');
+    await user.click(boxes[0]!);
+    expect(screen.getAllByText('1 seleccionadas').length).toBeGreaterThan(0);
+    await user.click(boxes[0]!);
+    expect(screen.queryByRole('button', { name: 'Aprobar seleccionadas' })).not.toBeInTheDocument();
+    await user.click(screen.getByLabelText('Seleccionar todas'));
+    await user.click(screen.getByLabelText('Seleccionar todas'));
+    expect(screen.queryByRole('button', { name: 'Aprobar seleccionadas' })).not.toBeInTheDocument();
   });
 
   it('filtra por estado, mes y año y permite limpiar', async () => {
@@ -192,22 +272,22 @@ describe('LiquidacionList', () => {
 
   it('pagina hacia adelante y atrás', async () => {
     mockList((path) =>
-      page([item('l-1')], { total: 30, totalPages: 3, page: path.includes('page=2') ? 2 : 1 }),
+      page([item('l-1')], { total: 230, totalPages: 3, page: path.includes('page=2') ? 2 : 1 }),
     );
     const user = await mount();
-    expect(await screen.findByText('Mostrando 1-12 de 30')).toBeInTheDocument();
+    expect(await screen.findByText('Mostrando 1-100 de 230')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Siguiente' }));
-    expect(await screen.findByText('Mostrando 13-24 de 30')).toBeInTheDocument();
+    expect(await screen.findByText('Mostrando 101-200 de 230')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Anterior' }));
-    expect(await screen.findByText('Mostrando 1-12 de 30')).toBeInTheDocument();
+    expect(await screen.findByText('Mostrando 1-100 de 230')).toBeInTheDocument();
   });
 
   it('genera liquidaciones del mes', async () => {
     mockList(() => page([item('l-1')]), () => Promise.resolve({ created: 4, skipped: 0 }));
     const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Generar Mes' }));
-    expect(screen.getByText('Generar Liquidaciones del Mes')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Generar mes' }));
+    expect(screen.getByText('Generar liquidaciones del mes')).toBeInTheDocument();
     await user.selectOptions(screen.getAllByRole('combobox').at(-2)!, '3');
     await user.click(screen.getByRole('button', { name: 'Generar' }));
     expect(await screen.findByText('4 liquidaciones generadas')).toBeInTheDocument();
@@ -215,13 +295,13 @@ describe('LiquidacionList', () => {
       method: 'POST',
       body: JSON.stringify({ month: 3, year: new Date().getFullYear() }),
     });
-    expect(screen.queryByText('Generar Liquidaciones del Mes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Generar liquidaciones del mes')).not.toBeInTheDocument();
   });
 
   it('informa los contratos fuera del período del contrato al generar', async () => {
     mockList(() => page([item('l-1')]), () => Promise.resolve({ created: 2, skipped: 0, outOfRange: 3 }));
     const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Generar Mes' }));
+    await user.click(screen.getByRole('button', { name: 'Generar mes' }));
     await user.click(screen.getByRole('button', { name: 'Generar' }));
     expect(
       await screen.findByText('2 liquidaciones generadas · 3 fuera del período del contrato (omitidas)'),
@@ -231,7 +311,7 @@ describe('LiquidacionList', () => {
   it('CP-1263 — informa las liquidaciones bloqueadas por un ajuste pendiente al generar', async () => {
     mockList(() => page([item('l-1')]), () => Promise.resolve({ created: 3, skipped: 0, adjustmentPending: 2 }));
     const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Generar Mes' }));
+    await user.click(screen.getByRole('button', { name: 'Generar mes' }));
     await user.click(screen.getByRole('button', { name: 'Generar' }));
     expect(
       await screen.findByText(
@@ -243,7 +323,7 @@ describe('LiquidacionList', () => {
   it('CP-1313 — informa las liquidaciones generadas con avisos', async () => {
     mockList(() => page([item('l-1')]), () => Promise.resolve({ created: 4, skipped: 0, withWarnings: 2 }));
     const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Generar Mes' }));
+    await user.click(screen.getByRole('button', { name: 'Generar mes' }));
     await user.click(screen.getByRole('button', { name: 'Generar' }));
     expect(
       await screen.findByText('4 liquidaciones generadas · 2 con avisos (alquiler en cero o boletas sin trasladar)'),
@@ -262,22 +342,22 @@ describe('LiquidacionList', () => {
   it('muestra el error al fallar la generación y permite cerrar el modal', async () => {
     mockList(() => page([item('l-1')]), () => Promise.reject(new ApiRequestError(400, 'BAD', 'Sin contratos de prueba')));
     const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Generar Mes' }));
+    await user.click(screen.getByRole('button', { name: 'Generar mes' }));
     await user.click(screen.getByRole('button', { name: 'Generar' }));
     expect(await screen.findByText('Sin contratos de prueba')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Cancelar' }));
-    expect(screen.queryByText('Generar Liquidaciones del Mes')).not.toBeInTheDocument();
+    expect(screen.queryByText('Generar liquidaciones del mes')).not.toBeInTheDocument();
   });
 
   it('error genérico al generar sin ApiRequestError', async () => {
     mockList(() => page([item('l-1')]), () => Promise.reject(new Error('x')));
     const user = await mount();
-    await user.click(screen.getByRole('button', { name: 'Generar Mes' }));
+    await user.click(screen.getByRole('button', { name: 'Generar mes' }));
     await user.click(screen.getByRole('button', { name: 'Generar' }));
     expect(await screen.findByText('Error al generar liquidaciones')).toBeInTheDocument();
   });
 
-  it('selecciona tarjetas y aprueba en lote', async () => {
+  it('selecciona el mes y aprueba en lote', async () => {
     mockList(() => page([item('l-1'), item('l-2')]));
     const user = await mount();
     await user.click(await screen.findByLabelText('Seleccionar todas'));

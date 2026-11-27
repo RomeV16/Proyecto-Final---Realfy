@@ -41,8 +41,7 @@ function rendition(overrides: Record<string, unknown> = {}) {
   return {
     id: 'r-1',
     status: 'Borrador',
-    month: 11,
-    year: 2026,
+    period: '2026-11-01T00:00:00.000Z',
     rentCollected: '100000',
     commissionAmount: '5000',
     adminFeeAmount: '2000',
@@ -100,7 +99,7 @@ describe('RenditionDetail', () => {
         </ConfirmProvider>
       </NextIntlClientProvider>,
     );
-    expect(await screen.findByText('Rendición no encontrada')).toBeInTheDocument();
+    expect(await screen.findByText('No encontramos esta rendición')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Volver/ })).toHaveAttribute('href', '/es/renditions');
   });
 
@@ -112,20 +111,22 @@ describe('RenditionDetail', () => {
     expect(screen.getByText(/Carla Ejemplo/)).toBeInTheDocument();
     const text = nb(document.body.textContent);
     expect(text).toContain('$ 100.000,00');
-    expect(text).toContain('- $ 5.000,00');
-    expect(text).toContain('- $ 2.000,00');
+    expect(text).toContain('− $ 5.000,00');
+    expect(text).toContain('− $ 2.000,00');
     expect(text).toContain('$ 91.500,00');
-    expect(text).toContain('- $ 1.500,00');
+    expect(text).toContain('− $ 1.500,00');
     expect(text).toContain('$ 300,00');
-    expect(text).toContain('Enviada el: 3 de noviembre de 2026');
-    expect(text).toContain('Creada el: 1 de noviembre de 2026');
+    expect(text).toContain('Enviada al locador3 de noviembre de 2026');
+    expect(text).toContain('Generada1 de noviembre de 2026');
+    expect(text).toContain('TransferidaPendiente');
+    expect(screen.getByRole('link', { name: 'Ver contrato' })).toHaveAttribute('href', '/es/contracts/c-1');
     for (const a of screen.getAllByRole('link')) expect(a.getAttribute('href')).toMatch(/^\/es\//);
   });
 
   it('oculta honorarios y deducciones en cero y muestra lista vacía y notas', async () => {
     mockApi(() => rendition({ adminFeeAmount: '0', deductionTotal: '0', lineItems: [], notes: 'Nota sintética' }));
     await mount();
-    expect(screen.queryByText('Honorarios admin.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Honorarios de administración')).not.toBeInTheDocument();
     expect(screen.queryByText('Deducciones')).not.toBeInTheDocument();
     expect(screen.getByText('No hay conceptos')).toBeInTheDocument();
     expect(screen.getByText('Nota sintética')).toBeInTheDocument();
@@ -161,9 +162,37 @@ describe('RenditionDetail', () => {
     await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringContaining('No se pudo descargar')));
   });
 
+  it('toma el período, el locador y su CUIT de la respuesta de la API', async () => {
+    mockApi(() =>
+      rendition({
+        month: undefined,
+        year: undefined,
+        period: '2026-09-01T00:00:00.000Z',
+        ownerName: undefined,
+        owner: { firstName: 'Nora', lastName: 'Muestra', cuit: '27-00000000-0' },
+        contract: { id: 'c-1', property: { id: 'p-1', title: 'Depto de prueba', street: 'Calle Falsa', number: '123', city: 'Ciudad Ejemplo' } },
+      }),
+    );
+    await mount();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Septiembre 2026');
+    expect(screen.getByText('Nora Muestra')).toBeInTheDocument();
+    expect(screen.getByText('CUIT 27-00000000-0')).toBeInTheDocument();
+    expect(screen.getByText('Calle Falsa 123, Ciudad Ejemplo')).toBeInTheDocument();
+  });
+
+  it('sin período, locador ni propiedad muestra los textos de reemplazo', async () => {
+    mockApi(() => rendition({ period: undefined, ownerName: undefined, contract: undefined }));
+    await mount();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('—');
+    expect(screen.getByText('Sin locador asignado')).toBeInTheDocument();
+    expect(screen.getByText('Sin propiedad asociada')).toBeInTheDocument();
+  });
+
   it('en Depositada muestra la fecha de depósito', async () => {
     mockApi(() => rendition({ status: 'Depositada', depositedAt: '2026-11-10T12:00:00.000Z' }));
     await mount();
-    expect(nb(document.body.textContent)).toContain('Depositada el: 10 de noviembre de 2026');
+    const text = nb(document.body.textContent);
+    expect(text).toContain('Transferida10 de noviembre de 2026');
+    expect(text).toContain('Neto transferido');
   });
 });

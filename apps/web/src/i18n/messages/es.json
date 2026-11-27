@@ -2,6 +2,7 @@
  "auth": {
   "login": {
    "title": "Iniciar sesión",
+   "subtitle": "Ingresá con el correo y la contraseña de tu cuenta.",
    "email": "Correo electrónico",
    "password": "Contraseña",
    "submit": "Ingresar",
@@ -13,6 +14,7 @@
   },
   "register": {
    "title": "Crear cuenta",
+   "subtitle": "Registrá tu inmobiliaria para empezar a cargar la cartera.",
    "email": "Correo electrónico",
    "password": "Contraseña",
    "confirmPassword": "Confirmar contraseña",
@@ -37,7 +39,7 @@
   "forgot": {
    "link": "¿Olvidaste tu contraseña?",
    "title": "Recuperar contraseña",
-   "subtitle": "Ingresá tu correo y, si la cuenta existe y el envío de correos está activo, te mandamos las instrucciones.",
+   "subtitle": "Ingresá tu correo y te mandamos un enlace para elegir una contraseña nueva.",
    "email": "Correo electrónico",
    "submit": "Enviar instrucciones",
    "sending": "Enviando…",
@@ -106,10 +108,10 @@
   "import": "Importar",
   "dataQuality": "Calidad de datos",
   "migration": "Migración",
-  "delinquency": "Morosos",
+  "delinquency": "Morosidad",
   "adjustments": "Ajustes del mes",
   "penalties": "Punitorios",
-  "fiscal": "Configuración Fiscal",
+  "fiscal": "Configuración fiscal",
   "pagos": "Pagos",
   "notifications": "Notificaciones",
   "permissions": "Permisos",
@@ -124,7 +126,28 @@
   "followUps": "Vencimientos",
   "messaging": "Mensajería",
   "inbox": "Bandeja de consultas",
-  "collections": "Cobranza"
+  "collections": "Cobranza",
+  "sections": {
+   "home": "Inicio",
+   "portfolio": "Cartera",
+   "commercial": "Comercial",
+   "rentals": "Alquileres",
+   "money": "Cobros y caja",
+   "owners": "Locadores",
+   "service": "Atención",
+   "admin": "Administración"
+  },
+  "aria": {
+   "main": "Navegación principal",
+   "drawer": "Menú de navegación",
+   "openMenu": "Abrir el menú",
+   "closeMenu": "Cerrar el menú",
+   "expandSidebar": "Expandir la barra lateral",
+   "collapseSidebar": "Contraer la barra lateral",
+   "back": "Volver",
+   "breadcrumb": "Ruta de navegación",
+   "userMenu": "Menú de la cuenta"
+  }
  },
  "dataTable": {
   "pagination": {
@@ -291,7 +314,11 @@
    "retry": "Reintentar",
    "home": "Ir al panel",
    "notFoundTitle": "No encontramos lo que buscás",
-   "notFoundMessage": "El registro no existe o ya no está disponible."
+   "notFoundMessage": "El registro no existe o ya no está disponible.",
+   "pageNotFoundTitle": "Esta página no existe",
+   "pageNotFoundMessage": "Puede que el enlace esté mal escrito o que la página ya no esté disponible.",
+   "pageHome": "Volver al inicio",
+   "pageErrorMessage": "Algo falló al mostrar la página. Podés reintentar o volver al inicio."
   }
  },
  "common": {
@@ -366,7 +393,7 @@
    "noCollections": "Sin liquidaciones este mes"
   },
   "loading": "Cargando métricas...",
-  "errorLoading": "Error al cargar las métricas",
+  "errorLoading": "No se pudieron cargar los datos del panel",
   "retry": "Reintentar",
   "currency": "ARS",
   "percentSign": "%",
@@ -386,23 +413,24 @@
    "collections": "Estado de cobranzas"
   },
   "analytics": {
-   "occupancyTitle": "Tendencia de ocupación",
-   "occupancyLabel": "Ocupación",
+   "occupancyTitle": "Ocupación con contrato vigente",
+   "occupancyLabel": "Propiedades con contrato vigente",
+   "occupancyNote": "Cuenta solo las propiedades con contrato vigente al cierre de cada mes. El indicador Ocupación de arriba toma el estado cargado en cada propiedad, tenga o no contrato.",
    "occupancyEmpty": "Todavía no hay ocupación para graficar",
-   "occupancyEmptyHint": "Cargá operaciones de alquiler para ver cómo evoluciona la cartera.",
-   "profitabilityTitle": "Rentabilidad por propiedad",
+   "occupancyEmptyHint": "Cargá contratos de alquiler para ver cómo evoluciona la cartera.",
+   "profitabilityTitle": "Ingresos y gastos por propiedad",
    "profitabilityEmpty": "Todavía no hay rentabilidad para graficar",
    "profitabilityEmptyHint": "Registrá cobranzas del período para comparar ingresos y gastos.",
-   "lastTwelveMonths": "Últimos 12 meses",
-   "topProperties": "Top {count} del período",
+   "lastTwelveMonths": "Al cierre de cada mes · 12 meses",
+   "topProperties": "Últimos 12 meses · las de mayor neto",
    "revenue": "Ingresos",
    "expenses": "Gastos",
-   "loadError": "No se pudieron cargar las métricas de cartera"
+   "loadError": "No se pudieron cargar los gráficos de la cartera"
   },
   "priorities": {
    "title": "Prioridades del día",
-   "hint": "Ordenadas por urgencia",
-   "sourceModel": "Orden sugerido por {model}",
+   "hint": "Lo más urgente primero",
+   "sourceModel": "Orden sugerido por el asistente ({model})",
    "sourceRules": "Orden calculado con las reglas del sistema",
    "urgency": {
     "alta": "Alta",
@@ -423,8 +451,92 @@
    "overSla": "fuera de plazo",
    "withoutContact": "sin contacto",
    "emptyTitle": "No hay nada urgente para hoy",
-   "emptySubtitle": "Las cobranzas están al día, no hay reclamos fuera de plazo ni contratos por vencer. Buen momento para trabajar la cartera con calma.",
-   "loadError": "No se pudieron cargar las prioridades del día"
+   "emptySubtitle": "Las cobranzas están al día, no hay reclamos fuera de plazo ni contratos por vencer.",
+   "loadError": "No se pudieron cargar las prioridades del día",
+   "overdueFor": "vencida hace {elapsed}",
+   "overSlaFor": "Fuera de plazo hace {elapsed}",
+   "today": "Hoy",
+   "expires": "vence"
+  },
+  "panel": {
+   "greeting": "Hola, {name}",
+   "greetingNoName": "Hola",
+   "kpi": {
+    "occupancy": "Ocupación",
+    "occupancyHint": "{occupied} de {total} ocupadas",
+    "collected": "Cobrado en {month}",
+    "collectedNoMonth": "Cobrado este mes",
+    "collectedHint": "{pct} % de {amount} liquidados",
+    "collectedNone": "Sin liquidaciones aún",
+    "overdue": "Saldo vencido",
+    "overdueHint": "De todos los períodos",
+    "overdueNone": "Sin deuda vencida",
+    "tickets": "Tickets abiertos",
+    "ticketsHint": "{count, plural, =0 {Ninguno urgente} other {# de prioridad alta}}"
+   },
+   "rentRoll": "Alquileres de la cartera",
+   "rentRollHint": "Por mes, sumando los contratos activos",
+   "activeContracts": "Contratos activos",
+   "avgRent": "Alquiler promedio",
+   "perMonth": "por mes",
+   "closedRate": "Cobranza de {month}",
+   "closedRateNoMonth": "Cobranza del mes anterior",
+   "closedRateHint": "cobrado sobre lo liquidado",
+   "closedRateNone": "sin liquidaciones ese mes",
+   "chart": {
+    "title": "Liquidado y cobrado por mes",
+    "subtitle": "Últimos 6 meses, en pesos, según el período de cada liquidación",
+    "expected": "Liquidado",
+    "collected": "Cobrado",
+    "inProgress": "en curso",
+    "currentNote": "{month} todavía no cerró: lo cobrado puede seguir subiendo.",
+    "currentEmpty": "Todavía no se emitieron las liquidaciones de {month}.",
+    "empty": "Todavía no hay liquidaciones para graficar."
+   },
+   "status": {
+    "overdue": "Vencida",
+    "sent": "Enviada",
+    "approved": "Aprobada",
+    "pending": "Pendiente"
+   },
+   "agenda": {
+    "title": "Agenda",
+    "window": "Próximos 90 días",
+    "seeAll": "Ver todos ({count})",
+    "expiring": "Contratos por vencer",
+    "expiringEmpty": "Sin contratos por vencer en los próximos 90 días.",
+    "days": "{count, plural, =0 {Hoy} one {# día} other {# días}}",
+    "toExpiry": "para vencer",
+    "renew": "Renovar",
+    "collections": "Liquidaciones sin cobrar",
+    "collectionsEmpty": "No hay cobranzas pendientes.",
+    "overdue": "vencida",
+    "pending": "pendiente",
+    "collect": "Cobrar",
+    "tickets": "Tickets prioritarios",
+    "ticketsEmpty": "No hay tickets abiertos.",
+    "attend": "Atender"
+   },
+   "collectionStatus": {
+    "title": "Estado de la cobranza",
+    "link": "Ver liquidaciones",
+    "collected": "Cobrado",
+    "pending": "Por cobrar",
+    "overdue": "Vencido",
+    "thisMonth": "del mes",
+    "allPeriods": "acumulado",
+    "empty": "No hay liquidaciones del mes ni deuda vencida."
+   },
+   "composition": {
+    "title": "Propiedades por tipo",
+    "count": "{count, plural, one {# propiedad} other {# propiedades}}"
+   }
+  },
+  "elapsed": {
+   "hours": "{count, plural, one {# hora} other {# horas}}",
+   "days": "{count, plural, one {# día} other {# días}}",
+   "months": "{count, plural, one {# mes} other {# meses}}",
+   "years": "{count, plural, one {# año} other {# años}}"
   }
  },
  "users": {
@@ -541,7 +653,7 @@
  },
  "properties": {
   "title": "Propiedades",
-  "subtitle": "Administrá los inmuebles de tu cartera",
+  "subtitle": "Los inmuebles que administra la inmobiliaria, con su operación y su estado.",
   "newProperty": "Nueva propiedad",
   "createTitle": "Crear propiedad",
   "editTitle": "Editar propiedad",
@@ -561,9 +673,9 @@
   "form": {
    "basicInfo": "Información básica",
    "titleField": "Título",
-   "titlePlaceholder": "Ej: Departamento 3 amb. en Palermo",
+   "titlePlaceholder": "Ej.: Departamento de 3 ambientes en Palermo",
    "description": "Descripción",
-   "descriptionPlaceholder": "Describí las características principales del inmueble",
+   "descriptionPlaceholder": "Lo que conviene saber del inmueble: estado, luminosidad, expensas, cercanías",
    "type": "Tipo de propiedad",
    "typePlaceholder": "Seleccioná un tipo",
    "address": "Dirección",
@@ -596,17 +708,17 @@
    "operationType": "Tipo de operación",
    "operationTypePlaceholder": "Seleccioná un tipo",
    "noOperations": "No hay operaciones cargadas",
-   "pricing": "Precio",
+   "pricing": "Precio publicado",
    "price": "Precio",
    "pricePlaceholder": "Ej: 150000",
    "currency": "Moneda",
-   "amenities": "Amenidades",
+   "amenities": "Comodidades",
    "submit": "Guardar propiedad",
    "submitting": "Guardando…",
    "creating": "Creando propiedad…",
    "updating": "Actualizando propiedad…",
-   "created": "Propiedad creada exitosamente",
-   "updated": "Propiedad actualizada exitosamente",
+   "created": "Propiedad creada",
+   "updated": "Cambios guardados",
    "error": "No se pudo guardar la propiedad. Intentá nuevamente.",
    "location": "Ubicación en el mapa",
    "state": "Estado de la operación"
@@ -712,12 +824,12 @@
   "empty": {
    "title": "No hay propiedades",
    "subtitle": "Creá tu primera propiedad para empezar a operar",
-   "filtered": "No se encontraron propiedades con los filtros aplicados",
+   "filtered": "Ninguna propiedad coincide con los filtros.",
    "detail": "Propiedad no encontrada",
-   "description": "Las propiedades son el punto de partida. Cargá departamentos, casas, locales u oficinas con sus operaciones de venta o alquiler.",
-   "step1": "Hacé clic en 'Nueva propiedad'",
+   "description": "Cargá los departamentos, casas, locales u oficinas que administrás, con su operación de alquiler o venta.",
+   "step1": "Hacé clic en «Nueva propiedad»",
    "step2": "Completá dirección, tipo y superficie",
-   "step3": "Agregá operaciones (venta/alquiler) con precios",
+   "step3": "Sumá la operación (alquiler o venta) con su precio",
    "step4": "Subí fotos para completar la ficha",
    "tourButton": "Iniciar tour de propiedades"
   },
@@ -749,7 +861,7 @@
    "delete": "Eliminar imagen",
    "noImages": "No hay fotos cargadas",
    "dismiss": "Cerrar",
-   "saveFirst": "Guardá la propiedad primero para subir fotos",
+   "saveFirst": "Las fotos se suben desde la ficha, una vez guardada la propiedad.",
    "primaryBadge": "Principal"
   },
   "map": {
@@ -877,7 +989,7 @@
  },
  "persons": {
   "title": "Personas",
-  "subtitle": "Gestioná propietarios, inquilinos, garantes y contactos",
+  "subtitle": "Propietarios, inquilinos, garantes y demás contactos de la inmobiliaria.",
   "newPerson": "Nueva persona",
   "createTitle": "Crear persona",
   "editTitle": "Editar persona",
@@ -885,13 +997,14 @@
   "backToList": "Volver a personas",
   "filters": {
    "search": "Buscar",
-   "searchPlaceholder": "Nombre, apellido o CUIT…",
+   "searchPlaceholder": "Buscar por nombre, apellido o CUIT",
    "role": "Rol",
    "rolePlaceholder": "Todos los roles",
-   "clear": "Limpiar filtros"
+   "clear": "Limpiar filtros",
+   "allRoles": "Todos"
   },
   "form": {
-   "personalInfo": "Información personal",
+   "personalInfo": "Nombre y contacto",
    "firstName": "Nombre",
    "firstNamePlaceholder": "Ej: Juan",
    "lastName": "Apellido",
@@ -917,12 +1030,12 @@
    "bankAlias": "Alias bancario",
    "bankAliasPlaceholder": "Ej: juan.perez.mp",
    "notes": "Notas",
-   "notesPlaceholder": "Observaciones adicionales sobre la persona",
+   "notesPlaceholder": "Observaciones (opcional)",
    "submit": "Guardar persona",
    "creating": "Creando persona…",
    "updating": "Actualizando persona…",
    "error": "No se pudo guardar la persona. Intentá nuevamente.",
-   "partyData": "Datos de la parte",
+   "partyData": "Identidad y domicilio",
    "personType": "Tipo de persona",
    "personTypePlaceholder": "Seleccioná un tipo",
    "dni": "Documento (DNI)",
@@ -985,14 +1098,14 @@
    "view": "Ver ficha"
   },
   "empty": {
-   "title": "No hay personas",
+   "title": "Todavía no hay personas",
    "subtitle": "Registrá tu primer propietario, inquilino o contacto",
-   "filtered": "No se encontraron personas con los filtros aplicados",
+   "filtered": "Ninguna persona coincide con la búsqueda o el rol elegido.",
    "detail": "Persona no encontrada",
-   "description": "Las personas son los actores de tu inmobiliaria: propietarios, inquilinos y garantes. Creá fichas con datos de contacto y documentación.",
-   "step1": "Hacé clic en 'Nueva persona'",
-   "step2": "Ingresá nombre, CUIT/CUIL y contacto",
-   "step3": "Asigná roles (Propietario, Inquilino, Garante)",
+   "description": "Acá van los propietarios, inquilinos y garantes, con sus datos de contacto y su documentación.",
+   "step1": "Hacé clic en «Nueva persona»",
+   "step2": "Cargá nombre, CUIT o CUIL y un contacto",
+   "step3": "Asignale un rol: propietario, inquilino o garante",
    "tourButton": "Iniciar tour de personas"
   },
   "validation": {
@@ -1024,12 +1137,35 @@
    "Transferencia": "Transferencia",
    "Efectivo": "Efectivo",
    "Custodia": "Custodia"
+  },
+  "directory": {
+   "clear": "Limpiar",
+   "cuit": "CUIT {value}",
+   "dni": "DNI {value}",
+   "noContact": "Sin datos de contacto",
+   "sendEmail": "Escribirle un correo",
+   "call": "Llamar",
+   "count": "{count, plural, =1 {1 persona} other {# personas}}",
+   "columns": {
+    "person": "Persona",
+    "roles": "Roles",
+    "contact": "Contacto"
+   },
+   "rolePlural": {
+    "Propietario": "Propietarios",
+    "Inquilino": "Inquilinos",
+    "Garante": "Garantes",
+    "Lead": "Interesados",
+    "Comprador": "Compradores",
+    "Proveedor": "Proveedores",
+    "Apoderado": "Apoderados"
+   }
   }
  },
  "contracts": {
   "title": "Contratos",
-  "subtitle": "Gestioná los contratos de alquiler, venta y temporarios",
-  "newContract": "Nuevo Contrato",
+  "subtitle": "Vigencia, próximo ajuste y alquiler actual de cada contrato.",
+  "newContract": "Nuevo contrato",
   "filters": {
    "status": "Estado",
    "statusPlaceholder": "Todos los estados",
@@ -1046,7 +1182,7 @@
    "rent": "Alquiler",
    "noProperty": "Sin propiedad",
    "persons": "Personas vinculadas",
-   "expired": "El contrato venció",
+   "expired": "Venció y sigue sin renovar",
    "needsProperty": "Sin propiedad vinculada",
    "needsRent": "Falta definir el monto de alquiler",
    "noEndDate": "Sin fecha de fin definida",
@@ -1103,13 +1239,13 @@
    "noExpiry": "Sin vencimiento"
   },
   "empty": {
-   "title": "No hay contratos",
+   "title": "Todavía no hay contratos",
    "subtitle": "Creá tu primer contrato de alquiler o venta",
-   "filtered": "No se encontraron contratos con los filtros aplicados",
-   "description": "Los contratos vinculan propiedades con inquilinos y propietarios. Definí plazos, montos y condiciones de ajuste.",
-   "step1": "Primero cargá al menos una propiedad y las personas involucradas",
-   "step2": "Hacé clic en 'Nuevo contrato'",
-   "step3": "Seleccioná propiedad, asigná personas y definí las condiciones",
+   "filtered": "Ningún contrato coincide con la búsqueda o los filtros.",
+   "description": "Un contrato une una propiedad con su locador y su inquilino, y fija plazo, alquiler y ajuste.",
+   "step1": "Cargá primero la propiedad y las personas que intervienen",
+   "step2": "Hacé clic en «Nuevo contrato»",
+   "step3": "Elegí la propiedad, sumá las partes y definí alquiler y ajuste",
    "tourButton": "Iniciar tour de contratos"
   },
   "pagination": {
@@ -1118,87 +1254,113 @@
    "next": "Siguiente"
   },
   "wizard": {
-   "title": "Nuevo Contrato",
+   "title": "Nuevo contrato",
    "step1": {
-    "title": "Propiedad y Datos",
-    "description": "Seleccioná la propiedad y definí los datos básicos del contrato",
+    "title": "Propiedad y plazo",
+    "description": "Elegí la propiedad, el tipo de contrato y las fechas de inicio y fin.",
     "property": "Propiedad",
     "propertyPlaceholder": "Ingresá el ID de la propiedad",
     "propertySearch": "Buscar propiedad…",
     "contractType": "Tipo de contrato",
-    "contractTypePlaceholder": "Seleccionar tipo",
+    "contractTypePlaceholder": "Elegí el tipo",
     "startDate": "Fecha de inicio",
     "endDate": "Fecha de fin",
     "notes": "Notas",
-    "notesPlaceholder": "Observaciones opcionales…"
+    "notesPlaceholder": "Observaciones (opcional)",
+    "short": "Propiedad y plazo",
+    "propertyHint": "Escribí al menos dos letras del nombre o la dirección.",
+    "propertyNoResults": "No hay propiedades con ese nombre o dirección.",
+    "propertyCreate": "Cargar una propiedad",
+    "endDateHint": "El plazo define el cronograma de ajustes y los avisos de vencimiento."
    },
    "step2": {
-    "title": "Personas",
-    "description": "Vinculá las personas al contrato",
+    "title": "Partes del contrato",
+    "description": "Sumá al locador, al inquilino y, si hay, a los garantes.",
     "searchPerson": "Buscar persona por nombre o CUIT…",
     "addPropietario": "Agregar locador",
     "addInquilino": "Agregar inquilino",
     "addGarante": "Agregar garante",
-    "propietarioRequired": "Se requiere al menos un locador",
-    "inquilinoRequired": "Se requiere al menos un inquilino",
+    "propietarioRequired": "Sumá al menos un locador.",
+    "inquilinoRequired": "Sumá al inquilino.",
     "invalidRole": "La persona no tiene el rol requerido: {role}",
     "noPropietario": "Sin locadores asignados",
     "noInquilino": "Sin inquilino asignado",
     "noGarantes": "Sin garantes",
-    "removePerson": "Quitar persona"
+    "removePerson": "Quitar persona",
+    "short": "Partes",
+    "searchLabel": "Buscar persona",
+    "noResults": "No encontramos a nadie con ese nombre o CUIT.",
+    "createPerson": "Cargar una persona",
+    "roleHint": "Cualquier persona puede ser locadora. Para sumarla como inquilino o garante tiene que tener ese rol en su ficha."
    },
    "step3": {
-    "title": "Precio y Ajuste",
-    "description": "Definí el precio del alquiler y el esquema de ajuste",
-    "rentAmount": "Monto del alquiler",
+    "title": "Alquiler y ajuste",
+    "description": "Definí el alquiler inicial y cómo se actualiza.",
+    "rentAmount": "Alquiler mensual",
     "rentAmountPlaceholder": "0.00",
     "currency": "Moneda",
-    "depositAmount": "Depósito",
+    "depositAmount": "Depósito en garantía (opcional)",
     "depositPlaceholder": "0.00",
-    "adjustmentType": "Tipo de ajuste",
-    "adjustmentTypePlaceholder": "Seleccionar tipo de ajuste",
-    "adjustmentPeriod": "Período de ajuste",
-    "adjustmentPeriodPlaceholder": "Seleccionar período",
-    "customPercentage": "Porcentaje personalizado",
-    "customPercentagePlaceholder": "Ej: 5.5",
-    "adjustmentSummary": "Resumen del ajuste",
-    "summaryIPC": "El alquiler se ajustará según el Índice de Precios al Consumidor (IPC)",
-    "summaryICL": "El alquiler se ajustará según el Índice para Contratos de Locación (ICL)",
-    "summaryCCP": "El alquiler se ajustará según Casa Propia con fórmula min(0.9×CVS, CER)",
-    "summaryFixed": "El alquiler se ajustará un {pct}% cada período",
-    "summaryCustom": "El alquiler se ajustará un {pct}% cada período (personalizado)"
+    "adjustmentType": "Índice o tipo de ajuste",
+    "adjustmentTypePlaceholder": "Elegí el ajuste",
+    "adjustmentPeriod": "Cada cuánto se ajusta",
+    "adjustmentPeriodPlaceholder": "Elegí el período",
+    "customPercentage": "Porcentaje de ajuste",
+    "customPercentagePlaceholder": "Ej.: 5,5",
+    "adjustmentSummary": "Cómo se va a ajustar",
+    "summaryIPC": "El alquiler se ajusta por el Índice de Precios al Consumidor (IPC) del INDEC.",
+    "summaryICL": "El alquiler se ajusta por el Índice para Contratos de Locación (ICL) del BCRA.",
+    "summaryCCP": "El alquiler se ajusta por Casa Propia: el menor entre el 90 % de la variación salarial (CVS) y el CER.",
+    "summaryFixed": "El alquiler sube un {pct} % en cada período.",
+    "summaryCustom": "El alquiler sube un {pct} % en cada período (pactado entre las partes).",
+    "short": "Alquiler y ajuste",
+    "conventionsShow": "Ver y cambiar",
+    "conventionsHide": "Ocultar",
+    "conventionsHint": "Opcional: si no tocás nada, rigen las de la inmobiliaria."
    },
    "step4": {
     "title": "Garantías",
-    "description": "Agregá las garantías del contrato",
+    "description": "Cargá las garantías del contrato. Podés sumarlas después desde la ficha.",
     "addGuarantee": "Agregar garantía",
     "guaranteeType": "Tipo de garantía",
-    "guaranteeTypePlaceholder": "Seleccionar tipo",
+    "guaranteeTypePlaceholder": "Elegí el tipo",
     "description_field": "Descripción",
-    "descriptionPlaceholder": "Descripción de la garantía…",
+    "descriptionPlaceholder": "Ej.: escritura del inmueble de Av. Colón 1200",
     "amount": "Monto",
     "amountPlaceholder": "0.00",
-    "issuer": "Emisor / Entidad",
-    "issuerPlaceholder": "Nombre del emisor",
+    "issuer": "Aseguradora o entidad",
+    "issuerPlaceholder": "Nombre de la aseguradora o el banco",
     "policyNumber": "Nro. de póliza",
     "policyNumberPlaceholder": "Número de póliza o referencia",
     "startDate": "Fecha de inicio",
     "endDate": "Fecha de vencimiento",
     "removeGuarantee": "Quitar garantía",
-    "noGuarantees": "No se agregaron garantías aún",
-    "expiryPreview": "Vista previa de vencimientos"
+    "noGuarantees": "Todavía no agregaste garantías.",
+    "expiryPreview": "Vista previa de vencimientos",
+    "short": "Garantías"
    },
    "back": "Anterior",
    "next": "Siguiente",
    "submit": "Crear Contrato",
    "creating": "Creando contrato…",
    "success": "Contrato creado exitosamente",
-   "error": "Error al crear el contrato",
+   "error": "No se pudo crear el contrato. Revisá los datos e intentá de nuevo.",
    "step": "Paso {current} de {total}",
    "saveDraft": "Guardar como borrador",
    "saveAndActivate": "Guardar y activar",
    "activating": "Activando contrato…",
-   "finishHint": "Un borrador se puede revisar y activar después. Si lo activás ahora, empieza a generar liquidaciones y la propiedad queda como alquilada."
+   "finishHint": "Un borrador se puede revisar y activar después. Si lo activás ahora, empieza a generar liquidaciones y la propiedad queda como alquilada.",
+   "validation": {
+    "property": "Elegí la propiedad del contrato.",
+    "contractType": "Elegí el tipo de contrato.",
+    "startDate": "Indicá la fecha de inicio.",
+    "endDateRequired": "Indicá la fecha de fin.",
+    "endDate": "La fecha de fin tiene que ser posterior a la de inicio.",
+    "rentAmount": "Ingresá el alquiler mensual, mayor que cero.",
+    "adjustmentType": "Elegí cómo se ajusta el alquiler.",
+    "adjustmentPeriod": "Elegí cada cuánto se ajusta.",
+    "customPct": "Ingresá el porcentaje de ajuste."
+   }
   },
   "detail": {
    "title": "Detalle del Contrato",
@@ -1215,7 +1377,7 @@
    "inquilino": "Inquilino",
    "garantes": "Garantes",
    "viewPerson": "Ver persona",
-   "pricing": "Precio y Ajuste",
+   "pricing": "Precio y ajuste",
    "rent": "Alquiler",
    "currency": "Moneda",
    "deposit": "Depósito",
@@ -1224,15 +1386,15 @@
    "customPercentage": "Porcentaje personalizado",
    "guarantees": "Garantías",
    "noGuarantees": "Sin garantías registradas",
-   "adjustmentHistory": "Historial de Ajustes",
+   "adjustmentHistory": "Historial de ajustes",
    "noAdjustments": "Sin ajustes registrados",
-   "calculateAdjustment": "Calcular Ajuste",
-   "applyAdjustment": "Aplicar Ajuste",
-   "terminate": "Rescindir Contrato",
+   "calculateAdjustment": "Calcular ajuste",
+   "applyAdjustment": "Aplicar ajuste",
+   "terminate": "Rescindir contrato",
    "terminateConfirm": "¿Estás seguro de rescindir este contrato? Esta acción no se puede deshacer.",
    "terminateSuccess": "Contrato rescindido",
    "terminateError": "Error al rescindir el contrato",
-   "generateDocument": "Generar Documento",
+   "generateDocument": "Generar documento",
    "edit": "Editar",
    "save": "Guardar cambios",
    "cancelEdit": "Cancelar",
@@ -1398,12 +1560,37 @@
     "RENTAL_OPERATION_ARCHIVED": "La operación de alquiler de la propiedad está archivada; reactivala antes de activar el contrato.",
     "UNKNOWN": "El contrato no cumple las condiciones para activarse."
    }
+  },
+  "list": {
+   "searchLabel": "Buscar contratos",
+   "searchPlaceholder": "Buscar por inquilino, locador o dirección",
+   "clear": "Limpiar",
+   "count": "{count, plural, =1 {1 contrato} other {# contratos}}",
+   "columns": {
+    "tenant": "Inquilino",
+    "property": "Propiedad",
+    "term": "Vigencia",
+    "nextAdjustment": "Próximo ajuste",
+    "rent": "Alquiler actual",
+    "status": "Estado"
+   },
+   "noTenant": "Sin inquilino asignado",
+   "noLessor": "Sin locador asignado",
+   "lessor": "Locador: {name}",
+   "lessors": "Locadores: {name} y {count} más",
+   "termProgress": "Mes {current} de {total}",
+   "endsIn": "{days, plural, =0 {Vence hoy} =1 {Vence mañana} other {Vence en # días}}",
+   "startsOn": "Empieza el {date}",
+   "openEnded": "Desde el {start}, sin fecha de fin",
+   "closedTerm": "Contrato finalizado",
+   "noAdjustment": "Sin ajuste",
+   "noMoreAdjustments": "No quedan"
   }
  },
  "liquidaciones": {
   "title": "Liquidaciones",
-  "subtitle": "Gestión de liquidaciones mensuales de alquiler",
-  "generateMonth": "Generar Mes",
+  "subtitle": "Lo que debe cada inquilino, mes por mes",
+  "generateMonth": "Generar mes",
   "generateMonthDesc": "Crear liquidaciones para todos los contratos activos del período seleccionado",
   "generateSuccess": "Liquidaciones generadas correctamente",
   "generateError": "Error al generar liquidaciones",
@@ -1411,7 +1598,7 @@
   "skippedCount": "{count} ya existían (omitidas)",
   "statuses": {
    "Borrador": "Borrador",
-   "Revision": "En Revisión",
+   "Revision": "En revisión",
    "Aprobada": "Aprobada",
    "Pendiente": "Pendiente",
    "Enviada": "Enviada",
@@ -1488,7 +1675,7 @@
    "add": "Agregar concepto",
    "edit": "Editar",
    "remove": "Eliminar",
-   "removeConfirm": "¿Eliminar este concepto?",
+   "removeConfirm": "¿Eliminar este concepto de la liquidación?",
    "empty": "No hay conceptos agregados",
    "addSuccess": "Concepto agregado",
    "updateSuccess": "Concepto actualizado",
@@ -1543,20 +1730,20 @@
    "overpayment": "Pago excedente"
   },
   "transitions": {
-   "Revision": "Enviar a Revisión",
+   "Revision": "Enviar a revisión",
    "Aprobada": "Aprobar",
-   "Borrador": "Volver a Borrador",
+   "Borrador": "Volver a borrador",
    "Enviada": "Enviar",
-   "Pagada": "Marcar como Pagada",
-   "Vencida": "Marcar como Vencida",
+   "Pagada": "Marcar como pagada",
+   "Vencida": "Marcar como vencida",
    "Anulada": "Anular",
    "success": "Estado actualizado correctamente",
    "error": "Error al cambiar estado",
-   "confirmAnulada": "¿Está seguro de que desea anular esta liquidación? Esta acción no se puede revertir."
+   "confirmAnulada": "¿Anular esta liquidación? No se puede deshacer."
   },
   "payments": {
    "title": "Pagos",
-   "registerPayment": "Registrar Pago",
+   "registerPayment": "Registrar pago",
    "date": "Fecha de pago",
    "amount": "Monto",
    "method": "Método de pago",
@@ -1613,7 +1800,7 @@
    "noPayments": "Aún no se registraron pagos",
    "description": "Las liquidaciones son los cobros mensuales a inquilinos. Se generan a partir de contratos activos con todos los conceptos calculados.",
    "step1": "Asegurate de tener contratos activos cargados",
-   "step2": "Generá la liquidación del período desde el botón 'Nueva liquidación'",
+   "step2": "Generá las liquidaciones del mes con el botón «Generar mes»",
    "step3": "Registrá pagos a medida que los inquilinos abonen",
    "tourButton": "Iniciar tour de liquidaciones"
   },
@@ -1632,8 +1819,8 @@
    "actions": "Acciones"
   },
   "generate": {
-   "title": "Generar Liquidaciones del Mes",
-   "description": "Se crearán liquidaciones para todos los contratos activos del período seleccionado",
+   "title": "Generar liquidaciones del mes",
+   "description": "Se crea una liquidación por cada contrato activo en el mes elegido. Las que ya existen no se duplican.",
    "month": "Mes",
    "year": "Año",
    "submit": "Generar",
@@ -1642,8 +1829,8 @@
    "selectYear": "Seleccionar año"
   },
   "lineItemForm": {
-   "title": "Nuevo Concepto",
-   "editTitle": "Editar Concepto",
+   "title": "Nuevo concepto",
+   "editTitle": "Editar concepto",
    "type": "Tipo de concepto",
    "description": "Descripción",
    "amount": "Importe",
@@ -1669,7 +1856,7 @@
    "deleted": "Liquidación eliminada"
   },
   "errors": {
-   "loadFailed": "Error al cargar liquidaciones",
+   "loadFailed": "No pudimos cargar las liquidaciones",
    "loadDetailFailed": "Error al cargar detalle de liquidación",
    "generateFailed": "Error al generar liquidaciones",
    "transitionFailed": "Error al cambiar estado",
@@ -1678,7 +1865,7 @@
    "pdfFailed": "Error al descargar PDF",
    "bulkFailed": "Error en operación masiva",
    "deleteFailed": "Error al eliminar liquidación",
-   "notFound": "Liquidación no encontrada",
+   "notFound": "No encontramos esta liquidación",
    "forbidden": "No tiene permisos para esta acción"
   },
   "currency": {
@@ -1739,6 +1926,38 @@
    "listLabel": "Compensaciones del pago",
    "item": "Compensación: {from} cubre a {to} por {amount}",
    "otherLessor": "otro locador"
+  },
+  "ledger": {
+   "issued": "Emitido",
+   "collected": "Cobrado",
+   "pending": "Pendiente",
+   "overdue": "Vencido",
+   "count": "{count, plural, one {# liquidación} other {# liquidaciones}}",
+   "barLabel": "Cobrado {collected} de {issued}",
+   "colProperty": "Propiedad e inquilino",
+   "colAmount": "Importe",
+   "dueShort": "Vence",
+   "overdueDays": "{days, plural, =0 {Venció hoy} one {Venció hace # día} other {Venció hace # días}}",
+   "needsApproval": "Falta aprobar",
+   "paidOn": "Cobrada el {date}",
+   "noPeriod": "Sin período",
+   "selectRow": "Seleccionar {name}",
+   "attention": "Para atender:",
+   "attentionOverdue": "{count, plural, one {# vencida} other {# vencidas}}",
+   "attentionApproval": "{count} sin aprobar",
+   "loadFailedHint": "Revisá la conexión y volvé a intentar.",
+   "retry": "Reintentar",
+   "pageTotalsHint": "Los totales de cada mes cuentan solo las liquidaciones de esta página."
+  },
+  "document": {
+   "back": "Volver a liquidaciones",
+   "kicker": "Liquidación de alquiler",
+   "tenant": "Inquilino",
+   "timeline": "Seguimiento",
+   "created": "Generada",
+   "sent": "Enviada al inquilino",
+   "paid": "Pagada",
+   "pendingStep": "Pendiente"
   }
  },
  "services": {
@@ -1888,7 +2107,7 @@
    "InboundMessageReceived": "Mensaje de WhatsApp recibido"
   },
   "list": {
-   "title": "Todas las notificaciones",
+   "title": "Filtrar notificaciones",
    "filter": {
     "all": "Todas",
     "unread": "Sin leer",
@@ -1897,7 +2116,7 @@
    "filterByType": "Filtrar por tipo",
    "allTypes": "Todos los tipos",
    "noResults": "No se encontraron notificaciones",
-   "noUnread": "No hay notificaciones sin leer",
+   "noUnread": "No quedan avisos sin leer.",
    "loading": "Cargando notificaciones..."
   },
   "detail": {
@@ -1933,11 +2152,22 @@
   "success": {
    "markedAsRead": "Notificación marcada como leída",
    "allMarkedAsRead": "Todas las notificaciones marcadas como leídas"
+  },
+  "page": {
+   "unread": "{count, plural, one {Tenés # aviso sin leer} other {Tenés # avisos sin leer}}",
+   "allRead": "Estás al día: no hay avisos sin leer.",
+   "today": "Hoy",
+   "yesterday": "Ayer",
+   "markRead": "Marcar leída",
+   "view": "Ver",
+   "emptyTitle": "No tenés notificaciones",
+   "emptySubtitle": "Acá vas a ver los vencimientos, las deudas y los cambios en tus contratos.",
+   "loadError": "No pudimos cargar las notificaciones."
   }
  },
  "pipeline": {
-  "title": "Pipeline de ventas",
-  "subtitle": "Configurá las etapas del pipeline para alquileres y ventas.",
+  "title": "Etapas del pipeline",
+  "subtitle": "Las etapas por las que pasa una consulta de alquiler o de venta, y cuántos días puede estar quieta en cada una.",
   "tabs": {
    "Alquiler": "Alquiler",
    "Venta": "Venta"
@@ -1958,8 +2188,8 @@
   "saving": "Guardando…",
   "rename": "Renombrar",
   "noStages": "No hay etapas configuradas.",
-  "confirmDelete": "¿Estás seguro de que querés eliminar la etapa \"{name}\"?",
-  "confirmDeleteDesc": "Esta acción no se puede deshacer. Las consultas en esta etapa deberán moverse manualmente.",
+  "confirmDelete": "¿Eliminar la etapa \"{name}\"?",
+  "confirmDeleteDesc": "No se puede deshacer. Las consultas que estén en esta etapa hay que moverlas a mano.",
   "addModal": {
    "title": "Nueva etapa",
    "namePlaceholder": "Nombre de la etapa",
@@ -1990,7 +2220,7 @@
  },
  "leads": {
   "title": "Leads",
-  "subtitle": "Gestioná oportunidades de negocio y seguimiento de prospectos",
+  "subtitle": "Personas interesadas en alquilar o comprar, con lo próximo que hay que hacer con cada una.",
   "newLead": "Nuevo lead",
   "filters": {
    "search": "Buscar",
@@ -2013,20 +2243,21 @@
    "Perdido": "Perdidos"
   },
   "table": {
-   "name": "Nombre",
+   "name": "Interesado",
    "contact": "Contacto",
    "pipeline": "Pipeline",
    "stage": "Etapa",
    "source": "Origen",
    "assignedTo": "Asignado a",
    "daysInStage": "Días en etapa",
-   "createdAt": "Creado"
+   "createdAt": "Creado",
+   "nextStep": "Próxima acción"
   },
   "sources": {
    "WebInquiry": "Web",
    "PhoneCall": "Teléfono",
    "Email": "Email",
-   "WalkIn": "Walk-in",
+   "WalkIn": "En persona",
    "Referral": "Referido",
    "Portal": "Portal",
    "SocialMedia": "Redes sociales",
@@ -2040,7 +2271,7 @@
    "Perdido": "Perdido"
   },
   "form": {
-   "title": "Nuevo Lead",
+   "title": "Nuevo lead",
    "firstName": "Nombre",
    "firstNamePlaceholder": "Ej: María",
    "lastName": "Apellido",
@@ -2058,30 +2289,31 @@
    "property": "Propiedad (opcional)",
    "propertyPlaceholder": "Seleccionar propiedad",
    "assignedTo": "Asignar a (opcional)",
-   "assignedToPlaceholder": "Auto-asignación round-robin",
+   "assignedToPlaceholder": "Asignación automática",
    "notes": "Notas",
    "notesPlaceholder": "Observaciones sobre el lead…",
    "submit": "Crear lead",
    "creating": "Creando…",
-   "created": "Lead creado exitosamente",
+   "created": "Lead creado",
    "error": "No se pudo crear el lead",
    "contactRequired": "Se requiere al menos email o teléfono"
   },
   "actions": {
    "reassign": "Reasignar",
    "reassignTitle": "Reasignar lead",
-   "reassignSuccess": "Lead reasignado exitosamente",
+   "reassignSuccess": "Lead reasignado",
    "convert": "Convertir",
    "convertTitle": "Convertir lead",
    "convertAs": "Convertir como",
-   "convertSuccess": "Lead convertido exitosamente",
+   "convertSuccess": "Lead convertido",
    "markLost": "Marcar como perdido",
    "markLostTitle": "Marcar lead como perdido",
    "lostReason": "Motivo de pérdida",
    "lostReasonPlaceholder": "Explicá el motivo…",
    "lostReasonRequired": "El motivo es obligatorio",
    "lostSuccess": "Lead marcado como perdido",
-   "error": "Error al realizar la acción"
+   "error": "No se pudo completar la acción. Probá de nuevo.",
+   "reassignPlaceholder": "Elegí un usuario…"
   },
   "roles": {
    "Inquilino": "Inquilino",
@@ -2093,21 +2325,34 @@
    "unassigned": "Sin asignar",
    "daysAgo": "{days}d",
    "stale": "Sin contacto hace {days} días",
-   "view": "Ver ficha"
+   "view": "Ver ficha",
+   "noContact": "Sin datos de contacto"
   },
   "empty": {
    "title": "No hay leads",
-   "subtitle": "Creá tu primer lead para empezar a gestionar oportunidades",
-   "filtered": "No se encontraron leads con los filtros aplicados",
+   "subtitle": "Cargá el primer interesado para empezar a seguirlo.",
+   "filtered": "Ningún lead coincide con los filtros.",
    "description": "Los leads representan oportunidades comerciales: consultas de interesados en tus propiedades. Seguí cada uno hasta el cierre.",
-   "step1": "Hacé clic en 'Nuevo lead'",
-   "step2": "Ingresá datos del interesado y propiedad de interés",
-   "step3": "Asigná un responsable y registrá interacciones"
+   "step1": "Tocá «Nuevo lead».",
+   "step2": "Cargá los datos de la persona y la propiedad que le interesa.",
+   "step3": "Asignale un responsable y anotá cada contacto."
   },
   "pagination": {
    "showing": "Mostrando {from}-{to} de {total}",
    "prev": "Anterior",
    "next": "Siguiente"
+  },
+  "next": {
+   "assign": "Asignar un responsable",
+   "firstContact": "Hacer el primer contacto",
+   "followUp": "Retomar el contacto",
+   "onTrack": "Al día",
+   "converted": "Nada pendiente",
+   "lost": "Nada pendiente",
+   "lastContact": "Último contacto hace {time}",
+   "enteredAgo": "Entró hace {time} y nadie lo contactó",
+   "lostNoReason": "Sin motivo cargado",
+   "convertedDetail": "Ya es cliente"
   }
  },
  "kanban": {
@@ -2128,25 +2373,27 @@
    "daysInStage": "{days}d en etapa",
    "noProperty": "Sin propiedad",
    "unassigned": "Sin asignar",
-   "stale": "Inactivo",
-   "staleBadge": "Sin contacto hace {days} días"
+   "stale": "Sin contacto",
+   "staleBadge": "Sin contacto hace {days} días",
+   "unchanged": "Sin cambios hace {time}",
+   "open": "Abrir la ficha de {name}"
   },
   "loading": "Cargando pipeline…",
-  "loadingError": "Error al cargar el pipeline",
+  "loadingError": "No pudimos cargar el pipeline.",
   "empty": {
-   "title": "Pipeline vacío",
+   "title": "No hay embudos configurados",
    "subtitle": "No hay leads activos en este pipeline",
-   "noPipelines": "No hay pipelines configurados",
+   "noPipelines": "Hace falta al menos un embudo con sus etapas para usar el tablero.",
    "description": "El tablero Kanban visualiza tus leads por etapa del pipeline comercial. Arrastrá tarjetas para actualizar el estado.",
-   "step1": "Configurá las etapas del pipeline desde Configuración",
-   "step2": "Cargá leads desde el módulo de Leads",
-   "step3": "Arrastrá las tarjetas entre columnas para avanzar cada lead"
+   "step1": "Definí las etapas en Configuración.",
+   "step2": "Cargá los interesados desde Leads.",
+   "step3": "Arrastrá cada tarjeta a la etapa en la que está."
   },
   "drag": {
    "moving": "Moviendo lead…",
    "success": "Lead movido a {stage}",
-   "error": "Error al mover el lead. Se revirtió el cambio.",
-   "rollback": "No se pudo mover el lead — volvió a {stage}"
+   "error": "No se pudo mover el lead. Quedó donde estaba.",
+   "rollback": "No se pudo mover el lead a {stage}. Quedó donde estaba."
   },
   "mobile": {
    "title": "Pipeline",
@@ -2157,7 +2404,10 @@
   "rbac": {
    "noAccess": "No tenés permisos para acceder al pipeline."
   },
-  "retry": "Reintentar"
+  "retry": "Reintentar",
+  "subtitle": "Cada columna es una etapa del embudo. Arrastrá un lead para cambiarlo de etapa.",
+  "boardEmpty": "Todavía no hay leads activos en este embudo. Se cargan desde Leads.",
+  "mobileHint": "En pantallas chicas el tablero se ve como lista. Para mover un lead de etapa hace falta una pantalla más ancha."
  },
  "interactions": {
   "title": "Interacciones",
@@ -2209,7 +2459,7 @@
    "visitUpdateFailed": "Error al actualizar visita"
   },
   "leadDetail": {
-   "title": "Detalle de Lead",
+   "title": "Lead",
    "source": "Origen",
    "budget": "Presupuesto",
    "property": "Propiedad",
@@ -2218,7 +2468,10 @@
    "stage": "Etapa",
    "pipeline": "Pipeline",
    "back": "Volver a Leads",
-   "notFound": "Lead no encontrado"
+   "notFound": "Lead no encontrado",
+   "justNow": "recién",
+   "ago": "hace {time}",
+   "loadError": "No pudimos cargar el lead. Revisá la conexión y volvé a intentar."
   },
   "sendEmail": "Enviar Email",
   "selectTemplate": "Seleccionar plantilla",
@@ -2496,8 +2749,8 @@
  },
  "scoring": {
   "title": "Puntuación",
-  "description": "Configure los pesos de los factores de puntuación. Los pesos son relativos — no necesitan sumar 100.",
-  "weightsTitle": "Pesos de factores",
+  "description": "Definí cuánto pesa cada factor al puntuar a un interesado. Los pesos son relativos: no hace falta que sumen 100.",
+  "weightsTitle": "Peso de cada factor",
   "factors": {
    "guarantee": "Garantía",
    "jobStability": "Estabilidad laboral",
@@ -2506,10 +2759,10 @@
    "manualRating": "Calificación manual"
   },
   "totalWeight": "Peso total",
-  "saveSuccess": "Configuración guardada correctamente",
-  "saveError": "Error al guardar la configuración",
-  "loadError": "Error al cargar la configuración",
-  "forbidden": "No tiene permisos para acceder a esta sección",
+  "saveSuccess": "Puntuación guardada",
+  "saveError": "No se pudo guardar la puntuación",
+  "loadError": "No se pudo cargar la puntuación",
+  "forbidden": "No tenés permiso para ver esta sección",
   "sectionTitle": "Puntuación",
   "totalScore": "Puntuación total",
   "noScore": "Sin puntuación",
@@ -2520,17 +2773,36 @@
   "notes": "Notas",
   "notesPlaceholder": "Observaciones sobre la puntuación...",
   "scoredBy": "Puntuado por",
-  "scoredAt": "Fecha de puntuación"
+  "scoredAt": "Fecha de puntuación",
+  "cardSubtitle": "Cuánto pesa cada factor al puntuar a un interesado."
  },
  "invoices": {
+  "environment": {
+   "testingTag": "Homologación",
+   "testingBody": "Estás operando contra el ambiente de prueba de ARCA: los comprobantes y sus CAE no tienen validez fiscal.",
+   "testingStamp": "Homologación · comprobante de prueba sin validez fiscal"
+  },
+  "arcaStates": {
+   "authorized": "Autorizado",
+   "credited": "Con nota de crédito",
+   "pending": "CAE pendiente"
+  },
   "title": "Facturación",
-  "subtitle": "Gestión de comprobantes electrónicos ARCA",
+  "subtitle": "Los comprobantes electrónicos emitidos ante ARCA, con su CAE.",
   "emitFactura": "Emitir Factura",
-  "emitNC": "Emitir Nota de Crédito",
+  "emitNC": "Emitir nota de crédito",
   "downloadPdf": "Descargar PDF",
   "downloading": "Descargando…",
   "table": {
-   "fecha": "Fecha",
+   "noCae": "Sin asignar",
+   "comprobante": "Comprobante",
+   "estado": "Estado ARCA",
+   "caeDue": "vence {date}",
+   "noReceptor": "Sin receptor",
+   "pdfOf": "Descargar el PDF de {number}",
+   "pageCount": "{count, plural, one {# comprobante en esta página} other {# comprobantes en esta página}}",
+   "pageTotal": "Total de la página",
+   "fecha": "Emisión",
    "tipo": "Tipo",
    "numero": "Número",
    "receptor": "Receptor",
@@ -2570,23 +2842,35 @@
    "NotaDebitoC": "Nota de Débito C"
   },
   "detail": {
+   "issuer": "Emisor",
+   "issuerUnknown": "Sin datos del emisor",
+   "code": "Cód. {code}",
+   "numberShort": "N.º",
+   "noData": "Sin dato",
+   "servicePeriod": "Período facturado",
+   "paymentDue": "Vencimiento del pago",
+   "amounts": "Importes",
+   "exemptAmount": "Exento",
+   "taxesAmount": "Otros tributos",
+   "caePending": "Pendiente",
+   "creditNotes": "Notas de crédito asociadas",
    "title": "Detalle del Comprobante",
    "type": "Tipo",
    "number": "Número",
    "receptor": "Receptor",
-   "receptorCuit": "CUIT Receptor",
-   "receptorFiscalCondition": "Condición Fiscal",
-   "amount": "Importe Total",
-   "netAmount": "Importe Neto",
+   "receptorCuit": "CUIT / documento",
+   "receptorFiscalCondition": "Condición frente al IVA",
+   "amount": "Total",
+   "netAmount": "Importe neto",
    "ivaAmount": "IVA",
    "ivaRate": "Tasa IVA",
    "cae": "CAE",
-   "caeExpiration": "Vencimiento CAE",
+   "caeExpiration": "Vencimiento del CAE",
    "description": "Descripción",
    "currency": "Moneda",
-   "payment": "Pago asociado",
+   "payment": "Cobro que lo originó",
    "originalComprobante": "Comprobante original",
-   "createdAt": "Emitido el",
+   "createdAt": "Fecha de emisión",
    "back": "Volver a facturación"
   },
   "emit": {
@@ -2622,8 +2906,8 @@
   },
   "empty": {
    "title": "Sin comprobantes",
-   "subtitle": "Los comprobantes se emiten desde los pagos de liquidaciones",
-   "filtered": "No se encontraron comprobantes con los filtros aplicados",
+   "subtitle": "Los comprobantes se emiten al registrar un cobro o con «Nueva factura».",
+   "filtered": "No hay comprobantes de ese tipo.",
    "filteredTitle": "Sin resultados",
    "filteredSubtitle": "No se encontraron comprobantes con los filtros aplicados",
    "tourHint": "Aún no emitiste ninguna factura. ¿Querés ver cómo funciona?",
@@ -2635,8 +2919,8 @@
    "next": "Siguiente"
   },
   "errors": {
-   "loadFailed": "Error al cargar comprobantes",
-   "notFound": "Comprobante no encontrado",
+   "loadFailed": "No se pudieron cargar los comprobantes",
+   "notFound": "No encontramos ese comprobante",
    "pdfFailed": "Error al descargar PDF"
   },
   "arca": {
@@ -2774,7 +3058,7 @@
    }
   },
   "fiscal": {
-   "title": "Configuración Fiscal",
+   "title": "Configuración fiscal",
    "subtitle": "Certificados, emisores y puntos de venta para facturación electrónica ARCA",
    "forbidden": "No tenés permisos para acceder a esta sección",
    "startTour": "Ver tutorial",
@@ -2870,23 +3154,28 @@
    }
   },
   "nc": {
-   "title": "Nota de Crédito",
-   "subtitle": "Emitir nota de crédito para el comprobante seleccionado",
+   "backToList": "Volver a facturación",
+   "backToVoucher": "Volver al comprobante",
+   "irreversible": "Una nota de crédito emitida no se puede borrar: queda registrada ante ARCA.",
+   "title": "Nota de crédito",
+   "subtitle": "Anula todo o parte de un comprobante ya emitido.",
    "originalLabel": "Comprobante original",
    "receptor": "Receptor",
-   "descripcion": "Descripción / Motivo",
+   "descripcion": "Motivo",
    "descripcionPlaceholder": "Motivo de la nota de crédito…",
    "amount": "Importe a acreditar",
-   "amountHint": "Máximo: {max}",
-   "fchServDesde": "Desde (servicio)",
-   "fchServHasta": "Hasta (servicio)",
+   "amountHint": "Hasta {max}",
+   "creditedHint": "Ya tiene notas de crédito por {credited}.",
+   "fullyCredited": "Este comprobante ya está acreditado por completo.",
+   "fchServDesde": "Servicio desde",
+   "fchServHasta": "Servicio hasta",
    "cancel": "Cancelar",
-   "submit": "Emitir NC",
+   "submit": "Emitir nota de crédito",
    "submitting": "Emitiendo…",
-   "notFound": "Comprobante no encontrado",
-   "emitError": "Error al emitir la Nota de Crédito"
+   "notFound": "No encontramos ese comprobante",
+   "emitError": "No se pudo emitir la nota de crédito"
   },
-  "newInvoiceBtn": "Nueva Factura",
+  "newInvoiceBtn": "Nueva factura",
   "pendingLink": "Pendientes por cuenta del locador"
  },
  "commissions": {
@@ -2931,7 +3220,7 @@
  },
  "renditions": {
   "title": "Rendiciones",
-  "subtitle": "Rendiciones por contrato emitidas antes de la cuenta corriente (histórico, solo lectura)",
+  "subtitle": "Lo que se le transfirió a cada locador, contrato por contrato",
   "generate": "Generar Rendición",
   "generateDesc": "Crear una rendición para un contrato y período específico",
   "generateSuccess": "Rendición generada correctamente",
@@ -2940,7 +3229,7 @@
    "Borrador": "Borrador",
    "Aprobada": "Aprobada",
    "Enviada": "Enviada",
-   "Depositada": "Depositada"
+   "Depositada": "Transferida"
   },
   "filters": {
    "status": "Estado",
@@ -2976,11 +3265,11 @@
    "actions": "Acciones"
   },
   "detail": {
-   "title": "Detalle de Rendición",
+   "title": "Rendición al locador",
    "period": "Período",
    "contract": "Contrato",
    "property": "Propiedad",
-   "owner": "Propietario",
+   "owner": "Locador",
    "status": "Estado",
    "createdAt": "Creada el",
    "updatedAt": "Última actualización",
@@ -3007,17 +3296,17 @@
   "lineItemTypes": {
    "Alquiler": "Alquiler",
    "Comision": "Comisión",
-   "AdminFee": "Honorarios Admin.",
+   "AdminFee": "Honorarios de administración",
    "Deduccion": "Deducción",
    "Ajuste": "Ajuste"
   },
   "summary": {
-   "title": "Resumen",
+   "title": "Liquidación del neto",
    "rentCollected": "Total cobrado",
    "commission": "Comisión",
-   "adminFee": "Honorarios admin.",
+   "adminFee": "Honorarios de administración",
    "deductions": "Deducciones",
-   "netDeposit": "Depósito neto"
+   "netDeposit": "Neto a transferir"
   },
   "transitions": {
    "approve": "Aprobar",
@@ -3080,14 +3369,14 @@
    "next": "Siguiente"
   },
   "errors": {
-   "loadFailed": "Error al cargar rendiciones",
+   "loadFailed": "No pudimos cargar las rendiciones",
    "loadDetailFailed": "Error al cargar detalle de rendición",
-   "notFound": "Rendición no encontrada",
+   "notFound": "No encontramos esta rendición",
    "forbidden": "No tiene permisos para esta acción"
   },
   "card": {
    "view": "Ver detalle",
-   "noOwner": "Sin propietario asignado",
+   "noOwner": "Sin locador asignado",
    "noProperty": "Sin propiedad asociada",
    "notSent": "Aún no enviada al propietario",
    "missingPdf": "PDF no generado aún"
@@ -3097,42 +3386,72 @@
    "body": "Las rendiciones por contrato quedaron como histórico. La cuenta corriente y el estado de cuenta mensual del locador las reemplazan.",
    "statements": "Ir a estados de cuenta",
    "owners": "Ir a locadores"
+  },
+  "voucher": {
+   "stub": "Rendición",
+   "number": "N.º {number}",
+   "payTo": "Locador",
+   "collected": "Cobrado",
+   "fees": "Honorarios",
+   "expenses": "Gastos",
+   "net": "Neto a transferir",
+   "netPaid": "Neto transferido",
+   "barLabel": "Neto {net} sobre {collected} cobrados",
+   "depositedOn": "Transferida el {date}",
+   "sentOn": "Enviada el {date}",
+   "loadFailedHint": "Revisá la conexión y volvé a intentar.",
+   "retry": "Reintentar"
+  },
+  "document": {
+   "back": "Volver a rendiciones",
+   "period": "Período",
+   "cuit": "CUIT {cuit}",
+   "concept": "Concepto",
+   "timeline": "Seguimiento",
+   "created": "Generada",
+   "sent": "Enviada al locador",
+   "deposited": "Transferida",
+   "pendingStep": "Pendiente"
   }
  },
  "reports": {
-  "title": "Reportes Financieros",
-  "subtitle": "Generá y descargá reportes de estado de cuenta, rentabilidad, flujo de caja y comisiones",
-  "selectType": "Seleccioná un tipo de reporte",
+  "title": "Reportes",
+  "subtitle": "Elegí un reporte, ajustá el período y descargalo en Excel o PDF.",
+  "selectType": "Tipo de reporte",
   "generate": "Generar reporte",
   "types": {
-   "ownerStatement": "Estado de cuenta propietario",
+   "ownerStatement": "Estado de cuenta del propietario",
    "propertyProfitability": "Rentabilidad por propiedad",
    "cashFlow": "Flujo de caja mensual",
    "commissionSummary": "Resumen de comisiones",
-   "pipelineAnalytics": "Analítica de Pipeline",
+   "pipelineAnalytics": "Leads por etapa",
    "morosidad": "Morosidad"
   },
   "typeDescriptions": {
-   "ownerStatement": "Detalle de cobros, comisiones, honorarios y depósitos netos por propietario",
-   "propertyProfitability": "Análisis de ingresos, facturación y comisiones por propiedad",
-   "cashFlow": "Ingresos vs. egresos mensuales con saldo neto",
-   "commissionSummary": "Desglose de comisiones y honorarios por rendición",
-   "pipelineAnalytics": "Leads por etapa, tasa de conversión y tiempos promedio por pipeline",
-   "morosidad": "Liquidaciones vencidas con días de atraso y montos adeudados"
+   "ownerStatement": "Cobros, comisiones, honorarios y depósito neto de un propietario",
+   "propertyProfitability": "Lo cobrado, lo facturado y las comisiones de cada propiedad",
+   "cashFlow": "Ingresos y egresos de cada mes, con su saldo",
+   "commissionSummary": "Comisiones y honorarios de cada rendición",
+   "pipelineAnalytics": "Cuántos leads hay en cada etapa y cuántos se convirtieron",
+   "morosidad": "Liquidaciones vencidas, con los días de atraso y el importe adeudado"
   },
   "filters": {
    "from": "Desde",
    "to": "Hasta",
-   "ownerId": "ID Propietario",
+   "ownerId": "Propietario",
    "ownerIdPlaceholder": "UUID del propietario",
-   "propertyId": "ID Propiedad",
+   "propertyId": "Propiedad",
    "propertyIdPlaceholder": "UUID de la propiedad (opcional)",
-   "contractId": "ID Contrato",
+   "contractId": "Contrato",
    "contractIdPlaceholder": "UUID del contrato (opcional)",
-   "clear": "Limpiar filtros",
+   "clear": "Restablecer filtros",
    "required": "Obligatorio",
-   "pipelineId": "ID Pipeline",
-   "pipelineIdPlaceholder": "UUID del pipeline (opcional)"
+   "pipelineId": "Embudo",
+   "pipelineIdPlaceholder": "UUID del pipeline (opcional)",
+   "ownerIdChoose": "Elegí un propietario",
+   "propertyIdAll": "Todas las propiedades",
+   "contractIdAll": "Todos los contratos",
+   "pipelineIdAll": "Todos los embudos"
   },
   "columns": {
    "ownerStatement": {
@@ -3142,50 +3461,50 @@
     "comision": "Comisión",
     "honorarios": "Honorarios",
     "deducciones": "Deducciones",
-    "depositoNeto": "Depósito Neto"
+    "depositoNeto": "Depósito neto"
    },
    "propertyProfitability": {
     "propiedad": "Propiedad",
     "cobrado": "Cobrado",
     "facturado": "Facturado",
     "comisiones": "Comisiones",
-    "ingresoNeto": "Ingreso Neto"
+    "ingresoNeto": "Ingreso neto"
    },
    "cashFlow": {
     "mes": "Mes",
     "ingresos": "Ingresos",
     "egresos": "Egresos",
     "facturado": "Facturado",
-    "saldoNeto": "Saldo Neto"
+    "saldoNeto": "Saldo neto"
    },
    "commissionSummary": {
     "propiedad": "Propiedad",
     "propietario": "Propietario",
     "periodo": "Período",
-    "tipoComision": "Tipo Comisión",
+    "tipoComision": "Tipo de comisión",
     "comision": "Comisión",
     "honorarios": "Honorarios",
     "total": "Total"
    },
    "pipelineAnalytics": {
     "etapa": "Etapa",
-    "leadsActuales": "Leads Actuales",
+    "leadsActuales": "Leads en la etapa",
     "convertidos": "Convertidos",
     "perdidos": "Perdidos",
-    "tasaConversion": "Tasa Conversión",
-    "promedioConversionDias": "Promedio Días Conversión"
+    "tasaConversion": "Tasa de conversión",
+    "promedioConversionDias": "Días promedio hasta convertir"
    },
    "morosidad": {
     "propiedad": "Propiedad",
     "inquilino": "Inquilino",
     "periodo": "Período",
     "vencimiento": "Vencimiento",
-    "diasVencidos": "Días Vencidos",
+    "diasVencidos": "Días de atraso",
     "monto": "Monto",
     "moneda": "Moneda"
    }
   },
-  "summary": "Total",
+  "summary": "Totales del período",
   "download": {
    "excel": "Descargar Excel",
    "pdf": "Descargar PDF",
@@ -3197,16 +3516,16 @@
    "noType": "Seleccioná un tipo de reporte para comenzar"
   },
   "generatedAt": "Generado el",
-  "rowCount": "{count} filas",
+  "rowCount": "{count, plural, one {# fila} other {# filas}}",
   "errors": {
-   "loadFailed": "Error al generar el reporte",
-   "downloadFailed": "Error al descargar el archivo",
-   "ownerIdRequired": "El ID del propietario es obligatorio para este reporte",
+   "loadFailed": "No se pudo generar el reporte",
+   "downloadFailed": "No se pudo descargar el archivo",
+   "ownerIdRequired": "Elegí un propietario para ver su estado de cuenta",
    "invalidFilters": "Los filtros ingresados no son válidos"
   },
   "scheduling": {
-   "title": "Programar Reportes",
-   "subtitle": "Configurá el envío automático de reportes por email",
+   "title": "Envío programado",
+   "subtitle": "Recibí los reportes por mail con la frecuencia que elijas",
    "create": "Crear programación",
    "edit": "Editar",
    "delete": "Eliminar",
@@ -3215,8 +3534,8 @@
    "format": "Formato",
    "reportType": "Tipo de reporte",
    "noSchedules": "No hay programaciones configuradas",
-   "nextRun": "Próxima ejecución",
-   "lastRun": "Última ejecución",
+   "nextRun": "Próximo envío",
+   "lastRun": "Último envío",
    "active": "Activo",
    "inactive": "Inactivo",
    "frequencies": {
@@ -3228,7 +3547,7 @@
     "excel": "Excel",
     "pdf": "PDF"
    },
-   "confirmDelete": "¿Estás seguro de eliminar esta programación?",
+   "confirmDelete": "¿Eliminar esta programación?",
    "saved": "Programación guardada",
    "deleted": "Programación eliminada",
    "recipientsRequired": "Ingresá al menos un destinatario",
@@ -3243,11 +3562,20 @@
    "totalLeads": "Leads totales",
    "totalConvertidos": "Leads convertidos",
    "tasaConversionGeneral": "Tasa de conversión general"
+  },
+  "commissionTypes": {
+   "FixedPercent": "Porcentaje",
+   "FixedAmount": "Monto fijo",
+   "Mixed": "Porcentaje y monto fijo"
+  },
+  "chart": {
+   "money": "En pesos, para el período elegido",
+   "count": "Cantidad de leads, para el período elegido"
   }
  },
  "tickets": {
   "title": "Tickets",
-  "subtitle": "Gestión de tickets de mantenimiento y reclamos",
+  "subtitle": "Reclamos y pedidos de mantenimiento, ordenados por prioridad y plazo.",
   "newTicket": "Nuevo ticket",
   "backToList": "Volver a tickets",
   "filters": {
@@ -3470,7 +3798,7 @@
    "assignedToPlaceholder": "Seleccionar usuario (opcional)",
    "submit": "Crear ticket",
    "creating": "Creando…",
-   "created": "Ticket creado exitosamente",
+   "created": "Ticket creado",
    "error": "No se pudo crear el ticket"
   },
   "detail": {
@@ -3483,16 +3811,19 @@
    "reassignPlaceholder": "Seleccionar usuario",
    "reassignSuccess": "Ticket reasignado",
    "reassignError": "Error al reasignar",
-   "slaDeadline": "Fecha límite SLA",
-   "slaOverdue": "Vencido",
-   "slaRemaining": "Quedan {hours}h",
+   "slaDeadline": "Plazo de respuesta",
+   "slaOverdue": "fuera de plazo hace {time}",
+   "slaRemaining": "vence en {time}",
    "transition": "Cambiar estado",
    "transitionSuccess": "Estado actualizado",
    "transitionError": "No se pudo cambiar el estado",
-   "noTransitions": "Sin transiciones disponibles",
+   "noTransitions": "Este ticket ya no admite cambios de estado.",
    "createdAt": "Creado el",
    "updatedAt": "Última actualización",
-   "noUsers": "No hay usuarios para asignar"
+   "noUsers": "No hay usuarios para asignar",
+   "transitionQuestion": "¿Qué pasó con este ticket?",
+   "loadError": "No pudimos cargar el ticket. Revisá la conexión y volvé a intentar.",
+   "retry": "Reintentar"
   },
   "timeline": {
    "title": "Actividad",
@@ -3510,20 +3841,20 @@
   "card": {
    "noAssignee": "Sin asignar",
    "noCategory": "Sin categoría",
-   "slaOverdue": "SLA vencido",
+   "slaOverdue": "Fuera de plazo",
    "created": "Creado",
    "age": "{days, plural, =0 {Abierto hoy} one {Hace # día} other {Hace # días}}",
    "view": "Ver ticket"
   },
   "empty": {
    "title": "No hay tickets",
-   "subtitle": "Creá tu primer ticket de mantenimiento o reclamo",
-   "filtered": "No se encontraron tickets con los filtros aplicados",
+   "subtitle": "Cargá el primer reclamo o pedido de mantenimiento.",
+   "filtered": "Ningún ticket coincide con los filtros.",
    "detail": "Ticket no encontrado",
    "description": "Los tickets organizan reclamos y solicitudes de mantenimiento. Cada ticket se asigna, se sigue y se resuelve de forma trazable.",
-   "step1": "Hacé clic en 'Nuevo ticket'",
-   "step2": "Seleccioná tipo, propiedad y describí el problema",
-   "step3": "Asigná a un responsable o proveedor"
+   "step1": "Tocá «Nuevo ticket».",
+   "step2": "Elegí la propiedad y contá qué pasa.",
+   "step3": "Asignale un responsable o un proveedor."
   },
   "pagination": {
    "showing": "Mostrando {from}-{to} de {total}",
@@ -3536,7 +3867,7 @@
    "assign": "Asignar proveedor",
    "assignPlaceholder": "Seleccionar proveedor",
    "noProviders": "No hay proveedores disponibles para este ticket",
-   "assignSuccess": "Proveedor asignado exitosamente",
+   "assignSuccess": "Proveedor asignado",
    "assignError": "Error al asignar proveedor",
    "status": "Estado del proveedor",
    "name": "Nombre del proveedor",
@@ -3585,11 +3916,31 @@
    "deleteError": "Error al eliminar la categoría",
    "empty": "No hay categorías configuradas",
    "showInactive": "Mostrar inactivas"
+  },
+  "elapsed": {
+   "minutes": "{count, plural, one {# minuto} other {# minutos}}",
+   "hours": "{count, plural, one {# hora} other {# horas}}",
+   "days": "{count, plural, one {# día} other {# días}}",
+   "weeks": "{count, plural, one {# semana} other {# semanas}}",
+   "months": "{count, plural, one {# mes} other {# meses}}",
+   "years": "{count, plural, one {# año} other {# años}}"
+  },
+  "list": {
+   "groups": {
+    "overdue": "Fuera de plazo",
+    "open": "En curso",
+    "closed": "Cerrados"
+   },
+   "overdueFor": "Fuera de plazo hace {time}",
+   "dueIn": "Vence en {time}",
+   "noDeadline": "Sin plazo definido",
+   "deadlineOn": "Plazo: {date}",
+   "openedAgo": "Abierto hace {time}"
   }
  },
  "providers": {
   "title": "Proveedores",
-  "subtitle": "Gestión del pool de proveedores de mantenimiento",
+  "subtitle": "Plomeros, electricistas y demás oficios que atienden los reclamos.",
   "newProvider": "Nuevo proveedor",
   "backToList": "Volver a proveedores",
   "createTitle": "Crear proveedor",
@@ -3599,12 +3950,12 @@
    "rubroPlaceholder": "Todos los rubros",
    "zonePlaceholder": "Todas las zonas",
    "search": "Buscar",
-   "searchPlaceholder": "Nombre o apellido…",
+   "searchPlaceholder": "Buscar por nombre o apellido",
    "activeOnly": "Solo activos",
    "clear": "Limpiar filtros"
   },
   "form": {
-   "personalInfo": "Información personal",
+   "personalInfo": "Nombre y contacto",
    "firstName": "Nombre",
    "firstNamePlaceholder": "Ej: Carlos",
    "lastName": "Apellido",
@@ -3617,10 +3968,10 @@
    "cuitPlaceholder": "XX-XXXXXXXX-X",
    "providerInfo": "Datos del proveedor",
    "rubros": "Rubros",
-   "rubrosPlaceholder": "Ej: Plomería, Electricidad…",
+   "rubrosPlaceholder": "Ej.: Plomería, Electricidad",
    "rubrosHelp": "Escribí un rubro y presioná Enter para agregar",
    "coverageZones": "Zonas de cobertura",
-   "coverageZonesPlaceholder": "Ej: Buenos Aires, Córdoba…",
+   "coverageZonesPlaceholder": "Ej.: Palermo, Belgrano, Caballito",
    "coverageZonesHelp": "Escribí una zona y presioná Enter para agregar",
    "notes": "Notas",
    "notesPlaceholder": "Observaciones sobre el proveedor…",
@@ -3628,8 +3979,8 @@
    "creating": "Creando…",
    "updating": "Guardando…",
    "error": "No se pudo guardar el proveedor. Intentá nuevamente.",
-   "created": "Proveedor creado exitosamente",
-   "updated": "Proveedor actualizado exitosamente"
+   "created": "Proveedor creado",
+   "updated": "Cambios guardados"
   },
   "card": {
    "rubros": "Rubros",
@@ -3638,7 +3989,9 @@
    "noPhone": "Sin teléfono",
    "inactive": "Inactivo",
    "noProfile": "Falta cargar rubros y zona de cobertura",
-   "view": "Ver ficha"
+   "view": "Ver ficha",
+   "call": "Llamar",
+   "sendEmail": "Escribirle un correo"
   },
   "detail": {
    "edit": "Editar",
@@ -3650,19 +4003,19 @@
    "status": "Estado",
    "createdAt": "Creado el",
    "updatedAt": "Última modificación",
-   "deleteConfirm": "¿Estás seguro de eliminar este proveedor?",
+   "deleteConfirm": "¿Eliminar este proveedor? No se puede deshacer.",
    "deleted": "Proveedor eliminado",
    "deleteError": "No se pudo eliminar el proveedor"
   },
   "empty": {
-   "title": "No hay proveedores",
-   "subtitle": "Registrá tu primer proveedor de mantenimiento",
-   "filtered": "No se encontraron proveedores con los filtros aplicados",
+   "title": "Todavía no hay proveedores",
+   "subtitle": "Tené a mano a los plomeros, electricistas y cerrajeros de confianza para asignarlos cuando entra un reclamo.",
+   "filtered": "Ningún proveedor coincide con la búsqueda.",
    "detail": "Proveedor no encontrado",
    "description": "Centralizá los datos de plomeros, electricistas, cerrajeros y otros profesionales para asignarlos rápido ante un reclamo.",
-   "step1": "Hacé clic en 'Nuevo proveedor'",
-   "step2": "Ingresá nombre, especialidad y datos de contacto",
-   "step3": "Asigná proveedores a tickets cuando surjan reparaciones"
+   "step1": "Hacé clic en «Nuevo proveedor»",
+   "step2": "Cargá nombre, rubros, zonas y un teléfono",
+   "step3": "Asignalo a un reclamo cuando haga falta una reparación"
   },
   "pagination": {
    "showing": "Mostrando {from}-{to} de {total}",
@@ -3828,7 +4181,7 @@
  },
  "import": {
   "title": "Importar datos",
-  "subtitle": "Importá propiedades o personas desde un archivo CSV",
+  "subtitle": "Cargá propiedades o personas desde una planilla guardada como CSV.",
   "steps": {
    "upload": "Subir archivo",
    "mapping": "Mapeo de columnas",
@@ -4041,22 +4394,23 @@
   }
  },
  "delinquency": {
-  "title": "Morosos",
-  "description": "Inquilinos con liquidaciones vencidas y punitorios acumulados.",
+  "title": "Morosidad",
+  "description": "La deuda vencida de los inquilinos según cuánto tiempo lleva sin pagarse, y quiénes la deben.",
+  "goToCollections": "Ir a cobranza",
   "refresh": "Actualizar",
   "forbidden": "No tenés permisos para acceder a esta sección",
-  "loadError": "Error al cargar la lista de morosos",
-  "emptyTitle": "¡Todos al día! No hay morosos activos",
-  "emptyDescription": "No se encontraron liquidaciones vencidas con saldo pendiente.",
+  "loadError": "No se pudo cargar la morosidad",
+  "emptyTitle": "No hay inquilinos en mora",
+  "emptyDescription": "Ninguna liquidación vencida tiene saldo pendiente.",
   "colName": "Inquilino",
   "colProperty": "Propiedad",
   "colDebt": "Deuda",
-  "colPenalty": "Multas",
-  "colDays": "Días mora",
+  "colPenalty": "Punitorios",
+  "colDays": "Días de mora",
   "colLastReminder": "Último recordatorio",
   "days": "días",
-  "totalDebt": "Deuda total",
-  "accruedPenalty": "Multa acumulada",
+  "totalDebt": "Deuda vencida",
+  "accruedPenalty": "Punitorios acumulados",
   "lastReminder": "Último aviso",
   "noReminder": "Sin avisos enviados",
   "sendReminder": "Enviar aviso",
@@ -4076,7 +4430,30 @@
   "forbiddenHint": "Pedile a un administrador que te habilite el acceso a morosidad.",
   "severeCount": "Casos graves",
   "severeHint": "Más de 30 días de mora",
-  "tenantCount": "{count, plural, =0 {Sin inquilinos en mora} one {# inquilino} other {# inquilinos}}"
+  "tenantCount": "{count, plural, =0 {Sin deudores} one {# deudor} other {# deudores}}",
+  "retry": "Reintentar",
+  "aging": {
+   "title": "Deuda por antigüedad",
+   "oldest": "{days, plural, one {el atraso más viejo es de # día} other {el atraso más viejo es de # días}}",
+   "penaltyHint": "Se suman a la deuda al cobrar.",
+   "barLabel": "Reparto de la deuda vencida por antigüedad",
+   "buckets": {
+    "d30": "1 a 30 días",
+    "d60": "31 a 60 días",
+    "d90": "61 a 90 días",
+    "over": "Más de 90 días"
+   },
+   "bucketCount": "{count, plural, =0 {Sin deudores} one {# deudor} other {# deudores}}",
+   "share": "{pct} % de la deuda",
+   "note": "Cada deuda cuenta en el tramo de su vencimiento impago más viejo."
+  },
+  "ranking": {
+   "title": "Deudores",
+   "order": "Del más atrasado al menos",
+   "position": "Puesto",
+   "daysLabel": "{days, plural, one {día de mora} other {días de mora}}",
+   "noProperty": "Sin propiedad"
+  }
  },
  "dataQuality": {
   "title": "Calidad de datos",
@@ -4232,8 +4609,17 @@
   }
  },
  "adjustments": {
+  "dueOn": "Ajusta el {date}",
+  "indexChange": "índice {pct}",
+  "noNewRent": "Sin calcular",
+  "indexMonths": "Índices usados: {months}",
+  "overview": {
+   "total": "{count, plural, one {# ajuste en el mes} other {# ajustes en el mes}}",
+   "ready": "{count, plural, =0 {ninguno listo para aplicar} one {# listo para aplicar} other {# listos para aplicar}}",
+   "blocked": "{count, plural, one {# no se puede calcular} other {# no se pueden calcular}}"
+  },
   "title": "Ajustes del mes",
-  "subtitle": "Los ajustes de alquiler que vencen en el mes: revisá el alquiler nuevo de cada contrato, elegí los que querés aplicar y aplicalos todos juntos.",
+  "subtitle": "Los alquileres que se actualizan este mes. Revisá cuánto paga hoy cada contrato y cuánto pasa a pagar, elegí los que querés aplicar y aplicalos juntos.",
   "forbidden": "No tenés permiso para aplicar ajustes.",
   "month": "Mes",
   "refresh": "Actualizar",
@@ -4244,6 +4630,7 @@
     "subtitle": "Ningún contrato activo tiene un ajuste pendiente que venza hasta fin de mes."
   },
   "columns": {
+    "difference": "Diferencia",
     "select": "Elegir",
     "contract": "Contrato",
     "date": "Fecha del ajuste",
@@ -4272,7 +4659,8 @@
   "rentDecreaseHint": "El alquiler baja {pct} respecto del vigente. Revisalo: no entra en «Elegir todos» y hay que confirmarlo al aplicar.",
   "provisionalHint": "Calculado con índices estimados; se corrige cuando se publique el oficial.",
   "missing": {
-    "months": "Faltan {indexes}: {periods}",
+    "noPeriods": "los meses que faltan",
+    "months": "Falta cargar {indexes} de {periods}.",
     "estimatesOnly": "Hay un estimado, pero el pago a cuenta está desactivado.",
     "loadIndex": "Cargar el índice"
   },
@@ -4283,6 +4671,7 @@
     "generic": "No se puede calcular este ajuste."
   },
   "summary": {
+    "totals": "Suma de alquileres: {before} → {after} ({diff})",
     "selected": "{count, plural, =0 {Ningún ajuste elegido} one {# ajuste elegido} other {# ajustes elegidos}}",
     "provisional": "{count, plural, one {# a cuenta} other {# a cuenta}}",
     "decreases": "{count, plural, one {# baja el alquiler} other {# bajan el alquiler}}"
@@ -4411,10 +4800,10 @@
    "filteredSubtitle": "No se encontraron tickets con los filtros aplicados"
   },
   "reports": {
-   "noTypeTitle": "Seleccioná un tipo de reporte",
-   "noTypeSubtitle": "Elegí el tipo de reporte en el panel de filtros para visualizar los datos",
-   "emptyResultTitle": "Sin resultados",
-   "emptyResultSubtitle": "No se encontraron datos con los filtros aplicados. Intentá ajustar los filtros."
+   "noTypeTitle": "Elegí un tipo de reporte",
+   "noTypeSubtitle": "Elegí un tipo de reporte para verlo acá. Después lo podés descargar en Excel o PDF.",
+   "emptyResultTitle": "No hay datos para ese período",
+   "emptyResultSubtitle": "Probá con otras fechas o quitá el filtro."
   },
   "persons": {
    "title": "No hay personas",
@@ -4467,7 +4856,7 @@
  },
  "payments": {
   "title": "Pagos y deuda",
-  "subtitle": "Cobranzas registradas y saldos pendientes",
+  "subtitle": "Lo que se cobró cada día, por qué medio, y lo que todavía falta cobrar.",
   "pendingDebt": "Deuda pendiente",
   "overdueDebt": "Deuda vencida",
   "settlements": "liquidaciones",
@@ -4479,9 +4868,45 @@
   "amount": "Monto",
   "collected": "Total cobrado",
   "collectedHint": "{count, plural, =0 {Sin pagos registrados} one {# pago registrado} other {# pagos registrados}}",
-  "noPaymentsSubtitle": "Cuando registres cobranzas vas a verlas acá con su medio de pago y período.",
+  "noPaymentsSubtitle": "Los cobros se registran desde cada liquidación. Cuando registres el primero, vas a ver acá el extracto del mes.",
   "invoicing": "Facturación",
-  "invoicingTitle": "Facturación del cobro por cuenta del locador"
+  "invoicingTitle": "Facturación del cobro por cuenta del locador",
+  "loadError": "No se pudieron cargar los pagos.",
+  "retry": "Reintentar",
+  "loading": "Cargando los pagos",
+  "methods": {
+   "Transferencia": "Transferencia",
+   "Efectivo": "Efectivo",
+   "MercadoPago": "Mercado Pago",
+   "Cheque": "Cheque",
+   "AplicacionDeposito": "Depósito aplicado"
+  },
+  "summary": {
+   "label": "Resumen del mes",
+   "collected": "Cobrado en el mes",
+   "alsoIn": "{count, plural, one {Además, {amount} en # pago} other {Además, {amount} en # pagos}}",
+   "byMethod": "Por medio de pago",
+   "noMethods": "Sin cobros en este mes.",
+   "count": "{count, plural, one {# pago} other {# pagos}}",
+   "toCollect": "Por cobrar hoy",
+   "loadingDebt": "Calculando…",
+   "debtError": "No se pudo calcular la deuda.",
+   "settlements": "{count, plural, =0 {sin liquidaciones} one {# liquidación} other {# liquidaciones}}",
+   "goToCollections": "Ir a cobranza"
+  },
+  "statement": {
+   "label": "Extracto de cobros",
+   "older": "Mes anterior",
+   "newer": "Mes siguiente",
+   "thisMonth": "Mes en curso",
+   "rentOf": "Liquidación de {period}",
+   "noPeriod": "Cobro sin liquidación asociada",
+   "reference": "Ref. {reference}",
+   "noDetail": "Sin referencia",
+   "dayTotal": "{count, plural, one {Total del día · # pago} other {Total del día · # pagos}}",
+   "monthTotal": "{count, plural, one {Total del mes · # pago} other {Total del mes · # pagos}}",
+   "truncated": "El extracto cubre los últimos {shown} pagos de {total}."
+  }
  },
  "perfil": {
   "title": "Mi perfil",
@@ -4574,13 +4999,13 @@
  },
  "configuracion": {
   "title": "Configuración",
-  "subtitle": "Datos y personalización de la inmobiliaria",
+  "subtitle": "Los datos de la inmobiliaria y las reglas con las que trabaja el sistema.",
   "name": "Nombre de la inmobiliaria",
   "cuit": "CUIT",
   "province": "Provincia",
-  "brandPrimary": "Color primario",
+  "brandPrimary": "Color principal",
   "brandSecondary": "Color secundario",
-  "logoUrl": "URL del logo",
+  "logoUrl": "Dirección web del logo",
   "save": "Guardar cambios",
   "saving": "Guardando...",
   "saved": "Cambios guardados",
@@ -4600,21 +5025,41 @@
   "manageInbox": "Configurar la bandeja",
   "licenseNumber": "Matrícula profesional",
   "address": "Domicilio de la inmobiliaria",
-  "manageTemplates": "Gestionar plantillas"
+  "manageTemplates": "Gestionar plantillas",
+  "logoHint": "Pegá el enlace a la imagen del logo.",
+  "cuitHint": "El CUIT no se cambia desde acá.",
+  "organization": {
+   "title": "Datos de la inmobiliaria",
+   "subtitle": "Aparecen en los recibos, los contratos y los mensajes que salen del sistema."
+  },
+  "brand": {
+   "title": "Marca",
+   "subtitle": "Colores y logo con los que se presenta la inmobiliaria."
+  },
+  "groups": {
+   "team": "Equipo y accesos",
+   "contracts": "Contratos, cobranza y facturación",
+   "sales": "Consultas y ventas",
+   "communication": "Comunicación",
+   "data": "Datos"
+  }
  },
  "portalPublico": {
   "footer": {
-   "poweredBy": "{name} · Sitio construido con Realfy"
+   "poweredBy": "{name} · Sitio hecho con Realfy"
+  },
+  "header": {
+   "contact": "Consultar"
   },
   "hero": {
-   "title": "Propiedades disponibles en {name}",
-   "subtitle": "Explorá el catálogo actualizado y dejanos tu consulta: te contactamos a la brevedad."
+   "title": "Propiedades en venta y alquiler",
+   "subtitle": "Mirá lo que tenemos publicado y escribinos por la que te interese."
   },
   "list": {
    "title": "Propiedades disponibles",
-   "subtitle": "{count} propiedades encontradas",
+   "subtitle": "{count, plural, =0 {Ninguna propiedad coincide con la búsqueda} one {1 propiedad publicada} other {# propiedades publicadas}}",
    "emptyTitle": "Todavía no hay propiedades publicadas",
-   "emptySubtitle": "Volvé a pasar más adelante, estamos actualizando el catálogo.",
+   "emptySubtitle": "Estamos actualizando el catálogo. Mientras tanto, dejanos tu consulta más abajo y te avisamos.",
    "emptyFilteredTitle": "No encontramos propiedades con esos filtros",
    "emptyFilteredSubtitle": "Probá ajustar la búsqueda o limpiar los filtros."
   },
@@ -4638,16 +5083,16 @@
   },
   "inquiry": {
    "title": "Dejanos tu consulta",
-   "subtitle": "Completá tus datos y te contactamos a la brevedad.",
+   "subtitle": "Dejanos un correo o un teléfono y te respondemos.",
    "firstName": "Nombre",
    "lastName": "Apellido",
-   "email": "Email",
+   "email": "Correo electrónico",
    "phone": "Teléfono",
    "message": "Mensaje",
    "messagePlaceholder": "Contanos qué estás buscando",
    "submit": "Enviar consulta",
    "submitting": "Enviando…",
-   "contactRequired": "Ingresá un email o un teléfono de contacto",
+   "contactRequired": "Ingresá un correo o un teléfono de contacto",
    "success": "¡Gracias! Recibimos tu consulta y te vamos a contactar pronto.",
    "errorValidation": "Revisá los datos ingresados e intentá de nuevo.",
    "errorClosed": "Esta inmobiliaria no está recibiendo consultas por el momento.",
@@ -4657,10 +5102,11 @@
   },
   "detail": {
    "backToList": "Volver a propiedades",
+   "askCta": "Consultar por esta propiedad",
    "descriptionTitle": "Descripción",
    "noDescription": "Sin descripción cargada",
    "specsTitle": "Características",
-   "amenitiesTitle": "Amenidades",
+   "amenitiesTitle": "Comodidades",
    "noAmenities": "Sin amenidades cargadas",
    "locationTitle": "Ubicación",
    "mapLink": "Ver la zona en el mapa",
@@ -5549,8 +5995,21 @@
   }
  },
  "serviceBills": {
+  "sheetTitle": "Cargar importes",
+  "sheetHint": "Completá el importe de cada boleta y guardá todas juntas. También podés pegar filas copiadas de una planilla.",
+  "board": {
+   "label": "Boletas del mes por servicio",
+   "overall": "{count, plural, one {boleta cargada de {period}} other {boletas cargadas de {period}}}",
+   "overallLabel": "Boletas cargadas del mes",
+   "allLoaded": "Están todas cargadas",
+   "missing": "{count, plural, one {Falta # boleta} other {Faltan # boletas}}",
+   "groupCount": "{loaded} de {total}",
+   "pending": "Falta",
+   "due": "vence {date}",
+   "noProperty": "Sin propiedad"
+  },
   "title": "Boletas del mes",
-  "subtitle": "Cargá las boletas de impuestos y servicios del mes. Cada fila muestra quién paga según las reglas de los contratos; lo que le toca al inquilino entra en su próxima liquidación.",
+  "subtitle": "Qué boletas de servicios e impuestos ya están cargadas este mes y cuáles faltan. Lo que le toca al inquilino entra en su próxima liquidación.",
   "period": "Mes",
   "forbidden": "No tenés permiso para cargar boletas.",
   "loadError": "No se pudieron cargar los servicios del mes",
@@ -5569,7 +6028,7 @@
    "status": "Estado"
   },
   "payer": {
-   "none": "Sin reglas",
+   "none": "Sin regla en el contrato",
    "Inquilino": "Inquilino (paga directo)",
    "Inmobiliaria": "Inmobiliaria",
    "Propietario": "Propietario",
@@ -5635,7 +6094,7 @@
  },
   "charges": {
    "title": "Centro de carga",
-   "subtitle": "Cargá los gastos del mes (reparaciones, expensas extraordinarias, devoluciones, honorarios por gestión). Lo que le toca al inquilino entra en su próxima liquidación; lo del locador, en su estado. Un gasto grande se marca para pedir el pago por adelantado.",
+   "subtitle": "Los gastos del mes (reparaciones, expensas extraordinarias, devoluciones) que van al inquilino en su próxima liquidación, al locador en su estado o a la inmobiliaria.",
    "forbidden": "No tenés permiso para cargar gastos.",
    "loadError": "No se pudieron cargar los cargos",
    "targetsError": "No se pudieron cargar los contratos y las propiedades",
@@ -5647,7 +6106,11 @@
     "status": "Estado",
     "all": "Todos",
     "period": "Mes",
-    "upfrontOnly": "Solo los que piden anticipo"
+    "upfrontOnly": "Solo los que piden anticipo",
+    "chargedTo": "A cargo de",
+    "kind": "Clase",
+    "allKinds": "Todas",
+    "kindPageNote": "El filtro por clase se aplica a los renglones de esta página."
    },
    "columns": {
     "month": "Mes",
@@ -5656,11 +6119,14 @@
     "chargedTo": "A cargo de",
     "amount": "Importe",
     "status": "Estado",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "row": "Renglón"
    },
    "empty": {
-    "title": "No hay cargos",
-    "subtitle": "Cuando cargues un gasto del mes aparece acá con su estado."
+    "title": "No hay cargos pendientes",
+    "subtitle": "Cuando cargues un gasto aparece acá hasta que entre en una liquidación.",
+    "filteredTitle": "Ningún cargo coincide",
+    "filteredSubtitle": "Probá con otro estado, otro mes o quitá los filtros."
    },
    "kinds": {
     "Reparacion": "Reparación",
@@ -5811,6 +6277,20 @@
     "saving": "Registrando...",
     "done": "Gasto registrado en la caja",
     "error": "No se pudo registrar el gasto"
+   },
+   "totals": {
+    "rows": "{count, plural, one {# renglón} other {# renglones}} ·",
+    "label": "Total en {currency}",
+    "rowsLive": "{count, plural, one {# renglón sin anular} other {# renglones sin anular}} ·",
+    "pageLabel": "Total de esta página en {currency}",
+    "scrollHint": "Deslizá la planilla hacia el costado para ver el importe, el total y las acciones."
+   },
+   "actionsShort": {
+    "forceImpute": "Imputar",
+    "markPaidUpfront": "Ya cobrado",
+    "cancel": "Anular",
+    "release": "Liberar",
+    "agencyExpense": "Pasar a gasto"
    }
   },
  "propertyServices": {
@@ -5978,14 +6458,14 @@
  },
  "cash": {
   "title": "Caja",
-  "subtitle": "Las cuentas de la inmobiliaria (caja, banco y la custodia de cada locador) con sus saldos, el libro de movimientos y los recibos de cobro.",
+  "subtitle": "El saldo de la inmobiliaria, el libro de caja con cada ingreso y egreso, la custodia de los locadores y los recibos de cobro.",
   "forbidden": "No tenés permiso para ver la caja.",
   "loadError": "No se pudieron cargar las cuentas",
   "actionError": "No se pudo completar la acción",
   "saving": "Guardando...",
   "tabs": {
    "accounts": "Cuentas",
-   "movements": "Movimientos",
+   "movements": "Libro de caja",
    "custody": "Custodia",
    "receipts": "Recibos"
   },
@@ -6222,6 +6702,43 @@
    "confirmBody": "El saldo inicial de {name} queda en {amount}.",
    "confirmReason": "Motivo: {reason}",
    "confirmLabel": "Sí, guardar"
+  },
+  "balance": {
+   "title": "Saldo de la inmobiliaria",
+   "inCurrency": "Saldo en {currency}",
+   "empty": "Todavía no hay cuentas. La caja de cada moneda se crea sola con el primer cobro que registres en una liquidación; las cuentas de banco se crean desde Cuentas.",
+   "viewAccounts": "Ver las cuentas"
+  },
+  "ledger": {
+   "label": "Libro de caja",
+   "titleOf": "Libro de {name}",
+   "titleAll": "Libro de todas las cuentas",
+   "currentBalance": "Saldo actual:",
+   "columns": {
+    "date": "Fecha",
+    "concept": "Concepto",
+    "account": "Cuenta",
+    "in": "Ingresos",
+    "out": "Egresos",
+    "balance": "Saldo"
+   },
+   "pageTotals": "Totales de la página",
+   "pageTotalsIn": "Totales de la página en {currency}",
+   "openingRow": "Saldo anterior a estos movimientos",
+   "balanceHidden": "El saldo fila por fila se muestra sin filtros de categoría, contrato ni fecha «hasta», y recorriendo las páginas en orden desde la primera.",
+   "balanceNeedsAccount": "Elegí una cuenta para ver el saldo después de cada movimiento y hacer el arqueo.",
+   "emptyFiltered": "Ningún movimiento coincide con estos filtros."
+  },
+  "count": {
+   "title": "Arqueo de {name}",
+   "system": "Saldo del sistema",
+   "counted": "Contado ({currency})",
+   "difference": "Diferencia",
+   "match": "Coincide",
+   "over": "Sobran",
+   "short": "Faltan",
+   "invalid": "Importe inválido",
+   "hint": "Escribí lo que contaste para compararlo con el sistema. La comparación no se guarda."
   }
  },
  "ownerAccounts": {
@@ -6264,7 +6781,16 @@
   },
   "balances": {
    "title": "Locadores",
-   "subtitle": "Saldo de la cuenta corriente de cada locador por moneda: lo que la inmobiliaria le debe o lo que él le debe, cuánto está en custodia y lo que falta pagarle.",
+   "subtitle": "El saldo de la cuenta corriente de cada locador, por moneda. Elegí uno para ver sus movimientos.",
+   "listLabel": "Saldos por locador",
+   "totalDue": "Falta pagar en total:",
+   "nothingDue": "No hay pagos pendientes a locadores.",
+   "sort": "Ordenar por",
+   "sortBy": {
+    "name": "Nombre",
+    "balance": "Saldo, de mayor a menor",
+    "payoutDue": "Falta pagarle, de mayor a menor"
+   },
    "currency": "Moneda",
    "allCurrencies": "Todas las monedas",
    "noStatement": "Sin estados emitidos",
@@ -6285,7 +6811,11 @@
    "back": "Locadores",
    "title": "Cuenta corriente de {name}",
    "titleLoading": "Cuenta corriente",
-   "subtitle": "Cada movimiento con el saldo después de él. Positivo: la inmobiliaria le debe; negativo: el locador le debe a la inmobiliaria.",
+   "subtitle": "Debe: lo que se le descuenta o se le paga. Haber: lo que se le acredita. El saldo es lo que la inmobiliaria le debe; en negativo, lo que el locador le debe.",
+   "fullPage": "Abrir en página completa",
+   "carried": "Saldo anterior",
+   "closingRow": "Saldo final",
+   "closingAt": "Saldo al {date}",
    "openingBalance": "Saldo inicial",
    "payout": "Registrar pago al locador",
    "currencies": "Monedas",
@@ -6303,6 +6833,8 @@
     "description": "Detalle",
     "property": "Unidad",
     "amount": "Importe",
+    "debit": "Debe",
+    "credit": "Haber",
     "balance": "Saldo",
     "statement": "Estado de cuenta"
    },
@@ -6537,7 +7069,7 @@
  },
  "followUps": {
   "title": "Vencimientos",
-  "subtitle": "Los contratos que se acercan a su fin, o que ya lo pasaron, con el semáforo, el responsable y el avance del checklist de cada seguimiento.",
+  "subtitle": "La agenda de los contratos que terminan: qué venció, qué vence hoy y qué viene, con el responsable y el avance de cada seguimiento.",
   "open": "Abrir",
   "actionError": "No se pudo completar la acción",
   "filters": {
@@ -6581,7 +7113,33 @@
   },
   "empty": {
    "title": "No hay seguimientos",
-   "subtitle": "Cuando el fin de un contrato entre en la ventana de aviso se abre su seguimiento."
+   "subtitle": "Cuando el fin de un contrato entre en la ventana de aviso se abre su seguimiento.",
+   "filteredTitle": "Ningún seguimiento coincide con los filtros",
+   "filteredSubtitle": "Probá con otro semáforo, tipo o estado.",
+   "clear": "Quitar filtros"
+  },
+  "agenda": {
+   "summary": "Seguimientos por fecha de vencimiento",
+   "short": {
+    "overdue": "Vencidos",
+    "today": "Hoy",
+    "week": "7 días",
+    "month": "30 días",
+    "later": "Después"
+   },
+   "groups": {
+    "overdue": "Ya vencieron",
+    "today": "Vencen hoy",
+    "week": "En los próximos 7 días",
+    "month": "En los próximos 30 días",
+    "later": "Más adelante",
+    "closed": "Cerrados"
+   },
+   "ago": "{n, plural, one {Venció hace # día} other {Venció hace # días}}",
+   "today": "Vence hoy",
+   "inDays": "{n, plural, one {Falta # día} other {Faltan # días}}",
+   "noProperty": "Sin propiedad",
+   "noTenant": "Sin inquilino"
   },
   "drawer": {
    "contract": "Contrato",
@@ -6703,7 +7261,7 @@
  },
  "fees": {
   "title": "Honorarios",
-  "subtitle": "Honorarios de alta, renovación, venta y tasación: las cuotas para cobrar, el reparto con otras inmobiliarias y las comisiones del personal.",
+  "subtitle": "Lo que la inmobiliaria cobra por altas, renovaciones, ventas y tasaciones: el resumen del período y, debajo, cada cuota y cada honorario.",
   "forbidden": "Tu rol no puede ver los honorarios.",
   "add": "Nuevo honorario",
   "actionError": "No se pudo completar la acción.",
@@ -6972,6 +7530,19 @@
    "viewAll": "Ver todos",
    "addAlta": "Cargar honorario de alta",
    "addRenewal": "Cargar honorario de renovación"
+  },
+  "summary": {
+   "label": "Resumen de honorarios",
+   "total": "Honorarios del período",
+   "totalHint": "{count, plural, =0 {Sin cuotas con vencimiento de {from} a {to}} one {# cuota con vencimiento de {from} a {to}} other {# cuotas con vencimiento de {from} a {to}}}",
+   "collected": "Cobrado",
+   "pending": "Por cobrar",
+   "overdue": "De eso, ya vencido",
+   "byMonth": "Evolución por mes de vencimiento",
+   "barLabel": "{month}: cobrado {collected}, por cobrar {pending}",
+   "empty": "No hay cuotas con vencimiento en estos meses. Cuando cargues un honorario, sus cuotas aparecen acá.",
+   "otherCurrencies": "Importes en {currency}. También hay cuotas en {others}: están en el detalle de abajo.",
+   "error": "No se pudo calcular el resumen de honorarios. El detalle de abajo sigue disponible."
   }
  },
  "lessorInvoicing": {
@@ -7084,7 +7655,7 @@
    "notReady": "Un estado anulado no se factura; su factura ya quedó en cola para la nota de crédito."
   },
   "pending": {
-   "title": "Facturas por cuenta del locador pendientes",
+   "title": "Facturas pendientes por cuenta del locador",
    "subtitle": "Lo que está en cola para emitirse o falló (por ejemplo, ARCA no respondió). Un fallo no afecta al cobro ni al estado de cuenta.",
    "run": "Emitir pendientes",
    "running": "Emitiendo…",
@@ -7134,7 +7705,8 @@
    "staff_alert": "Aviso al personal",
    "payment_reminder_1": "Recordatorio de pago (amable)",
    "payment_reminder_2": "Recordatorio de pago (firme)",
-   "payment_reminder_3": "Aviso de pago pendiente (último recordatorio)"
+   "payment_reminder_3": "Aviso de pago pendiente (último recordatorio)",
+   "inbox_message": "Respuesta a una consulta"
   },
   "related": {
    "Receipt": "Recibo",
@@ -7147,7 +7719,7 @@
    "CollectionCase": "Cobranza"
   },
   "reasons": {
-   "MESSAGING_OFF": "El envío está apagado en este ambiente: queda en cola hasta que se active.",
+   "MESSAGING_OFF": "El envío está apagado en este ambiente. Queda en cola hasta que se active.",
    "PROVIDER_NOT_CONFIGURED": "Falta configurar el proveedor de este canal: queda en cola.",
    "QUIET_HOURS": "Fuera del horario de envío: sale cuando abra.",
    "NOT_IN_ALLOWLIST": "Modo de prueba: la dirección no está en la lista permitida.",
@@ -7263,7 +7835,7 @@
    "loadError": "No se pudo cargar la configuración de la mensajería",
    "mode": {
     "title": "Modo de envío",
-    "currentLabel": "Este ambiente está en:",
+    "currentLabel": "Hoy el envío está:",
     "current": "actual",
     "off": {
      "label": "Apagado",
@@ -7277,15 +7849,15 @@
      "label": "Activo",
      "description": "Se manda a todos, respetando el consentimiento de cada persona y el horario de envío."
     },
-    "note": "El modo se fija por ambiente y lo configura quien despliega (variable MESSAGING_MODE); no se cambia desde acá. El ambiente piloto queda apagado o con la lista de prueba hasta que el dueño de la inmobiliaria lo apruebe."
+    "note": "El modo de envío lo define quien instala el sistema y no se cambia desde esta pantalla. En el piloto queda apagado o con la lista de prueba hasta que el dueño de la inmobiliaria lo apruebe."
    },
    "providers": {
-    "title": "Proveedores",
-    "email": "Mail (Resend)",
-    "whatsapp": "WhatsApp (Cloud API)",
+    "title": "Servicios de envío",
+    "email": "Mail",
+    "whatsapp": "WhatsApp",
     "configured": "Configurado",
     "from": "Remitente",
-    "webhook": "Avisos de entrega (webhook)",
+    "webhook": "Recibe avisos de entrega",
     "yes": "Sí",
     "no": "No"
    },
@@ -7313,6 +7885,17 @@
     "emailOnly": "Solo mail",
     "empty": "No hay plantillas"
    }
+  },
+  "modeBanner": {
+   "off": {
+    "title": "El envío de mensajes está apagado",
+    "body": "En este ambiente no sale ningún mail ni WhatsApp. Lo que el sistema genera queda en esta lista, en cola, y sale recién cuando se active el envío."
+   },
+   "allowlist": {
+    "title": "El envío está en modo de prueba",
+    "body": "Solo salen los mensajes a las direcciones de la lista de prueba. El resto queda bloqueado en esta lista."
+   },
+   "link": "Ver la configuración"
   }
  },
  "publication": {
@@ -7723,7 +8306,7 @@
    "inactive": "Dado de baja",
    "inOffice": "En la oficina",
    "heldBy": "{holder}: {name}",
-   "overdue": "Atrasadas {days} d",
+   "overdue": "{days, plural, =1 {Atrasadas 1 día} other {Atrasadas # días}}",
    "checkIn": "Registrar devolución",
    "checkOut": "Registrar salida",
    "location": "Guardadas en: {location}",
@@ -7761,7 +8344,7 @@
   },
   "out": {
    "title": "Llaves fuera",
-   "subtitle": "Los juegos que no están en la oficina: quién los tiene, desde cuándo y cuáles están atrasados.",
+   "subtitle": "Quién tiene cada juego que salió de la oficina, desde cuándo y cuáles ya deberían haber vuelto.",
    "columns": {
     "property": "Propiedad",
     "holder": "Las tiene",
@@ -7777,12 +8360,31 @@
     "overdueOnly": "Solo atrasadas"
    },
    "empty": "No hay llaves fuera",
-   "emptySubtitle": "Todas las llaves están en la oficina."
+   "emptySubtitle": "Todos los juegos están en la oficina. Las salidas se registran desde la ficha de cada propiedad, en la sección Llaves."
+  },
+  "board": {
+   "summary": "{count, plural, =1 {1 juego fuera} other {# juegos fuera}}",
+   "overdueCount": "{count, plural, =1 {1 atrasado} other {# atrasados}}",
+   "columns": {
+    "Propietario": "Propietarios",
+    "Inquilino": "Inquilinos",
+    "Empleado": "Personal",
+    "Tercero": "Terceros"
+   },
+   "emptyColumn": "Nadie tiene llaves",
+   "keySet": "Juego {label}",
+   "since": "Desde",
+   "daysOut": "{days, plural, =0 {hoy} =1 {hace 1 día} other {hace # días}}",
+   "noReturnDate": "Sin fecha",
+   "unknownHolder": "Sin nombre",
+   "noOverdue": "No hay llaves atrasadas",
+   "showAll": "Ver todas",
+   "goToProperties": "Ir a propiedades"
   }
  },
  "collections": {
   "title": "Cobranza",
-  "subtitle": "Contratos con alquileres vencidos impagos: la etapa en que está cada uno, lo que se debe hoy con punitorios y lo que toca después. Los recordatorios salen por la bandeja de salida; la carta documento se prepara como borrador y nunca se manda sola.",
+  "subtitle": "Contratos con alquileres vencidos sin pagar: en qué paso está cada gestión, cuánto se debe hoy con punitorios y qué hacer ahora. La carta documento se prepara como borrador y nunca se manda sola.",
   "forbidden": "Tu rol no tiene acceso a la cobranza.",
   "noProperty": "Contrato sin propiedad",
   "noTenant": "Sin inquilino cargado",
@@ -7840,7 +8442,53 @@
   },
   "empty": {
    "title": "No hay casos de cobranza",
-   "subtitle": "Un caso se abre solo cuando un contrato tiene un alquiler vencido con saldo, si la cobranza está activada en Valores por defecto."
+   "subtitle": "Un caso se abre solo cuando un contrato tiene un alquiler vencido con saldo.",
+   "subtitleOff": "Con la cobranza automática apagada no se abren casos. La deuda vencida se sigue viendo en Morosidad.",
+   "filteredTitle": "Ningún caso coincide con los filtros",
+   "filteredSubtitle": "Probá con otra etapa o con menos días de mora.",
+   "clear": "Quitar filtros"
+  },
+  "off": {
+   "title": "La cobranza automática está apagada",
+   "body": "No se abren casos nuevos ni se programan avisos por mora. Los casos que ya estaban abiertos se pueden seguir gestionando a mano.",
+   "howManager": "Se enciende en Configuración, en Valores por defecto.",
+   "howOther": "La puede encender un administrador o un gerente desde Configuración.",
+   "settings": "Abrir Valores por defecto",
+   "delinquency": "Ver la deuda vencida en Morosidad"
+  },
+  "queue": {
+   "label": "Cola de cobranza",
+   "order": "Primero la mora más vieja",
+   "rank": "Puesto",
+   "assignee": "Lo lleva",
+   "unassigned": "Sin responsable",
+   "daysLabel": "{n, plural, one {día de mora} other {días de mora}}",
+   "balance": "Saldo vencido",
+   "open": "Abrir",
+   "openCase": "Abrir el caso de {name}",
+   "stageOf": "Paso {n} de {total}",
+   "stagePath": "Etapas de la gestión",
+   "steps": {
+    "wait": "Esperar el pago prometido",
+    "confirmLetter": "Confirmar el envío de la carta",
+    "lawyer": "Pedir novedades al abogado",
+    "court": "Seguir el expediente judicial",
+    "person": "Gestión a cargo de una persona",
+    "remind": "Mandar un recordatorio",
+    "remindFirm": "Mandar un recordatorio firme",
+    "letter": "Intimar por carta documento",
+    "derive": "Derivar a un abogado",
+    "call": "Llamar al inquilino",
+    "none": "Nada para gestionar"
+   },
+   "hints": {
+    "confirmLetter": "El borrador está listo para imprimir y mandar por correo.",
+    "call": "No hay avisos programados.",
+    "scheduled": "Programado para el",
+    "pending": "Todavía sin fecha.",
+    "closed": "El caso está cerrado.",
+    "settled": "No le queda deuda vencida."
+   }
   },
   "detail": {
    "loadError": "No se pudo cargar el caso de cobranza",
@@ -7975,7 +8623,7 @@
   },
   "summary": {
    "unread": "{count, plural, one {# sin leer} other {# sin leer}}",
-   "breached": "{count, plural, one {# con el plazo vencido} other {# con el plazo vencido}}",
+   "breached": "{count, plural, one {# fuera de plazo} other {# fuera de plazo}}",
    "unassigned": "{count, plural, one {# sin responsable} other {# sin responsable}}"
   },
   "filters": {
@@ -7990,7 +8638,7 @@
    "anyAssignee": "Cualquier responsable",
    "mine": "Mis consultas",
    "unassigned": "Sin responsable",
-   "breached": "Plazo vencido"
+   "breached": "Solo fuera de plazo"
   },
   "channels": {
    "WhatsApp": "WhatsApp",
@@ -8021,8 +8669,8 @@
   },
   "sla": {
    "met": "Respondida",
-   "dueIn": "Vence en {time}",
-   "overdue": "Vencida hace {time}"
+   "dueIn": "Responder en {time}",
+   "overdue": "Sin responder hace {time}"
   },
   "thread": {
    "label": "Consulta",
@@ -8149,8 +8797,15 @@
   }
  },
  "billDocuments": {
+  "unknownProvider": "Proveedor sin reconocer",
+  "confidenceLabel": "Confianza de la lectura: {pct} %",
+  "accountShort": "cuenta {account}",
+  "inbox": {
+   "label": "Bandeja de boletas recibidas",
+   "count": "{count, plural, one {# documento} other {# documentos}}"
+  },
   "title": "Boletas recibidas",
-  "subtitle": "Los PDF de boletas que llegan por archivo, por mail o por consulta al proveedor. Las que se leen con certeza se cargan solas; las demás esperan acá tu revisión.",
+  "subtitle": "Las boletas en PDF que llegan por archivo, por mail o por consulta al proveedor. Las que se leen bien se cargan solas; las demás quedan acá para que las revises.",
   "forbidden": "No tenés permiso para ver las boletas recibidas.",
   "loadError": "No se pudieron cargar las boletas recibidas",
   "detailLoadError": "No se pudo cargar el documento",
@@ -8162,7 +8817,7 @@
    "drop": "Arrastrá uno o varios PDF acá",
    "or": "o",
    "choose": "Elegir archivos",
-   "limits": "Sólo PDF, hasta 10 MB cada uno.",
+   "limits": "Solo PDF, hasta 10 MB cada uno.",
    "dragging": "Soltá los archivos para subirlos",
    "progress": "{done} de {total} archivos procesados",
    "uploading": "Subiendo…",
@@ -8228,9 +8883,10 @@
   "billsCount": "{count, plural, one {# boleta} other {# boletas}}",
   "noDocumentName": "Sin archivo",
   "empty": {
-   "title": "Sin boletas recibidas",
+   "filteredHint": "Con el estado «Requiere revisión» esto significa que no queda nada pendiente.",
+   "title": "Todavía no llegó ninguna boleta",
    "subtitle": "Subí un PDF o esperá a que lleguen por mail.",
-   "filtered": "No hay boletas con esos filtros."
+   "filtered": "No hay boletas con esos filtros"
   },
   "detail": {
    "title": "Boleta recibida",

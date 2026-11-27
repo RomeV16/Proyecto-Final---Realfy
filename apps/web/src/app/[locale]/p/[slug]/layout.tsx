@@ -34,7 +34,7 @@ export default async function PublicPortalLayout({ children, params }: PortalLay
   return (
     <div style={brandStyle} className="flex min-h-screen flex-col bg-[var(--color-bg)]">
       <header className="sticky top-0 z-30 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
           <Link href={`/${locale}/p/${slug}`} className="flex min-w-0 items-center gap-3">
             {profile.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -49,11 +49,12 @@ export default async function PublicPortalLayout({ children, params }: PortalLay
               </span>
             )}
           </Link>
-          {profile.province && (
-            <span className="hidden shrink-0 text-sm text-[var(--color-muted)] sm:block">
-              {profile.province}
-            </span>
-          )}
+          <a
+            href="#consulta"
+            className="inline-flex h-10 shrink-0 items-center rounded-lg border border-[var(--color-border)] px-3.5 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-sunken)]"
+          >
+            {t('header.contact')}
+          </a>
         </div>
       </header>
 

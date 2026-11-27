@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useQueryClient } from '@tanstack/react-query';
 import { usePaginatedList } from '@/hooks/use-paginated-list';
 import { FEE_STATUSES, type Fee } from '@/lib/fees';
 import { EMPTY_FEE_FILTERS, FeeFilters, listPagination } from './fee-filters';
@@ -11,6 +12,7 @@ const LIMIT = 50;
 /** Honorarios cargados, con filtros; cada uno abre su detalle con las cuotas y los repartos. */
 export function FeeListPanel() {
   const t = useTranslations('fees');
+  const queryClient = useQueryClient();
   const list = usePaginatedList<Fee, typeof EMPTY_FEE_FILTERS>({
     key: 'fees',
     path: '/fees',
@@ -31,7 +33,10 @@ export function FeeListPanel() {
         items={list.items}
         loading={list.isLoading}
         error={list.error}
-        onChanged={() => void list.refetch()}
+        onChanged={() => {
+          void list.refetch();
+          void queryClient.invalidateQueries({ queryKey: ['fee-installments'] });
+        }}
         pagination={listPagination(list)}
       />
     </div>

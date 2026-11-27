@@ -152,10 +152,10 @@ describe('LeadDetailPage', () => {
   it('muestra la ficha con presupuesto, asignado y enlace con prefijo de idioma', async () => {
     mockApi();
     await renderPage();
-    expect(norm(document.body.textContent)).toContain('USD 150.000');
+    expect(norm(document.body.textContent)).toContain('US$ 150.000');
     expect(screen.getByText('Web')).toBeInTheDocument();
     expect(screen.getByText('Carla Ejemplo')).toBeInTheDocument();
-    expect(screen.getByText('hace 5 min')).toBeInTheDocument();
+    expect(screen.getByText('hace 5 minutos')).toBeInTheDocument();
     expect(screen.getByText('luis@prueba.test')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Volver a Leads' }).getAttribute('href')).toBe('/es/leads');
   });
@@ -164,9 +164,9 @@ describe('LeadDetailPage', () => {
     mockApi();
     await renderPage();
     expect(screen.getByText('Llamada ficticia')).toBeInTheDocument();
-    expect(screen.getByText('hace 1h')).toBeInTheDocument();
-    expect(screen.getByText('hace 3d')).toBeInTheDocument();
-    expect(screen.getByText('ahora')).toBeInTheDocument();
+    expect(screen.getByText('hace 1 hora')).toBeInTheDocument();
+    expect(screen.getByText('hace 3 días')).toBeInTheDocument();
+    expect(screen.getByText('recién')).toBeInTheDocument();
     expect(screen.getByText('05/01/2026')).toBeInTheDocument();
     expect(screen.getAllByText(/15\/11\/2026/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Calle Falsa 123 Ciudad Prueba/).length).toBeGreaterThan(0);
@@ -238,7 +238,7 @@ describe('LeadDetailPage', () => {
     await user.click(screen.getByRole('button', { name: /Registrar Interacción/ }));
     await user.click(screen.getByRole('button', { name: 'Guardar' }));
     expect(await screen.findByText(/Error al registrar interacción/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '✕' }));
+    await user.click(screen.getByRole('button', { name: 'Cerrar' }));
     expect(screen.queryByText(/Error al registrar interacción/)).not.toBeInTheDocument();
   });
 

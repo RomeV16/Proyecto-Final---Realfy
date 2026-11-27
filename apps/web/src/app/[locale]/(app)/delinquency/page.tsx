@@ -2,210 +2,106 @@
 
 import { useTranslations } from 'next-intl';
 import { useState, useEffect, useCallback } from 'react';
-import { apiClient, ApiRequestError } from '@/lib/api-client';
-import { toast } from '@/lib/toast';
+import { apiClient } from '@/lib/api-client';
+import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
-import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
-import { EntityRow, Badge } from '@/components/ui/entity-card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { StatTile, StatTileSkeleton } from '@/components/ui/stat-tile';
-import { Avatar } from '@/components/ui/avatar';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { Icon } from '@/components/ui/icon';
-import { formatNumber } from '@/lib/format';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useCan } from '@/lib/permissions';
+import { rankDebtors, summarizeAging, type DelinquentTenant } from '@/components/delinquency/aging';
+import { AgingSummary } from '@/components/delinquency/aging-summary';
+import { DebtorRanking } from '@/components/delinquency/debtor-ranking';
 
-interface DelinquentTenant {
-  personId: string;
-  fullName: string;
-  propertyId?: string;
-  propertyLabel?: string;
-  totalDebt: string;
-  totalPenalty: string;
-  daysOverdueMax: number;
-}
-
-
-/** Severity buckets — the same thresholds drive the badge and the accent bar. */
-function severityOf(days: number): { tone: 'danger' | 'warning' | 'info'; key: string } {
-  if (days >= 30) return { tone: 'danger', key: 'severe' };
-  if (days >= 10) return { tone: 'warning', key: 'moderate' };
-  return { tone: 'info', key: 'early' };
-}
-
+/**
+ * Morosidad: la deuda vencida repartida por antigüedad del atraso y, debajo, los deudores ordenados del más
+ * atrasado al menos.
+ */
 export default function DelinquencyPage() {
   const t = useTranslations('delinquency');
-  
+
   const [items, setItems] = useState<DelinquentTenant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<unknown>(null);
 
   const canAccess = useCan('delinquency.view');
+  const canCollect = useCan('collections.view');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await apiClient<DelinquentTenant[]>('/penalties/delinquent-tenants');
       setItems(data);
     } catch (err) {
-      if (err instanceof ApiRequestError) toast.error(err.message);
-      else toast.error(t('loadError'));
+      setError(err);
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
-    if (canAccess) load();
+    if (canAccess) void load();
     else setLoading(false);
   }, [canAccess, load]);
 
   if (!canAccess) {
-    return (
-      <EmptyState iconName="delinquency" title={t('forbidden')} subtitle={t('forbiddenHint')} />
-    );
+    return <EmptyState iconName="delinquency" title={t('forbidden')} subtitle={t('forbiddenHint')} />;
   }
 
-  const totalDebt = items.reduce((acc, i) => acc + Number(i.totalDebt || 0), 0);
-  const totalPenalty = items.reduce((acc, i) => acc + Number(i.totalPenalty || 0), 0);
-  const severeCount = items.filter((i) => i.daysOverdueMax >= 30).length;
-
-  const columns: Column<DelinquentTenant>[] = [
-    {
-      key: 'name',
-      header: t('colName'),
-      render: (item) => (
-        <div className="flex items-center gap-2.5">
-          <Avatar name={item.fullName} seed={item.personId} size="sm" />
-          <span className="font-medium text-[var(--color-text)]">{item.fullName}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'property',
-      header: t('colProperty'),
-      render: (item) => (
-        <span className="text-[var(--color-muted)]">{item.propertyLabel ?? '—'}</span>
-      ),
-    },
-    {
-      key: 'debt',
-      header: t('colDebt'),
-      alignRight: true,
-      render: (item) => (
-        <span className="tabular-nums text-[var(--color-text)]">
-          ${formatNumber(item.totalDebt, { decimals: 2 })}
-        </span>
-      ),
-    },
-    {
-      key: 'penalty',
-      header: t('colPenalty'),
-      alignRight: true,
-      render: (item) => (
-        <span className="tabular-nums text-[var(--color-danger)]">
-          ${formatNumber(item.totalPenalty, { decimals: 2 })}
-        </span>
-      ),
-    },
-    {
-      key: 'days',
-      header: t('colDays'),
-      render: (item) => {
-        const severity = severityOf(item.daysOverdueMax);
-        return (
-          <Badge variant={severity.tone} dot>
-            {t('daysOverdue', { days: item.daysOverdueMax })}
-          </Badge>
-        );
-      },
-    },
-  ];
+  const ranked = rankDebtors(items);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="h1">{t('title')}</h1>
-          <p className="mt-2 text-sm text-[var(--color-muted)]">{t('description')}</p>
+          <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('description')}</p>
         </div>
-        <Button variant="secondary" size="sm" onClick={load}>
-          <Icon name="refresh" className="h-4 w-4" strokeWidth={2} />
-          {t('refresh')}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {canCollect && (
+            <Link
+              href="/cobranza"
+              className="inline-flex items-center gap-1.5 px-2 text-sm font-medium text-[var(--color-brand-600)] hover:underline"
+            >
+              {t('goToCollections')}
+              <Icon name="arrowRight" className="h-4 w-4" strokeWidth={2} />
+            </Link>
+          )}
+          <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
+            <Icon name="refresh" className="h-4 w-4" strokeWidth={2} />
+            {t('refresh')}
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {loading ? (
-          <>
-            <StatTileSkeleton />
-            <StatTileSkeleton />
-            <StatTileSkeleton />
-          </>
-        ) : (
-          <>
-            <StatTile
-              label={t('totalDebt')}
-              value={`$${formatNumber(totalDebt, { decimals: 2 })}`}
-              icon="wallet"
-              tone="danger"
-              hint={t('tenantCount', { count: items.length })}
-            />
-            <StatTile
-              label={t('accruedPenalty')}
-              value={`$${formatNumber(totalPenalty, { decimals: 2 })}`}
-              icon="percent"
-              tone="warning"
-            />
-            <StatTile
-              label={t('severeCount')}
-              value={severeCount}
-              icon="alert"
-              tone={severeCount > 0 ? 'danger' : 'success'}
-              hint={t('severeHint')}
-            />
-          </>
-        )}
-      </div>
+      {loading && (
+        <div className="space-y-4" aria-busy="true">
+          <Skeleton className="h-56 w-full rounded-2xl" />
+          <Skeleton className="h-40 w-full rounded-2xl" />
+        </div>
+      )}
 
-      <ResponsiveTable<DelinquentTenant>
-        items={items}
-        columns={columns}
-        keyExtractor={(item) => `${item.personId}-${item.propertyId}`}
-        loading={loading}
-        skeletonRows={5}
-        empty={{
-          iconName: 'check',
-          title: t('emptyTitle'),
-          subtitle: t('emptyDescription'),
-        }}
-        cardRenderer={(item) => {
-          const severity = severityOf(item.daysOverdueMax);
-          return (
-            <EntityRow
-              accent={severity.tone}
-              leading={<Avatar name={item.fullName} seed={item.personId} size="md" />}
-              title={item.fullName}
-              subtitle={item.propertyLabel ?? '—'}
-              meta={
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant={severity.tone} dot>
-                    {t('daysOverdue', { days: item.daysOverdueMax })}
-                  </Badge>
-                  <Badge variant="neutral">
-                    {t('colPenalty')} ${formatNumber(item.totalPenalty, { decimals: 2 })}
-                  </Badge>
-                </div>
-              }
-              trailing={
-                <EntityRow.Amount
-                  value={`$${formatNumber(item.totalDebt, { decimals: 2 })}`}
-                  hint={t('colDebt')}
-                  tone="danger"
-                />
-              }
-            />
-          );
-        }}
-      />
+      {!loading && error != null && (
+        <div className="space-y-3">
+          <ErrorNotice error={error} fallback={t('loadError')} />
+          <Button variant="secondary" size="sm" onClick={() => void load()}>
+            {t('retry')}
+          </Button>
+        </div>
+      )}
+
+      {!loading && error == null && ranked.length === 0 && (
+        <EmptyState iconName="check" title={t('emptyTitle')} subtitle={t('emptyDescription')} />
+      )}
+
+      {!loading && error == null && ranked.length > 0 && (
+        <>
+          <AgingSummary summary={summarizeAging(ranked)} debtors={ranked.length} />
+          <DebtorRanking items={ranked} />
+        </>
+      )}
     </div>
   );
 }
