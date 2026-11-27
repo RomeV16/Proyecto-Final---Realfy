@@ -476,14 +476,13 @@ ni la obtención de índices, sin que nada lo indicara.
 
 ## 5. Desvíos respecto de la planificación
 
-Un informe donde el plan coincide con el resultado sería sospechoso. Estos son los
-desvíos, con su razón.
+Estos son los desvíos respecto del plan, cada uno con su causa.
 
 ### La rendición al propietario se construyó fuera del backlog
 
 El backlog priorizado (`04-backlog.md`) enumera los ítems 05 a 29 del cronograma,
 y ninguno de ellos es la rendición al propietario. El caso de uso estaba declarado
-desde la etapa de planificación —es el CU-13 en `02-roles-y-casos-uso.md`—, pero no
+desde la etapa de planificación (es el CU-13 en `02-roles-y-casos-uso.md`), pero no
 tenía ítem propio, y por lo tanto no tenía ventana en el cronograma ni sprint
 asignado.
 
@@ -494,33 +493,32 @@ fuera. El documento del Hito 2 lo deja anotado como próximo paso en esos térmi
 Se construyó durante el Hito 3, con su modelo, su comisión configurable por
 contrato, su comprobante y su envío.
 
-La lectura honesta es que el backlog tenía un agujero: enumeraba los módulos por
-donde entra el dinero y no el que lo reparte. Se detectó tarde, aunque no
-demasiado, porque el criterio de cierre del hito obligaba a recorrer el circuito
-completo y ahí el faltante se ve.
+El backlog tenía un hueco: enumeraba los módulos por donde entra el dinero y no
+el que lo reparte. Se detectó tarde, pero se detectó, porque el criterio de cierre
+del hito obligaba a recorrer el circuito completo y ahí el faltante se ve.
 
 ### Las pruebas de navegador se planificaron y no se entregaron
 
-El objetivo específico de `01-alcance-y-objetivos.md` mencionaba explícitamente
-validar la solución con pruebas integrales de navegador, el ítem 27 del cronograma
+El objetivo específico de `01-alcance-y-objetivos.md` mencionaba validar la
+solución con pruebas integrales de navegador, el ítem 27 del cronograma
 las tenía como entregable principal, y el Hito 1 proponía además una primera suite
 temprana, antes del sprint dedicado. Nada de eso está en el repositorio: no hay
 configuración de navegador ni un solo recorrido de interfaz automatizado.
 
-Lo que se hizo en su lugar fue construir la suite de integración de nivel HTTP
-—treinta y dos archivos, cuatrocientas ochenta y cinco pruebas— y llevarla a integración
+En su lugar se construyó la suite de integración de nivel HTTP (treinta y dos
+archivos, cuatrocientas ochenta y cinco pruebas) y se la llevó a integración
 continua junto con la cobertura y las migraciones desde cero. Fue una decisión de
 asignación de esfuerzo tomada en la última etapa: con el tiempo que quedaba,
 cubrir la API completa por HTTP daba más señal por hora invertida que cubrir tres
 o cuatro recorridos de pantalla.
 
-No fue gratis, y el costo se puede señalar con un caso concreto: la transición de
-estado de la rendición nunca había funcionado desde la interfaz porque la pantalla
-enviaba un nombre de campo distinto al que esperaba el servidor. Las pruebas del
-servicio pasaban, porque no atraviesan la pantalla; las de integración también,
-porque le pegan a la API con el nombre correcto. Un recorrido de navegador lo
-habría encontrado el primer día. Es exactamente la clase de defecto que la
-decisión dejó descubierta, y hoy la única red que lo atrapa es la prueba manual.
+La decisión tuvo un costo, y hay un caso concreto: la transición de estado de la
+rendición nunca había funcionado desde la interfaz porque la pantalla enviaba un
+nombre de campo distinto al que esperaba el servidor. Las pruebas del servicio
+pasaban, porque no atraviesan la pantalla, y las de integración también, porque
+llaman a la API con el nombre correcto. Un recorrido de navegador lo habría
+encontrado el primer día. Es la clase de defecto que la decisión dejó sin cubrir,
+y hoy sólo lo detecta la prueba manual.
 
 ### Las dos funciones con modelo de lenguaje se verificaron contra el proveedor recién al cierre
 
@@ -532,43 +530,43 @@ y se ejercitó el camino real.
 
 Ese ejercicio encontró cuatro defectos, ninguno visible con dobles de prueba:
 
-1. **La respuesta llegaba cortada.** El pedido reclamaba una entrada por cada
-   pendiente del día —hasta treinta y dos— y el servicio se quedaba con las diez
-   primeras. Se pide lo que se usa, lo que además reduce el costo por consulta a un
+1. La respuesta llegaba cortada. El pedido reclamaba una entrada por cada
+   pendiente del día (hasta treinta y dos) y el servicio se quedaba con las diez
+   primeras. Ahora se pide lo que se usa, y el costo por consulta bajó a un
    tercio.
-2. **El razonamiento del modelo consumía el presupuesto de la respuesta.** Medido
-   contra el proveedor, dos mil un tokens antes de escribir la primera palabra. Se
-   pide la respuesta sin razonamiento, porque las dos tareas son ordenar hechos ya
-   calculados y redactarlos.
-3. **Una sola entrada mal formada descartaba la respuesta completa** y el panel
-   volvía al orden por reglas. Se valida entrada por entrada.
-4. **Lo mismo en el resumen de cierre**, que había quedado sin la corrección
-   anterior por descuido.
+2. El razonamiento del modelo consumía el presupuesto de la respuesta: medido
+   contra el proveedor, dos mil un tokens antes de escribir la primera palabra.
+   Ahora se pide la respuesta sin razonamiento, porque las dos tareas consisten
+   en ordenar hechos ya calculados y redactarlos.
+3. Una sola entrada mal formada descartaba la respuesta completa y el panel
+   volvía al orden por reglas. Ahora se valida entrada por entrada.
+4. El resumen de cierre tenía el mismo problema, porque había quedado sin la
+   corrección anterior por descuido.
 
 Después de eso, las dos funciones corren con el modelo en el ambiente de
 demostración, y la interfaz sigue declarando en cada caso quién ordenó o redactó.
-El respaldo determinista se conserva y no es decorativo: es lo que sostiene la
-funcionalidad cuando el proveedor no está.
+El respaldo determinista se conserva, porque es lo que mantiene la funcionalidad
+cuando el proveedor no responde.
 
-El desvío que se declara, entonces, no es de alcance sino de método: **una
-integración con un servicio externo no está verificada hasta que se ejercita contra
-el servicio externo**, y eso se dejó para el final.
+El desvío es de método y no de alcance: una integración con un servicio externo
+no está verificada hasta que se la ejercita contra ese servicio, y eso quedó para
+el final.
 
 ### La documentación de las etapas anteriores estaba desalineada del sistema
 
 Al llegar a la etapa de documentación, varios documentos de planificación
-describían un sistema que no era el entregado. No eran matices:
+describían un sistema que no era el entregado. Las diferencias eran de fondo:
 
 - El modelo de datos documentado enumeraba entidades de facturación que el modelo
   entregado no tiene, y describía la configuración del ajuste en una tabla aparte
   cuando en el sistema vive en el propio contrato.
 - Las modalidades de ajuste documentadas eran IPC, UVA y manual. Las entregadas son
   IPC, ICL, CCP, porcentaje fijo y personalizado, y la tabla histórica de índices
-  admite IPC, ICL, CVS, CER y UVA. El cambio no fue arbitrario: el índice que la
+  admite IPC, ICL, CVS, CER y UVA. El cambio tiene motivo: el índice que la
   normativa vigente usa para los alquileres es el ICL, y la modalidad de ajuste que
   la planificación llamaba UVA quedó cubierta por el porcentaje fijo y el
   personalizado.
-- Los roles documentados eran tres —administrador, agente, inquilino—. Los
+- Los roles documentados eran tres (administrador, agente e inquilino). Los
   entregados son siete roles internos más el ámbito del portal.
 - El catálogo de endpoints estaba desactualizado respecto de las rutas realmente
   expuestas.
@@ -576,10 +574,9 @@ describían un sistema que no era el entregado. No eran matices:
   coincidían con el sistema.
 
 Todo eso se corrigió en la última etapa, con la documentación de planificación
-puesta al día contra el sistema real. Pero corregirlo al final es peor que no
-haberlo desalineado: durante meses hubo documentos que un lector habría tomado
-como especificación y que describían otra cosa. La lección está en la sección
-siguiente.
+puesta al día contra el sistema real. Durante meses, sin embargo, hubo documentos
+que un lector habría tomado como especificación y que describían otra cosa. La
+lección está en la sección siguiente.
 
 ### Otros desvíos menores
 
@@ -587,96 +584,98 @@ El cronograma preveía el Hito 3 para el 30/10/2026 y el Hito 4 para el 30/11/20
 el Hito 3 se cerró el 17/08/2026 y la versión beta de este informe, el 18/08/2026.
 Esa fecha figuró durante dos meses como cierre del Hito 4, cuando en realidad fue
 el cierre de la versión beta del informe; el hito se reabrió con la fecha del
-cronograma, como se explica en la sección 9.8. La construcción
-fue más rápida que lo planificado, lo cual explica en parte por qué la etapa de
-pruebas y documentación quedó comprimida al final en lugar de haber acompañado al
-desarrollo.
+cronograma, como se explica en la sección 9.8. La construcción fue más rápida que
+lo planificado, y eso explica en parte por qué la etapa de pruebas y documentación
+quedó comprimida al final en lugar de acompañar al desarrollo.
 
-El plan de sprints contemplaba explícitamente recortar los ítems 25 y 26 —los de
-menor prioridad— si los sprints finales necesitaban más tiempo para pruebas y
+El plan de sprints contemplaba recortar los ítems 25 y 26, los de menor
+prioridad, si los sprints finales necesitaban más tiempo para pruebas y
 documentación. No se recortaron: se entregaron los dos, y el tiempo salió de otra
-parte. Con lo que se sabe hoy, recortar uno de los dos y entregar los recorridos
-de navegador habría sido la mejor decisión.
+parte. Con lo que sabemos hoy, habría sido mejor recortar uno de los dos y
+entregar los recorridos de navegador.
 
 ---
 
 ## 6. Lecciones aprendidas
 
-Las lecciones de cada etapa están en sus documentos de hito. Las que siguen son
-las que resistieron el proyecto entero y que se sostendrían frente a un tribunal.
+Las lecciones de cada etapa están en sus documentos de hito. Las que siguen
+valen para el proyecto entero.
 
-**Compilar no prueba que una migración se pueda aplicar.** Es la lección más
-barata de enunciar y la que costó un despliegue. La integración continua compilaba
-los tres paquetes en cada cambio y no ejecutaba una sola migración; una que quedó
-con una línea que no era SQL pasó todos los controles y falló contra la base real,
-y al quedar registrada como fallida bloqueó las siguientes. El aprendizaje general
-no es sobre migraciones: es que un artefacto que no se ejecuta en ningún control no
-está verificado, por más que el proyecto entero compile. Lo que resolvió el
-problema fue un trabajo que las aplica desde cero contra una base vacía en cada
-cambio, que es lo más parecido a lo que hace el despliegue.
+### Compilar no prueba que una migración se pueda aplicar
 
-**Un aislamiento que depende de que ningún camino llegue sin sesión es una
-convención, no una garantía.** El diseño era correcto y la implementación
-inyectaba el filtro; lo que estaba mal era el comportamiento por omisión cuando
-faltaba el contexto. Al invertirlo aparecieron dos consultas que ya leían datos de
-otras inmobiliarias, en código que había pasado revisión por pares. La lección no
-es "revisar mejor": es que la revisión no puede ver el filtro que falta, porque no
-hay nada en la línea que lo delate. Un mecanismo de seguridad tiene que fallar
-ruidoso cuando su precondición no se cumple, y si además se lo puede reducir a un
-conjunto enumerable de excepciones declaradas, la auditoría deja de ser una lectura
-del código entero.
+Es la lección más fácil de enunciar y la que costó un despliegue. La integración
+continua compilaba los tres paquetes en cada cambio y no ejecutaba ninguna
+migración. Una que quedó con una línea que no era SQL pasó todos los controles y
+falló contra la base real, y al quedar registrada como fallida bloqueó las
+siguientes. El aprendizaje excede a las migraciones: un artefacto que no se
+ejecuta en ningún control no está verificado, aunque el proyecto entero compile.
+El problema se resolvió con un trabajo que las aplica desde cero contra una base
+vacía en cada cambio, que es lo más parecido a lo que hace el despliegue.
 
-**Las pruebas del servicio no ven los errores de contrato con la pantalla.** Hubo
-transiciones de estado que nunca funcionaron desde la interfaz porque el nombre del
-campo que enviaba la pantalla no coincidía con el que esperaba el servidor, con las
-pruebas del servicio en verde. Generalizando: cada capa de prueba tiene un techo
-que no es evidente desde adentro, y la pregunta útil no es "cuánto cubre esta
-suite" sino "qué clase de error no puede detectar por construcción". La respuesta,
-en este proyecto, define exactamente el hueco que dejaron las pruebas de navegador
+### Un aislamiento que depende de que ningún camino llegue sin sesión es una convención
+
+El diseño era correcto y la implementación inyectaba el filtro; lo que estaba mal
+era el comportamiento por omisión cuando faltaba el contexto. Al invertirlo
+aparecieron dos consultas que ya leían datos de otras inmobiliarias, en código
+que había pasado revisión por pares. Revisar con más cuidado no lo habría
+evitado, porque la revisión no puede ver un filtro que falta: no hay nada en la
+línea que lo delate. Un mecanismo de seguridad tiene que fallar con un error
+visible cuando su precondición no se cumple. Si además se lo puede reducir a un
+conjunto enumerable de excepciones declaradas, auditarlo deja de exigir la
+lectura del código entero.
+
+### Las pruebas del servicio no ven los errores de contrato con la pantalla
+
+Hubo transiciones de estado que nunca funcionaron desde la interfaz porque el
+nombre del campo que enviaba la pantalla no coincidía con el que esperaba el
+servidor, con las pruebas del servicio en verde. Cada capa de prueba tiene un
+límite que no se ve desde adentro. Para cada suite conviene preguntarse qué clase
+de error no puede detectar por construcción, además de cuánto cubre. En este
+proyecto la respuesta coincide con el hueco que dejaron las pruebas de navegador
 que no se hicieron.
 
-**Documentar en paralelo al desarrollo evita que la documentación describa un
-sistema que no es.** Se aprendió por la vía cara, en la última etapa: había
-documentos de planificación que describían entidades inexistentes, modalidades de
-ajuste que no se implementaron y tres roles donde hay siete. Corregirlo fue posible
-porque el sistema era la fuente de verdad y estaba a mano, pero el desfase existió
-durante meses y esa clase de contradicción es justamente lo que se detecta en una
-defensa. La regla operativa que queda es que un cambio de dominio y la
-actualización del documento que lo describe pertenecen al mismo cambio, no a una
-etapa posterior.
+### La documentación se actualiza con el cambio que la desactualiza
 
-**Con un modelo de lenguaje sobre datos financieros, la única forma de sostener el
-resultado es que el modelo no calcule.** No alcanza con pedirle que no invente:
-hay que quitarle la oportunidad. Los números se calculan de forma determinista, la
-estructura que se le pide no tiene campos numéricos, y lo que vuelve se verifica
-contra las cifras conocidas. La versión general de la lección es que la integración
-con un componente no determinista se diseña por lo que se le deja hacer y no por lo
-que se le pide, y que la salida tiene que poder rechazarse: sin un camino
-determinista al que caer, no hay validación posible, porque rechazar implicaría no
-responder.
+Lo aprendimos en la última etapa y costó caro: había documentos de planificación
+que describían entidades inexistentes, modalidades de ajuste que no se
+implementaron y tres roles donde hay siete. Se pudo corregir porque el sistema
+era la fuente de verdad y estaba a mano, pero el desfase duró meses. La regla que
+adoptamos es que un cambio de dominio y la actualización del documento que lo
+describe van en el mismo cambio y no en una etapa posterior.
 
-**El acoplamiento entre módulos es más fuerte de lo que sugiere el diagrama.**
+### Con un modelo de lenguaje sobre datos financieros, el modelo no calcula
+
+No alcanza con pedirle que no invente: hay que quitarle la oportunidad. Los
+números se calculan de forma determinista, la estructura que se le pide no tiene
+campos numéricos y lo que vuelve se verifica contra las cifras conocidas. En
+términos generales, la integración con un componente no determinista se diseña a
+partir de lo que se le permite hacer. Además la salida tiene que poder
+rechazarse, y para eso hace falta un camino determinista: sin él, rechazar
+implicaría no responder.
+
+### El acoplamiento entre módulos es más fuerte de lo que sugiere el diagrama
+
 Liquidaciones depende de contratos, de ajustes y de servicios; los reclamos, de
 propiedades y de proveedores; la rendición, de los pagos y de la comisión.
-Construir en el orden del backlog fue lo que evitó reescribir, y la contracara es
-que el backlog es una decisión de arquitectura disfrazada de planificación: el
-orden en que se enumeran los ítems determina cuánto trabajo se rehace.
+Construir en el orden del backlog evitó reescribir. Por eso mismo el orden del
+backlog es también una decisión de arquitectura: determina cuánto trabajo se
+rehace.
 
-**Los datos realistas encuentran más errores que el desarrollo.** Cargar el
-ambiente de demostración con propiedades, contratos, liquidaciones y reclamos en
-distintos estados descubrió pantallas que leían claves que la API nunca devolvía, y
-formularios que ante un error mostraban un valor por omisión plausible —el
-formulario de emisión, ante una falla al pedir el próximo número, mostraba el
-número uno, y un usuario podía confirmar una emisión contra un número que el
-organismo nunca asignó—. Un registro de prueba no muestra ninguna de las dos cosas.
-De acá sale además una regla sobre valores por omisión: en un campo que va a un
-tercero, el valor sensato por omisión es ninguno.
+### Los datos realistas encuentran más errores que el desarrollo
 
-**Los defectos que quedaron para el final no se encontraron leyendo código.** Es la
-lección que ordena todas las anteriores, y conviene enunciarla con el detalle de lo
-que la respalda. Los cinco últimos defectos del proyecto aparecieron cada uno por
-una vía distinta, y ninguno era alcanzable por inspección ni por la suite de
-pruebas tal como estaba:
+Cargar el ambiente de demostración con propiedades, contratos, liquidaciones y
+reclamos en distintos estados descubrió pantallas que leían claves que la API
+nunca devolvía, y formularios que ante un error mostraban un valor por omisión
+plausible. El formulario de emisión, por ejemplo, ante una falla al pedir el
+próximo número mostraba el número uno, y un usuario podía confirmar una emisión
+contra un número que el organismo nunca asignó. Un registro de prueba no muestra
+ninguna de las dos cosas. De acá sale una regla sobre valores por omisión: un
+campo que va a un tercero no lleva valor por omisión.
+
+### Los defectos que quedaron para el final no se encontraron leyendo código
+
+Los cinco últimos defectos del proyecto aparecieron por vías distintas, y a
+ninguno se llegaba por inspección ni con la suite de pruebas tal como estaba:
 
 - **Ejercitar el proveedor real.** La respuesta del modelo llegaba cortada y su
   razonamiento consumía el presupuesto de la respuesta. Contra dobles de prueba la
@@ -689,35 +688,35 @@ pruebas tal como estaba:
   puntaje.
 - **Abrir las pantallas en un navegador.** El panel mostraba una tendencia de
   ocupación plana en cero durante diez meses. El indicador contaba el estado actual
-  de cada operación proyectado hacia atrás: no describía el pasado, y su título
-  prometía exactamente eso.
+  de cada operación proyectado hacia atrás: no describía el pasado, que es lo que
+  su título decía mostrar.
 - **Medir en lugar de suponer.** La primera carga del panel tardaba once segundos
   porque esperaba al modelo en línea. Nadie lo había notado porque en desarrollo el
   caché estaba siempre caliente.
 
-Hay un quinto caso que merece mención aparte porque va en el sentido contrario al
-esperado: **una de las correcciones fue refutada por su propia prueba**. Al
-reescribir el indicador de ocupación se hizo histórico el numerador y se dejó el
-denominador anterior, y la prueba que se había escrito para verificar la corrección
-falló en integración continua con el mes pasado en cero. La corrección estaba a
-medias y el autor no lo había visto. Una prueba que solamente confirma lo que su
-autor ya cree no agrega nada; esta sirvió porque podía fallar, y falló.
+El quinto caso es distinto: una de las correcciones fue refutada por su propia
+prueba. Al reescribir el indicador de ocupación se hizo histórico el numerador y
+se dejó el denominador anterior, y la prueba que se había escrito para verificar
+la corrección falló en integración continua con el mes pasado en cero. La
+corrección estaba a medias y el autor no lo había visto. La prueba sirvió porque
+podía fallar.
 
-La conclusión práctica, para este trabajo y para cualquier otro parecido: **un
-número que se muestra con confianza merece la misma desconfianza que un número que
-se sospecha**. Los tres defectos más serios de esta etapa —la puntualidad, la fecha
-de saldado y la tendencia de ocupación— eran cifras que el sistema mostraba sin
-titubear y que no medían lo que su rótulo decía medir.
+La conclusión práctica es que una cifra que el sistema muestra sin advertencias
+hay que verificarla igual que una de la que se sospecha. Los tres defectos más
+serios de esta etapa (la puntualidad, la fecha de saldado y la tendencia de
+ocupación) eran cifras que el sistema mostraba con normalidad y que no medían lo
+que su rótulo decía.
 
 ---
 
 ## 7. Limitaciones conocidas y trabajo futuro
 
 Están declaradas en los ADR y en las revisiones de los cambios que las
-introdujeron. Son las que hay que nombrar antes de que las pregunten.
+introdujeron. La lista es la del cierre de la primera versión; al final de la
+sección se indica cuáles cambiaron con el piloto.
 
 **El caché de métricas no se invalida por evento.** Las agregaciones del panel
-—tendencia de ocupación, rentabilidad, flujo de caja, morosidad, resumen fiscal—
+(tendencia de ocupación, rentabilidad, flujo de caja, morosidad, resumen fiscal)
 se guardan en memoria por inmobiliaria con vencimiento por tiempo de quince
 minutos. Registrar un pago o cerrar una liquidación no descarta lo cacheado, así
 que el panel puede mostrar un número viejo hasta un cuarto de hora. El diseño
@@ -735,46 +734,46 @@ mano.** Son cincuenta y tres nombres en la extensión del cliente de base de
 datos. Un modelo nuevo con columna de inmobiliaria que no se agregue a esa lista
 quedaría sin filtrar, porque la extensión lo deja pasar por no reconocerlo. El
 riesgo está acotado por una prueba que compara la lista contra el esquema y falla
-si alguno queda afuera —se escribió después de encontrar, justamente, un modelo
-afuera—, pero la duplicación sigue ahí: la fuente de verdad debería ser el esquema.
-Es la deuda que el ADR-0006 declara.
+si alguno queda afuera (se escribió después de encontrar un modelo afuera), pero
+la duplicación sigue ahí: la fuente de verdad debería ser el esquema. Es la deuda
+que el ADR-0006 declara.
 
-Que la deuda era real y no teórica quedó demostrado al comparar la lista contra el
-esquema durante esta última etapa. La comparación dio dos discrepancias. Por un
-lado, la lista nombraba tres modelos de inventario de propiedad que el esquema no
-tiene: entradas sin efecto, que la extensión nunca iba a usar. Por el otro, y esto
-es lo que importaba, había un modelo con columna de inmobiliaria que **no** estaba
-en la lista: el registro de exportaciones del libro de IVA ventas. No hubo fuga por
-ese lado, y la razón era accidental y no de diseño: su único acceso en todo el
-sistema es una escritura de la tarea programada de facturación, que va por el
-cliente sin extensión y con la inmobiliaria puesta a mano, es decir, exactamente el
-camino que el ADR-0006 declara legítimo. Pero nada había impedido que el modelo se
-agregara sin sumarlo a la lista, y el día que alguien lo leyera desde un servicio
-con sesión, la lectura habría salido sin filtro.
+La deuda se comprobó al comparar la lista contra el esquema durante la última
+etapa. La comparación dio dos discrepancias. Por un lado, la lista nombraba tres
+modelos de inventario de propiedad que el esquema no tiene: entradas sin efecto,
+que la extensión nunca iba a usar. Por el otro, y esta era la que importaba, había
+un modelo con columna de inmobiliaria que no estaba en la lista: el registro de
+exportaciones del libro de IVA ventas. No hubo fuga por ese lado, pero por
+accidente y no por diseño: su único acceso en todo el sistema es una escritura de
+la tarea programada de facturación, que va por el cliente sin extensión y con la
+inmobiliaria puesta a mano, es decir, por el camino que el ADR-0006 declara
+legítimo. Nada había impedido que el modelo se agregara sin sumarlo a la lista, y
+el día que alguien lo leyera desde un servicio con sesión, la lectura habría
+salido sin filtro.
 
 Las dos discrepancias se corrigieron, y para que la clase de error no se repita se
 agregó una prueba que compara la lista contra el esquema: exige que todo modelo con
 columna de inmobiliaria esté alcanzado y que ningún nombre de la lista corresponda a
-un modelo inexistente. Se verificó que la prueba efectivamente falla al quitar un
-modelo de la lista, para que no sea una prueba que acompaña sin comprobar. Con eso,
-un modelo nuevo que quede afuera rompe la suite en lugar de pasar inadvertido.
+un modelo inexistente. Se verificó que la prueba falla al quitar un modelo de la
+lista. Con eso, un modelo nuevo que quede afuera rompe la suite en lugar de pasar
+inadvertido.
 
-Queda pendiente la mejora estructural, que es la que sacaría la lista del medio:
-derivarla del propio esquema —de modo que un modelo con columna de inmobiliaria
-quede alcanzado por construcción y la única lista a mano sea la de las excepciones—
-o mover el filtro al motor con seguridad a nivel de fila. La prueba acota el riesgo;
-no elimina la duplicación.
+Queda pendiente la mejora estructural, que eliminaría la lista: derivarla del
+propio esquema, de modo que un modelo con columna de inmobiliaria quede alcanzado
+por construcción y la única lista a mano sea la de las excepciones, o mover el
+filtro al motor con seguridad a nivel de fila. La prueba acota el riesgo pero no
+elimina la duplicación.
 
 **La tendencia de ocupación vale lo que valga la historia de contratos cargada.**
 El sistema no versiona el estado de ocupación de una propiedad, así que la serie
 mensual se deriva de los contratos vigentes en cada mes. Es una reconstrucción
-honesta y explicable, pero una propiedad que estuvo ocupada sin contrato registrado
+explicable, pero una propiedad que estuvo ocupada sin contrato registrado
 no aparece, y los meses anteriores a la carga de la cartera quedan en cero. La
 salida de fondo es registrar los cambios de estado con su fecha.
 
 **La atribución de reclamos a un contrato es por propiedad y sin ventana de
 vigencia.** El reclamo se registra contra la propiedad, y cuando hay que atribuirlo
-a un contrato —en las métricas del resumen de cierre, por ejemplo— la atribución se
+a un contrato (en las métricas del resumen de cierre, por ejemplo) la atribución se
 hace por la propiedad y no por la fecha. Con dos contratos sucesivos sobre el mismo
 inmueble, un reclamo del inquilino anterior puede contarse en el resumen del
 siguiente. Se arregla acotando la atribución a la ventana de vigencia del contrato.
@@ -797,8 +796,8 @@ y nunca antes.
 **La emisión pide la autorización antes de guardar el comprobante.** El
 comprobante se registra en la base después de que ARCA otorgó el número de
 autorización. Si esa escritura falla, el comprobante queda válido ante el
-organismo y sin registro en el sistema. El caso más probable de esa falla —dos
-emisores de la misma inmobiliaria con el mismo punto de venta, tipo y número—
+organismo y sin registro en el sistema. El caso más probable de esa falla (dos
+emisores de la misma inmobiliaria con el mismo punto de venta, tipo y número)
 quedó corregido al cierre (ver abajo), pero la ventana sigue existiendo para
 cualquier otra falla de escritura. Se cierra registrando el comprobante como
 pendiente antes de pedir la autorización y completándolo al recibirla.
@@ -822,15 +821,23 @@ la forma del código, no el vocabulario, así que un código mal escrito pasa ig
 **Un olvido en el sentido contrario rompe una tarea programada.** Usar el cliente
 con extensión desde una tarea programada ahora falla en lugar de correr sin
 filtro. Es el intercambio buscado, pero significa que las tareas programadas hay
-que probarlas, y hoy no están cubiertas.
+que probarlas, y al cierre de la primera versión no estaban cubiertas.
 
-Más allá de esa lista, el trabajo futuro con más sentido es en tres direcciones:
-mover el aislamiento al motor de base de datos, que convierte una garantía de
-aplicación en una del almacenamiento; cerrar el circuito de cobro —hoy se registra
-el pago pero no se captura el dinero, que era una exclusión explícita del
-alcance—; y completar la automatización de la verificación con recorridos de
-interfaz y medición de capacidad sobre las dos operaciones más caras, la
-generación del mes y los reportes.
+Fuera de esa lista, el trabajo futuro que consideramos prioritario es mover el
+aislamiento al motor de base de datos, para que la garantía pase de la aplicación
+al almacenamiento; cerrar el circuito de cobro, porque hoy se registra el pago
+pero no se captura el dinero (era una exclusión explícita del alcance), y
+completar la automatización de la verificación con recorridos de interfaz y
+medición de capacidad sobre las dos operaciones más caras, la generación del mes
+y los reportes.
+
+**Qué cambió con el piloto.** Tres puntos de esta lista ya no están como se
+describen. Los avisos de reclamos se persisten: desde el pedido #172 el servicio
+crea el aviso para el personal y le avisa al inquilino por la bandeja de salida.
+La cobertura de líneas de la API pasó de 42,44 % a más de 80 % (sección 9.10).
+Y varias tareas programadas tienen prueba unitaria propia (el servicio de tareas
+con contexto de inmobiliaria, la obtención de índices, el proceso fiscal y el
+plazo de respuesta de la bandeja de consultas). El resto sigue vigente.
 
 ---
 
@@ -844,36 +851,38 @@ emisión de comprobantes electrónicos con certificados por inmobiliaria y vario
 emisores, y el circuito de morosidad con punitorios configurables. Los objetivos
 generales se cumplieron y el alcance funcional comprometido está presente.
 
-La contribución técnica que el equipo considera más sólida no es un módulo sino
-una decisión: haber revisado el aislamiento entre inmobiliarias con criterio de
-seguridad antes de la etapa de pruebas, haber encontrado que fallaba abierto, y
-haberlo invertido documentando el razonamiento, las alternativas descartadas y las
-consecuencias negativas de la elección. Encontró dos fugas reales en código ya
-revisado y convirtió una clase entera de defecto silencioso en un error ruidoso.
+Consideramos que la contribución técnica más importante del trabajo es la
+revisión del aislamiento entre inmobiliarias con criterio de seguridad, hecha
+antes de la etapa de pruebas. Se encontró que fallaba abierto y se lo invirtió,
+documentando el razonamiento, las alternativas descartadas y las consecuencias
+negativas de la elección. La revisión encontró dos fugas reales en código ya
+revisado, y desde el cambio esa clase de defecto produce un error en lugar de
+pasar inadvertida.
 
 La segunda es el tratamiento de las dos funciones con modelo de lenguaje. En un
-dominio financiero, la parte difícil no es obtener texto del modelo: es poder
-sostener el resultado. La respuesta fue quitarle al modelo la posibilidad de
-calcular, mandarle datos sin información personal, validar lo que vuelve contra
-las cifras conocidas y tener siempre un camino determinista al que caer. Es una
-respuesta reproducible en otros dominios y no una particularidad de este.
+dominio financiero lo difícil es poder sostener el resultado que redacta el
+modelo. La solución fue quitarle la posibilidad de calcular, mandarle datos sin
+información personal, validar lo que vuelve contra las cifras conocidas y tener
+siempre un camino determinista de respaldo. El mismo esquema se puede aplicar en
+otros dominios.
 
-Lo que el trabajo no logró está declarado y no es menor: no hay pruebas de
-navegador ni medición de capacidad, la cobertura unitaria está en el orden del
-cuarenta por ciento y hay que subirla, quedan las limitaciones de la sección 7, y
-la documentación de planificación describió durante meses un sistema que no era el
-que se estaba construyendo. Ese último punto es el que más se llevaría a un
-proyecto siguiente: la documentación no es una etapa, es una parte de cada cambio,
-y el costo de tratarla como etapa se paga entero al final.
+Lo que la primera versión no logró está declarado: no hay pruebas de navegador ni
+medición de capacidad, la cobertura unitaria estaba en el orden del cuarenta por
+ciento, quedan las limitaciones de la sección 7, y la documentación de
+planificación describió durante meses un sistema que no era el que se estaba
+construyendo. Este último punto es el que más tendríamos en cuenta en un proyecto
+siguiente: la documentación se actualiza con cada cambio, y haberla dejado para
+una etapa final obligó a rehacerla.
 
-El estado del sistema al cierre es demostrable de punta a punta sobre un ambiente
-desplegado, con la salvedad declarada sobre las dos funciones con modelo de
-lenguaje, y con la integración continua verificando en cada cambio el estilo, la
-compilación de los tres paquetes, setecientas cuarenta y nueve pruebas unitarias
-con su piso de cobertura, la aplicación de las veintiuna migraciones sobre una
-base vacía y cuatrocientas ochenta y cinco pruebas de integración contra una base
-real. El recorrido de la demostración está en `docs/demo.md` y el material de
-preparación de la defensa, en `29-preparacion-defensa.md`.
+Al cierre de la primera versión el sistema se podía demostrar de punta a punta
+sobre un ambiente desplegado, con la salvedad declarada sobre las dos funciones
+con modelo de lenguaje. La integración continua verificaba en cada cambio el
+estilo, la compilación de los tres paquetes, setecientas cuarenta y nueve pruebas
+unitarias con su piso de cobertura, la aplicación de las veintiuna migraciones
+sobre una base vacía y cuatrocientas ochenta y cinco pruebas de integración
+contra una base real; las cifras vigentes están en la sección 9.10. El recorrido
+de la demostración está en `docs/demo.md` y el material de preparación de la
+defensa, en `29-preparacion-defensa.md`.
 
 ---
 
