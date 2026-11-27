@@ -144,8 +144,8 @@ function StepIndicator({ current, total, t }: { current: number; total: number; 
           <li key={name} className="min-w-0 flex-1" aria-current={i === current - 1 ? 'step' : undefined}>
             <div className={`h-1.5 rounded-full transition-colors ${i < current ? 'bg-brand-500' : 'bg-slate-200'}`} />
             <span
-              className={`mt-1.5 block truncate text-xs ${
-                i === current - 1 ? 'font-medium text-slate-900' : 'hidden text-slate-500 sm:block'
+              className={`mt-1.5 hidden truncate text-xs sm:block ${
+                i === current - 1 ? 'font-medium text-slate-900' : 'text-slate-500'
               }`}
             >
               {t(`${name}.short`)}
@@ -153,6 +153,7 @@ function StepIndicator({ current, total, t }: { current: number; total: number; 
           </li>
         ))}
       </ol>
+      <p className="mt-1.5 text-xs font-medium text-slate-900 sm:hidden">{t(`${STEPS[current - 1]}.short`)}</p>
     </div>
   );
 }
@@ -277,6 +278,7 @@ export function ContractForm() {
     update('persons', [...filtered, { personId: person.id, role, person }]);
     setPersonSearch('');
     setPersonResults([]);
+    setPersonSearched(false);
     setStepErrors({});
   }
 
@@ -296,6 +298,7 @@ export function ContractForm() {
     update('lessors', withEqualShares([...form.lessors, { personId: person.id, person, payoutPct: '' }]));
     setPersonSearch('');
     setPersonResults([]);
+    setPersonSearched(false);
   }
 
   function removeLessor(personId: string) {
