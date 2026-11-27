@@ -8,14 +8,17 @@ import type { Paged } from '@/lib/cash';
 import { KINDS, LIGHTS, type FollowUp } from '@/lib/follow-ups';
 import { useOptionalAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
-import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
-import { DateText } from '@/components/ui/date-text';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorNotice } from '@/components/ui/error-notice';
 import { FormField } from '@/components/ui/form-field';
+import { PaginationBar } from '@/components/ui/pagination';
 import { Select } from '@/components/ui/select';
-import { StatusBadge } from '@/components/ui/status-badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { FollowUpAgenda } from './follow-up-agenda';
 import { FollowUpDrawer } from './follow-up-drawer';
 
-const LIMIT = 25;
+// Lo más que devuelve la API por página: la agenda cuenta por tramo lo que tiene cargado.
+const LIMIT = 100;
 
 interface Filters {
   light: string;
@@ -27,8 +30,8 @@ interface Filters {
 const INITIAL: Filters = { light: '', kind: '', status: 'Abierto', mine: false };
 
 /**
- * Vencimientos: los contratos que se acercan a su fin (o ya lo pasaron) con el semáforo, el responsable y el avance
- * del checklist de cada seguimiento. Cada fila abre el seguimiento para trabajarlo.
+ * Vencimientos: la agenda de los contratos que se acercan a su fin (o ya lo pasaron), agrupados por cuándo
+ * vencen, con el responsable y el avance del checklist de cada seguimiento. Cada renglón abre el seguimiento.
  */
 export function FollowUpsScreen() {
   const t = useTranslations('followUps');
@@ -70,57 +73,8 @@ export function FollowUpsScreen() {
     setData((d) => (d ? { ...d, items: d.items.map((i) => (i.id === next.id ? next : i)) } : d));
   }
 
-  const columns: DataTableColumn<FollowUp>[] = [
-    {
-      key: 'light',
-      header: t('columns.light'),
-      render: (f) => (f.light ? <StatusBadge domain="vencimiento" status={f.light} /> : <span className="text-[var(--color-muted)]">—</span>),
-    },
-    { key: 'property', header: t('columns.property'), render: (f) => f.property ?? '—' },
-    { key: 'tenant', header: t('columns.tenant'), render: (f) => f.tenantName ?? '—' },
-    {
-      key: 'end',
-      header: t('columns.end'),
-      render: (f) => (
-        <div>
-          <DateText value={f.effectiveEnd} />
-          {f.effectiveEnd !== f.signedEnd && (
-            <span className="ml-1.5 text-xs text-[var(--color-muted)]">({t('oralExtension.badge')})</span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: 'days',
-      header: t('columns.days'),
-      alignRight: true,
-      render: (f) => <span className="tabular-nums">{f.daysLeft}</span>,
-    },
-    { key: 'kind', header: t('columns.kind'), render: (f) => t(`kinds.${f.kind}`) },
-    {
-      key: 'progress',
-      header: t('columns.progress'),
-      render: (f) => (
-        <span className="tabular-nums">
-          {f.progress.done}/{f.progress.total}
-        </span>
-      ),
-    },
-    {
-      key: 'assignee',
-      header: t('columns.assignee'),
-      render: (f) => (f.assigneeId ? (f.assigneeId === userId ? t('drawer.me') : t('columns.assigned')) : t('drawer.unassigned')),
-    },
-    {
-      key: 'actions',
-      header: t('columns.actions'),
-      render: (f) => (
-        <Button type="button" size="sm" variant="secondary" onClick={() => setSelected(f)}>
-          {t('open')}
-        </Button>
-      ),
-    },
-  ];
+  const items = data?.items ?? [];
+  const filtered = filters.light !== '' || filters.kind !== '' || filters.status !== INITIAL.status || filters.mine;
 
   return (
     <div className="space-y-6">
@@ -169,19 +123,37 @@ export function FollowUpsScreen() {
         </label>
       </div>
 
-      <DataTable
-        items={data?.items ?? []}
-        columns={columns}
-        keyExtractor={(f) => f.id}
-        loading={data === null && error == null}
-        error={error}
-        pagination={
-          data && data.totalPages > 1
-            ? { page: data.page, totalPages: data.totalPages, total: data.total, limit: data.limit, onPageChange: setPage }
-            : undefined
-        }
-        empty={{ title: t('empty.title'), subtitle: t('empty.subtitle'), iconName: 'contracts' }}
-      />
+      {error != null && <ErrorNotice error={error} />}
+
+      {data === null && error == null && (
+        <div className="space-y-2" aria-busy="true">
+          <Skeleton className="h-16 w-full rounded-xl" />
+          <Skeleton className="h-20 w-full rounded-2xl" />
+          <Skeleton className="h-20 w-full rounded-2xl" />
+        </div>
+      )}
+
+      {data !== null && items.length === 0 && (
+        <EmptyState
+          variant={filtered ? 'filtered' : 'default'}
+          iconName={filtered ? 'search' : 'calendarClock'}
+          title={filtered ? t('empty.filteredTitle') : t('empty.title')}
+          subtitle={filtered ? t('empty.filteredSubtitle') : t('empty.subtitle')}
+          action={
+            filtered ? (
+              <Button type="button" size="sm" variant="secondary" onClick={() => change(INITIAL)}>
+                {t('empty.clear')}
+              </Button>
+            ) : undefined
+          }
+        />
+      )}
+
+      {items.length > 0 && <FollowUpAgenda items={items} userId={userId} onOpen={setSelected} />}
+
+      {data && data.totalPages > 1 && (
+        <PaginationBar page={data.page} totalPages={data.totalPages} total={data.total} limit={data.limit} onPageChange={setPage} />
+      )}
 
       {selected && <FollowUpDrawer followUp={selected} onClose={() => setSelected(null)} onChanged={updated} />}
     </div>
