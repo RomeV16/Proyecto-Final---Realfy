@@ -9,7 +9,7 @@ locador y facturación por cuenta del locador. Varias inmobiliarias usan la mism
 instalación sin ver los datos de las otras.
 
 Es el trabajo final de carrera de Manuel Ferreras, Romeo Valdomero y Mariano
-Nallar. Desde octubre de 2026 se valida en un piloto con una inmobiliaria real.
+(`marianonallar`). Desde octubre de 2026 se valida en un piloto con una inmobiliaria real.
 
 Hay una demostración con datos sintéticos en <https://demo.realfy.app>; el guion
 para recorrerla está en [docs/demo.md](./docs/demo.md).
