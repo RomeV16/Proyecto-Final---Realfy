@@ -5729,7 +5729,7 @@
  },
   "charges": {
    "title": "Centro de carga",
-   "subtitle": "Cargá los gastos del mes (reparaciones, expensas extraordinarias, devoluciones, honorarios por gestión). Lo que le toca al inquilino entra en su próxima liquidación; lo del locador, en su estado. Un gasto grande se marca para pedir el pago por adelantado.",
+   "subtitle": "Los gastos del mes (reparaciones, expensas extraordinarias, devoluciones) que van al inquilino en su próxima liquidación, al locador en su estado o a la inmobiliaria.",
    "forbidden": "No tenés permiso para cargar gastos.",
    "loadError": "No se pudieron cargar los cargos",
    "targetsError": "No se pudieron cargar los contratos y las propiedades",
@@ -5741,7 +5741,11 @@
     "status": "Estado",
     "all": "Todos",
     "period": "Mes",
-    "upfrontOnly": "Solo los que piden anticipo"
+    "upfrontOnly": "Solo los que piden anticipo",
+    "chargedTo": "A cargo de",
+    "kind": "Clase",
+    "allKinds": "Todas",
+    "kindPageNote": "El filtro por clase se aplica a los renglones de esta página."
    },
    "columns": {
     "month": "Mes",
@@ -5750,11 +5754,15 @@
     "chargedTo": "A cargo de",
     "amount": "Importe",
     "status": "Estado",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "row": "Renglón",
+    "kind": "Clase"
    },
    "empty": {
-    "title": "No hay cargos",
-    "subtitle": "Cuando cargues un gasto del mes aparece acá con su estado."
+    "title": "No hay cargos pendientes",
+    "subtitle": "Cuando cargues un gasto aparece acá hasta que entre en una liquidación.",
+    "filteredTitle": "Ningún cargo coincide",
+    "filteredSubtitle": "Probá con otro estado, otro mes o quitá los filtros."
    },
    "kinds": {
     "Reparacion": "Reparación",
@@ -5905,6 +5913,10 @@
     "saving": "Registrando...",
     "done": "Gasto registrado en la caja",
     "error": "No se pudo registrar el gasto"
+   },
+   "totals": {
+    "rows": "{count, plural, one {# renglón} other {# renglones}} ·",
+    "label": "Total en {currency}"
    }
   },
  "propertyServices": {

@@ -5741,7 +5741,11 @@
     "status": "Status",
     "all": "All",
     "period": "Month",
-    "upfrontOnly": "Only those that require an advance"
+    "upfrontOnly": "Only those that require an advance",
+    "chargedTo": "Charged to",
+    "kind": "Kind",
+    "allKinds": "All",
+    "kindPageNote": "The kind filter applies to the rows on this page."
    },
    "columns": {
     "month": "Month",
@@ -5750,11 +5754,15 @@
     "chargedTo": "Charged to",
     "amount": "Amount",
     "status": "Status",
-    "actions": "Actions"
+    "actions": "Actions",
+    "row": "Row",
+    "kind": "Kind"
    },
    "empty": {
     "title": "No charges",
-    "subtitle": "When you load an expense for the month it appears here with its status."
+    "subtitle": "When you load an expense for the month it appears here with its status.",
+    "filteredTitle": "No charges match",
+    "filteredSubtitle": "Try another status, another month, or clear the filters."
    },
    "kinds": {
     "Reparacion": "Repair",
@@ -5905,6 +5913,10 @@
     "saving": "Recording...",
     "done": "Expense recorded in the cash book",
     "error": "The expense could not be recorded"
+   },
+   "totals": {
+    "rows": "{count, plural, one {# row} other {# rows}} ·",
+    "label": "Total in {currency}"
    }
   },
  "propertyServices": {

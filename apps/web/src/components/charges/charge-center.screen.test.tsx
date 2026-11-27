@@ -156,23 +156,28 @@ describe('Centro de carga: lista', () => {
     await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('El cargo entra en la próxima liquidación'));
   });
 
-  it('marcar cobrado por adelantado y anular piden confirmación', async () => {
+  it('marcar cobrado por adelantado pide confirmación', async () => {
     setup({ list: [charge('x', { requiresUpfront: true })] });
     const user = userEvent.setup();
     await screen.findAllByText('Gasto x');
 
-    await user.click(screen.getAllByRole('button', { name: 'Cobrado por adelantado' })[0]);
+    await user.click(within(screen.getByRole('table')).getAllByRole('button', { name: 'Cobrado por adelantado' })[0]);
     const dialog = await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'));
     await user.click(within(dialog).getByRole('button', { name: 'Cobrado por adelantado' }));
     await waitFor(() => expect(writes()).toHaveLength(1));
     expect(writes()[0][0]).toBe('/charges/x/mark-paid-upfront');
+  });
 
-    await user.click(screen.getAllByRole('button', { name: 'Anular' })[0]);
+  it('anular pide confirmación', async () => {
+    setup({ list: [charge('x')] });
+    const user = userEvent.setup();
+    await screen.findAllByText('Gasto x');
+    await user.click(screen.getByRole('button', { name: 'Anular' }));
     const cancelDialog = await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'));
     expect(within(cancelDialog).getByText('¿Anular el cargo?')).toBeInTheDocument();
     await user.click(within(cancelDialog).getByRole('button', { name: 'Anular' }));
-    await waitFor(() => expect(writes()).toHaveLength(2));
-    expect(writes()[1][0]).toBe('/charges/x/cancel');
+    await waitFor(() => expect(writes()).toHaveLength(1));
+    expect(writes()[0][0]).toBe('/charges/x/cancel');
   });
 
   it('cancelar la confirmación no manda nada', async () => {
@@ -208,7 +213,7 @@ describe('Centro de carga: lista', () => {
     });
     const user = userEvent.setup();
     await screen.findAllByText('Gasto g');
-    await user.click(screen.getAllByRole('button', { name: 'Cobrado por adelantado' })[0]);
+    await user.click(within(screen.getByRole('table')).getAllByRole('button', { name: 'Cobrado por adelantado' })[0]);
     const dialog = await screen.findByRole('alertdialog').catch(() => screen.findByRole('dialog'));
     await user.click(within(dialog).getByRole('button', { name: 'Cobrado por adelantado' }));
     await waitFor(() => expect(toastError).toHaveBeenCalledWith('No se pudo completar la acción'));
@@ -218,7 +223,7 @@ describe('Centro de carga: lista', () => {
     setup({ list: [charge('ag', { chargedTo: 'Inmobiliaria', description: 'Cerrajero de la oficina' })], post: () => ({}) });
     const user = userEvent.setup();
     await screen.findAllByText('Cerrajero de la oficina');
-    expect(screen.queryAllByRole('button', { name: 'Cobrado por adelantado' })).toHaveLength(0);
+    expect(within(screen.getByRole('table')).queryAllByRole('button', { name: 'Cobrado por adelantado' })).toHaveLength(0);
     await user.click(screen.getAllByRole('button', { name: 'Registrar como gasto' })[0]);
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText(/«Cerrajero de la oficina» sale de una cuenta de la inmobiliaria/)).toBeInTheDocument();
@@ -266,24 +271,51 @@ describe('Centro de carga: lista', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
-  it('los filtros se mandan a la API', async () => {
-    setup({ list: [charge('a')] });
+  it('los filtros rápidos se mandan a la API; la clase filtra los renglones a la vista', async () => {
+    setup({ list: [charge('a'), charge('b', { kind: 'Devolucion', amount: '-3000' })] });
     const user = userEvent.setup();
     await screen.findAllByText('Gasto a');
+    const status = within(screen.getByRole('group', { name: 'Estado' }));
+    expect(status.getByRole('button', { name: 'Pendiente' })).toHaveAttribute('aria-pressed', 'true');
 
-    await user.selectOptions(screen.getByLabelText('Estado'), 'Imputado');
+    await user.click(status.getByRole('button', { name: 'Imputado' }));
     await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/charges?page=1&limit=50&status=Imputado'));
-    await user.selectOptions(screen.getByLabelText('Estado'), '');
+    await user.click(status.getByRole('button', { name: 'Todos' }));
+    await user.click(within(screen.getByRole('group', { name: 'A cargo de' })).getByRole('button', { name: 'Locador' }));
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/charges?page=1&limit=50&chargedTo=Locador'));
+    await user.click(within(screen.getByRole('group', { name: 'A cargo de' })).getByRole('button', { name: 'Todos' }));
     await user.click(screen.getByLabelText('Solo los que piden anticipo'));
     await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/charges?page=1&limit=50&requiresUpfront=true'));
     await user.type(screen.getByLabelText('Mes'), '2026-11');
     await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/charges?page=1&limit=50&period=2026-11&requiresUpfront=true'));
+
+    const requests = apiClient.mock.calls.length;
+    await user.selectOptions(screen.getByLabelText('Clase'), 'Devolucion');
+    expect(screen.queryByText('Gasto a')).not.toBeInTheDocument();
+    expect(screen.getByText('Gasto b')).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Clase'), 'Otro');
+    expect(screen.getByText('Ningún cargo coincide')).toBeInTheDocument();
+    expect(apiClient.mock.calls.length).toBe(requests);
+  });
+
+  it('la planilla numera los renglones y suma el total por moneda al pie', async () => {
+    setup({
+      list: [charge('a'), charge('b', { amount: '-3000.50' }), charge('c', { amount: '100', currency: 'USD' })],
+    });
+    await screen.findAllByText('Gasto a');
+    const rows = screen.getAllByRole('row').map((r) => (r.textContent ?? '').replace(/[  ]/g, ' '));
+    expect(rows[0]).toContain('Renglón');
+    expect(rows[1].startsWith('1')).toBe(true);
+    expect(rows[3].startsWith('3')).toBe(true);
+    expect(rows[4]).toContain('3 renglones · Total en ARS');
+    expect(rows[5]).toContain('Total en USD');
+    expect(rows[5]).toContain('US$ 100');
   });
 
   it('sin cargos muestra el estado vacío y ofrece cargar uno', async () => {
     setup({ list: [] });
-    expect((await screen.findAllByText('No hay cargos')).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('button', { name: 'Cargar un gasto' }).length).toBeGreaterThan(1);
+    expect(await screen.findByText('No hay cargos pendientes')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Cargar un gasto' })).toHaveLength(2);
   });
 
   it('un error de la lista se muestra', async () => {
@@ -306,7 +338,7 @@ describe('Centro de carga: alta rápida', () => {
       post: () => ({ items: [charge('n1', { requiresUpfront: true }), charge('n2', { requiresUpfront: true })] }),
     });
     const user = userEvent.setup();
-    await screen.findAllByText('No hay cargos');
+    await screen.findAllByText('No hay cargos pendientes');
     await user.click(screen.getAllByRole('button', { name: 'Cargar un gasto' })[0]);
     const dialog = await screen.findByRole('dialog');
 
@@ -337,7 +369,7 @@ describe('Centro de carga: alta rápida', () => {
   it('un gasto al locador de una propiedad vacía pide la propiedad, no el contrato', async () => {
     setup({ list: [] });
     const user = userEvent.setup();
-    await screen.findAllByText('No hay cargos');
+    await screen.findAllByText('No hay cargos pendientes');
     await user.click(screen.getAllByRole('button', { name: 'Cargar un gasto' })[0]);
     const dialog = await screen.findByRole('dialog');
     await waitFor(() => expect(within(dialog).getByRole('option', { name: 'Depto Sintético' })).toBeInTheDocument());
@@ -369,7 +401,7 @@ describe('Centro de carga: alta rápida', () => {
   it('un gasto al locador de un contrato ofrece sus locadores vigentes y, sin elegir, es de todos', async () => {
     setup({ list: [] });
     const user = userEvent.setup();
-    await screen.findAllByText('No hay cargos');
+    await screen.findAllByText('No hay cargos pendientes');
     await user.click(screen.getAllByRole('button', { name: 'Cargar un gasto' })[0]);
     const dialog = await screen.findByRole('dialog');
     await waitFor(() => expect(within(dialog).getByRole('option', { name: /Depto Sintético · 2026-01/ })).toBeInTheDocument());
@@ -391,7 +423,7 @@ describe('Centro de carga: alta rápida', () => {
   it('valida los campos y no manda nada con errores', async () => {
     setup({ list: [] });
     const user = userEvent.setup();
-    await screen.findAllByText('No hay cargos');
+    await screen.findAllByText('No hay cargos pendientes');
     await user.click(screen.getAllByRole('button', { name: 'Cargar un gasto' })[0]);
     const dialog = await screen.findByRole('dialog');
 
@@ -410,7 +442,7 @@ describe('Centro de carga: alta rápida', () => {
       },
     });
     const user = userEvent.setup();
-    await screen.findAllByText('No hay cargos');
+    await screen.findAllByText('No hay cargos pendientes');
     await user.click(screen.getAllByRole('button', { name: 'Cargar un gasto' })[0]);
     const dialog = await screen.findByRole('dialog');
     await waitFor(() => expect(within(dialog).getByRole('option', { name: /Depto Sintético · 2026-01/ })).toBeInTheDocument());
@@ -429,7 +461,7 @@ describe('Centro de carga: alta rápida', () => {
 describe('Centro de carga: planilla', () => {
   async function openSheet() {
     const user = userEvent.setup();
-    await screen.findAllByText('No hay cargos');
+    await screen.findAllByText('No hay cargos pendientes');
     await user.click(screen.getByRole('button', { name: 'Carga por planilla' }));
     await screen.findByRole('grid', { name: 'Cargos a cargar' });
     await user.click(screen.getByRole('button', { name: 'Agregar fila' }));
