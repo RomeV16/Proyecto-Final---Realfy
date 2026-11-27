@@ -333,6 +333,15 @@ describe('ContractForm — locadores con su porcentaje de cobro', () => {
     expect(screen.getByLabelText(/% de cobro de Carlos Cotitular/)).toHaveValue('');
   });
 
+  it('Enter en el buscador de personas no guarda ni marca errores del paso', async () => {
+    await toPersonsStep();
+    const search = screen.getByPlaceholderText('Buscar persona por nombre o CUIT…');
+    fireEvent.submit(search.closest('form')!);
+    expect(apiClient.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+    expect(screen.queryByText('Sumá al menos un locador.')).not.toBeInTheDocument();
+    expect(screen.getByText('Partes del contrato')).toBeInTheDocument();
+  });
+
   it('exige al menos un locador para pasar al paso siguiente', async () => {
     const user = await toPersonsStep();
     await addLessorTenant(user);

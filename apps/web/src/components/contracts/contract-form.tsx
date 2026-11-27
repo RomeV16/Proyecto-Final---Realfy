@@ -380,6 +380,8 @@ export function ContractForm() {
   /* ── Submit ── */
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    // Enter en un campo de un paso intermedio no guarda el contrato a medio cargar.
+    if (step < STEPS.length - 1) return;
     void save('draft');
   }
 
