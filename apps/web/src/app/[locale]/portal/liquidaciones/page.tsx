@@ -34,6 +34,7 @@ export default function PortalInvoicesPage() {
   const total = data?.total ?? 0;
   const summary = useMemo(() => buildOverview([], items, []), [items]);
   const summaryTone = summary.state === 'clear' ? 'success' : summary.state === 'overdue' ? 'danger' : 'warning';
+  const showSplit = summary.overdueCount > 0 && summary.pendingCount > 0;
 
   /**
    * PDFs are rendered on demand and the endpoint is bearer-authenticated, so
@@ -106,6 +107,14 @@ export default function PortalInvoicesPage() {
                         period: formatPeriod(summary.focusInvoice.period),
                         days: Math.max(0, summary.daysToDue ?? 0),
                       })}
+                </p>
+              )}
+              {showSplit && (
+                <p className="mt-0.5 text-xs text-[var(--color-muted)]">
+                  {t('portal.account.split', {
+                    overdue: formatMoney(summary.overdueAmount, summary.currency),
+                    pending: formatMoney(summary.balance - summary.overdueAmount, summary.currency),
+                  })}
                 </p>
               )}
             </div>
