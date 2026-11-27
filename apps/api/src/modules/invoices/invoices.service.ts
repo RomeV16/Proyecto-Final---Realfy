@@ -457,6 +457,11 @@ export class InvoicesService {
 
     const ncCbteTipo = this.resolveNcTipo(original.cbteTipo);
     const clientRequestId = options.clientRequestId ?? undefined;
+    // La nota de crédito repite el desglose de IVA del original: con importe de
+    // IVA y sin las alícuotas, ARCA la rechaza (facturas A y B).
+    const iva = (Array.isArray(original.ivaArray) ? (original.ivaArray as any[]) : [])
+      .filter((i) => i && i.Id != null)
+      .map((i) => ({ id: Number(i.Id), baseImp: String(i.BaseImp), importe: String(i.Importe) }));
 
     const dto: EmitNotaCreditoDto = {
       issuerId: original.issuerId!,
@@ -477,6 +482,7 @@ export class InvoicesService {
       impOpEx: (original.impOpEx ?? '0').toString(),
       impTrib: (original.impTrib ?? '0').toString(),
       impIVA: (original.impIva ?? '0').toString(),
+      ...(iva.length > 0 ? { iva } : {}),
       monId: original.monId ?? 'PES',
       monCotiz: (original.monCotiz ?? 1).toString(),
       cbtesAsoc: [{ tipo: original.cbteTipo, ptoVta: original.puntoDeVenta, nro: original.numero }],

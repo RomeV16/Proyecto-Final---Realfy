@@ -113,6 +113,50 @@ function buildArcaMock(overrides: any = {}) {
 
 describe('InvoicesService — edge cases', () => {
 
+  describe('voidComprobante — desglose de IVA', () => {
+    const original = {
+      id: 'cmp-1',
+      issuerId: '00000000-0000-0000-0000-000000000001',
+      puntoDeVenta: 1,
+      cbteTipo: 1,
+      numero: 15,
+      concepto: 1,
+      docTipo: 80,
+      docNro: '30712345678',
+      receptorName: 'Cliente SA',
+      receptorFiscalCondition: FiscalCondition.ResponsableInscripto,
+      condicionIVAReceptorId: 1,
+      impTotal: '121000.00',
+      impNeto: '100000.00',
+      impIva: '21000.00',
+      monId: 'PES',
+      monCotiz: 1,
+      ivaArray: [{ Id: 5, BaseImp: 100000, Importe: 21000 }],
+    };
+
+    async function voidWith(comprobante: any) {
+      const prisma = buildPrismaMock();
+      prisma.client.comprobante.findFirst = jest.fn().mockResolvedValue(comprobante);
+      (prisma.client.comprobante as any).update = jest.fn().mockResolvedValue({});
+      const svc = await buildService(prisma, buildArcaMock());
+      const emit = jest.spyOn(svc, 'emitNotaCreditoFromDto').mockResolvedValue({ comprobante: { id: 'nc-1' } } as any);
+      await svc.voidComprobante('cmp-1');
+      return emit.mock.calls[0][0] as any;
+    }
+
+    it('la nota de crédito de una factura con IVA lleva las mismas alícuotas', async () => {
+      const dto = await voidWith(original);
+      expect(dto.impIVA).toBe('21000.00');
+      expect(dto.iva).toEqual([{ id: 5, baseImp: '100000', importe: '21000' }]);
+      expect(dto.cbtesAsoc).toEqual([{ tipo: 1, ptoVta: 1, nro: 15 }]);
+    });
+
+    it('sin IVA en el original (factura C) no manda el arreglo', async () => {
+      const dto = await voidWith({ ...original, cbteTipo: 11, impIva: '0', ivaArray: null });
+      expect(dto).not.toHaveProperty('iva');
+    });
+  });
+
   // ── 1. Idempotency: clientRequestId replay ─────────────────────────────────
 
   describe('emitFromDto — clientRequestId idempotency', () => {

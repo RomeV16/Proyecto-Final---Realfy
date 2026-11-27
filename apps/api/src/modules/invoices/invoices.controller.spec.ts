@@ -361,6 +361,17 @@ describe('InvoicesController', () => {
       expect(result).toMatchObject({ afipUp: true, taValid: true });
       expect(result).toHaveProperty('certificate');
     });
+
+    it('dice si el certificado es de producción o de homologación', async () => {
+      mocks.certificateServiceMock.getCertificateMetadata.mockResolvedValueOnce({
+        commonName: 'realfy-homo',
+        notAfter: new Date('2028-10-28T00:00:00Z'),
+        daysUntilExpiry: 701,
+        isProduction: false,
+      });
+      const result = await controller.healthcheck();
+      expect(result.certificate).toMatchObject({ commonName: 'realfy-homo', isProduction: false });
+    });
   });
 
   // ─── Param cache ──────────────────────────────────────────────────────────

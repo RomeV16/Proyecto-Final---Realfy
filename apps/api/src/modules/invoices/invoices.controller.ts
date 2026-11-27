@@ -172,6 +172,8 @@ export class InvoicesController {
             commonName: certMeta.commonName,
             notAfter: certMeta.notAfter,
             daysUntilExpiry: certMeta.daysUntilExpiry,
+            // Homologación o producción: lo necesita cualquiera que vea facturas.
+            isProduction: certMeta.isProduction,
           }
         : null,
     };

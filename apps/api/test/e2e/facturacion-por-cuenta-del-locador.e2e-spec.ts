@@ -201,7 +201,8 @@ describe('Facturación por cuenta del locador (e2e)', () => {
     expect(failed.body.error).toBe('LESSOR_INVOICE_FAILED');
     const pending = (await get(token, '/invoices/pending').expect(200)).body;
     expect(pending.items).toMatchObject([{ status: 'Fallido', personId: a, attempts: 1 }]);
-    expect(pending.items[0].lastError).toContain('NO_PUNTO_DE_VENTA');
+    expect(pending.items[0].lastError).toBe('El emisor no tiene punto de venta: traelos desde ARCA.');
+    expect(pending.items[0].lastErrorDetail).toContain('NO_PUNTO_DE_VENTA');
     expect(await prisma.baseClient.payment.count({ where: { id: paymentId } })).toBe(1);
 
     const issuerId = (await prisma.baseClient.arcaIssuer.findFirstOrThrow({ where: { personId: a } })).id;

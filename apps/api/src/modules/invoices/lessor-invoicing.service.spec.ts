@@ -522,4 +522,27 @@ describe('LessorInvoicingService — cola y facturación automática', () => {
     await service.listJobs({ status: 'Emitido', personId: '9b2a1f0c-0d8e-4c3b-8a55-0f6d6f3a1c11' });
     expect(client.lessorInvoiceJob.findMany.mock.calls[1][0].where).toMatchObject({ status: 'Emitido' });
   });
+
+  it('la cola muestra el motivo del fallo en palabras y guarda aparte el texto técnico', async () => {
+    const { service, client } = build();
+    const jobs = [
+      { id: 'j-1', status: 'Fallido', lastError: 'NO_PUNTO_DE_VENTA: No punto de venta found. Run syncPuntosDeVenta first.' },
+      { id: 'j-2', status: 'Fallido', lastError: '10016: El numero o fecha del comprobante no se corresponde' },
+      { id: 'j-3', status: 'Omitido', lastError: 'NOTHING_TO_INVOICE' },
+      { id: 'j-4', status: 'Pendiente', lastError: null },
+    ];
+    client.lessorInvoiceJob.findMany.mockResolvedValue(jobs);
+
+    const { items } = await service.listJobs({});
+    expect(items.map((j: any) => j.lastError)).toEqual([
+      'El emisor no tiene punto de venta: traelos desde ARCA.',
+      'ARCA rechazó la emisión o no respondió. Reintentá; si se repite, revisá la configuración del emisor.',
+      'No había nada para facturar.',
+      null,
+    ]);
+    expect(items[1].lastErrorDetail).toBe('10016: El numero o fecha del comprobante no se corresponde');
+
+    const source = await service.listForSource('Payment', 'pay-1');
+    expect(source.jobs[0].lastError).toBe('El emisor no tiene punto de venta: traelos desde ARCA.');
+  });
 });
