@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { BillChannel, BillDocumentStatus } from '@realfy/shared';
+import { BILL_AUTO_CONFIDENCE, BillChannel, BillDocumentStatus } from '@realfy/shared';
 import { Link } from '@/i18n/navigation';
 import { usePaginatedList } from '@/hooks/use-paginated-list';
 import {
@@ -50,12 +50,25 @@ const CHANNEL_ICON: Record<string, IconName> = {
   [BillChannel.Portal]: 'externalLink',
 };
 
+/** Tono de la barra: verde desde la confianza con la que la boleta se carga sola, rojo cuando la lectura es dudosa. */
+export function confidenceTone(confidence: string | null): 'success' | 'warning' | 'danger' {
+  const value = Number(confidence);
+  if (value >= BILL_AUTO_CONFIDENCE) return 'success';
+  return value >= 0.6 ? 'warning' : 'danger';
+}
+
+const TONE_CLASS = {
+  success: 'bg-[var(--color-success)]',
+  warning: 'bg-[var(--color-warning)]',
+  danger: 'bg-[var(--color-danger)]',
+} as const;
+
 /** Qué tan segura fue la lectura automática: una barra con el porcentaje al lado. */
 export function ConfidenceMeter({ confidence }: { confidence: string | null }) {
   const t = useTranslations('billDocuments');
   const pct = confidencePercent(confidence);
   if (pct === null) return null;
-  const tone = pct >= 85 ? 'bg-[var(--color-success)]' : pct >= 60 ? 'bg-[var(--color-warning)]' : 'bg-[var(--color-danger)]';
+  const tone = TONE_CLASS[confidenceTone(confidence)];
   return (
     <span className="inline-flex items-center gap-1.5" title={t('confidenceLabel', { pct })}>
       <span className="sr-only">{t('confidenceLabel', { pct })}</span>

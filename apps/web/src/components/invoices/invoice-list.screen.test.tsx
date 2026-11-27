@@ -106,6 +106,16 @@ describe('InvoiceList', () => {
     expect(apiClient).toHaveBeenCalledWith('/invoices?page=1&limit=20');
   });
 
+  it('con pesos y dólares en la misma página no suma un total', async () => {
+    apiClient.mockResolvedValue(page([items[0], { ...items[2], currency: 'USD' }]));
+    const { container } = renderEs(<InvoiceList />);
+    await waitFor(() => expect(container.textContent).toContain('Cliente de Prueba SA'));
+    const text = norm(container.textContent);
+    expect(text).toContain('2 comprobantes en esta página');
+    expect(text).not.toContain('Total de la página');
+    expect(text).not.toContain('121.100,00');
+  });
+
   it('los enlaces de ver llevan el prefijo de idioma', async () => {
     renderEs(<InvoiceList />);
     await screen.findAllByText('Cliente de Prueba SA');

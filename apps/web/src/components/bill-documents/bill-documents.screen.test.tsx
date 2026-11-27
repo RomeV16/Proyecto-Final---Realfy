@@ -22,7 +22,7 @@ vi.mock('@/lib/toast', () => ({ toast }));
 
 import { ApiRequestError } from '@/lib/api-client';
 import { BillDocumentDetailScreen } from './bill-document-detail';
-import { BillDocumentsScreen } from './bill-documents-screen';
+import { BillDocumentsScreen, confidenceTone } from './bill-documents-screen';
 import { BillReviewNotice } from './bill-review-notice';
 import { acceptBody } from './review-actions';
 
@@ -397,6 +397,17 @@ describe('acceptBody', () => {
       period: '2026-10',
       amount: '50',
     });
+  });
+});
+
+describe('confidenceTone', () => {
+  it('es verde desde la confianza con la que la boleta se carga sola', () => {
+    expect(confidenceTone('0.8')).toBe('success');
+    expect(confidenceTone('0.97')).toBe('success');
+    expect(confidenceTone('0.799')).toBe('warning');
+    expect(confidenceTone('0.6')).toBe('warning');
+    expect(confidenceTone('0.55')).toBe('danger');
+    expect(confidenceTone(null)).toBe('danger');
   });
 });
 

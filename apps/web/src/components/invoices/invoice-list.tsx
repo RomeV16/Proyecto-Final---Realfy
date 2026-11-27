@@ -97,6 +97,8 @@ export function InvoiceList() {
   const items = data?.items ?? [];
   const totalPages = data?.totalPages ?? 1;
   const pageTotal = items.reduce((sum, item) => sum + signedTotal(item), 0);
+  // Pesos y dólares no se suman: con monedas mezcladas la página no lleva total.
+  const sameCurrency = items.every((item) => (item.currency ?? 'ARS') === (items[0]?.currency ?? 'ARS'));
 
   async function handleDownloadPdf(id: string) {
     try {
@@ -258,10 +260,10 @@ export function InvoiceList() {
                     {tTable('pageCount', { count: items.length })}
                   </td>
                   <td className={`${MONO} whitespace-nowrap px-4 py-2.5 text-right font-semibold text-[var(--color-text)]`}>
-                    {formatMoneyFixed(pageTotal, items[0]?.currency ?? 'ARS', locale)}
+                    {sameCurrency && formatMoneyFixed(pageTotal, items[0]?.currency ?? 'ARS', locale)}
                   </td>
                   <td colSpan={2} className="px-4 py-2.5 text-xs text-[var(--color-muted)]">
-                    {tTable('pageTotal')}
+                    {sameCurrency && tTable('pageTotal')}
                   </td>
                 </tr>
               </tfoot>
