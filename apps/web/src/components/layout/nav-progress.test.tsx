@@ -70,6 +70,7 @@ describe('GlobalLoadingBar', () => {
     <>
       <GlobalLoadingBar />
       <Pending />
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- la prueba necesita un enlace nativo */}
       <a href="/es/contracts" onClick={(event) => event.preventDefault()}>
         Contratos
       </a>
