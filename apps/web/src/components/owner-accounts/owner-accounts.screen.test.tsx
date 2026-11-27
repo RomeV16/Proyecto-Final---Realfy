@@ -171,6 +171,44 @@ describe('Locadores: saldos', () => {
     expect(apiClient).not.toHaveBeenCalled();
   });
 
+  it('suma lo que falta pagar por moneda', async () => {
+    mockApi();
+    renderEs(<OwnerBalances />);
+    await screen.findAllByText('Ana Locadora');
+    expect(nb(screen.getByText(/Falta pagar en total/).textContent)).toContain('$ 46.000,00');
+    // Sin lugar para dos columnas no se abre ninguna cuenta al lado.
+    expect(screen.queryByRole('heading', { name: 'Cuenta corriente de Ana Locadora' })).not.toBeInTheDocument();
+  });
+
+  it('en pantalla ancha abre la cuenta corriente del primero al lado y cambia al elegir otro', async () => {
+    vi.stubGlobal('matchMedia', () => ({ matches: true }));
+    try {
+      mockApi();
+      const user = userEvent.setup();
+      renderEs(<OwnerBalances />);
+      expect(await screen.findByRole('heading', { level: 2, name: 'Cuenta corriente de Ana Locadora' })).toBeInTheDocument();
+      expect(apiClient).toHaveBeenCalledWith(`/owners/${ANA}/ledger?currency=ARS&page=1&limit=50`);
+      expect(screen.getByRole('link', { name: 'Ana Locadora' })).toHaveAttribute('aria-current', 'true');
+      expect(screen.getByRole('link', { name: 'Abrir en página completa' })).toHaveAttribute('href', `/es/locadores/${ANA}?currency=ARS`);
+      expect(screen.queryByRole('link', { name: /^← Locadores/ })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('link', { name: 'Beto Dueño' }));
+      expect(screen.getByRole('link', { name: 'Beto Dueño' })).toHaveAttribute('aria-current', 'true');
+      await waitFor(() => expect(apiClient).toHaveBeenCalledWith(`/owners/${BETO}/ledger?currency=USD&page=1&limit=50`));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('sin nada pendiente lo dice, y sin movimientos muestra el vacío', async () => {
+    apiClient.mockImplementation(async () => ({ items: [BALANCES[1]] }));
+    const first = renderEs(<OwnerBalances />);
+    expect(await screen.findByText('No hay pagos pendientes a locadores.')).toBeInTheDocument();
+    first.unmount();
+    apiClient.mockImplementation(async () => ({ items: [] }));
+    renderEs(<OwnerBalances />);
+    expect(await screen.findByText('Todavía no hay movimientos')).toBeInTheDocument();
+  });
+
   it('la ruta /locadores muestra la pantalla', async () => {
     mockApi();
     renderEs(<OwnersPage />);
@@ -200,6 +238,30 @@ describe('Locadores: cuenta corriente', () => {
       expect(apiClient).toHaveBeenCalledWith(`/owners/${ANA}/ledger?currency=USD&page=1&limit=50&from=2026-10-01`),
     );
     expect(nb(screen.getByLabelText('Resumen en USD').textContent)).toContain('Saldo al 01/10/2026');
+  });
+
+  it('separa debe y haber, y con fechas abre con el saldo anterior y cierra con el saldo final', async () => {
+    mockApi();
+    const user = userEvent.setup();
+    renderEs(<OwnerLedger personId={ANA} />);
+    const table = await screen.findByRole('table');
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Fecha', 'Concepto', 'Debe', 'Haber', 'Saldo', 'Estado de cuenta']);
+    const cells = (text: string) => within(within(table).getByText(text).closest('tr')!).getAllByRole('cell').map((c) => nb(c.textContent));
+    expect(cells('Alquiler').slice(2, 5)).toEqual(['', '$ 50.000,00', '$ 50.000,00']);
+    expect(cells('Comisión').slice(2, 5)).toEqual(['$ 3.500,00', '', '$ 46.500,00']);
+    expect(cells('Saldo final')[2]).toBe('$ 46.500,00');
+    expect(within(table).queryByText('Saldo anterior')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Desde'), '2026-10-01');
+    expect(await within(screen.getByRole('table')).findByText('Saldo anterior')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Hasta'), '2026-10-31');
+    await waitFor(() => expect(nb(screen.getByLabelText('Resumen en ARS').textContent)).toContain('Saldo al 31/10/2026'));
+  });
+
+  it('sin movimientos en las fechas elegidas lo dice', async () => {
+    apiClient.mockImplementation(async () => ({ ...LEDGER, items: [], total: 0 }));
+    renderEs(<OwnerLedger personId={ANA} />);
+    expect(await screen.findByText('Sin movimientos')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('pagina los movimientos', async () => {

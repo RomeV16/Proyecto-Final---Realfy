@@ -62,8 +62,17 @@ const ITEMS = [
   item('c5', { planStatus: 'Scheduled', nextAction: null, nextActionAt: null }),
 ];
 
-function mockApi({ items = ITEMS, fail, totalPages = 1 }: { items?: unknown[]; fail?: boolean; totalPages?: number } = {}) {
+interface MockOptions {
+  items?: unknown[];
+  fail?: boolean;
+  totalPages?: number;
+  /** Valor de `collections.enabled` en los valores por defecto; sin él, la lectura falla. */
+  enabled?: boolean;
+}
+
+function mockApi({ items = ITEMS, fail, totalPages = 1, enabled }: MockOptions = {}) {
   apiClient.mockImplementation(async (path: string) => {
+    if (path === '/tenants/me/operational-defaults' && enabled !== undefined) return { collections: { enabled } };
     if (path.startsWith('/collection-cases?')) {
       if (fail) throw new ApiRequestError(500, 'INTERNAL_ERROR', 'boom');
       return { items, total: items.length, page: 1, limit: 50, totalPages };
@@ -91,11 +100,17 @@ describe('Cobranza: listado de casos', () => {
     expect(screen.getAllByText('Con el abogado').length).toBeGreaterThan(0);
     expect(screen.getAllByText('12 días').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/102\.000,00/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Recordatorio firme/).length).toBeGreaterThan(0);
+    expect(screen.getByText('Mandar un recordatorio firme')).toBeInTheDocument();
+    expect(screen.getAllByText(/Programado para el/).length).toBeGreaterThan(0);
+    expect(screen.getByText('Pedir novedades al abogado')).toBeInTheDocument();
+    expect(screen.getByText('Esperar el pago prometido')).toBeInTheDocument();
+    expect(screen.getByText('Lo lleva')).toBeInTheDocument();
+    expect(screen.getAllByText('Sin responsable').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('img', { name: 'Paso 2 de 4' })).toHaveLength(1);
     expect(screen.getAllByText('Confirmar el envío de la carta').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Acuerdo de pago hasta el/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Lo lleva una persona').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Nada por ahora').length).toBeGreaterThan(0);
+    expect(screen.getByText('Llamar al inquilino')).toBeInTheDocument();
     expect(screen.getAllByText('Contrato sin propiedad').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Sin inquilino cargado').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Lía Demo').length).toBeGreaterThan(0);
@@ -129,6 +144,44 @@ describe('Cobranza: listado de casos', () => {
     renderEsWithQuery(<CollectionsPage />);
     expect(await screen.findByText('No hay casos de cobranza')).toBeInTheDocument();
     expect(screen.queryByText(/casos? · se debe hoy/)).not.toBeInTheDocument();
+  });
+
+  it('con la cobranza automática apagada lo avisa y explica cómo encenderla', async () => {
+    auth.role = 'Admin';
+    mockApi({ items: [], enabled: false });
+    renderEsWithQuery(<CollectionsPage />);
+    expect(await screen.findByText('La cobranza automática está apagada')).toBeInTheDocument();
+    expect(screen.getByText(/Se enciende en Configuración/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Abrir Valores por defecto' })).toHaveAttribute('href', '/es/configuracion/valores-por-defecto');
+    expect(screen.getByRole('link', { name: 'Ver la deuda vencida en Morosidad' })).toHaveAttribute('href', '/es/delinquency');
+    expect(screen.getByText(/Con la cobranza automática apagada no se abren casos/)).toBeInTheDocument();
+  });
+
+  it('quien no puede configurarla ve a quién pedírselo, sin enlaces que no le sirven', async () => {
+    mockApi({ enabled: false });
+    renderEsWithQuery(<CollectionsPage />);
+    expect(await screen.findByText('La cobranza automática está apagada')).toBeInTheDocument();
+    expect(screen.getByText(/La puede encender un administrador o un gerente/)).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Abrir Valores por defecto' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Ver la deuda vencida en Morosidad' })).not.toBeInTheDocument();
+  });
+
+  it('encendida, o si no se pudo leer la configuración, no avisa nada', async () => {
+    mockApi({ enabled: true });
+    renderEsWithQuery(<CollectionsPage />);
+    await screen.findAllByText('Calle Demo 742');
+    expect(screen.queryByText('La cobranza automática está apagada')).not.toBeInTheDocument();
+  });
+
+  it('con filtros y sin resultados ofrece quitarlos', async () => {
+    mockApi({ items: [] });
+    const user = userEvent.setup();
+    renderEsWithQuery(<CollectionsPage />);
+    await screen.findByText('No hay casos de cobranza');
+    await user.selectOptions(screen.getByLabelText('Etapa'), 'Judicial');
+    expect(await screen.findByText('Ningún caso coincide con los filtros')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Quitar filtros' }));
+    await waitFor(() => expect(lastQuery()).toBe('/collection-cases?page=1&limit=50'));
   });
 
   it('pagina cuando hay más de una página', async () => {

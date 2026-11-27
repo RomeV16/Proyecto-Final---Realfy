@@ -96,6 +96,9 @@ function setup(list: unknown = paged(ITEMS), write?: (path: string, init: { meth
 }
 
 const writes = () => apiClient.mock.calls.filter(([, init]) => init?.method);
+/** El botón «Abrir» del renglón de una propiedad (la agenda ordena por urgencia, no por carga). */
+const openButton = (property: string) =>
+  within(screen.getByText(property).closest('li') as HTMLElement).getByRole('button', { name: 'Abrir' });
 const lastUrl = () => apiClient.mock.calls.filter(([p]) => String(p).startsWith('/follow-ups?')).at(-1)![0] as string;
 
 beforeEach(() => {
@@ -117,6 +120,45 @@ describe('Vencimientos', () => {
     expect(screen.getAllByText(/prórroga de palabra/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('yo').length).toBeGreaterThan(0);
     expect(lastUrl()).toContain('status=Abierto');
+  });
+
+  it('agrupa por fecha de fin, con lo vencido primero, y dice cuánto falta', async () => {
+    setup(
+      paged([
+        followUp('a'),
+        followUp('b', { property: 'Casa Prueba', light: 'expired', daysLeft: -10 }),
+        followUp('c', { property: 'Local Hoy', light: 'red', daysLeft: 0 }),
+        followUp('d', { property: 'PH Semana', light: 'red', daysLeft: 1 }),
+        followUp('e', { property: 'Cochera Mes', daysLeft: 20, tenantName: null }),
+        followUp('f', { property: null, status: 'Cerrado', outcome: 'Renovado', light: null, daysLeft: 5, assigneeId: 'u9' }),
+      ]),
+    );
+    await screen.findByText('Depto Sintético');
+    const groups = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'));
+    expect(groups).toEqual(['Ya vencieron', 'Vencen hoy', 'En los próximos 7 días', 'En los próximos 30 días', 'Más adelante', 'Cerrados']);
+    expect(within(screen.getByRole('region', { name: 'Ya vencieron' })).getByText('Venció hace 10 días')).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Vencen hoy' })).getByText('Vence hoy')).toBeInTheDocument();
+    expect(screen.getByText('Falta 1 día')).toBeInTheDocument();
+    expect(screen.getByText('Faltan 43 días')).toBeInTheDocument();
+    expect(screen.getByText('Sin inquilino')).toBeInTheDocument();
+    const closed = within(screen.getByRole('region', { name: 'Cerrados' }));
+    expect(closed.getByText('Renovado')).toBeInTheDocument();
+    expect(closed.getByText('Sin propiedad')).toBeInTheDocument();
+    expect(closed.getByText('Asignado')).toBeInTheDocument();
+    const counts = within(screen.getByLabelText('Seguimientos por fecha de vencimiento'));
+    expect(counts.getByText('Vencidos').nextElementSibling).toHaveTextContent('1');
+    expect(counts.getByText('Después').nextElementSibling).toHaveTextContent('1');
+  });
+
+  it('con filtros y sin resultados ofrece quitarlos', async () => {
+    const user = userEvent.setup();
+    setup(paged([]));
+    await screen.findByText('No hay seguimientos');
+    await user.selectOptions(screen.getByLabelText('Tipo'), 'Devolucion');
+    expect(await screen.findByText('Ningún seguimiento coincide con los filtros')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Quitar filtros' }));
+    await waitFor(() => expect(screen.getByLabelText('Tipo')).toHaveValue(''));
+    expect(lastUrl()).not.toContain('kind=');
   });
 
   it('con ?contractId= (desde calidad de datos) muestra solo el seguimiento de ese contrato', async () => {
@@ -191,7 +233,7 @@ describe('Seguimiento (cajón)', () => {
       });
     });
     await screen.findAllByText('Depto Sintético');
-    await user.click(screen.getAllByRole('button', { name: 'Abrir' })[0]);
+    await user.click(openButton('Depto Sintético'));
     const dialog = await screen.findByRole('dialog');
     return { user, dialog: within(dialog), ...result };
   }
@@ -253,7 +295,7 @@ describe('Seguimiento (cajón)', () => {
       throw new ApiRequestError(409, 'FOLLOW_UP_CLOSED', 'closed');
     });
     await screen.findAllByText('Depto Sintético');
-    await user.click(screen.getAllByRole('button', { name: 'Abrir' })[0]);
+    await user.click(openButton('Depto Sintético'));
     const dialog = within(await screen.findByRole('dialog'));
     await user.click(dialog.getByLabelText('Precio nuevo acordado'));
     expect(await dialog.findByRole('alert')).toBeInTheDocument();
@@ -264,7 +306,7 @@ describe('Seguimiento (cajón)', () => {
     const user = userEvent.setup();
     setup();
     await screen.findAllByText('Depto Sintético');
-    await user.click(screen.getAllByRole('button', { name: 'Abrir' })[0]);
+    await user.click(openButton('Depto Sintético'));
     const dialog = within(await screen.findByRole('dialog'));
     expect(dialog.getByLabelText('Visita y estado de la unidad')).toBeDisabled();
     expect(dialog.getByLabelText('Responsable')).toBeDisabled();
