@@ -49,12 +49,14 @@ import { ReportsPage } from './reports-page';
 
 const norm = (s: string | null) => (s ?? '').replaceAll(' ', ' ');
 
-const today = () => {
+/** El "hasta" por defecto: último día del mes en curso. */
+const monthEnd = () => {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(lastDay)}`;
 };
-const range = () => `from=${new Date().getFullYear()}-01-01&to=${today()}`;
+const range = () => `from=${new Date().getFullYear()}-01-01&to=${monthEnd()}`;
 
 function report(overrides: Record<string, unknown> = {}) {
   return {
@@ -191,6 +193,26 @@ describe('ReportsPage', () => {
     await screen.findAllByText('Depto Uno');
   });
 
+  it('al quitar el propietario saca su estado de cuenta y las descargas', async () => {
+    mockApi(
+      report({
+        type: 'ownerStatement',
+        rows: [{ periodo: '2026-10', propiedad: 'Depto Uno', cobrado: '1000', depositoNeto: '900' }],
+        summary: undefined,
+      }),
+    );
+    const user = await pickType('Estado de cuenta del propietario');
+    await screen.findByRole('option', { name: 'Torres, Ana' });
+    await user.selectOptions(screen.getByLabelText('Propietario'), 'own-1');
+    await screen.findAllByText('Depto Uno');
+    expect(screen.getByRole('button', { name: 'Descargar Excel' })).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Propietario'), '');
+    await waitFor(() => expect(screen.queryByText('Depto Uno')).not.toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Descargar Excel' })).not.toBeInTheDocument();
+    expect(reportCalls()).toHaveLength(1);
+  });
+
   it('propiedad, contrato y embudo se eligen de una lista y filtran el reporte', async () => {
     mockApi(report({ rows: [], summary: undefined }));
     const user = userEvent.setup();
@@ -322,6 +344,6 @@ describe('ReportsPage', () => {
     await waitFor(() => expect(reportCalls().at(-1)).toContain('from=2026-03-01'));
     await user.click(screen.getByRole('button', { name: 'Restablecer filtros' }));
     expect(screen.getByLabelText<HTMLInputElement>('Desde').value).toBe(`${new Date().getFullYear()}-01-01`);
-    expect(screen.getByLabelText<HTMLInputElement>('Hasta').value).toBe(today());
+    expect(screen.getByLabelText<HTMLInputElement>('Hasta').value).toBe(monthEnd());
   });
 });

@@ -217,13 +217,17 @@ function formatCell(key: string, value: string | undefined): string {
   return value ?? '—';
 }
 
-/** Del 1 de enero a hoy: los meses que todavía no llegaron no aportan filas vacías. */
-function yearToDateRange(): { from: string; to: string } {
-  const now = new Date();
+/**
+ * Del 1 de enero al último día del mes en curso: los meses que todavía no
+ * llegaron no aportan filas vacías, y lo cobrado hoy entra en el reporte (la
+ * API toma "hasta" a las 0 h, así que cortar en hoy lo dejaría afuera).
+ */
+function yearToDateRange(now: Date = new Date()): { from: string; to: string } {
   const pad = (n: number) => String(n).padStart(2, '0');
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   return {
     from: `${now.getFullYear()}-01-01`,
-    to: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+    to: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(lastDay)}`,
   };
 }
 
@@ -269,7 +273,7 @@ export function ReportsPage() {
     let cancelled = false;
     setOptions([]);
     if (!entityFilter) return;
-    entityFilter
+    void entityFilter
       .load()
       .then((loaded) => {
         if (!cancelled) setOptions(loaded.filter((option) => option.label));
@@ -363,7 +367,15 @@ export function ReportsPage() {
     if (!reportType) return;
     const next = { ...filters, [key]: value };
     setFilters(next);
-    if (value || !ENTITY_FILTER[reportType]?.required) void runReport(reportType, next);
+    if (value || !ENTITY_FILTER[reportType]?.required) {
+      void runReport(reportType, next);
+      return;
+    }
+    // Sin el dato obligatorio no hay reporte: se saca el anterior de la vista
+    // para que no quede a nombre de nadie ni se pueda descargar.
+    requestSeq.current += 1;
+    setLoading(false);
+    setData(null);
   }
 
   if (!canAccess) {
