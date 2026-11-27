@@ -68,7 +68,7 @@ export default function PagosPage() {
   useEffect(() => {
     let cancelled = false;
     setError(null);
-    apiClient<PaymentsResponse>(`/payments?limit=${LIMIT}`)
+    void apiClient<PaymentsResponse>(`/payments?limit=${LIMIT}`)
       .then((r) => {
         if (cancelled) return;
         setPayments(r?.items ?? []);
@@ -77,7 +77,7 @@ export default function PagosPage() {
       .catch((err: unknown) => {
         if (!cancelled) setError(err);
       });
-    apiClient<DebtSummary>('/payments/debt')
+    void apiClient<DebtSummary>('/payments/debt')
       .then((d) => {
         if (!cancelled) setDebt(d?.pendiente && d?.vencida ? d : null);
       })
@@ -88,7 +88,7 @@ export default function PagosPage() {
         if (!cancelled) setDebtLoading(false);
       });
     // Los nombres de la propiedad y del inquilino son un agregado: sin ellos el extracto muestra el período.
-    apiClient<{ items?: ContractListItem[] }>('/contracts?limit=100')
+    void apiClient<{ items?: ContractListItem[] }>('/contracts?limit=100')
       .then((r) => {
         if (!cancelled) setContracts(contractLabels(r?.items ?? []));
       })

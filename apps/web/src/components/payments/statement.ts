@@ -26,7 +26,7 @@ export interface MethodShare {
 }
 
 export interface StatementDay {
-  /** `YYYY-MM-DD` en la zona horaria del usuario. */
+  /** `YYYY-MM-DD`: el día de cobro que se cargó. */
   day: string;
   items: PaymentRow[];
   totals: CurrencyTotal[];
@@ -42,11 +42,15 @@ export function toCents(amount: string | number | null | undefined): number {
 
 export const fromCents = (cents: number): string => (cents / 100).toFixed(2);
 
-/** Día calendario de un cobro (`YYYY-MM-DD`) en la zona horaria del usuario, o null si la fecha no se lee. */
+/**
+ * Día calendario de un cobro (`YYYY-MM-DD`), o null si la fecha no se lee. La fecha de cobro se carga como un día
+ * y la API la guarda a medianoche UTC: se lee en UTC, igual que la fecha del movimiento de caja que genera. Leída
+ * en la zona del navegador, en Argentina un cobro del 1 caería en el día 31 del mes anterior.
+ */
 export function dayKey(paidAt: string): string | null {
   const date = new Date(paidAt);
   if (Number.isNaN(date.getTime())) return null;
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`;
 }
 
 /** Mes de un cobro (`YYYY-MM`). */

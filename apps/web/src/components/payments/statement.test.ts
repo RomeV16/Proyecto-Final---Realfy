@@ -48,6 +48,22 @@ describe('extracto de pagos', () => {
     expect(currentMonthKey(new Date('2026-02-10T12:00:00.000Z'))).toBe('2026-02');
   });
 
+  it('un cobro cargado el 1 (medianoche UTC) queda en ese día y en ese mes al oeste de Greenwich', () => {
+    const tz = process.env.TZ;
+    process.env.TZ = 'America/Argentina/Buenos_Aires';
+    try {
+      expect(new Date('2026-11-01T00:00:00.000Z').getDate()).toBe(31);
+      expect(dayKey('2026-11-01T00:00:00.000Z')).toBe('2026-11-01');
+      expect(monthKey('2026-11-01T00:00:00.000Z')).toBe('2026-11');
+      const rows = [pay('x', '10', '2026-11-01T00:00:00.000Z'), pay('y', '5', '2026-10-31T13:00:00.000Z')];
+      expect(availableMonths(rows)).toEqual(['2026-11', '2026-10']);
+      expect(groupByDay(rows).map((d) => d.day)).toEqual(['2026-11-01', '2026-10-31']);
+    } finally {
+      if (tz === undefined) delete process.env.TZ;
+      else process.env.TZ = tz;
+    }
+  });
+
   it('lista los meses con cobros del más reciente al más viejo y elige el que se abre', () => {
     const months = availableMonths(ROWS);
     expect(months).toEqual(['2026-11', '2026-10']);
