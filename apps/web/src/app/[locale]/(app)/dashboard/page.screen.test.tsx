@@ -133,12 +133,12 @@ describe('DashboardPage', () => {
     expect(screen.getByText('5 de 8 ocupadas')).toBeInTheDocument();
     expect(screen.getByText(/^Cobrado en /)).toBeInTheDocument();
     // El mes en curso es el último punto de la serie: 1.000.000 de 1.100.000.
-    expect(screen.getByText('91% de $1,1M liquidados')).toBeInTheDocument();
+    expect(screen.getByText('91 % de $1,1M liquidados')).toBeInTheDocument();
     expect(screen.getByText('Saldo vencido')).toBeInTheDocument();
     expect(screen.getByText('De todos los períodos')).toBeInTheDocument();
     expect(screen.getByText('1 de prioridad alta')).toBeInTheDocument();
     // La cobranza del último mes cerrado sale del punto anterior: 900.000 de 1.000.000.
-    expect(screen.getByText('90%', { selector: 'p' })).toBeInTheDocument();
+    expect(screen.getByText('90 %', { selector: 'p' })).toBeInTheDocument();
     expect(screen.getByText(/^Cobranza de /)).toBeInTheDocument();
     expect(screen.queryByText(/Tasa de cobranza/)).not.toBeInTheDocument();
   });
@@ -158,7 +158,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Sin liquidaciones aún')).toBeInTheDocument();
     expect(screen.getByText('sin liquidaciones ese mes')).toBeInTheDocument();
     expect(screen.getByText('Todavía no hay liquidaciones para graficar.')).toBeInTheDocument();
-    expect(norm(document.body.textContent)).not.toContain('0%');
+    expect(norm(document.body.textContent)).not.toContain('0 %');
   });
 
   it('con el mes del ciclo informado por la API nombra ese mes y el anterior', async () => {
@@ -174,7 +174,7 @@ describe('DashboardPage', () => {
     await screen.findByRole('heading', { level: 1 });
     expect(screen.getByText('Cobrado en enero')).toBeInTheDocument();
     expect(screen.getByText('Cobranza de diciembre')).toBeInTheDocument();
-    expect(screen.getByText('91% de $1,1M liquidados')).toBeInTheDocument();
+    expect(screen.getByText('91 % de $1,1M liquidados')).toBeInTheDocument();
   });
 
   it('si la API avisa que el mes no tiene liquidaciones emitidas no muestra una tasa', async () => {

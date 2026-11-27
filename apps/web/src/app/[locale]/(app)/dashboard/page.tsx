@@ -15,7 +15,7 @@ import { PortfolioAnalytics } from '@/components/dashboard/portfolio-analytics';
 import { CollectionChart } from '@/components/dashboard/collection-chart';
 import { Icon, type IconName } from '@/components/ui/icon';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { formatMoneyRounded, formatMoneyCompact, formatDate, formatLocalDate } from '@/lib/format';
+import { formatMoneyRounded, formatMoneyCompact, formatDate, formatLocalDate, formatPercent } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 
 /* ──────────────── Types ──────────────── */
@@ -302,7 +302,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <StatTile
               label={tp('kpi.occupancy')}
-              value={`${s.occupancyRate}%`}
+              value={formatPercent(s.occupancyRate)}
               progress={s.occupancyRate}
               tone="brand"
               hint={tp('kpi.occupancyHint', { occupied: s.occupiedUnits, total: s.totalProperties })}
@@ -356,7 +356,7 @@ export default function DashboardPage() {
                 <Fact value={s.activeContracts} label={tp('activeContracts')} href={'/contracts'} />
                 <Fact value={formatMoneyCompact(s.avgRent)} label={tp('avgRent')} hint={tp('perMonth')} />
                 <Fact
-                  value={closedRate === null ? '—' : `${closedRate}%`}
+                  value={closedRate === null ? '—' : formatPercent(closedRate)}
                   label={previousMonth ? tp('closedRate', { month: previousMonth }) : tp('closedRateNoMonth')}
                   hint={closedRate === null ? tp('closedRateNone') : tp('closedRateHint')}
                 />

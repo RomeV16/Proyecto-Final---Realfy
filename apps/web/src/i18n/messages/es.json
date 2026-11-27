@@ -466,7 +466,7 @@
     "occupancyHint": "{occupied} de {total} ocupadas",
     "collected": "Cobrado en {month}",
     "collectedNoMonth": "Cobrado este mes",
-    "collectedHint": "{pct}% de {amount} liquidados",
+    "collectedHint": "{pct} % de {amount} liquidados",
     "collectedNone": "Sin liquidaciones aún",
     "overdue": "Saldo vencido",
     "overdueHint": "De todos los períodos",
