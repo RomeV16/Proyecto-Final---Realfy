@@ -435,16 +435,16 @@
    "greetingNoName": "Hello",
    "kpi": {
     "occupancy": "Occupancy",
-    "occupancyHint": "{occupied} of {total} properties occupied",
+    "occupancyHint": "{occupied} of {total} occupied",
     "collected": "Collected in {month}",
     "collectedNoMonth": "Collected this month",
     "collectedHint": "{pct}% of {amount} billed",
-    "collectedNone": "No statements for this month yet",
+    "collectedNone": "No statements yet",
     "overdue": "Overdue balance",
-    "overdueHint": "Unpaid, across all periods",
+    "overdueHint": "Across all periods",
     "overdueNone": "No overdue debt",
     "tickets": "Open tickets",
-    "ticketsHint": "{count, plural, =0 {None urgent or high priority} one {# urgent or high priority} other {# urgent or high priority}}"
+    "ticketsHint": "{count, plural, =0 {None urgent} other {# high priority}}"
    },
    "rentRoll": "Portfolio rent",
    "rentRollHint": "Per month, adding up active contracts",

@@ -435,16 +435,16 @@
    "greetingNoName": "Hola",
    "kpi": {
     "occupancy": "Ocupación",
-    "occupancyHint": "{occupied} de {total} propiedades ocupadas",
+    "occupancyHint": "{occupied} de {total} ocupadas",
     "collected": "Cobrado en {month}",
     "collectedNoMonth": "Cobrado este mes",
     "collectedHint": "{pct}% de {amount} liquidados",
-    "collectedNone": "Sin liquidaciones del mes todavía",
+    "collectedNone": "Sin liquidaciones aún",
     "overdue": "Saldo vencido",
-    "overdueHint": "Sin cobrar, de todos los períodos",
-    "overdueNone": "No hay deuda vencida",
+    "overdueHint": "De todos los períodos",
+    "overdueNone": "Sin deuda vencida",
     "tickets": "Tickets abiertos",
-    "ticketsHint": "{count, plural, =0 {Ninguno urgente ni de prioridad alta} one {# urgente o de prioridad alta} other {# urgentes o de prioridad alta}}"
+    "ticketsHint": "{count, plural, =0 {Ninguno urgente} other {# de prioridad alta}}"
    },
    "rentRoll": "Alquileres de la cartera",
    "rentRollHint": "Por mes, sumando los contratos activos",

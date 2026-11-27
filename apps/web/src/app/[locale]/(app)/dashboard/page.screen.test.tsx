@@ -130,13 +130,13 @@ describe('DashboardPage', () => {
     mockApi(stats());
     renderEs(<DashboardPage />);
     expect(await screen.findByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
-    expect(screen.getByText('5 de 8 propiedades ocupadas')).toBeInTheDocument();
+    expect(screen.getByText('5 de 8 ocupadas')).toBeInTheDocument();
     expect(screen.getByText(/^Cobrado en /)).toBeInTheDocument();
     // El mes en curso es el último punto de la serie: 1.000.000 de 1.100.000.
     expect(screen.getByText('91% de $1,1M liquidados')).toBeInTheDocument();
     expect(screen.getByText('Saldo vencido')).toBeInTheDocument();
-    expect(screen.getByText('Sin cobrar, de todos los períodos')).toBeInTheDocument();
-    expect(screen.getByText('1 urgente o de prioridad alta')).toBeInTheDocument();
+    expect(screen.getByText('De todos los períodos')).toBeInTheDocument();
+    expect(screen.getByText('1 de prioridad alta')).toBeInTheDocument();
     // La cobranza del último mes cerrado sale del punto anterior: 900.000 de 1.000.000.
     expect(screen.getByText('90%', { selector: 'p' })).toBeInTheDocument();
     expect(screen.getByText(/^Cobranza de /)).toBeInTheDocument();
@@ -155,7 +155,7 @@ describe('DashboardPage', () => {
     );
     renderEs(<DashboardPage />);
     await screen.findByRole('heading', { level: 1 });
-    expect(screen.getByText('Sin liquidaciones del mes todavía')).toBeInTheDocument();
+    expect(screen.getByText('Sin liquidaciones aún')).toBeInTheDocument();
     expect(screen.getByText('sin liquidaciones ese mes')).toBeInTheDocument();
     expect(screen.getByText('Todavía no hay liquidaciones para graficar.')).toBeInTheDocument();
     expect(norm(document.body.textContent)).not.toContain('0%');
@@ -217,8 +217,8 @@ describe('DashboardPage', () => {
     expect(screen.getByText('No hay tickets abiertos.')).toBeInTheDocument();
     expect(screen.getByText(/Sin contratos por vencer/)).toBeInTheDocument();
     expect(screen.getByText('No hay liquidaciones del mes ni deuda vencida.')).toBeInTheDocument();
-    expect(screen.getByText('No hay deuda vencida')).toBeInTheDocument();
-    expect(screen.getByText('Ninguno urgente ni de prioridad alta')).toBeInTheDocument();
+    expect(screen.getByText('Sin deuda vencida')).toBeInTheDocument();
+    expect(screen.getByText('Ninguno urgente')).toBeInTheDocument();
     expect(screen.queryByText('Inmobiliaria Prueba')).not.toBeInTheDocument();
   });
 
