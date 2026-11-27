@@ -6,16 +6,17 @@ análisis de SonarCloud). La medición del 4 de noviembre reemplaza a la del 3 c
 vigente y esta se conserva debajo, para ver la evolución. Las secciones que siguen a
 «Medición del 3 de noviembre de 2026» son las del TP de calidad sobre el módulo de
 índices y se conservan como estaban: muestran el antes y el después de ese trabajo.
-La versión 1.4 no agrega una medición: suma la sección que sigue, con el estado de
-`main` después de los últimos pedidos integrados.
+La versión 1.4 suma la remedición de cierre, sobre el último commit de `main` con
+los nueve trabajos del pipeline en verde.
 
-## Estado de `main` al último pipeline completo (`7759554`, 4 de noviembre de 2026)
+## Remedición de cierre (`7759554`, 4 de noviembre de 2026)
 
 Después de la medición de `c7b3eac` se integraron #197, #199, #234, #242 y #243. Esta
-sección no la reemplaza como medición de referencia (es la que usa la tabla única del
-informe final); registra cómo quedó `main` en la última ejecución con los nueve
-trabajos en verde, para que quien cuente las pruebas en el repositorio encuentre los
-mismos números.
+sección repite las mismas dimensiones sobre `7759554`, el último commit de `main`
+con los nueve trabajos en verde, y coincide con la remedición de cierre de la tabla
+única del informe final (`../tesis/29-informe-final.md`, sección 9.10). El pedido
+#244, posterior, solo cambia el flujo de integración continua y no mueve ninguna de
+estas cifras.
 
 Fuente: ejecución [41782311632](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41782311632)
 del flujo CI sobre `main` en `7759554` y el análisis de SonarCloud de ese mismo commit
@@ -37,9 +38,14 @@ del flujo CI sobre `main` en `7759554` y el análisis de SonarCloud de ese mismo
 | SonarCloud: bugs, vulnerabilidades, code smells | 38 (C), 1 (B), 1.468 (A) | 38 (C), 1 (B), 1.521 (A) |
 | SonarCloud: duplicación | 1,2 % | 1,1 % |
 | Quality gate | en verde | en verde |
-| Casos de prueba del catálogo | 710, del CP-01 al CP-1435 | 769, del CP-01 al CP-1457, sin identificadores repetidos |
+| Casos de prueba del catálogo | 710, del CP-01 al CP-1435 | 771 renglones, del CP-01 al CP-1457, sin identificadores repetidos |
 | Defectos registrados | 62 (hasta DEF-171) | 68 (hasta DEF-176), todos corregidos |
 | Migraciones versionadas | 69 | 71 |
+| Módulos de la API, entidades y enumeraciones del modelo | 45, 103 y 118 | 45, 103 y 118 |
+| Controladores y rutas | 55 y 436 | 55 y 437 |
+| Registros de arquitectura y casos de uso | 18 y 50 | 19 y 50 |
+| Duplicación por paquete (api, web, shared) | 0,98 %, 1,69 % y 0,56 % | 0,97 %, 1,66 % y 0,54 % |
+| Trabajos del pipeline | 9, 8 obligatorios | 9, 8 obligatorios |
 | Carga en el despliegue efímero (CP-70 y CP-71) | no registrada | Stress: p95 17,5 ms y 0 % de errores en 25.773 peticiones; esfuerzo sostenido de 5 min: p95 11,0 ms |
 
 El pipeline, hasta el último empuje a `main` (`b47f335`, #244, 4 de noviembre):
