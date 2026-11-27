@@ -909,8 +909,8 @@ un lector del informe necesita para evaluar el trabajo.
 La inmobiliaria piloto es una empresa familiar de administración de alquileres.
 Su nombre, su ubicación, su personal, sus clientes y sus importes no figuran en
 este informe ni en ningún documento del repositorio, que es público. La operan
-tres personas con funciones distintas —dirección, atención y publicación, y
-muestras e inventarios— y lleva el ciclo mensual completo con una base de datos de
+tres personas con funciones distintas (dirección; atención y publicación;
+muestras e inventarios) y lleva el ciclo mensual completo con una base de datos de
 escritorio y planillas: ajustes, impuestos y servicios, recibos, cobros, rendición
 a cada locador y un estado de cuenta por locador que se arma a mano.
 
@@ -950,8 +950,8 @@ exclusiones del alcance original».
 El piloto siguió cuatro pasos, en este orden.
 
 **Relevamiento.** Se leyeron los archivos que la inmobiliaria entregó de su
-operación —la base de escritorio, las planillas de ajustes y de estados de cuenta,
-los recibos y los modelos de contrato—, verificando que ninguno quedara sin
+operación (la base de escritorio, las planillas de ajustes y de estados de cuenta,
+los recibos y los modelos de contrato), verificando que ninguno quedara sin
 revisar, y la dirección respondió un cuestionario escrito el 30/10/2026. De ahí
 salieron veintiocho hallazgos, FB-01 a FB-28, cada uno con su decisión, el ítem que
 lo resuelve y los casos de prueba que lo verifican. Los tres que más pesaron en el
@@ -959,8 +959,8 @@ diseño son que el locador no es necesariamente el propietario y un contrato pue
 tener varios, cada uno con su porcentaje de cobro; que casi todas las reglas son
 pactables por contrato y cambian por acuerdos fechados, y que el dinero llega por
 tres caminos distintos. Según el registro, al 3/11/2026 veintiséis hallazgos están
-implementados por pedidos integrados —cada uno con su número en el estado—, uno sigue
-planificado (FB-16, los pagarés como documento adjunto del contrato) y uno quedó
+implementados por pedidos integrados (cada uno con su número en el estado), uno
+sigue planificado (FB-16, los pagarés como documento adjunto del contrato) y uno quedó
 fuera de alcance (FB-27, el inventario estructurado). Todos provienen del
 relevamiento: el registro todavía no tiene hallazgos de uso real, y no se presentan
 como tales.
@@ -1014,7 +1014,7 @@ agrupa por oleada.
 | 6. Migración completa y boletas automáticas | Servicios y reglas de traslado por el importador (M8), proveedor y cuenta normalizada, formulario web de servicios, obtención automática de boletas con catálogo de proveedores, lectura de PDF, ingreso por archivo y por mail y pantalla de revisión, consumo por unidad; correcciones que salieron de los ensayos generales (DEF-115 a DEF-143, DEF-170 y DEF-171) | Complementa 35 y 39 | #187, #193, #198, #220 a #225, #227, #229, #231, #236, #237 | Integrada; el 4/11 se integraron además el saldo inicial de custodia (#197), las plantillas completas (#199), el Worker de recepción de mails (#234) y la prórroga sin historial (#242) |
 | Documentación | Capítulo del piloto, registro de hallazgos, migración, trazabilidad, privacidad, diagramas, plan de aceptación en campo | 46 | #107, #162, #186 | Continua |
 
-Las decisiones de arquitectura nuevas son doce, del ADR-0007 al ADR-0018
+Las decisiones de arquitectura nuevas son trece, del ADR-0007 al ADR-0019
 (`../adr/README.md`): locadores, apoderados y titularidad (0007); impuestos y
 servicios trasladables (0008); cuenta corriente y estado de cuenta del locador, que
 deja la rendición por contrato como histórico (0009); reglas versionadas y valores
@@ -1022,8 +1022,9 @@ por defecto (0010); ajuste con rezago, estimación y corrección (0011); flujos 
 cobro, caja y custodia (0012); mensajería saliente con bandeja de salida y cobranza
 escalonada (0013); ambiente piloto con datos reales (0014); importación idempotente
 (0015); diagramas como código (0016); facturación por cuenta del locador con
-emisor delegado (0017), y obtención automática de boletas de servicios e impuestos
-(0018).
+emisor delegado (0017); obtención automática de boletas de servicios e impuestos
+(0018), y motor de plantillas de contrato con condicionales y listas (0019, que
+entró con el pedido #199).
 
 **Obtención automática de boletas (oleada 6).** Cada mes alguien de la inmobiliaria
 entra a los sitios de la Municipalidad, de Rentas, de Aguas Cordobesas, de EPEC y de
@@ -1033,8 +1034,8 @@ recibo. La investigación previa mostró que ningún proveedor ofrece una interf
 pública de consulta por cliente, que algunos sitios no se pueden inspeccionar desde
 fuera del país y que el sitio de Rentas excluye expresamente la consulta
 automatizada. Un diseño que apostara a un solo canal se rompería con el primer
-cambio de un portal, de modo que la decisión (ADR-0018) es que **toda boleta, venga
-de donde venga, pasa por el mismo circuito y termina en la misma entidad**, la que ya
+cambio de un portal. La decisión (ADR-0018) es que toda boleta, cualquiera sea su
+origen, pasa por el mismo circuito y termina en la misma entidad, la que ya
 alimenta el traslado al inquilino, y que los canales y los proveedores son piezas
 intercambiables:
 
@@ -1050,24 +1051,25 @@ intercambiables:
   período esté a no más de tres meses de hoy y que el vencimiento sea coherente;
   busca el servicio por proveedor y cuenta normalizada, y da de alta la boleta con la
   misma función que la carga manual, todo en una transacción. Lo dudoso queda en
-  **revisión**, con el motivo y el servicio sugerido; una boleta que ya existe con otro
+  revisión, con el motivo y el servicio sugerido; una boleta que ya existe con otro
   importe nunca se pisa. El proveedor y la cuenta se guardan normalizados en el
   servicio y se normalizan también al buscar, para que una cuenta escrita con guiones
   o con ceros de menos encuentre su servicio.
-- **Canales.** El **archivo** (PDF subido a la pantalla *Boletas recibidas*, con la
+- **Canales.** El archivo (PDF subido a la pantalla *Boletas recibidas*, con la
   cola de revisión que muestra el PDF junto a lo leído, aceptar con correcciones o
-  rechazar con motivo), el **mail** (el reenvío de la factura digital que mandan los
-  proveedores, incluidos los remitentes automáticos) y la **consulta** (la interfaz de
+  rechazar con motivo), el mail (el reenvío de la factura digital que mandan los
+  proveedores, incluidos los remitentes automáticos) y la consulta (la interfaz de
   un conector y un proceso diario, apagado de fábrica y sin conectores). Un canal de
   portal con las credenciales de la inmobiliaria figura solo como dirección futura.
 - **Recepción de mails y envío.** El dominio de la aplicación (`realfy.app`) está en
   Cloudflare, de modo que los mails entrantes se reciben con Email Routing y un Worker
-  que los lee, decide por destinatario —boletas o consultas, con la inmobiliaria
-  indicada en la dirección de destino— y los reenvía firmados a los endpoints de la
-  API que ya existían. Es un componente propio, con su prueba (#234), y la recepción está
-  activa en el ambiente piloto desde el 4/11/2026, con una prueba de punta a punta
-  (del mail a la API) que dio bien. El envío usa Resend, con el dominio verificado y los registros de
-  autenticación del remitente en el DNS; la mensajería sigue en modo apagado.
+  que los lee, decide por destinatario (boletas o consultas, con la inmobiliaria
+  indicada en la dirección de destino) y los reenvía firmados a los endpoints de la
+  API que ya existían. Es un componente propio, con su prueba (#234), y la
+  recepción está activa en el ambiente piloto desde el 4/11/2026, con una prueba de
+  punta a punta (del mail a la API) que dio bien. El envío usa Resend, con el
+  dominio verificado y los registros de autenticación del remitente en el DNS; la
+  mensajería sigue en modo apagado.
 - **Decisiones pendientes.** Quedan tres que no son del equipo: autorizar un conector
   de consulta de la Municipalidad, que es el único con consulta pública sin sesión
   (a tasa baja, desactivable e idealmente con un convenio); cómo obtener las boletas de
@@ -1081,8 +1083,7 @@ El primer ensayo general del ciclo (9.6) confirmó el peso de este circuito: la 
 de las boletas de impuestos y servicios explicó casi todas las diferencias de un mes
 entero.
 
-Tres rasgos de lo entregado conviene destacarlos porque responden a lo que el
-relevamiento mostró y no a una preferencia de diseño:
+Tres características de lo entregado responden a lo que mostró el relevamiento:
 
 - **Nada se fija en el código.** Prorrateo, vencimiento, punitorio, reparto de
   impuestos, anticipo, flujo de cobro, honorarios y depósitos tienen un valor por
@@ -1101,11 +1102,12 @@ relevamiento mostró y no a una preferencia de diseño:
 
 ### 9.5. Evidencia de calidad
 
-Las pruebas crecieron con el piloto en los tres niveles —unitarias de la API y del
+Las pruebas crecieron con el piloto en los tres niveles (unitarias de la API y del
 paquete compartido, pruebas de la aplicación web, que antes no existían, e
-integración de la API contra PostgreSQL— y la cobertura de líneas de la API pasó
-del 44,48 % al 80,97 % (sección 9.10). El piso de la integración continua se
-mantuvo en 38 % a propósito: es una alarma contra regresiones, no una meta.
+integración de la API contra PostgreSQL) y la cobertura de líneas de la API pasó
+del 44,48 % al 80,97 % el 4/11 y al 81,65 % en la remedición de cierre (sección
+9.10). El piso de la integración continua se mantuvo en 38 % a propósito, porque
+funciona como alarma contra regresiones y no como meta.
 
 La integración continua sumó controles que la primera versión no tenía: control de
 tipos que incluye las pruebas; zona horaria fija, con una corrida adicional en la
@@ -1162,13 +1164,12 @@ solo día, uno de ellos bloqueante, y ninguno lo había visto la suite sintétic
 dos orígenes más productivos fueron el ensayo con datos de forma real y la revisión
 de código previa a cada cambio, y las pruebas que fijan el comportamiento antes de
 tocarlo (caracterización y reconciliación) encontraron lo que las pruebas de cada
-módulo no veían: en todos los casos el defecto aparece al mirar el sistema desde un
-lugar distinto del que lo construyó.
+módulo no veían.
 
 ### 9.6. Reconciliación
 
-El criterio de aceptación del piloto no es que cada función ande, sino que el mes
-cierre: que Realfy produzca, para el mes que se liquida, los mismos importes que la
+El criterio de aceptación del piloto es que el mes cierre, es decir, que Realfy
+produzca, para el mes que se liquida, los mismos importes que la
 inmobiliaria obtiene con su sistema actual, por contrato (total del recibo, comisión
 y neto al locador) y por locador (total del estado de cuenta). Como los datos reales
 no pueden estar en el repositorio y la prueba tiene que poder repetirse sin ellos,
@@ -1182,8 +1183,8 @@ un impuesto anual en cuotas y un servicio repartido por consumo; cargos con y si
 anticipo; un punitorio; un cobro parcial, un cobro directo al locador, efectivo en
 custodia y una compensación. Los resultados esperados se calcularon a mano, con
 aritmética decimal exacta, antes de ejecutar. El caso corre en la integración
-continua en dos niveles —encadenando los motores en el paquete compartido y cargando
-el mismo mes por la API— con un comparador de tolerancia cero (CP-660 a CP-668).
+continua en dos niveles (encadenando los motores en el paquete compartido y cargando
+el mismo mes por la API) con un comparador de tolerancia cero (CP-660 a CP-668).
 
 La suite encontró cuatro defectos que las pruebas de cada módulo no habían visto,
 porque aparecen sólo al encadenar el ciclo: un descuento que sumaba en el reparto
@@ -1198,8 +1199,8 @@ repositorio. Antes de generar nada se guardan, con su huella, los totales del si
 actual para el mes; se generan las liquidaciones en el ambiente piloto, se restaura
 una copia de la base en un entorno de sólo lectura y un comparador con la misma
 regla produce un informe de diferencias por contrato y por concepto. Cada diferencia
-se clasifica —error de Realfy, regla que el sistema actual aplica sin explicitar,
-dato importado incorrecto o error del sistema actual— y se registra como defecto o
+se clasifica (error de Realfy, regla que el sistema actual aplica sin explicitar,
+dato importado incorrecto o error del sistema actual) y se registra como defecto o
 como hallazgo dentro de las 24 horas. Tres reglas pueden diferir de lo que hace la
 inmobiliaria y se verifican en el C1: el primer ajuste con rezago de un contrato
 trimestral, el rezago de los contratos por ICL y la boleta del locador pagada por la
@@ -1218,9 +1219,10 @@ diciembre, iguales a la ficha de cada servicio). Los resultados son agregados; l
 reportes por contrato, la planilla y las respuestas de la API quedan fuera del
 repositorio.
 
-- **Octubre.** Contratos comparados, coincidencias al centavo y sin contar impuestos y
-  diferencias: **a completar tras el consentimiento de la inmobiliaria**. En cuanto al tipo de diferencia, el alquiler, la comisión, los
-  cargos y los punitorios reproducen la planilla en todos los contratos comparados, y
+- **Octubre.** Contratos comparados, coincidencias al centavo y sin contar
+  impuestos, y diferencias: a completar tras el consentimiento de la inmobiliaria.
+  En cuanto al tipo de diferencia, el alquiler, la comisión, los cargos y los
+  punitorios reproducen la planilla en todos los contratos comparados, y
   el desvío es la falta de las boletas de impuestos y servicios, que todavía no estaban
   cargadas (paso M9 de la migración). No hubo diferencias por regla distinta ni por
   error del sistema.
@@ -1240,15 +1242,17 @@ repositorio.
   de ajuste de los contratos que la práctica de la inmobiliaria ajusta en noviembre o
   diciembre se reproduce en una parte sin hacer nada y en la gran mayoría con la
   prórroga de palabra registrada por API; en el primer ensayo no se reproducía
-  ninguno sin hacer nada (cifras: a completar tras el consentimiento de la inmobiliaria). Aparecieron dos problemas nuevos, E1 y E2
-  (cuatro defectos, DEF-173 a DEF-176): un doble ajuste en un contrato importado sin
+  ninguno sin hacer nada (cifras: a completar tras el consentimiento de la
+  inmobiliaria). Aparecieron dos problemas nuevos, E1 y E2 (cuatro defectos,
+  DEF-173 a DEF-176): un doble ajuste en un contrato importado sin
   historial y un ajuste que baja el alquiler sin aviso.
 - **Coincidencia estimada del C1 por escenario.** Se estimó para cuatro escenarios
   (sin hacer nada o con las prórrogas registradas, cada uno sin boletas y con las
-  boletas de diciembre cargadas); los porcentajes y rangos son **a completar tras el consentimiento de la inmobiliaria**. No es un
-  resultado del C1 sino una estimación sobre supuestos. Lo que más la mueve ya no es
-  el sistema sino las boletas de impuestos y servicios, las prórrogas de los contratos
-  con fin pactado vencido y la regla de redondeo del alquiler ajustado.
+  boletas de diciembre cargadas); los porcentajes y rangos quedan a completar tras
+  el consentimiento de la inmobiliaria. Es una estimación sobre supuestos y no un
+  resultado del C1. Después de las correcciones, lo que más la mueve son las
+  boletas de impuestos y servicios, las prórrogas de los contratos con fin pactado
+  vencido y la regla de redondeo del alquiler ajustado.
 
 Antes del 4/11 se hicieron, además, tres cosas: se cargó el histórico del ICL y de la
 UVA en la serie de sistema, se reenvió el lote de contratos con las correcciones de
@@ -1299,8 +1303,11 @@ sujeto al consentimiento de la inmobiliaria para publicar cifras de su operació
   copia lógica fuera de él, semanal y antes de cada despliegue. Entre el 31/10 y el
   3/11/2026 el ambiente recibió siete despliegues, cada uno precedido por su copia y,
   cuando traía migraciones, por su ensayo sobre una copia restaurada; el 3 y el 4/11
-  hubo cuatro más (de 64 a 71 migraciones); el del 4/11 llevó a `production` y a `piloto` todo `main` hasta #242, con su copia previa, el ensayo de las dos migraciones nuevas sobre una copia restaurada (sin cambios en los datos) y una copia posterior. La restauración se probó el 31/10/2026 sobre la base vacía y el 2/11/2026 con los
-  datos reales cargados: restaurar la base tardó unos 3 segundos en local, que es el
+  hubo cuatro más (de 64 a 71 migraciones). El último, del 4/11, llevó a
+  `production` y a `piloto` todo `main` hasta #242, con su copia previa, el ensayo
+  de las dos migraciones nuevas sobre una copia restaurada (sin cambios en los
+  datos) y una copia posterior. La restauración se probó el 31/10/2026 sobre la
+  base vacía y el 2/11/2026 con los datos reales cargados: restaurar la base tardó unos 3 segundos en local, que es el
   RTO de la base medido. El RTO total del servicio, con meta de 2 horas, no se midió
   de punta a punta (`../despliegue.md`).
 - **Mensajería apagada.** El envío de mensajes está en modo apagado en el ambiente
@@ -1349,8 +1356,8 @@ el anexo de validación hasta la defensa.
 necesitaban; se integraron antes del primer ciclo. La consecuencia no es sólo
 favorable: buena parte de lo entregado todavía no fue operado por nadie de la
 inmobiliaria, y su validación depende de los ciclos C2 a C4. Es el mismo patrón que
-la sección 5 señaló para la primera versión —construir rápido y verificar al
-final—, mitigado esta vez por la reconciliación sintética y la definición de hecho
+la sección 5 señaló para la primera versión (construir rápido y verificar al
+final), mitigado esta vez por la reconciliación sintética y la definición de hecho
 de cada pedido, pero no eliminado.
 
 **La migración se creyó completa antes de estarlo.** El 2/11/2026 estaban cargados
@@ -1390,8 +1397,8 @@ ejecutarla.
   sufrirlo.
 - **Una regla fija en el código es una deuda con fecha.** Cada regla «de la
   inmobiliaria» que mostró el relevamiento apareció pactada distinto en algún
-  contrato. La respuesta fue siempre la misma —valor por defecto, regla del contrato
-  y acuerdo fechado— y por eso las preguntas abiertas al contador y al abogado no
+  contrato. La respuesta fue siempre la misma (valor por defecto, regla del contrato
+  y acuerdo fechado) y por eso las preguntas abiertas al contador y al abogado no
   frenaron el desarrollo.
 - **El ciclo encadenado encuentra lo que el módulo no ve.** Los cuatro defectos de
   la reconciliación sintética estaban en módulos con buena cobertura y pruebas en
@@ -1421,12 +1428,13 @@ ejecutarla.
 
 ### 9.10. Cifras del sistema
 
-Tabla única de cifras. Medición del **4 de noviembre de 2026** sobre la rama principal
+Tabla única de cifras. Medición del 4 de noviembre de 2026 sobre la rama principal
 en el commit `c7b3eac` (pantalla de boletas recibidas, #229), con las seis oleadas de
 desarrollo y la oleada 6 de migración y boletas entregadas. Se conserva la medición
 anterior, del 3 de noviembre sobre `a2ea7d9`, para ver la evolución; la columna «Antes
 del piloto» corresponde al commit `ac07cdf` del 28/10/2026. Lo integrado después
-(#197, #199, #234 y #242) no está incluido; el #197 se integró mientras se medía.
+(#197, #199, #234 y #242) no está en esta tabla; el #197 se integró mientras se
+medía. La remedición de cierre, que sí lo incluye, está en la tabla siguiente.
 
 | Dimensión | Antes del piloto | 3/11/2026 (`a2ea7d9`) | 4/11/2026 (`c7b3eac`) | Fuente |
 |---|---|---|---|---|
@@ -1449,7 +1457,9 @@ del piloto» corresponde al commit `ac07cdf` del 28/10/2026. Lo integrado despu�
 | Pedidos de incorporación desde el inicio del piloto | — | 50 (#105 a #183), todos con revisión de otro integrante | 67 (#105 a #237), todos con revisión de otro integrante | Historial de la rama principal |
 
 **Fuente de las pruebas y la cobertura.** La medición del 4/11 sale de la ejecución
-41762887734 de la integración continua sobre `main` en `c7b3eac`, cancelada al final por el empuje de un pedido posterior (#197): los ocho trabajos que alcanzaron a correr terminaron en verde y solo SonarCloud no llegó a correr; la cobertura
+41762887734 de la integración continua sobre `main` en `c7b3eac`, cancelada al final
+por el empuje de un pedido posterior (#197): los ocho trabajos que alcanzaron a
+correr terminaron en verde y solo SonarCloud no llegó a correr; la cobertura
 combinada es la del análisis de SonarCloud de `6b16803`, el último de `main` (el de
 `c7b3eac` no llegó a correr y el pedido #229 solo cambia la web), consultado a su API
 pública el 4/11. La medición del 3/11 sale de la ejecución 41591721662 del pedido #183, sobre
@@ -1462,23 +1472,49 @@ formulario de valores por defecto, que falló dos veces el 3 y el 4/11 y se corr
 en #237.
 
 Tres aclaraciones sobre la tabla. La primera: el catálogo de casos de prueba llegó
-a tener dos rangos asignados dos veces —CP-470 a CP-480, a la cuenta corriente y a
-los vencimientos, y CP-720 a CP-725, a la publicación y a las ventas—. El pedido
+a tener dos rangos asignados dos veces (CP-470 a CP-480, a la cuenta corriente y a
+los vencimientos, y CP-720 a CP-725, a la publicación y a las ventas). El pedido
 #185 los renumeró (vencimientos a CP-806 a CP-816; ventas y llaves a CP-800 a
 CP-805) y agregó una prueba de integridad de la documentación que falla si un
 identificador se repite; desde entonces cada pedido toma un rango propio de
 casos, defectos y casos de uso. La segunda: la versión del informe de la tesis fechada
-el 3/11 usa la medición de esa fecha; la siguiente usa esta columna del 4/11, y se
-remide en su pasada final. La tercera: la columna del 4/11 incluye la oleada 6
-(obtención automática de boletas, migración de servicios y correcciones del ensayo
-general) y no incluye lo integrado después: el saldo inicial de custodia (#197), las
-plantillas de contrato completas (#199), el Worker de recepción de mails (#234) y la
-prórroga de contratos importados sin historial (#242). Con ellos, contados sobre
-`dd8b22b`, el registro de defectos pasa a 68 renglones (60 del piloto, DEF-09 a
-DEF-176) el catálogo de casos de prueba a 771 y las migraciones a 71; todo eso está desplegado desde el 4/11.
+el 3/11 usa la medición de esa fecha; la siguiente usa la columna del 4/11, y la
+pasada final, la remedición de cierre. La tercera: la columna del 4/11 incluye la
+oleada 6 (obtención automática de boletas, migración de servicios y correcciones
+del ensayo general) y no incluye lo integrado después: el saldo inicial de custodia
+(#197), las plantillas de contrato completas (#199), el Worker de recepción de
+mails (#234) y la prórroga de contratos importados sin historial (#242). Todo eso
+está desplegado desde el 4/11 y figura en la remedición de cierre.
 
-Las cifras de la operación de la inmobiliaria —cartera, tiempos, diferencias de
-reconciliación— no están en esta tabla y no se publican sin su consentimiento; las
+**Remedición de cierre.** Las mismas dimensiones, medidas sobre `7759554` (pedido
+#243), que es el último commit de `main` con los nueve trabajos de la integración
+continua en verde (ejecución 41782311632, del 4/11/2026) y con análisis de
+SonarCloud. El pedido #244, posterior, sólo cambia el flujo de integración
+continua y no mueve ninguna de estas cifras.
+
+| Dimensión | Cierre (`7759554`) |
+|---|---|
+| Módulos de la API | 45 |
+| Entidades y enumeraciones del modelo | 103 y 118 |
+| Migraciones versionadas | 71 |
+| Controladores y rutas | 55 y 437 |
+| Registros de arquitectura | 19 |
+| Casos de uso | 50 (CU-01 a CU-50) |
+| Casos de prueba del catálogo | 771, del CP-01 al CP-1457 |
+| Defectos registrados | 68: los 8 anteriores y 60 del piloto (DEF-09 a DEF-176) |
+| Pruebas unitarias de la API | 2.772 en 207 archivos |
+| Pruebas unitarias del paquete compartido | 1.162 en 51 archivos |
+| Pruebas de la aplicación web | 1.727 en 151 archivos |
+| Pruebas de integración de la API | 932 en 67 archivos |
+| Cobertura de la API (líneas, sentencias, funciones, ramas) | 81,65 %, 81,74 %, 82,44 %, 73,86 % |
+| Cobertura de líneas de la web y del paquete compartido | 79,76 % y 75,43 % |
+| Duplicación por paquete (api, web, shared) | 0,97 %, 1,66 % y 0,54 % |
+| Cobertura combinada de unitarias e integración, y duplicación del repositorio | 83,9 % y 1,1 % (análisis de SonarCloud de `7759554`) |
+| Pedidos de incorporación desde el inicio del piloto | 73 (#105 a #244), todos con revisión de otro integrante |
+| Pedidos de incorporación y commits de todo el proyecto | 148 pedidos integrados y 851 commits de trabajo, sin contar los de integración |
+
+Las cifras de la operación de la inmobiliaria (cartera, tiempos, diferencias de
+reconciliación) no están en estas tablas y no se publican sin su consentimiento; las
 cantidades agregadas de los ensayos generales están en 9.6, con la misma salvedad. Los
 valores medidos de la línea base y de los ciclos quedan a completar tras el ciclo C1
 (≈ 20/11/2026), el C2 (≈ 20/12/2026) y el C3 (≈ 20/01/2027).
@@ -1492,10 +1528,11 @@ inmobiliaria está cargada en el ambiente piloto con sus servicios y reglas de
 traslado, y las correcciones de los documentos de contrato; la reconciliación
 sintética corre en cada cambio sin diferencias; se hicieron dos ensayos generales del
 primer ciclo y lo integrado hasta el 4/11 está desplegado en los dos ambientes, que
-desde el 3/11 sirven en el dominio propio del producto. No quedan pedidos abiertos de esta oleada: el 4/11 se integraron el saldo inicial
-de custodia, las plantillas completas, el Worker de recepción de mails y la
-corrección de la prórroga sin historial, y la recepción de mails está activa en el
-ambiente piloto desde ese día.
+desde el 3/11 sirven en el dominio propio del producto. No quedan pedidos abiertos
+de esta oleada: el 4/11 se integraron el saldo inicial de custodia, las plantillas
+completas, el Worker de recepción de mails y la corrección de la prórroga sin
+historial, y la recepción de mails está activa en el ambiente piloto desde ese
+día.
 
 Falta lo que no depende del equipo sino del calendario de la inmobiliaria y de
 terceros:
@@ -1513,9 +1550,9 @@ terceros:
   cuenta del locador, punitorios, sellos, carta documento y señas) con el contador,
   el abogado y el colegio profesional; hasta entonces rigen como valores
   configurables con su valor por defecto.
-- **Habilitaciones**: la cuenta de WhatsApp y la aprobación de la inmobiliaria para encender la mensajería y la cobranza
-  escalonada; y las tres decisiones de boletas de 9.4 (conector de la Municipalidad,
-  Rentas, adhesión a la factura digital).
+- **Habilitaciones**: la cuenta de WhatsApp y la aprobación de la inmobiliaria para
+  encender la mensajería y la cobranza escalonada, y las tres decisiones de boletas
+  de 9.4 (conector de la Municipalidad, Rentas, adhesión a la factura digital).
 - **Consentimiento** de la inmobiliaria para publicar cifras agregadas.
 
 Las limitaciones propias del piloto a esta fecha son seis: la reconciliación con
