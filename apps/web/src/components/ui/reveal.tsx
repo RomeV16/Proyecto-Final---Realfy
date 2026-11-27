@@ -29,6 +29,10 @@ export function Reveal({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setVisible(true);
+      return;
+    }
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -38,7 +42,9 @@ export function Reveal({
           setVisible(false);
         }
       },
-      { threshold: 0.12, rootMargin: '0px 0px -8% 0px' },
+      // Umbral 0: un bloque mucho más alto que la ventana nunca llega a tener una fracción fija a la
+      // vista y quedaría invisible. El margen inferior hace que aparezca recién al asomar un poco.
+      { threshold: 0, rootMargin: '0px 0px -8% 0px' },
     );
     io.observe(el);
     return () => io.disconnect();
