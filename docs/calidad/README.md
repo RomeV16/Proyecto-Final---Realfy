@@ -1,4 +1,4 @@
-# Calidad de Software aplicada al TFG — módulo de índices y ajustes
+# Calidad de Software aplicada al TFG: módulo de índices y ajustes
 
 Trabajo Práctico Integrador de Calidad de Software sobre la tesis Realfy.
 Aplica un proceso de calidad completo a un módulo del sistema: `index-data`,
@@ -17,10 +17,10 @@ integraciones externas y el sistema se despliega con Docker en Railway
 | Pipeline | Compilación, pruebas, análisis estático, cobertura, quality gate y reporte automático | `.github/workflows/ci.yml` |
 | Quality gate | Bloquea bugs críticos, duplicación > 5 % y cobertura sobre código nuevo < 80 % | SonarCloud, proyecto `RomeV16_Proyecto-Final---Realfy` |
 | Cobertura sobre código nuevo | 80 % | Quality gate |
-| Cobertura mínima sobre código existente | 80 % sobre el módulo | `apps/api/jest.config.ts` (umbral por módulo) |
+| Cobertura mínima sobre código existente | 80 % sobre el módulo | `apps/api/jest.modulo.config.ts` (piso propio del módulo) |
 | Smoke test | Ejecutado por el pipeline tras el despliegue | Trabajo `smoke-deploy` del pipeline |
 | Integración externa | Flujo E2E automatizado en cada despliegue | Trabajo `integration-real` del pipeline |
-| Stress y esfuerzo sostenido | Ejecutados, con resultados y umbrales | Trabajo `stress` del pipeline, scripts en `apps/api/test/load/` |
+| Stress y esfuerzo sostenido | Ejecutados, con resultados y umbrales | Pasos de carga del trabajo `smoke-deploy`, scripts en `apps/api/test/load/` |
 | Plan de pruebas y riesgos | Versionado, criterios de entrada y salida, riesgos P×I, trazabilidad requisito → caso → defecto | `02-plan-de-pruebas.md`, `04-riesgos.md`, `05-casos-de-prueba.md` |
 | Defectos | Pasos, esperado, obtenido, vinculados al caso | `06-registro-de-defectos.md` + GitHub Issues con etiqueta `defecto` |
 | Herramienta nueva | Proceso de cinco pasos | `08-herramienta-sonarcloud.md` |
@@ -52,6 +52,7 @@ ciclo (`12-piloto.md`).
 | `08-herramienta-sonarcloud.md` | Herramientas: proceso de cinco pasos y matriz de decisión |
 | `09-metricas.md` | Métricas y análisis estático: evolución antes y después |
 | `10-stress.md` | Stress y esfuerzo sostenido: scripts, umbrales y resultados |
+| `11-guia-defensa.md` | Preguntas probables de la defensa del TP, con la respuesta y su evidencia |
 | `12-piloto.md` | Aceptación en campo: ciclos del piloto, reconciliación con tolerancia cero y tratamiento de diferencias |
 
 ## Un comando para cada suite
@@ -66,4 +67,5 @@ pnpm --filter @realfy/api test:stress        # k6: carga y esfuerzo sostenido (d
 
 Cada script está documentado en el archivo del eje correspondiente. En el
 pipeline corren, respectivamente, en los trabajos `unit`, `e2e-api`,
-`integration-real`, `smoke-deploy` y `stress`.
+`integration-real` y `smoke-deploy`; este último corre el smoke y, a
+continuación, las dos pruebas de carga.

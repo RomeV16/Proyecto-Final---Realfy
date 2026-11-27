@@ -12,7 +12,7 @@ despliegue incremental.
 | Cobertura | Istanbul (vía Jest) y v8 (vía vitest, web) | Umbral global 38 % | Umbral por módulo + reporte en SonarCloud, con la cobertura de la web, del paquete compartido y de las pruebas e2e de la API |
 | Análisis estático local | ESLint 9 con `typescript-eslint` | En uso | En uso |
 | Análisis estático centralizado + quality gate | **SonarCloud** | No existía | Nueva |
-| Integración continua | GitHub Actions | 5 trabajos | 6 trabajos (+ despliegue efímero, integración externa y stress en los días 4 y 6) |
+| Integración continua | GitHub Actions | 5 trabajos | 8 trabajos al cierre del TP (se sumaron SonarCloud, el contrato externo y el despliegue efímero con smoke y stress); 9 desde el 31 de octubre, con los gates de código muerto y duplicación |
 | Registro de defectos y trazabilidad | GitHub Issues con etiquetas | No se usaba | Nueva práctica |
 | Pruebas de carga | k6 | No existía | Nueva (día 6) |
 | Base de datos de prueba | PostgreSQL 16 (servicio de Actions / Docker / Homebrew) | En uso | En uso |
@@ -162,11 +162,9 @@ Falsos positivos ya cubiertos en `knip.json`: `ts-node` (jest lee
 usan desde el CSS), `jscpd` (el gate lo invoca por su ruta en `node_modules/.bin`,
 que knip no sigue) y el binario `k6` (herramienta del sistema).
 
-Línea base actual (1 hallazgo):
-
-| Hallazgo | Motivo |
-|---|---|
-| export `MISSING_INDEX_DATA` en `contract-adjustment.service.ts` | No es código muerto: `contracts.service.ts` repite el literal `'MISSING_INDEX_DATA'` en vez de importar la constante. Es una oportunidad de reutilización, no una baja trivial; se resuelve con ese cambio y sale de la línea base |
+Línea base actual: vacía (`knip-baseline.json` no tiene hallazgos). El único
+que tuvo, el export `MISSING_INDEX_DATA` de `contract-adjustment.service.ts`,
+ya no figura.
 
 **Limitación.** `packages/shared/src/index.ts` es entry point, así que knip
 considera usado todo lo que exporta y no detecta exports muertos del paquete
@@ -174,6 +172,6 @@ compartido. Una revisión por búsqueda de texto (octubre 2026) encontró 157
 exports de shared sin consumidor en api ni web, la mayoría tipos `*Input`
 inferidos de zod. Ese control sigue siendo manual.
 
-**Despliegue.** El paso de knip es informativo (`continue-on-error`) hasta el
-14 de noviembre de 2026 y después pasa a bloqueante; el de jscpd bloquea desde
-el primer día.
+**Despliegue.** El paso de jscpd bloquea desde el primer día. El de knip sigue
+siendo informativo (`continue-on-error` en `ci.yml`): el pase a bloqueante estaba
+previsto para el 14 de noviembre de 2026 y no se aplicó todavía.

@@ -101,7 +101,7 @@ stress no cuentan en la pirámide: miden capacidad, no corrección.
 |---|---|---|---|
 | Local | PostgreSQL 16 (Docker o Homebrew) | Opcional | Desarrollo |
 | Integración continua | PostgreSQL 16 como servicio del trabajo, creado desde cero | Sí, en el trabajo `integration-real` | Cada PR y cada push a `main` |
-| Despliegue efímero | PostgreSQL 16 como servicio; API construida desde `Dockerfile.api` | No | Trabajo `smoke-deploy` y `stress` |
+| Despliegue efímero | PostgreSQL 16 como servicio; API construida desde `Dockerfile.api` | No | Trabajo `smoke-deploy` (smoke y carga) |
 | Demostración (`production`) | Railway (PostgreSQL administrado), solo datos sintéticos | Sí | Defensa |
 | Piloto (`piloto`) | Railway, base y almacenamiento propios, datos reales | Sí | Inmobiliaria piloto |
 

@@ -43,7 +43,7 @@ La reconciliación sintética es la que cualquiera puede volver a correr; la de 
 - Lo que el ciclo necesita está integrado en `main` con la integración continua en verde y desplegado en `piloto` siguiendo `../operacion-piloto.md`, con la copia previa tomada.
 - La cartera cargada está al día: las correcciones de la revisión con la inmobiliaria se reenviaron como lote y el panel de calidad de datos no tiene hallazgos de severidad error sin decisión en los contratos del ciclo.
 - Los índices del mes de ajuste están cargados o, si el INDEC no publicó, los ajustes afectados están identificados como provisorios.
-- El resultado esperado del ciclo —los totales del sistema actual— está guardado antes de generar nada en Realfy, para que la comparación no se acomode al resultado.
+- El resultado esperado del ciclo (los totales del sistema actual) está guardado antes de generar nada en Realfy, para que la comparación no se acomode al resultado.
 
 ### Criterios de salida de cada ciclo
 
@@ -71,7 +71,7 @@ Un ciclo que no cumple la salida no se repite: se informa como está, con sus di
 | Comisión | La comisión de la inmobiliaria sobre lo comisionable |
 | Neto al locador | Lo que corresponde a los locadores, y su reparto entre ellos cuando hay más de uno |
 
-**Por locador, desde el C2.** Para cada locador se compara el total del estado de cuenta del mes —ingresos por unidad, gastos, honorarios, transferencias, compensaciones y saldo arrastrado— con el que arma la inmobiliaria. Requiere la cuenta corriente del locador (ítem 37).
+**Por locador, desde el C2.** Para cada locador se compara el total del estado de cuenta del mes (ingresos por unidad, gastos, honorarios, transferencias, compensaciones y saldo arrastrado) con el que arma la inmobiliaria. Requiere la cuenta corriente del locador (ítem 37).
 
 ### Tolerancia
 
@@ -102,7 +102,7 @@ Una diferencia no queda «explicada» por tener una hipótesis: queda explicada 
 ## 6. Evidencia
 
 - **Fuera del repositorio.** Los totales del sistema actual, las exportaciones de Realfy, el informe de diferencias y las notas de análisis de cada ciclo se guardan en el almacenamiento privado del equipo, con acceso restringido, junto con el resto de los datos del piloto. Nunca se suben al repositorio, ni siquiera parcialmente o anonimizados a mano.
-- **En el repositorio.** Solo los registros que el procedimiento genera —defectos y hallazgos, redactados como reglas generales sin nombres ni importes— y, por ciclo, un resumen agregado: cantidad de contratos comparados, cantidad de diferencias por categoría de la sección 5 y cuántas quedaron abiertas.
+- **En el repositorio.** Solo los registros que el procedimiento genera (defectos y hallazgos, redactados como reglas generales sin nombres ni importes) y, por ciclo, un resumen agregado: cantidad de contratos comparados, cantidad de diferencias por categoría de la sección 5 y cuántas quedaron abiertas.
 - **Consentimiento.** La publicación de esos resúmenes agregados en el repositorio y en la tesis requiere el consentimiento de la inmobiliaria, que está pendiente (`../privacidad-datos.md`, «Anonimización para la tesis»). Hasta tenerlo, el repositorio registra solo que el ciclo se hizo, su fecha y los FB y DEF que generó; los agregados se guardan con el resto de la evidencia y se publican si el consentimiento llega. Los dos ensayos generales previos al C1 (sección 10) no son un ciclo: se corrieron sobre una copia, sin que nadie de la inmobiliaria operara el sistema, y se informan con cantidades y porcentajes agregados, sin nombres, importes ni identificadores de contratos. Su publicación sigue sujeta al mismo consentimiento: si la inmobiliaria no lo da, se retiran de este documento y del informe final.
 
 ## 7. Métricas por ciclo

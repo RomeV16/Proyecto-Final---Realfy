@@ -1,6 +1,6 @@
 # Registro de defectos
 
-Versión 1.4 — 31 de octubre de 2026 (1.0: 19 de octubre; 1.2: 20 de octubre; 1.3: 28 de octubre). Cada defecto se registra con la
+Versión 1.4 — 31 de octubre de 2026 (1.0: 19 de octubre; 1.2: 20 de octubre; 1.3: 28 de octubre); desde entonces se agrega una entrada por defecto corregido y la última, DEF-176, es del 4 de noviembre. Cada defecto se registra con la
 plantilla del plan de pruebas, se vincula a su caso y a su requisito, y se
 cierra únicamente con una prueba de regresión en la suite y una ejecución
 del pipeline en rojo (antes) y en verde (después). El issue de GitHub es

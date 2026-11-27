@@ -37,9 +37,10 @@ y esfuerzo sostenido con k6). Más análisis estático con ESLint y
 SonarCloud.
 
 **¿Dónde está cada prueba?**
-- Unitarias: `apps/api/src/modules/index-data/*.spec.ts` (111 casos) y
+- Unitarias: `apps/api/src/modules/index-data/*.spec.ts` (111 casos al cierre
+  del TP; con lo que sumó el piloto, la suite del módulo corre hoy 224) y
   `packages/shared/src/adjustment-engine/adjustment-engine.spec.ts` (18).
-- Integración de API: `apps/api/test/e2e/index-data.e2e-spec.ts` (17) e
+- Integración de API: `apps/api/test/e2e/index-data.e2e-spec.ts` (17 al cierre del TP, 19 hoy) e
   `index-data-scraper.e2e-spec.ts` (4), más CP-58 en
   `contracts.e2e-spec.ts` (ajustes consecutivos).
 - Contrato externo: `apps/api/test/integration/external.contract.spec.ts`

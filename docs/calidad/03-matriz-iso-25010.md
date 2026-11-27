@@ -55,4 +55,4 @@ pipeline, que se corrige en el día 2.
 | Local | `docker compose up` + `pnpm dev` | Smoke interno (`smoke.e2e-spec.ts`) |
 | Integración continua | PostgreSQL como servicio, migraciones desde cero | Trabajos `migrations` y `e2e-api` |
 | Despliegue efímero del pipeline | Imagen construida desde `Dockerfile.api`, arranque con `prisma migrate deploy` | Trabajo `smoke-deploy`: `/api/health`, registro, `GET /api/index-data` |
-| Demostración (Railway) | Push a `main` | Mismo smoke apuntado al dominio público |
+| Demostración (Railway) | `railway up` manual desde un commit integrado a `main` (`../despliegue.md`) | Mismo smoke apuntado al dominio público |
