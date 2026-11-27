@@ -163,6 +163,39 @@ describe('AllExceptionsFilter', () => {
     expect(body.validTransitions).toEqual(['Revision', 'Anulada']);
   });
 
+  it('un dato que Prisma rechaza antes de consultar (fecha inexistente, página que no es número) es un 400 en castellano', () => {
+    const { host, status, json } = buildHost('GET', '/api/reports/cashFlow?from=2026-13-01');
+    const err = Object.assign(new Error('Invalid value for argument `gte`: Provided Date object is invalid.'), {
+      name: 'PrismaClientValidationError',
+    });
+    filter.catch(err, host);
+
+    expect(status).toHaveBeenCalledWith(400);
+    const body: ErrorResponseBody = json.mock.calls[0][0];
+    expect(body.errorCode).toBe('VALIDATION_ERROR');
+    expect(body.message).toBe('Revisá los datos: hay campos incompletos o con un formato incorrecto.');
+  });
+
+  it('un esquema Zod que falla sin envolver también es un 400 y no un 500', () => {
+    const { host, status, json } = buildHost('GET', '/api/notifications?page=x');
+    filter.catch(Object.assign(new Error('[{"path":["page"]}]'), { name: 'ZodError' }), host);
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect((json.mock.calls[0][0] as ErrorResponseBody).message).not.toContain('page');
+  });
+
+  it('los mensajes genéricos salen en castellano', () => {
+    const duplicado = buildHost('POST', '/api/persons');
+    filter.catch(Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }), duplicado.host);
+    expect(duplicado.json.mock.calls[0][0].message).toBe('Ya existe un registro con esos datos.');
+
+    const inesperado = buildHost();
+    filter.catch(new Error('boom'), inesperado.host);
+    expect(inesperado.json.mock.calls[0][0].message).toBe(
+      'El servidor tuvo un problema. Intentá de nuevo en unos minutos.',
+    );
+  });
+
   it('does not attach any context to an unexpected error', () => {
     const { host, json } = buildHost();
     filter.catch(Object.assign(new Error('boom'), { query: 'SELECT secret' }), host);

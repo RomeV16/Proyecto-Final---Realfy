@@ -71,7 +71,7 @@ describe('CollectionsService', () => {
 
     it('rechaza filtros inválidos', async () => {
       const f = makeFakeCollections();
-      await expect(f.service.list({ stage: 'Nada' })).rejects.toMatchObject({ response: expect.objectContaining({ message: 'Invalid collection filter' }) });
+      await expect(f.service.list({ stage: 'Nada' })).rejects.toMatchObject({ response: expect.objectContaining({ error: 'VALIDATION_ERROR', context: 'Invalid collection filter' }) });
     });
 
     it('el detalle trae la deuda de hoy y la línea de tiempo con el estado del mensaje y quién lo hizo', async () => {

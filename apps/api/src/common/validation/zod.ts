@@ -16,10 +16,14 @@ function isZodError(err: unknown): err is { errors: unknown[] } {
   );
 }
 
+/** Texto que ve la persona cuando lo que mandó no pasa la validación. */
+export const VALIDATION_MESSAGE = 'Revisá los datos: hay campos incompletos o con un formato incorrecto.';
+
 /**
  * Valida `input` con `schema`. Si falla, lanza el 400 uniforme de la API
  * (`VALIDATION_ERROR` con los problemas en `details`); cualquier otro error
- * se propaga tal cual.
+ * se propaga tal cual. `message` es la etiqueta técnica de qué se validaba:
+ * viaja en `context`, porque `message` es lo que se le muestra a la persona.
  */
 export function parseOrThrow<S extends ZodTypeAny>(
   schema: S,
@@ -32,7 +36,8 @@ export function parseOrThrow<S extends ZodTypeAny>(
     if (isZodError(err)) {
       throw new BadRequestException({
         error: 'VALIDATION_ERROR',
-        message,
+        message: VALIDATION_MESSAGE,
+        context: message,
         details: err.errors,
       });
     }

@@ -20,7 +20,7 @@ describe('assertTransition', () => {
       expect(err).toBeInstanceOf(BadRequestException);
       expect((err as BadRequestException).getResponse()).toEqual({
         error: 'INVALID_TRANSITION',
-        message: 'Cannot transition from B to A',
+        message: 'No se puede pasar de B a A.',
         currentState: 'B',
         attemptedState: 'A',
         validTransitions: [],

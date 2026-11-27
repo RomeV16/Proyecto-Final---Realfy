@@ -38,7 +38,7 @@ export class RbacGuard implements CanActivate {
     if (!user || !user.role) {
       throw new ForbiddenException({
         error: 'FORBIDDEN',
-        message: 'Insufficient permissions',
+        message: 'No tenés permiso para hacer esto.',
       });
     }
 
@@ -47,7 +47,7 @@ export class RbacGuard implements CanActivate {
     if (!hasRole) {
       throw new ForbiddenException({
         error: 'FORBIDDEN',
-        message: 'Insufficient permissions',
+        message: 'No tenés permiso para hacer esto.',
       });
     }
 

@@ -9,7 +9,7 @@ describe('parseOrThrow', () => {
     expect(parseOrThrow(Schema, { name: 'a' })).toEqual({ name: 'a', age: 3 });
   });
 
-  it('lanza 400 VALIDATION_ERROR con details y el mensaje dado', () => {
+  it('lanza 400 VALIDATION_ERROR con details, un mensaje para la persona y la etiqueta técnica aparte', () => {
     let caught: unknown;
     try {
       parseOrThrow(Schema, { name: '' }, 'Invalid thing');
@@ -21,7 +21,8 @@ describe('parseOrThrow', () => {
     const body = ex.getResponse() as any;
     expect(ex.getStatus()).toBe(400);
     expect(body.error).toBe('VALIDATION_ERROR');
-    expect(body.message).toBe('Invalid thing');
+    expect(body.message).toBe('Revisá los datos: hay campos incompletos o con un formato incorrecto.');
+    expect(body.context).toBe('Invalid thing');
     expect(body.details[0].path).toEqual(['name']);
   });
 
