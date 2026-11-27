@@ -15,7 +15,7 @@ import { Icon } from '@/components/ui/icon';
 import { cn } from '@/lib/cn';
 import { ReportSchedulingSection } from './report-scheduling';
 import { ReportChart, type ReportChartSpec } from './report-chart';
-import { formatNumber, formatDateTime } from '@/lib/format';
+import { formatNumber, formatDateTime, formatPercent } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 
 /* ──────────── Types ──────────── */
@@ -195,6 +195,11 @@ interface ReportResult {
 
 /* ──────────── Helpers ──────────── */
 
+const PERCENT_VALUE = /^-?\d+(\.\d+)?%$/;
+
+/** En el eje del gráfico la etapa va sin el prefijo que repiten todos los embudos. */
+const PIPELINE_PREFIX = /^Embudo de /;
+
 /** Muestra el valor tal cual si no es numérico (columnas de texto en un reporte). */
 function formatReportNumber(value: string, decimals: number): string {
   return Number.isNaN(Number(value)) ? value : formatNumber(value, { decimals });
@@ -207,6 +212,8 @@ function formatCell(key: string, value: string | undefined): string {
   if (COUNT_COLUMNS.has(key)) return formatReportNumber(value ?? '0', 0);
   // "Embudo — Etapa" llega con raya larga: se muestra con un separador liviano.
   if (key === 'etapa') return (value ?? '—').replace(' — ', ' · ');
+  // Las tasas llegan como "8.3%": se escriben con la coma y el espacio del resto de la app.
+  if (value && PERCENT_VALUE.test(value)) return formatPercent(value.slice(0, -1));
   return value ?? '—';
 }
 
@@ -560,7 +567,10 @@ export function ReportsPage() {
         <ReportChart
           title={t(`types.${reportType}`)}
           unitHint={t(chart.unit === 'money' ? 'chart.money' : 'chart.count')}
-          rows={rows}
+          rows={rows.map((row) => ({
+            ...row,
+            [chart.category]: cellText(chart.category, row[chart.category]).replace(PIPELINE_PREFIX, ''),
+          }))}
           category={chart.category}
           series={chart.series.map((serie) => ({ ...serie, label: labelOf(serie.key) }))}
           unit={chart.unit}

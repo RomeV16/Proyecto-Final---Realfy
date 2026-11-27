@@ -238,13 +238,15 @@ describe('ReportsPage', () => {
     mockApi(
       report({
         type: 'pipelineAnalytics',
-        rows: [{ etapa: 'Embudo de Alquiler — Contactado', leadsActuales: '3', convertidos: '1', perdidos: '0' }],
+        rows: [{ etapa: 'Embudo de Alquiler — Contactado', leadsActuales: '3', convertidos: '1', perdidos: '0', tasaConversion: '8.3%' }],
         summary: undefined,
       }),
     );
     await user.click(screen.getByRole('button', { name: /Leads por etapa/ }));
     expect((await screen.findAllByText('Embudo de Alquiler · Contactado')).length).toBeGreaterThan(0);
     expect(screen.getByText('Cantidad de leads, para el período elegido')).toBeInTheDocument();
+    expect(screen.getByText('Alquiler · Contactado')).toBeInTheDocument();
+    expect(norm(document.body.textContent)).toContain('8,3 %');
   });
 
   it('muestra morosidad con totales propios y cuentas sin decimales', async () => {
