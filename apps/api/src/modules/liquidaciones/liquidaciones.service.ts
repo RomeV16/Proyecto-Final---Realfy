@@ -828,22 +828,6 @@ export class LiquidacionesService implements OnModuleInit {
       }
     }
 
-    // Pagada es consecuencia de los cobros: marcarla a mano sin que estén la deja
-    // saldada sin recibo, sin movimiento de caja y sin acreditar al locador.
-    if (
-      toStatus === LiquidacionStatus.Pagada &&
-      !isFullyPaid(
-        liquidacion.total.toString(),
-        (liquidacion.payments ?? []).map((p: any) => ({ amount: p.amount.toString() })),
-      )
-    ) {
-      throw new ConflictException({
-        error: 'PAYMENT_REQUIRED',
-        message: 'La liquidación pasa a pagada cuando se registra el cobro completo: registrá el cobro.',
-      });
-    }
-    this.assertNoPayments(toStatus, liquidacion.payments);
-
     const updateData: any = { status: toStatus };
 
     // On transition to Enviada: trigger PDF + email
@@ -1229,22 +1213,9 @@ export class LiquidacionesService implements OnModuleInit {
 
   // ─── Delete / Annul ─────────────────────────────────
 
-  /**
-   * Una liquidación con cobros no se anula: la plata ya está en caja y acreditada
-   * al locador, y quedaría imputada a una deuda que dejó de existir.
-   */
-  private assertNoPayments(toStatus: LiquidacionStatus, payments: unknown[] | null | undefined): void {
-    if (toStatus !== LiquidacionStatus.Anulada || !payments?.length) return;
-    throw new ConflictException({
-      error: 'HAS_PAYMENTS',
-      message: 'Esta liquidación tiene cobros registrados y no se puede anular.',
-    });
-  }
-
   async remove(id: string) {
     const liquidacion = await this.prisma.client.liquidacion.findFirst({
       where: { id },
-      include: { payments: { select: { id: true } } },
     });
 
     if (!liquidacion) {
@@ -1271,7 +1242,6 @@ export class LiquidacionesService implements OnModuleInit {
     }
 
     // For other states, transition to Anulada
-    this.assertNoPayments(LiquidacionStatus.Anulada, liquidacion.payments);
     if (!validateLiquidacionTransition(status, LiquidacionStatus.Anulada)) {
       throw new BadRequestException({
         error: 'CANNOT_ANNUL',

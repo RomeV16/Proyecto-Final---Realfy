@@ -120,45 +120,6 @@ describe('recibo: numeración al aprobar', () => {
   });
 });
 
-describe('estados que dependen de los cobros', () => {
-  it('no se marca pagada a mano una liquidación sin el cobro completo', async () => {
-    const parcial = liquidacion({ status: 'Enviada', payments: [{ id: 'pay-1', amount: '100000.00' }] });
-    for (const liq of [liquidacion({ status: 'Enviada' }), parcial]) {
-      const { service, client } = build(liq);
-      await expect(service.transition('liq-1', { status: 'Pagada' })).rejects.toMatchObject({
-        status: 409,
-        response: expect.objectContaining({ error: 'PAYMENT_REQUIRED' }),
-      });
-      expect(client.liquidacion.update).not.toHaveBeenCalled();
-    }
-  });
-
-  it('con los cobros cubriendo el total sí pasa a pagada', async () => {
-    const { service, client } = build(
-      liquidacion({ status: 'Vencida', payments: [{ id: 'pay-1', amount: '200000.00' }, { id: 'pay-2', amount: '112000.00' }] }),
-    );
-    await service.transition('liq-1', { status: 'Pagada' });
-    expect(client.liquidacion.update).toHaveBeenCalledWith({ where: { id: 'liq-1' }, data: { status: 'Pagada' } });
-  });
-
-  it('una liquidación con cobros no se anula, ni por transición ni al borrarla', async () => {
-    const conCobro = liquidacion({ status: 'Enviada', payments: [{ id: 'pay-1', amount: '100000.00' }] });
-    const { service, client, tx } = build(conCobro);
-
-    for (const intento of [service.transition('liq-1', { status: 'Anulada' }), service.remove('liq-1')]) {
-      await expect(intento).rejects.toMatchObject({
-        status: 409,
-        response: expect.objectContaining({
-          error: 'HAS_PAYMENTS',
-          message: 'Esta liquidación tiene cobros registrados y no se puede anular.',
-        }),
-      });
-    }
-    expect(client.liquidacion.update).not.toHaveBeenCalled();
-    expect(tx.liquidacion.update).not.toHaveBeenCalled();
-  });
-});
-
 describe('envío de la liquidación al inquilino (bandeja de salida)', () => {
   const conInquilino = (email: string | null) =>
     liquidacion({
