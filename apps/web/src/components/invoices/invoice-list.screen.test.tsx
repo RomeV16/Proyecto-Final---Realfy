@@ -46,15 +46,19 @@ const items = [
     puntoDeVenta: 3,
     numero: 128,
     receptorName: 'Cliente de Prueba SA',
-    amount: '121000',
+    docNro: '30000000000',
+    impTotal: '121000',
     cae: '70000000000001',
+    caeFchVto: '2026-11-11T00:00:00.000Z',
+    creditNotes: [{ id: 'nc-1' }],
+    emittedAt: '2026-11-01T12:00:00.000Z',
     createdAt: '2026-11-01T12:00:00.000Z',
   },
   {
     id: 'nc-1',
     type: 'NotaCreditoB',
     puntoDeVenta: 3,
-    comprobanteNumber: 9,
+    numero: 9,
     impTotal: 5000.5,
     createdAt: '2026-11-02T12:00:00.000Z',
   },
@@ -64,7 +68,7 @@ const items = [
     puntoDeVenta: 1,
     numero: 4,
     receptorName: 'Otro Cliente',
-    amount: 100,
+    impTotal: 100,
     cae: '70000000000002',
     createdAt: '2026-11-03T12:00:00.000Z',
   },
@@ -84,12 +88,21 @@ describe('InvoiceList', () => {
     await waitFor(() => expect(container.textContent).toContain('Cliente de Prueba SA'));
     const text = norm(container.textContent);
     expect(text).toContain('$ 121.000,00');
-    expect(text).toContain('- $ 5.000,50');
+    expect(text).toContain('-$ 5.000,50');
     expect(text).toContain('$ 100,00');
     expect(text).toContain('0003-00000128');
     expect(text).toContain('0003-00000009');
-    expect(text).toContain('1 de nov de 2026');
+    expect(text).toContain('Factura A');
+    expect(text).toContain('Nota de Crédito B');
+    expect(text).toContain('01/11/2026');
+    expect(text).toContain('30-00000000-0');
     expect(text).toContain('70000000000001');
+    expect(text).toContain('vence 11/11/2026');
+    expect(text).toContain('Con nota de crédito');
+    expect(text).toContain('Autorizado');
+    expect(text).toContain('3 comprobantes en esta página');
+    // 121.000 - 5.000,50 + 100
+    expect(text).toContain('$ 116.099,50');
     expect(apiClient).toHaveBeenCalledWith('/invoices?page=1&limit=20');
   });
 
@@ -128,11 +141,31 @@ describe('InvoiceList', () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 
-  it('el botón de nueva factura navega con el router', async () => {
+  it('nueva factura y pendientes del locador son enlaces con prefijo de idioma', async () => {
     renderEs(<InvoiceList />);
     await screen.findAllByText('Cliente de Prueba SA');
-    await userEvent.setup().click(screen.getByRole('button', { name: /Nueva|Emitir/i }));
-    expect(push).toHaveBeenCalledWith('/es/invoices/new');
+    expect(screen.getByRole('link', { name: 'Nueva factura' })).toHaveAttribute('href', '/es/invoices/new');
+    expect(screen.getByRole('link', { name: 'Pendientes por cuenta del locador' })).toHaveAttribute(
+      'href',
+      '/es/invoices/pending',
+    );
+  });
+
+  it('con certificado de homologación avisa que se opera contra el ambiente de prueba', async () => {
+    apiClient.mockImplementation((path: string) =>
+      Promise.resolve(path === '/invoices/certificate' ? { isProduction: false } : page(items)),
+    );
+    renderEs(<InvoiceList />);
+    expect(await screen.findByRole('note')).toHaveTextContent(/Homologación.*no tienen validez fiscal/);
+  });
+
+  it('con certificado de producción no muestra el aviso', async () => {
+    apiClient.mockImplementation((path: string) =>
+      Promise.resolve(path === '/invoices/certificate' ? { isProduction: true } : page(items)),
+    );
+    renderEs(<InvoiceList />);
+    await screen.findAllByText('Cliente de Prueba SA');
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
   });
 
   it('filtra por tipo, vuelve a pedir y permite limpiar', async () => {
@@ -158,11 +191,12 @@ describe('InvoiceList', () => {
     expect(screen.getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument();
   });
 
-  it('un error de la API deja la lista vacía', async () => {
+  it('un error de la API se avisa en lugar de mostrar la lista vacía', async () => {
     apiClient.mockRejectedValue(new Error('caído'));
     renderEs(<InvoiceList />);
-    await waitFor(() => expect(apiClient).toHaveBeenCalled());
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
     expect(screen.queryByText('Cliente de Prueba SA')).not.toBeInTheDocument();
+    expect(screen.queryByText('Sin comprobantes')).not.toBeInTheDocument();
   });
 
   it('pagina hacia adelante y atrás', async () => {

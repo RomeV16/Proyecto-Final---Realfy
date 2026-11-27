@@ -2555,14 +2555,32 @@
   "scoredAt": "Fecha de puntuación"
  },
  "invoices": {
+  "environment": {
+   "testingTag": "Homologación",
+   "testingBody": "Estás operando contra el ambiente de prueba de ARCA: los comprobantes y sus CAE no tienen validez fiscal.",
+   "testingStamp": "Homologación · comprobante de prueba sin validez fiscal"
+  },
+  "arcaStates": {
+   "authorized": "Autorizado",
+   "credited": "Con nota de crédito",
+   "pending": "CAE pendiente"
+  },
   "title": "Facturación",
-  "subtitle": "Gestión de comprobantes electrónicos ARCA",
+  "subtitle": "Los comprobantes electrónicos emitidos ante ARCA, con su CAE.",
   "emitFactura": "Emitir Factura",
-  "emitNC": "Emitir Nota de Crédito",
+  "emitNC": "Emitir nota de crédito",
   "downloadPdf": "Descargar PDF",
   "downloading": "Descargando…",
   "table": {
-   "fecha": "Fecha",
+   "noCae": "Sin asignar",
+   "comprobante": "Comprobante",
+   "estado": "Estado ARCA",
+   "caeDue": "vence {date}",
+   "noReceptor": "Sin receptor",
+   "pdfOf": "Descargar el PDF de {number}",
+   "pageCount": "{count, plural, one {# comprobante en esta página} other {# comprobantes en esta página}}",
+   "pageTotal": "Total de la página",
+   "fecha": "Emisión",
    "tipo": "Tipo",
    "numero": "Número",
    "receptor": "Receptor",
@@ -2602,23 +2620,35 @@
    "NotaDebitoC": "Nota de Débito C"
   },
   "detail": {
+   "issuer": "Emisor",
+   "issuerUnknown": "Sin datos del emisor",
+   "code": "Cód. {code}",
+   "numberShort": "N.º",
+   "noData": "Sin dato",
+   "servicePeriod": "Período facturado",
+   "paymentDue": "Vencimiento del pago",
+   "amounts": "Importes",
+   "exemptAmount": "Exento",
+   "taxesAmount": "Otros tributos",
+   "caePending": "Pendiente",
+   "creditNotes": "Notas de crédito asociadas",
    "title": "Detalle del Comprobante",
    "type": "Tipo",
    "number": "Número",
    "receptor": "Receptor",
-   "receptorCuit": "CUIT Receptor",
-   "receptorFiscalCondition": "Condición Fiscal",
-   "amount": "Importe Total",
-   "netAmount": "Importe Neto",
+   "receptorCuit": "CUIT / documento",
+   "receptorFiscalCondition": "Condición frente al IVA",
+   "amount": "Total",
+   "netAmount": "Importe neto",
    "ivaAmount": "IVA",
    "ivaRate": "Tasa IVA",
    "cae": "CAE",
-   "caeExpiration": "Vencimiento CAE",
+   "caeExpiration": "Vencimiento del CAE",
    "description": "Descripción",
    "currency": "Moneda",
-   "payment": "Pago asociado",
+   "payment": "Cobro que lo originó",
    "originalComprobante": "Comprobante original",
-   "createdAt": "Emitido el",
+   "createdAt": "Fecha de emisión",
    "back": "Volver a facturación"
   },
   "emit": {
@@ -2654,8 +2684,8 @@
   },
   "empty": {
    "title": "Sin comprobantes",
-   "subtitle": "Los comprobantes se emiten desde los pagos de liquidaciones",
-   "filtered": "No se encontraron comprobantes con los filtros aplicados",
+   "subtitle": "Los comprobantes se emiten al registrar un cobro o con «Nueva factura».",
+   "filtered": "No hay comprobantes de ese tipo.",
    "filteredTitle": "Sin resultados",
    "filteredSubtitle": "No se encontraron comprobantes con los filtros aplicados",
    "tourHint": "Aún no emitiste ninguna factura. ¿Querés ver cómo funciona?",
@@ -2667,8 +2697,8 @@
    "next": "Siguiente"
   },
   "errors": {
-   "loadFailed": "Error al cargar comprobantes",
-   "notFound": "Comprobante no encontrado",
+   "loadFailed": "No se pudieron cargar los comprobantes",
+   "notFound": "No encontramos ese comprobante",
    "pdfFailed": "Error al descargar PDF"
   },
   "arca": {
@@ -2902,23 +2932,26 @@
    }
   },
   "nc": {
-   "title": "Nota de Crédito",
-   "subtitle": "Emitir nota de crédito para el comprobante seleccionado",
+   "backToList": "Volver a facturación",
+   "backToVoucher": "Volver al comprobante",
+   "irreversible": "Una nota de crédito emitida no se puede borrar: queda registrada ante ARCA.",
+   "title": "Nota de crédito",
+   "subtitle": "Anula todo o parte de un comprobante ya emitido.",
    "originalLabel": "Comprobante original",
    "receptor": "Receptor",
-   "descripcion": "Descripción / Motivo",
+   "descripcion": "Motivo",
    "descripcionPlaceholder": "Motivo de la nota de crédito…",
    "amount": "Importe a acreditar",
-   "amountHint": "Máximo: {max}",
-   "fchServDesde": "Desde (servicio)",
-   "fchServHasta": "Hasta (servicio)",
+   "amountHint": "Hasta {max}",
+   "fchServDesde": "Servicio desde",
+   "fchServHasta": "Servicio hasta",
    "cancel": "Cancelar",
-   "submit": "Emitir NC",
+   "submit": "Emitir nota de crédito",
    "submitting": "Emitiendo…",
-   "notFound": "Comprobante no encontrado",
-   "emitError": "Error al emitir la Nota de Crédito"
+   "notFound": "No encontramos ese comprobante",
+   "emitError": "No se pudo emitir la nota de crédito"
   },
-  "newInvoiceBtn": "Nueva Factura",
+  "newInvoiceBtn": "Nueva factura",
   "pendingLink": "Pendientes por cuenta del locador"
  },
  "commissions": {
@@ -4314,8 +4347,17 @@
   }
  },
  "adjustments": {
+  "dueOn": "Ajusta el {date}",
+  "indexChange": "índice {pct}",
+  "noNewRent": "Sin calcular",
+  "indexMonths": "Índices usados: {months}",
+  "overview": {
+   "total": "{count, plural, one {# ajuste en el mes} other {# ajustes en el mes}}",
+   "ready": "{count, plural, =0 {ninguno listo para aplicar} one {# listo para aplicar} other {# listos para aplicar}}",
+   "blocked": "{count, plural, one {# no se puede calcular} other {# no se pueden calcular}}"
+  },
   "title": "Ajustes del mes",
-  "subtitle": "Los ajustes de alquiler que vencen en el mes: revisá el alquiler nuevo de cada contrato, elegí los que querés aplicar y aplicalos todos juntos.",
+  "subtitle": "Los alquileres que se actualizan este mes. Revisá cuánto paga hoy cada contrato y cuánto pasa a pagar, elegí los que querés aplicar y aplicalos juntos.",
   "forbidden": "No tenés permiso para aplicar ajustes.",
   "month": "Mes",
   "refresh": "Actualizar",
@@ -4326,6 +4368,7 @@
     "subtitle": "Ningún contrato activo tiene un ajuste pendiente que venza hasta fin de mes."
   },
   "columns": {
+    "difference": "Diferencia",
     "select": "Elegir",
     "contract": "Contrato",
     "date": "Fecha del ajuste",
@@ -4354,7 +4397,8 @@
   "rentDecreaseHint": "El alquiler baja {pct} respecto del vigente. Revisalo: no entra en «Elegir todos» y hay que confirmarlo al aplicar.",
   "provisionalHint": "Calculado con índices estimados; se corrige cuando se publique el oficial.",
   "missing": {
-    "months": "Faltan {indexes}: {periods}",
+    "noPeriods": "los meses que faltan",
+    "months": "Falta cargar {indexes} de {periods}.",
     "estimatesOnly": "Hay un estimado, pero el pago a cuenta está desactivado.",
     "loadIndex": "Cargar el índice"
   },
@@ -4365,6 +4409,7 @@
     "generic": "No se puede calcular este ajuste."
   },
   "summary": {
+    "totals": "Suma de alquileres: {before} → {after} ({diff})",
     "selected": "{count, plural, =0 {Ningún ajuste elegido} one {# ajuste elegido} other {# ajustes elegidos}}",
     "provisional": "{count, plural, one {# a cuenta} other {# a cuenta}}",
     "decreases": "{count, plural, one {# baja el alquiler} other {# bajan el alquiler}}"
@@ -7314,7 +7359,7 @@
    "notReady": "Un estado anulado no se factura; su factura ya quedó en cola para la nota de crédito."
   },
   "pending": {
-   "title": "Facturas por cuenta del locador pendientes",
+   "title": "Facturas pendientes por cuenta del locador",
    "subtitle": "Lo que está en cola para emitirse o falló (por ejemplo, ARCA no respondió). Un fallo no afecta al cobro ni al estado de cuenta.",
    "run": "Emitir pendientes",
    "running": "Emitiendo…",

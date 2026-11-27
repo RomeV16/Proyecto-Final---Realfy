@@ -1,57 +1,39 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { apiClient } from '@/lib/api-client';
 import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
 import { ComprobanteType } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useRouter } from '@/i18n/navigation';
-import { ResponsiveTable, Column } from '@/components/ui/responsive-table';
-import { EntityRow } from '@/components/ui/entity-card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
-import { formatMoneyFixed, formatLocalDate, formatCompNumber } from '@/lib/format';
-
-/* ──────────── Types ──────────── */
-
-interface ComprobanteItem {
-  id: string;
-  type: string;
-  puntoDeVenta: number;
-  numero: number;
-  comprobanteNumber?: number;
-  receptorName?: string;
-  receptorCuit?: string;
-  amount?: string | number;
-  impTotal?: string | number;
-  currency?: string;
-  cae?: string;
-  createdAt: string;
-}
+import { Link } from '@/i18n/navigation';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ErrorNotice } from '@/components/ui/error-notice';
+import { Icon } from '@/components/ui/icon';
+import { Select } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDate, formatLocalDate, formatMoneyFixed } from '@/lib/format';
+import { useCan } from '@/lib/permissions';
+import { TestingNotice, useArcaEnvironment } from './arca-environment';
+import {
+  formatDocNumber,
+  isCreditNote,
+  signedTotal,
+  voucherNumber,
+  voucherState,
+  type Voucher,
+  type VoucherState,
+} from './voucher';
 
 interface PaginatedResponse {
-  items: ComprobanteItem[];
+  items: Voucher[];
   total: number;
   page: number;
   limit: number;
   totalPages: number;
 }
-
-/* ──────────── Helpers ──────────── */
-
-
-
-
-/** Comprobante type → badge tone. Credit/debit notes read as adjustments, so
- * they get the danger/warning tones; regular invoices stay brand-neutral. */
-function invoiceTypeVariant(type: string): 'brand' | 'danger' | 'warning' {
-  if (type.startsWith('NotaCredito')) return 'danger';
-  if (type.startsWith('NotaDebito')) return 'warning';
-  return 'brand';
-}
-
-/* ──────────── Filters ──────────── */
 
 interface Filters {
   type: string;
@@ -61,21 +43,34 @@ interface Filters {
 const INITIAL_FILTERS: Filters = { type: '', page: 1 };
 const LIMIT = 20;
 
-/* ──────────── Component ──────────── */
+const STATE_TONE: Record<VoucherState, BadgeVariant> = {
+  authorized: 'success',
+  credited: 'neutral',
+  pending: 'warning',
+};
 
+const TH = 'px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--color-muted)]';
+const TD = 'px-4 py-3 align-top';
+const MONO = 'font-mono tabular-nums';
+
+/** Libro de comprobantes emitidos: una fila fiscal por comprobante, con su CAE y su estado ante ARCA. */
 export function InvoiceList() {
   const t = useTranslations('invoices');
   const tCommon = useTranslations('common');
   const tTable = useTranslations('invoices.table');
-  const tTypes = useTranslations('invoices.types');
+  const tTypeNames = useTranslations('invoices.typesLong');
+  const tTypes = (type: string) => (tTypeNames.has(type) ? tTypeNames(type) : type);
   const tFilters = useTranslations('invoices.filters');
   const tEmpty = useTranslations('invoices.empty');
   const tPag = useTranslations('invoices.pagination');
-
-  const router = useRouter();
+  const tState = useTranslations('invoices.arcaStates');
+  const locale = useLocale();
+  const canEmit = useCan('invoices.emit');
+  const environment = useArcaEnvironment();
 
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [data, setData] = useState<PaginatedResponse | null>(null);
+  const [error, setError] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -85,20 +80,23 @@ export function InvoiceList() {
       if (filters.type) params.set('type', filters.type);
       params.set('page', String(filters.page));
       params.set('limit', String(LIMIT));
-      const qs = params.toString();
-      const res = await apiClient<PaginatedResponse>(`/invoices?${qs}`);
-      setData(res);
-    } catch {
+      setData(await apiClient<PaginatedResponse>(`/invoices?${params.toString()}`));
+      setError(null);
+    } catch (err) {
       setData(null);
+      setError(err);
     } finally {
       setLoading(false);
     }
   }, [filters]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
-  const items = data?.items || [];
-  const totalPages = data?.totalPages || 1;
+  const items = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 1;
+  const pageTotal = items.reduce((sum, item) => sum + signedTotal(item), 0);
 
   async function handleDownloadPdf(id: string) {
     try {
@@ -108,232 +106,243 @@ export function InvoiceList() {
     }
   }
 
-  // NC types for filter grouping
-  const ncTypes = [ComprobanteType.NotaCreditoA, ComprobanteType.NotaCreditoB, ComprobanteType.NotaCreditoC];
-
-  const columns: Column<ComprobanteItem>[] = [
-    {
-      key: 'fecha',
-      header: tTable('fecha'),
-      render: (item) => <span className="text-slate-600">{formatLocalDate(item.createdAt, 'medium')}</span>,
-    },
-    {
-      key: 'tipo',
-      header: tTable('tipo'),
-      render: (item) => <Badge variant={invoiceTypeVariant(item.type)}>{tTypes(item.type)}</Badge>,
-    },
-    {
-      key: 'numero',
-      header: tTable('numero'),
-      render: (item) => (
-        <span className="font-mono text-slate-700 tabular-nums">
-          {formatCompNumber(item.puntoDeVenta, item.numero ?? item.comprobanteNumber ?? 0)}
-        </span>
-      ),
-    },
-    {
-      key: 'receptor',
-      header: tTable('receptor'),
-      render: (item) => <span className="text-slate-700 max-w-[200px] truncate block">{item.receptorName || '—'}</span>,
-    },
-    {
-      key: 'importe',
-      header: tTable('importe'),
-      alignRight: true,
-      render: (item) => (
-        <span className="font-semibold tabular-nums text-slate-900">
-          {ncTypes.includes(item.type as ComprobanteType) ? '- ' : ''}{formatMoneyFixed(item.impTotal ?? item.amount)}
-        </span>
-      ),
-    },
-    {
-      key: 'cae',
-      header: tTable('cae'),
-      render: (item) =>
-        item.cae ? (
-          <Badge variant="success" dot className="font-mono tabular-nums">
-            {item.cae}
-          </Badge>
-        ) : (
-          <Badge variant="warning" dot>
-            {tTable('caePending')}
-          </Badge>
-        ),
-    },
-    {
-      key: 'actions',
-      header: tTable('actions'),
-      alignRight: true,
-      render: (item) => (
-        <div className="flex items-center justify-end gap-1">
-          <Link
-            href={`/invoices/${item.id}`}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
-            title={tTable('view')}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-            </svg>
-          </Link>
-          <button
-            onClick={() => handleDownloadPdf(item.id)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
-            title={tTable('pdf')}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-          </button>
-        </div>
-      ),
-    },
-  ];
+  const money = (item: Voucher) => formatMoneyFixed(signedTotal(item), item.currency ?? 'ARS', locale);
+  const stateBadge = (item: Voucher) => {
+    const state = voucherState(item);
+    return (
+      <Badge variant={STATE_TONE[state]} dot>
+        {tState(state)}
+      </Badge>
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('title')}</h1>
-          <p className="text-sm text-slate-500 mt-1">{t('subtitle')}</p>
+          <h1 className="h1">{t('title')}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/invoices/pending"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            className="inline-flex h-9 items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-sm font-medium text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-sunken)]"
           >
             {t('pendingLink')}
           </Link>
-          <button
-            onClick={() => router.push('/invoices/new')}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            {t('newInvoiceBtn')}
-          </button>
+          {canEmit && (
+            <Link
+              href="/invoices/new"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-brand-500 bg-brand-500 px-3.5 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+            >
+              <Icon name="plus" className="h-4 w-4" />
+              {t('newInvoiceBtn')}
+            </Link>
+          )}
         </div>
-      </div>
+      </header>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <select
+      <TestingNotice environment={environment} />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Select
+          aria-label={tFilters('type')}
           value={filters.type}
-          onChange={(e) => setFilters({ ...filters, type: e.target.value, page: 1 })}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+          onChange={(e) => setFilters({ type: e.target.value, page: 1 })}
+          className="w-56"
         >
           <option value="">{tFilters('typePlaceholder')}</option>
           {Object.values(ComprobanteType).map((ct) => (
-            <option key={ct} value={ct}>{tTypes(ct)}</option>
+            <option key={ct} value={ct}>
+              {tTypes(ct)}
+            </option>
           ))}
-        </select>
-
+        </Select>
         {filters.type && (
-          <button
-            onClick={() => setFilters(INITIAL_FILTERS)}
-            className="text-xs text-brand-600 hover:text-brand-700"
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={() => setFilters(INITIAL_FILTERS)}>
             {tFilters('clear')}
-          </button>
+          </Button>
         )}
       </div>
 
-      {/* Responsive table */}
-      <ResponsiveTable<ComprobanteItem>
-        items={items}
-        columns={columns}
-        keyExtractor={(item) => item.id}
-        loading={loading}
-        skeletonRows={5}
-        empty={{
-          title: filters.type ? tEmpty('filtered') : tEmpty('title'),
-          subtitle: tEmpty('subtitle'),
-          iconName: 'invoices',
-        }}
-        cardRenderer={(item) => {
-          const isCredit = ncTypes.includes(item.type as ComprobanteType);
-          const amountLabel = `${isCredit ? '- ' : ''}${formatMoneyFixed(item.impTotal ?? item.amount)}`;
-          const displayTitle = item.receptorName || tTypes(item.type);
-          const href = `/invoices/${item.id}`;
+      {loading && <Skeleton className="h-56 w-full" />}
+      {!loading && error != null && <ErrorNotice error={error} fallback={t('errors.loadFailed')} />}
+      {!loading && error == null && items.length === 0 && (
+        <EmptyState
+          iconName="invoices"
+          variant={filters.type ? 'filtered' : 'default'}
+          title={filters.type ? tEmpty('filtered') : tEmpty('title')}
+          subtitle={filters.type ? undefined : tEmpty('subtitle')}
+        />
+      )}
 
-          return (
-            <EntityRow
-              href={href}
-              label={displayTitle}
-              accent={invoiceTypeVariant(item.type)}
-              leading={<Avatar name={displayTitle} seed={item.id} size="sm" />}
-              title={displayTitle}
-              subtitle={formatCompNumber(item.puntoDeVenta, item.numero ?? item.comprobanteNumber ?? 0)}
-              meta={
-                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                  <EntityRow.Meta items={[{ icon: 'calendar', label: formatLocalDate(item.createdAt, 'medium') }]} />
+      {!loading && items.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+          {/* Escritorio: tabla fiscal */}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full border-collapse text-sm">
+              <thead className="border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)]">
+                <tr>
+                  <th scope="col" className={TH}>{tTable('comprobante')}</th>
+                  <th scope="col" className={TH}>{tTable('fecha')}</th>
+                  <th scope="col" className={TH}>{tTable('receptor')}</th>
+                  <th scope="col" className={TH}>{tTable('cae')}</th>
+                  <th scope="col" className={`${TH} text-right`}>{tTable('importe')}</th>
+                  <th scope="col" className={TH}>{tTable('estado')}</th>
+                  <th scope="col" className={`${TH} text-right`}>
+                    <span className="sr-only">{tTable('actions')}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {items.map((item) => (
+                  <tr key={item.id} className="transition-colors hover:bg-[var(--color-surface-sunken)]">
+                    <td className={TD}>
+                      <Link href={`/invoices/${item.id}`} className="group block">
+                        <span className="block text-xs text-[var(--color-muted)]">{tTypes(item.type)}</span>
+                        <span className={`${MONO} font-medium text-[var(--color-text)] group-hover:text-brand-600`}>
+                          {voucherNumber(item)}
+                        </span>
+                      </Link>
+                    </td>
+                    <td className={`${TD} whitespace-nowrap tabular-nums text-[var(--color-text)]`}>
+                      {formatLocalDate(item.emittedAt ?? item.createdAt, 'numeric', locale)}
+                    </td>
+                    <td className={TD}>
+                      <span className="block max-w-[16rem] truncate text-[var(--color-text)]">
+                        {item.receptorName || tTable('noReceptor')}
+                      </span>
+                      {item.docNro && (
+                        <span className={`${MONO} text-xs text-[var(--color-muted)]`}>{formatDocNumber(item.docNro)}</span>
+                      )}
+                    </td>
+                    <td className={TD}>
+                      {item.cae ? (
+                        <>
+                          <span className={`${MONO} block text-[var(--color-text)]`}>{item.cae}</span>
+                          {item.caeFchVto && (
+                            <span className="text-xs text-[var(--color-muted)]">
+                              {tTable('caeDue', { date: formatDate(item.caeFchVto, 'numeric', locale) })}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-[var(--color-muted)]">{tTable('noCae')}</span>
+                      )}
+                    </td>
+                    <td
+                      className={`${TD} ${MONO} whitespace-nowrap text-right font-medium ${
+                        isCreditNote(item.type) ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'
+                      }`}
+                    >
+                      {money(item)}
+                    </td>
+                    <td className={TD}>{stateBadge(item)}</td>
+                    <td className={`${TD} text-right`}>
+                      <button
+                        type="button"
+                        onClick={() => void handleDownloadPdf(item.id)}
+                        title={tTable('pdf')}
+                        aria-label={tTable('pdfOf', { number: voucherNumber(item) })}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-muted)] transition-colors hover:bg-[var(--color-surface)] hover:text-brand-600"
+                      >
+                        <Icon name="download" className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t border-[var(--color-border)] bg-[var(--color-surface-sunken)]">
+                <tr>
+                  <td colSpan={4} className="px-4 py-2.5 text-xs text-[var(--color-muted)]">
+                    {tTable('pageCount', { count: items.length })}
+                  </td>
+                  <td className={`${MONO} whitespace-nowrap px-4 py-2.5 text-right font-semibold text-[var(--color-text)]`}>
+                    {formatMoneyFixed(pageTotal, items[0]?.currency ?? 'ARS', locale)}
+                  </td>
+                  <td colSpan={2} className="px-4 py-2.5 text-xs text-[var(--color-muted)]">
+                    {tTable('pageTotal')}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Móvil: el mismo renglón fiscal, apilado */}
+          <ul className="divide-y divide-[var(--color-border)] md:hidden">
+            {items.map((item) => (
+              <li key={item.id} className="space-y-1.5 px-4 py-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <Link href={`/invoices/${item.id}`} className="min-w-0">
+                    <span className="block text-xs text-[var(--color-muted)]">{tTypes(item.type)}</span>
+                    <span className={`${MONO} text-sm font-medium text-[var(--color-text)]`}>{voucherNumber(item)}</span>
+                  </Link>
                   <span
-                    className={`text-sm font-bold tabular-nums sm:hidden ${
-                      isCredit ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'
+                    className={`${MONO} shrink-0 text-sm font-semibold ${
+                      isCreditNote(item.type) ? 'text-[var(--color-danger)]' : 'text-[var(--color-text)]'
                     }`}
                   >
-                    {amountLabel}
+                    {money(item)}
                   </span>
                 </div>
-              }
-              trailing={<EntityRow.Amount value={amountLabel} tone={isCredit ? 'danger' : 'default'} />}
-              alert={
-                !item.cae ? (
-                  <EntityRow.Alert tone="warning" icon="alert">
-                    {tTable('caePending')}
-                  </EntityRow.Alert>
-                ) : undefined
-              }
-              actions={
-                <>
-                  <EntityRow.Action href={href} icon="view" variant="quiet">
-                    {tTable('view')}
-                  </EntityRow.Action>
-                  <EntityRow.Action
-                    onClick={(e) => { e.preventDefault(); handleDownloadPdf(item.id); }}
-                    icon="download"
-                    variant="quiet"
-                  >
-                    {tTable('pdf')}
-                  </EntityRow.Action>
-                </>
-              }
-            />
-          );
-        }}
-      />
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-slate-200 sm:rounded-none sm:border-x-0 sm:border-b-0 sm:border-t sm:border-slate-100">
-          <span className="text-xs text-slate-500">
-            {tPag('showing', {
-              from: (filters.page - 1) * LIMIT + 1,
-              to: Math.min(filters.page * LIMIT, data?.total || 0),
-              total: data?.total || 0,
-            })}
-          </span>
-          <div className="flex gap-1">
-            <button
-              disabled={filters.page <= 1}
-              onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {tPag('prev')}
-            </button>
-            <button
-              disabled={filters.page >= totalPages}
-              onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {tPag('next')}
-            </button>
-          </div>
+                <p className="truncate text-sm text-[var(--color-text)]">
+                  {item.receptorName || tTable('noReceptor')}
+                  <span className="text-[var(--color-muted)]">
+                    {' · '}
+                    {formatLocalDate(item.emittedAt ?? item.createdAt, 'numeric', locale)}
+                  </span>
+                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className={`${MONO} text-xs text-[var(--color-muted)]`}>{item.cae ? `CAE ${item.cae}` : ''}</span>
+                  <span className="flex items-center gap-2">
+                    {stateBadge(item)}
+                    <button
+                      type="button"
+                      onClick={() => void handleDownloadPdf(item.id)}
+                      className="inline-flex h-8 items-center gap-1 rounded-md border border-[var(--color-border)] px-2 text-xs font-medium text-[var(--color-text)]"
+                    >
+                      <Icon name="download" className="h-3.5 w-3.5" />
+                      {tTable('pdf')}
+                    </button>
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-[var(--color-muted)]">
+            {tPag('showing', {
+              from: (filters.page - 1) * LIMIT + 1,
+              to: Math.min(filters.page * LIMIT, data?.total ?? 0),
+              total: data?.total ?? 0,
+            })}
+          </span>
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={filters.page <= 1}
+              onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
+            >
+              {tPag('prev')}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={filters.page >= totalPages}
+              onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
+            >
+              {tPag('next')}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

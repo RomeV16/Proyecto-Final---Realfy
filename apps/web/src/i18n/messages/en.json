@@ -2555,14 +2555,32 @@
   "scoredAt": "Fecha de puntuación"
  },
  "invoices": {
+  "environment": {
+   "testingTag": "Testing",
+   "testingBody": "You are working against ARCA's testing environment: vouchers and their CAE have no fiscal validity.",
+   "testingStamp": "Testing · sample voucher with no fiscal validity"
+  },
+  "arcaStates": {
+   "authorized": "Authorized",
+   "credited": "Has a credit note",
+   "pending": "CAE pending"
+  },
   "title": "Facturación",
-  "subtitle": "Gestión de comprobantes electrónicos ARCA",
+  "subtitle": "The electronic vouchers issued through ARCA, with their CAE.",
   "emitFactura": "Emitir Factura",
-  "emitNC": "Emitir Nota de Crédito",
+  "emitNC": "Issue credit note",
   "downloadPdf": "Descargar PDF",
   "downloading": "Descargando…",
   "table": {
-   "fecha": "Fecha",
+   "noCae": "Not assigned",
+   "comprobante": "Voucher",
+   "estado": "ARCA status",
+   "caeDue": "expires {date}",
+   "noReceptor": "No recipient",
+   "pdfOf": "Download the PDF of {number}",
+   "pageCount": "{count, plural, one {# voucher on this page} other {# vouchers on this page}}",
+   "pageTotal": "Page total",
+   "fecha": "Issued",
    "tipo": "Tipo",
    "numero": "Número",
    "receptor": "Receptor",
@@ -2602,23 +2620,35 @@
    "NotaDebitoC": "Nota de Débito C"
   },
   "detail": {
+   "issuer": "Issuer",
+   "issuerUnknown": "No issuer details",
+   "code": "Code {code}",
+   "numberShort": "No.",
+   "noData": "No data",
+   "servicePeriod": "Billed period",
+   "paymentDue": "Payment due",
+   "amounts": "Amounts",
+   "exemptAmount": "Exempt",
+   "taxesAmount": "Other taxes",
+   "caePending": "Pending",
+   "creditNotes": "Related credit notes",
    "title": "Detalle del Comprobante",
    "type": "Tipo",
    "number": "Número",
    "receptor": "Receptor",
-   "receptorCuit": "CUIT Receptor",
-   "receptorFiscalCondition": "Condición Fiscal",
-   "amount": "Importe Total",
-   "netAmount": "Importe Neto",
+   "receptorCuit": "Tax ID / document",
+   "receptorFiscalCondition": "VAT status",
+   "amount": "Total",
+   "netAmount": "Net amount",
    "ivaAmount": "IVA",
    "ivaRate": "Tasa IVA",
    "cae": "CAE",
-   "caeExpiration": "Vencimiento CAE",
+   "caeExpiration": "CAE expiry",
    "description": "Descripción",
    "currency": "Moneda",
-   "payment": "Pago asociado",
+   "payment": "Originating payment",
    "originalComprobante": "Comprobante original",
-   "createdAt": "Emitido el",
+   "createdAt": "Issue date",
    "back": "Volver a facturación"
   },
   "emit": {
@@ -2654,8 +2684,8 @@
   },
   "empty": {
    "title": "Sin comprobantes",
-   "subtitle": "Los comprobantes se emiten desde los pagos de liquidaciones",
-   "filtered": "No se encontraron comprobantes con los filtros aplicados",
+   "subtitle": "Vouchers are issued when a payment is recorded or with “New invoice”.",
+   "filtered": "There are no vouchers of that type.",
    "filteredTitle": "No results",
    "filteredSubtitle": "No receipts found with the applied filters",
    "tourHint": "You haven't issued any invoices yet. Would you like to see how?",
@@ -2667,8 +2697,8 @@
    "next": "Siguiente"
   },
   "errors": {
-   "loadFailed": "Error al cargar comprobantes",
-   "notFound": "Comprobante no encontrado",
+   "loadFailed": "Could not load the vouchers",
+   "notFound": "We could not find that voucher",
    "pdfFailed": "Error al descargar PDF"
   },
   "arca": {
@@ -2902,23 +2932,26 @@
    }
   },
   "nc": {
-   "title": "Nota de Crédito",
-   "subtitle": "Emitir nota de crédito para el comprobante seleccionado",
+   "backToList": "Back to invoicing",
+   "backToVoucher": "Back to the voucher",
+   "irreversible": "An issued credit note cannot be deleted: it stays on record with ARCA.",
+   "title": "Credit note",
+   "subtitle": "Cancels all or part of an issued voucher.",
    "originalLabel": "Comprobante original",
    "receptor": "Receptor",
-   "descripcion": "Descripción / Motivo",
+   "descripcion": "Reason",
    "descripcionPlaceholder": "Motivo de la nota de crédito…",
    "amount": "Importe a acreditar",
-   "amountHint": "Máximo: {max}",
-   "fchServDesde": "Desde (servicio)",
-   "fchServHasta": "Hasta (servicio)",
+   "amountHint": "Up to {max}",
+   "fchServDesde": "Service from",
+   "fchServHasta": "Service to",
    "cancel": "Cancelar",
-   "submit": "Emitir NC",
+   "submit": "Issue credit note",
    "submitting": "Emitiendo…",
-   "notFound": "Comprobante no encontrado",
-   "emitError": "Error al emitir la Nota de Crédito"
+   "notFound": "We could not find that voucher",
+   "emitError": "Could not issue the credit note"
   },
-  "newInvoiceBtn": "New Invoice",
+  "newInvoiceBtn": "New invoice",
   "pendingLink": "Pending on behalf of lessors"
  },
  "commissions": {
@@ -4314,8 +4347,17 @@
   }
  },
  "adjustments": {
+  "dueOn": "Adjusts on {date}",
+  "indexChange": "index {pct}",
+  "noNewRent": "Not calculated",
+  "indexMonths": "Indexes used: {months}",
+  "overview": {
+   "total": "{count, plural, one {# adjustment this month} other {# adjustments this month}}",
+   "ready": "{count, plural, =0 {none ready to apply} one {# ready to apply} other {# ready to apply}}",
+   "blocked": "{count, plural, one {# cannot be calculated} other {# cannot be calculated}}"
+  },
   "title": "Monthly adjustments",
-  "subtitle": "The rent adjustments due this month: review each contract's new rent, pick the ones to apply and apply them together.",
+  "subtitle": "The rents that update this month. Check what each contract pays today and what it will pay, choose the ones to apply and apply them together.",
   "forbidden": "You do not have permission to apply adjustments.",
   "month": "Month",
   "refresh": "Refresh",
@@ -4326,6 +4368,7 @@
     "subtitle": "No active contract has a pending adjustment due by the end of the month."
   },
   "columns": {
+    "difference": "Difference",
     "select": "Select",
     "contract": "Contract",
     "date": "Adjustment date",
@@ -4354,7 +4397,8 @@
   "rentDecreaseHint": "The rent goes down {pct} from the current one. Review it: it is not included in \"Select all\" and must be confirmed when applying.",
   "provisionalHint": "Calculated with estimated indices; it is corrected when the official value is published.",
   "missing": {
-    "months": "Missing {indexes}: {periods}",
+    "noPeriods": "the missing months",
+    "months": "{indexes} for {periods} still has to be loaded.",
     "estimatesOnly": "An estimate exists, but payment on account is turned off.",
     "loadIndex": "Load the index"
   },
@@ -4365,6 +4409,7 @@
     "generic": "This adjustment cannot be calculated."
   },
   "summary": {
+    "totals": "Total rent: {before} → {after} ({diff})",
     "selected": "{count, plural, =0 {No adjustment selected} one {# adjustment selected} other {# adjustments selected}}",
     "provisional": "{count, plural, one {# on account} other {# on account}}",
     "decreases": "{count, plural, one {# lowers the rent} other {# lower the rent}}"
@@ -7314,7 +7359,7 @@
    "notReady": "An annulled statement is not invoiced; its invoice is already queued for the credit note."
   },
   "pending": {
-   "title": "Pending invoices on behalf of lessors",
+   "title": "Pending invoices on behalf of the lessor",
    "subtitle": "What is queued to be issued or failed (for example, ARCA did not answer). A failure never affects the payment or the account statement.",
    "run": "Issue pending",
    "running": "Issuing…",
