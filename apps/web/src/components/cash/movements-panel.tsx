@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { FinancialAccountKind } from '@realfy/shared';
 import { apiClient } from '@/lib/api-client';
@@ -69,12 +69,20 @@ export function MovementsPanel({ accounts, ready, canManage, onChanged }: Props)
     return params.toString();
   }, [accountId, category, contractId, from, to, page]);
 
+  // La última consulta pedida: una respuesta vieja que llega tarde no pisa a la que está en pantalla.
+  const latestQuery = useRef(query);
+  useEffect(() => {
+    latestQuery.current = query;
+  }, [query]);
+
   const load = useCallback(async () => {
     setError(null);
     try {
       const res = await apiClient<Paged<CashMovementRow>>(`/cash-movements?${query}`);
+      if (latestQuery.current !== query) return;
       setData({ ...res, items: res?.items ?? [], query });
     } catch (err) {
+      if (latestQuery.current !== query) return;
       setError(err);
       setData(null);
     }

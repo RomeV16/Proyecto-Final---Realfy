@@ -443,6 +443,27 @@ describe('Caja: movimientos', () => {
     expect(await screen.findByText('Ningún movimiento coincide con estos filtros.')).toBeInTheDocument();
   });
 
+  it('una respuesta vieja que llega tarde no pisa la del filtro elegido', async () => {
+    let releaseSlow: (value: unknown) => void = () => undefined;
+    apiClient.mockImplementation(async (path: string) => {
+      if (path.startsWith('/financial-accounts')) return ACCOUNTS;
+      if (path.includes('category=Gasto')) return new Promise((resolve) => (releaseSlow = resolve));
+      if (path.includes('category=PagoProveedor')) return paged([MOVEMENTS[1]]);
+      if (path.startsWith('/cash-movements?')) return paged(MOVEMENTS);
+      return { items: [] };
+    });
+    renderEs(<CashCenter />);
+    const user = userEvent.setup();
+    await screen.findAllByText('Plomero sintético');
+    await user.selectOptions(screen.getByLabelText('Categoría'), 'Gasto');
+    await user.selectOptions(screen.getByLabelText('Categoría'), 'PagoProveedor');
+    await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(3));
+    releaseSlow(paged([]));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.getAllByText('Plomero sintético').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('row')).toHaveLength(3);
+  });
+
   it('sin cuentas el saldo lo explica y lleva a la solapa de cuentas', async () => {
     apiClient.mockImplementation(async (path: string) => {
       if (path.startsWith('/financial-accounts')) return { items: [], totals: [], custodyInAgencyBalance: false };
