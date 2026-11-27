@@ -1402,8 +1402,8 @@
  },
  "liquidaciones": {
   "title": "Liquidaciones",
-  "subtitle": "Gestión de liquidaciones mensuales de alquiler",
-  "generateMonth": "Generar Mes",
+  "subtitle": "Lo que debe cada inquilino, mes por mes",
+  "generateMonth": "Generar mes",
   "generateMonthDesc": "Crear liquidaciones para todos los contratos activos del período seleccionado",
   "generateSuccess": "Liquidaciones generadas correctamente",
   "generateError": "Error al generar liquidaciones",
@@ -1411,7 +1411,7 @@
   "skippedCount": "{count} ya existían (omitidas)",
   "statuses": {
    "Borrador": "Borrador",
-   "Revision": "En Revisión",
+   "Revision": "En revisión",
    "Aprobada": "Aprobada",
    "Pendiente": "Pendiente",
    "Enviada": "Enviada",
@@ -1488,7 +1488,7 @@
    "add": "Agregar concepto",
    "edit": "Editar",
    "remove": "Eliminar",
-   "removeConfirm": "¿Eliminar este concepto?",
+   "removeConfirm": "¿Eliminar este concepto de la liquidación?",
    "empty": "No hay conceptos agregados",
    "addSuccess": "Concepto agregado",
    "updateSuccess": "Concepto actualizado",
@@ -1543,20 +1543,20 @@
    "overpayment": "Pago excedente"
   },
   "transitions": {
-   "Revision": "Enviar a Revisión",
+   "Revision": "Enviar a revisión",
    "Aprobada": "Aprobar",
-   "Borrador": "Volver a Borrador",
+   "Borrador": "Volver a borrador",
    "Enviada": "Enviar",
-   "Pagada": "Marcar como Pagada",
-   "Vencida": "Marcar como Vencida",
+   "Pagada": "Marcar como pagada",
+   "Vencida": "Marcar como vencida",
    "Anulada": "Anular",
    "success": "Estado actualizado correctamente",
    "error": "Error al cambiar estado",
-   "confirmAnulada": "¿Está seguro de que desea anular esta liquidación? Esta acción no se puede revertir."
+   "confirmAnulada": "¿Anular esta liquidación? No se puede deshacer."
   },
   "payments": {
    "title": "Pagos",
-   "registerPayment": "Registrar Pago",
+   "registerPayment": "Registrar pago",
    "date": "Fecha de pago",
    "amount": "Monto",
    "method": "Método de pago",
@@ -1613,7 +1613,7 @@
    "noPayments": "Aún no se registraron pagos",
    "description": "Las liquidaciones son los cobros mensuales a inquilinos. Se generan a partir de contratos activos con todos los conceptos calculados.",
    "step1": "Asegurate de tener contratos activos cargados",
-   "step2": "Generá la liquidación del período desde el botón 'Nueva liquidación'",
+   "step2": "Generá las liquidaciones del mes con el botón «Generar mes»",
    "step3": "Registrá pagos a medida que los inquilinos abonen",
    "tourButton": "Iniciar tour de liquidaciones"
   },
@@ -1632,8 +1632,8 @@
    "actions": "Acciones"
   },
   "generate": {
-   "title": "Generar Liquidaciones del Mes",
-   "description": "Se crearán liquidaciones para todos los contratos activos del período seleccionado",
+   "title": "Generar liquidaciones del mes",
+   "description": "Se crea una liquidación por cada contrato activo en el mes elegido. Las que ya existen no se duplican.",
    "month": "Mes",
    "year": "Año",
    "submit": "Generar",
@@ -1642,8 +1642,8 @@
    "selectYear": "Seleccionar año"
   },
   "lineItemForm": {
-   "title": "Nuevo Concepto",
-   "editTitle": "Editar Concepto",
+   "title": "Nuevo concepto",
+   "editTitle": "Editar concepto",
    "type": "Tipo de concepto",
    "description": "Descripción",
    "amount": "Importe",
@@ -1669,7 +1669,7 @@
    "deleted": "Liquidación eliminada"
   },
   "errors": {
-   "loadFailed": "Error al cargar liquidaciones",
+   "loadFailed": "No pudimos cargar las liquidaciones",
    "loadDetailFailed": "Error al cargar detalle de liquidación",
    "generateFailed": "Error al generar liquidaciones",
    "transitionFailed": "Error al cambiar estado",
@@ -1678,7 +1678,7 @@
    "pdfFailed": "Error al descargar PDF",
    "bulkFailed": "Error en operación masiva",
    "deleteFailed": "Error al eliminar liquidación",
-   "notFound": "Liquidación no encontrada",
+   "notFound": "No encontramos esta liquidación",
    "forbidden": "No tiene permisos para esta acción"
   },
   "currency": {
@@ -1739,6 +1739,38 @@
    "listLabel": "Compensaciones del pago",
    "item": "Compensación: {from} cubre a {to} por {amount}",
    "otherLessor": "otro locador"
+  },
+  "ledger": {
+   "issued": "Emitido",
+   "collected": "Cobrado",
+   "pending": "Pendiente",
+   "overdue": "Vencido",
+   "count": "{count, plural, one {# liquidación} other {# liquidaciones}}",
+   "barLabel": "Cobrado {collected} de {issued}",
+   "colProperty": "Propiedad e inquilino",
+   "colAmount": "Importe",
+   "dueShort": "Vence",
+   "overdueDays": "{days, plural, =0 {Venció hoy} one {Venció hace # día} other {Venció hace # días}}",
+   "needsApproval": "Falta aprobar",
+   "paidOn": "Cobrada el {date}",
+   "noPeriod": "Sin período",
+   "selectRow": "Seleccionar {name}",
+   "attention": "Para atender:",
+   "attentionOverdue": "{count, plural, one {# vencida} other {# vencidas}}",
+   "attentionApproval": "{count} sin aprobar",
+   "loadFailedHint": "Revisá la conexión y volvé a intentar.",
+   "retry": "Reintentar",
+   "pageTotalsHint": "Los totales de cada mes cuentan solo las liquidaciones de esta página."
+  },
+  "document": {
+   "back": "Volver a liquidaciones",
+   "kicker": "Liquidación de alquiler",
+   "tenant": "Inquilino",
+   "timeline": "Seguimiento",
+   "created": "Generada",
+   "sent": "Enviada al inquilino",
+   "paid": "Pagada",
+   "pendingStep": "Pendiente"
   }
  },
  "services": {
@@ -2931,7 +2963,7 @@
  },
  "renditions": {
   "title": "Rendiciones",
-  "subtitle": "Rendiciones por contrato emitidas antes de la cuenta corriente (histórico, solo lectura)",
+  "subtitle": "Lo que se le transfirió a cada locador, contrato por contrato",
   "generate": "Generar Rendición",
   "generateDesc": "Crear una rendición para un contrato y período específico",
   "generateSuccess": "Rendición generada correctamente",
@@ -2976,11 +3008,11 @@
    "actions": "Acciones"
   },
   "detail": {
-   "title": "Detalle de Rendición",
+   "title": "Rendición al locador",
    "period": "Período",
    "contract": "Contrato",
    "property": "Propiedad",
-   "owner": "Propietario",
+   "owner": "Locador",
    "status": "Estado",
    "createdAt": "Creada el",
    "updatedAt": "Última actualización",
@@ -3007,17 +3039,17 @@
   "lineItemTypes": {
    "Alquiler": "Alquiler",
    "Comision": "Comisión",
-   "AdminFee": "Honorarios Admin.",
+   "AdminFee": "Honorarios de administración",
    "Deduccion": "Deducción",
    "Ajuste": "Ajuste"
   },
   "summary": {
-   "title": "Resumen",
+   "title": "Liquidación del neto",
    "rentCollected": "Total cobrado",
    "commission": "Comisión",
-   "adminFee": "Honorarios admin.",
+   "adminFee": "Honorarios de administración",
    "deductions": "Deducciones",
-   "netDeposit": "Depósito neto"
+   "netDeposit": "Neto a transferir"
   },
   "transitions": {
    "approve": "Aprobar",
@@ -3080,14 +3112,14 @@
    "next": "Siguiente"
   },
   "errors": {
-   "loadFailed": "Error al cargar rendiciones",
+   "loadFailed": "No pudimos cargar las rendiciones",
    "loadDetailFailed": "Error al cargar detalle de rendición",
-   "notFound": "Rendición no encontrada",
+   "notFound": "No encontramos esta rendición",
    "forbidden": "No tiene permisos para esta acción"
   },
   "card": {
    "view": "Ver detalle",
-   "noOwner": "Sin propietario asignado",
+   "noOwner": "Sin locador asignado",
    "noProperty": "Sin propiedad asociada",
    "notSent": "Aún no enviada al propietario",
    "missingPdf": "PDF no generado aún"
@@ -3097,6 +3129,32 @@
    "body": "Las rendiciones por contrato quedaron como histórico. La cuenta corriente y el estado de cuenta mensual del locador las reemplazan.",
    "statements": "Ir a estados de cuenta",
    "owners": "Ir a locadores"
+  },
+  "voucher": {
+   "stub": "Rendición",
+   "number": "N.º {number}",
+   "payTo": "Locador",
+   "collected": "Cobrado",
+   "fees": "Honorarios",
+   "expenses": "Gastos",
+   "net": "Neto a transferir",
+   "netPaid": "Neto transferido",
+   "barLabel": "Neto {net} sobre {collected} cobrados",
+   "depositedOn": "Transferida el {date}",
+   "sentOn": "Enviada el {date}",
+   "loadFailedHint": "Revisá la conexión y volvé a intentar.",
+   "retry": "Reintentar"
+  },
+  "document": {
+   "back": "Volver a rendiciones",
+   "period": "Período",
+   "cuit": "CUIT {cuit}",
+   "concept": "Concepto",
+   "timeline": "Seguimiento",
+   "created": "Generada",
+   "sent": "Enviada al locador",
+   "deposited": "Transferida",
+   "pendingStep": "Pendiente"
   }
  },
  "reports": {

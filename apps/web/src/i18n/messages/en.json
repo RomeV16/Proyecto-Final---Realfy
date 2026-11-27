@@ -1402,8 +1402,8 @@
  },
  "liquidaciones": {
   "title": "Liquidaciones",
-  "subtitle": "Gestión de liquidaciones mensuales de alquiler",
-  "generateMonth": "Generar Mes",
+  "subtitle": "What each tenant owes, month by month",
+  "generateMonth": "Generate month",
   "generateMonthDesc": "Crear liquidaciones para todos los contratos activos del período seleccionado",
   "generateSuccess": "Liquidaciones generadas correctamente",
   "generateError": "Error al generar liquidaciones",
@@ -1411,7 +1411,7 @@
   "skippedCount": "{count} ya existían (omitidas)",
   "statuses": {
    "Borrador": "Borrador",
-   "Revision": "En Revisión",
+   "Revision": "In review",
    "Aprobada": "Aprobada",
    "Pendiente": "Pendiente",
    "Enviada": "Enviada",
@@ -1476,7 +1476,7 @@
    "property": "Propiedad",
    "dueDate": "Fecha de vencimiento",
    "createdAt": "Creada el",
-   "updatedAt": "Última actualización",
+   "updatedAt": "Last updated",
    "status": "Estado",
    "viewContract": "Ver contrato"
   },
@@ -1488,7 +1488,7 @@
    "add": "Agregar concepto",
    "edit": "Editar",
    "remove": "Eliminar",
-   "removeConfirm": "¿Eliminar este concepto?",
+   "removeConfirm": "Remove this line item from the settlement?",
    "empty": "No hay conceptos agregados",
    "addSuccess": "Concepto agregado",
    "updateSuccess": "Concepto actualizado",
@@ -1543,20 +1543,20 @@
    "overpayment": "Pago excedente"
   },
   "transitions": {
-   "Revision": "Enviar a Revisión",
+   "Revision": "Send to review",
    "Aprobada": "Aprobar",
-   "Borrador": "Volver a Borrador",
+   "Borrador": "Back to draft",
    "Enviada": "Enviar",
-   "Pagada": "Marcar como Pagada",
-   "Vencida": "Marcar como Vencida",
+   "Pagada": "Mark as paid",
+   "Vencida": "Mark as overdue",
    "Anulada": "Anular",
    "success": "Estado actualizado correctamente",
    "error": "Error al cambiar estado",
-   "confirmAnulada": "¿Está seguro de que desea anular esta liquidación? Esta acción no se puede revertir."
+   "confirmAnulada": "Void this settlement? This cannot be undone."
   },
   "payments": {
    "title": "Pagos",
-   "registerPayment": "Registrar Pago",
+   "registerPayment": "Record payment",
    "date": "Fecha de pago",
    "amount": "Monto",
    "method": "Método de pago",
@@ -1613,7 +1613,7 @@
    "noPayments": "Aún no se registraron pagos",
    "description": "Las liquidaciones son los cobros mensuales a inquilinos. Se generan a partir de contratos activos con todos los conceptos calculados.",
    "step1": "Asegurate de tener contratos activos cargados",
-   "step2": "Generá la liquidación del período desde el botón 'Nueva liquidación'",
+   "step2": "Generate the month's settlements with the \"Generate month\" button",
    "step3": "Registrá pagos a medida que los inquilinos abonen",
    "tourButton": "Iniciar tour de liquidaciones"
   },
@@ -1632,8 +1632,8 @@
    "actions": "Acciones"
   },
   "generate": {
-   "title": "Generar Liquidaciones del Mes",
-   "description": "Se crearán liquidaciones para todos los contratos activos del período seleccionado",
+   "title": "Generate the month's settlements",
+   "description": "One settlement is created for each contract active in the chosen month. Existing ones are not duplicated.",
    "month": "Mes",
    "year": "Año",
    "submit": "Generar",
@@ -1642,8 +1642,8 @@
    "selectYear": "Seleccionar año"
   },
   "lineItemForm": {
-   "title": "Nuevo Concepto",
-   "editTitle": "Editar Concepto",
+   "title": "New line item",
+   "editTitle": "Edit line item",
    "type": "Tipo de concepto",
    "description": "Descripción",
    "amount": "Importe",
@@ -1669,7 +1669,7 @@
    "deleted": "Liquidación eliminada"
   },
   "errors": {
-   "loadFailed": "Error al cargar liquidaciones",
+   "loadFailed": "We couldn't load the settlements",
    "loadDetailFailed": "Error al cargar detalle de liquidación",
    "generateFailed": "Error al generar liquidaciones",
    "transitionFailed": "Error al cambiar estado",
@@ -1678,7 +1678,7 @@
    "pdfFailed": "Error al descargar PDF",
    "bulkFailed": "Error en operación masiva",
    "deleteFailed": "Error al eliminar liquidación",
-   "notFound": "Liquidación no encontrada",
+   "notFound": "We couldn't find this settlement",
    "forbidden": "No tiene permisos para esta acción"
   },
   "currency": {
@@ -1739,6 +1739,38 @@
    "listLabel": "Payment compensations",
    "item": "Compensation: {from} covers {to} for {amount}",
    "otherLessor": "another lessor"
+  },
+  "ledger": {
+   "issued": "Issued",
+   "collected": "Collected",
+   "pending": "Pending",
+   "overdue": "Overdue",
+   "count": "{count, plural, one {# settlement} other {# settlements}}",
+   "barLabel": "Collected {collected} of {issued}",
+   "colProperty": "Property and tenant",
+   "colAmount": "Amount",
+   "dueShort": "Due",
+   "overdueDays": "{days, plural, =0 {Due today} one {# day overdue} other {# days overdue}}",
+   "needsApproval": "Needs approval",
+   "paidOn": "Collected on {date}",
+   "noPeriod": "No period",
+   "selectRow": "Select {name}",
+   "attention": "Needs attention:",
+   "attentionOverdue": "{count} overdue",
+   "attentionApproval": "{count} awaiting approval",
+   "loadFailedHint": "Check your connection and try again.",
+   "retry": "Retry",
+   "pageTotalsHint": "Each month's totals only count the settlements on this page."
+  },
+  "document": {
+   "back": "Back to settlements",
+   "kicker": "Rent settlement",
+   "tenant": "Tenant",
+   "timeline": "Tracking",
+   "created": "Generated",
+   "sent": "Sent to the tenant",
+   "paid": "Paid",
+   "pendingStep": "Pending"
   }
  },
  "services": {
@@ -2931,7 +2963,7 @@
  },
  "renditions": {
   "title": "Rendiciones",
-  "subtitle": "Per-contract renditions issued before the lessor account (history, read only)",
+  "subtitle": "What was transferred to each lessor, contract by contract",
   "generate": "Generar Rendición",
   "generateDesc": "Crear una rendición para un contrato y período específico",
   "generateSuccess": "Rendición generada correctamente",
@@ -2976,11 +3008,11 @@
    "actions": "Acciones"
   },
   "detail": {
-   "title": "Detalle de Rendición",
+   "title": "Lessor statement",
    "period": "Período",
    "contract": "Contrato",
    "property": "Propiedad",
-   "owner": "Propietario",
+   "owner": "Lessor",
    "status": "Estado",
    "createdAt": "Creada el",
    "updatedAt": "Última actualización",
@@ -3007,17 +3039,17 @@
   "lineItemTypes": {
    "Alquiler": "Alquiler",
    "Comision": "Comisión",
-   "AdminFee": "Honorarios Admin.",
+   "AdminFee": "Management fee",
    "Deduccion": "Deducción",
    "Ajuste": "Ajuste"
   },
   "summary": {
-   "title": "Resumen",
+   "title": "Net calculation",
    "rentCollected": "Total cobrado",
    "commission": "Comisión",
-   "adminFee": "Honorarios admin.",
+   "adminFee": "Management fee",
    "deductions": "Deducciones",
-   "netDeposit": "Depósito neto"
+   "netDeposit": "Net to transfer"
   },
   "transitions": {
    "approve": "Aprobar",
@@ -3080,14 +3112,14 @@
    "next": "Siguiente"
   },
   "errors": {
-   "loadFailed": "Error al cargar rendiciones",
+   "loadFailed": "We couldn't load the owner statements",
    "loadDetailFailed": "Error al cargar detalle de rendición",
-   "notFound": "Rendición no encontrada",
+   "notFound": "We couldn't find this owner statement",
    "forbidden": "No tiene permisos para esta acción"
   },
   "card": {
    "view": "View detail",
-   "noOwner": "No owner assigned",
+   "noOwner": "No lessor assigned",
    "noProperty": "No property linked",
    "notSent": "Not yet sent to owner",
    "missingPdf": "PDF not generated yet"
@@ -3097,6 +3129,32 @@
    "body": "Per-contract renditions are kept as history. The lessor account and the monthly owner statement replace them.",
    "statements": "Go to owner statements",
    "owners": "Go to lessors"
+  },
+  "voucher": {
+   "stub": "Statement",
+   "number": "No. {number}",
+   "payTo": "Lessor",
+   "collected": "Collected",
+   "fees": "Fees",
+   "expenses": "Expenses",
+   "net": "Net to transfer",
+   "netPaid": "Net transferred",
+   "barLabel": "Net {net} out of {collected} collected",
+   "depositedOn": "Transferred on {date}",
+   "sentOn": "Sent on {date}",
+   "loadFailedHint": "Check your connection and try again.",
+   "retry": "Retry"
+  },
+  "document": {
+   "back": "Back to statements",
+   "period": "Period",
+   "cuit": "Tax ID {cuit}",
+   "concept": "Item",
+   "timeline": "Tracking",
+   "created": "Generated",
+   "sent": "Sent to the lessor",
+   "deposited": "Transferred",
+   "pendingStep": "Pending"
   }
  },
  "reports": {
