@@ -56,8 +56,10 @@ export function RegisterCallDialog({ onClose, onSaved }: Props) {
     <Dialog open onClose={onClose} busy={submitting} size="md">
       <form onSubmit={(e) => void save(e)} noValidate>
         <DialogHeader>
-          <h2 className="text-base font-semibold text-[var(--color-text)]">{t('title')}</h2>
-          <p className="mt-1 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-[var(--color-text)]">{t('title')}</h2>
+            <p className="mt-1 text-sm text-[var(--color-muted)]">{t('subtitle')}</p>
+          </div>
         </DialogHeader>
         <DialogBody className="space-y-4">
           {error != null && <ErrorNotice error={error} fallback={t('saveError')} />}
