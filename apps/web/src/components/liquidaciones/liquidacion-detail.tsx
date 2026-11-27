@@ -17,9 +17,12 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { PaymentForm } from './payment-form';
 import { CompensationDialog, type LessorOption } from './compensation-dialog';
 import { PayoffPanel } from './payoff-panel';
-import { EntityRow, Badge } from '@/components/ui/entity-card';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/cn';
 import { Icon } from '@/components/ui/icon';
-import { formatMoneyFixed, formatDate, formatLocalDate } from '@/lib/format';
+import { formatMoneyFixed, formatDate, formatLocalDate, toUtcDay } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 import { downloadFile } from '@/lib/download';
 import { toast } from '@/lib/toast';
@@ -59,6 +62,8 @@ interface LiquidacionData {
   month?: number;
   year?: number;
   dueDate?: string;
+  sentAt?: string | null;
+  paidAt?: string | null;
   total?: string | number;
   subtotal?: string | number;
   totalAmount?: string | number;
@@ -72,7 +77,8 @@ interface LiquidacionData {
   warnings?: { code: string; adjustmentDate?: string }[];
   contract?: {
     id: string;
-    property?: { id: string; title: string; street?: string; city?: string };
+    property?: { id: string; title: string; street?: string; number?: string | null; city?: string };
+    persons?: { role: string; person?: { firstName?: string; lastName?: string } | null }[];
     lessors?: { personId: string; person?: { firstName: string; lastName: string } | null }[];
   };
   lineItems: LineItem[];
@@ -87,21 +93,24 @@ interface LiquidacionDetailProps {
 
 
 
-const LINE_ITEM_ICONS: Record<string, string> = {
-  [LineItemType.Alquiler]: '🏠',
-  [LineItemType.Ajuste]: '📊',
-  [LineItemType.Extra]: '➕',
-  [LineItemType.Descuento]: '🏷️',
-  [LineItemType.Multa]: '⚠️',
-  [LineItemType.Impuesto]: '🏛️',
-  [LineItemType.Servicio]: '💡',
-  [LineItemType.Cargo]: '🔧',
-  [LineItemType.Honorario]: '💼',
-  [LineItemType.AjusteRetroactivo]: '↩️',
-};
+const MINUS = '\u2212';
+const LABEL = 'text-[11px] uppercase tracking-wider text-[var(--color-muted)]';
+const BACK_LINK = 'inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-brand-600)] hover:underline';
+const ICON_BUTTON =
+  'inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-muted)] transition-colors hover:bg-[var(--color-surface-sunken)] hover:text-[var(--color-text)]';
+const FIELD =
+  'mt-1 block h-10 w-full rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text)] focus:border-[var(--color-brand-500)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_oklab,var(--color-brand-500)_30%,transparent)]';
 
-function transitionVariant(target: string): 'primary' | 'secondary' | 'danger' {
-  if (target === LiquidacionStatus.Anulada) return 'danger';
+function toneStyle(tone: 'success' | 'danger' | 'warning') {
+  return {
+    borderColor: `color-mix(in oklab, var(--color-${tone}) 28%, var(--color-border))`,
+    backgroundColor: `color-mix(in oklab, var(--color-${tone}) 9%, var(--color-surface))`,
+    color: `color-mix(in oklab, var(--color-${tone}) 72%, var(--color-text))`,
+  };
+}
+
+function transitionVariant(target: string): 'primary' | 'secondary' | 'ghost' {
+  if (target === LiquidacionStatus.Anulada) return 'ghost';
   if (target === LiquidacionStatus.Borrador) return 'secondary';
   return 'primary';
 }
@@ -127,6 +136,7 @@ function PaymentReceiptButton({ receipt }: { receipt: NonNullable<Payment['recei
 export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const t = useTranslations('liquidaciones');
   const tDetail = useTranslations('liquidaciones.detail');
+  const tDoc = useTranslations('liquidaciones.document');
   const tLineItems = useTranslations('liquidaciones.lineItems');
   const tTotals = useTranslations('liquidaciones.totals');
   const tTransitions = useTranslations('liquidaciones.transitions');
@@ -175,7 +185,9 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
     }
   }, [liquidacionId]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   // Locadores del contrato (sin repetir), para compensar un cobro y nombrar las compensaciones.
   const lessorOptions = useMemo<LessorOption[]>(() => {
@@ -211,7 +223,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         body: JSON.stringify({ status: targetStatus }),
       });
       setFeedback({ type: 'success', msg: tTransitions('success') });
-      fetchData();
+      void fetchData();
     } catch (err) {
       setFeedback({ type: 'error', msg: err instanceof ApiRequestError ? err.message : tTransitions('error') });
     } finally {
@@ -254,7 +266,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
         setFeedback({ type: 'success', msg: tLineItems('addSuccess') });
       }
       setShowLineItemForm(false);
-      fetchData();
+      void fetchData();
     } catch (err) {
       setFeedback({ type: 'error', msg: err instanceof ApiRequestError ? err.message : tLineItems('addError') });
     } finally {
@@ -269,7 +281,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
     try {
       await apiClient(`/liquidaciones/${liquidacionId}/line-items/${lineItemId}`, { method: 'DELETE' });
       setFeedback({ type: 'success', msg: tLineItems('removeSuccess') });
-      fetchData();
+      void fetchData();
     } catch (err) {
       setFeedback({ type: 'error', msg: err instanceof ApiRequestError ? err.message : tLineItems('removeError') });
     } finally {
@@ -279,10 +291,12 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
 
   /* ──── Render ──── */
 
-  if (loading) {
+  if (loading && !data) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full" />
+      <div role="status" aria-busy="true" className="mx-auto max-w-3xl space-y-4">
+        <span className="sr-only">{tCommon('loading')}</span>
+        <Skeleton className="h-4 w-44" />
+        <Skeleton className="h-[32rem] w-full rounded-[var(--radius-xl)]" />
       </div>
     );
   }
@@ -290,9 +304,10 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   if (!data) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <h2 className="text-lg font-semibold text-slate-900">{tErrors('notFound')}</h2>
-        <Link href={'/liquidaciones'} className="mt-4 text-sm text-brand-600 hover:text-brand-700">
-          {'\u2190'} {tCommon('back')}
+        <h2 className="text-lg font-semibold text-[var(--color-text)]">{tErrors('notFound')}</h2>
+        <Link href={'/liquidaciones'} className={BACK_LINK}>
+          <Icon name="arrowLeft" className="h-4 w-4" />
+          {tDoc('back')}
         </Link>
       </div>
     );
@@ -305,78 +320,139 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
   const periodLabel = month ? `${tMonths(String(month))} ${year}` : '—';
   const pendingAdjustment = data.warnings?.find((w) => w.code === 'ADJUSTMENT_PENDING');
 
-  return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Back link */}
-      <Link href={'/liquidaciones'} className="text-sm text-brand-600 hover:text-brand-700">
-        {'\u2190'} {tCommon('back')}
-      </Link>
+  const property = data.contract?.property;
+  const address = property ? [[property.street, property.number].filter(Boolean).join(' '), property.city].filter(Boolean).join(', ') : '';
+  const tenantNames = (data.contract?.persons ?? [])
+    .filter((p) => p.role === 'Inquilino' && p.person)
+    .map((p) => `${p.person?.firstName ?? ''} ${p.person?.lastName ?? ''}`.trim())
+    .filter(Boolean);
+  const money = (value: string | number) => formatMoneyFixed(value, data.currency);
+  const lineItems = data.lineItems || [];
+  const payments = data.payments || [];
+  const canEditLines = Boolean(isEditable && canAct);
+  const canRegisterPayment =
+    !readOnly && canAct && [LiquidacionStatus.Enviada, LiquidacionStatus.Vencida].includes(data.status as LiquidacionStatus);
+  const isVoided = data.status === LiquidacionStatus.Anulada;
+  const isOverdue = data.status === LiquidacionStatus.Vencida;
+  const dueDay = toUtcDay(data.dueDate);
+  const now = new Date();
+  const daysLate =
+    isOverdue && dueDay !== null
+      ? Math.max(0, Math.round((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - dueDay) / 86_400_000))
+      : null;
 
-      {/* Header */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 flex-wrap">
+  const steps = [
+    { key: 'created', label: tDoc('created'), at: data.createdAt },
+    { key: 'sent', label: tDoc('sent'), at: data.sentAt },
+    { key: 'paid', label: tDoc('paid'), at: data.status === LiquidacionStatus.Pagada ? (data.paidAt ?? payments.at(-1)?.paidAt) : null },
+  ];
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href={'/liquidaciones'} className={BACK_LINK}>
+          <Icon name="arrowLeft" className="h-4 w-4" />
+          {tDoc('back')}
+        </Link>
+        {!isVoided && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() =>
+              downloadFile(`/liquidaciones/${liquidacionId}/pdf`, `recibo-${data.receiptNumber ?? liquidacionId}.pdf`).catch(() =>
+                toast.error(tCommon('downloadFailed')),
+              )
+            }
+          >
+            <Icon name="download" className="h-4 w-4" strokeWidth={2} />
+            {tReceipt('print')}
+          </Button>
+        )}
+      </div>
+
+      {feedback && (
+        <p
+          role={feedback.type === 'error' ? 'alert' : 'status'}
+          className="rounded-[var(--radius-lg)] border px-4 py-3 text-sm"
+          style={toneStyle(feedback.type === 'success' ? 'success' : 'danger')}
+        >
+          {feedback.msg}
+        </p>
+      )}
+
+      <article className="overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)]">
+        {/* Encabezado del comprobante */}
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--color-border)] px-5 py-5 sm:px-8">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--color-muted)]">{tDoc('kicker')}</p>
+            <h1 className={cn('mt-1 font-display text-2xl font-semibold tracking-tight text-[var(--color-text)]', isVoided && 'line-through')}>
+              {periodLabel}
+            </h1>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
               <StatusBadge domain="liquidacion" status={data.status} size="md" />
               {data.kind && data.kind !== 'Mensual' && <Badge variant="info">{tKinds(data.kind)}</Badge>}
               {data.isProvisional && (
                 <Badge variant="warning" title={t('provisionalHint')}>{t('provisional')}</Badge>
               )}
               {pendingAdjustment && <Badge variant="warning">{t('adjustmentPending')}</Badge>}
-              {data.receiptNumber ? (
-                <Badge variant="neutral">{tReceipt('number', { number: data.receiptNumber })}</Badge>
-              ) : (
-                <span className="text-xs text-slate-400">{tReceipt('pending')}</span>
-              )}
             </div>
-            <h1 className="text-xl font-bold text-slate-900">{periodLabel}</h1>
-            {data.contract?.property && (
-              <p className="text-sm text-slate-500">
-                {data.contract.property.title}
-                {data.contract.property.street && ` — ${[data.contract.property.street, data.contract.property.city].filter(Boolean).join(', ')}`}
-              </p>
-            )}
-            {data.dueDate && (
-              <p className="text-xs text-slate-400">{tDetail('dueDate')}: {formatDate(data.dueDate, 'long')}</p>
-            )}
           </div>
+          <div className="text-right">
+            <p className="font-mono text-xs tabular-nums text-[var(--color-muted)]">
+              {data.receiptNumber ? tReceipt('number', { number: data.receiptNumber }) : tReceipt('pending')}
+            </p>
+            <p className="mt-2 text-[11px] uppercase tracking-wider text-[var(--color-muted)]">{tTotals('total')}</p>
+            <p className="font-mono text-2xl font-semibold tabular-nums text-[var(--color-text)]">{money(totalAmount)}</p>
+          </div>
+        </header>
 
-          <div className="text-right space-y-2">
-            <p className="text-xs text-slate-500">{tTotals('total')}</p>
-            <p className="text-2xl font-bold text-slate-900 tabular-nums">{formatMoneyFixed(totalAmount)}</p>
-          </div>
-        </div>
         {pendingAdjustment && (
-          <p role="alert" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <p role="alert" className="border-b px-5 py-3 text-sm sm:px-8" style={toneStyle('warning')}>
             {t('adjustmentPendingHint', { date: formatLocalDate(pendingAdjustment.adjustmentDate, 'long') })}
           </p>
         )}
 
-        {data.status !== LiquidacionStatus.Anulada && (
-          <div className="mt-4">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() =>
-                downloadFile(`/liquidaciones/${liquidacionId}/pdf`, `recibo-${data.receiptNumber ?? liquidacionId}.pdf`).catch(() =>
-                  toast.error(tCommon('downloadFailed')),
-                )
-              }
-            >
-              {tReceipt('print')}
-            </Button>
+        {/* Partes y vencimiento */}
+        <dl className="grid gap-4 border-b border-[var(--color-border)] px-5 py-4 sm:grid-cols-3 sm:px-8">
+          <div className="min-w-0">
+            <dt className={LABEL}>{tDetail('property')}</dt>
+            <dd className="mt-0.5 text-sm font-medium text-[var(--color-text)]">{property?.title ?? t('card.noProperty')}</dd>
+            {address && <dd className="text-xs text-[var(--color-muted)]">{address}</dd>}
+            {data.contract && (
+              <dd className="mt-1">
+                <Link href={`/contracts/${data.contract.id}`} className="text-xs font-medium text-[var(--color-brand-600)] hover:underline">
+                  {tDetail('viewContract')}
+                </Link>
+              </dd>
+            )}
           </div>
-        )}
+          <div className="min-w-0">
+            <dt className={LABEL}>{tDoc('tenant')}</dt>
+            <dd className="mt-0.5 text-sm font-medium text-[var(--color-text)]">
+              {tenantNames.length > 0 ? tenantNames.join(', ') : '—'}
+            </dd>
+          </div>
+          <div>
+            <dt className={LABEL}>{tDetail('dueDate')}</dt>
+            <dd className="mt-0.5 text-sm font-medium text-[var(--color-text)]">{formatDate(data.dueDate, 'long')}</dd>
+            {daysLate !== null && (
+              <dd className="text-xs font-medium" style={{ color: 'color-mix(in oklab, var(--color-danger) 80%, var(--color-text))' }}>
+                {t('ledger.overdueDays', { days: daysLate })}
+              </dd>
+            )}
+          </div>
+        </dl>
 
-        {/* Transition action buttons */}
+        {/* Lo que sigue: cambios de estado */}
         {!readOnly && validTransitions.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-5 py-3 sm:px-8">
             {validTransitions.map((target) => (
               <Button
                 key={target}
                 variant={transitionVariant(target)}
                 size="sm"
-                onClick={() => handleTransition(target)}
+                className={target === LiquidacionStatus.Anulada ? 'sm:ml-auto' : undefined}
+                onClick={() => void handleTransition(target)}
                 disabled={!!actionLoading}
               >
                 {actionLoading === target && <Spinner className="w-4 h-4" />}
@@ -386,270 +462,144 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
           </div>
         )}
 
-        {/* Feedback */}
-        {feedback && (
-          <div className={`mt-3 rounded-lg px-3 py-2 border ${feedback.type === 'success' ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
-            <p className={`text-sm ${feedback.type === 'success' ? 'text-emerald-700' : 'text-red-700'}`}>{feedback.msg}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Contract info */}
-      {data.contract && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-semibold text-slate-900 mb-1">{tDetail('contract')}</h2>
-              {data.contract.property && (
-                <p className="text-sm text-slate-600">{data.contract.property.title}</p>
-              )}
-            </div>
-            <Link href={`/contracts/${data.contract.id}`}
-              className="text-sm text-brand-600 hover:text-brand-700"
-            >
-              {tDetail('viewContract')} {'\u2192'}
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* Line items */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-slate-900">{tLineItems('title')}</h2>
-          {isEditable && canAct && (
-            <button
-              onClick={openAddLineItem}
-              className="px-3 py-1.5 rounded-lg bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-colors flex items-center gap-1"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              {tLineItems('add')}
-            </button>
-          )}
-        </div>
-
-        {(data.lineItems || []).length === 0 ? (
-          <p className="text-sm text-slate-400 italic">{tLineItems('empty')}</p>
-        ) : (
-          <div className="space-y-2.5">
-            {(data.lineItems || []).map((li) => {
-              const isDiscount = li.type === LineItemType.Descuento;
-              return (
-                <EntityRow
-                  key={li.id}
-                  accent={isDiscount ? 'danger' : 'none'}
-                  leading={
-                    <span
-                      className="flex h-10 w-10 items-center justify-center rounded-full text-lg"
-                      style={{
-                        backgroundColor: isDiscount
-                          ? 'color-mix(in oklab, var(--color-danger) 12%, var(--color-surface))'
-                          : 'var(--color-surface-sunken)',
-                      }}
-                    >
-                      {LINE_ITEM_ICONS[li.type] || '📄'}
-                    </span>
-                  }
-                  title={li.description.replace(/\s*\[pid:[^\]]+\]/, '')}
-                  meta={
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Badge variant={isDiscount ? 'danger' : 'neutral'}>{tTypes(li.type)}</Badge>
-                      {li.beneficiary && <Badge variant="info">{tBeneficiary(li.beneficiary)}</Badge>}
-                      {li.commissionable && <Badge variant="brand">{t('commissionable')}</Badge>}
-                    </div>
-                  }
-                  trailing={
-                    <EntityRow.Amount
-                      value={`${isDiscount ? '- ' : ''}${formatMoneyFixed(li.amount)}`}
-                      tone={isDiscount ? 'danger' : 'default'}
-                    />
-                  }
-                  actions={
-                    isEditable && canAct ? (
-                      <>
-                        <EntityRow.Action
-                          icon="edit"
-                          variant="quiet"
-                          onClick={() => openEditLineItem(li)}
-                          title={tLineItems('edit')}
-                        >
-                          <span className="sr-only">{tLineItems('edit')}</span>
-                        </EntityRow.Action>
-                        <EntityRow.Action
-                          icon="close"
-                          variant="quiet"
-                          onClick={() => handleRemoveLineItem(li.id)}
-                          title={tLineItems('remove')}
-                          className="text-[var(--color-danger)] hover:bg-[color-mix(in_oklab,var(--color-danger)_10%,var(--color-surface))]"
-                        >
-                          <span className="sr-only">{tLineItems('remove')}</span>
-                        </EntityRow.Action>
-                      </>
-                    ) : undefined
-                  }
-                />
-              );
-            })}
-          </div>
-        )}
-
-        {/* Totals */}
-        {(data.lineItems || []).length > 0 && (
-          <div className="mt-4 pt-4 border-t border-slate-100 space-y-1.5">
-            <div className="flex justify-between text-sm text-slate-500">
-              <span>{tTotals('subtotal')}</span>
-              <span className="tabular-nums">{formatMoneyFixed(subtotal)}</span>
-            </div>
-            {discounts > 0 && (
-              <div className="flex justify-between text-sm text-red-500">
-                <span>{tTotals('discounts')}</span>
-                <span className="tabular-nums">- {formatMoneyFixed(discounts)}</span>
-              </div>
+        {/* Conceptos */}
+        <section className="border-b border-[var(--color-border)] px-5 py-4 sm:px-8">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className={LABEL}>{tLineItems('title')}</h2>
+            {canEditLines && (
+              <Button variant="secondary" size="sm" onClick={openAddLineItem}>
+                <Icon name="plus" className="h-4 w-4" strokeWidth={2} />
+                {tLineItems('add')}
+              </Button>
             )}
-            <div className="flex justify-between text-base font-bold text-slate-900 pt-1 border-t border-slate-100">
-              <span>{tTotals('total')}</span>
-              <span className="tabular-nums">{formatMoneyFixed(totalAmount)}</span>
-            </div>
           </div>
-        )}
-      </div>
 
-      {/* Line item form modal */}
-      {showLineItemForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowLineItemForm(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 animate-zoom-in">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">
-              {editingLineItem ? t('lineItemForm.editTitle') : t('lineItemForm.title')}
-            </h3>
-            <form onSubmit={handleSaveLineItem} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('lineItemForm.type')}</label>
-                <select
-                  value={liType}
-                  onChange={(e) => setLiType(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-                  required
-                >
-                  <option value="">{tLineItems('selectType')}</option>
-                  {Object.values(LineItemType).map((t2) => (
-                    <option key={t2} value={t2}>{tTypes(t2)}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('lineItemForm.description')}</label>
-                <input
-                  type="text"
-                  value={liDescription}
-                  onChange={(e) => setLiDescription(e.target.value)}
-                  placeholder={tLineItems('descriptionPlaceholder')}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">{t('lineItemForm.amount')}</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={liAmount}
-                  onChange={(e) => setLiAmount(e.target.value)}
-                  placeholder={tLineItems('amountPlaceholder')}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 tabular-nums focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-                  required
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowLineItemForm(false)}
-                  className="flex-1 px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  {t('lineItemForm.cancel')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading === 'lineItem'}
-                  className="flex-1 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {actionLoading === 'lineItem' && <Spinner className="w-3 h-3 text-white" />}
-                  {t('lineItemForm.save')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Payments section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-slate-900">{tPayments('title')}</h2>
-          {!readOnly && canAct && [LiquidacionStatus.Enviada, LiquidacionStatus.Vencida].includes(data.status as LiquidacionStatus) && (
-            <Button
-              variant="accent"
-              size="sm"
-              onClick={() => setShowPaymentForm(true)}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>
-              {tPayments('registerPayment')}
-            </Button>
-          )}
-        </div>
-
-        {(data.payments || []).length === 0 ? (
-          <p className="text-sm text-slate-400 italic">{tPayments('empty')}</p>
-        ) : (
-          <div className="space-y-2.5">
-            {(data.payments || []).map((p) => (
-              <div key={p.id} className="space-y-1.5">
-                <EntityRow
-                  accent="success"
-                  leading={
-                    <span
-                      className="flex h-10 w-10 items-center justify-center rounded-full"
-                      style={{
-                        backgroundColor:
-                          'color-mix(in oklab, var(--color-success) 14%, var(--color-surface))',
-                        color: 'var(--color-success)',
-                      }}
+          {lineItems.length === 0 ? (
+            <p className="mt-2 text-sm text-[var(--color-muted)]">{tLineItems('empty')}</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-[var(--color-border)]">
+              {lineItems.map((li) => {
+                const isDiscount = li.type === LineItemType.Descuento;
+                return (
+                  <li key={li.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
+                    <div className="min-w-0 flex-1 basis-48">
+                      <p className="text-sm text-[var(--color-text)]">{li.description.replace(/\s*\[pid:[^\]]+\]/, '')}</p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-[var(--color-muted)]">
+                        <span>{tTypes(li.type)}</span>
+                        {li.beneficiary && <span>{tBeneficiary(li.beneficiary)}</span>}
+                        {li.commissionable && <span>{t('commissionable')}</span>}
+                      </p>
+                    </div>
+                    <p
+                      className={cn(
+                        'ml-auto whitespace-nowrap font-mono text-sm tabular-nums',
+                        isDiscount ? 'text-[var(--color-muted)]' : 'text-[var(--color-text)]',
+                      )}
                     >
-                      <Icon name="check" className="h-5 w-5" strokeWidth={2} />
-                    </span>
-                  }
-                  title={tMethods(p.method)}
-                  subtitle={p.reference || undefined}
-                  meta={
-                    <EntityRow.Meta
-                      items={[
-                        { icon: 'calendar', label: formatLocalDate(p.paidAt, 'long') },
-                        ...(p.receivedBy
-                          ? [
-                              {
-                                icon: 'wallet' as const,
-                                label: [
-                                  tPayments('receivedByLabel', { who: tCash(`receivers.${p.receivedBy}`) }),
-                                  p.account?.name,
-                                  p.inCustody ? tPayments('inCustodyShort') : null,
-                                ]
-                                  .filter(Boolean)
-                                  .join(' · '),
-                              },
-                            ]
-                          : []),
-                      ]}
-                    />
-                  }
-                  trailing={<EntityRow.Amount value={formatMoneyFixed(p.amount)} tone="success" />}
-                  actions={
-                    p.receipt || (canCompensate && p.receivedBy === 'Locador') ? (
-                      <div className="flex flex-wrap gap-1.5">
+                      {isDiscount ? `${MINUS} ` : ''}
+                      {money(li.amount)}
+                    </p>
+                    {canEditLines && (
+                      <div className="flex items-center">
+                        <button type="button" onClick={() => openEditLineItem(li)} aria-label={tLineItems('edit')} title={tLineItems('edit')} className={ICON_BUTTON}>
+                          <Icon name="edit" className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleRemoveLineItem(li.id)}
+                          aria-label={tLineItems('remove')}
+                          title={tLineItems('remove')}
+                          className={cn(ICON_BUTTON, 'hover:text-[var(--color-danger)]')}
+                        >
+                          <Icon name="trash" className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {lineItems.length > 0 && (
+            <dl className="mt-3 space-y-1.5 sm:ml-auto sm:max-w-xs">
+              <div className="flex items-baseline justify-between gap-4 text-sm text-[var(--color-muted)]">
+                <dt>{tTotals('subtotal')}</dt>
+                <dd className="font-mono tabular-nums">{money(subtotal)}</dd>
+              </div>
+              {discounts > 0 && (
+                <div className="flex items-baseline justify-between gap-4 text-sm text-[var(--color-muted)]">
+                  <dt>{tTotals('discounts')}</dt>
+                  <dd className="font-mono tabular-nums">
+                    {MINUS} {money(discounts)}
+                  </dd>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between gap-4 border-t-2 border-[var(--color-text)] pt-2">
+                <dt className="text-sm font-semibold text-[var(--color-text)]">{tTotals('total')}</dt>
+                <dd className="font-mono text-lg font-semibold tabular-nums text-[var(--color-text)]">{money(totalAmount)}</dd>
+              </div>
+            </dl>
+          )}
+        </section>
+
+        {/* Pagos */}
+        <section className="px-5 py-4 sm:px-8">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className={LABEL}>{tPayments('title')}</h2>
+            {canRegisterPayment && (
+              <Button variant="accent" size="sm" onClick={() => setShowPaymentForm(true)}>
+                <Icon name="plus" className="h-4 w-4" strokeWidth={2} />
+                {tPayments('registerPayment')}
+              </Button>
+            )}
+          </div>
+
+          {payments.length === 0 ? (
+            <p className="mt-2 text-sm text-[var(--color-muted)]">{tPayments('empty')}</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-[var(--color-border)]">
+              {payments.map((p) => {
+                const received = p.receivedBy
+                  ? [
+                      tPayments('receivedByLabel', { who: tCash(`receivers.${p.receivedBy}`) }),
+                      p.account?.name,
+                      p.inCustody ? tPayments('inCustodyShort') : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')
+                  : null;
+                const showActions = p.receipt || (canCompensate && p.receivedBy === 'Locador');
+                return (
+                  <li key={p.id} className="py-2.5">
+                    <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
+                      <p className="w-full font-mono text-xs tabular-nums text-[var(--color-muted)] sm:w-40 sm:pt-0.5">
+                        {formatLocalDate(p.paidAt, 'long')}
+                      </p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-[var(--color-text)]">
+                          {tMethods(p.method)}
+                          {p.reference && <span className="text-[var(--color-muted)]"> · {p.reference}</span>}
+                        </p>
+                        {received && <p className="mt-0.5 text-xs text-[var(--color-muted)]">{received}</p>}
+                      </div>
+                      <p className="ml-auto whitespace-nowrap font-mono text-sm tabular-nums text-[var(--color-text)]">{money(p.amount)}</p>
+                    </div>
+                    {(p.compensations ?? []).length > 0 && (
+                      <ul className="mt-1 space-y-0.5 text-xs text-[var(--color-muted)] sm:ml-[10.75rem]" aria-label={tComp('listLabel')}>
+                        {(p.compensations ?? []).map((c) => (
+                          <li key={c.id}>
+                            {tComp('item', {
+                              from: lessorName(c.fromLessorId),
+                              to: lessorName(c.toLessorId),
+                              amount: formatMoneyFixed(c.amount, data.currency),
+                            })}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {showActions && (
+                      <div className="mt-2 flex flex-wrap gap-1.5 sm:ml-[10.75rem]">
                         {p.receipt && <PaymentReceiptButton receipt={p.receipt} />}
                         {canCompensate && p.receivedBy === 'Locador' && (
                           <Button variant="secondary" size="sm" onClick={() => setCompensating(p.id)}>
@@ -657,44 +607,122 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
                           </Button>
                         )}
                       </div>
-                    ) : undefined
-                  }
-                />
-                {(p.compensations ?? []).length > 0 && (
-                  <ul className="ml-14 space-y-0.5 text-xs text-slate-500" aria-label={tComp('listLabel')}>
-                    {(p.compensations ?? []).map((c) => (
-                      <li key={c.id}>
-                        {tComp('item', {
-                          from: lessorName(c.fromLessorId),
-                          to: lessorName(c.toLessorId),
-                          amount: formatMoneyFixed(c.amount, data.currency),
-                        })}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
 
-        {/* Remaining balance */}
-        <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
-          <span className="text-sm font-medium text-slate-600">{tPayments('remainingBalance')}</span>
-          <span className={`text-lg font-bold tabular-nums ${remainingBalance <= 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
-            {remainingBalance <= 0 ? tPayments('fullyPaid') : formatMoneyFixed(remainingBalance)}
-          </span>
-        </div>
-      </div>
+          {!isVoided && (
+            <dl className="mt-3 sm:ml-auto sm:max-w-xs">
+              <div className="flex items-baseline justify-between gap-4 border-t border-[var(--color-border)] pt-2">
+                <dt className="text-sm font-medium text-[var(--color-text)]">{tPayments('remainingBalance')}</dt>
+                <dd
+                  className={cn('text-right font-mono tabular-nums', remainingBalance <= 0 ? 'text-sm font-medium' : 'text-lg font-semibold text-[var(--color-text)]')}
+                  style={remainingBalance <= 0 ? { color: 'color-mix(in oklab, var(--color-success) 80%, var(--color-text))' } : undefined}
+                >
+                  {remainingBalance <= 0 ? tPayments('fullyPaid') : money(remainingBalance)}
+                </dd>
+              </div>
+            </dl>
+          )}
+        </section>
+
+        {/* Seguimiento */}
+        <footer className="border-t border-dashed border-[var(--color-border)] bg-[var(--color-surface-sunken)] px-5 py-4 sm:px-8">
+          <h2 className={LABEL}>{tDoc('timeline')}</h2>
+          <ol className="mt-2 grid gap-2 sm:grid-cols-3">
+            {steps.map((step) => (
+              <li key={step.key} className="flex items-start gap-2">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                    step.at
+                      ? 'border-[var(--color-success)] bg-[var(--color-success)] text-white'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface)]',
+                  )}
+                >
+                  {step.at && <Icon name="check" className="h-2.5 w-2.5" strokeWidth={3} />}
+                </span>
+                <div>
+                  <p className={cn('text-sm', step.at ? 'text-[var(--color-text)]' : 'text-[var(--color-muted)]')}>{step.label}</p>
+                  <p className="text-xs text-[var(--color-muted)]">{step.at ? formatLocalDate(step.at, 'long') : tDoc('pendingStep')}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </footer>
+      </article>
 
       {/* Monto a pagar en una fecha, con los punitorios devengados */}
-      {!readOnly && canAct && [LiquidacionStatus.Enviada, LiquidacionStatus.Vencida].includes(data.status as LiquidacionStatus) && (
+      {canRegisterPayment && (
         <PayoffPanel
           liquidacionId={liquidacionId}
           currency={data.currency}
           onPay={(amount, date) => setPayoff({ amount, date })}
         />
       )}
+
+      <p className="text-xs text-[var(--color-muted)]">
+        {tDetail('updatedAt')}: {formatLocalDate(data.updatedAt, 'long')}
+      </p>
+
+      {/* Alta y edición de un concepto */}
+      <Dialog open={showLineItemForm} onClose={() => setShowLineItemForm(false)} size="sm" busy={actionLoading === 'lineItem'}>
+        <form onSubmit={handleSaveLineItem}>
+          <DialogHeader>
+            <h3 className="text-base font-semibold text-[var(--color-text)]">
+              {editingLineItem ? t('lineItemForm.editTitle') : t('lineItemForm.title')}
+            </h3>
+          </DialogHeader>
+          <DialogBody className="space-y-4">
+            <label className="block text-xs font-medium text-[var(--color-muted)]">
+              {t('lineItemForm.type')}
+              <select value={liType} onChange={(e) => setLiType(e.target.value)} className={FIELD} required>
+                <option value="">{tLineItems('selectType')}</option>
+                {Object.values(LineItemType).map((t2) => (
+                  <option key={t2} value={t2}>{tTypes(t2)}</option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-xs font-medium text-[var(--color-muted)]">
+              {t('lineItemForm.description')}
+              <input
+                type="text"
+                value={liDescription}
+                onChange={(e) => setLiDescription(e.target.value)}
+                placeholder={tLineItems('descriptionPlaceholder')}
+                className={FIELD}
+                required
+              />
+            </label>
+            <label className="block text-xs font-medium text-[var(--color-muted)]">
+              {t('lineItemForm.amount')}
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={liAmount}
+                onChange={(e) => setLiAmount(e.target.value)}
+                placeholder={tLineItems('amountPlaceholder')}
+                className={cn(FIELD, 'font-mono tabular-nums')}
+                required
+              />
+            </label>
+          </DialogBody>
+          <DialogFooter>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setShowLineItemForm(false)}>
+              {t('lineItemForm.cancel')}
+            </Button>
+            <Button type="submit" size="sm" disabled={actionLoading === 'lineItem'}>
+              {actionLoading === 'lineItem' && <Spinner className="w-3 h-3 text-white" />}
+              {t('lineItemForm.save')}
+            </Button>
+          </DialogFooter>
+        </form>
+      </Dialog>
 
       {/* PaymentForm modal */}
       {(showPaymentForm || payoff) && (
@@ -709,7 +737,7 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
             setShowPaymentForm(false);
             setPayoff(null);
             setFeedback({ type: 'success', msg: tPayments('registerSuccess') });
-            fetchData();
+            void fetchData();
           }}
           onClose={() => {
             setShowPaymentForm(false);
@@ -727,12 +755,6 @@ export function LiquidacionDetail({ liquidacionId }: LiquidacionDetailProps) {
           onDone={() => void fetchData()}
         />
       )}
-
-      {/* Metadata */}
-      <div className="text-xs text-slate-400 flex gap-4">
-        <span>{tDetail('createdAt')}: {formatLocalDate(data.createdAt, 'long')}</span>
-        <span>{tDetail('updatedAt')}: {formatLocalDate(data.updatedAt, 'long')}</span>
-      </div>
     </div>
   );
 }
