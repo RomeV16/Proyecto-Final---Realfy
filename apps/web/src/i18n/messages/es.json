@@ -3340,7 +3340,7 @@
  },
  "tickets": {
   "title": "Tickets",
-  "subtitle": "Gestión de tickets de mantenimiento y reclamos",
+  "subtitle": "Reclamos y pedidos de mantenimiento, ordenados por prioridad y plazo.",
   "newTicket": "Nuevo ticket",
   "backToList": "Volver a tickets",
   "filters": {
@@ -3563,7 +3563,7 @@
    "assignedToPlaceholder": "Seleccionar usuario (opcional)",
    "submit": "Crear ticket",
    "creating": "Creando…",
-   "created": "Ticket creado exitosamente",
+   "created": "Ticket creado",
    "error": "No se pudo crear el ticket"
   },
   "detail": {
@@ -3576,16 +3576,19 @@
    "reassignPlaceholder": "Seleccionar usuario",
    "reassignSuccess": "Ticket reasignado",
    "reassignError": "Error al reasignar",
-   "slaDeadline": "Fecha límite SLA",
-   "slaOverdue": "Vencido",
-   "slaRemaining": "Quedan {hours}h",
+   "slaDeadline": "Plazo de respuesta",
+   "slaOverdue": "fuera de plazo hace {time}",
+   "slaRemaining": "vence en {time}",
    "transition": "Cambiar estado",
    "transitionSuccess": "Estado actualizado",
    "transitionError": "No se pudo cambiar el estado",
-   "noTransitions": "Sin transiciones disponibles",
+   "noTransitions": "Este ticket ya no admite cambios de estado.",
    "createdAt": "Creado el",
    "updatedAt": "Última actualización",
-   "noUsers": "No hay usuarios para asignar"
+   "noUsers": "No hay usuarios para asignar",
+   "transitionQuestion": "¿Qué pasó con este ticket?",
+   "loadError": "No pudimos cargar el ticket. Revisá la conexión y volvé a intentar.",
+   "retry": "Reintentar"
   },
   "timeline": {
    "title": "Actividad",
@@ -3603,20 +3606,20 @@
   "card": {
    "noAssignee": "Sin asignar",
    "noCategory": "Sin categoría",
-   "slaOverdue": "SLA vencido",
+   "slaOverdue": "Fuera de plazo",
    "created": "Creado",
    "age": "{days, plural, =0 {Abierto hoy} one {Hace # día} other {Hace # días}}",
    "view": "Ver ticket"
   },
   "empty": {
    "title": "No hay tickets",
-   "subtitle": "Creá tu primer ticket de mantenimiento o reclamo",
-   "filtered": "No se encontraron tickets con los filtros aplicados",
+   "subtitle": "Cargá el primer reclamo o pedido de mantenimiento.",
+   "filtered": "Ningún ticket coincide con los filtros.",
    "detail": "Ticket no encontrado",
    "description": "Los tickets organizan reclamos y solicitudes de mantenimiento. Cada ticket se asigna, se sigue y se resuelve de forma trazable.",
-   "step1": "Hacé clic en 'Nuevo ticket'",
-   "step2": "Seleccioná tipo, propiedad y describí el problema",
-   "step3": "Asigná a un responsable o proveedor"
+   "step1": "Tocá «Nuevo ticket».",
+   "step2": "Elegí la propiedad y contá qué pasa.",
+   "step3": "Asignale un responsable o un proveedor."
   },
   "pagination": {
    "showing": "Mostrando {from}-{to} de {total}",
@@ -3629,7 +3632,7 @@
    "assign": "Asignar proveedor",
    "assignPlaceholder": "Seleccionar proveedor",
    "noProviders": "No hay proveedores disponibles para este ticket",
-   "assignSuccess": "Proveedor asignado exitosamente",
+   "assignSuccess": "Proveedor asignado",
    "assignError": "Error al asignar proveedor",
    "status": "Estado del proveedor",
    "name": "Nombre del proveedor",
@@ -3678,6 +3681,26 @@
    "deleteError": "Error al eliminar la categoría",
    "empty": "No hay categorías configuradas",
    "showInactive": "Mostrar inactivas"
+  },
+  "elapsed": {
+   "minutes": "{count, plural, one {# minuto} other {# minutos}}",
+   "hours": "{count, plural, one {# hora} other {# horas}}",
+   "days": "{count, plural, one {# día} other {# días}}",
+   "weeks": "{count, plural, one {# semana} other {# semanas}}",
+   "months": "{count, plural, one {# mes} other {# meses}}",
+   "years": "{count, plural, one {# año} other {# años}}"
+  },
+  "list": {
+   "groups": {
+    "overdue": "Fuera de plazo",
+    "open": "En plazo",
+    "closed": "Cerrados"
+   },
+   "overdueFor": "Fuera de plazo hace {time}",
+   "dueIn": "Vence en {time}",
+   "noDeadline": "Sin plazo definido",
+   "deadlineOn": "Plazo: {date}",
+   "openedAgo": "Abierto hace {time}"
   }
  },
  "providers": {

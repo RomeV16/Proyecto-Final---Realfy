@@ -83,19 +83,47 @@ describe('TicketListPage', () => {
     auth.role = 'Admin';
   });
 
-  it('muestra tarjetas con vencimiento de SLA, antigüedad y avisos', async () => {
+  it('agrupa por plazo y muestra las duraciones en palabras', async () => {
     apiClient.mockResolvedValue(list());
     renderEs(<TicketListPage />);
     expect(await screen.findByText('Pérdida de agua de prueba')).toBeInTheDocument();
-    expect(screen.getByText('SLA vencido')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Fuera de plazo' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'En plazo' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Cerrados' })).toBeInTheDocument();
+    expect(screen.getByText(/^Fuera de plazo hace \d+ (meses|años?)$/)).toBeInTheDocument();
+    expect(screen.queryByText(/SLA/)).not.toBeInTheDocument();
     expect(screen.getAllByText('Sin asignar').length).toBeGreaterThan(0);
-    expect(screen.getByText('Plomería')).toBeInTheDocument();
-    expect(screen.getByText('Hace 5 días')).toBeInTheDocument();
-    expect(screen.getByText('Abierto hoy')).toBeInTheDocument();
-    expect(screen.getByText(/10.ene/i)).toBeInTheDocument();
-    expect(screen.getByText(/20.nov/i)).toBeInTheDocument();
+    expect(screen.getByText(/Plomería · Depto de prueba/)).toBeInTheDocument();
+    expect(screen.getByText('Sin plazo definido')).toBeInTheDocument();
+    expect(screen.getByText('Abierto hace 1 minuto')).toBeInTheDocument();
+    expect(screen.getByText('Abierto hace 1 día')).toBeInTheDocument();
+    expect(screen.getByText(/Plazo: 10.ene/i)).toBeInTheDocument();
     expect(screen.getByText('Pedro Simulado')).toBeInTheDocument();
     expect(apiClient).toHaveBeenCalledWith('/tickets?page=1&limit=20');
+  });
+
+  it('dentro de un grupo va primero lo más urgente y después lo que vence antes', async () => {
+    const soon = new Date(Date.now() + 2 * 86400000).toISOString();
+    const later = new Date(Date.now() + 20 * 86400000).toISOString();
+    apiClient.mockResolvedValue(
+      list({
+        data: [
+          { id: 'a', title: 'Baja sin plazo', status: 'Abierto', priority: 'Baja', createdAt: daysAgo(1) },
+          { id: 'b', title: 'Alta que vence después', status: 'Abierto', priority: 'Alta', slaDeadline: later, createdAt: daysAgo(1) },
+          { id: 'c', title: 'Alta que vence antes', status: 'Abierto', priority: 'Alta', slaDeadline: soon, createdAt: daysAgo(1) },
+          { id: 'd', title: 'Urgente', status: 'Asignado', priority: 'Urgente', createdAt: daysAgo(1) },
+        ],
+      }),
+    );
+    renderEs(<TicketListPage />);
+    await screen.findByText('Urgente', { selector: 'span.truncate' });
+    const titles = screen.getAllByRole('link').map((l) => l.textContent ?? '');
+    const order = ['Urgente', 'Alta que vence antes', 'Alta que vence después', 'Baja sin plazo'].map((name) =>
+      titles.findIndex((text) => text.includes(name)),
+    );
+    expect(order).toEqual([...order].sort((x, y) => x - y));
+    expect(screen.getByText(/^Vence en (1|2) días?$/)).toBeInTheDocument();
+    expect(screen.getByText(/^Vence en 2 semanas$/)).toBeInTheDocument();
   });
 
   it('los enlaces llevan el prefijo de idioma', async () => {
