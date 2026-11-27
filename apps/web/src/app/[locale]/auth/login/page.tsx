@@ -71,7 +71,7 @@ export default function LoginPage() {
         role: res.user.role,
       });
       setExiting(true);
-      router.push('/');
+      router.push('/dashboard');
     } catch (err) {
       setServerError(err instanceof ApiRequestError ? t('auth.login.error') : t('common.error'));
       setLoading(false);

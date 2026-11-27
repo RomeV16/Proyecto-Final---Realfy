@@ -2,9 +2,11 @@
 
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton';
 import { useNavCollapse } from '@/components/layout/nav-collapse';
+import { stripLocale } from '@/components/layout/nav-progress';
 import { useVisibleNavSections } from '@/components/layout/nav-items';
 import { SEGMENT_LABELS } from '@/components/layout/segment-labels';
 import {
@@ -28,9 +30,22 @@ import { transition, useTransitionState } from '@/lib/transition-store';
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-/** How long the cover holds before revealing the app underneath. */
-const HOLD_MS = 2100;
-const HOLD_MS_REDUCED = 450;
+/** Shortest time the cover holds before revealing the app underneath. */
+export const HOLD_MS = 2100;
+export const HOLD_MS_REDUCED = 450;
+/** Once the panel route is on screen, a beat for it to paint before the cover lifts. */
+export const SETTLE_MS = 200;
+/** The cover never stays longer than this, whatever happens to the navigation. */
+export const MAX_WAIT_MS = 10000;
+
+/** True once the browser is on a panel screen (not the login nor the bare locale root). */
+export function isPanelPath(pathname: string | null): boolean {
+  const path = stripLocale(pathname ?? '/');
+  return path !== '/' && path !== '' && !path.startsWith('/auth');
+}
+
+/** The cover fades in over the login form instead of cutting to an empty screen. */
+const COVER_IN_S = 0.2;
 
 /** The panel opens on the dashboard, so that is the row the cover marks active. */
 const ACTIVE_KEY = 'dashboard';
@@ -54,15 +69,27 @@ export function LoginToPanel() {
   const sections = useVisibleNavSections(data.role);
   const { isCollapsed } = useNavCollapse();
   const locale = useLocale();
+  const arrived = isPanelPath(usePathname());
+  const [held, setHeld] = useState(false);
 
+  // The cover holds for a minimum time and, past that, until the panel route is actually on
+  // screen: lifting it on a timer alone showed an empty page when the panel was slow to load.
   useEffect(() => {
     if (!active) return;
-    const timer = setTimeout(
-      () => transition.end(),
-      reduceMotion ? HOLD_MS_REDUCED : HOLD_MS,
-    );
-    return () => clearTimeout(timer);
+    setHeld(false);
+    const hold = setTimeout(() => setHeld(true), reduceMotion ? HOLD_MS_REDUCED : HOLD_MS);
+    const giveUp = setTimeout(() => transition.end(), MAX_WAIT_MS);
+    return () => {
+      clearTimeout(hold);
+      clearTimeout(giveUp);
+    };
   }, [active, runId, reduceMotion]);
+
+  useEffect(() => {
+    if (!active || !held || !arrived) return;
+    const timer = setTimeout(() => transition.end(), SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [active, held, arrived]);
 
   const firstName = data.firstName || '';
   const lastName = data.lastName || '';
@@ -95,8 +122,11 @@ export function LoginToPanel() {
         <motion.div
           key={`ltp-${runId}`}
           className="fixed inset-0 z-[200] flex overflow-hidden bg-[var(--color-bg)]"
-          initial={{ opacity: 1 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: 1,
+            transition: { duration: reduceMotion ? 0 : COVER_IN_S, ease: 'easeOut' },
+          }}
           exit={{
             opacity: 0,
             transition: { duration: reduceMotion ? 0.2 : 0.6, ease: EASE },

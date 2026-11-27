@@ -56,7 +56,7 @@ describe('ingreso', () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ user: ana }), { status: 200 }));
     renderEs(<LoginPage />);
     await signIn();
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/'));
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/dashboard'));
     expect(start).toHaveBeenCalledWith({ firstName: 'Ana', lastName: 'Prueba', role: 'Gerente' });
     expect(JSON.parse(localStorage.getItem('user')!).id).toBe('u1');
     expect(assignLocation).not.toHaveBeenCalled();
