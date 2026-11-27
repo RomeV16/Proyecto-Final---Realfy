@@ -417,7 +417,7 @@ condición que no se entiende, una lista que no existe), la pantalla lo marca mi
 se escribe, con la línea y la columna, y no deja guardarla.
 
 **Formato del documento.** Cada renglón del texto es un párrafo (justificado); un
-renglón que empieza con `# ` es un título centrado y `texto` sale en negrita, en
+renglón que empieza con `# ` es un título centrado y `**texto**` sale en negrita, en
 el PDF y en el Word. No hay más formato: tamaños, tablas ni encabezados propios no
 están.
 

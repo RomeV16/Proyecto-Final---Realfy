@@ -82,7 +82,7 @@ nuevas en `tenants`). Los importes y las fechas en letras reutilizan `amountInWo
 y suman `dateInWords`; las fechas del contrato se leen en UTC (son fechas sin hora).
 
 **Documento.** El PDF y el Word siguen siendo texto resuelto, un renglón por párrafo,
-ahora justificado; `# ` abre un título centrado y `x` es negrita
+ahora justificado; `# ` abre un título centrado y `**x**` es negrita
 (`parseDocumentText`, compartido). No se agregan más formatos.
 
 ## Alternativas descartadas
