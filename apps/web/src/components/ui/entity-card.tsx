@@ -443,7 +443,7 @@ export function EntityRow({
         {leading && <div className="relative z-[2] shrink-0">{leading}</div>}
 
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold text-[var(--color-text)] transition-colors group-hover:text-[var(--color-brand-600)]">
+          <h3 className="max-sm:line-clamp-2 sm:truncate text-sm font-semibold text-[var(--color-text)] transition-colors group-hover:text-[var(--color-brand-600)]">
             {title}
           </h3>
           {subtitle && <p className="truncate text-xs text-[var(--color-muted)]">{subtitle}</p>}
