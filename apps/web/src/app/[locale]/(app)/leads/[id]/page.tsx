@@ -14,6 +14,7 @@ import {
 } from '@realfy/shared';
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Icon } from '@/components/ui/icon';
@@ -641,263 +642,243 @@ export default function LeadDetailPage() {
       </div>
 
       {/* ──────── Log Interaction Modal ──────── */}
-      {showInteractionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowInteractionModal(false)} />
-          <div className="relative bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-md p-6 mx-4 animate-zoom-in">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">{t('logInteraction')}</h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('type')}</label>
-                <select
-                  value={interactionType}
-                  onChange={(e) => setInteractionType(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-                >
-                  {Object.values(InteractionType).map((type) => (
-                    <option key={type} value={type}>
-                      {t(`types.${type}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('notes')}</label>
-                <textarea
-                  value={interactionNotes}
-                  onChange={(e) => setInteractionNotes(e.target.value)}
-                  rows={4}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
-                  placeholder="Detalles de la interacción..."
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowInteractionModal(false)}
-                className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                {tCommon('cancel')}
-              </button>
-              <button
-                onClick={handleCreateInteraction}
-                disabled={submitting}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
-              >
-                {submitting && <Spinner className="w-4 h-4 text-white" />}
-                {submitting ? 'Guardando...' : tCommon('save')}
-              </button>
-            </div>
+      <Dialog open={showInteractionModal} onClose={() => setShowInteractionModal(false)} busy={submitting} className="sm:max-w-md">
+        <DialogHeader>
+          <h3 className="text-lg font-semibold text-slate-900">{t('logInteraction')}</h3>
+        </DialogHeader>
+        <DialogBody className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('type')}</label>
+            <select
+              value={interactionType}
+              onChange={(e) => setInteractionType(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            >
+              {Object.values(InteractionType).map((type) => (
+                <option key={type} value={type}>
+                  {t(`types.${type}`)}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('notes')}</label>
+            <textarea
+              value={interactionNotes}
+              onChange={(e) => setInteractionNotes(e.target.value)}
+              rows={4}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
+              placeholder="Detalles de la interacción..."
+            />
+          </div>
+        </DialogBody>
+        <DialogFooter>
+          <button
+            onClick={() => setShowInteractionModal(false)}
+            className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            {tCommon('cancel')}
+          </button>
+          <button
+            onClick={handleCreateInteraction}
+            disabled={submitting}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
+          >
+            {submitting && <Spinner className="w-4 h-4 text-white" />}
+            {submitting ? 'Guardando...' : tCommon('save')}
+          </button>
+        </DialogFooter>
+      </Dialog>
 
       {/* ──────── Schedule Visit Modal ──────── */}
-      {showVisitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowVisitModal(false)} />
-          <div className="relative bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-md p-6 mx-4 animate-zoom-in">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">{t('scheduleVisit')}</h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('visits.scheduledAt')}</label>
-                <input
-                  type="datetime-local"
-                  value={visitScheduledAt}
-                  onChange={(e) => setVisitScheduledAt(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('notes')}</label>
-                <textarea
-                  value={visitNotes}
-                  onChange={(e) => setVisitNotes(e.target.value)}
-                  rows={3}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
-                  placeholder="Notas sobre la visita..."
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowVisitModal(false)}
-                className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                {tCommon('cancel')}
-              </button>
-              <button
-                onClick={handleCreateVisit}
-                disabled={submitting || !visitScheduledAt}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
-              >
-                {submitting && <Spinner className="w-4 h-4 text-white" />}
-                {submitting ? 'Guardando...' : tCommon('save')}
-              </button>
-            </div>
+      <Dialog open={showVisitModal} onClose={() => setShowVisitModal(false)} busy={submitting} className="sm:max-w-md">
+        <DialogHeader>
+          <h3 className="text-lg font-semibold text-slate-900">{t('scheduleVisit')}</h3>
+        </DialogHeader>
+        <DialogBody className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('visits.scheduledAt')}</label>
+            <input
+              type="datetime-local"
+              value={visitScheduledAt}
+              onChange={(e) => setVisitScheduledAt(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('notes')}</label>
+            <textarea
+              value={visitNotes}
+              onChange={(e) => setVisitNotes(e.target.value)}
+              rows={3}
+              className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
+              placeholder="Notas sobre la visita..."
+            />
+          </div>
+        </DialogBody>
+        <DialogFooter>
+          <button
+            onClick={() => setShowVisitModal(false)}
+            className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            {tCommon('cancel')}
+          </button>
+          <button
+            onClick={handleCreateVisit}
+            disabled={submitting || !visitScheduledAt}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
+          >
+            {submitting && <Spinner className="w-4 h-4 text-white" />}
+            {submitting ? 'Guardando...' : tCommon('save')}
+          </button>
+        </DialogFooter>
+      </Dialog>
 
       {/* ──────── Update Visit Modal ──────── */}
-      {showUpdateVisitModal && selectedVisit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowUpdateVisitModal(false)} />
-          <div className="relative bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-md p-6 mx-4 animate-zoom-in">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">{t('visits.updateVisit')}</h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('visits.status')}</label>
-                <select
-                  value={visitStatus}
-                  onChange={(e) => setVisitStatus(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-                >
-                  {Object.values(VisitStatus).map((s) => (
-                    <option key={s} value={s}>
-                      {t(`visits.statuses.${s}`)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {visitStatus === VisitStatus.Completada && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('visits.outcome')}</label>
-                  <select
-                    value={visitOutcome}
-                    onChange={(e) => setVisitOutcome(e.target.value)}
-                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-                  >
-                    <option value="">— Seleccionar —</option>
-                    {Object.values(VisitOutcome).map((o) => (
-                      <option key={o} value={o}>
-                        {t(`visits.outcomes.${o}`)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowUpdateVisitModal(false)}
-                className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                {tCommon('cancel')}
-              </button>
-              <button
-                onClick={handleUpdateVisit}
-                disabled={submitting}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
-              >
-                {submitting && <Spinner className="w-4 h-4 text-white" />}
-                {submitting ? 'Guardando...' : tCommon('save')}
-              </button>
-            </div>
+      <Dialog open={showUpdateVisitModal && !!selectedVisit} onClose={() => setShowUpdateVisitModal(false)} busy={submitting} className="sm:max-w-md">
+        <DialogHeader>
+          <h3 className="text-lg font-semibold text-slate-900">{t('visits.updateVisit')}</h3>
+        </DialogHeader>
+        <DialogBody className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('visits.status')}</label>
+            <select
+              value={visitStatus}
+              onChange={(e) => setVisitStatus(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            >
+              {Object.values(VisitStatus).map((s) => (
+                <option key={s} value={s}>
+                  {t(`visits.statuses.${s}`)}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+
+          {visitStatus === VisitStatus.Completada && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('visits.outcome')}</label>
+              <select
+                value={visitOutcome}
+                onChange={(e) => setVisitOutcome(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              >
+                <option value="">— Seleccionar —</option>
+                {Object.values(VisitOutcome).map((o) => (
+                  <option key={o} value={o}>
+                    {t(`visits.outcomes.${o}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </DialogBody>
+        <DialogFooter>
+          <button
+            onClick={() => setShowUpdateVisitModal(false)}
+            className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            {tCommon('cancel')}
+          </button>
+          <button
+            onClick={handleUpdateVisit}
+            disabled={submitting}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
+          >
+            {submitting && <Spinner className="w-4 h-4 text-white" />}
+            {submitting ? 'Guardando...' : tCommon('save')}
+          </button>
+        </DialogFooter>
+      </Dialog>
 
       {/* ──────── Send Email Modal ──────── */}
-      {showSendEmailModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowSendEmailModal(false)} />
-          <div className="relative bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-lg p-6 mx-4 max-h-[90vh] overflow-y-auto animate-zoom-in">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">{t('sendEmail')}</h3>
+      <Dialog open={showSendEmailModal} onClose={() => setShowSendEmailModal(false)} busy={sendingEmail}>
+        <DialogHeader>
+          <h3 className="text-lg font-semibold text-slate-900">{t('sendEmail')}</h3>
+        </DialogHeader>
+        <DialogBody className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('selectTemplate')}</label>
+            <select
+              value={selectedTemplateId}
+              onChange={(e) => setSelectedTemplateId(e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            >
+              <option value="">— {t('selectTemplate')} —</option>
+              {emailTemplates.map((tmpl) => (
+                <option key={tmpl.id} value={tmpl.id}>
+                  {tmpl.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            <div className="space-y-4">
+          {lead?.person.email && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">{tLeads('form.email')}</label>
+              <p className="text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-200">
+                {lead.person.email}
+              </p>
+            </div>
+          )}
+
+          {selectedTemplate && (
+            <div className="bg-slate-50 rounded-lg border border-slate-200 p-4 space-y-3">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{t('previewEmail')}</p>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('selectTemplate')}</label>
-                <select
-                  value={selectedTemplateId}
-                  onChange={(e) => setSelectedTemplateId(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-                >
-                  <option value="">— {t('selectTemplate')} —</option>
-                  {emailTemplates.map((tmpl) => (
-                    <option key={tmpl.id} value={tmpl.id}>
-                      {tmpl.name}
-                    </option>
-                  ))}
-                </select>
+                <p className="text-xs text-slate-500 mb-1">Asunto:</p>
+                <p className="text-sm font-medium text-slate-900 bg-white rounded-md border border-slate-200 px-3 py-2">
+                  {previewSubjectEmail}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Cuerpo:</p>
+                <div
+                  className="text-sm text-slate-900 bg-white rounded-md border border-slate-200 px-3 py-2 max-h-48 overflow-y-auto"
+                  dangerouslySetInnerHTML={{ __html: previewBodyEmail }}
+                />
               </div>
 
-              {lead?.person.email && (
+              {selectedTemplate.variables.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5">{tLeads('form.email')}</label>
-                  <p className="text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-200">
-                    {lead.person.email}
-                  </p>
-                </div>
-              )}
-
-              {selectedTemplate && (
-                <div className="bg-slate-50 rounded-lg border border-slate-200 p-4 space-y-3">
-                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{t('previewEmail')}</p>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">Asunto:</p>
-                    <p className="text-sm font-medium text-slate-900 bg-white rounded-md border border-slate-200 px-3 py-2">
-                      {previewSubjectEmail}
-                    </p>
+                  <p className="text-xs text-slate-500 mb-1">{t('variablesPreview')}:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedTemplate.variables.map((v) => (
+                      <span
+                        key={v}
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          variableMap[v]
+                            ? 'bg-green-50 text-green-700 border border-green-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}
+                      >
+                        {v}: {variableMap[v] || `{{${v}}}`}
+                      </span>
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1">Cuerpo:</p>
-                    <div
-                      className="text-sm text-slate-900 bg-white rounded-md border border-slate-200 px-3 py-2 max-h-48 overflow-y-auto"
-                      dangerouslySetInnerHTML={{ __html: previewBodyEmail }}
-                    />
-                  </div>
-
-                  {selectedTemplate.variables.length > 0 && (
-                    <div>
-                      <p className="text-xs text-slate-500 mb-1">{t('variablesPreview')}:</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {selectedTemplate.variables.map((v) => (
-                          <span
-                            key={v}
-                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                              variableMap[v]
-                                ? 'bg-green-50 text-green-700 border border-green-200'
-                                : 'bg-amber-50 text-amber-700 border border-amber-200'
-                            }`}
-                          >
-                            {v}: {variableMap[v] || `{{${v}}}`}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => setShowSendEmailModal(false)}
-                className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                {tCommon('cancel')}
-              </button>
-              <button
-                onClick={handleSendEmail}
-                disabled={sendingEmail || !selectedTemplateId}
-                className="px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
-              >
-                {sendingEmail ? t('sending') : t('sendEmail')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          )}
+        </DialogBody>
+        <DialogFooter>
+          <button
+            onClick={() => setShowSendEmailModal(false)}
+            className="px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            {tCommon('cancel')}
+          </button>
+          <button
+            onClick={handleSendEmail}
+            disabled={sendingEmail || !selectedTemplateId}
+            className="px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50"
+          >
+            {sendingEmail ? t('sending') : t('sendEmail')}
+          </button>
+        </DialogFooter>
+      </Dialog>
     </div>
   );
 }

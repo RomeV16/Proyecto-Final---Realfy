@@ -6,7 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icon';
 import { apiClient, ApiRequestError } from '@/lib/api-client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Dialog, DialogBody, DialogFooter, DialogHeader } from '@/components/ui/dialog';
 import { useCan } from '@/lib/permissions';
 
 // ─── Types ──────────────────────────────────────────────
@@ -100,29 +101,31 @@ function ConfirmDialog({
   confirmLabel: string;
   cancelLabel: string;
 }) {
-  if (!open) return null;
+  const cancelRef = useRef<HTMLButtonElement>(null);
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 animate-zoom-in">
+    <Dialog open={open} onClose={onCancel} size="sm" initialFocusRef={cancelRef} describedBy="pipeline-confirm-desc">
+      <DialogHeader>
         <h3 className="text-lg font-semibold text-[var(--color-text)]">{title}</h3>
-        <p className="text-sm text-[var(--color-muted)]">{description}</p>
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text)] text-sm font-medium hover:bg-[var(--color-bg)] transition-colors"
-          >
-            {cancelLabel}
-          </button>
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2.5 rounded-lg bg-[var(--color-danger)] text-white text-sm font-medium hover:brightness-95 transition-colors"
-          >
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
+      </DialogHeader>
+      <DialogBody>
+        <p id="pipeline-confirm-desc" className="text-sm text-[var(--color-muted)]">{description}</p>
+      </DialogBody>
+      <DialogFooter>
+        <button
+          ref={cancelRef}
+          onClick={onCancel}
+          className="px-4 py-2.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text)] text-sm font-medium hover:bg-[var(--color-bg)] transition-colors"
+        >
+          {cancelLabel}
+        </button>
+        <button
+          onClick={onConfirm}
+          className="px-4 py-2.5 rounded-lg bg-[var(--color-danger)] text-white text-sm font-medium hover:brightness-95 transition-colors"
+        >
+          {confirmLabel}
+        </button>
+      </DialogFooter>
+    </Dialog>
   );
 }
 
@@ -147,8 +150,7 @@ function AddStageModal({
   const [staleDays, setStaleDays] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-
-  if (!open) return null;
+  const nameRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -180,34 +182,32 @@ function AddStageModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 animate-zoom-in">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--color-text)]">{t('addModal.title')}</h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded-lg text-[var(--color-muted)] hover:text-[var(--color-muted)] hover:bg-[var(--color-bg)] transition-colors"
-            aria-label={tCommon('close')}
-          >
-            <IconX />
-          </button>
-        </div>
+    <Dialog open={open} onClose={onClose} busy={submitting} className="sm:max-w-md" initialFocusRef={nameRef}>
+      <DialogHeader>
+        <h2 className="text-lg font-semibold text-[var(--color-text)]">{t('addModal.title')}</h2>
+        <button
+          onClick={onClose}
+          className="p-1 rounded-lg text-[var(--color-muted)] hover:text-[var(--color-muted)] hover:bg-[var(--color-bg)] transition-colors"
+          aria-label={tCommon('close')}
+        >
+          <IconX />
+        </button>
+      </DialogHeader>
 
-        <div className="space-y-4">
+      <DialogBody className="space-y-4">
           <div>
             <label htmlFor="stageName" className="block text-sm font-medium text-[var(--color-text)] mb-1.5">
               {t('addModal.namePlaceholder')}
             </label>
             <input
               id="stageName"
+              ref={nameRef}
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
               placeholder={t('addModal.namePlaceholder')}
               className="w-full max-w-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
-              autoFocus
             />
           </div>
           <div>
@@ -225,32 +225,31 @@ function AddStageModal({
               className="w-full max-w-sm rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             />
           </div>
-        </div>
 
         {error && (
           <div className="p-3 rounded-lg bg-[color-mix(in_oklab,var(--color-danger)_10%,var(--color-surface))] border border-[color-mix(in_oklab,var(--color-danger)_28%,var(--color-border))] text-[var(--color-danger)] text-sm">
             {error}
           </div>
         )}
+      </DialogBody>
 
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text)] text-sm font-medium hover:bg-[var(--color-bg)] transition-colors"
-          >
-            {tCommon('cancel')}
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || !name.trim()}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {submitting && <Spinner className="w-4 h-4 text-white" />}
-            {submitting ? t('addModal.submitting') : t('addModal.submit')}
-          </button>
-        </div>
-      </div>
-    </div>
+      <DialogFooter>
+        <button
+          onClick={onClose}
+          className="px-4 py-2.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text)] text-sm font-medium hover:bg-[var(--color-bg)] transition-colors"
+        >
+          {tCommon('cancel')}
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={submitting || !name.trim()}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {submitting && <Spinner className="w-4 h-4 text-white" />}
+          {submitting ? t('addModal.submitting') : t('addModal.submit')}
+        </button>
+      </DialogFooter>
+    </Dialog>
   );
 }
 
