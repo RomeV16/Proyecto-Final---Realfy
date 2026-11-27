@@ -4100,21 +4100,22 @@
  },
  "delinquency": {
   "title": "Delinquency",
-  "description": "Tenants with overdue payments and accrued fines",
+  "description": "Overdue tenant debt by how long it has been unpaid, and who owes it.",
+  "goToCollections": "Go to collections",
   "refresh": "Refresh",
   "forbidden": "You do not have permission to view this section",
-  "loadError": "Error loading delinquency data",
-  "emptyTitle": "No delinquent tenants",
-  "emptyDescription": "There are no overdue liquidaciones at this time",
+  "loadError": "Could not load delinquency data",
+  "emptyTitle": "No tenants overdue",
+  "emptyDescription": "No overdue statement has an outstanding balance.",
   "colName": "Tenant",
   "colProperty": "Property",
   "colDebt": "Debt",
-  "colPenalty": "Fines",
+  "colPenalty": "Late fees",
   "colDays": "Days overdue",
   "colLastReminder": "Last reminder",
   "days": "days",
-  "totalDebt": "Total debt",
-  "accruedPenalty": "Accrued fine",
+  "totalDebt": "Overdue debt",
+  "accruedPenalty": "Accrued late fees",
   "lastReminder": "Last notice",
   "noReminder": "No notices sent",
   "sendReminder": "Send notice",
@@ -4134,7 +4135,29 @@
   "forbiddenHint": "Ask an administrator to grant you access to delinquency.",
   "severeCount": "Severe cases",
   "severeHint": "Over 30 days overdue",
-  "tenantCount": "{count, plural, =0 {No tenants overdue} one {# tenant} other {# tenants}}"
+  "tenantCount": "{count, plural, =0 {No tenants overdue} one {# tenant overdue} other {# tenants overdue}}",
+  "aging": {
+   "title": "Debt by age",
+   "oldest": "{days, plural, one {oldest arrears: # day} other {oldest arrears: # days}}",
+   "penaltyHint": "Added to the debt on collection.",
+   "barLabel": "Overdue debt split by age",
+   "buckets": {
+    "d30": "1 to 30 days",
+    "d60": "31 to 60 days",
+    "d90": "61 to 90 days",
+    "over": "Over 90 days"
+   },
+   "bucketCount": "{count, plural, =0 {No debtors} one {# debtor} other {# debtors}}",
+   "share": "{pct}% of the debt",
+   "note": "Each debt counts in the bracket of its oldest unpaid due date."
+  },
+  "ranking": {
+   "title": "Debtors",
+   "order": "Most overdue first",
+   "position": "Rank",
+   "daysLabel": "{days, plural, one {day overdue} other {days overdue}}",
+   "noProperty": "No property"
+  }
  },
  "dataQuality": {
   "title": "Data quality",
@@ -6416,7 +6439,10 @@
   },
   "balances": {
    "title": "Lessors",
-   "subtitle": "Each lessor's account balance per currency: what the agency owes them or what they owe the agency, how much is held in custody and what is still to be paid.",
+   "subtitle": "Each lessor's account balance, per currency. Pick one to see its movements.",
+   "listLabel": "Balances by lessor",
+   "totalDue": "Total still to be paid:",
+   "nothingDue": "No payments pending to lessors.",
    "currency": "Currency",
    "allCurrencies": "All currencies",
    "noStatement": "No issued statements",
@@ -6437,7 +6463,11 @@
    "back": "Lessors",
    "title": "{name}'s account",
    "titleLoading": "Lessor account",
-   "subtitle": "Each movement with the balance after it. Positive: the agency owes them; negative: the lessor owes the agency.",
+   "subtitle": "Debit: what is deducted or paid out. Credit: what is added. The balance is what the agency owes the lessor; when negative, what the lessor owes.",
+   "fullPage": "Open full page",
+   "carried": "Balance brought forward",
+   "closingRow": "Closing balance",
+   "closingAt": "Balance on {date}",
    "openingBalance": "Opening balance",
    "payout": "Record payout to lessor",
    "currencies": "Currencies",
@@ -6455,6 +6485,8 @@
     "description": "Detail",
     "property": "Unit",
     "amount": "Amount",
+    "debit": "Debit",
+    "credit": "Credit",
     "balance": "Balance",
     "statement": "Statement"
    },
@@ -6689,7 +6721,7 @@
  },
  "followUps": {
   "title": "Expirations",
-  "subtitle": "Contracts that are close to their end, or already past it, with the traffic light, the owner and the checklist progress of each follow-up.",
+  "subtitle": "The agenda of contracts coming to an end: what is past due, what ends today and what is coming, with the assignee and progress of each follow-up.",
   "open": "Open",
   "actionError": "The action could not be completed",
   "filters": {
@@ -6733,7 +6765,33 @@
   },
   "empty": {
    "title": "No follow-ups",
-   "subtitle": "A contract's follow-up opens when its end enters the warning window."
+   "subtitle": "A contract's follow-up opens when its end enters the warning window.",
+   "filteredTitle": "No follow-up matches the filters",
+   "filteredSubtitle": "Try another light, type or status.",
+   "clear": "Clear filters"
+  },
+  "agenda": {
+   "summary": "Follow-ups by end date",
+   "short": {
+    "overdue": "Past due",
+    "today": "Today",
+    "week": "7 days",
+    "month": "30 days",
+    "later": "Later"
+   },
+   "groups": {
+    "overdue": "Past due",
+    "today": "Ending today",
+    "week": "In the next 7 days",
+    "month": "In the next 30 days",
+    "later": "Later",
+    "closed": "Closed"
+   },
+   "ago": "{n, plural, one {Ended # day ago} other {Ended # days ago}}",
+   "today": "Ends today",
+   "inDays": "{n, plural, one {# day left} other {# days left}}",
+   "noProperty": "No property",
+   "noTenant": "No tenant"
   },
   "drawer": {
    "contract": "Contract",
@@ -7947,7 +8005,7 @@
  },
  "collections": {
   "title": "Collections",
-  "subtitle": "Contracts with overdue unpaid rent: the stage each one is in, what is owed today with penalties and what comes next. Reminders go through the outbox; the formal letter is prepared as a draft and is never sent automatically.",
+  "subtitle": "Contracts with overdue unpaid rent: the step each case is at, what is owed today with late fees and what to do now. The formal letter is prepared as a draft and is never sent automatically.",
   "forbidden": "Your role has no access to collections.",
   "noProperty": "Contract without a property",
   "noTenant": "No tenant on file",
@@ -8005,7 +8063,50 @@
   },
   "empty": {
    "title": "No collection cases",
-   "subtitle": "A case opens by itself when a contract has an overdue rent with a balance, if collections are turned on in Default values."
+   "subtitle": "A case opens by itself when a contract has an overdue rent with a balance.",
+   "subtitleOff": "With automatic collections turned off no cases are opened. Overdue debt is still shown under Delinquency.",
+   "filteredTitle": "No case matches the filters",
+   "filteredSubtitle": "Try another stage or fewer days overdue.",
+   "clear": "Clear filters"
+  },
+  "off": {
+   "title": "Automatic collections are turned off",
+   "body": "No new cases are opened and no overdue notices are scheduled. Cases that were already open can still be handled by hand.",
+   "howManager": "Turn it on in Settings, under Default values.",
+   "howOther": "An administrator or a manager can turn it on from Settings.",
+   "settings": "Open Default values",
+   "delinquency": "See overdue debt in Delinquency"
+  },
+  "queue": {
+   "label": "Collections queue",
+   "order": "Oldest arrears first",
+   "rank": "Rank",
+   "assignee": "Handled by",
+   "unassigned": "Unassigned",
+   "daysLabel": "{n, plural, one {day overdue} other {days overdue}}",
+   "balance": "Overdue balance",
+   "open": "Open",
+   "openCase": "Open the case for {name}",
+   "stageOf": "Step {n} of {total}",
+   "stagePath": "Case stages",
+   "steps": {
+    "wait": "Wait for the promised payment",
+    "confirmLetter": "Confirm the letter was sent",
+    "lawyer": "Ask the lawyer for news",
+    "court": "Follow the court case",
+    "person": "Handled by a person",
+    "remind": "Send a reminder",
+    "remindFirm": "Send a firm reminder",
+    "letter": "Send a formal demand letter",
+    "derive": "Refer to a lawyer",
+    "call": "Call the tenant"
+   },
+   "hints": {
+    "confirmLetter": "The draft is ready to print and post.",
+    "call": "No notices scheduled.",
+    "scheduled": "Scheduled for",
+    "pending": "No date yet."
+   }
   },
   "detail": {
    "loadError": "The collection case could not be loaded",

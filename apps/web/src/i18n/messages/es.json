@@ -4099,22 +4099,23 @@
   }
  },
  "delinquency": {
-  "title": "Morosos",
-  "description": "Inquilinos con liquidaciones vencidas y punitorios acumulados.",
+  "title": "Morosidad",
+  "description": "La deuda vencida de los inquilinos según cuánto tiempo lleva sin pagarse, y quiénes la deben.",
+  "goToCollections": "Ir a cobranza",
   "refresh": "Actualizar",
   "forbidden": "No tenés permisos para acceder a esta sección",
-  "loadError": "Error al cargar la lista de morosos",
-  "emptyTitle": "¡Todos al día! No hay morosos activos",
-  "emptyDescription": "No se encontraron liquidaciones vencidas con saldo pendiente.",
+  "loadError": "No se pudo cargar la morosidad",
+  "emptyTitle": "No hay inquilinos en mora",
+  "emptyDescription": "Ninguna liquidación vencida tiene saldo pendiente.",
   "colName": "Inquilino",
   "colProperty": "Propiedad",
   "colDebt": "Deuda",
-  "colPenalty": "Multas",
-  "colDays": "Días mora",
+  "colPenalty": "Punitorios",
+  "colDays": "Días de mora",
   "colLastReminder": "Último recordatorio",
   "days": "días",
-  "totalDebt": "Deuda total",
-  "accruedPenalty": "Multa acumulada",
+  "totalDebt": "Deuda vencida",
+  "accruedPenalty": "Punitorios acumulados",
   "lastReminder": "Último aviso",
   "noReminder": "Sin avisos enviados",
   "sendReminder": "Enviar aviso",
@@ -4134,7 +4135,29 @@
   "forbiddenHint": "Pedile a un administrador que te habilite el acceso a morosidad.",
   "severeCount": "Casos graves",
   "severeHint": "Más de 30 días de mora",
-  "tenantCount": "{count, plural, =0 {Sin inquilinos en mora} one {# inquilino} other {# inquilinos}}"
+  "tenantCount": "{count, plural, =0 {Sin inquilinos en mora} one {# inquilino en mora} other {# inquilinos en mora}}",
+  "aging": {
+   "title": "Deuda por antigüedad",
+   "oldest": "{days, plural, one {el atraso más viejo es de # día} other {el atraso más viejo es de # días}}",
+   "penaltyHint": "Se suman a la deuda al cobrar.",
+   "barLabel": "Reparto de la deuda vencida por antigüedad",
+   "buckets": {
+    "d30": "1 a 30 días",
+    "d60": "31 a 60 días",
+    "d90": "61 a 90 días",
+    "over": "Más de 90 días"
+   },
+   "bucketCount": "{count, plural, =0 {Sin deudores} one {# deudor} other {# deudores}}",
+   "share": "{pct} % de la deuda",
+   "note": "Cada deuda cuenta en el tramo de su vencimiento impago más viejo."
+  },
+  "ranking": {
+   "title": "Deudores",
+   "order": "Del más atrasado al menos",
+   "position": "Puesto",
+   "daysLabel": "{days, plural, one {día de mora} other {días de mora}}",
+   "noProperty": "Sin propiedad"
+  }
  },
  "dataQuality": {
   "title": "Calidad de datos",
@@ -6416,7 +6439,10 @@
   },
   "balances": {
    "title": "Locadores",
-   "subtitle": "Saldo de la cuenta corriente de cada locador por moneda: lo que la inmobiliaria le debe o lo que él le debe, cuánto está en custodia y lo que falta pagarle.",
+   "subtitle": "El saldo de la cuenta corriente de cada locador, por moneda. Elegí uno para ver sus movimientos.",
+   "listLabel": "Saldos por locador",
+   "totalDue": "Falta pagar en total:",
+   "nothingDue": "No hay pagos pendientes a locadores.",
    "currency": "Moneda",
    "allCurrencies": "Todas las monedas",
    "noStatement": "Sin estados emitidos",
@@ -6437,7 +6463,11 @@
    "back": "Locadores",
    "title": "Cuenta corriente de {name}",
    "titleLoading": "Cuenta corriente",
-   "subtitle": "Cada movimiento con el saldo después de él. Positivo: la inmobiliaria le debe; negativo: el locador le debe a la inmobiliaria.",
+   "subtitle": "Debe: lo que se le descuenta o se le paga. Haber: lo que se le acredita. El saldo es lo que la inmobiliaria le debe; en negativo, lo que el locador le debe.",
+   "fullPage": "Abrir en página completa",
+   "carried": "Saldo anterior",
+   "closingRow": "Saldo final",
+   "closingAt": "Saldo al {date}",
    "openingBalance": "Saldo inicial",
    "payout": "Registrar pago al locador",
    "currencies": "Monedas",
@@ -6455,6 +6485,8 @@
     "description": "Detalle",
     "property": "Unidad",
     "amount": "Importe",
+    "debit": "Debe",
+    "credit": "Haber",
     "balance": "Saldo",
     "statement": "Estado de cuenta"
    },
@@ -6689,7 +6721,7 @@
  },
  "followUps": {
   "title": "Vencimientos",
-  "subtitle": "Los contratos que se acercan a su fin, o que ya lo pasaron, con el semáforo, el responsable y el avance del checklist de cada seguimiento.",
+  "subtitle": "La agenda de los contratos que terminan: qué venció, qué vence hoy y qué viene, con el responsable y el avance de cada seguimiento.",
   "open": "Abrir",
   "actionError": "No se pudo completar la acción",
   "filters": {
@@ -6733,7 +6765,33 @@
   },
   "empty": {
    "title": "No hay seguimientos",
-   "subtitle": "Cuando el fin de un contrato entre en la ventana de aviso se abre su seguimiento."
+   "subtitle": "Cuando el fin de un contrato entre en la ventana de aviso se abre su seguimiento.",
+   "filteredTitle": "Ningún seguimiento coincide con los filtros",
+   "filteredSubtitle": "Probá con otro semáforo, tipo o estado.",
+   "clear": "Quitar filtros"
+  },
+  "agenda": {
+   "summary": "Seguimientos por fecha de vencimiento",
+   "short": {
+    "overdue": "Vencidos",
+    "today": "Hoy",
+    "week": "7 días",
+    "month": "30 días",
+    "later": "Después"
+   },
+   "groups": {
+    "overdue": "Ya vencieron",
+    "today": "Vencen hoy",
+    "week": "En los próximos 7 días",
+    "month": "En los próximos 30 días",
+    "later": "Más adelante",
+    "closed": "Cerrados"
+   },
+   "ago": "{n, plural, one {Venció hace # día} other {Venció hace # días}}",
+   "today": "Vence hoy",
+   "inDays": "{n, plural, one {Falta # día} other {Faltan # días}}",
+   "noProperty": "Sin propiedad",
+   "noTenant": "Sin inquilino"
   },
   "drawer": {
    "contract": "Contrato",
@@ -7947,7 +8005,7 @@
  },
  "collections": {
   "title": "Cobranza",
-  "subtitle": "Contratos con alquileres vencidos impagos: la etapa en que está cada uno, lo que se debe hoy con punitorios y lo que toca después. Los recordatorios salen por la bandeja de salida; la carta documento se prepara como borrador y nunca se manda sola.",
+  "subtitle": "Contratos con alquileres vencidos sin pagar: en qué paso está cada gestión, cuánto se debe hoy con punitorios y qué hacer ahora. La carta documento se prepara como borrador y nunca se manda sola.",
   "forbidden": "Tu rol no tiene acceso a la cobranza.",
   "noProperty": "Contrato sin propiedad",
   "noTenant": "Sin inquilino cargado",
@@ -8005,7 +8063,50 @@
   },
   "empty": {
    "title": "No hay casos de cobranza",
-   "subtitle": "Un caso se abre solo cuando un contrato tiene un alquiler vencido con saldo, si la cobranza está activada en Valores por defecto."
+   "subtitle": "Un caso se abre solo cuando un contrato tiene un alquiler vencido con saldo.",
+   "subtitleOff": "Con la cobranza automática apagada no se abren casos. La deuda vencida se sigue viendo en Morosidad.",
+   "filteredTitle": "Ningún caso coincide con los filtros",
+   "filteredSubtitle": "Probá con otra etapa o con menos días de mora.",
+   "clear": "Quitar filtros"
+  },
+  "off": {
+   "title": "La cobranza automática está apagada",
+   "body": "No se abren casos nuevos ni se programan avisos por mora. Los casos que ya estaban abiertos se pueden seguir gestionando a mano.",
+   "howManager": "Se enciende en Configuración, en Valores por defecto.",
+   "howOther": "La puede encender un administrador o un gerente desde Configuración.",
+   "settings": "Abrir Valores por defecto",
+   "delinquency": "Ver la deuda vencida en Morosidad"
+  },
+  "queue": {
+   "label": "Cola de cobranza",
+   "order": "Primero la mora más vieja",
+   "rank": "Puesto",
+   "assignee": "Lo lleva",
+   "unassigned": "Sin responsable",
+   "daysLabel": "{n, plural, one {día de mora} other {días de mora}}",
+   "balance": "Saldo vencido",
+   "open": "Abrir",
+   "openCase": "Abrir el caso de {name}",
+   "stageOf": "Paso {n} de {total}",
+   "stagePath": "Etapas de la gestión",
+   "steps": {
+    "wait": "Esperar el pago prometido",
+    "confirmLetter": "Confirmar el envío de la carta",
+    "lawyer": "Pedir novedades al abogado",
+    "court": "Seguir el expediente judicial",
+    "person": "Gestión a cargo de una persona",
+    "remind": "Mandar un recordatorio",
+    "remindFirm": "Mandar un recordatorio firme",
+    "letter": "Intimar por carta documento",
+    "derive": "Derivar a un abogado",
+    "call": "Llamar al inquilino"
+   },
+   "hints": {
+    "confirmLetter": "El borrador está listo para imprimir y mandar por correo.",
+    "call": "No hay avisos programados.",
+    "scheduled": "Programado para el",
+    "pending": "Todavía sin fecha."
+   }
   },
   "detail": {
    "loadError": "No se pudo cargar el caso de cobranza",
