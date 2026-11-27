@@ -47,7 +47,7 @@ export function safeRedirectTarget(search: string): string | null {
   // El navegador descarta tabulaciones y saltos de línea al resolver la dirección: `/<tab>/otro.sitio` es `//otro.sitio`.
   if (/\s/.test(target)) return null;
   try {
-    if (new URL(target, 'http://realfy.invalid').origin !== 'http://realfy.invalid') return null;
+    if (new URL(target, 'https://realfy.invalid').origin !== 'https://realfy.invalid') return null;
   } catch {
     return null;
   }

@@ -69,7 +69,7 @@ export function availableMonths(payments: readonly PaymentRow[]): string[] {
     const key = monthKey(p.paidAt);
     if (key) months.add(key);
   }
-  return [...months].sort().reverse();
+  return [...months].sort((a, b) => b.localeCompare(a));
 }
 
 /** El mes en curso si tiene cobros; si no, el último mes con cobros (o el mes en curso si no hay ninguno). */
