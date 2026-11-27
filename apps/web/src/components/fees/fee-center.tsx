@@ -9,13 +9,14 @@ import { Tabs } from '@/components/ui/tabs';
 import { FeeCreateDialog } from './fee-create-dialog';
 import { FeeInstallmentsPanel } from './fee-installments-panel';
 import { FeeListPanel } from './fee-list-panel';
+import { FeeSummary } from './fee-summary';
 import { StaffCommissionsPanel } from './staff-commissions-panel';
 
 type Tab = 'installments' | 'fees' | 'commissions';
 
 /**
- * Honorarios: las cuotas para cobrar (a la caja o descontadas de la cuenta del locador), los honorarios cargados
- * con su detalle y, para la gerencia, las comisiones del personal.
+ * Honorarios: arriba el resumen del período (total, cobrado, por cobrar y la evolución mensual) y debajo el
+ * detalle: las cuotas para cobrar, los honorarios cargados y, para la gerencia, las comisiones del personal.
  */
 export function FeeCenter() {
   const t = useTranslations('fees');
@@ -52,6 +53,8 @@ export function FeeCenter() {
           </Button>
         )}
       </header>
+
+      <FeeSummary />
 
       <Tabs tabs={tabs} value={tab} onChange={setTab} label={t('title')} labelOf={(key) => t(`tabs.${key}`)}>
         {tab === 'installments' && <FeeInstallmentsPanel />}

@@ -237,14 +237,14 @@ describe('Honorarios: cuotas', () => {
     expect((await screen.findAllByText('Luis Locador')).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Cuota 1 de 2 · Depto Sintético').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Ajustada').length).toBeGreaterThan(0);
-    expect(calls((p) => p.startsWith('/fees/installments?'))[0][0]).toContain('status=Pendiente');
+    expect(calls((p) => p.startsWith('/fees/installments?') && p.includes('limit=50'))[0][0]).toContain('status=Pendiente');
 
     await user.selectOptions(screen.getByLabelText('Operación'), 'Renovacion');
     await user.selectOptions(screen.getByLabelText('Quién paga'), 'Locador');
     const month = screen.getByLabelText('Vence en');
     await user.type(month, '2026-11');
     await waitFor(() => {
-      const last = calls((p) => p.startsWith('/fees/installments?')).at(-1)![0] as string;
+      const last = calls((p) => p.startsWith('/fees/installments?') && p.includes('limit=50')).at(-1)![0] as string;
       expect(last).toContain('kind=Renovacion');
       expect(last).toContain('payerRole=Locador');
       expect(last).toContain('period=2026-11');
@@ -277,7 +277,7 @@ describe('Honorarios: cuotas', () => {
       amount: '33000.00',
       note: null,
     });
-    await waitFor(() => expect(calls((p) => p.startsWith('/fees/installments?')).length).toBeGreaterThan(1));
+    await waitFor(() => expect(calls((p) => p.startsWith('/fees/installments?') && p.includes('limit=50')).length).toBeGreaterThan(1));
   });
 
   it('si paga el locador, se puede descontar de su cuenta corriente sin cuenta de caja', async () => {

@@ -7115,6 +7115,19 @@
    "viewAll": "View all",
    "addAlta": "Add new-lease fee",
    "addRenewal": "Add renewal fee"
+  },
+  "summary": {
+   "label": "Fee summary",
+   "total": "Fees in the period",
+   "totalHint": "{count, plural, =0 {No installments due between {range}} one {# installment due between {range}} other {# installments due between {range}}}",
+   "collected": "Collected",
+   "pending": "To collect",
+   "overdue": "Of which overdue",
+   "byMonth": "Trend by due month",
+   "barLabel": "{month}: collected {collected}, to collect {pending}",
+   "empty": "No installments are due in these months. Once you add a fee, its installments show up here.",
+   "otherCurrencies": "Amounts in {currency}. There are also installments in {others}: see the detail below.",
+   "error": "The fee summary could not be calculated. The detail below is still available."
   }
  },
  "lessorInvoicing": {

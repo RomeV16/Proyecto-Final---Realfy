@@ -6846,7 +6846,7 @@
  },
  "fees": {
   "title": "Honorarios",
-  "subtitle": "Honorarios de alta, renovación, venta y tasación: las cuotas para cobrar, el reparto con otras inmobiliarias y las comisiones del personal.",
+  "subtitle": "Lo que la inmobiliaria cobra por altas, renovaciones, ventas y tasaciones: el resumen del período y, debajo, cada cuota y cada honorario.",
   "forbidden": "Tu rol no puede ver los honorarios.",
   "add": "Nuevo honorario",
   "actionError": "No se pudo completar la acción.",
@@ -7115,6 +7115,19 @@
    "viewAll": "Ver todos",
    "addAlta": "Cargar honorario de alta",
    "addRenewal": "Cargar honorario de renovación"
+  },
+  "summary": {
+   "label": "Resumen de honorarios",
+   "total": "Honorarios del período",
+   "totalHint": "{count, plural, =0 {Sin cuotas con vencimiento entre {range}} one {# cuota con vencimiento entre {range}} other {# cuotas con vencimiento entre {range}}}",
+   "collected": "Cobrado",
+   "pending": "Por cobrar",
+   "overdue": "De eso, ya vencido",
+   "byMonth": "Evolución por mes de vencimiento",
+   "barLabel": "{month}: cobrado {collected}, por cobrar {pending}",
+   "empty": "No hay cuotas con vencimiento en estos meses. Cuando cargues un honorario, sus cuotas aparecen acá.",
+   "otherCurrencies": "Importes en {currency}. También hay cuotas en {others}: están en el detalle de abajo.",
+   "error": "No se pudo calcular el resumen de honorarios. El detalle de abajo sigue disponible."
   }
  },
  "lessorInvoicing": {
