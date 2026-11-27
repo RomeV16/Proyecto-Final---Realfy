@@ -276,6 +276,7 @@ describe('DailyContextService', () => {
         'diasDeAtraso',
         'diasParaVencer',
         'horasFueraDeSla',
+        'diasFueraDeSla',
         'sinResponsable',
         'prioridad',
         'diasSinContacto',
@@ -305,6 +306,7 @@ describe('DailyContextService', () => {
         tipo: 'reclamo',
         estado: 'Abierto',
         horasFueraDeSla: 24,
+        diasFueraDeSla: 1,
         sinResponsable: true,
         prioridad: 'Urgente',
       });

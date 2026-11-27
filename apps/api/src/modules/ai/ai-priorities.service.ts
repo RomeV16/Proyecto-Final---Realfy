@@ -14,7 +14,7 @@ import {
   type PriorityKind,
 } from './daily-context';
 import { LanguageModelClient, parseJsonObject } from './language-model.client';
-import { rankByRules } from './priority-rules';
+import { formatSlaOverdue, rankByRules, slaDaysOverdue } from './priority-rules';
 
 /** Quién decidió el orden de la lista. */
 export type PrioritySource = 'model' | 'rules';
@@ -33,6 +33,10 @@ export interface DailyPriority {
   daysOverdue: number | null;
   daysToDue: number | null;
   slaHoursOverdue: number | null;
+  /** El mismo atraso en días enteros, para mostrarlo sin convertir. */
+  slaDaysOverdue: number | null;
+  /** El atraso en palabras ("3 horas", "105 días"); null si no está vencido. */
+  slaOverdueText: string | null;
   unassigned: boolean;
   ticketPriority: string | null;
   status: string | null;
@@ -106,6 +110,7 @@ function buildUserPrompt(facts: DailyContextFact[], totals: DailyContextTotals):
     '- "reason" explica por qué es urgente, en castellano rioplatense, hasta 240 caracteres.',
     '- "action" es el próximo paso concreto, en infinitivo, hasta 160 caracteres.',
     '- No repitas la referencia en el texto ni intentes nombrar a las personas.',
+    '- Los atrasos de más de dos días van en días ("hace 12 días"), nunca en horas, y sin siglas como SLA: decí "plazo de atención".',
   ].join('\n');
 }
 
@@ -341,6 +346,8 @@ export class AiPrioritiesService {
         daysOverdue: item.daysOverdue,
         daysToDue: item.daysToDue,
         slaHoursOverdue: item.slaHoursOverdue,
+        slaDaysOverdue: slaDaysOverdue(item.slaHoursOverdue),
+        slaOverdueText: item.slaHoursOverdue === null ? null : formatSlaOverdue(item.slaHoursOverdue),
         unassigned: item.unassigned,
         ticketPriority: item.ticketPriority,
         status: item.status,

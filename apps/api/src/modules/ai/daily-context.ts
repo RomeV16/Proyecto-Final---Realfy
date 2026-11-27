@@ -84,6 +84,7 @@ export interface DailyContextFact {
   diasDeAtraso?: number;
   diasParaVencer?: number;
   horasFueraDeSla?: number;
+  diasFueraDeSla?: number;
   sinResponsable?: boolean;
   prioridad?: string;
   diasSinContacto?: number;
@@ -118,7 +119,10 @@ export function toModelFacts(items: DailyContextItem[]): DailyContextFact[] {
     if (item.currency) fact.moneda = item.currency;
     if (item.daysOverdue !== null) fact.diasDeAtraso = item.daysOverdue;
     if (item.daysToDue !== null) fact.diasParaVencer = item.daysToDue;
-    if (item.slaHoursOverdue !== null) fact.horasFueraDeSla = item.slaHoursOverdue;
+    if (item.slaHoursOverdue !== null) {
+      fact.horasFueraDeSla = item.slaHoursOverdue;
+      fact.diasFueraDeSla = Math.floor(item.slaHoursOverdue / 24);
+    }
     if (item.unassigned) fact.sinResponsable = true;
     if (item.ticketPriority) fact.prioridad = item.ticketPriority;
     if (item.daysSinceContact !== null) fact.diasSinContacto = item.daysSinceContact;

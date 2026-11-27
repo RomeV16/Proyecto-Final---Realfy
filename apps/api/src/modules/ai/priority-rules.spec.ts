@@ -1,4 +1,4 @@
-import { rankByRules } from './priority-rules';
+import { formatSlaOverdue, rankByRules, slaDaysOverdue } from './priority-rules';
 import type { DailyContextItem, PriorityKind } from './daily-context';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -101,11 +101,34 @@ describe('rankByRules', () => {
 
     expect(byRef.get('C1')!.reason).toContain('Vencida hace 45 días');
     expect(byRef.get('C1')!.action).toContain('pago');
-    expect(byRef.get('R1')!.reason).toContain('SLA excedido en 24 h');
+    expect(byRef.get('R1')!.reason).toContain('Plazo de atención vencido hace 24 horas');
     expect(byRef.get('R1')!.reason).toContain('sin responsable');
     expect(byRef.get('R1')!.action).toContain('responsable');
     expect(byRef.get('V1')!.reason).toBe('El contrato vence en 5 días');
     expect(byRef.get('L1')!.reason).toBe('30 días sin contacto');
+  });
+
+  it('cuenta el atraso de un reclamo en días cuando pasa de dos, nunca en miles de horas', () => {
+    const viejo = item('R1', 'reclamo', { slaHoursOverdue: 2520, ticketPriority: 'Urgente' });
+    const [scored] = rankByRules([viejo]);
+
+    expect(scored.reason).toBe('Plazo de atención vencido hace 105 días');
+    expect(scored.reason).not.toMatch(/SLA|\d+ h\b/);
+  });
+
+  it('pasa de horas a días en el segundo día de atraso', () => {
+    expect(formatSlaOverdue(0)).toBe('menos de 1 hora');
+    expect(formatSlaOverdue(1)).toBe('1 hora');
+    expect(formatSlaOverdue(47)).toBe('47 horas');
+    expect(formatSlaOverdue(48)).toBe('2 días');
+    expect(slaDaysOverdue(47)).toBe(1);
+    expect(slaDaysOverdue(null)).toBeNull();
+  });
+
+  it('un reclamo sin vencer y sin responsable lo dice en una frase completa', () => {
+    const [scored] = rankByRules([item('R1', 'reclamo', { unassigned: true, ticketPriority: 'Media' })]);
+
+    expect(scored.reason).toBe('Sin responsable asignado');
   });
 
   it('devuelve el mismo orden ante el mismo contexto', () => {
