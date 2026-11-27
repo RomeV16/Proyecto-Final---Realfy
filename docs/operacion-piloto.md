@@ -6,9 +6,10 @@ infraestructura y por qué, y a `privacidad-datos.md`, que trata los datos
 personales. La decisión de fondo está en
 `adr/0014-ambiente-piloto-con-datos-reales.md`.
 
-Todo lo que sigue se escribe sin nombres, dominios ni credenciales reales: las
-URL y los secretos del ambiente se guardan en la configuración privada del
-equipo.
+Todo lo que sigue se escribe sin nombres ni credenciales reales. Las direcciones
+públicas del producto están en `despliegue.md`, sección «Dominio `realfy.app`»;
+los identificadores de los recursos y los secretos del ambiente se guardan en la
+configuración privada del equipo.
 
 ## Despliegue paso a paso
 
@@ -120,14 +121,14 @@ curl -sS -X POST "$API/api/index-data/backfill" -H "Authorization: Bearer $TOKEN
 
 Dos pasos de operación después del despliegue de DEF-173 a DEF-176:
 
-- **Prórrogas de palabra.** En un contrato importado sin historial de ajustes, la
+- Prórrogas de palabra. En un contrato importado sin historial de ajustes, la
   prórroga deja salteado lo vencido hasta la fecha de importación (el alquiler
   importado ya lo incluye) y el primer pendiente es posterior. Antes de aprobar
   diciembre, revisar en cada contrato prorrogado antes del despliegue que su primer
   ajuste pendiente sea posterior a la importación; si quedó uno anterior, reenviar
   el lote de ese contrato (el importador alinea el cronograma pendiente con el
   calendario) antes de que el proceso de las 7 lo aplique.
-- **Ajustes que bajan el alquiler.** El proceso diario y la generación no los
+- Ajustes que bajan el alquiler. El proceso diario y la generación no los
   aplican: quedan pendientes con el motivo `RENT_DECREASE_REQUIRES_REVIEW` y la
   liquidación del mes lleva `ADJUSTMENT_PENDING`. Se revisan en *Ajustes del mes*
   (aparecen con «El alquiler baja…» y no entran en *Elegir todos*); se aplican a mano,
@@ -151,8 +152,7 @@ sistema actual de la inmobiliaria, y la reconciliación sigue
 - [ ] Liquidaciones generadas, con los punitorios pendientes incluidos.
 - [ ] Liquidaciones aprobadas y enviadas a los inquilinos.
 - [ ] Cobros registrados en caja, con quién recibió cada pago y en qué cuenta.
-- [ ] Estado de cuenta de cada locador generado (desde el ítem 37; hasta entonces,
-  la rendición por contrato repartida entre los locadores).
+- [ ] Estado de cuenta de cada locador generado.
 - [ ] Reconciliación contra el método actual de la inmobiliaria, con las
   diferencias anotadas y convertidas en FB o defecto dentro de las 24 horas.
 - [ ] Evidencia del ciclo guardada fuera del repositorio; en el repositorio, solo
@@ -176,14 +176,14 @@ documento.
 Quien detecta el problema avisa al equipo, que es quien atiende. La inmobiliaria
 no resuelve nada de infraestructura.
 
-1. **Estabilizar.** Mirar los registros del servicio afectado (`api` o `web`).
-2. **Retroceder.** Si el problema empezó con un despliegue, volver a desplegar el
+1. Estabilizar. Mirar los registros del servicio afectado (`api` o `web`).
+2. Retroceder. Si el problema empezó con un despliegue, volver a desplegar el
    despliegue anterior del servicio, desde el panel de Railway. El retroceso de
    `api` o `web` no toca la base: una migración ya aplicada no se revierte con
    esto.
-3. **Restaurar la base.** Solo si hay pérdida o corrupción de datos y el
+3. Restaurar la base. Solo si hay pérdida o corrupción de datos y el
    retroceso no alcanza (ver «Restauración»).
-4. **Registrar.** Anotar qué pasó, cuándo, cuánto duró y qué se hizo. Si
+4. Registrar. Anotar qué pasó, cuándo, cuánto duró y qué se hizo. Si
    corresponde, abrir un FB.
 
 Si el incidente involucra datos personales, además se aplica lo que indica

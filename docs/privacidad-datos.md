@@ -2,14 +2,14 @@
 
 Este documento describe cómo trata Realfy los datos personales de las personas que figuran en el sistema, a la luz de la Ley 25.326 de Protección de Datos Personales de la República Argentina y su decreto reglamentario 1558/2001. Está escrito para el piloto con una inmobiliaria real (ver `tesis/30-piloto.md`), donde por primera vez el sistema guarda datos de personas que existen.
 
-Distingue dos cosas que no deben confundirse: lo que el sistema **hace hoy**, verificado contra el código, y lo que está **previsto** para el piloto y todavía no está construido. Cada sección marca cuál es cuál. Los puntos legales marcados como pendientes de validación se confirman con un abogado antes de operar con datos reales; este documento no es un dictamen jurídico.
+Separa lo que el sistema hace hoy, verificado contra el código, de lo que está previsto y todavía no está construido; cada sección marca cuál es cuál. Los puntos legales marcados como pendientes de validación se confirman con un abogado antes de operar con datos reales; este documento no es un dictamen jurídico.
 
 ## Roles frente a la ley
 
-- **Titulares de los datos:** inquilinos, locadores, garantes, apoderados, proveedores, interesados que consultan y los usuarios internos de la inmobiliaria.
-- **Responsable de la base:** la inmobiliaria. Es quien decide para qué se usan los datos de su cartera.
-- **Encargado del tratamiento:** el equipo de Realfy, que aloja y opera el sistema por cuenta de la inmobiliaria. El equipo trata los datos solo para prestar el servicio y para corregirlo.
-- **Autoridad de aplicación:** la Agencia de Acceso a la Información Pública. La inscripción de la base y su forma se confirman con el abogado (pendiente).
+- Titulares de los datos: inquilinos, locadores, garantes, apoderados, proveedores, interesados que consultan y los usuarios internos de la inmobiliaria.
+- Responsable de la base: la inmobiliaria. Es quien decide para qué se usan los datos de su cartera.
+- Encargado del tratamiento: el equipo de Realfy, que aloja y opera el sistema por cuenta de la inmobiliaria. El equipo trata los datos solo para prestar el servicio y para corregirlo.
+- Autoridad de aplicación: la Agencia de Acceso a la Información Pública. La inscripción de la base y su forma se confirman con el abogado (pendiente).
 
 ## Datos personales que guarda el sistema
 
@@ -38,9 +38,9 @@ persona puede leer. Su alcance está acotado por diseño y por pruebas:
 | Propiedades | Solo las que alguien publicó a propósito: una operación disponible con su aviso en el portal *micrositio* en *Publicado* y sin vencer. Una propiedad disponible que nadie marcó no aparece; al alquilarse, venderse o pausar el aviso, sale |
 | Tipo, superficie, ambientes, antigüedad, orientación, amenidades, descripción, fotos, precio y moneda de la operación | Sí |
 | Ciudad y provincia | Sí |
-| Calle y altura | **No**, salvo que la inmobiliaria desactive *Ocultar la dirección exacta* (por defecto está activada). Piso y departamento nunca |
-| Coordenadas | **No**, salvo que la inmobiliaria active *Mostrar un mapa*; en ese caso se devuelven redondeadas a unos 100 metros, nunca el punto exacto |
-| Propietarios, titulares, inquilinos, garantes, contratos, notas internas, importes de contratos | **Nunca**. La consulta no los selecciona |
+| Calle y altura | No, salvo que la inmobiliaria desactive *Ocultar la dirección exacta* (por defecto está activada). Piso y departamento nunca |
+| Coordenadas | No, salvo que la inmobiliaria active *Mostrar un mapa*; en ese caso se devuelven redondeadas a unos 100 metros, nunca el punto exacto |
+| Propietarios, titulares, inquilinos, garantes, contratos, notas internas, importes de contratos | Nunca. La consulta no los selecciona |
 | Datos de la inmobiliaria | Nombre, provincia, logo y colores de marca. No el CUIT ni los datos de facturación |
 
 La descripción de una propiedad es texto libre y la carga el personal: la regla
@@ -66,9 +66,9 @@ lo propio. Las pruebas de la API lo verifican.
 indexe: lo que está publicado es público a propósito. El panel y el ingreso no se
 indexan.
 
-### Previsto para el piloto
+### Previsto
 
-El ítem 33 del cronograma amplía la ficha de persona con tipo (física o jurídica), documento de identidad, domicilio, estado civil, nacionalidad, forma de cobro y varias cuentas bancarias con moneda, y agrega apoderados y locadores por contrato. Para los garantes se prevé registrar empleador e ingresos como parte de la evaluación de la garantía; hasta entonces esa información solo puede estar en los archivos adjuntos. Cada ampliación actualiza `tesis/03-modelo-datos.md` y este documento en el mismo PR.
+La ficha ampliada de persona (tipo, documento de identidad, domicilio, estado civil, nacionalidad, forma de cobro y varias cuentas bancarias con moneda), los apoderados y los locadores por contrato ya están construidos y figuran en la tabla de «Hoy». Queda previsto, para los garantes, registrar empleador e ingresos como parte de la evaluación de la garantía; hasta entonces esa información solo puede estar en los archivos adjuntos. Cada ampliación actualiza `tesis/03-modelo-datos.md` y este documento en el mismo PR.
 
 El sistema no guarda datos sensibles en el sentido del artículo 2 de la ley (origen racial, opiniones políticas, salud, vida sexual, entre otros) y no tiene campos para ellos. Las notas son texto libre: la regla de uso es no cargar allí datos de ese tipo.
 
@@ -76,22 +76,22 @@ El sistema no guarda datos sensibles en el sentido del artículo 2 de la ley (or
 
 La finalidad es administrar contratos de locación por cuenta de los locadores: calcular y cobrar alquileres, rendir a cada locador, emitir los comprobantes que correspondan, atender reclamos y mantener el historial de cada contrato.
 
-La base legal es doble, según el dato:
+La base legal depende del dato:
 
-- **Ejecución de la relación contractual.** Los datos de las partes de un contrato de locación y de su garantía son necesarios para ejecutarlo, y la ley exceptúa el consentimiento cuando los datos surgen de una relación contractual o se necesitan para cumplirla (artículo 5, inciso 2). Es la base de la mayor parte de la cartera.
-- **Consentimiento informado.** Para lo que excede el contrato, como las comunicaciones comerciales, el uso de datos de interesados que consultaron por una propiedad y la mensajería instantánea, se pide consentimiento expreso y se registra la baja (artículo 5, incisos 1 y 3, y artículo 6). Desde el ítem 43 el sistema lo registra y lo respeta (ver «Consentimiento y baja de los mensajes»).
+- Ejecución de la relación contractual. Los datos de las partes de un contrato de locación y de su garantía son necesarios para ejecutarlo, y la ley exceptúa el consentimiento cuando los datos surgen de una relación contractual o se necesitan para cumplirla (artículo 5, inciso 2). Es la base de la mayor parte de la cartera.
+- Consentimiento informado. Para lo que excede el contrato, como las comunicaciones comerciales, el uso de datos de interesados que consultaron por una propiedad y la mensajería instantánea, se pide consentimiento expreso y se registra la baja (artículo 5, incisos 1 y 3, y artículo 6). Desde el ítem 43 el sistema lo registra y lo respeta (ver «Consentimiento y baja de los mensajes»).
 
 ### Consentimiento y baja de los mensajes
 
 La mensajería saliente (ADR-0013) aplica estas reglas antes de mandar cada mensaje:
 
-- **La baja se respeta siempre**, por cualquier canal. Una persona pide la baja de WhatsApp respondiendo BAJA o STOP; marcar un mail como spam es una baja del mail. La inmobiliaria también la registra a mano desde la ficha de la persona.
-- **La respuesta a quien escribió primero no necesita el alta.** La autorrespuesta y las respuestas de la bandeja de consultas salen a quien inició la conversación (en WhatsApp, solo con texto libre dentro de las 24 horas de su mensaje); la baja se respeta igual: con una baja registrada no sale ninguna.
-- **WhatsApp necesita un alta explícita.** Antes del primer mensaje alguien de la inmobiliaria registra el alta en la ficha, con una nota de dónde quedó (por ejemplo, una cláusula firmada en el contrato o un pedido por escrito). Sin alta, el mensaje queda bloqueado y no sale.
-- **El mail con documentos del contrato** (recibos, liquidaciones, estados de cuenta) se basa en la ejecución del contrato: sale a la dirección que la persona dio mientras no haya pedido la baja.
-- **Historial.** Cada alta o baja es un registro nuevo con la fecha, el origen, la dirección a la que aplica y quién lo cargó; vale el último. Sirve como prueba de cuándo se dio el consentimiento y cuándo se retiró. Una baja de un número que no es de ninguna persona cargada también se guarda y se respeta.
-- **Ningún mensaje sale sin aprobación del responsable.** El ambiente decide si se envía (`MESSAGING_MODE`): `off` por defecto, `allowlist` para probar con direcciones del equipo, `live` solo cuando el dueño de la inmobiliaria lo aprueba. El ambiente `piloto` queda en `off` o `allowlist` hasta esa aprobación.
-- **Horario.** Los mensajes a la cartera salen de 9 a 20 h de Buenos Aires (configurable en los valores por defecto).
+- La baja se respeta siempre, por cualquier canal. Una persona pide la baja de WhatsApp respondiendo BAJA o STOP; marcar un mail como spam es una baja del mail. La inmobiliaria también la registra a mano desde la ficha de la persona.
+- La respuesta a quien escribió primero no necesita el alta. La autorrespuesta y las respuestas de la bandeja de consultas salen a quien inició la conversación (en WhatsApp, solo con texto libre dentro de las 24 horas de su mensaje); la baja se respeta igual: con una baja registrada no sale ninguna.
+- WhatsApp necesita un alta explícita. Antes del primer mensaje alguien de la inmobiliaria registra el alta en la ficha, con una nota de dónde quedó (por ejemplo, una cláusula firmada en el contrato o un pedido por escrito). Sin alta, el mensaje queda bloqueado y no sale.
+- El mail con documentos del contrato (recibos, liquidaciones, estados de cuenta) se basa en la ejecución del contrato: sale a la dirección que la persona dio mientras no haya pedido la baja.
+- Historial. Cada alta o baja es un registro nuevo con la fecha, el origen, la dirección a la que aplica y quién lo cargó; vale el último. Sirve como prueba de cuándo se dio el consentimiento y cuándo se retiró. Una baja de un número que no es de ninguna persona cargada también se guarda y se respeta.
+- Ningún mensaje sale sin aprobación del responsable. El ambiente decide si se envía (`MESSAGING_MODE`): `off` por defecto, `allowlist` para probar con direcciones del equipo, `live` solo cuando el dueño de la inmobiliaria lo aprueba. El ambiente `piloto` queda en `off` o `allowlist` hasta esa aprobación.
+- Horario. Los mensajes a la cartera salen de 9 a 20 h de Buenos Aires (configurable en los valores por defecto).
 
 El texto con que se le pide el alta a la persona y la cláusula del contrato se acuerdan con el abogado (pendiente).
 
@@ -101,7 +101,7 @@ El texto de información al titular y el mecanismo de consentimiento se deciden 
 
 Hoy el control de acceso se aplica sobre las operaciones que modifican datos; la mayoría de las lecturas está disponible para cualquier usuario autenticado de la inmobiliaria (ver `tesis/02-roles-y-casos-uso.md`). En el piloto las tres personas de la inmobiliaria ven todo el contenido, por decisión de la dirección.
 
-Esto es un límite que el piloto declara y reduce: la política de lectura por rol vuelve la restricción de datos sensibles una configuración y no un desarrollo. Cada inmobiliaria puede elegir qué roles leen cada recurso sensible; sin configurar rige el valor por defecto (todos leen todo).
+Es un límite declarado, que la política de lectura por rol permite reducir sin desarrollo: restringir un dato sensible es una configuración. Cada inmobiliaria puede elegir qué roles leen cada recurso sensible; sin configurar rige el valor por defecto (todos leen todo).
 
 ### Datos sensibles y cómo restringirlos
 
@@ -126,10 +126,10 @@ Para restringirlos, el Admin entra a Configuración → Permisos, destilda los r
 
 ## Retención
 
-- **Hoy:** el sistema no borra datos de forma automática. Las personas se dan de baja de forma lógica (quedan inactivas y se conservan sus contratos y comprobantes), porque borrarlas rompería el historial contable y fiscal de los contratos que las referencian. Los registros de auditoría se conservan.
-- **Criterio:** los datos de un contrato se conservan mientras dure y por el plazo en que la inmobiliaria debe poder acreditar lo cobrado y rendido, incluidos los plazos fiscales y de prescripción. El plazo exacto lo confirma el contador y el abogado (pendiente).
-- **Interesados:** los datos de interesados que no llegaron a ser parte de un contrato se pueden depurar a un plazo definido por la inmobiliaria. No hay depuración automática; se hace a pedido.
-- **Fin del piloto:** si la inmobiliaria no continúa con el sistema, se le entrega una exportación de sus datos y se eliminan la base y el almacenamiento del ambiente `piloto`, incluidas las copias de respaldo.
+- Hoy: el sistema no borra datos de forma automática. Las personas se dan de baja de forma lógica (quedan inactivas y se conservan sus contratos y comprobantes), porque borrarlas rompería el historial contable y fiscal de los contratos que las referencian. Los registros de auditoría se conservan.
+- Criterio: los datos de un contrato se conservan mientras dure y por el plazo en que la inmobiliaria debe poder acreditar lo cobrado y rendido, incluidos los plazos fiscales y de prescripción. El plazo exacto lo confirma el contador y el abogado (pendiente).
+- Interesados: los datos de interesados que no llegaron a ser parte de un contrato se pueden depurar a un plazo definido por la inmobiliaria. No hay depuración automática; se hace a pedido.
+- Fin del piloto: si la inmobiliaria no continúa con el sistema, se le entrega una exportación de sus datos y se eliminan la base y el almacenamiento del ambiente `piloto`, incluidas las copias de respaldo.
 
 ## Derechos de los titulares
 
@@ -144,26 +144,26 @@ Los pedidos llegan a la inmobiliaria, que es la responsable de la base, y el equ
 
 ## Medidas de seguridad
 
-- **Aislamiento entre inmobiliarias.** Cada registro lleva el identificador de su inmobiliaria y toda consulta se filtra por él; ante la duda, el acceso falla cerrado (ADR-0003 y ADR-0006). Una prueba compara la lista de modelos filtrados contra el esquema, de modo que un modelo nuevo sin filtro rompe las pruebas.
-- **Ambiente separado para el piloto.** Datos reales solo en el ambiente `piloto`, con base y almacenamiento propios; nunca en demostración ni en el repositorio (ADR-0014).
-- **Autenticación.** Contraseñas guardadas con hash, sesiones con token de acceso de vida corta y renovación con rotación, y límite de intentos en el ingreso de usuarios y del portal del inquilino.
-- **Enlaces de un solo uso.** Las invitaciones de usuarios y los enlaces de recupero de contraseña llevan un token de 256 bits aleatorios. En la base solo se guarda su hash SHA-256 (`UserInvitation.token`, `PasswordResetToken.tokenHash`): el valor en claro existe una vez, en la respuesta al Admin o en el correo, y no se escribe en registros ni en la bitácora. Se consumen al usarse; la invitación vence a los 7 días y el enlace de recupero a la hora. Cambiar o recuperar la contraseña cierra las sesiones afectadas, y dar de baja a un usuario las corta de inmediato. El pedido de recupero por correo responde igual exista o no la cuenta, para no revelar quién tiene acceso. Mientras no haya correo configurado, el Admin comparte el enlace a mano: es una credencial temporal y debe enviarse solo a su destinatario.
-- **Permisos por rol** sobre las operaciones de escritura y, en el piloto, sobre la lectura (ítem 32).
-- **Auditoría.** Las operaciones sensibles dejan registro con usuario, acción y cambios.
-- **Errores sin filtración.** Las respuestas de error tienen forma uniforme y no exponen detalles internos (ADR-0005).
-- **Copias de respaldo.** Copias nativas diarias y semanales del proveedor, y una copia lógica de la base fuera del proveedor de alojamiento, semanal y antes de cada despliegue, guardada con permisos restringidos al equipo. La restauración se probó con los datos reales el 2026-11-02 (ver `despliegue.md`).
-- **Transporte.** El ambiente de alojamiento publica la aplicación y la API por HTTPS; el piloto no se habilita sin certificado válido.
-- **Secretos.** Credenciales y claves de servicios externos se configuran por variables de entorno del ambiente, no se guardan en el repositorio.
+- Aislamiento entre inmobiliarias. Cada registro lleva el identificador de su inmobiliaria y toda consulta se filtra por él; ante la duda, el acceso falla cerrado (ADR-0003 y ADR-0006). Una prueba compara la lista de modelos filtrados contra el esquema, de modo que un modelo nuevo sin filtro rompe las pruebas.
+- Ambiente separado para el piloto. Datos reales solo en el ambiente `piloto`, con base y almacenamiento propios; nunca en demostración ni en el repositorio (ADR-0014).
+- Autenticación. Contraseñas guardadas con hash, sesiones con token de acceso de vida corta y renovación con rotación, y límite de intentos en el ingreso de usuarios y del portal del inquilino.
+- Enlaces de un solo uso. Las invitaciones de usuarios y los enlaces de recupero de contraseña llevan un token de 256 bits aleatorios. En la base solo se guarda su hash SHA-256 (`UserInvitation.token`, `PasswordResetToken.tokenHash`): el valor en claro existe una vez, en la respuesta al Admin o en el correo, y no se escribe en registros ni en la bitácora. Se consumen al usarse; la invitación vence a los 7 días y el enlace de recupero a la hora. Cambiar o recuperar la contraseña cierra las sesiones afectadas, y dar de baja a un usuario las corta de inmediato. El pedido de recupero por correo responde igual exista o no la cuenta, para no revelar quién tiene acceso. Mientras no haya correo configurado, el Admin comparte el enlace a mano: es una credencial temporal y debe enviarse solo a su destinatario.
+- Permisos por rol sobre las operaciones de escritura y, en el piloto, sobre la lectura (ítem 32).
+- Auditoría. Las operaciones sensibles dejan registro con usuario, acción y cambios.
+- Errores sin filtración. Las respuestas de error tienen forma uniforme y no exponen detalles internos (ADR-0005).
+- Copias de respaldo. Copias nativas diarias y semanales del proveedor, y una copia lógica de la base fuera del proveedor de alojamiento, semanal y antes de cada despliegue, guardada con permisos restringidos al equipo. La restauración se probó con los datos reales el 2026-11-02 (ver `despliegue.md`).
+- Transporte. El ambiente de alojamiento publica la aplicación y la API por HTTPS; el piloto no se habilita sin certificado válido.
+- Secretos. Credenciales y claves de servicios externos se configuran por variables de entorno del ambiente, no se guardan en el repositorio.
 
 ## Anonimización para la tesis
 
 La tesis y este repositorio son públicos. Reglas:
 
-1. **Nada real en el repositorio ni en la tesis:** ni nombres de personas, ni documentos, ni domicilios, ni teléfonos ni correos, ni cuentas bancarias, ni montos de contratos reales. Tampoco se nombra a la inmobiliaria ni su ciudad; se la llama «la inmobiliaria piloto».
-2. **Datos sintéticos.** Los ejemplos, los casos de prueba, las capturas y la demostración usan datos inventados con la misma forma que los reales.
-3. **Cifras agregadas del piloto** (por ejemplo, la reducción del tiempo del ciclo) solo se publican con el consentimiento de la inmobiliaria, que sigue pendiente, y sin permitir identificar a una persona ni a un contrato.
-4. **Los hallazgos** del registro de feedback (`tesis/31-registro-de-feedback.md`) se redactan como reglas de negocio generales, sin nombres ni cifras de la cartera.
-5. **Las fuentes del relevamiento y los datos reales** se guardan fuera del repositorio, con acceso restringido al equipo.
+1. Nada real en el repositorio ni en la tesis: ni nombres de personas, ni documentos, ni domicilios, ni teléfonos ni correos, ni cuentas bancarias, ni montos de contratos reales. Tampoco se nombra a la inmobiliaria ni su ciudad; se la llama «la inmobiliaria piloto».
+2. Datos sintéticos. Los ejemplos, los casos de prueba, las capturas y la demostración usan datos inventados con la misma forma que los reales.
+3. Las cifras agregadas del piloto (por ejemplo, la reducción del tiempo del ciclo) solo se publican con el consentimiento de la inmobiliaria, que sigue pendiente, y sin permitir identificar a una persona ni a un contrato.
+4. Los hallazgos del registro de feedback (`tesis/31-registro-de-feedback.md`) se redactan como reglas de negocio generales, sin nombres ni cifras de la cartera.
+5. Las fuentes del relevamiento y los datos reales se guardan fuera del repositorio, con acceso restringido al equipo.
 
 ## Datos que salen a servicios externos
 
@@ -171,7 +171,7 @@ La tesis y este repositorio son públicos. Reglas:
 |---|---|---|
 | Modelo de lenguaje (módulo `ai`) | Para el panel de prioridades: un identificador opaco por ítem (`C1`, `R2`…), el tipo de ítem, su estado, importes y moneda, días de atraso o para vencer y horas fuera de plazo, si tiene responsable y la prioridad declarada. Para el resumen de cierre de contrato: métricas agregadas del contrato (tipo, fechas, cantidades de liquidaciones y pagos, puntualidad, montos y punitorios). No se envían nombres, documentos, correos, teléfonos, domicilios, identificadores internos ni títulos de propiedades: los tipos de datos del contexto que se arma para el modelo no tienen campos para ellos, y la identificación real no sale del servidor | Funciona hoy. El proveedor y el modelo se configuran por variable de entorno; con la credencial vacía el cliente queda deshabilitado y las funciones resuelven por reglas y plantillas. En el ambiente `piloto` se decide con la inmobiliaria si se habilita |
 | ARCA | Para emitir un comprobante: datos del emisor, tipo de comprobante, importes y el documento fiscal del receptor (CUIT, o cero para consumidor final), con el certificado del emisor | Funciona en homologación y, por cuenta del locador, con su delegación (ítem 38, ADR-0017): el comprobante lleva el CUIT, la razón social y la condición del locador. No se guarda ningún certificado ni clave del locador: se factura con el certificado de la inmobiliaria, cifrado como hasta ahora. Qué se factura y con qué IVA requiere validación del contador |
-| Resend (correo) | Dirección del destinatario y el contenido del mensaje con sus adjuntos (recibos, estados de cuenta, liquidaciones, avisos al personal, invitaciones). Sin credencial no se envía ningún correo | Funciona a través de la bandeja de salida y respeta el modo del ambiente y la baja. Necesario en `piloto` para invitaciones y estados de cuenta, con el dominio verificado (pendiente) |
+| Resend (correo) | Dirección del destinatario y el contenido del mensaje con sus adjuntos (recibos, estados de cuenta, liquidaciones, avisos al personal, invitaciones). Sin credencial no se envía ningún correo | Funciona a través de la bandeja de salida y respeta el modo del ambiente y la baja. Necesario en `piloto` para invitaciones y estados de cuenta; el dominio de envío está verificado en Resend desde el 3 de noviembre de 2026 (ver `despliegue.md`) |
 | WhatsApp (API oficial de la plataforma de mensajería) | Número de teléfono, parámetros de plantillas de utilidad (nombre de pila, número e importe del recibo, período y saldo del estado de cuenta, título y estado de un reclamo, nombre de la inmobiliaria) y el PDF adjunto. Recibe los estados de entrega y las respuestas de la persona | Implementado en el ítem 43, sin credenciales cargadas: solo con alta explícita y respetando la baja. La cuenta de empresa, el número nuevo y las plantillas están pendientes de alta en Meta |
 | BCRA e INDEC | Solo se descargan series públicas de índices; no se envía ningún dato personal | Funciona hoy |
 | Almacenamiento de objetos (compatible con S3) | Fotos de propiedades y adjuntos de personas y contratos | Funciona hoy, con el ambiente de almacenamiento propio de cada ambiente |
