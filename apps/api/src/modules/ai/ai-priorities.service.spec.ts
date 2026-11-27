@@ -146,6 +146,9 @@ describe('AiPrioritiesService', () => {
       expect(result.source).toBe('rules');
       expect(result.model).toBeNull();
       expect(result.priorities.map((p) => p.ref)).toEqual(['C1', 'R1', 'C2', 'L1']);
+      const claim = result.priorities.find((p) => p.ref === 'R1')!;
+      expect(claim).toMatchObject({ slaHoursOverdue: 24, slaDaysOverdue: 1, slaOverdueText: '24 horas' });
+      expect(result.priorities[0]).toMatchObject({ slaDaysOverdue: null, slaOverdueText: null });
       expect(result.totals).toEqual(TOTALS);
       expect(result.generatedAt).toBe(GENERATED_AT);
     });

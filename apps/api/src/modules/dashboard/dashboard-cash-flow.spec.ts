@@ -39,4 +39,18 @@ describe('DashboardService.getCashFlow', () => {
     const where = client.ownerLedgerEntry.findMany.mock.calls[0][0].where;
     expect(where).toMatchObject({ tenantId: 'tenant-1', type: { in: ['Transferencia', 'EntregaEfectivo'] } });
   });
+
+  it('el neto queda al centavo, sin el error de restar importes con decimales', async () => {
+    const { service, client } = build();
+    client.payment.findMany.mockResolvedValue([{ amount: '1000.30', paidAt: new Date('2026-03-05T12:00:00Z') }]);
+    client.ownerLedgerEntry.findMany.mockResolvedValue([{ amount: '-999.90', date: new Date('2026-03-15T00:00:00Z') }]);
+    client.ownerRendicion.findMany.mockResolvedValue([]);
+    const rows = await service.getCashFlow(
+      'tenant-1',
+      { from: new Date('2026-03-01T00:00:00Z'), to: new Date('2026-03-31T00:00:00Z') },
+      'month',
+    );
+    // 1000.3 - 999.9 en coma flotante da 0.39999999999997726.
+    expect(rows).toEqual([{ period: '2026-03', inflow: 1000.3, outflow: 999.9, net: 0.4 }]);
+  });
 });

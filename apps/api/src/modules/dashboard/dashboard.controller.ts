@@ -28,7 +28,7 @@ function parseQuery<T>(schema: { parse: (value: unknown) => T }, query: unknown)
   } catch (err: any) {
     throw new BadRequestException({
       error: 'VALIDATION_ERROR',
-      message: 'Invalid dashboard widget query',
+      message: 'Revisá el rango de fechas del panel: tiene un formato incorrecto.',
       details: err.errors ?? err.message,
     });
   }
@@ -49,7 +49,7 @@ function resolveRange(filters: { from?: string; to?: string }): DateRange {
   if (from > to) {
     throw new BadRequestException({
       error: 'VALIDATION_ERROR',
-      message: 'Invalid dashboard widget query',
+      message: 'La fecha "desde" tiene que ser anterior a la fecha "hasta".',
       details: 'from must be earlier than to',
     });
   }

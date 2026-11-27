@@ -82,9 +82,9 @@ export class DashboardService {
 
   async getStats() {
     const now = new Date();
-    const in30 = new Date(now.getTime() + 30 * 86400000);
-    const in60 = new Date(now.getTime() + 60 * 86400000);
-    const in90 = new Date(now.getTime() + 90 * 86400000);
+    // Los vencimientos son fechas sin hora: se cuentan contra el día calendario
+    // de Buenos Aires, no contra el instante (de noche ya es "mañana" en UTC).
+    const today = todayInAR(now);
 
     const [
       properties,
@@ -177,15 +177,18 @@ export class DashboardService {
         : 0;
 
     // ── Contract expirations ───────────────────────────────
-    const within = (from: Date, to: Date) =>
+    const daysLeftOf = (c: (typeof activeContracts)[number]) =>
+      Math.round((getEffectiveEndDate(c).getTime() - today.getTime()) / 86400000);
+    // Tramos disjuntos: un contrato que vence justo el día 30 cuenta una sola vez.
+    const within = (fromDay: number, toDay: number) =>
       activeContracts.filter((c) => {
-        const end = getEffectiveEndDate(c);
-        return end >= from && end <= to;
+        const left = daysLeftOf(c);
+        return left >= fromDay && left <= toDay;
       }).length;
     const expiringContracts = {
-      within30: within(now, in30),
-      within60: within(in30, in60),
-      within90: within(in60, in90),
+      within30: within(0, 30),
+      within60: within(31, 60),
+      within90: within(61, 90),
     };
 
     const tenantName = (c: (typeof activeContracts)[number]) => {
@@ -193,7 +196,7 @@ export class DashboardService {
       return personName(inq) || '—';
     };
     const expiringAgenda = activeContracts
-      .filter((c) => getEffectiveEndDate(c) >= now && getEffectiveEndDate(c) <= in90)
+      .filter((c) => daysLeftOf(c) >= 0 && daysLeftOf(c) <= 90)
       .sort((a, b) => getEffectiveEndDate(a).getTime() - getEffectiveEndDate(b).getTime())
       .slice(0, 5)
       .map((c) => ({
@@ -201,11 +204,10 @@ export class DashboardService {
         property: propertyLabel(c.property) || '—',
         tenant: tenantName(c),
         endDate: getEffectiveEndDate(c).toISOString(),
-        daysLeft: Math.max(0, Math.round((getEffectiveEndDate(c).getTime() - now.getTime()) / 86400000)),
+        daysLeft: daysLeftOf(c),
       }));
 
     // ── Collections (current cycle) + delinquency (all outstanding) ──
-    const today = todayInAR(now);
     const curKey = periodKey(today);
     // Por cobrar = saldo pendiente (total menos pagos) de las liquidaciones
     // por cobrar; vencida = Vencida, o Enviada con el vencimiento pasado.
@@ -223,6 +225,11 @@ export class DashboardService {
         .map((l) => l.total.toString()),
     );
     const pagada = pagadaMoney.toNumber();
+    const currentCycleCount = liquidaciones.filter(
+      (l) =>
+        periodKey(l.period) === curKey &&
+        (l.status === 'Pagada' || isReceivable(l.status as string)),
+    ).length;
     const pendiente = sumOutstanding(pendingCurrent).toNumber(); // facturado sin cobrar del ciclo actual
     const vencida = sumOutstanding(overdueList).toNumber(); // deuda vencida acumulada (todos los ciclos)
     const collectionsTotal = pagadaMoney.plus(pendiente).plus(vencida).toNumber();
@@ -246,7 +253,10 @@ export class DashboardService {
     for (let i = 5; i >= 0; i--) {
       const d = monthStartUTC(today.getUTCFullYear(), today.getUTCMonth() + 1 - i);
       const key = periodKey(d);
-      const ofMonth = liquidaciones.filter((l) => periodKey(l.period) === key);
+      // Una liquidación anulada no es ingreso esperado.
+      const ofMonth = liquidaciones.filter(
+        (l) => periodKey(l.period) === key && l.status !== 'Anulada',
+      );
       const expected = sumMoney(ofMonth.map((l) => l.total.toString())).toNumber();
       const collected = sumMoney(
         ofMonth.filter((l) => l.status === 'Pagada').map((l) => l.total.toString()),
@@ -294,10 +304,18 @@ export class DashboardService {
         pendiente: Math.round(pendiente),
         vencida: Math.round(vencida),
         rate: collectionRate,
+        // Mes al que corresponden `pagada` y `pendiente`, y cuántas liquidaciones
+        // emitidas tiene: con 0 el panel puede decir "sin liquidaciones este mes"
+        // en lugar de mostrar una tasa de 0 %.
+        period: curKey,
+        count: currentCycleCount,
       },
       delinquency: {
         overdueAmount: Math.round(vencida),
         rate: collectionsTotal > 0 ? Math.round((vencida / collectionsTotal) * 100) : 0,
+        // La deuda vencida contra lo que la cartera factura por mes. A diferencia
+        // de `rate`, no depende de que el mes en curso ya tenga liquidaciones.
+        rentRollRate: monthlyRentRoll > 0 ? Math.round((vencida / monthlyRentRoll) * 100) : null,
       },
       tickets: {
         open: openTickets.length,
@@ -590,7 +608,7 @@ export class DashboardService {
     const result: CashFlowRow[] = buckets.map((period) => {
       const inflow = inflowByBucket.get(period) ?? 0;
       const outflow = outflowByBucket.get(period) ?? 0;
-      return { period, inflow, outflow, net: inflow - outflow };
+      return { period, inflow, outflow, net: Math.round((inflow - outflow) * 100) / 100 };
     });
 
     this.cache.set(tenantId, cacheKey, args, result);

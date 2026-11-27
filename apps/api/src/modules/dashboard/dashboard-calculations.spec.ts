@@ -93,6 +93,19 @@ describe('dashboard-calculations', () => {
       expect(totals.get('2026-02')).toBe(250);
     });
 
+    it('suma importes con centavos sin arrastrar error de coma flotante', () => {
+      const totals = aggregateIntoBuckets(
+        [100000.1, 200000.2, 300000.4].map((amount) => ({
+          date: new Date(Date.UTC(2026, 9, 10)),
+          amount,
+        })),
+        'month',
+      );
+
+      // En coma flotante 100000.1 + 200000.2 + 300000.4 da 600000.7000000001.
+      expect(totals.get('2026-10')).toBe(600000.7);
+    });
+
     it('devuelve un mapa vacio cuando no hay registros', () => {
       expect(aggregateIntoBuckets([], 'week').size).toBe(0);
     });

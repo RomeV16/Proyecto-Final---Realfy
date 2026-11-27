@@ -65,6 +65,21 @@ function pluralDays(days: number): string {
   return days === 1 ? '1 día' : `${days} días`;
 }
 
+/**
+ * Atraso sobre el plazo de atención en palabras: horas hasta los dos días, días
+ * enteros después. Un reclamo viejo se lee "hace 105 días", no "2520 h".
+ */
+export function formatSlaOverdue(hours: number): string {
+  if (hours < 1) return 'menos de 1 hora';
+  if (hours < 48) return hours === 1 ? '1 hora' : `${hours} horas`;
+  return pluralDays(Math.floor(hours / 24));
+}
+
+/** Días enteros de atraso sobre el plazo de atención; null si no está vencido. */
+export function slaDaysOverdue(hours: number | null): number | null {
+  return hours === null ? null : Math.floor(hours / 24);
+}
+
 // ─── Puntaje y texto por frente ───────────────────────────
 
 function scoreCollection(item: DailyContextItem, maxAmount: number): RuleScoredPriority {
@@ -96,8 +111,10 @@ function scoreClaim(item: DailyContextItem): RuleScoredPriority {
     (item.unassigned ? 12 : 0);
 
   const parts: string[] = [];
-  if (slaHours > 0) parts.push(`SLA excedido en ${slaHours} h`);
-  if (item.unassigned) parts.push('sin responsable asignado');
+  if (item.slaHoursOverdue !== null) {
+    parts.push(`Plazo de atención vencido hace ${formatSlaOverdue(slaHours)}`);
+  }
+  if (item.unassigned) parts.push(parts.length > 0 ? 'sin responsable asignado' : 'Sin responsable asignado');
   if (parts.length === 0) parts.push(`Reclamo abierto de prioridad ${item.ticketPriority ?? 'Media'}`);
 
   return {

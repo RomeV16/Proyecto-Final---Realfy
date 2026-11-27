@@ -14,7 +14,7 @@ export function assertTransition<S extends string>(
   if (machine?.canTransition(from, to)) return;
   throw new BadRequestException({
     error: 'INVALID_TRANSITION',
-    message: `Cannot transition from ${from} to ${to}`,
+    message: `No se puede pasar de ${from} a ${to}.`,
     currentState: from,
     attemptedState: to,
     validTransitions: machine?.allowedFrom(from) ?? [],

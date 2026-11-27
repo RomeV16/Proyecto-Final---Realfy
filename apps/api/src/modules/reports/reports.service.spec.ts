@@ -506,12 +506,52 @@ describe('ReportsService', () => {
       expect(leadWhere.tenantId).toBe('tenant-1');
       expect(leadWhere.createdAt).toEqual({
         gte: new Date('2026-01-01'),
-        lte: new Date('2026-01-31'),
+        lte: new Date('2026-01-31T23:59:59.999Z'),
       });
     });
   });
 
   // ─── Morosidad ────────────────────────────────────────────────────────────
+
+  describe('el "hasta" del filtro incluye ese día completo', () => {
+    it('flujo de caja: un cobro del último día del rango entra', async () => {
+      (prisma.client.payment.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([]);
+
+      await service.getCashFlow({ from: '2026-10-01', to: '2026-10-10' });
+
+      const end = new Date('2026-10-10T23:59:59.999Z');
+      expect((prisma.client.payment.findMany as jest.Mock).mock.calls[0][0].where.paidAt.lte).toEqual(end);
+      expect((prisma.client.ownerLedgerEntry.findMany as jest.Mock).mock.calls[0][0].where.date.lte).toEqual(end);
+      expect((prisma.client.ownerRendicion.findMany as jest.Mock).mock.calls[0][0].where.depositedAt.lte).toEqual(end);
+    });
+
+    it('flujo de caja sin fechas: llega hasta el final del 31 de diciembre', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-11-27T15:00:00Z'));
+      (prisma.client.payment.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.client.ownerRendicion.findMany as jest.Mock).mockResolvedValue([]);
+
+      const report = await service.getCashFlow({});
+
+      expect((prisma.client.payment.findMany as jest.Mock).mock.calls[0][0].where.paidAt).toEqual({
+        gte: new Date('2026-01-01T00:00:00.000Z'),
+        lte: new Date('2026-12-31T23:59:59.999Z'),
+      });
+      expect(report.rows).toHaveLength(12);
+      jest.useRealTimers();
+    });
+
+    it('rentabilidad: un cobro del último día del rango entra', async () => {
+      (prisma.client.payment.findMany as jest.Mock).mockResolvedValue([]);
+
+      await service.getPropertyProfitability({ from: '2026-10-01', to: '2026-10-10' });
+
+      expect((prisma.client.payment.findMany as jest.Mock).mock.calls[0][0].where.paidAt).toEqual({
+        gte: new Date('2026-10-01T00:00:00.000Z'),
+        lte: new Date('2026-10-10T23:59:59.999Z'),
+      });
+    });
+  });
 
   describe('getMorosidad', () => {
     function liquidacion(opts: { dueDate: Date; total: string; inquilino?: boolean }) {
@@ -530,7 +570,7 @@ describe('ReportsService', () => {
     }
 
     it('acumula el total vencido y los dias de atraso', async () => {
-      jest.useFakeTimers().setSystemTime(new Date('2026-03-31T00:00:00Z'));
+      jest.useFakeTimers().setSystemTime(new Date('2026-03-31T12:00:00Z'));
       (prisma.client.liquidacion.findMany as jest.Mock).mockResolvedValue([
         liquidacion({ dueDate: new Date('2026-03-01T00:00:00Z'), total: '120000.00', inquilino: true }),
         liquidacion({ dueDate: new Date('2026-03-21T00:00:00Z'), total: '80000.50' }),
@@ -549,6 +589,22 @@ describe('ReportsService', () => {
         totalVencido: '200000.50',
         cantidadVencidas: '2',
       });
+
+      jest.useRealTimers();
+    });
+
+    it('lo que vence hoy no está en mora, ni de noche cuando en UTC ya es mañana', async () => {
+      // 10/03 a las 22:00 de Buenos Aires = 11/03 01:00 UTC.
+      jest.useFakeTimers().setSystemTime(new Date('2026-03-11T01:00:00Z'));
+      (prisma.client.liquidacion.findMany as jest.Mock).mockResolvedValue([
+        liquidacion({ dueDate: new Date('2026-03-05T00:00:00Z'), total: '90000.00' }),
+      ]);
+
+      const report = await service.getMorosidad({});
+
+      const args = (prisma.client.liquidacion.findMany as jest.Mock).mock.calls[0][0];
+      expect(args.where.dueDate.lt).toEqual(new Date('2026-03-10T00:00:00Z'));
+      expect(report.rows[0].diasVencidos).toBe('5');
 
       jest.useRealTimers();
     });

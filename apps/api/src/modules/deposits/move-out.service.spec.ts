@@ -125,6 +125,13 @@ describe('MoveOutService.preview', () => {
       ['Reparacion', '8000.00'],
       ['Cargo', '-500.00'],
     ]);
+    // Trae las partes de boletas sin facturar que se le cobran al inquilino (las que pagó otro).
+    expect(tx.serviceBillAllocation.findMany.mock.calls[0][0].where).toEqual({
+      contractId: 'c1',
+      payer: { not: 'Inquilino' },
+      billedAt: null,
+      bill: { status: { not: 'Anulada' } },
+    });
     expect(penalties.payoffOf).toHaveBeenCalledTimes(1);
     expect(res.deposit).toMatchObject({ refundable: '182000.00', collected: '100000.00', heldBy: 'Inmobiliaria' });
     expect(res.deposit.refundDueDate).toBe('2025-07-01');

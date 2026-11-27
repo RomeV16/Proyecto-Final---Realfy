@@ -111,6 +111,14 @@ function periodRange(filters: { from?: string; to?: string }): Record<string, Da
   };
 }
 
+/**
+ * Último instante del día `to`. Los filtros llegan como fecha sin hora; contra
+ * un campo con hora (cobros, altas) el "hasta" tiene que incluir ese día entero.
+ */
+function endOfDay(to: string): Date {
+  return new Date(`${to}T23:59:59.999Z`);
+}
+
 export interface ReportResult<T> {
   type: string;
   title: string;
@@ -267,7 +275,7 @@ export class ReportsService {
     if (filters.from || filters.to) {
       paymentWhere.paidAt = {};
       if (filters.from) paymentWhere.paidAt.gte = new Date(filters.from);
-      if (filters.to) paymentWhere.paidAt.lte = new Date(filters.to);
+      if (filters.to) paymentWhere.paidAt.lte = endOfDay(filters.to);
     }
 
     if (filters.propertyId) {
@@ -381,9 +389,7 @@ export class ReportsService {
     const fromDate = filters.from
       ? new Date(filters.from)
       : new Date(Date.UTC(currentYear, 0, 1));
-    const toDate = filters.to
-      ? new Date(filters.to)
-      : new Date(Date.UTC(currentYear, 11, 31));
+    const toDate = filters.to ? endOfDay(filters.to) : endOfDay(`${currentYear}-12-31`);
 
     // Inflow: Payments within date range
     const payments = await this.prisma.client.payment.findMany({
@@ -642,7 +648,7 @@ export class ReportsService {
                   ? {
                       createdAt: {
                         ...(filters.from ? { gte: new Date(filters.from) } : {}),
-                        ...(filters.to ? { lte: new Date(filters.to) } : {}),
+                        ...(filters.to ? { lte: endOfDay(filters.to) } : {}),
                       },
                     }
                   : {}),
@@ -744,12 +750,13 @@ export class ReportsService {
     const filters: any = parseOrThrow(MorosidadFilterSchema, query, 'Invalid morosidad filters');
 
     const tenantId = this.tenantContext.getTenantId()!;
-    const now = new Date();
+    // Día calendario de Buenos Aires: lo que vence hoy todavía no está en mora.
+    const today = todayInAR();
 
     const where: any = {
       contract: { tenantId },
       status: { in: [...OVERDUE_STATUSES] },
-      dueDate: { lt: now },
+      dueDate: { lt: today },
     };
 
     if (filters.from || filters.to) {
@@ -791,7 +798,7 @@ export class ReportsService {
     let totalVencido = new Decimal(0);
     const rows: MorosidadRow[] = liquidaciones.map((liq: any) => {
       const diasVencidos = Math.floor(
-        (now.getTime() - new Date(liq.dueDate).getTime()) / 86400000,
+        (today.getTime() - new Date(liq.dueDate).getTime()) / 86400000,
       );
       const monto = new Decimal(outstandingBalance(liq).toString());
       totalVencido = totalVencido.plus(monto);

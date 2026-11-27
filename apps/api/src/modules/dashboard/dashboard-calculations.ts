@@ -111,10 +111,14 @@ export function aggregateIntoBuckets(
   records: Array<{ date: Date; amount: number }>,
   granularity: 'month' | 'week',
 ): Map<string, number> {
-  const result = new Map<string, number>();
+  // Se acumula en centavos enteros: sumar pesos con decimales en coma flotante
+  // deja totales como 2641864.1399999997.
+  const cents = new Map<string, number>();
   for (const r of records) {
     const label = dateToBucket(r.date, granularity);
-    result.set(label, (result.get(label) ?? 0) + r.amount);
+    cents.set(label, (cents.get(label) ?? 0) + Math.round(r.amount * 100));
   }
+  const result = new Map<string, number>();
+  for (const [label, total] of cents) result.set(label, total / 100);
   return result;
 }

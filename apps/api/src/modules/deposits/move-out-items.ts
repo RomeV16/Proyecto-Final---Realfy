@@ -112,7 +112,14 @@ export async function collectMoveOutItems(
   }
 
   const allocations = await db.serviceBillAllocation.findMany({
-    where: { contractId, payer: ChargePayer.Inquilino, billedAt: null },
+    // Las partes que se le cobran al inquilino son las que pagó otro (inmobiliaria o
+    // locador); lo que paga él directo no genera parte. Mismo criterio que la liquidación.
+    where: {
+      contractId,
+      payer: { not: ChargePayer.Inquilino },
+      billedAt: null,
+      bill: { status: { not: 'Anulada' } },
+    },
     include: { bill: { include: { service: { select: { serviceType: true, providerName: true } } } } },
     orderBy: [{ chargePeriod: 'asc' }, { id: 'asc' }],
   });

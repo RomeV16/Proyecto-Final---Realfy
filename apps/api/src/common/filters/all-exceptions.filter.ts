@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { ClsService } from 'nestjs-cls';
+import { VALIDATION_MESSAGE } from '../validation/zod';
 
 /** Prisma error codes we handle explicitly. */
 const PRISMA_UNIQUE_VIOLATION = 'P2002';
@@ -36,6 +37,12 @@ function isPrismaError(err: unknown): err is { code: string; message: string } {
     'code' in err &&
     typeof (err as any).code === 'string'
   );
+}
+
+const INVALID_INPUT_ERRORS = new Set(['ZodError', 'PrismaClientValidationError']);
+
+function isInvalidInputError(err: unknown): boolean {
+  return err instanceof Error && INVALID_INPUT_ERRORS.has(err.name);
 }
 
 /**
@@ -169,17 +176,25 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // --- Prisma errors ---
     if (isPrismaError(exception)) {
       if (exception.code === PRISMA_UNIQUE_VIOLATION) {
-        return { statusCode: HttpStatus.CONFLICT, message: 'Resource already exists.', errorCode: 'CONFLICT' };
+        return { statusCode: HttpStatus.CONFLICT, message: 'Ya existe un registro con esos datos.', errorCode: 'CONFLICT' };
       }
       if (exception.code === PRISMA_NOT_FOUND) {
-        return { statusCode: HttpStatus.NOT_FOUND, message: 'Resource not found.', errorCode: 'NOT_FOUND' };
+        return { statusCode: HttpStatus.NOT_FOUND, message: 'El registro ya no existe.', errorCode: 'NOT_FOUND' };
       }
+    }
+
+    // Un dato que no pasó la validación (un esquema Zod sin envolver) o que
+    // Prisma rechaza antes de consultar (una fecha inexistente, un número de
+    // página que no es número, un valor fuera del enum) es un error de quien
+    // llama: se responde 400, no 500.
+    if (isInvalidInputError(exception)) {
+      return { statusCode: HttpStatus.BAD_REQUEST, message: VALIDATION_MESSAGE, errorCode: 'VALIDATION_ERROR' };
     }
 
     // --- Unknown / internal errors — never leak stack or internal details ---
     return {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-      message: 'An unexpected error occurred. Please try again later.',
+      message: 'El servidor tuvo un problema. Intentá de nuevo en unos minutos.',
       errorCode: 'INTERNAL_ERROR',
     };
   }

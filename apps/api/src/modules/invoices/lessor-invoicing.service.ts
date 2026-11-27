@@ -76,6 +76,44 @@ function describeError(err: unknown): string {
   return `${code ? `${code}: ` : ''}${Array.isArray(message) ? message.join('; ') : message}`.slice(0, 500);
 }
 
+/** Motivo de un fallo de emisión en palabras, por código de error. */
+const JOB_ERROR_TEXT: Record<string, string> = {
+  LESSOR_ISSUER_REQUIRED: 'El locador no tiene un emisor de ARCA delegado.',
+  ISSUER_NOT_FOUND: 'El emisor de ARCA del locador ya no existe.',
+  ARCA_NOT_CONFIGURED: 'Falta configurar el emisor de ARCA.',
+  NO_PUNTO_DE_VENTA: 'El emisor no tiene punto de venta: traelos desde ARCA.',
+  NO_CONTRACT: 'El importe a facturar no tiene contrato: no hay a quién facturarle.',
+  CURRENCY_NOT_SUPPORTED: 'Todavía no se factura en esa moneda.',
+  UNSUPPORTED_CURRENCY: 'Todavía no se factura en esa moneda.',
+  TENANT_PARTY_REQUIRED: 'El contrato no tiene un inquilino a quién facturarle.',
+  RECEPTOR_CUIT_REQUIRED: 'Para una factura A hace falta el CUIT del inquilino.',
+  FISCAL_CONDITION_CANNOT_INVOICE: 'La condición fiscal del locador no permite emitir facturas.',
+  STATEMENT_NOT_ISSUED: 'Solo se factura un estado de cuenta emitido.',
+  PAYMENT_NOT_FOUND: 'El cobro que originó la factura ya no existe.',
+  STATEMENT_NOT_FOUND: 'El estado de cuenta que originó la factura ya no existe.',
+  CONTRACT_NOT_FOUND: 'El contrato de la factura ya no existe.',
+  PERSON_NOT_FOUND: 'El locador de la factura ya no existe.',
+  NOTHING_TO_INVOICE: 'No había nada para facturar.',
+  NOTHING_TO_CREDIT: 'No había nada para anular.',
+};
+const JOB_ERROR_FALLBACK =
+  'ARCA rechazó la emisión o no respondió. Reintentá; si se repite, revisá la configuración del emisor.';
+
+/**
+ * Lo que se guarda en `lastError` es "CODIGO: mensaje técnico". Para mostrarlo se
+ * traduce por código; el texto original viaja aparte en `lastErrorDetail`.
+ */
+export function readableJobError(lastError: string | null | undefined): string | null {
+  if (!lastError) return null;
+  const code = /^([A-Z][A-Z0-9_]*)(: |$)/.exec(lastError)?.[1];
+  return (code && JOB_ERROR_TEXT[code]) || JOB_ERROR_FALLBACK;
+}
+
+function withReadableError<T extends { lastError?: string | null }>(job: T): T {
+  if (!job.lastError) return job;
+  return { ...job, lastError: readableJobError(job.lastError), lastErrorDetail: job.lastError };
+}
+
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 
 /**
@@ -227,7 +265,7 @@ export class LessorInvoicingService {
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       }),
     ]);
-    return { comprobantes, jobs };
+    return { comprobantes, jobs: jobs.map((job: any) => withReadableError(job)) };
   }
 
   private async invoiceSource(sourceType: LessorInvoiceSourceType, sourceId: string, personId?: string) {
@@ -283,7 +321,13 @@ export class LessorInvoicingService {
       }),
       this.prisma.client.lessorInvoiceJob.count({ where }),
     ]);
-    return { items, total, page: filters.page, limit: filters.limit, totalPages: Math.ceil(total / filters.limit) };
+    return {
+      items: items.map((job: any) => withReadableError(job)),
+      total,
+      page: filters.page,
+      limit: filters.limit,
+      totalPages: Math.ceil(total / filters.limit),
+    };
   }
 
   /**

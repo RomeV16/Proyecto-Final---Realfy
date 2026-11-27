@@ -209,6 +209,18 @@ describe('PenaltiesController', () => {
     });
   });
 
+  describe('getDelinquentTenants: punitorios pendientes', () => {
+    it('no pide los punitorios que ya se cobraron en otra liquidación', async () => {
+      const mocks = buildMocks();
+      const controller = buildController(mocks);
+
+      await controller.getDelinquentTenants();
+
+      const args = mocks.prisma.baseClient.liquidacion.findMany.mock.calls[0][0];
+      expect(args.include.penalties.where).toEqual({ status: 'active', settledLiquidacionId: null });
+    });
+  });
+
   describe('getDelinquentTenantsCount', () => {
     it('returns count from DB', async () => {
       const mocks = buildMocks();
