@@ -38,7 +38,7 @@ distinto y los tres se verifican con datos del propio proyecto.
 
 | Práctica | Objetivo que sostiene | Cómo se aplica en este repositorio |
 |---|---|---|
-| Rama protegida y revisión por PR | OE-4 | Desde el 2026-10-30 `main` exige PR, 1 aprobación, rama al día y los chequeos Lint, Build, Unit Tests & Coverage, SonarCloud & Quality Gate, Migrations from scratch, API E2E Tests y Ephemeral deploy smoke & stress. El trabajo de contrato externo (BCRA / INDEC) no es obligatorio porque depende de la disponibilidad de terceros |
+| Rama protegida y revisión por PR | OE-4 | Desde el 2026-10-30 `main` exige PR, 1 aprobación, rama al día y los chequeos Lint, Build, Unit Tests & Coverage, SonarCloud & Quality Gate, Migrations from scratch, API E2E Tests, Ephemeral deploy, smoke & stress y Gates: código muerto y duplicación (ocho en total). El trabajo de contrato externo (BCRA / INDEC) no es obligatorio porque depende de la disponibilidad de terceros |
 | Criterio de aceptación antes de ejecutar | OU-2, OE-3 | Cada caso en `05-casos-de-prueba.md` declara el resultado esperado antes de escribir la prueba |
 | Prueba en rojo antes de corregir | OE-3 | Cada defecto tiene una prueba que falla contra el código viejo y pasa contra el nuevo |
 | Quality gate automático | OE-1, OO-2 | SonarCloud bloquea el PR; no hay excepción manual |

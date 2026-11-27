@@ -16,8 +16,7 @@ eso: una inmobiliaria real va a llevar su ciclo mensual en el sistema, con datos
 personales reales de locadores, inquilinos y garantes, y con dinero de por medio.
 
 Eso no puede convivir con la demostración. La base de la demostración se
-reinicia y se vuelve a cargar cuando hace falta, y nadie debería tener que
-pensarlo dos veces antes de hacerlo. Comparte además secretos con el resto del
+reinicia y se vuelve a cargar cuando hace falta, sin más precaución. Comparte además secretos con el resto del
 trabajo de la tesis. Mezclar datos reales con ese ambiente expondría a la
 inmobiliaria a un borrado accidental y a un acceso más amplio del que
 corresponde.
@@ -25,7 +24,7 @@ corresponde.
 A esto se suma que el repositorio es público: cualquier dato, dominio o
 credencial que se escriba en él queda expuesto.
 
-Y hay un tercer problema que apareció al preparar el ambiente: la imagen
+Al preparar el ambiente apareció un tercer problema: la imagen
 `minio/minio` fue retirada de Docker Hub, con lo cual el almacenamiento de los
 dos ambientes dependía de una imagen que ya no se podía descargar.
 
@@ -56,8 +55,8 @@ Los procedimientos están en `docs/despliegue.md` y `docs/operacion-piloto.md`.
 - **Un proyecto de Railway aparte.** Aísla todavía más, incluso en permisos y
   facturación. Se descartó por ahora porque duplica la configuración que hay que
   mantener sincronizada y no agrega una protección que los ambientes separados
-  con secretos propios no den para el tamaño de este piloto. Sigue siendo el
-  camino natural cuando el trabajo pase a una organización propia.
+  con secretos propios no den para el tamaño de este piloto. Queda como
+  opción para cuando el trabajo pase a una organización propia.
 - **El mismo ambiente con una inmobiliaria separada (tenant).** El aislamiento
   por inmobiliaria (ADR-0003 y ADR-0006) ya impide que una vea los datos de otra.
   Se descartó porque la demostración se reinicia y se carga con datos de prueba,

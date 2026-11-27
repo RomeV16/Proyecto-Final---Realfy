@@ -36,9 +36,9 @@ renglones de servicios y de impuestos pero nadie se los daba.
 
 ## Decisión
 
-**La regla de traslado es un dato del contrato, con vigencia; la boleta es una
+La regla de traslado es un dato del contrato, con vigencia; la boleta es una
 entidad propia; y el reparto de cada boleta entre los contratos se calcula con un
-motor puro y se guarda antes de liquidar.**
+motor puro y se guarda antes de liquidar.
 
 - **Tres pagadores** (`ChargePayer`):
   - `Inquilino`: paga directo al ente. No hay renglón en la liquidación.

@@ -31,9 +31,11 @@ La validación de entrada corre con lista blanca estricta: un campo que el DTO n
 declara hace fallar la petición con 400 en lugar de ser ignorado.
 
 El límite de peticiones general es de 600 por minuto por IP. Los endpoints que
-reciben credenciales —el ingreso y el registro del personal, y el ingreso del
-portal— tienen su propio límite de 5 por minuto, y el formulario de consulta del
-micrositio público, de 10 por minuto.
+reciben credenciales (ingreso, registro, cambio y recupero de contraseña y
+aceptación de invitación del personal, e ingreso del portal) tienen su propio
+límite de 5 por minuto, y el formulario de consulta del micrositio público, de
+10 por minuto. Los webhooks y las dos rutas de recepción de mails no tienen
+límite: se protegen con la firma.
 
 ## Forma de la respuesta de error
 
@@ -72,9 +74,13 @@ genéricos son:
 | `CONFLICT` | 409 | Violación de unicidad en la base. |
 | `INTERNAL_ERROR` | 500 | Cualquier error no previsto. |
 
-Cuando un servicio lanza su propio código de dominio —`EMAIL_EXISTS`,
-`INVITATION_EXPIRED`, `S3_UPLOAD_FAILED` y otros, siempre en mayúsculas con guión
-bajo— el filtro lo respeta en lugar de reemplazarlo por el genérico del estado
+Una excepción HTTP de otro estado que no trae código de dominio (un 429 del
+límite de peticiones, por ejemplo) sale con `statusCode`, `message` y
+`timestamp`, sin `error` ni `errorCode`.
+
+Cuando un servicio lanza su propio código de dominio (`EMAIL_EXISTS`,
+`INVITATION_EXPIRED`, `S3_UPLOAD_FAILED` y otros, siempre en mayúsculas con guion
+bajo), el filtro lo respeta en lugar de reemplazarlo por el genérico del estado
 HTTP, porque hay pantallas que ramifican sobre ese valor. El contexto extra que
 el servicio haya adjuntado al error también se conserva: las máquinas de estado,
 por ejemplo, devuelven `validTransitions` junto al mensaje, así el cliente puede
@@ -455,9 +461,10 @@ Códigos de error: `ACCOUNT_NOT_FOUND` (404), `ACCOUNT_INACTIVE` (409), `ACCOUNT
 | PUT | `/tenants/me/penalty-config` | Actualiza esos parámetros: `mode` (`daily_fixed`, `daily_percent`, `compound_percent`, `max_bna_or_daily`), `value`, `graceDays`, `maxMultiplier` y, solo con `max_bna_or_daily`, `bnaMultiplier` (2), `yearDays` (365 o 360) y `bnaRateKind` (`Nominal` o `Efectiva`) y `missingRateBehavior` (`AplicarPiso` o `Bloquear`); en cualquier modo, `partialPaymentAllocation` (`RentaPrimero` o `PunitorioPrimero`), `roundingMode` (`Total` o `Diario`) y `capBase` (`SaldoInicioMora` o `TotalOriginal`); sin ellas rige el primer valor. Un contrato puede fijar la suya en `termsPatch.penaltyConfig`. | Admin |
 
 Existe además `POST /penalties/_run-now`, que fuerza la corrida diaria sin
-esperar al planificador. No declara roles, pero el propio manejador rechaza la
-petición con 403 salvo que el servicio corra en modo de prueba: es una compuerta
-para las pruebas de extremo a extremo, no un endpoint de operación.
+esperar al planificador. Es solo de Admin y, además, el propio manejador rechaza
+la petición con 403 salvo que el servicio corra en modo de prueba (`NODE_ENV=test`
+o `E2E_TEST_MODE=1`): es una compuerta para las pruebas de extremo a extremo, no
+un endpoint de operación.
 
 ## Cuenta corriente y estado de cuenta del locador
 
@@ -548,7 +555,7 @@ Códigos de error: `FEE_NOT_FOUND`, `FEE_INSTALLMENT_NOT_FOUND`, `FEE_SHARE_NOT_
 
 ## Ventas
 
-Operaciones de venta (D14): de la captación a la escritura. La escritura **no se gestiona**:
+Operaciones de venta (D14): de la captación a la escritura. La escritura no se gestiona:
 queda como estado final (`Escriturada`) y su fecha. Una propiedad tiene a lo sumo una
 operación abierta (409 `SALES_OPERATION_EXISTS`). Las rutas las escriben Admin, Gerente y
 Ventas; las leen además Lectura. Devolver o retener una seña y pactar el honorario son solo
@@ -557,19 +564,19 @@ de Admin y Gerente. Cada alta y cada cambio de etapa, seña o documentación se 
 | Método | Ruta | Descripción | Roles |
 |---|---|---|---|
 | GET | `/sales-operations` | Embudo paginado. Filtros: `status`, `open=true|false`, `propertyId`, `personId`, `exclusive`, `page`, `limit`. Cada operación trae la propiedad, las partes, las reservas y señas (con `expired` y `unresolvedMoney`), la documentación, los honorarios, `docProgress`, `nextExpiry` y `validTransitions`. | Admin, Gerente, Ventas, Lectura |
-| GET | `/sales-operations/:id` | Una operación. 404 `SALES_OPERATION_NOT_FOUND`. | Ídem |
-| GET | `/properties/:propertyId/sales-operations` | La operación abierta (si hay) y el historial de la propiedad. | Ídem |
+| GET | `/sales-operations/:id` | Una operación. 404 `SALES_OPERATION_NOT_FOUND`. | Admin, Gerente, Ventas, Lectura |
+| GET | `/properties/:propertyId/sales-operations` | La operación abierta (si hay) y el historial de la propiedad. | Admin, Gerente, Ventas, Lectura |
 | POST | `/sales-operations` | Alta: `propertyId`, `status` (`Captacion` o `Publicada`), `exclusive`, `price`, `currency` (USD por defecto), `agentUserId`, `parties[]` (`role`, `personId`, `sharePct`; cada lado suma 100), `notes`. Crea la lista de documentación del inmueble. 404 `PROPERTY_NOT_FOUND`, `PERSON_NOT_FOUND`, `USER_NOT_FOUND`; 409 `SALES_OPERATION_EXISTS`. | Admin, Gerente, Ventas |
-| PATCH | `/sales-operations/:id` | Exclusividad, `price`, `agreedPrice`, `currency`, responsable y notas, mientras la operación esté abierta (409 `SALES_OPERATION_CLOSED`). | Ídem |
-| PUT | `/sales-operations/:id/parties` | Reemplaza compradores y vendedores. 400 si un lado no suma 100 o repite a una persona. | Ídem |
-| PATCH | `/sales-operations/:id/docs/:code` | Tilda (`done`) o anota (`notes`) un renglón de la documentación. 404 `DOC_CHECK_NOT_FOUND`. | Ídem |
-| POST | `/sales-operations/:id/transition` | Cambio de etapa: `to` y, según la etapa, `reason` (obligatorio al cancelar), `boletoDate`, `escrituraDate` (no futura), `agreedPrice`, `docsOverrideReason`. | Ídem |
+| PATCH | `/sales-operations/:id` | Exclusividad, `price`, `agreedPrice`, `currency`, responsable y notas, mientras la operación esté abierta (409 `SALES_OPERATION_CLOSED`). | Admin, Gerente, Ventas |
+| PUT | `/sales-operations/:id/parties` | Reemplaza compradores y vendedores. 400 si un lado no suma 100 o repite a una persona. | Admin, Gerente, Ventas |
+| PATCH | `/sales-operations/:id/docs/:code` | Tilda (`done`) o anota (`notes`) un renglón de la documentación. 404 `DOC_CHECK_NOT_FOUND`. | Admin, Gerente, Ventas |
+| POST | `/sales-operations/:id/transition` | Cambio de etapa: `to` y, según la etapa, `reason` (obligatorio al cancelar), `boletoDate`, `escrituraDate` (no futura), `agreedPrice`, `docsOverrideReason`. | Admin, Gerente, Ventas |
 | GET | `/sales-operations/deposits/pending` | Señas pendientes: pendientes de cobro, recibidas sin resolver y vencidas con dinero. Filtros `holder`, `status`. Trae `held`: el dinero recibido sin resolver por moneda y por quién lo guarda. | Admin, Gerente, Ventas, Lectura |
 | POST | `/sales-operations/:id/deposits` | Alta de una reserva o seña: `kind`, `amount`, `currency` (la de la operación), `holder` (`Inmobiliaria`, `Vendedor` o `Escribano`; por defecto `sales.defaultDepositHolder`), `holderPersonId`, `payerPersonId`, `expiresAt` (una reserva sin fecha vence a los `sales.reservationDays`), `notes`. 409 `INVALID_STAGE_FOR_DEPOSIT`; 400 `EXPIRY_IN_PAST`. | Admin, Gerente, Ventas |
-| PATCH | `/sales-operations/:id/deposits/:depositId` | Prorroga el vencimiento o cambia las notas de una reserva o seña viva. 400 `EXPIRY_REQUIRED`, `EXPIRY_IN_PAST`; 409 `DEPOSIT_CLOSED`. | Ídem |
-| POST | `/sales-operations/:id/deposits/:depositId/receive` | El dinero entró (`receivedAt`, `method`, `accountId`, `note`). Si lo guarda la inmobiliaria escribe un movimiento de caja de categoría `Sena` (entrada, con el comprador de contraparte); si no, solo se anota. 409 `DEPOSIT_NOT_PENDING`, `DEPOSIT_EXPIRED`. | Ídem |
+| PATCH | `/sales-operations/:id/deposits/:depositId` | Prorroga el vencimiento o cambia las notas de una reserva o seña viva. 400 `EXPIRY_REQUIRED`, `EXPIRY_IN_PAST`; 409 `DEPOSIT_CLOSED`. | Admin, Gerente, Ventas |
+| POST | `/sales-operations/:id/deposits/:depositId/receive` | El dinero entró (`receivedAt`, `method`, `accountId`, `note`). Si lo guarda la inmobiliaria escribe un movimiento de caja de categoría `Sena` (entrada, con el comprador de contraparte); si no, solo se anota. 409 `DEPOSIT_NOT_PENDING`, `DEPOSIT_EXPIRED`. | Admin, Gerente, Ventas |
 | POST | `/sales-operations/:id/deposits/:depositId/refund` | Devolución al comprador (`at`, `amount` hasta lo recibido, `method`, `note`). Si lo guarda la inmobiliaria sale un movimiento de caja `Sena` de la misma cuenta. Deja la seña `Devuelta`. 400 `REFUND_EXCEEDS_DEPOSIT`; 409 `NO_MONEY_TO_RESOLVE`. | Admin, Gerente |
-| POST | `/sales-operations/:id/deposits/:depositId/forfeit` | Retención (`at`, `amount`, `note` obligatoria). **Solo se registra**: deja la seña `Retenida` y no mueve la caja. 400 `FORFEIT_EXCEEDS_DEPOSIT`; 409 `NO_MONEY_TO_RESOLVE`. | Admin, Gerente |
+| POST | `/sales-operations/:id/deposits/:depositId/forfeit` | Retención (`at`, `amount`, `note` obligatoria). Solo se registra: deja la seña `Retenida` y no mueve la caja. 400 `FORFEIT_EXCEEDS_DEPOSIT`; 409 `NO_MONEY_TO_RESOLVE`. | Admin, Gerente |
 | GET | `/sales-operations/:id/fee-proposal` | Honorario sugerido: porcentaje por defecto según el tipo de inmueble (`fees.ventaConstruido`, 3 %; `fees.ventaLote`, 5 %), base (precio pactado o de publicación) y el pagador principal de cada lado. | Admin, Gerente |
 | POST | `/sales-operations/:id/fee` | Crea el honorario de venta, uno por comprador y vendedor principal (cada parte paga el porcentaje), con `Fee.salesOpId` apuntando a la operación. Cuerpo opcional: `pct`, `baseAmount`, `installments`, `firstDueDate`, `payers[]`, `notes`. 409 `INVALID_STAGE_FOR_FEE`, `SALES_FEE_EXISTS`; 400 `PRICE_REQUIRED`, `PAYERS_REQUIRED`, `PAYER_NOT_PARTY`. El cobro sigue en `/fees`. | Admin, Gerente |
 
@@ -607,8 +614,8 @@ Soporte y Lectura.
 | POST | `/properties/:propertyId/keys` | Alta de un juego: `label`, `copies`, `location`, `holder` (`Oficina` por defecto), `holderPersonId`, `holderUserId`, `holderName`, `notes`. Si nace fuera de la oficina queda con su salida abierta. | Admin, Gerente, Ventas |
 | GET | `/keys/:id` | Un juego. 404 `KEY_SET_NOT_FOUND`. | Admin, Gerente, Ventas, Soporte, Lectura |
 | PATCH | `/keys/:id` | Nombre, copias, lugar, notas o baja (`isActive`; 409 `KEY_SET_OUT` si está fuera). | Admin, Gerente, Ventas |
-| POST | `/keys/:id/check-out` | Salida: `holder` (no `Oficina`), `holderPersonId`, `holderUserId` o `holderName`, `reason`, `outAt`, `expectedReturnAt`. 409 `KEY_ALREADY_OUT`, `KEY_SET_INACTIVE`; 400 `DATE_IN_FUTURE`, `RETURN_BEFORE_OUT`. | Ídem |
-| POST | `/keys/:id/check-in` | Devolución: `returnedAt`, `location`, `notes`. El juego vuelve a la oficina. 409 `KEY_NOT_OUT`; 400 `DATE_IN_FUTURE`, `RETURN_BEFORE_OUT`. | Ídem |
+| POST | `/keys/:id/check-out` | Salida: `holder` (no `Oficina`), `holderPersonId`, `holderUserId` o `holderName`, `reason`, `outAt`, `expectedReturnAt`. 409 `KEY_ALREADY_OUT`, `KEY_SET_INACTIVE`; 400 `DATE_IN_FUTURE`, `RETURN_BEFORE_OUT`. | Admin, Gerente, Ventas |
+| POST | `/keys/:id/check-in` | Devolución: `returnedAt`, `location`, `notes`. El juego vuelve a la oficina. 409 `KEY_NOT_OUT`; 400 `DATE_IN_FUTURE`, `RETURN_BEFORE_OUT`. | Admin, Gerente, Ventas |
 | GET | `/keys/out` | «Llaves fuera»: salidas abiertas, las de fecha de vuelta más antigua primero, con `overdue` y `daysOverdue`. Filtros `holder`, `propertyId`, `overdue=true`, `page`, `limit`. | Admin, Gerente, Ventas, Soporte, Lectura |
 
 ## Rendiciones al propietario (histórico)
@@ -629,9 +636,9 @@ se generan, no cambian de estado, no se editan ni se envían. Se retiraron `POST
 
 Los roles de este módulo se resuelven con tres conjuntos: la emisión y la
 administración de emisores son de Admin, Gerente y Liquidaciones; la lectura
-alcanza a todos los roles salvo Marketing —es decir Admin, Gerente,
-Liquidaciones, Ventas, Soporte y Lectura—; y el certificado es exclusivo de
-Admin. En la tabla, esos seis roles de lectura figuran como **lectura**.
+alcanza a todos los roles salvo Marketing, es decir Admin, Gerente,
+Liquidaciones, Ventas, Soporte y Lectura; y el certificado es exclusivo de
+Admin. En la tabla, esos seis roles de lectura figuran como «Lectura».
 
 | Método | Ruta | Para qué | Acceso |
 |---|---|---|---|
@@ -661,18 +668,18 @@ La inmobiliaria factura el alquiler con la delegación de ARCA del locador (un e
 
 | Método | Ruta | Para qué | Acceso |
 |---|---|---|---|
-| GET | `/persons/:id/invoicing-settings` | Emisor delegado del locador (con su delegación y puntos de venta), lo que definió (`override`), los valores de la inmobiliaria (`agencyDefaults`), lo que rige (`effective`) y desde cuándo factura solo (`autoSince`). | Lectura |
+| GET | `/persons/:id/invoicing-settings` | Emisor delegado del locador (con su delegación y puntos de venta), lo que definió (`override`), los valores de la inmobiliaria (`agencyDefaults`), lo que rige (`effective`) y desde cuándo factura solo (`autoSince`). | Admin, Gerente, Liquidaciones, Lectura |
 | PUT | `/persons/:id/invoicing-settings` | Define `scope` (`Alquiler`, `AlquilerPunitorios`, `TodoLocador`), `when` (`Manual`, `AlPagar`, `AlEmitirEstado`) y `vatPct` (0, 2.5, 5, 10.5, 21 o 27, IVA incluido); `null` vuelve a lo de la inmobiliaria. 409 `LESSOR_ISSUER_REQUIRED` sin emisor. | Admin, Gerente |
 | POST | `/persons/:id/invoicing-issuer` | Da de alta (o reactiva) el emisor delegado con el CUIT, el nombre y la condición de la persona; admite `ingresosBrutos`, `activityStartDate` y `businessAddress`. 400 `PERSON_CUIT_REQUIRED`, `PERSON_FISCAL_CONDITION_REQUIRED` o `FISCAL_CONDITION_CANNOT_INVOICE`; 409 `LESSOR_ISSUER_EXISTS`. La delegación se verifica y los puntos de venta se traen con las rutas de emisores. | Admin, Gerente |
-| GET | `/payments/:id/invoices` | Comprobantes y trabajos de facturación de un cobro. | Lectura |
+| GET | `/payments/:id/invoices` | Comprobantes y trabajos de facturación de un cobro. | Admin, Gerente, Liquidaciones, Lectura |
 | POST | `/payments/:id/invoices` | Factura el cobro por cuenta de cada locador con emisor delegado (o del `personId` indicado): una factura por contrato, al inquilino, por la parte del locador. Idempotente. 409 `INVOICING_TRIGGER_MISMATCH` si el locador factura al emitir el estado; 422 `LESSOR_INVOICE_FAILED` con el motivo si falla (el cobro no cambia y el trabajo queda `Fallido`). | Admin, Gerente, Liquidaciones |
-| GET | `/owner-statements/:id/invoices` | Comprobantes y trabajos de un estado de cuenta. | Lectura |
+| GET | `/owner-statements/:id/invoices` | Comprobantes y trabajos de un estado de cuenta. | Admin, Gerente, Liquidaciones, Lectura |
 | POST | `/owner-statements/:id/invoices` | Factura un estado emitido por cuenta de su locador. 409 `STATEMENT_NOT_ISSUED` o `INVOICING_TRIGGER_MISMATCH`; 422 si falla. | Admin, Gerente, Liquidaciones |
-| GET | `/invoices/pending` | Cola de emisión: `status` (`Pendiente`, `Fallido`, `Emitido`, `Omitido`; por defecto pendientes y fallidos), `personId`, `page`, `limit`. | Lectura |
+| GET | `/invoices/pending` | Cola de emisión: `status` (`Pendiente`, `Fallido`, `Emitido`, `Omitido`; por defecto pendientes y fallidos), `personId`, `page`, `limit`. | Admin, Gerente, Liquidaciones, Lectura |
 | POST | `/invoices/pending/run` | Pone en cola lo que la configuración manda facturar solo (cobros o estados nuevos de locadores con delegación activa, desde que se activó y hasta 60 días atrás) y emite lo pendiente. `retryAll: true` reintenta también los que agotaron los 5 intentos automáticos; `personId` limita a un locador. Responde `enqueued`, `processed`, `emitted`, `skipped`, `failed` y `results`. Un proceso lo corre solo cada 30 minutos. | Admin, Gerente, Liquidaciones |
 
 El listado `GET /invoices` admite `personId` (locador por cuyo emisor se emitió), `source` (`Payment`, `OwnerStatement` o `FeeInstallment`) y `ownerStatementId`. Anular un estado de cuenta deja en cola la nota de crédito de sus facturas (`creditNotes` en la respuesta de `annul`), que se emite con la cola.
-| GET | `/invoices/issuers/:id/pdv` | Puntos de venta del emisor. | Lectura |
+| GET | `/invoices/issuers/:id/pdv` | Puntos de venta del emisor. | Admin, Gerente, Liquidaciones, Ventas, Soporte, Lectura |
 | POST | `/invoices/issuers/:id/pdv` | Agrega un punto de venta. | Admin, Gerente, Liquidaciones |
 | DELETE | `/invoices/pdv/:id` | Quita un punto de venta. | Admin, Gerente, Liquidaciones |
 
@@ -999,17 +1006,17 @@ son de Admin, Gerente, Ventas, Marketing y Soporte, salvo las indicadas.
 
 | Método | Ruta | Para qué | Acceso |
 |---|---|---|---|
-| GET | `/conversations` | Lista paginada, de la última actividad a la más vieja, con `status`, `open` (sin resueltas ni archivadas), `channel`, `assignee` (`me`, `none` o un id), `slaBreached`, `search`, `page` y `limit`. Cada consulta trae el responsable, los sin leer, el plazo, `slaState` y una vista previa. | INBOX |
-| GET | `/conversations/summary` | Contadores del menú: `unread` (propios o sin responsable), `breached` y `unassigned`, entre las abiertas. | INBOX |
-| GET | `/conversations/settings` | Configuración de la bandeja. | INBOX |
+| GET | `/conversations` | Lista paginada, de la última actividad a la más vieja, con `status`, `open` (sin resueltas ni archivadas), `channel`, `assignee` (`me`, `none` o un id), `slaBreached`, `search`, `page` y `limit`. Cada consulta trae el responsable, los sin leer, el plazo, `slaState` y una vista previa. | Admin, Gerente, Ventas, Marketing, Soporte |
+| GET | `/conversations/summary` | Contadores del menú: `unread` (propios o sin responsable), `breached` y `unassigned`, entre las abiertas. | Admin, Gerente, Ventas, Marketing, Soporte |
+| GET | `/conversations/settings` | Configuración de la bandeja. | Admin, Gerente, Ventas, Marketing, Soporte |
 | PUT | `/conversations/settings` | Reemplaza la configuración. 400 con valores inválidos o un responsable por defecto inexistente. | Admin, Gerente |
-| POST | `/conversations/calls` | *Registrar llamada*: `{ name, phone, summary, propertyId?, answered }`. Crea (o suma a) una consulta de canal `Telefono` asignada a quien la registra. 400 `INVALID_PHONE`. | INBOX |
-| GET | `/conversations/:id` | El hilo (con el estado de entrega de cada respuesta), la persona, el interesado, lo vinculado, el plazo, por dónde saldría una respuesta (`replyRoute`) y, si no puede salir, el motivo (`replyBlockedReason`: `CONTACT_OPTED_OUT`, `WHATSAPP_WINDOW_CLOSED`, `NO_REPLY_CHANNEL`). 404 si es de otra inmobiliaria. | INBOX |
-| POST | `/conversations/:id/read` | Deja en cero los sin leer. | INBOX |
-| POST | `/conversations/:id/reply` | `{ body, subject? }`: encola la respuesta por la bandeja de salida (canal de la consulta o mail; WhatsApp solo con texto libre dentro de las 24 horas), la registra en el hilo, toma la primera respuesta y deja la consulta en `Esperando`. 409 `CONTACT_OPTED_OUT`, `WHATSAPP_WINDOW_CLOSED`, `NO_REPLY_CHANNEL`, `CONVERSATION_ARCHIVED`. Repetir el mismo texto a la vez devuelve `queued: false`. | INBOX |
-| PUT | `/conversations/:id/assignee` | `{ assigneeUserId }` (null desasigna); avisa a la persona asignada. 400 si el usuario no existe o está inactivo. | INBOX |
-| PUT | `/conversations/:id/status` | `{ status }`. | INBOX |
-| PUT | `/conversations/:id/links` | `{ personId?, leadId?, related?: { type: 'Property' \| 'Contract', id } }`; null desvincula. 404 `PERSON_NOT_FOUND`, `LEAD_NOT_FOUND`, `PROPERTY_NOT_FOUND`, `CONTRACT_NOT_FOUND`. | INBOX |
+| POST | `/conversations/calls` | *Registrar llamada*: `{ name, phone, summary, propertyId?, answered }`. Crea (o suma a) una consulta de canal `Telefono` asignada a quien la registra. 400 `INVALID_PHONE`. | Admin, Gerente, Ventas, Marketing, Soporte |
+| GET | `/conversations/:id` | El hilo (con el estado de entrega de cada respuesta), la persona, el interesado, lo vinculado, el plazo, por dónde saldría una respuesta (`replyRoute`) y, si no puede salir, el motivo (`replyBlockedReason`: `CONTACT_OPTED_OUT`, `WHATSAPP_WINDOW_CLOSED`, `NO_REPLY_CHANNEL`). 404 si es de otra inmobiliaria. | Admin, Gerente, Ventas, Marketing, Soporte |
+| POST | `/conversations/:id/read` | Deja en cero los sin leer. | Admin, Gerente, Ventas, Marketing, Soporte |
+| POST | `/conversations/:id/reply` | `{ body, subject? }`: encola la respuesta por la bandeja de salida (canal de la consulta o mail; WhatsApp solo con texto libre dentro de las 24 horas), la registra en el hilo, toma la primera respuesta y deja la consulta en `Esperando`. 409 `CONTACT_OPTED_OUT`, `WHATSAPP_WINDOW_CLOSED`, `NO_REPLY_CHANNEL`, `CONVERSATION_ARCHIVED`. Repetir el mismo texto a la vez devuelve `queued: false`. | Admin, Gerente, Ventas, Marketing, Soporte |
+| PUT | `/conversations/:id/assignee` | `{ assigneeUserId }` (null desasigna); avisa a la persona asignada. 400 si el usuario no existe o está inactivo. | Admin, Gerente, Ventas, Marketing, Soporte |
+| PUT | `/conversations/:id/status` | `{ status }`. | Admin, Gerente, Ventas, Marketing, Soporte |
+| PUT | `/conversations/:id/links` | `{ personId?, leadId?, related?: { type: 'Property' \| 'Contract', id } }`; null desvincula. 404 `PERSON_NOT_FOUND`, `LEAD_NOT_FOUND`, `PROPERTY_NOT_FOUND`, `CONTRACT_NOT_FOUND`. | Admin, Gerente, Ventas, Marketing, Soporte |
 | POST | `/conversations/_run-sla` | Una vuelta del control de plazos para la inmobiliaria del pedido. Solo con `NODE_ENV=test` o `E2E_TEST_MODE=1`. | Admin |
 | POST | `/inbox/email-ingest` | Mail reenviado a la bandeja (público, firmado con `X-Realfy-Signature: sha256=<hex>` sobre el cuerpo crudo y `INBOX_EMAIL_INGEST_SECRET`): `{ tenantSlug, messageId, from, fromName?, subject?, text, receivedAt?, automatic? }`. 401 con firma inválida; 404 con una inmobiliaria desconocida; `ignored` en la respuesta si es automático. Repetir el `messageId` no duplica. | Firma |
 
@@ -1045,7 +1052,7 @@ la altura solo si `hideExactAddress` es falso.
 
 Estas rutas no requieren ninguna sesión. La inmobiliaria se resuelve por su
 `slug`, que un guard propio traduce leyendo por fuera del filtro por
-inmobiliaria, porque en ese momento todavía no hay —ni va a haber— contexto de
+inmobiliaria, porque en ese momento no hay ni va a haber contexto de
 sesión. Solo se devuelve lo que alguien publicó: una operación `Disponible` con
 su aviso en el portal `micrositio` en `Publicado` y sin vencer. Nunca se
 devuelven propietarios, inquilinos ni notas internas, y la calle, la altura y las

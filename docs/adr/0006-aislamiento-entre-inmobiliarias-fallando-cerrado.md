@@ -22,21 +22,21 @@ operaciones de los modelos con alcance de inmobiliaria e inyecta el filtro:
 en el `where` de las lecturas y de las mutaciones, y en el `data` de las
 creaciones.
 
-El problema estaba en qué hacía esa extensión cuando **no había** inmobiliaria en
-el contexto. La respuesta era: nada. La consulta pasaba tal cual, sin filtro.
+El problema estaba en qué hacía esa extensión cuando no había inmobiliaria en
+el contexto: nada. La consulta pasaba tal cual, sin filtro.
 
 Eso es fallar abierto, y es peligroso por cómo se combina con el resto del
 diseño. Un endpoint nuevo al que se le olvidó el guard, un servicio invocado
-desde un planificador de tareas —donde no hay petición y por lo tanto no hay
-contexto—, una llamada disparada desde un `setTimeout` que perdió el contexto
-asíncrono: en todos esos casos la consulta no fallaba. Devolvía filas. Devolvía
-las filas de **todas** las inmobiliarias, y el código que la llamó las trataba
+desde un planificador de tareas (donde no hay petición y por lo tanto no hay
+contexto), una llamada disparada desde un `setTimeout` que perdió el contexto
+asíncrono: en todos esos casos la consulta no fallaba: devolvía
+las filas de todas las inmobiliarias, y el código que la llamó las trataba
 como si fueran las suyas.
 
 Lo que hace que esto sea difícil de detectar es que no se parece a un error. Un
 listado que devuelve más registros de los que corresponde se ve como un listado.
-En un ambiente con una sola inmobiliaria cargada —que es la situación normal
-durante el desarrollo— es literalmente indistinguible del comportamiento
+En un ambiente con una sola inmobiliaria cargada, que es la situación normal
+durante el desarrollo, no se distingue del comportamiento
 correcto. El defecto solo se manifiesta cuando hay una segunda inmobiliaria con
 datos, es decir, en producción.
 
@@ -66,14 +66,14 @@ que corresponde: no es un error del cliente, es un defecto del servidor. El
 mensaje que sí llega al registro nombra el modelo y la operación, y explica cuál
 de los dos caminos legítimos había que usar.
 
-Porque hay accesos legítimos sin sesión, y la decisión no sirve si no los
+Hay accesos legítimos sin sesión, y la decisión no sirve si no los
 contempla. Son de dos clases y tienen su propio mecanismo cada una.
 
 **Trabajo de sistema que abarca varias inmobiliarias**: los planificadores de
-tareas —facturación, punitorios, notificaciones, reportes programados, ajustes de
-contratos—, la resolución del `slug` del micrositio público y las consultas del
+tareas (facturación, punitorios, notificaciones, reportes programados, ajustes de
+contratos), la resolución del `slug` del micrositio público y las consultas del
 propio micrositio. Estos leen a través de `PrismaService.baseClient`, que es el
-cliente sin la extensión, y **cada consulta lleva su filtro explícito**. El
+cliente sin la extensión, y cada consulta lleva su filtro explícito. El
 barrido de ajustes, por ejemplo, busca los cronogramas vencidos de todas las
 inmobiliarias por `baseClient`, y después acota cada consulta interna por el
 `tenantId` del contrato que está procesando. La responsabilidad de filtrar se
@@ -89,8 +89,8 @@ porque el valor no existe todavía. Estos usan
 la operación y no se filtre al resto de la petición.
 
 El guard del micrositio público lleva un comentario que explica por qué lee por
-`baseClient`: se ejecuta antes de que exista contexto de inmobiliaria —y nunca va
-a existir, porque la petición no tiene sesión—, así que con la extensión la
+`baseClient`: se ejecuta antes de que exista contexto de inmobiliaria (y nunca va
+a existir, porque la petición no tiene sesión), así que con la extensión la
 búsqueda del `slug` sería rechazada de plano.
 
 **Datos de sistema compartidos** (agregado el 3 de noviembre de 2026, DEF-115):
@@ -99,7 +99,7 @@ los índices que publica el BCRA y el INDEC se guardan una sola vez bajo
 que esa lectura funcione también con el cliente de una transacción, la extensión
 conserva, solo en los modelos de `SYSTEM_SHARED_MODELS` (hoy `IndexData`) y solo
 en lecturas, un filtro que pide la inmobiliaria actual y/o `__system__` y nada
-más. Cualquier otro valor —otra inmobiliaria, un filtro compuesto— se reemplaza
+más. Cualquier otro valor (otra inmobiliaria, un filtro compuesto) se reemplaza
 por la inmobiliaria actual, y las escrituras siguen fijadas a ella: una
 inmobiliaria no ve datos de otra ni puede modificar los de sistema.
 
@@ -122,8 +122,8 @@ a los datos de la otra.
   prácticas. Exige propagar la identidad de la inmobiliaria a la sesión de base
   (`SET LOCAL`) en cada transacción, lo que con un pool de conexiones y el
   cliente de Prisma no es directo; y las políticas quedarían definidas en las
-  migraciones, con lo cual el aislamiento se partiría en dos lugares —el esquema
-  y la extensión— en vez de uno. Queda como el camino natural si el proyecto
+  migraciones, con lo cual el aislamiento se partiría en dos lugares (el esquema
+  y la extensión) en vez de uno. Queda como opción si el proyecto
   crece más allá del MVP.
 - **Un guard que exija contexto de inmobiliaria en toda petición.** No alcanza:
   el problema aparece justamente donde no hay petición, en las tareas
@@ -131,7 +131,7 @@ a los datos de la otra.
 - **Devolver un conjunto vacío en lugar de lanzar.** Sería fallar cerrado sin
   romper nada, pero convierte un defecto en un resultado plausible. Un listado
   vacío se interpreta como "no hay datos", y el bug vuelve a ser invisible. Que
-  la operación falle con un error nombrado es precisamente el objetivo.
+  la operación falle con un error nombrado es el objetivo.
 
 ## Consecuencias
 
@@ -139,7 +139,7 @@ Positivas:
 
 - Un guard olvidado o un contexto perdido dejan de ser una fuga de datos entre
   inmobiliarias y pasan a ser un error 500 con un mensaje que nombra el modelo y
-  la operación. El mismo defecto que antes era invisible ahora es ruidoso.
+  la operación. El defecto que antes no se veía ahora falla a la vista.
 - El acceso de sistema queda declarado. Leer por `baseClient` es una decisión
   explícita que se ve en el diff, y obliga a escribir el filtro a mano al lado.
 - La superficie a auditar se reduce a un conjunto acotado y enumerable: los usos
@@ -148,8 +148,8 @@ Positivas:
 
 Negativas:
 
-- Un olvido en el sentido contrario —usar el cliente con extensión desde una
-  tarea programada— ahora rompe la tarea en vez de correr de más. Es el
+- Un olvido en el sentido contrario (usar el cliente con extensión desde una
+  tarea programada) ahora rompe la tarea en vez de correr de más. Es el
   intercambio que se busca, pero significa que las tareas programadas hay que
   probarlas: una que falle sigue siendo invisible desde la interfaz.
 - Escribir el filtro a mano en el código que usa `baseClient` reintroduce
@@ -160,21 +160,22 @@ Negativas:
   extensión. Un modelo nuevo con columna `tenantId` que no se agregue a esa lista
   queda sin filtrar y sin protección: la extensión lo deja pasar por no
   reconocerlo. Es la principal deuda que deja esta decisión, y el punto que
-  conviene revisar en cada migración que agregue una tabla.
+  conviene revisar en cada migración que agregue una tabla (la cierra el
+  addendum del 2026-10-31).
 - `RefreshToken` y `PipelineStage` no tienen columna `tenantId` y quedan fuera de
   la lista a propósito: su aislamiento depende de la relación con su padre
-  —el usuario y el embudo respectivamente—, que sí está filtrado.
+  (el usuario y el embudo, respectivamente), que sí está filtrado.
 
 ## Addendum (2026-10-31): modelos nuevos y procesos programados
 
 La decisión no cambia. Se agregan dos reglas que cierran las deudas que dejó
 registradas en las consecuencias:
 
-- **Todo modelo nuevo con columna `tenantId` se registra en
-  `TENANT_SCOPED_MODELS`** en la misma migración que lo crea. Una prueba compara
+- Todo modelo nuevo con columna `tenantId` se registra en
+  `TENANT_SCOPED_MODELS` en la misma migración que lo crea. Una prueba compara
   la lista con el esquema de Prisma, de modo que olvidarlo rompe la integración
   continua en lugar de dejar la tabla sin filtro.
-- **Todo proceso programado corre dentro del contexto de la inmobiliaria.** Los
+- Todo proceso programado corre dentro del contexto de la inmobiliaria. Los
   procesos que barren inmobiliarias usan `forEachActiveTenant`
   (`apps/api/src/common/scheduler/tenant-cron.ts`): lee la lista de
   inmobiliarias activas con el cliente sin extensión y ejecuta cada vuelta en un

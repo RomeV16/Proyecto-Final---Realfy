@@ -1,11 +1,11 @@
 # Guía de despliegue
 
-Realfy se despliega como dos servicios independientes —la API y la aplicación
-web— apoyados en una base PostgreSQL administrada y en un almacenamiento de
-objetos compatible con S3. El ambiente de referencia es Railway, y todo lo que
-sigue está escrito para ese proveedor, pero nada del diseño lo ata: los dos
-servicios se construyen con un `Dockerfile` propio en la raíz del repositorio y
-corren en cualquier plataforma que sepa levantar una imagen.
+Realfy se despliega como dos servicios independientes, la API y la aplicación
+web, apoyados en una base PostgreSQL y en un almacenamiento de objetos compatible
+con S3. El ambiente de referencia es Railway y lo que sigue está escrito para ese
+proveedor, aunque el diseño no depende de él: cada servicio se construye con un
+`Dockerfile` propio en la raíz del repositorio y corre en cualquier plataforma que
+levante una imagen.
 
 Este documento reemplaza a los dos archivos de despliegue anteriores, que se
 contradecían entre sí en el punto de salud de la API, en la lista de variables y
@@ -17,19 +17,20 @@ en el nombre del repositorio.
 |---|---|---|
 | `api` | Backend NestJS. Expone todo bajo el prefijo `/api`. | `Dockerfile.api`, configurado por `apps/api/railway.json` |
 | `web` | Frontend Next.js con salida `standalone`. | `Dockerfile.web`, configurado por `apps/web/railway.json` |
-| PostgreSQL | Base única para todas las inmobiliarias. | Servicio administrado del proveedor |
-| Almacenamiento S3 | Fotos de propiedades y adjuntos. | Servicio externo compatible con S3 |
+| `db` | PostgreSQL 16. Base única para todas las inmobiliarias. | Servicio de base de datos del proveedor |
+| `storage` | Almacenamiento de objetos compatible con S3: fotos de propiedades y adjuntos. | MinIO como servicio del mismo proyecto (ver «Almacenamiento (MinIO)») |
 
-Los dos servicios apuntan al mismo repositorio y a la misma rama; lo que los
-distingue es el archivo de configuración que cada uno tiene asignado. En Railway
-eso se define en los ajustes del servicio, indicando la raíz del repositorio como
-directorio de trabajo y `apps/api/railway.json` o `apps/web/railway.json` como
-archivo de configuración.
+Los dos servicios de aplicación se construyen desde la raíz del mismo repositorio;
+lo que los distingue es el archivo de configuración que cada uno tiene asignado. En
+Railway eso se define en los ajustes del servicio, indicando la raíz del
+repositorio como directorio de trabajo y `apps/api/railway.json` o
+`apps/web/railway.json` como archivo de configuración.
 
 ## Ambientes
 
-El proyecto de Railway tiene dos ambientes (`environment`), con los mismos
-servicios y configuración pero sin nada en común en datos ni en secretos:
+El proyecto de Railway, `realfy-tesis-demo`, tiene dos ambientes (`environment`)
+con los mismos cuatro servicios (`web`, `api`, `db` y `storage`) y la misma
+configuración, pero sin nada en común en datos ni en secretos:
 
 | Ambiente | Para qué | Datos |
 |---|---|---|
@@ -78,8 +79,9 @@ una las variables de cada servicio.
 
 ## Requisitos previos
 
-Una cuenta en el proveedor, el repositorio conectado por GitHub, y una base
-PostgreSQL 16. Nada más: la API no necesita ningún servicio de cola ni de caché.
+Una cuenta en el proveedor con su línea de comandos instalada (los despliegues se
+hacen con `railway up`, ver «Despliegue controlado») y una base PostgreSQL 16. La
+API no necesita ningún servicio de cola ni de caché.
 
 ## Base de datos y migraciones
 
@@ -93,11 +95,10 @@ es, tal como está en `apps/api/railway.json`:
 pnpm --filter @realfy/api exec prisma migrate deploy && node apps/api/dist/main.js
 ```
 
-Es decir, cada despliegue aplica las migraciones pendientes antes de levantar el
-servidor. El `Dockerfile.api` tiene su propia versión equivalente del mismo
+Cada despliegue aplica las migraciones pendientes antes de levantar el servidor. El `Dockerfile.api` tiene su propia versión equivalente del mismo
 comando, que es la que corre si la imagen se levanta por fuera del proveedor.
 
-Hay una consecuencia operativa que conviene tener presente: si una migración
+Esto tiene una consecuencia operativa: si una migración
 falla, Prisma la registra como fallida y se niega a aplicar cualquier migración
 posterior, con lo cual el despliegue queda trabado hasta que se resuelva a mano
 contra la base. Por eso la integración continua aplica todas las migraciones
@@ -113,7 +114,7 @@ y recrear el servicio de base de datos, o correr `prisma migrate reset` contra
 
 El servidor escucha en el puerto que indica `PORT`, y usa 3001 si no está
 definido. Todas las rutas cuelgan del prefijo `/api`, así que el punto de salud
-está en `/api/health` —no en `/health`—, que es exactamente lo que declara
+está en `/api/health` y no en `/health`; es lo que declara
 `healthcheckPath` en la configuración del servicio. Ese endpoint responde
 `{"status":"ok","db":"connected",...}` cuando la base está accesible, y
 `"degraded"` cuando no lo está, sin caerse.
@@ -144,30 +145,30 @@ Las opcionales, con su valor por defecto:
 | `JWT_ACCESS_EXPIRY` | `15m` | Vida del token de acceso. |
 | `JWT_REFRESH_DAYS` | `7` | Vida del token de refresco. |
 | `COOKIE_DOMAIN` | vacío | Dominio de las cookies de sesión. Se usa cuando la API y la web comparten dominio padre. |
-| `RATE_LIMIT_DISABLED` | vacío | En `1` apaga el límite de peticiones. **Se ignora cuando `NODE_ENV=production`**, a propósito, para que un entorno mal cargado no deje la API sin límite. |
+| `RATE_LIMIT_DISABLED` | vacío | En `1` apaga el límite de peticiones. Se ignora cuando `NODE_ENV=production`, a propósito, para que un entorno mal cargado no deje la API sin límite. |
 
 Las que habilitan funcionalidad que, sin ellas, queda apagada en silencio:
 
 | Variable | Por defecto | Efecto de no definirla |
 |---|---|---|
-| `S3_ENDPOINT` | — | Sin un endpoint válido, la carga de fotos falla. |
-| `S3_REGION` | `us-east-1` | — |
+| `S3_ENDPOINT` | sin valor | Sin un endpoint válido, la carga de fotos falla. |
+| `S3_REGION` | `us-east-1` | Ninguno; la mayoría de los servicios compatibles la ignora. |
 | `S3_ACCESS_KEY` | vacío | Cualquier proveedor real rechaza credenciales vacías. |
-| `S3_SECRET_KEY` | vacío | Ídem. |
-| `S3_BUCKET` | `realfy-media` | — |
-| `RESEND_API_KEY` | — | No se envía ningún correo: los mensajes por mail quedan pendientes en la bandeja de salida con el motivo «falta configurar el proveedor» y la gerencia recibe un aviso por día. |
+| `S3_SECRET_KEY` | vacío | Lo mismo que `S3_ACCESS_KEY`. |
+| `S3_BUCKET` | `realfy-media` | Se usa ese nombre; el servicio crea el bucket al iniciar si no existe. |
+| `RESEND_API_KEY` | sin valor | No se envía ningún correo: los mensajes por mail quedan pendientes en la bandeja de salida con el motivo «falta configurar el proveedor» y la gerencia recibe un aviso por día. |
 | `RESEND_FROM` | `noreply@realfy.com.ar` | Remitente de los correos; tiene que ser del dominio verificado en Resend. Se acepta también el nombre anterior, `RESEND_FROM_ADDRESS`. |
-| `RESEND_WEBHOOK_SECRET` | — | Secreto `whsec_…` del webhook de Resend. Sin él, `POST /api/webhooks/resend` rechaza todo y no se registran entregas, rebotes ni quejas. |
-| `WHATSAPP_TOKEN` | — | Token de acceso permanente de un usuario del sistema de la cuenta de WhatsApp Business. Sin él (o sin el número), los mensajes por WhatsApp quedan pendientes con el motivo del proveedor. |
-| `WHATSAPP_PHONE_NUMBER_ID` | — | Identificador del número de WhatsApp de la API (no es el número de teléfono). También se usa para descartar avisos de otro número. |
-| `WHATSAPP_APP_SECRET` | — | Secreto de la app de Meta, con el que se verifica `X-Hub-Signature-256`. Sin él, `POST /api/webhooks/whatsapp` rechaza todo. |
-| `WHATSAPP_VERIFY_TOKEN` | — | Texto que se elige al suscribir el webhook en Meta; la verificación `GET /api/webhooks/whatsapp` lo compara. |
+| `RESEND_WEBHOOK_SECRET` | sin valor | Secreto `whsec_…` del webhook de Resend. Sin él, `POST /api/webhooks/resend` rechaza todo y no se registran entregas, rebotes ni quejas. |
+| `WHATSAPP_TOKEN` | sin valor | Token de acceso permanente de un usuario del sistema de la cuenta de WhatsApp Business. Sin él (o sin el número), los mensajes por WhatsApp quedan pendientes con el motivo del proveedor. |
+| `WHATSAPP_PHONE_NUMBER_ID` | sin valor | Identificador del número de WhatsApp de la API (no es el número de teléfono). También se usa para descartar avisos de otro número. |
+| `WHATSAPP_APP_SECRET` | sin valor | Secreto de la app de Meta, con el que se verifica `X-Hub-Signature-256`. Sin él, `POST /api/webhooks/whatsapp` rechaza todo. |
+| `WHATSAPP_VERIFY_TOKEN` | sin valor | Texto que se elige al suscribir el webhook en Meta; la verificación `GET /api/webhooks/whatsapp` lo compara. |
 | `WHATSAPP_GRAPH_VERSION` | `v21.0` | Versión de la Graph API. |
-| `WHATSAPP_TENANT_SLUG` | — | Slug de la inmobiliaria dueña del número de WhatsApp del ambiente. Un WhatsApp de un número al que nunca se le escribió entra como consulta nueva de esa inmobiliaria; sin la variable, de la única inmobiliaria activa. |
-| `INBOX_EMAIL_INGEST_SECRET` | — | Secreto con que se firma el mail reenviado a `POST /api/inbox/email-ingest` (`X-Realfy-Signature`). Sin él, la ruta rechaza todo. |
-| `ARCA_MASTER_KEY` | — | Clave de 32 bytes en base64 que protege los certificados fiscales. Se valida recién cuando se sube o se usa un certificado, así que la API levanta igual: una inmobiliaria que no factura electrónicamente no depende de ella. |
+| `WHATSAPP_TENANT_SLUG` | sin valor | Slug de la inmobiliaria dueña del número de WhatsApp del ambiente. Un WhatsApp de un número al que nunca se le escribió entra como consulta nueva de esa inmobiliaria; sin la variable, de la única inmobiliaria activa. |
+| `INBOX_EMAIL_INGEST_SECRET` | sin valor | Secreto con que se firma el mail reenviado a `POST /api/inbox/email-ingest` y a `POST /api/bills-intake/email-ingest` (`X-Realfy-Signature`). Sin él, las dos rutas rechazan todo. |
+| `ARCA_MASTER_KEY` | sin valor | Clave de 32 bytes en base64 que protege los certificados fiscales. Se valida recién cuando se sube o se usa un certificado, así que la API levanta igual: una inmobiliaria que no factura electrónicamente no depende de ella. |
 | `ARCA_MOCK` | vacío | En `1` responde las llamadas a los servicios de ARCA desde el simulador del repositorio, en lugar de ir al organismo. Para desarrollo y pruebas. |
-| `ARCA_ACCESS_TOKEN` | — | El PDF fiscal se genera con la plantilla local en lugar de la del servicio externo. |
+| `ARCA_ACCESS_TOKEN` | sin valor | El PDF fiscal se genera con la plantilla local en lugar de la del servicio externo. |
 | `AI_BASE_URL` | `https://api.minimax.io/v1` | Endpoint del modelo de lenguaje. |
 | `AI_MODEL` | `MiniMax-M3` | Modelo a usar. |
 | `AI_REASONING_EFFORT` | `none` | Esfuerzo de razonamiento pedido al proveedor. Con razonamiento activo, esos tokens salen del mismo presupuesto que la respuesta y la cortan. Vacío omite el campo. |
@@ -185,10 +186,11 @@ un mensaje sale o no lo decide el ambiente, no una pantalla:
 | `MESSAGING_ALLOWLIST` | vacío | Mails y teléfonos permitidos en modo `allowlist`, separados por coma o punto y coma. Los teléfonos se escriben con código de país (`+54 9 351 …`) o como celular argentino de 10 dígitos. |
 
 - `production` (demo con datos sintéticos) puede estar en `allowlist` con las
-  direcciones del equipo, o en `live` si los destinatarios son ficticios.
-- **`piloto` queda en `off` o en `allowlist` (solo direcciones del equipo)
-  hasta que el dueño de la inmobiliaria apruebe por escrito el envío a su
-  cartera.** El paso a `live` se registra como decisión del piloto.
+  direcciones del equipo, o en `live` si los destinatarios son ficticios. Al
+  27/11/2026 está en `off`.
+- `piloto` queda en `off` o en `allowlist` (solo direcciones del equipo) hasta que
+  el dueño de la inmobiliaria apruebe por escrito el envío a su cartera. El paso a
+  `live` se registra como decisión del piloto.
 - El modo también se aplica a los informes programados que se mandan por mail.
   El recupero de contraseña, que pide la misma persona, sale igual.
 - Sin credenciales del proveedor los mensajes quedan pendientes con el motivo a
@@ -198,21 +200,21 @@ un mensaje sale o no lo decide el ambiente, no una pantalla:
 
 Resend solo manda desde un dominio verificado. Una vez por dominio:
 
-1. En Resend, **Domains → Add domain**, con el dominio de la inmobiliaria o un
+1. En Resend, *Domains → Add domain*, con el dominio de la inmobiliaria o un
    subdominio dedicado al envío (por ejemplo, `avisos.<dominio>`), en la región
    más cercana.
-2. Copiar en el DNS del dominio los registros que muestra Resend: el **TXT de
-   SPF** (`v=spf1 include:amazonses.com ~all` en el subdominio de rebote que
-   indica), el **TXT de DKIM** (`resend._domainkey…`, la clave pública) y el
-   **MX** del subdominio de rebote. Si el dominio ya tiene un SPF, se suma el
+2. Copiar en el DNS del dominio los registros que muestra Resend: el TXT de
+   SPF (`v=spf1 include:amazonses.com ~all` en el subdominio de rebote que
+   indica), el TXT de DKIM (`resend._domainkey…`, la clave pública) y el
+   MX del subdominio de rebote. Si el dominio ya tiene un SPF, se suma el
    `include` al registro existente en lugar de crear otro.
-3. Agregar un **DMARC** (`_dmarc`, TXT `v=DMARC1; p=none; rua=mailto:…`) para
+3. Agregar un registro DMARC (`_dmarc`, TXT `v=DMARC1; p=none; rua=mailto:…`) para
    empezar a recibir informes; endurecerlo a `quarantine` cuando los envíos
    estén estables.
-4. Esperar a que Resend marque el dominio como verificado y crear una **API
-   key** con permiso solo de envío. Cargarla en `RESEND_API_KEY` y el remitente
+4. Esperar a que Resend marque el dominio como verificado y crear una API
+   key con permiso solo de envío. Cargarla en `RESEND_API_KEY` y el remitente
    en `RESEND_FROM`.
-5. En **Webhooks**, apuntar a `https://<api>/api/webhooks/resend` con los
+5. En *Webhooks*, apuntar a `https://<api>/api/webhooks/resend` con los
    eventos `email.sent`, `email.delivered`, `email.bounced`,
    `email.complained` y `email.failed`, y cargar el secreto en
    `RESEND_WEBHOOK_SECRET`.
@@ -221,17 +223,17 @@ Resend solo manda desde un dominio verificado. Una vez por dominio:
 
 ### WhatsApp Business Cloud API
 
-Con un **número nuevo**, que no se use en la aplicación de WhatsApp:
+Con un número nuevo, que no se use en la aplicación de WhatsApp:
 
 1. Crear la cuenta de Meta Business de la inmobiliaria y completar la
    verificación de la empresa.
 2. En Meta for Developers, crear una app de tipo *Business* con el producto
-   WhatsApp y registrar el número nuevo. Anotar el **Phone number ID**
+   WhatsApp y registrar el número nuevo. Anotar el *Phone number ID*
    (`WHATSAPP_PHONE_NUMBER_ID`).
 3. Crear un usuario del sistema con permiso sobre la cuenta de WhatsApp y
-   generar un **token permanente** (`WHATSAPP_TOKEN`). El **secreto de la app**
+   generar un token permanente (`WHATSAPP_TOKEN`). El secreto de la app
    (configuración básica) va en `WHATSAPP_APP_SECRET`.
-4. Dar de alta las plantillas de **utilidad** en `es_AR` con los nombres y
+4. Dar de alta las plantillas de utilidad en `es_AR` con los nombres y
    textos de ADR-0013 (`recibo_de_cobro` y `estado_de_cuenta` con encabezado de
    documento; `incidencia_estado` e `incidencia_respuesta`; y las tres de la
    cobranza, `recordatorio_de_pago_n1`, `_n2` y `_n3`) y esperar la aprobación.
@@ -243,19 +245,21 @@ Con un **número nuevo**, que no se use en la aplicación de WhatsApp:
 
 El sistema no usa Redis ni ninguna cola de trabajos externa (la bandeja de
 salida es una tabla de la base que despacha un proceso programado de la API),
-así que no hace falta provisionarlo ni definir `REDIS_URL`. Un secreto propio para los tokens de
-refresco tampoco hace falta: esos tokens no son JWT sino identificadores
+así que no hace falta provisionarlo ni definir `REDIS_URL`. Tampoco hace falta
+un secreto propio para los tokens de refresco: no son JWT sino identificadores
 aleatorios opacos guardados en la base, de modo que no hay nada que firmar.
 
 ### Mails entrantes: boletas y consultas (Cloudflare Email Worker)
 
-Los WhatsApp entrantes llegan por el webhook ya suscripto. Los **mails** de
-`boletas@` y `consultas@` entran por **Cloudflare Email Routing**: el DNS de
+Los WhatsApp entrantes llegan por el webhook ya suscripto. Los mails de
+`boletas@` y `consultas@` entran por Cloudflare Email Routing: el DNS de
 `realfy.app` está en Cloudflare, cada casilla tiene una regla que la manda al Worker
 `realfy-email-worker` (`infra/email-worker/`), y el Worker lee el mail, lo firma y
-llama a la API. El Worker reemplaza al "reenvío mínimo" que se pensó al principio.
+llama a la API. El Worker reemplaza al reenvío mínimo que se pensó al principio.
 
-La recepción está **activa en el ambiente `piloto` desde el 4 de noviembre de 2026**, con una prueba de punta a punta (del mail a la API) que dio bien. La recepción de Resend se evaluó y se descartó porque no hacía falta un servicio más.
+La recepción está activa en el ambiente `piloto` desde el 4 de noviembre de 2026,
+con una prueba de punta a punta (del mail a la API) que dio bien. La recepción de
+Resend se evaluó y se descartó porque no hacía falta un servicio más.
 
 | Casilla | Endpoint de la API | Cuerpo |
 |---|---|---|
@@ -270,15 +274,15 @@ que el Worker falle y el remitente reintente; un 4xx se registra y no se reinten
 
 Pasos, una vez por ambiente (el detalle con los comandos está en `infra/email-worker/README.md`):
 
-1. Definir `INBOX_EMAIL_INGEST_SECRET` en el servicio `api` y cargar **el mismo valor** en el
+1. Definir `INBOX_EMAIL_INGEST_SECRET` en el servicio `api` y cargar el mismo valor en el
    Worker con `wrangler secret put INBOX_EMAIL_INGEST_SECRET`.
 2. Desplegar el Worker con `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`
    (`infra/email-worker/scripts/deploy.sh`); la inmobiliaria de las casillas sin `+<slug>` va en
    `DEFAULT_TENANT_SLUG`. Nada de esto se guarda en el repositorio.
-3. Habilitar Email Routing en la zona `realfy.app`, **activar el subaddressing** (para que
+3. Habilitar Email Routing en la zona `realfy.app`, activar el subaddressing (para que
    `boletas+<slug>@` llegue a la regla de `boletas@`) y crear las reglas `consultas@` y
-   `boletas@` hacia el Worker, por API o desde el panel (Email Routing -> Settings y Routing
-   rules). Un catch-all hacia el Worker es opcional: lo desconocido se rechaza o va a
+   `boletas@` hacia el Worker, por API o desde el panel (*Email Routing → Settings* y *Routing
+   rules*). Un catch-all hacia el Worker es opcional: lo desconocido se rechaza o va a
    `FALLBACK_FORWARD_TO`.
 4. Definir el remitente `RESEND_FROM` con la casilla de consultas, para que las respuestas de
    los clientes vuelvan a ella, y probar con `MESSAGING_MODE=allowlist`: las autorrespuestas
@@ -296,16 +300,15 @@ junto con `HOSTNAME=0.0.0.0`.
 
 ### El frontend hornea la dirección de la API en tiempo de compilación
 
-Este es el punto que más problemas causa y conviene entenderlo antes de
-desplegar. `NEXT_PUBLIC_API_URL` es una variable con prefijo `NEXT_PUBLIC_`, y
+Es el punto que más problemas causa. `NEXT_PUBLIC_API_URL` es una variable con prefijo `NEXT_PUBLIC_`, y
 Next.js reemplaza esas variables por su valor literal dentro del código que se
 envía al navegador durante `next build`. No se lee en tiempo de ejecución: queda
 grabada en el paquete que descarga el cliente.
 
 De ahí se siguen dos cosas. La primera es que `Dockerfile.web` la recibe como
 argumento de construcción, no como variable del contenedor, y hay que pasarla al
-construir la imagen. La segunda, y la que sorprende, es que **cambiar la variable
-y reiniciar el servicio no tiene ningún efecto**: hace falta reconstruir. Si el
+construir la imagen. La segunda es que cambiar la variable y reiniciar el
+servicio no tiene ningún efecto: hace falta reconstruir. Si el
 frontend desplegado intenta hablar con `localhost:3001`, es porque se construyó
 sin esa variable y tomó el valor por defecto.
 
@@ -319,7 +322,7 @@ plataforma, evitando el problema de CORS y de cookies entre dominios.
 
 | Variable | Cuándo se aplica | Valor |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | **Construcción** | URL pública de la API, terminada en `/api`. Por defecto `http://localhost:3001/api`. |
+| `NEXT_PUBLIC_API_URL` | Construcción | URL pública de la API, terminada en `/api`. Por defecto `http://localhost:3001/api`. |
 | `API_PROXY_TARGET` | Construcción y ejecución | URL del servicio de la API, sin el `/api` final. Por defecto `http://localhost:3001`. En producción conviene la dirección interna. |
 | `NODE_ENV` | Ejecución | `production`. Ya viene fijado en el `Dockerfile`. |
 | `PORT` | Ejecución | `3000`. Ya viene fijado en el `Dockerfile`. |
@@ -347,18 +350,18 @@ aplicación el `robots.txt` solo deja indexar las páginas públicas.
 
 Pasos para dar de alta un dominio propio:
 
-1. **Comprar o elegir el dominio** (cuenta externa de la inmobiliaria; no lo hace
+1. Comprar o elegir el dominio (cuenta externa de la inmobiliaria; no lo hace
    el equipo de desarrollo).
-2. **Agregarlo al servicio `web`** de Railway como dominio personalizado.
+2. Agregarlo al servicio `web` de Railway como dominio personalizado.
    Railway indica el destino al que debe apuntar y emite el certificado TLS solo.
-3. **DNS** en el proveedor del dominio: un `CNAME` de `www` al destino que indicó
+3. En el DNS del proveedor del dominio: un `CNAME` de `www` al destino que indicó
    Railway. Un dominio sin `www` (apex) requiere un registro `ALIAS`/`ANAME` o la
    redirección del apex a `www` que ofrezca el proveedor. No se tocan los
    registros de correo (MX, SPF, DKIM) si el dominio ya los tiene.
-4. **Cargar `MICROSITE_HOST_MAP`** en el servicio `web` con el dominio y el `slug`
+4. Cargar `MICROSITE_HOST_MAP` en el servicio `web` con el dominio y el `slug`
    (la inmobiliaria tiene que tener `slug`, que se carga con
    `PATCH /tenants/:id`) y reiniciar el servicio.
-5. **Verificar**: `https://<dominio>/` muestra la portada, `/robots.txt` anuncia
+5. Verificar: `https://<dominio>/` muestra la portada, `/robots.txt` anuncia
    `/sitemap.xml` y una propiedad con el aviso del micrositio en *Publicado*
    aparece en el sitio.
 
@@ -370,8 +373,8 @@ falta para usar el micrositio por la ruta con el `slug`.
 Las fotos de propiedades y los adjuntos no se guardan en el disco del
 contenedor. El archivo llega en memoria, `sharp` produce un original de 1920
 píxeles de ancho y una miniatura de 400, y las dos versiones se suben al
-almacenamiento de objetos antes de crear el registro en la base —en ese orden, así
-un fallo de subida no deja registros huérfanos—. La clave del objeto incluye el
+almacenamiento de objetos antes de crear el registro en la base; en ese orden, un
+fallo de subida no deja registros huérfanos. La clave del objeto incluye el
 identificador de la inmobiliaria, de modo que los archivos quedan separados por
 inmobiliaria dentro del mismo bucket.
 
@@ -386,7 +389,7 @@ host no se conoce al momento de compilar.
 
 En producción hay que apuntar las variables `S3_*` a un servicio durable. Si
 quedan sin definir, la carga de imágenes falla; es la única parte del sistema que
-no degrada de forma silenciosa y elegante.
+no degrada en silencio.
 
 ## Orden de puesta en marcha
 
@@ -405,7 +408,7 @@ compilar. Se resuelve en dos vueltas.
    volver a desplegar.
 
 Si en el paso 3 el dominio de la API todavía no existía, hay que reconstruir la
-web —no solo reiniciarla— una vez que exista.
+web, no solo reiniciarla, una vez que exista.
 
 ## Verificación
 
@@ -422,8 +425,8 @@ No hay datos precargados: el repositorio no incluye una carga inicial de
 ejemplo, así que el contenido del ambiente de demostración se arma desde la
 propia aplicación.
 
-Vale aclarar que las contraseñas y las claves de los servicios externos no viven
-en el repositorio. Se cargan como variables del servicio en la plataforma y se
+Las contraseñas y las claves de los servicios externos no están en el
+repositorio. Se cargan como variables del servicio en la plataforma y se
 generan aleatoriamente; para `JWT_SECRET` y `ARCA_MASTER_KEY` alcanza con
 `openssl rand -hex 64` y `openssl rand -base64 32` respectivamente.
 
@@ -433,7 +436,7 @@ Los despliegues son manuales y por ambiente (ver «Despliegue controlado»): un
 empuje a `main` no redespliega nada. Frente a cualquier problema, el primer paso
 son los registros del servicio.
 
-Dos operaciones merecen cuidado: dar de baja el servicio de base de datos borra
+Dos operaciones piden cuidado: dar de baja el servicio de base de datos borra
 los datos de forma irreversible, y reiniciar el servicio web reutiliza la imagen
 ya construida, con lo cual no toma los cambios de `NEXT_PUBLIC_API_URL`.
 
@@ -485,7 +488,7 @@ otra imagen de terceros desaparezca o cambie sin aviso. El almacenamiento de
 `production` se cambió a esta imagen el 2026-10-31.
 
 Hay una trampa al cambiar la imagen. Un «redeploy» de un despliegue existente
-reutiliza la imagen de **ese** despliegue, así que el servicio sigue corriendo la
+reutiliza la imagen de ese despliegue, así que el servicio sigue corriendo la
 imagen vieja aunque la configuración ya apunte a la nueva. Después de cambiar la
 imagen hay que desplegar la configuración vigente del servicio: en el panel,
 con «Deploy», o con `serviceInstanceDeployV2` en la API. «Redeploy» no sirve.
@@ -494,12 +497,12 @@ con «Deploy», o con `serviceInstanceDeployV2` en la API. «Redeploy» no sirve
 
 Hay dos capas, porque cada una cubre un fallo distinto.
 
-**Copias nativas de Railway.** Están activadas en el volumen de `db` y en el de
+*Copias nativas de Railway.* Están activadas en el volumen de `db` y en el de
 `storage` del ambiente `piloto`, con frecuencia diaria y semanal. Activarlas
 reinició la base una vez. Cubren el borrado o la corrupción del volumen con una
 granularidad de un día.
 
-**Copia lógica fuera del proveedor.** Una vez por semana, los lunes a las 06:30
+*Copia lógica fuera del proveedor.* Una vez por semana, los lunes a las 06:30
 UTC, una tarea programada corre `pg_dump -Fc` a través de `railway ssh` y el
 archivo se guarda en el servidor del equipo con permisos 600. Cada copia se
 verifica con `pg_restore -l` y se le calcula un `sha256`. Se conservan las
@@ -520,11 +523,10 @@ Objetivos declarados:
 El RTO medido es el de restaurar la copia sobre una base vacía y verificarla; no
 incluye crear la base nueva en el proveedor, apuntar la API a ella y volver a
 desplegar, que son pasos manuales y dominan el tiempo total. Con el volumen de una
-inmobiliaria del tamaño del piloto la restauración en sí es prácticamente
-instantánea, así que la meta de 2 horas depende del procedimiento y no del tamaño
+inmobiliaria del tamaño del piloto la restauración en sí lleva segundos, así que la meta de 2 horas depende del procedimiento y no del tamaño
 de los datos. Se vuelve a medir antes de cada cierre de ciclo.
 
-**Restauración**, de forma genérica:
+La restauración, de forma genérica:
 
 1. Crear una base PostgreSQL vacía (local para ensayar; nueva en el proveedor
    para recuperar).
@@ -570,25 +572,26 @@ de ciclo.
 
 ## Entorno local
 
-`docker-compose.yml` levanta solamente la infraestructura —PostgreSQL y MinIO—;
+`docker-compose.yml` levanta solamente la infraestructura (PostgreSQL y MinIO);
 las dos aplicaciones se corren desde el monorepo.
 
 ```bash
 docker compose up -d postgres minio
 cp apps/api/.env.example apps/api/.env
-cd apps/api && npx prisma migrate deploy && cd ../..
+pnpm --filter @realfy/api exec prisma migrate deploy
 pnpm dev
 ```
 
-Al copiar el archivo de ejemplo hay que tener en cuenta dos cosas. Las
-variables `S3_*`, `RESEND_*` y `WHATSAPP_*` vienen vacías y se completan a mano
-(la mensajería arranca en `MESSAGING_MODE=off`: no sale nada); para MinIO,
-`S3_ENDPOINT=http://localhost:9000` con las credenciales que declara
-`docker-compose.yml`. Y su valor de `CORS_ORIGINS` apunta al puerto de la propia
-API en lugar del de la web: en desarrollo el frontend corre en el 3000 y la API
-en el 3001, así que `CORS_ORIGINS=http://localhost:3000` es lo correcto —que es,
-de hecho, el valor que la API usa por defecto cuando la variable no está
-definida—.
+Al copiar el archivo de ejemplo hay que revisar tres cosas. `DATABASE_URL` trae
+un usuario genérico y hay que ponerle el usuario, la contraseña y la base que
+declara `docker-compose.yml`. Las credenciales `S3_ACCESS_KEY` y `S3_SECRET_KEY`
+y las variables `RESEND_*` y `WHATSAPP_*` vienen vacías y se completan a mano (la
+mensajería arranca en `MESSAGING_MODE=off`: no sale nada); para MinIO el ejemplo
+ya trae `S3_ENDPOINT=http://localhost:9000` y faltan las credenciales del mismo
+`docker-compose.yml`. Y `CORS_ORIGINS` lleva el origen del frontend, no el de la
+API: en desarrollo la web corre en el 3000 y la API en el 3001, así que el valor
+del ejemplo, `http://localhost:3000`, es el correcto y coincide con el que la API
+usa por defecto cuando la variable no está definida.
 
 Para trabajar sobre facturación electrónica sin tocar los servicios del organismo,
 `ARCA_MOCK=1` responde desde el simulador incluido en el repositorio.

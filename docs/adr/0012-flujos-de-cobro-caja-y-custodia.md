@@ -38,8 +38,8 @@ ADR-0009). Este ADR fija la primera parte: la caja y el reparto de cada cobro.
 
 `Payment.receivedBy` es `Inmobiliaria` o `Locador`. Si el pedido no lo indica, se
 toma del flujo de pago del contrato (`paymentFlow` de la versión de reglas vigente
-en el período, ADR-0010): `TodoLocador` → `Locador`; `Partido` y
-`TodoInmobiliaria` → `Inmobiliaria`. Indicar una cuenta o la custodia implica que
+en el período, ADR-0010): con `TodoLocador` es `Locador`; con `Partido` y
+`TodoInmobiliaria`, `Inmobiliaria`. Indicar una cuenta o la custodia implica que
 cobró la inmobiliaria. En el flujo `Partido` el inquilino paga dos veces (comisión
 a la inmobiliaria, resto al locador) y se registran dos cobros, uno por cada
 receptor; sus saldos se compensan entre sí.
@@ -78,8 +78,8 @@ la cuenta corriente reemplaza.
 
 - `FinancialAccount`: `Caja`, `Banco` o `Custodia` (de un locador, con
   `ownerPersonId`), siempre en una sola moneda (ARS, USD o EUR). La caja y el banco
-  de una moneda se crean la primera vez que se usan (efectivo → caja, otros
-  medios → banco), con un bloqueo consultivo para no crear dos.
+  de una moneda se crean la primera vez que se usan (el efectivo va a la caja y los otros
+  medios al banco), con un bloqueo consultivo para no crear dos.
 - `CashMovement` es el libro: cuenta, fecha, sentido (`In`/`Out`), importe
   positivo, moneda, categoría, contraparte, contrato, tipo de cambio y origen
   (`sourceType`/`sourceId`). El saldo de una cuenta es entradas menos salidas.
@@ -114,7 +114,7 @@ asiento. Admin y Gerente, como el del locador.
 Dos reglas propias del libro: un importe negativo es una salida (descubierto) y no se
 admite en una custodia, y cero quita el asiento. La custodia de un locador es parte de
 su saldo (ADR-0009): el dinero que se le debe por ella se carga en su saldo inicial de
-cuenta corriente, y el saldo inicial de la cuenta de custodia sólo registra el respaldo
+cuenta corriente, y el saldo inicial de la cuenta de custodia solo registra el respaldo
 físico. Por eso este asiento no escribe nada en su cuenta corriente: hacerlo contaría
 dos veces la misma deuda. Entregar esa custodia después es un pago normal y baja el
 saldo del locador.
@@ -176,7 +176,7 @@ valor de fábrica:
   cuenta ni recibo: no se inventa dónde entraron.
 - No hay reversión de cobros ni pagos a locadores automáticos todavía; un pago a un
   locador es un movimiento manual (`PagoLocador`) hasta que exista la cuenta
-  corriente.
+  corriente (ADR-0009, que lo reemplaza por el pago desde la cuenta corriente).
 - Las opciones de la tabla son preguntas abiertas a la inmobiliaria; el valor de
   fábrica reproduce lo que hacía el sistema (una sola serie, la custodia fuera del
   total, reparto proporcional).

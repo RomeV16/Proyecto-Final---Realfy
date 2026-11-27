@@ -10,7 +10,7 @@ Aceptado.
 
 ## Contexto
 
-Los diagramas de la documentación —arquitectura, flujos de estados, secuencias—
+Los diagramas de la documentación (arquitectura, flujos de estados, secuencias)
 se dibujaban con caracteres ASCII dentro de los archivos `.md`. Ese formato tiene
 tres problemas, que se vieron en `docs/tesis/03-arquitectura.md`:
 

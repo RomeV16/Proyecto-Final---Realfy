@@ -1,11 +1,73 @@
 # Métricas y análisis estático
 
-Versión 1.3 — 4 de noviembre de 2026 (1.0: 20 de octubre; 1.1: 28 de octubre; 1.2: 3 de noviembre). Todos
+Versión 1.4, 27 de noviembre de 2026 (1.0: 20 de octubre; 1.1: 28 de octubre; 1.2: 3 de noviembre; 1.3: 4 de noviembre). Todos
 los números salen de una ejecución identificable (commit, ejecución del pipeline o
 análisis de SonarCloud). La medición del 4 de noviembre reemplaza a la del 3 como la
 vigente y esta se conserva debajo, para ver la evolución. Las secciones que siguen a
 «Medición del 3 de noviembre de 2026» son las del TP de calidad sobre el módulo de
 índices y se conservan como estaban: muestran el antes y el después de ese trabajo.
+La versión 1.4 suma la remedición de cierre, sobre el último commit de `main` con
+los nueve trabajos del pipeline en verde.
+
+## Remedición de cierre (`7759554`, 4 de noviembre de 2026)
+
+Después de la medición de `c7b3eac` se integraron #197, #199, #234, #242 y #243. Esta
+sección repite las mismas dimensiones sobre `7759554`, el último commit de `main`
+con los nueve trabajos en verde, y coincide con la remedición de cierre de la tabla
+única del informe final (`../tesis/29-informe-final.md`, sección 9.10). El pedido
+#244, posterior, solo cambia el flujo de integración continua y no mueve ninguna de
+estas cifras.
+
+Fuente: ejecución [41782311632](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41782311632)
+del flujo CI sobre `main` en `7759554` y el análisis de SonarCloud de ese mismo commit
+(4 de noviembre de 2026, 06:28 UTC).
+
+| Métrica | `c7b3eac` | `7759554` |
+|---|---|---|
+| Pruebas unitarias de la API | 2.721 en 203 archivos | 2.772 en 207 archivos |
+| Pruebas de la suite del módulo `index-data` | 216 en 10 archivos | 224 en 10 archivos |
+| Pruebas del paquete compartido | 1.087 en 47 archivos | 1.162 en 51 archivos |
+| Pruebas de la aplicación web | 1.688 en 148 archivos | 1.727 en 151 archivos |
+| Pruebas de integración de la API | 916 en 65 archivos | 932 en 67 archivos |
+| Cobertura de la API: líneas, sentencias, funciones, ramas | 80,97 %, 81,03 %, 82,05 %, 73,07 % | 81,65 %, 81,74 %, 82,44 %, 73,86 % |
+| Cobertura de líneas de la web | 79,12 % | 79,76 % |
+| Cobertura de líneas del paquete compartido | 74,08 % | 75,43 % |
+| Cobertura del módulo `index-data` | 97,15 % de líneas, 88,43 % de ramas | 97,24 % de líneas, 88,52 % de ramas |
+| SonarCloud: líneas de código | 111.588 (`6b16803`) | 114.131 |
+| SonarCloud: cobertura (unitarias e integración) | 83,4 % | 83,9 % |
+| SonarCloud: bugs, vulnerabilidades, code smells | 38 (C), 1 (B), 1.468 (A) | 38 (C), 1 (B), 1.521 (A) |
+| SonarCloud: duplicación | 1,2 % | 1,1 % |
+| Quality gate | en verde | en verde |
+| Casos de prueba del catálogo | 710, del CP-01 al CP-1435 | 771 renglones, del CP-01 al CP-1457, sin identificadores repetidos |
+| Defectos registrados | 62 (hasta DEF-171) | 68 (hasta DEF-176), todos corregidos |
+| Migraciones versionadas | 69 | 71 |
+| Módulos de la API, entidades y enumeraciones del modelo | 45, 103 y 118 | 45, 103 y 118 |
+| Controladores y rutas | 55 y 436 | 55 y 437 |
+| Registros de arquitectura y casos de uso | 18 y 50 | 19 y 50 |
+| Duplicación por paquete (api, web, shared) | 0,98 %, 1,69 % y 0,56 % | 0,97 %, 1,66 % y 0,54 % |
+| Trabajos del pipeline | 9, 8 obligatorios | 9, 8 obligatorios |
+| Carga en el despliegue efímero (CP-70 y CP-71) | no registrada | Stress: p95 17,5 ms y 0 % de errores en 25.773 peticiones; esfuerzo sostenido de 5 min: p95 11,0 ms |
+
+El pipeline, hasta el último empuje a `main` (`b47f335`, #244, 4 de noviembre):
+
+- Desde el 30 de octubre (23:16 UTC) hubo 73 ejecuciones por empuje a `main`: 53 en
+  verde, 16 canceladas por un empuje posterior y 4 en rojo.
+- El cuarto rojo es el de `b47f335`, la última ejecución de `main`
+  ([41791915483](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/runs/41791915483)):
+  fallaron dos casos del Worker de mails (CP-1415 y CP-1419, en
+  `infra/email-worker/src/index.test.ts`) que en el pedido #244 habían pasado sobre el
+  mismo árbol. CP-1419 tardó 5,4 s contra un tope de 5 s. Es una prueba inestable por
+  tiempo, del mismo tipo que las dos anteriores. El tope de las pruebas del Worker
+  se subió a 30 s (`infra/email-worker/vitest.config.ts`); falta verlo en verde
+  sobre `main`. Las 2.772
+  unitarias de la API, las 1.162 del paquete compartido y las 1.727 de la web pasaron
+  en esa ejecución; la integración y SonarCloud no corrieron porque dependen de ese
+  trabajo.
+- El trabajo de integración tardó 24,1 minutos en `7759554`. El tope declarado en
+  `ci.yml` se subió de 25 a 40 minutos; repartir la suite en varios trabajos sigue sin
+  hacerse.
+- El pipeline completo tardó entre 29 y 35 minutos en las cinco últimas ejecuciones en
+  verde, contra la meta de menos de 15.
 
 ## Medición del 4 de noviembre de 2026 (piloto, con la oleada 6)
 
@@ -107,10 +169,10 @@ proceso más urgente.
 
 ### Métricas del piloto
 
-Las métricas de uso real —diferencias de reconciliación, tiempo del ciclo, valoración
+Las métricas de uso real (diferencias de reconciliación, tiempo del ciclo, valoración
 de uso, atraso del estado de cuenta, errores de carga y tiempo de detección a
-corrección— están definidas en `12-piloto.md`, sección 7, con sus metas. Sus valores
-quedan **a completar tras el ciclo C1 (≈ 20/11/2026)** para la línea base y el primer
+corrección) están definidas en `12-piloto.md`, sección 7, con sus metas. Sus valores
+quedan a completar tras el ciclo C1 (≈ 20/11/2026) para la línea base y el primer
 ciclo, y tras el C2 (≈ 20/12/2026) y el C3 (≈ 20/01/2027) para la evolución. Se
 publican agregadas y solo con el consentimiento de la inmobiliaria. Lo que sí existe
 es la coincidencia estimada del C1 por los dos ensayos generales (`12-piloto.md`,
@@ -190,7 +252,7 @@ proviene del uso real. Todos se cerraron con su prueba de regresión en rojo pri
 y la evidencia de DEF-09 a DEF-23 (commits y ejecuciones en rojo y en verde) está en
 el PR #138.
 
-La métrica del TP —días entre la detección y la regresión en verde— no se puede
+La métrica del TP (días entre la detección y la regresión en verde) no se puede
 calcular igual para el piloto, y conviene decir por qué: el issue de cada defecto se
 abrió junto con el pedido que lo corrige, así que la diferencia entre su apertura y
 su cierre mide el ciclo de revisión (entre 0 y 2 horas en los veintinueve casos) y no
@@ -217,9 +279,9 @@ como riesgo del proceso.
 
 ### Métricas del piloto
 
-Las métricas de uso real —diferencias de reconciliación, tiempo del ciclo,
+Las métricas de uso real (diferencias de reconciliación, tiempo del ciclo,
 valoración de uso, atraso del estado de cuenta, errores de carga y tiempo de
-detección a corrección— están definidas en `12-piloto.md`, sección 7, con sus
+detección a corrección) están definidas en `12-piloto.md`, sección 7, con sus
 metas. Sus valores quedan a completar tras el ciclo C1 (≈ 20/11/2026) para la línea
 base y el primer ciclo, y tras el C2 (≈ 20/12/2026) y el C3 (≈ 20/01/2027) para
 la evolución. Se publican agregadas y solo con el consentimiento de la

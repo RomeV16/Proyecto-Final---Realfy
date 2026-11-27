@@ -11,16 +11,16 @@ histórico de solo lectura.
 
 ## Contexto
 
-Hasta ahora lo que se le pagaba a un locador salía de la **rendición por contrato**:
+Hasta ahora lo que se le pagaba a un locador salía de la rendición por contrato:
 una por contrato, mes y locador, armada a partir de lo cobrado en el mes, menos la
 comisión y los conceptos que se agregaban a mano, hasta llegar a un «depósito neto».
 
 El relevamiento de la inmobiliaria piloto muestra otra forma de trabajar (FB-10):
 
-- Cada locador tiene un **acumulador**: un estado de cuenta único por persona, que
+- Cada locador tiene un acumulador: un estado de cuenta único por persona, que
   junta todas sus unidades, con los ingresos de cada una, los gastos (impuestos,
   reparaciones, honorarios), las transferencias, las entregas de efectivo y las
-  compensaciones, y un **saldo que se arrastra** de un mes al siguiente.
+  compensaciones, y un saldo que se arrastra de un mes al siguiente.
 - Ese estado se arma a mano en planillas, con atraso (mediana de 22 días para los
   locadores con varias unidades) y errores de copiado.
 - Los saldos iniciales se cargan a mano y tienen que poder corregirse.
@@ -40,7 +40,7 @@ con varias unidades, y recalculaba el reparto a fin de mes sobre lo cobrado.
 
 `OwnerLedgerEntry` es el libro de cada locador. Cada asiento tiene persona,
 contrato y unidad (opcionales), fecha, mes del estado al que va (`period`), concepto,
-**importe con signo**, moneda, descripción y **origen** (`sourceType`/`sourceId`).
+importe con signo, moneda, descripción y origen (`sourceType`/`sourceId`).
 
 - **Signo**: positivo, la inmobiliaria le debe al locador; negativo, se le descuenta
   o ya recibió el dinero. El saldo es la suma de los asientos.
@@ -80,12 +80,12 @@ alquiler), así que los asientos de cada locador suman exactamente su parte.
 Liquidación de 100000 de alquiler, comisión del 7 % y dos locadores al 50 %:
 
 - **(a) Cobra la inmobiliaria**: `Alquiler` +50000, `Comision` −3500 → saldo
-  **+46500**: la inmobiliaria se los debe.
+  +46500: la inmobiliaria se los debe.
 - **(c) Custodia**: los mismos asientos y el mismo saldo; el estado indica cuánto de
   ese saldo está en efectivo en la oficina. Entregarlo es un pago.
 - **(b) Cobra el locador** (lo ajeno es comisión, renglones de la inmobiliaria y de
   entes): `Alquiler` +50000, `Comision` −3500, `CobroDirecto` −50000 → saldo
-  **−3500**: el locador le debe la comisión a la inmobiliaria. Si el contrato o la
+  −3500: el locador le debe la comisión a la inmobiliaria. Si el contrato o la
   inmobiliaria fijan que el locador paga los entes él mismo, lo que retiene para
   ellos no cuenta como cobrado: queda descontado del `CobroDirecto` y el saldo sigue
   siendo solo lo que le debe a la inmobiliaria.
@@ -99,12 +99,12 @@ Liquidación de 100000 de alquiler, comisión del 7 % y dos locadores al 50 %:
 ### Estado de cuenta mensual consolidado
 
 `OwnerStatement` es el estado de un locador en un mes y una moneda
-(`@@unique([tenantId, personId, period, currency])`), con **todas sus unidades**:
+(`@@unique([tenantId, personId, period, currency])`), con todas sus unidades:
 
 - **Apertura** = cierre del último estado emitido de ese locador y moneda, más los
-  saldos iniciales del período. **Créditos**, **débitos** (comisión, honorarios,
-  cargos, pagos a entes), **pagos** (transferencias, entregas de efectivo y cobros
-  directos) y **cierre** = apertura + créditos − débitos − pagos.
+  saldos iniciales del período. Créditos, débitos (comisión, honorarios,
+  cargos, pagos a entes), pagos (transferencias, entregas de efectivo y cobros
+  directos) y cierre = apertura + créditos − débitos − pagos.
 - Los movimientos se agrupan por unidad para el PDF; lo que no es de una unidad
   (pagos, saldo inicial) va al final.
 - El motor es puro y está en `packages/shared` (`computeStatement`,
@@ -125,10 +125,10 @@ Estados: `Borrador`, `Emitido`, `Enviado`, `Anulado`.
 
 ### Cargos al locador y estado
 
-Por defecto, al **generar** el estado se asientan los cargos al locador pendientes
+Por defecto, al generar el estado se asientan los cargos al locador pendientes
 hasta ese mes y pasan a `Imputado` con `imputedStatementId` = el estado de quien más
 los soporta (es lo que fijó el modelo de datos del centro de carga). Si la
-inmobiliaria elige descontarlos **al emitir**, el borrador los muestra como
+inmobiliaria elige descontarlos al emitir, el borrador los muestra como
 «previstos» y se asientan al emitir. Anular un estado no los devuelve a pendiente:
 quedan en la cuenta corriente y entran en el estado siguiente.
 
@@ -141,7 +141,7 @@ de fábrica igual al comportamiento descripto:
 |---|---|
 | `ownerAccounts.statementCloseDay` | `null` (fin de mes) o un día de 1 a 28: lo posterior a ese día va al estado del mes siguiente |
 | `ownerAccounts.lessorChargeTiming` | `AlGenerarEstado`, `AlEmitirEstado` |
-| `cash.lessorDirectOwes` (ADR-0012) | `TodoLoAjeno`, `SoloInmobiliaria`; ahora también **por contrato** en su versión de reglas (`ContractTermsVersion.lessorDirectOwes`, `null` = el de la inmobiliaria), pactable al crear el contrato o por convenio (`termsPatch`) |
+| `cash.lessorDirectOwes` (ADR-0012) | `TodoLoAjeno`, `SoloInmobiliaria`; ahora también por contrato en su versión de reglas (`ContractTermsVersion.lessorDirectOwes`, `null` = el de la inmobiliaria), pactable al crear el contrato o por convenio (`termsPatch`) |
 
 El honorario por gestión de reparaciones es por contrato (`ContractCommission.repairMgmtFeePct`,
 `null` = sin honorario).
@@ -180,7 +180,7 @@ El honorario por gestión de reparaciones es por contrato (`ContractCommission.r
 
 ## Consecuencias
 
-- `OwnerRendicion` queda como **histórico de solo lectura**: se consulta y se imprime
+- `OwnerRendicion` queda como histórico de solo lectura: se consulta y se imprime
   (`GET /renditions`, `/:id`, `/:id/pdf`), pero ya no se genera, no cambia de estado,
   no se edita ni se envía; esas rutas se retiraron. Las pruebas de esas funciones
   (CP-245, CP-266, CP-267) se retiraron con el código.

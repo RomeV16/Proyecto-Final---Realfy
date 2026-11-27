@@ -1,29 +1,30 @@
 # Preparación de la defensa
 
 Material de trabajo para la defensa. No es un guion de la exposición: el recorrido
-del sistema está en `docs/demo.md` y no se repite acá. Lo que hay acá son las
-preguntas que el tribunal va a hacer con su respuesta y su evidencia, los puntos
-fuertes que conviene poner adelante, los flancos débiles con qué contestar en cada
-uno, y el reparto de la exposición entre los tres integrantes.
+del sistema está en `docs/demo.md` y no se repite acá. Este documento reúne las
+preguntas que esperamos del tribunal, con su respuesta y su evidencia; los puntos
+fuertes; los puntos débiles y qué contestar en cada uno, y el reparto de la
+exposición entre los tres integrantes. Las cifras son las de la remedición de
+cierre del informe final (sección 9.10, commit `7759554`), salvo donde se aclara
+que corresponden a la primera versión.
 
-Tres reglas de conducta para la defensa, acordadas de antemano:
+Acordamos tres reglas para la defensa:
 
-1. **Lo que no está, se dice antes de que lo pregunten.** Todo lo que falta está
-   declarado en la sección 5 y en la 7 del informe final. Adelantarlo cuesta menos
-   que defenderlo cuando lo encuentran.
-2. **Ninguna cifra se dice de memoria si no está medida.** Las que están en el
+1. Lo que no está, se dice antes de que lo pregunten. Todo lo que falta está
+   declarado en las secciones 5, 7 y 9.11 del informe final.
+2. Ninguna cifra se dice de memoria si no está medida. Las que están en el
    informe se pueden volver a medir en el momento; las que no están en el informe
    no se dicen.
-3. **Ante una pregunta cuya respuesta no se sabe, se dice que no se sabe** y se
-   dice dónde se buscaría. Es más sólido que improvisar y quedar contradicho por el
-   propio repositorio.
+3. Ante una pregunta cuya respuesta no se sabe, se dice que no se sabe y dónde se
+   buscaría. Improvisar expone a que el propio repositorio contradiga la
+   respuesta.
 
 ---
 
 ## 1. Preguntas del tribunal
 
-Ordenadas de la más incómoda a la más general. Cada una con la respuesta corta,
-lo que conviene agregar si insisten, y dónde está la evidencia.
+Ordenadas de la más difícil a la más general. Cada una tiene la respuesta corta,
+lo que conviene agregar si insisten y dónde está la evidencia.
 
 ### 1.1. ¿Por qué el aislamiento entre inmobiliarias fallaba abierto? ¿Cuánto tiempo estuvo así?
 
@@ -33,16 +34,16 @@ nada: dejaba pasar la consulta sin filtro. Estuvo así desde que se implementó 
 aislamiento hasta la revisión de seguridad previa a la etapa de pruebas, que es
 cuando se corrigió.
 
-**Si insisten.** Lo que hay que sostener no es que no pasó, sino que se lo buscó y
-se lo encontró antes de que hiciera daño, y que la corrección fue estructural y no
-puntual. La revisión encontró dos consultas que ya estaban leyendo sin filtro: la
-de los emisores fiscales en el resumen del panel y la de valores de índice dentro
-del barrido de ajustes. Ninguna había fallado nunca —una leía por identificadores
-que ya venían acotados aguas arriba, la otra corría en un ambiente con una sola
-inmobiliaria— y las dos habían pasado revisión por pares. Ese es el punto: el
-defecto no se ve en la línea de código que le falta el filtro, así que ninguna
-cantidad de revisión lo garantiza. La corrección fue invertir el comportamiento por
-omisión, no arreglar dos consultas.
+**Si insisten.** El defecto existió. Se lo buscó, se lo encontró antes de que
+hubiera datos de una segunda inmobiliaria en producción, y la corrección fue
+estructural. La revisión encontró dos consultas que ya leían sin filtro: la de los
+emisores fiscales en el resumen del panel y la de valores de índice dentro del
+barrido de ajustes. Ninguna había fallado nunca (una leía por identificadores que
+ya venían acotados aguas arriba y la otra corría en un ambiente con una sola
+inmobiliaria) y las dos habían pasado revisión por pares. El defecto no se ve en
+la línea de código a la que le falta el filtro, así que la revisión no alcanza
+para garantizarlo. Por eso la corrección fue invertir el comportamiento por
+omisión y no solamente arreglar las dos consultas.
 
 **Evidencia.** `docs/adr/0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md`
 (contexto, los dos casos encontrados, las cuatro alternativas descartadas y las
@@ -64,26 +65,25 @@ número del resumen y lo compara contra las cifras de la grilla, con sus redonde
 razonables: si aparece una cifra ajena, el resumen se descarta y lo redactan las
 plantillas deterministas.
 
-**Si insisten** —por ejemplo, si preguntan qué pasa con un número escrito en
-palabras, o con una fecha—. La verificación es sobre números escritos con dígitos.
+**Si insisten** (por ejemplo, si preguntan qué pasa con un número escrito en
+palabras o con una fecha). La verificación es sobre números escritos con dígitos.
 Las fechas de vigencia se admiten porque sus dígitos ya están en la grilla. Un
-número escrito en palabras no lo detecta, y eso hay que reconocerlo; lo que
-compensa es que el modelo no tiene de dónde sacar un número que no esté en la
-grilla, porque la grilla es literalmente todo lo que recibió. La verificación es la
-segunda línea, no la primera.
+número escrito en palabras no lo detecta, y eso hay que reconocerlo. Lo compensa
+que el modelo no tiene de dónde sacar un número que no esté en la grilla, porque
+la grilla es todo lo que recibió. La verificación es la segunda barrera.
 
-**Evidencia.** `apps/api/src/modules/ai/contract-closure.ts` — la proyección a
-hechos, `knownFigures` y `findUnknownFigure`;
-`apps/api/src/modules/ai/contract-closure.service.ts` — el descarte y la caída a
-plantilla; `apps/api/src/modules/ai/contract-closure.spec.ts` y
+**Evidencia.** `apps/api/src/modules/ai/contract-closure.ts` (la proyección a
+hechos, `knownFigures` y `findUnknownFigure`);
+`apps/api/src/modules/ai/contract-closure.service.ts` (el descarte y la caída a
+plantilla); `apps/api/src/modules/ai/contract-closure.spec.ts` y
 `contract-closure.service.spec.ts`; `docs/api.md`, sección de asistencia sobre el
 modelo de lenguaje.
 
 ### 1.3. ¿Y los datos personales? ¿Qué se le manda al proveedor del modelo?
 
 **Corto.** Nada que identifique a nadie. En la priorización, cada pendiente sale
-como una referencia opaca más sus datos objetivos —monto, días de atraso, horas de
-acuerdo de nivel de servicio vencidas, estado—. En el resumen de cierre sale una
+como una referencia opaca más sus datos objetivos (monto, días de atraso, horas de
+acuerdo de nivel de servicio vencidas, estado). En el resumen de cierre sale una
 grilla de métricas cuyos campos son todos números, fechas y tipos: no existe campo
 para nombre, documento, correo, teléfono, domicilio, propiedad ni identificador
 interno. Los datos locales se reponen del lado del sistema, después de que la
@@ -112,13 +112,12 @@ resolvió el modelo o las reglas.
 **En la demostración corre con el modelo.** El ambiente tiene la credencial
 configurada, así que las dos funciones usan el modelo y la interfaz lo declara con
 su nombre. La credencial vive en la configuración del ambiente y no en el
-repositorio, que es público; cambiar de proveedor sigue siendo configuración —raíz
-de la API, identificador del modelo y credencial— y no código.
+repositorio, que es público; cambiar de proveedor sigue siendo configuración (raíz
+de la API, identificador del modelo y credencial) y no código.
 
-**Y conviene mostrar el respaldo, no solo mencionarlo.** El panel se responde
-siempre con el orden por reglas y el del modelo llega unos segundos después: es
-observable en vivo, porque la leyenda al pie cambia sola de las reglas al modelo.
-Eso demuestra las dos cosas al mismo tiempo: que el modelo aporta, y que la
+**Conviene mostrar el respaldo.** El panel se responde siempre con el orden por
+reglas y el del modelo llega unos segundos después. Se ve en vivo, porque la
+leyenda al pie cambia sola de las reglas al modelo. Con eso queda mostrado que la
 funcionalidad no depende de que el proveedor conteste.
 
 **Evidencia.** `apps/api/src/modules/ai/language-model.client.ts` (el cliente que no
@@ -130,28 +129,26 @@ corrió); sección 5 del informe final.
 
 ### 1.5. ¿Por qué la cobertura es la que es?
 
-**Corto.** La cobertura de líneas de la API es 42,44 %, con 43,52 % de funciones y
-32,28 % de ramas. No se presenta como logro: es el número real y el objetivo es
-subirlo. El piso que exige la integración continua está a propósito unos puntos por
-debajo —38 % de líneas, funciones y sentencias, 27 % de ramas— para que el control
-se ponga en rojo cuando la cobertura baja y no cuando alguien no llega a una meta
-aspiracional.
+**Corto.** Hay dos números y conviene decir los dos. Al cierre de la primera
+versión la cobertura de líneas de la API era 42,44 %, con 43,52 % de funciones y
+32,28 % de ramas, y el informe la declaraba como baja. En la remedición de cierre
+es 81,65 % de líneas, 81,74 % de sentencias, 82,44 % de funciones y 73,86 % de
+ramas. La web, que no tenía pruebas, tiene 79,76 % de líneas, y el paquete
+compartido, 75,43 %.
 
-**Si insisten.** Dos cosas que hay que decir sin que las tengan que sacar. La
-primera es que la distribución no es uniforme: hay servicios centrales con
-cobertura unitaria baja o nula —el de reclamos, el de usuarios, el de servicios de
-la propiedad— y controladores sin prueba unitaria propia. La segunda es que esos
-mismos caminos sí están ejercitados por la suite de integración, que atraviesa la
-aplicación completa por HTTP y no cuenta para la medición porque corre aparte:
-cuatrocientas setenta y tres pruebas en treinta y un archivos. Compensar parcialmente
-no es cubrir, y por eso subir la cobertura —empezando por ramas— es la primera
-tarea de mantenimiento pendiente. Lo que no se puede hacer es subir el piso antes
-que la cobertura real.
+**Si insisten.** Subió durante el piloto porque cambió el proceso: la definición
+de hecho de cada pedido exige pruebas unitarias y de integración, y el control de
+calidad de SonarCloud bloquea el pedido si el código nuevo tiene menos de 80 % de
+cobertura. El piso de la integración continua sigue en 38 % de líneas, funciones
+y sentencias y 27 % de ramas. Es un punto débil y hay que reconocerlo: quedó muy
+por debajo de la cobertura real y hoy no detectaría una caída grande. Lo que
+frena una regresión es el control sobre el código nuevo. La suite de integración
+corre aparte y no cuenta para la medición de la API: son 932 pruebas en 67
+archivos, y su cobertura se suma en SonarCloud (83,9 % combinada).
 
-**Evidencia.** `apps/api/jest.config.ts` (el piso y la medición al fijarlo);
-`docs/pruebas.md`, sección de cobertura; el reporte de cobertura que produce
-`pnpm --filter @realfy/api test:coverage`, que la integración continua sube como
-artefacto y conserva catorce días.
+**Evidencia.** `apps/api/jest.config.ts` (el piso); `docs/pruebas.md`, sección de
+cobertura; `../calidad/08-herramienta-sonarcloud.md` (las condiciones del control
+de calidad); informe final, secciones 4 y 9.10.
 
 ### 1.6. ¿Por qué no hay pruebas de navegador, si estaban en los objetivos?
 
@@ -161,22 +158,25 @@ en la última etapa. Con el tiempo que quedaba, construir la suite de integraci�
 nivel HTTP sobre la API completa daba más señal por hora invertida que automatizar
 tres o cuatro recorridos de pantalla.
 
-**Si insisten** —y conviene que insistan, porque la respuesta honesta es la mejor
-parte—. La decisión tuvo un costo concreto y se lo puede nombrar: la transición de
-estado de la rendición nunca funcionó desde la interfaz porque la pantalla enviaba
-un nombre de campo distinto al que esperaba el servidor. Las pruebas del servicio
-pasaban, porque no atraviesan la pantalla; las de integración también, porque le
-pegan a la API con el nombre correcto. Un recorrido de navegador lo habría
-encontrado el primer día. Es exactamente la clase de defecto que quedó descubierta,
-hoy la única red que lo atrapa es la prueba manual, y con lo que se sabe ahora la
-mejor decisión habría sido recortar una de las dos funciones con modelo de lenguaje
-—el plan de sprints lo contemplaba explícitamente— y entregar los recorridos.
+**Si insisten.** La decisión tuvo un costo concreto: la transición de estado de la
+rendición nunca funcionó desde la interfaz porque la pantalla enviaba un nombre de
+campo distinto al que esperaba el servidor. Las pruebas del servicio pasaban,
+porque no atraviesan la pantalla, y las de integración también, porque llaman a
+la API con el nombre correcto. Un recorrido de navegador lo habría encontrado el
+primer día. Con lo que sabemos ahora, habría sido mejor recortar una de las dos
+funciones con modelo de lenguaje, que el plan de sprints contemplaba, y entregar
+los recorridos.
+
+**Qué cambió con el piloto.** La web tiene ahora 1.727 pruebas en 151 archivos,
+que corren en la integración continua. Son pruebas de componentes y de pantallas
+sobre un DOM simulado, no recorridos en un navegador contra la API levantada. El
+hueco se achicó pero sigue: un error de contrato entre la pantalla y el servidor
+todavía puede pasar las dos suites.
 
 **Evidencia.** `01-alcance-y-objetivos.md` (el objetivo específico);
 `04-backlog.md`, ítem 27; `04-plan-sprints.md` (la previsión de recortar los ítems
-25 y 26); `docs/pruebas.md` (que lo dice sin eufemismo: las pruebas que llama de
-integración son de nivel HTTP, no recorridos de interfaz); secciones 4 y 5 del
-informe final.
+25 y 26); `docs/pruebas.md` (las pruebas que llama de integración son de nivel
+HTTP, no recorridos de interfaz); secciones 4 y 5 del informe final.
 
 ### 1.7. ¿Cómo se protegen las claves privadas de los certificados fiscales?
 
@@ -186,14 +186,13 @@ clave maestra que vive en la configuración del ambiente y nunca en la base. En 
 base quedan sólo dos cosas: el certificado cifrado y la clave de datos envuelta.
 La clave de datos no sale nunca del servicio que la usa.
 
-**Si insisten.** Tres detalles que conviene tener a mano. Uno: el esquema admite
-rotar la clave maestra reenvolviendo las claves de datos, sin volver a cifrar los
-certificados. Dos: la clave maestra se valida en el primer uso y no en el arranque,
-para que una inmobiliaria que no factura electrónicamente no dependa de una
-configuración que no le corresponde —y por lo tanto una instancia sin esa clave
-levanta igual—. Tres: si la clave maestra es incorrecta, el desenvolvimiento falla
-y la operación falla; no hay camino que devuelva la clave privada sin la clave
-maestra correcta.
+**Si insisten.** El esquema admite rotar la clave maestra reenvolviendo las claves
+de datos, sin volver a cifrar los certificados. La clave maestra se valida en el
+primer uso y no en el arranque, para que una inmobiliaria que no factura
+electrónicamente no dependa de una configuración que no le corresponde; por eso
+una instancia sin esa clave levanta igual. Y si la clave maestra es incorrecta,
+el desenvolvimiento falla y la operación falla: no hay camino que devuelva la
+clave privada sin la clave maestra correcta.
 
 **Lo que hay que reconocer.** La clave maestra es una variable de ambiente. La
 protección es tan buena como la protección del ambiente de despliegue; no hay
@@ -220,21 +219,20 @@ el dato queda duplicado y no hay nada que lo detecte: no existe restricción de
 unicidad por dirección, y no podría existir sin cruzar el límite entre
 inmobiliarias. Segundo, el micrositio público de cada una publica su propia versión
 del aviso, así que la misma propiedad puede aparecer dos veces en internet con
-datos distintos. Tercero, la operación compartida entre inmobiliarias —el
-corretaje conjunto, con reparto de comisión— no está modelada y no se puede
-representar hoy.
+datos distintos. Tercero, la operación compartida entre inmobiliarias (el
+corretaje conjunto, con las dos operando sobre el mismo registro) no está modelada
+y no se puede representar hoy.
 
-**El argumento de fondo.** No es un descuido: es la consecuencia directa y aceptada
-del aislamiento por fila. El invariante que sostiene toda la seguridad del sistema
-es que cada fila del dominio pertenece a una sola inmobiliaria; una entidad visible
-por varias rompe ese invariante en el lugar exacto donde no conviene romperlo. La
-forma correcta de resolverlo, si el negocio lo pide, es un modelo explícito de
-operación compartida —una entidad propia que vincule dos inmobiliarias con su
-reparto pactado— y no relajar el filtro. Queda como trabajo futuro, y es preferible
-a haberlo resuelto haciendo una excepción en el aislamiento. El piloto no lo cambia:
-el coorretaje que pide la inmobiliaria piloto (ítem 41, planificado) es el registro
-del honorario repartido con otra inmobiliaria dentro de la operación propia, sin
-filas compartidas.
+**El argumento de fondo.** Es la consecuencia aceptada del aislamiento por fila.
+El invariante en el que se apoya la seguridad del sistema es que cada fila del
+dominio pertenece a una sola inmobiliaria, y una entidad visible por varias lo
+rompe. Si el negocio lo pide, la forma de resolverlo es un modelo explícito de
+operación compartida, con una entidad propia que vincule dos inmobiliarias con su
+reparto pactado, y no una excepción en el filtro. Queda como trabajo futuro. El
+piloto no lo cambia: el coorretaje que pidió la inmobiliaria piloto (ítem 41,
+integrado en el pedido #168) es el registro de la parte del honorario que
+corresponde a otra inmobiliaria dentro de la operación propia, sin filas
+compartidas.
 
 **Evidencia.** `apps/api/prisma/schema.prisma`, modelo `Property` (columna de
 inmobiliaria, índices por inmobiliaria, sin unicidad por dirección);
@@ -252,7 +250,7 @@ filtro de cada lectura, de cada mutación y en los datos de cada creación. Pedi
 registro de otra inmobiliaria por su identificador devuelve no encontrado, porque
 la consulta lleva además el filtro de la inmobiliaria propia.
 
-**Demostrable en vivo.** El paso 14 del recorrido de `docs/demo.md` entra con el
+**Demostrable en vivo.** El paso 17 del recorrido de `docs/demo.md` entra con el
 administrador de una segunda inmobiliaria y muestra las mismas pantallas con datos
 completamente distintos.
 
@@ -266,8 +264,7 @@ completamente distintos.
 alcanzados por la extensión contra el esquema y exige que todo modelo con columna de
 inmobiliaria esté alcanzado.
 
-**No esquivarlo: contar cómo apareció.** Esa prueba se escribió porque el problema
-existía. Al comparar la lista contra el esquema durante la etapa de cierre
+**Cómo apareció.** Esa prueba se escribió porque el problema existía. Al comparar la lista contra el esquema durante la etapa de cierre
 aparecieron dos discrepancias: la lista nombraba tres modelos de inventario de
 propiedad que el esquema no tiene, entradas sin efecto, y había un modelo con columna
 de inmobiliaria que no estaba en la lista, el registro de exportaciones del libro de
@@ -276,16 +273,16 @@ IVA ventas. No hubo fuga por ese lado, y la razón era accidental y no de diseñ
 facturación, que va por el cliente sin extensión y con la inmobiliaria puesta a mano,
 o sea el camino que el ADR declara legítimo. Pero nada había impedido que se agregara
 sin sumarlo. Se corrigieron las dos discrepancias, se agregó la prueba que compara
-lista y esquema, y se verificó que esa prueba falla al quitar un modelo de la lista,
-para que no sea una prueba que acompaña sin comprobar.
+lista y esquema, y se verificó que esa prueba falla al quitar un modelo de la lista.
+Con el piloto el modelo pasó de 55 a 103 entidades y la prueba siguió cumpliendo su
+función.
 
-**Con qué cerrar.** Que la deuda esté declarada en el ADR y que se la pueda exhibir
-con el caso concreto es mejor que no tenerla: significa que se sabe dónde mirar. La
-salida está identificada y es de dos formas —derivar la lista del esquema, de modo
-que un modelo con columna de inmobiliaria quede alcanzado por construcción y la
-única lista a mano sea la de excepciones, o mover el filtro al motor con seguridad
-a nivel de fila—. La segunda ya está evaluada y descartada para este alcance por
-razones escritas, no por comodidad.
+**Con qué cerrar.** La deuda está declarada en el ADR y tiene dos salidas
+identificadas: derivar la lista del esquema, de modo que un modelo con columna de
+inmobiliaria quede alcanzado por construcción y la única lista a mano sea la de
+excepciones, o mover el filtro al motor con seguridad a nivel de fila. La segunda
+está evaluada y descartada para este alcance, con las razones escritas en el
+ADR-0006.
 
 **Evidencia.** ADR-0006, sección de consecuencias negativas;
 `apps/api/src/common/tenant/prisma-tenant.extension.ts` frente a
@@ -294,7 +291,7 @@ razones escritas, no por comodidad.
 ### 1.11. ¿Por qué aislamiento por fila y no una base o un esquema por inmobiliaria?
 
 **Corto.** Porque el costo operativo de las otras dos no se justifica en este
-alcance, y las razones están escritas de antemano y no a posteriori. Un esquema por
+alcance, y las razones se escribieron antes de implementar. Un esquema por
 inmobiliaria obliga a aplicar cada migración a tantos destinos como clientes y
 encarece el monitoreo; una base por inmobiliaria multiplica la infraestructura por
 cliente y deja sin solución simple la sincronización del esquema. El aislamiento
@@ -313,8 +310,8 @@ dominio.
 ### 1.12. ¿Cómo probaron la facturación electrónica sin operar contra el organismo?
 
 **Corto.** Hay dos caminos y están separados. El módulo habla con el servicio real
-del organismo —autenticación con el certificado, solicitud del comprobante,
-número de autorización— y para las pruebas automatizadas hay un simulador incluido
+del organismo (autenticación con el certificado, solicitud del comprobante,
+número de autorización) y para las pruebas automatizadas hay un simulador incluido
 en el repositorio que responde en su lugar, activado por configuración. Ninguna
 prueba automatizada consulta al organismo: sería dependencia externa dentro de la
 integración continua. Las unitarias simulan las llamadas HTTP al organismo, y una
@@ -323,24 +320,23 @@ activo (`ARCA_MOCK=1`): emisión, numeración correlativa, dos emisores con el m
 número, idempotencia y aislamiento. Lo que no se hizo es homologar contra el
 ambiente de prueba del organismo, y se dice así.
 
-**Si insisten.** Si la demostración corre contra el simulador, se dice
-explícitamente; está previsto así en el guion. Y si el organismo no responde
+**Si insisten.** Si la demostración corre contra el simulador, se dice; está
+previsto así en el guion. Y si el organismo no responde
 durante una emisión en vivo, la contingencia también está prevista: se muestra un
 comprobante ya emitido con su número de autorización y su PDF, y se explica el
 circuito sobre eso.
 
 **Evidencia.** `docs/pruebas.md` (el simulador y su variable);
-`apps/api/src/modules/invoices/arca/`; `docs/demo.md`, paso 9 y contingencias.
+`apps/api/src/modules/invoices/arca/`; `docs/demo.md`, paso 10 y contingencias.
 
 ### 1.13. La anulación de un comprobante, ¿borra algo?
 
 **Corto.** No. La anulación es fiscal: se emite una nota de crédito contra el
-comprobante original, que sigue existiendo con su número y su autorización. Es la
-única forma en que puede ser, porque un comprobante autorizado por el organismo no
-se puede hacer desaparecer.
+comprobante original, que sigue existiendo con su número y su autorización. Un
+comprobante autorizado por el organismo no se puede eliminar.
 
 **Evidencia.** `docs/api.md`, sección de facturación electrónica; `docs/demo.md`,
-paso 9; `03-modelo-datos.md`.
+paso 10; `03-modelo-datos.md`.
 
 ### 1.14. ¿Por qué los índices se consumen como variación y no como nivel?
 
@@ -350,9 +346,9 @@ absolutos que el sistema podría no tener completos. Confundir las dos cosas pro
 factores de ajuste sin sentido, y es la decisión de dominio más delicada del
 módulo.
 
-**Lo que hay que agregar, porque es la lección.** Es un error que ninguna prueba
-unitaria detecta si la prueba asume el mismo malentendido que el código. Ahí no
-ayuda la cobertura: ayuda entender el dominio antes de escribir el cálculo.
+**Lo que hay que agregar.** Es un error que ninguna prueba unitaria detecta si la
+prueba parte del mismo malentendido que el código. La cobertura no ayuda en ese
+caso; hay que entender el dominio antes de escribir el cálculo.
 
 **Evidencia.** `apps/api/src/modules/index-data/`;
 `apps/api/test/e2e/index-data.e2e-spec.ts`; `03-modelo-datos.md`; lecciones del
@@ -381,7 +377,7 @@ mismo cambio.
 
 **Corto.** Porque el backlog priorizado enumera los ítems 05 a 29 del cronograma y
 ninguno era la rendición, aunque el caso de uso estaba declarado desde la
-planificación —es el CU-13—. El backlog tenía un agujero: enumeraba los módulos por
+planificación (es el CU-13). El backlog tenía un hueco: enumeraba los módulos por
 donde entra el dinero y no el que lo reparte.
 
 **Cómo se detectó.** Al cerrar el Hito 2, cuyo criterio de aceptación obligaba a
@@ -421,8 +417,8 @@ sección 7 del informe final.
 ### 1.18. ¿Cómo se garantiza que un inquilino del portal no vea el contrato de otro?
 
 **Corto.** Con dos filtros que se aplican juntos. El token del portal es de un
-ámbito distinto del token del personal —uno no sirve en el lugar del otro, y eso
-está probado— y trae la inmobiliaria y la persona. Las consultas del portal van por
+ámbito distinto del token del personal (uno no sirve en el lugar del otro, y eso
+está probado) y trae la inmobiliaria y la persona. Las consultas del portal van por
 el cliente con la extensión, así que llevan el filtro de inmobiliaria inyectado, y
 además filtran explícitamente por la persona autenticada a través de su vínculo con
 el contrato. Sin persona en el contexto, la consulta se rechaza.
@@ -438,14 +434,14 @@ rechazo de tokens del ámbito equivocado y la rotación del token de refresco).
 no previsto responde siempre el mismo texto genérico, sin código de origen, sin
 detalle y sin traza. Lo que queda en el registro del servidor es la línea completa,
 con el método, la ruta, el estado, el identificador de traza, la inmobiliaria y el
-usuario, más el stack. El cliente recibe el identificador de traza, que es lo que
-convierte el reporte de un usuario en algo accionable.
+usuario, más el stack. El cliente recibe el identificador de traza, con el que el
+reporte de un usuario se puede buscar en el registro.
 
 **Si insisten.** Antes del filtro, una violación de unicidad llegaba al cliente como
 error 500 con el mensaje interno del motor, que incluye el nombre de la restricción
 y la tabla. Hoy llega como 409, que además es lo que corresponde semánticamente.
 
-**Demostrable en vivo.** Paso 16 del recorrido: forzar un error de validación y
+**Demostrable en vivo.** Paso 19 del recorrido: forzar un error de validación y
 mostrar el cuerpo con su código y su identificador de traza.
 
 **Evidencia.** `docs/adr/0005-manejo-uniforme-de-errores.md`;
@@ -470,36 +466,54 @@ consecuencia; sección 7 del informe final.
 
 ### 1.21. ¿Las tareas programadas están probadas?
 
-**Corto.** No como tareas. Corren por fuera del ciclo de una petición, así que
-ninguna de las dos suites las ejercita como tales; su lógica está probada a través
-de los servicios que invocan. Es un hueco reconocido, y tiene antecedente: faltaba
-registrar el planificador en la aplicación y durante un tiempo no corrieron ni los
-avisos, ni el cálculo de punitorios, ni la obtención de índices, sin que nada lo
-indicara.
+**Corto.** En parte. En la primera versión no estaban probadas como tareas: su
+lógica se probaba sólo a través de los servicios que invocan, y hubo un
+antecedente, porque faltaba registrar el planificador en la aplicación y durante
+un tiempo no corrieron los avisos, el cálculo de punitorios ni la obtención de
+índices, sin que nada lo indicara. Hoy varios procesos programados tienen prueba
+unitaria propia (índices, proceso fiscal, avisos y punitorios desde antes del
+piloto; liquidaciones, reportes, ventas y plazo de respuesta de la bandeja desde
+el piloto), y el recorrido por inmobiliaria que usan pasa por una pieza común con
+su prueba. Lo que sigue sin probarse es el disparo por horario en un ambiente
+levantado.
 
-**Lo que agrega el endurecimiento del aislamiento.** Ahora una tarea programada que
-use el cliente equivocado falla en lugar de correr sin filtro. Es el intercambio
-buscado, pero significa que hay más razones para probarlas, no menos.
+**Lo que agrega el endurecimiento del aislamiento.** Una tarea programada que use
+el cliente equivocado falla en lugar de correr sin filtro. Es el intercambio
+buscado, y es una razón más para probarlas.
 
-**Evidencia.** `docs/pruebas.md`; ADR-0006, consecuencias negativas; lecciones del
-Hito 2; sección 4 del informe final.
+**Evidencia.** `apps/api/src/common/scheduler/` (`cron.service.spec.ts` y
+`tenant-cron.spec.ts`) y los `*.scheduler.spec.ts` de cada módulo;
+`docs/pruebas.md`; ADR-0006, consecuencias negativas; lecciones del Hito 2;
+secciones 4 y 7 del informe final.
 
 ### 1.22. ¿Los reclamos del portal notifican a alguien?
 
-**Corto.** No. El servicio de notificación de reclamos deja una línea en el registro
-del servidor y no crea un aviso ni envía un correo. El sistema de avisos existe y
-funciona para vencimientos, deudas y cambios de estado; el circuito de reclamos
-quedó sin conectar. Es el hueco más visible para un usuario real y está declarado.
+**Corto.** Hoy sí; en la primera versión no. Al cierre de la primera versión el
+servicio de notificación de reclamos dejaba una línea en el registro del servidor
+y no creaba un aviso ni enviaba un correo, y el informe lo declara como limitación
+en la sección 7. Desde el pedido #172 el servicio crea el aviso para el personal
+cuando entra un reclamo o un comentario, y al inquilino le avisa el cambio de
+estado por la bandeja de salida, por WhatsApp si dio su consentimiento y si no
+por correo.
+
+**Si insisten.** En el ambiente `piloto` la mensajería está en modo apagado: el
+mensaje al inquilino queda en la bandeja con su motivo y no sale hasta que la
+inmobiliaria apruebe los envíos. El aviso interno al personal no depende de ese
+modo.
 
 **Evidencia.** `apps/api/src/modules/tickets/ticket-notification.service.ts`;
-sección 7 del informe final.
+`../adr/0013-mensajeria-saliente-con-outbox-y-cobranza-escalonada.md`; sección 7
+del informe final.
 
 ### 1.23. ¿Cómo encontraron los últimos defectos? ¿Y cuántos quedan sin encontrar?
 
-**Corto.** No leyendo código. Los cinco últimos aparecieron por cuatro vías
-distintas: ejercitar el proveedor real, mirar datos reales con desconfianza, abrir
-las pantallas en un navegador, y medir en lugar de suponer. La sección 6 del
-informe los detalla uno por uno.
+**Corto.** No leyendo código. Los cinco últimos de la primera versión aparecieron
+por cuatro vías distintas: ejercitar el proveedor real, mirar datos reales con
+desconfianza, abrir las pantallas en un navegador y medir en lugar de suponer. La
+sección 6 del informe los detalla uno por uno. En el piloto pasó lo mismo a otra
+escala: los dos ensayos generales sobre una copia de la cartera encontraron
+veinticuatro defectos, uno de ellos bloqueante, que la suite sintética no veía
+(informe, sección 9.5).
 
 **El caso que conviene contar** es el de la fecha de saldado. El resumen de un
 contrato informaba cero por ciento de puntualidad sobre seis cobranzas pagadas en
@@ -509,63 +523,67 @@ administrativa de la inmobiliaria. Y esa fecha alimenta el puntaje del inquilino
 que es un dato con el que se decide si se le alquila a alguien. Ninguna prueba lo
 cubría, y sobrevivió a la etapa completa de pruebas integrales.
 
-**El caso incómodo**, que conviene ofrecer antes de que lo pregunten: una de esas
-correcciones fue refutada por su propia prueba. Al reescribir el indicador de
-ocupación se hizo histórico el numerador y quedó el denominador anterior; la prueba
-escrita para verificar la corrección falló en integración continua. Una prueba que
-solo confirma lo que su autor ya cree no agrega nada; esa sirvió porque podía
-fallar.
+**El caso de la corrección refutada**, que conviene contar antes de que lo
+pregunten: una de esas correcciones fue refutada por su propia prueba. Al
+reescribir el indicador de ocupación se hizo histórico el numerador y quedó el
+denominador anterior; la prueba escrita para verificar la corrección falló en
+integración continua.
 
-**Cuántos quedan.** No se sabe, y afirmar lo contrario sería el error. Lo que se
-puede afirmar es dónde se buscó y dónde no: hay pruebas de API y unitarias con su
-piso de cobertura, no hay pruebas de navegador ni medición de carga, y por eso el
-informe no hace ninguna afirmación de rendimiento. Las limitaciones conocidas están
-enumeradas en la sección 7 del informe, con su salida técnica.
+**Cuántos quedan.** No se sabe. Lo que se puede decir es dónde se buscó y dónde
+no: hay pruebas unitarias, de componentes de la web y de integración de la API;
+no hay pruebas de navegador, y la única medición de carga es la de lectura de
+índices (`../calidad/10-stress.md`), por lo que el informe no hace afirmaciones de
+rendimiento sobre liquidaciones ni reportes. Tampoco hay todavía defectos
+encontrados por uso real, porque nadie de la inmobiliaria operó el sistema. Las
+limitaciones conocidas están en las secciones 7 y 9.11 del informe.
 
 **Evidencia.** Sección 5 del informe final (el desvío de método), sección 6
 (las cuatro vías), sección 7 (lo que queda abierto).
 
 ### 1.24. ¿Cuál es el aporte del trabajo, más allá de ser un sistema que funciona?
 
-**Corto.** Dos cosas, y conviene tenerlas ensayadas porque es la pregunta que
-decide la nota.
+**Corto.** Tres cosas, y conviene tenerlas ensayadas.
 
-La primera es metodológica: un mecanismo de seguridad que depende de que nadie se
-olvide no es una garantía, es una convención, y la diferencia se puede medir. Se
-revisó el aislamiento con criterio de seguridad antes de la etapa de pruebas, se
-encontró que fallaba abierto, se encontraron dos casos reales en código ya
-revisado, y se lo invirtió documentando el razonamiento, las alternativas
-descartadas y las consecuencias negativas de la elección. El resultado es que una
-clase entera de defecto silencioso pasó a ser un error ruidoso, y que la superficie
-a auditar quedó reducida a un conjunto enumerable.
+La primera es metodológica. Un mecanismo de seguridad que depende de que nadie se
+olvide de aplicarlo es una convención. Se revisó el aislamiento con criterio de
+seguridad antes de la etapa de pruebas, se encontró que fallaba abierto, se
+encontraron dos casos reales en código ya revisado, y se lo invirtió documentando
+el razonamiento, las alternativas descartadas y las consecuencias negativas de la
+elección. Desde entonces esa clase de defecto produce un error, y la superficie a
+auditar es un conjunto enumerable de excepciones.
 
 La segunda es sobre integrar un componente no determinista en un dominio
-financiero: la parte difícil no es obtener texto del modelo, es poder sostener el
-resultado. La respuesta fue quitarle al modelo la posibilidad de calcular, mandarle
-datos sin información personal, validar lo que vuelve contra las cifras conocidas y
-tener siempre un camino determinista al que caer. Es reproducible en otros dominios
-y no una particularidad de este.
+financiero, donde lo difícil es poder sostener el resultado. Se le quitó al modelo
+la posibilidad de calcular, se le mandan datos sin información personal, se valida
+lo que vuelve contra las cifras conocidas y hay siempre un camino determinista de
+respaldo. El esquema se puede aplicar en otros dominios.
+
+La tercera es la validación con una operación real. El relevamiento de una
+inmobiliaria cambió el modelo antes de cargar datos (locadores, reglas pactables
+por contrato, tres flujos de cobro), y la reconciliación al centavo contra su
+sistema actual es el criterio de aceptación, primero con casos sintéticos en cada
+cambio y después con ensayos sobre una copia de la cartera.
 
 **Evidencia.** ADR-0006 y el módulo de asistencia sobre el modelo de lenguaje;
-sección 8 del informe final.
+secciones 8 y 9 del informe final.
 
 ### Preguntas sobre el piloto
 
-Se agregaron el 2 de noviembre de 2026, con el piloto en curso. Las respuestas dicen lo que hay a esa fecha y se actualizan con el anexo de validación después de cada ciclo; en la defensa se contesta con el estado del último ciclo cerrado, no con el plan.
+Se agregaron el 2 de noviembre de 2026, con el piloto en curso, y se actualizaron con el estado del 4 de noviembre, que es el del informe final. Se vuelven a actualizar con el anexo de validación después de cada ciclo; en la defensa se contesta con el estado del último ciclo cerrado, no con el plan.
 
 ### 1.25. ¿Por qué el locador no es el propietario? ¿No es lo mismo?
 
 **Corto.** No, y suponerlo era un error del modelo original. El propietario es quien figura como dueño del inmueble; el locador es quien tiene la potestad de alquilarlo y firma el contrato en ese carácter. Suelen coincidir, pero el relevamiento mostró que el locador puede ser el titular, un usufructuario, un sublocador o un acreedor, que un inmueble puede tener varios, que lo que cobra cada uno no coincide necesariamente con su parte como dueño y que hay apoderados que firman o cobran por otro, con firma conjunta o indistinta. Por eso un contrato tiene uno o más locadores, cada uno con su porcentaje de cobro y su vigencia, que en cada fecha suman exactamente cien; la titularidad se registra aparte, es opcional y no decide quién cobra.
 
-**Si insisten.** El cambio salió del relevamiento, no de una preferencia de diseño: el registro lo tiene como FB-01 y FB-02. Se resolvió antes de cargar datos reales, que es lo que lo hizo barato; con la cartera cargada sobre el modelo viejo habría sido una migración de datos con reparto dudoso en cada contrato compartido. Los contratos que el sistema anterior no distinguía se cargaron marcados para revisar el reparto. La rendición, la activación del contrato y las plantillas leen ahora de los locadores, en el mismo cambio, para que no convivan dos fuentes.
+**Si insisten.** El cambio salió del relevamiento: el registro lo tiene como FB-01 y FB-02. Se resolvió antes de cargar datos reales, que es lo que lo hizo barato; con la cartera cargada sobre el modelo viejo habría sido una migración de datos con reparto dudoso en cada contrato compartido. Los contratos que el sistema anterior no distinguía se cargaron marcados para revisar el reparto. La rendición, la activación del contrato y las plantillas leen ahora de los locadores, en el mismo cambio, para que no convivan dos fuentes.
 
 **Evidencia.** `../adr/0007-locadores-apoderados-y-titularidad.md`; `31-registro-de-feedback.md`, FB-01 y FB-02; `02-roles-y-casos-uso.md`, CU-25 y CU-26; `../calidad/05-casos-de-prueba.md`, CP-110 a CP-119 y CP-244 a CP-256.
 
 ### 1.26. ¿Cómo se validó el sistema en uso real?
 
-**Corto.** Con una inmobiliaria real y su ciclo mensual, en cuatro escalones que no se saltean: una línea base que mide cómo trabaja hoy, un ciclo en sombra en el que el equipo reproduce su mes en Realfy, un ciclo en paralelo en el que la inmobiliaria compara, y un ciclo en el que opera ella con su sistema actual de respaldo. Las metas —diferencia cero en la reconciliación, tiempo del ciclo, atraso del estado de cuenta y valoración de uso— se fijaron antes de medir.
+**Corto.** Con una inmobiliaria real y su ciclo mensual, en cuatro escalones que no se saltean: una línea base que mide cómo trabaja hoy, un ciclo en sombra en el que el equipo reproduce su mes en Realfy, un ciclo en paralelo en el que la inmobiliaria compara, y un ciclo en el que opera ella con su sistema actual de respaldo. Las metas (diferencia cero en la reconciliación, tiempo del ciclo, atraso del estado de cuenta y valoración de uso) se fijaron antes de medir.
 
-**Lo que hay que decir sin que lo pregunten.** A la entrega del 30/11 el piloto tiene hecho el relevamiento, la carga de la cartera real y, si el calendario se cumple, el primer ciclo en sombra; el feedback de uso real empieza con el segundo ciclo. Los hallazgos registrados hasta la entrega son del relevamiento y así se presentan: el registro distingue los dos orígenes con etiquetas distintas y no mezcla uno con el otro.
+**Lo que hay que decir sin que lo pregunten.** Al 4/11 el piloto tiene hecho el relevamiento (28 hallazgos, 26 implementados), la carga de la cartera real con sus servicios y reglas de traslado, y dos ensayos generales del primer ciclo sobre una copia de la base, que encontraron veinticuatro defectos ya corregidos. A la entrega del 30/11 se suma, si el calendario se cumple, el primer ciclo en sombra; el feedback de uso real empieza con el segundo ciclo. Todos los hallazgos registrados son del relevamiento y así se presentan: el registro distingue los dos orígenes con etiquetas distintas. Nadie de la inmobiliaria operó todavía el sistema.
 
 **Evidencia.** `30-piloto.md`, «Objetivos y métricas» y «Fases y fechas»; `31-registro-de-feedback.md`, «Relevamiento y uso real»; `../calidad/12-piloto.md`; el anexo de validación en campo del informe final.
 
@@ -573,7 +591,7 @@ Se agregaron el 2 de noviembre de 2026, con el piloto en curso. Las respuestas d
 
 **Corto.** En el repositorio no hay ningún dato real: ni nombres, ni documentos, ni montos, ni el nombre de la inmobiliaria. Los datos reales viven solo en el ambiente `piloto`, que tiene base, almacenamiento y secretos propios, separados del de demostración; los scripts de migración, las listas de corrección y la evidencia de cada ciclo se guardan fuera del repositorio con acceso restringido al equipo. La demostración de la defensa usa datos sintéticos.
 
-**Si insisten.** La base legal del tratamiento es la ejecución de los contratos de locación, que la Ley 25.326 exceptúa del consentimiento; lo que excede el contrato, como la mensajería instantánea, exige consentimiento y baja, y por eso está planificado y no habilitado. Las cifras agregadas del piloto no se publican mientras la inmobiliaria no dé su consentimiento, que sigue pendiente. Las lecturas sensibles —documento, cuentas bancarias, comisiones, rendiciones, reportes, facturas y auditoría— tienen una política por rol que se puede cerrar sin desarrollo, y la API falla cerrado si no la puede cargar.
+**Si insisten.** La base legal del tratamiento es la ejecución de los contratos de locación, que la Ley 25.326 exceptúa del consentimiento; lo que excede el contrato, como la mensajería instantánea, exige consentimiento y baja, y por eso la mensajería registra el consentimiento por canal y está en modo apagado en `piloto`. Las cifras agregadas del piloto no se publican mientras la inmobiliaria no dé su consentimiento, que sigue pendiente. Las lecturas sensibles —documento, cuentas bancarias, comisiones, rendiciones, reportes, facturas y auditoría— tienen una política por rol que se puede cerrar sin desarrollo, y la API falla cerrado si no la puede cargar.
 
 **Evidencia.** `../privacidad-datos.md`; `../adr/0014-ambiente-piloto-con-datos-reales.md`; `../operacion-piloto.md`; `02-roles-y-casos-uso.md`, «Matriz de lectura de datos sensibles».
 
@@ -581,13 +599,15 @@ Se agregaron el 2 de noviembre de 2026, con el piloto en curso. Las respuestas d
 
 **Corto.** El criterio es diferencia cero por contrato —total del recibo, comisión y neto al locador— y por locador —total del estado de cuenta—, o cada diferencia explicada y registrada como hallazgo o como defecto. La respuesta concreta depende del ciclo: la primera reconciliación es la del ciclo en sombra, alrededor del 20/11/2026, y cubre recibos; la de estados de cuenta empieza con el segundo ciclo. En la defensa se informa el resultado del último ciclo cerrado, con las diferencias encontradas y su destino, aunque no sean cero.
 
+**Lo que ya se sabe.** Los dos ensayos generales del 3 y el 4/11, sobre una copia de la base de `piloto`, reprodujeron octubre sin diferencias por regla ni por error del sistema en alquiler, comisión, cargos y punitorios; la diferencia fue la falta de las boletas de impuestos y servicios, que todavía no estaban cargadas. Son ensayos corridos por el equipo y no el resultado del C1, y sus cifras no se dicen sin el consentimiento de la inmobiliaria.
+
 **Si insisten.** La reconciliación tiene dos mitades. La que corre en la integración continua usa casos sintéticos con la forma real y se puede repetir en el momento; la que usa los datos reales corre fuera del repositorio y solo se publica agregada. Una diferencia que viene de algo que el sistema anterior hacía implícitamente se registra como hallazgo; una que viene de un error de Realfy, como defecto, con su prueba primero en rojo.
 
 **Evidencia.** `../calidad/12-piloto.md`; `30-piloto.md`, «Criterio de reconciliación»; `32-migracion.md`.
 
 ### 1.29. ¿Por qué tantas reglas configurables por contrato? ¿No complica el sistema?
 
-**Corto.** Lo complica, y es el costo de que sirva. Con la normativa de alquileres vigente casi todo es pactable, y el relevamiento lo confirmó regla por regla: el vencimiento, el prorrateo, el rezago y la base del ajuste, el punitorio, quién paga cada impuesto, el umbral de anticipo. Cada vez que el equipo supuso una regla «de la inmobiliaria», apareció un contrato que la pactaba distinto. La solución es una sola y se aplica igual en todas partes: un valor por defecto de la inmobiliaria, una versión de reglas del contrato que lo pisa y acuerdos fechados para los cambios posteriores, que crean una versión nueva sin reescribir la anterior.
+**Corto.** Lo complica, y es necesario para que sirva. Con la normativa de alquileres vigente casi todo es pactable, y el relevamiento lo confirmó regla por regla: el vencimiento, el prorrateo, el rezago y la base del ajuste, el punitorio, quién paga cada impuesto, el umbral de anticipo. Cada vez que el equipo supuso una regla «de la inmobiliaria», apareció un contrato que la pactaba distinto. La solución es una sola y se aplica igual en todas partes: un valor por defecto de la inmobiliaria, una versión de reglas del contrato que lo pisa y acuerdos fechados para los cambios posteriores, que crean una versión nueva sin reescribir la anterior.
 
 **Si insisten.** La complejidad está contenida en dos lugares: la resolución de la regla vigente a una fecha, que es una sola función, y los motores de cálculo, que son puros, viven en el paquete compartido y se prueban con valores calculados a mano. Lo que se evitó es la alternativa: reglas fijas en el código, que obligan a cambiar el sistema por cada contrato distinto, o a cambiarlo para todos cuando cambia uno.
 
@@ -603,75 +623,78 @@ Se agregaron el 2 de noviembre de 2026, con el piloto en curso. Las respuestas d
 
 ## 2. Puntos fuertes
 
-Los que conviene poner adelante, con lo que los respalda.
+Los que conviene mencionar primero, con lo que los respalda.
 
-1. **El circuito completo cierra.** De la consulta en el micrositio público a la
-   rendición al propietario, sin intervención manual sobre la base. Es demostrable
-   de punta a punta y cada paso tiene prueba de integración.
-2. **La especificidad regulatoria está resuelta y no simulada.** Ajuste por índices
-   con tabla histórica, facturación electrónica con certificados por inmobiliaria,
-   varios emisores y numeración por punto de venta, libro de IVA ventas, notas de
-   crédito, punitorios configurables por inmobiliaria. Es lo que un producto
-   genérico no trae.
-3. **El aislamiento entre inmobiliarias se revisó como problema de seguridad y no
-   como funcionalidad.** Encontró dos fugas reales en código ya revisado, y la
-   corrección fue estructural. Está documentada con alternativas y consecuencias.
-4. **Las decisiones están registradas.** Seis registros de decisión al cierre de la
-   primera versión, y los del piloto después (índice en `../adr/README.md`), con contexto,
-   alternativas descartadas y consecuencias negativas asumidas. El ADR-0003 está
-   fechado antes del primer módulo de dominio; el ADR-0006 documenta la corrección
-   de un riesgo que ese mismo ADR había anotado.
-5. **La verificación está automatizada y corre sola.** Cinco trabajos en cada
-   cambio: estilo, compilación de los tres paquetes, setecientas diecinueve
-   pruebas unitarias con piso de cobertura, aplicación de las veintiuna migraciones
-   sobre una base vacía, y cuatrocientas setenta y tres pruebas de integración
-   contra una base real.
+1. **El circuito completo cierra.** De la consulta en el micrositio público al
+   estado de cuenta del locador, sin intervención manual sobre la base. Se puede
+   mostrar de punta a punta y cada paso tiene prueba de integración.
+2. **Las particularidades del contexto argentino están implementadas.** Ajuste
+   por índices con tabla histórica, facturación electrónica con certificados por
+   inmobiliaria, varios emisores y numeración por punto de venta, libro de IVA
+   ventas, notas de crédito, punitorios configurables por inmobiliaria.
+3. **El aislamiento entre inmobiliarias se revisó como problema de seguridad.**
+   La revisión encontró dos fugas reales en código ya revisado y la corrección
+   fue estructural. Está documentada con alternativas y consecuencias.
+4. **Las decisiones están registradas.** Diecinueve registros de decisión, seis de
+   la primera versión y trece del piloto (índice en `../adr/README.md`), con
+   contexto, alternativas descartadas y consecuencias negativas asumidas. El
+   ADR-0003 está fechado antes del primer módulo de dominio; el ADR-0006 documenta
+   la corrección de un riesgo que ese mismo ADR había anotado.
+5. **La verificación está automatizada.** Nueve trabajos en cada cambio, ocho de
+   ellos obligatorios para integrar: estilo, compilación, código muerto y
+   duplicación, pruebas unitarias con cobertura (2.772 de la API, 1.162 del
+   paquete compartido y 1.727 de la web), aplicación de las 71 migraciones sobre
+   una base vacía y su ensayo sobre datos sintéticos, 932 pruebas de integración
+   contra PostgreSQL, despliegue efímero con prueba de humo y de esfuerzo, y el
+   análisis de SonarCloud. El noveno, el contrato con las fuentes externas de
+   índices, no es obligatorio porque depende de terceros.
 6. **El trabajo con el modelo de lenguaje está acotado por diseño.** Sin datos
    personales, sin cálculo, con la salida validada y con respaldo determinista que
    se declara en la respuesta.
-7. **El error tiene una sola forma.** Un filtro global que ningún camino evita, con
-   código de dominio, identificador de traza y la garantía de que un error
-   inesperado no devuelve nada interno.
-8. **La documentación de operación existe y es usable.** Referencia de API, manual
-   de pruebas, manual de usuario por rol, guía de despliegue y guion de la
+7. **El error tiene una sola forma.** Un filtro global que ningún camino evita,
+   con código de dominio e identificador de traza, y un error inesperado no
+   devuelve nada interno.
+8. **La documentación de operación existe.** Referencia de API, manual de
+   pruebas, manual de usuario por rol, guía de despliegue y guion de la
    demostración.
-9. **El sistema se validó con una inmobiliaria real.** No con un usuario de prueba
-   sino con una cartera real cargada, su ciclo mensual reproducido y reconciliado
-   contra su sistema actual, y cada fricción llevada por el mismo camino hasta una
-   corrección verificada. El relevamiento cambió el modelo —locadores, reglas
-   pactables, tres flujos de cobro— antes de cargar datos, que es cuando cambiarlo
-   es barato.
+9. **El sistema se está validando con una inmobiliaria real.** La cartera real
+   está cargada, el ciclo mensual se ensayó dos veces sobre una copia y se
+   reconcilia contra su sistema actual ciclo por ciclo, y cada hallazgo sigue el
+   mismo camino hasta una corrección verificada. El relevamiento cambió el modelo
+   (locadores, reglas pactables, tres flujos de cobro) antes de cargar datos, que
+   es cuando cambiarlo cuesta menos.
 
-Las cifras de los puntos 4 y 5 son las de la primera versión del Hito 4; para la
-defensa se usan las de la tabla de cifras del informe final, con su fecha de
-medición.
+Las cifras de los puntos 4 y 5 son las de la remedición de cierre del informe
+final (sección 9.10). Antes de la defensa se vuelven a medir y se dice la fecha
+de medición.
 
 ---
 
-## 3. Flancos débiles reconocidos
+## 3. Puntos débiles reconocidos
 
 Cada uno con lo que hay que contestar. La regla es adelantarlos.
 
-| Flanco | Con qué contestar |
+| Punto débil | Con qué contestar |
 |---|---|
-| No hay pruebas de navegador, y estaban comprometidas | Es un desvío declarado, no una omisión que se descubre ahora. Se explica la decisión de asignación de esfuerzo, se nombra el defecto concreto que costó, y se dice cuál habría sido la mejor decisión con lo que se sabe hoy (1.6). |
-| Cobertura de 42 % de líneas y 32 % de ramas | El número real, presentado como objetivo y no como logro, con el piso de integración continua explicado como piso y no como meta, y con la suite de integración como compensación parcial reconocida como parcial (1.5). |
-| No hay medición de capacidad | El ítem 27 la contemplaba y no se hizo. Los puntos caros están identificados —generación del mes y reportes— y sobre lo segundo hay caché, pero sin medición no se afirma nada sobre capacidad. Este informe no hace ninguna afirmación de rendimiento, a propósito. |
+| No hay pruebas de navegador, y estaban comprometidas | Es un desvío declarado. Se explica la decisión de asignación de esfuerzo, se nombra el defecto concreto que costó y se dice cuál habría sido la mejor decisión con lo que se sabe hoy. Las 1.727 pruebas de la web son de componentes, no de navegador (1.6). |
+| La cobertura de la primera versión era de 42 % de líneas y 32 % de ramas | Se dicen los dos números: 42,44 % al cierre de la primera versión y 81,65 % de líneas y 73,86 % de ramas en la remedición de cierre. El piso de la integración continua quedó en 38 %, muy por debajo de la cobertura real, y se reconoce (1.5). |
+| No hay medición de capacidad sobre liquidaciones ni reportes | El ítem 27 la contemplaba y no se hizo. Lo único medido es la lectura de índices, con una prueba de esfuerzo que corre en la integración continua (`../calidad/10-stress.md`). Sobre la generación del mes y los reportes no se afirma nada. |
 | La lista de modelos filtrados se mantiene a mano | Se cuenta que había un modelo afuera, que se detectó comparando la lista contra el esquema, que se corrigió, y que ahora una prueba impide que vuelva a pasar. La mejora estructural queda declarada como pendiente (1.10). |
 | El secreto de firma tenía valor de reserva en el código | Estaba declarado como limitación y se corrigió en la revisión final: en producción, sin la variable la API no arranca (1.20). |
-| Nueve pedidos de incorporación no tienen revisión de otro integrante | Se dice el número exacto —cincuenta y cuatro de sesenta y tres con revisión— y cuáles son. No se agregaron revisiones a posteriori. |
-| El camino del modelo se verifico contra el proveedor recien al cierre | Se cuenta sin adornos: hasta entonces corria contra dobles de prueba, y ejercitarlo de verdad encontro cuatro defectos. Es la leccion metodologica central del trabajo, no un descuido que se esconde (1.4 y seccion 5 del informe). |
+| Hay pedidos de incorporación sin aprobación de otro integrante | Se dice el número exacto: de los 148 pedidos integrados, 134 tienen aprobación de otro integrante. Los 14 restantes son anteriores a la protección de la rama principal (30/10/2026): tres tienen revisión con comentarios y once no tienen ninguna. Los 73 pedidos del piloto están todos aprobados. No se agregaron revisiones a posteriori. |
+| El camino del modelo se verificó contra el proveedor recién al cierre | Hasta entonces corría contra dobles de prueba, y ejercitarlo contra el proveedor encontró cuatro defectos. Es un desvío de método y está declarado (1.4 y sección 5 del informe). |
 | El panel puede mostrar números de hasta quince minutos | Limitación declarada, con el arreglo diseñado y la segunda limitación —caché de proceso— dicha también (1.17). |
-| Los avisos de reclamos no se persisten | Declarado. Es el hueco más visible para un usuario real y no se justifica: quedó sin conectar (1.22). |
-| La documentación de planificación estuvo desalineada del sistema durante meses | Se declara como desvío, se enumera qué estaba mal, y se dice la lección: la documentación no es una etapa, es parte de cada cambio (1.15). |
-| El aislamiento depende de la aplicación y no del motor | La alternativa está evaluada y descartada por razones escritas, no por comodidad, y queda como el camino natural si el proyecto crece (1.11). |
-| No se puede representar una propiedad administrada por dos inmobiliarias | Es la consecuencia aceptada del invariante que sostiene toda la seguridad del sistema, con la forma correcta de resolverlo identificada y sin relajar el filtro (1.8). |
-| Las tareas programadas no están probadas como tales | Hueco reconocido, con antecedente concreto y con la razón por la que ahora importa más (1.21). |
+| Los avisos de reclamos no se persistían en la primera versión | Era una limitación declarada y se corrigió en el piloto (#172): el aviso al personal se crea y el del inquilino sale por la bandeja de salida, que en `piloto` está apagada (1.22). |
+| La documentación de planificación estuvo desalineada del sistema durante meses | Se declara como desvío, se enumera qué estaba mal y se dice la regla que quedó: la documentación se actualiza en el mismo cambio (1.15). |
+| El aislamiento depende de la aplicación y no del motor | La alternativa está evaluada y descartada con las razones escritas en el ADR-0006, y es el paso siguiente si el proyecto crece (1.11). |
+| No se puede representar una propiedad administrada por dos inmobiliarias | Es la consecuencia aceptada del aislamiento por fila. La forma de resolverlo está identificada y no pasa por una excepción en el filtro (1.8). |
+| El disparo de las tareas programadas no está probado en un ambiente levantado | Varias tienen prueba unitaria propia; el antecedente de la primera versión se cuenta (1.21). |
 | El piloto no terminó al momento de la defensa | Se dice qué ciclos se cerraron y cuáles no. El cuarto ciclo cae alrededor del 20/02/2027 y puede quedar después de la defensa; si es así, se informa como cierre posterior, sin adelantar resultados (1.26). |
 | El feedback de uso real es de pocos ciclos | A la entrega del 30/11 todos los hallazgos son del relevamiento, y se presentan así; el uso real empieza con el segundo ciclo. Lo que se muestra es el mecanismo y lo que produjo hasta la fecha, no una validación estadística (1.26). |
 | Hay datos personales reales en un ambiente operado por el equipo | Ambiente separado con secretos propios, copias fuera del proveedor, restauración medida, despliegue controlado y nada en el repositorio. El consentimiento para cifras agregadas está pendiente y por eso no se muestran (1.27). |
 | La reconciliación con datos reales no se puede reproducir desde el repositorio | Es a propósito: los datos no pueden estar ahí. Se reproduce la suite con casos sintéticos de la misma forma y se muestran los resultados agregados de cada ciclo (1.28). |
-| El correo no está configurado en el piloto | Depende del dominio propio, pendiente. Mientras tanto los documentos se descargan, los enlaces los comparte el Admin y el sistema no marca como enviado lo que no se envió. |
+| La mensajería está apagada en el piloto | El dominio de correo está verificado y el envío de prueba llegó; faltan la cuenta de WhatsApp y la aprobación de la inmobiliaria para enviar a su cartera. Mientras tanto los documentos se descargan, los enlaces los comparte el Admin y el sistema no marca como enviado lo que no se envió. |
+| Los resultados del piloto no tienen cifras | El consentimiento de la inmobiliaria para publicar cifras agregadas está pendiente. Se muestran el método, los defectos encontrados y su corrección; las cifras de la cartera y de la reconciliación no se dicen (1.27 y 1.28). |
 
 ---
 
@@ -680,73 +703,76 @@ Cada uno con lo que hay que contestar. La regla es adelantarlos.
 El criterio es que cada uno defienda lo que construyó, porque es lo que puede
 sostener cuando la pregunta baja al detalle. El reparto sale del historial del
 repositorio, que se puede verificar con `git shortlog -sn --no-merges` y con
-`git log --no-merges -- <ruta>` sobre cada módulo. Al cierre del código, en el
-commit 98e34b7, el reparto de commits es de ciento cinco de Romeo Valdomero, noventa y cuatro de
-Manuel Ferreras y ochenta y tres de marianonallar, aunque lo que importa para el
-reparto de la exposición no es el total de cada uno sino qué partes del sistema
-tocó.
+`git log --no-merges -- <ruta>` sobre cada módulo. Al cierre de la primera versión
+del código, en el commit `98e34b7`, el reparto era de 105 commits de Romeo
+Valdomero, 94 de Manuel Ferreras y 83 de Mariano (`marianonallar` en el
+historial). Con el piloto, sobre la rama principal en el pedido #244, es de 344 de
+Manuel, 293 de Romeo y 214 de Mariano. Para repartir la exposición importa qué
+partes del sistema construyó cada uno más que el total.
 
-### Manuel Ferreras — el circuito del dinero y la infraestructura de verificación
+### Manuel Ferreras: el circuito del dinero y la infraestructura de verificación
 
 **Qué construyó.** El núcleo contractual y financiero de la API: contratos y sus
 plantillas, liquidaciones, punitorios, la rendición al propietario, la facturación
-electrónica —emisión contra el organismo con numeración por punto de venta,
-comprobantes, notas de crédito y consulta de padrón—, el cifrado de las
+electrónica (emisión contra el organismo con numeración por punto de venta,
+comprobantes, notas de crédito y consulta de padrón), el cifrado de las
 credenciales sensibles, el panel, los avisos, el portal del inquilino y su
 autenticación, los servicios de la propiedad y las inmobiliarias. Es además quien
 más tocó el esquema de datos y las migraciones, quien escribió la suite de
 integración sobre base limpia, y quien hizo el endurecimiento del aislamiento.
-Cinco de los seis registros de decisión son suyos, incluidos el 0005 y el 0006.
+Cinco de los seis registros de decisión de la primera versión son suyos, incluidos
+el 0005 y el 0006.
 
-**Qué expone.** La apertura y el cierre. La apertura: el problema, el alcance y el
-recorrido del circuito del dinero —contrato, ajuste, liquidación, pago, morosidad,
-rendición— que es la parte del recorrido que más pesa. El cierre: la arquitectura,
-las decisiones registradas y, sobre todo, el aislamiento fallando cerrado, que es
-la pregunta más difícil y le corresponde a quien lo corrigió.
+**Qué expone.** La apertura y el cierre. En la apertura, el problema, el alcance y
+el recorrido del circuito del dinero (contrato, ajuste, liquidación, pago,
+morosidad, rendición), que es la parte más larga del recorrido. En el cierre, la
+arquitectura, las decisiones registradas y el aislamiento fallando cerrado, que
+es la pregunta más difícil y le corresponde a quien lo corrigió.
 
 **Preguntas que le tocan.** 1.1, 1.7, 1.9, 1.10, 1.11, 1.16, 1.17, 1.23.
 
-### Romeo Valdomero — la aplicación web y la superficie de acceso
+### Romeo Valdomero: la aplicación web y la superficie de acceso
 
 **Qué construyó.** La mayor parte del frontend: las pantallas, el sistema de
-tarjetas compartido para los listados —el registro de decisión 0004 es suyo—, las
+tarjetas compartido para los listados (el registro de decisión 0004 es suyo), las
 transiciones y las utilidades del cliente. En la API, la autenticación y los
 usuarios, el micrositio público, el puntaje de inquilinos, los reportes y las
 interacciones del módulo comercial, el libro de IVA ventas, y la respuesta uniforme
 de error con el límite estricto en el ingreso. Construyó también la integración
-continua inicial —estilo, compilación y pruebas—, la priorización diaria y el
+continua inicial (estilo, compilación y pruebas), la priorización diaria y el
 resumen de cierre sobre el modelo de lenguaje, y la mayor parte de la documentación
 de la última etapa: la referencia de API, el manual de pruebas, el manual de
 usuario por rol y el guion de la demostración, más las correcciones de la
 documentación de planificación.
 
-**Qué expone.** La demostración del sistema en la parte de interfaz —micrositio,
-panel, propiedades, contrato, portal del inquilino en sus dos situaciones— y las
+**Qué expone.** La demostración del sistema en la parte de interfaz (micrositio,
+panel, propiedades, contrato, portal del inquilino en sus dos situaciones) y las
 dos funciones con modelo de lenguaje, incluida la aclaración de que en el ambiente
 de demostración corren contra el proveedor real, con la priorización determinista
-como respuesta inmediata y la marca de origen visible en la interfaz. Le corresponde también
-el cierre técnico sobre la forma uniforme del error y el control de acceso por rol.
+como respuesta inmediata y la marca de origen visible en la interfaz. Le
+corresponde también el cierre técnico sobre la forma uniforme del error y el
+control de acceso por rol.
 
 **Preguntas que le tocan.** 1.2, 1.3, 1.4, 1.18, 1.19, y la parte de interfaz de
 1.6.
 
-### marianonallar — el dominio operativo y la puesta en marcha
+### Mariano (`marianonallar`): el dominio operativo y la puesta en marcha
 
 **Qué construyó.** Los módulos operativos de la API: propiedades, personas, pagos,
 reclamos y proveedores, interesados y embudos, tasaciones, importación y
 exportación, los índices de ajuste, la auditoría, y el cliente de modelo de
 lenguaje configurable por ambiente con el contexto del día. Del lado web, el panel
-de prioridades y buena parte del lenguaje visual. Y la puesta en marcha: la
-ampliación de la integración continua a los cinco trabajos actuales —estilo,
-cobertura con su piso, migraciones desde cero y pruebas de integración— y la guía
-de despliegue.
+de prioridades y buena parte del lenguaje visual. También la puesta en marcha: la
+ampliación de la integración continua a los cinco trabajos de la primera versión
+(estilo, compilación, cobertura con su piso, migraciones desde cero y pruebas de
+integración) y la guía de despliegue.
 
-**Qué expone.** El recorrido operativo —propiedades y personas, el circuito del
+**Qué expone.** El recorrido operativo (propiedades y personas, el circuito del
 reclamo de punta a punta entre el portal y el ámbito interno, la asignación de
 proveedor por rubro y zona, los interesados y el embudo, la importación con
-validación previa fila por fila— y la parte de ingeniería: los cinco trabajos de
-integración continua, con detenimiento en el que aplica todas las migraciones sobre
-una base vacía, y el despliegue.
+validación previa fila por fila) y la parte de ingeniería: los trabajos de
+integración continua, con detenimiento en el que aplica todas las migraciones
+sobre una base vacía, y el despliegue.
 
 **Preguntas que le tocan.** 1.5, 1.12, 1.13, 1.14, 1.20, 1.21, 1.22.
 
@@ -764,8 +790,8 @@ y sus copias, y contesta 1.27. El ítem 46, la documentación, es de los tres.
 
 ### Preguntas que contesta quien la reciba
 
-Las de alcance y método —1.6, 1.8, 1.15, 1.23— las puede tomar cualquiera, porque
-son del trabajo y no de un módulo. Lo que no se hace es pasarse la pregunta entre
+Las de alcance y método (1.6, 1.8, 1.15, 1.23 y 1.24) las puede tomar cualquiera,
+porque son del trabajo y no de un módulo. Lo que no se hace es pasarse la pregunta entre
 integrantes delante del tribunal: se contesta y, si hace falta, otro completa.
 
 ---
@@ -782,13 +808,15 @@ falta agregar es lo que corresponde a la preparación y no al recorrido:
 - **Tener el sistema corriendo también en local**, con su base propia, como
   respaldo del ambiente desplegado.
 - **Repasar las respuestas de la sección 1 en voz alta**, en particular 1.1, 1.5 y
-  1.6, que son las tres donde la respuesta honesta es más fuerte que la evasiva y
-  donde una respuesta dubitativa se lee como que el problema es nuevo para quien
-  contesta.
+  1.6, donde una respuesta dubitativa da a entender que el problema es nuevo para
+  quien contesta.
 - **Acordar quién abre y quién cierra**, y que los tiempos de cada uno estén
   medidos en un ensayo completo y no estimados.
 - **Ninguna credencial en pantalla.** Los accesos van en una hoja aparte, no en el
   repositorio, y las variables de configuración no se muestran.
+- **Volver a medir las cifras.** Las de este documento son las de la remedición de
+  cierre (`7759554`). Antes de exponer se repite la medición sobre la rama
+  principal y se corrigen acá y en la sección 9.10 del informe si cambiaron.
 - **La defensa es en febrero de 2027.** Antes, el anexo de validación en campo se
   actualiza con el segundo y el tercer ciclo, y las respuestas de 1.25 a 1.30 se
   repasan con el resultado del último ciclo cerrado.

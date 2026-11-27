@@ -34,10 +34,10 @@ como índices estimados (`IndexData.isEstimate`, ADR-0010).
 
 ## Decisión
 
-**El ajuste usa los índices de los meses que terminan `indexLagMonths` meses
+El ajuste usa los índices de los meses que terminan `indexLagMonths` meses
 antes de la fecha del ajuste; un mes sin valor oficial se cubre con el estimado
 solo si la inmobiliaria permite el pago a cuenta, y el ajuste provisorio se
-corrige cuando se publica el oficial.**
+corrige cuando se publica el oficial.
 
 - **Rezago.** Es una regla del contrato (`ContractTermsVersion.indexLagMonths`,
   por defecto el `ipcLagMonths` de la inmobiliaria, 2). La ventana de índices de
@@ -139,7 +139,7 @@ sequenceDiagram
 - **Tomar el valor publicado más cercano a una fecha sin valor en el ICL y la UVA.**
   Con series que se publican todos los días, un día sin valor es un hueco de datos
   y no un fin de semana; usar el vecino oculta una carga incompleta, que es lo que
-  dio los porcentajes absurdos del DEF-120. Se descartó; se informa la fecha que
+  dio los porcentajes sin sentido del DEF-120. Se descartó; se informa la fecha que
   falta y se completa la serie.
 - **Aplicar el rezago como un desplazamiento del dato y no de la ventana.** Obliga
   a guardar el índice fechado en el mes de aplicación y rompe la serie publicada.
@@ -241,7 +241,7 @@ Con base `Original` (el índice acumulado desde el inicio del tramo sobre el alq
 
 - La previsualización y la aplicación informan, además de `percentage` (variación del índice), `rentChangePct`, la variación del alquiler nuevo sobre el vigente; la previsualización marca `rentDecrease`.
 - El proceso diario y la generación de liquidaciones no aplican ese ajuste: lo saltean con el motivo estable `RENT_DECREASE_REQUIRES_REVIEW` y queda pendiente (la liquidación del período lleva `ADJUSTMENT_PENDING`).
-- La aplicación masiva lo aplica sólo si el contrato figura en `confirmRentDecrease`; *Ajustes del mes* no lo elige con *Elegir todos* y pide confirmarlo. La auditoría asienta `rentDecreaseConfirmed`.
+- La aplicación masiva lo aplica solo si el contrato figura en `confirmRentDecrease`; *Ajustes del mes* no lo elige con *Elegir todos* y pide confirmarlo. La auditoría asienta `rentDecreaseConfirmed`.
 - Las correcciones de un provisorio a su valor oficial no pasan por esta revisión: corrigen un alquiler ya aplicado.
 
 Convención a confirmar: si la inmobiliaria acepta que un ajuste baje el alquiler (y en qué contratos), la revisión pasaría a ser una convención pactable (ADR-0010) y no una regla fija.

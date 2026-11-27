@@ -1,6 +1,6 @@
 # Catálogo de casos de prueba
 
-Versión 1.4 — 31 de octubre de 2026 (1.0: 19 de octubre; 1.1: 20 de octubre; 1.2: 28 de octubre; 1.3: 30 de octubre). El resultado esperado de cada caso se
+Versión 1.4 — 31 de octubre de 2026 (1.0: 19 de octubre; 1.1: 20 de octubre; 1.2: 28 de octubre; 1.3: 30 de octubre); desde entonces se agregan casos con cada pedido integrado y el último agregado es del 4 de noviembre. El resultado esperado de cada caso se
 fijó antes de ejecutar la prueba. La columna "prueba" apunta al archivo y
 al nombre del caso en la suite; "estado" se actualiza con cada ejecución.
 Los casos CP-01 a CP-04 y CP-40 a CP-49 ya existían en la tesis y se
@@ -99,7 +99,7 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | CP-02 | RF-12 | equivalencia | contrato inexistente | `NotFoundException` | `::throws NotFoundException when contract not found` | verde |
 | CP-03 | RF-12 | equivalencia | sin cronograma pendiente | período = mes actual | `::falls back to today when no pending schedule exists` | verde |
 | CP-04 | RF-12 | decisión D3 | ICL 100 → 120 | 60.000 sobre 50.000 | `::correctly computes ICL factor when index data present` | verde |
-| CP-05 | RF-12 | decisión D1, D11 | IPC `[2.0, 3.0]` | factor 1,0506 | pendiente día 3 | verde |
+| CP-05 | RF-12 | decisión D1, D11 | IPC `[2.0, 3.0]` | factor 1,0506 | `contract-adjustment.service.spec.ts::CP-05 (D1, D11)` | verde |
 | CP-06 | RF-12 | decisión D2 | IPC sin datos | factor 1 | ver spec del módulo | verde |
 | CP-07 | RF-12 | decisión D4 | ICL sin datos | factor 1 | ver spec del módulo | verde |
 | CP-08 | RF-12 | límite | ICL un valor | factor 1 | ver spec del módulo | verde |
@@ -108,7 +108,7 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | CP-11 | RF-12 | límite | alquiler 0 | factor 1 sin división por cero | ver spec del módulo | verde |
 | CP-12 | RF-12 | equivalencia | sin cronogramas vencidos | `[]` y ninguna escritura | ver spec del módulo | verde |
 | CP-13 | RF-12, RF-13 | decisión | vencido fijo 10 % | alquiler actualizado, cronograma `Applied`, auditoría con valores previos y nuevos | ver spec del módulo | verde |
-| CP-14 | RF-12, RF-13 | decisión D1 | vencido IPC `[2.0, 3.0]` | delta informado 5.060,00 (hoy DEF-02 informa 0) | pendiente | pendiente |
+| CP-14 | RF-12, RF-13 | decisión D1 | vencido IPC `[2.0, 3.0]` | delta informado 5.060,00 (antes de DEF-02 informaba 0) | `contract-adjustment.service.spec.ts::CP-14 (D1)` | verde (DEF-02 corregido) |
 | CP-15 | RF-12 | equivalencia | dos vencidos, el primero falla en la transacción | el segundo se aplica igual | ver spec del módulo | verde |
 | CP-16 | RF-12 | límite | seis periodicidades + desconocida | tabla de meses | ver spec del módulo | verde |
 | CP-17 | RF-12 | límite | fin de mes, cambio de año, bisiesto | tabla de fechas | ver spec del módulo | verde |
@@ -129,7 +129,7 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | CP-32 | RF-14 | equivalencia | un `upsert` falla | cuenta los demás y sigue | ver spec del módulo | verde |
 | CP-33 | RF-14 | límite | períodos `2026-04-14` y `2026-02` | fechas UTC a medianoche; mensual al día 1 | ver spec del módulo | verde |
 | CP-34 | RF-14 | equivalencia | `findAll` con `page="2"` | número 2 | ver spec del módulo | verde |
-| CP-35 a CP-39 | RF-14 | (ya existentes) | scraper y tarea programada | ver `index-scraper.service.spec.ts`, `index-scraper.scheduler.spec.ts` | verde |
+| CP-35 a CP-39 | RF-14 | (ya existentes) | scraper y tarea programada | ver suite | `index-scraper.service.spec.ts`, `index-scraper.scheduler.spec.ts` | verde |
 | CP-55 | RF-12 | decisión | IPC con un ajuste aplicado en abril (2; 3; 1 %) y 4 % en mayo, alquiler 106.110,60 | solo encadena el 4 %: 110.355,02, factor 1,04 | `contract-adjustment.service.spec.ts::CP-55` | verde (DEF-07 corregido) |
 | CP-56 | RF-12 | decisión | ICL 100 / 110 / 121 con un ajuste aplicado en abril, alquiler 55.000 | 121 / 110: 60.500, factor 1,1 | `contract-adjustment.service.spec.ts::CP-56` | verde (DEF-07 corregido) |
 | CP-57 | RF-12, RF-13 | equivalencia | barrido con dos cronogramas vencidos del mismo contrato, fijo 10 % sobre 50.000 | 55.000 y después 60.500 | `contract-adjustment.service.spec.ts::CP-57` | verde (DEF-08 corregido) |
@@ -138,7 +138,7 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 
 | ID | Requisito | Entrada | Esperado | Prueba | Estado |
 |---|---|---|---|---|---|
-| CP-40 a CP-49 | RF-14, RF-12 | CRUD, `latest`, `refresh`, RBAC, aislamiento, previsualización | ver suite | `test/e2e/index-data.e2e-spec.ts` (17 casos) | verde |
+| CP-40 a CP-49 | RF-14, RF-12 | CRUD, `latest`, `refresh`, RBAC, aislamiento, previsualización | ver suite | `test/e2e/index-data.e2e-spec.ts` (17 casos al cierre del TP, 19 hoy) | verde |
 | CP-53 | RF-14 | `POST /refresh` con red sustituida, luego `GET /index-data` y `GET /latest`; carga manual del mismo período; otra inmobiliaria | las filas obtenidas aparecen; la manual gana; el aislamiento se mantiene | `test/e2e/index-data-scraper.e2e-spec.ts` (3 casos) | verde (DEF-01 corregido) |
 | CP-54 | RF-12, RF-14 | contrato IPC sin carga manual, `refresh`, `preview-adjustment` | factor 1,050600 y alquiler 105.060,00 con los índices obtenidos | `test/e2e/index-data-scraper.e2e-spec.ts` | verde (DEF-01 y DEF-06 corregidos) |
 | CP-58 | RF-12, RF-13 | contrato IPC trimestral por 150.000 con IPC de enero a julio; calcular y aplicar abril, calcular julio | abril 165.532,54; julio 171.384,28 | `test/e2e/contracts.e2e-spec.ts::CP-58` | verde (DEF-07 corregido) |
@@ -166,8 +166,8 @@ Resultado del día 3: 91 casos unitarios en el módulo (eran 18), cobertura
 | ID | Qué | Esperado | Estado |
 |---|---|---|---|
 | CP-60 | Despliegue nuevo: salud, registro, listado, carga manual, último valor, 401 sin token | 6 pasos en verde (`test/smoke/smoke.mjs`) | verde en local (API compilada en modo producción); en el pipeline sobre la imagen Docker |
-| CP-70 | Stress: 50 VU, 2 min, `GET /api/index-data` | p95 < 500 ms, errores < 1 % | pendiente |
-| CP-71 | Esfuerzo sostenido: 10 VU, 10 min | p95 estable (crecimiento < 20 %), errores < 1 % | pendiente |
+| CP-70 | Stress: 50 VU, 2 min, `GET /api/index-data` | p95 < 500 ms, errores < 1 % | verde (`10-stress.md`); en el pipeline corre en cada cambio con el umbral de 1.000 ms del runner compartido |
+| CP-71 | Esfuerzo sostenido: 10 VU, 10 min | p95 estable (crecimiento < 20 %), errores < 1 % | verde (`10-stress.md`); en el pipeline corre acortado a 5 min |
 
 ## Casos de fechas y dinero (ítem 35)
 

@@ -43,32 +43,45 @@ queda en Lectura, que es el más restringido.
 
 Hay dos cosas que conviene entender antes de leer el detalle por rol.
 
-La primera es que la barra de navegación es la misma para todos: las dieciséis
-secciones aparecen siempre, sin filtrar por rol. El control de acceso está en
-cada pantalla y en cada endpoint, no en el menú. Un usuario de Soporte que entre
-a Morosos va a ver el aviso de que no tiene permiso, no una sección ausente.
+La primera es que el menú muestra a cada rol solo las pantallas que puede usar,
+pero el control de acceso no depende del menú: está en cada pantalla y en cada
+endpoint. Un usuario de Soporte no tiene Morosidad en su menú y, si entra por la
+dirección, ve el aviso de que no tiene permiso.
+
+El menú lateral agrupa las pantallas en ocho secciones: Inicio (Panel,
+Vencimientos, Notificaciones), Cartera (Propiedades, Personas, Contratos, Llaves
+fuera), Comercial (Bandeja de consultas, Publicaciones, Leads, Pipeline, Ventas),
+Alquileres (Ajustes del mes, Boletas del mes, Boletas recibidas, Centro de carga,
+Liquidaciones), Cobros y caja (Pagos, Caja, Morosidad, Cobranza, Honorarios,
+Facturación), Locadores (Locadores, Estados de cuenta, Rendiciones), Atención
+(Tickets, Proveedores, Mensajería) y Administración (Reportes, Importar, Calidad de
+datos, Usuarios, Permisos). Cada sección se pliega y se despliega desde su título,
+salvo Inicio, que queda siempre abierta; una sección sin ninguna pantalla permitida
+para el rol no aparece. La barra entera se puede contraer a una columna de íconos.
 
 La segunda es que el permiso se aplica sobre las operaciones que modifican datos.
-Las consultas de la mayoría de los módulos —listar propiedades, ver un contrato,
-abrir una liquidación— están abiertas a cualquier usuario con sesión válida,
-independientemente de su rol. Lo que está restringido por rol es crear, editar,
+Las consultas de la mayoría de los módulos (listar propiedades, ver un contrato,
+abrir una liquidación) están abiertas a cualquier usuario con sesión válida,
+sea cual sea su rol. Las excepciones son los datos sensibles que el Admin puede
+cerrar por rol (ver «Permisos de lectura»). Lo que está restringido por rol es crear, editar,
 borrar, transicionar estados y configurar.
 
 ### Admin
 
-Ve y puede todo. Es el único rol que llega a la configuración fiscal (certificado
-de ARCA, emisores, puntos de venta), a la carga y borrado de valores de índices,
-a la configuración de punitorios de la inmobiliaria, a la condonación de una
-multa, al cambio de rol de otro usuario y a su desactivación. También es el único
-que puede disparar a mano las corridas de notificaciones y de punitorios.
+Ve y puede todo. Es el único rol que carga el certificado fiscal (el certificado
+de ARCA), a la carga y borrado de valores de índices, a la regla de punitorios
+de la inmobiliaria, a los permisos de lectura y a la gestión del equipo: invitar,
+cambiar el rol de otro usuario y desactivarlo. También es el único que puede
+disparar a mano las corridas de notificaciones y de punitorios.
 
 ### Gerente
 
 Trabaja como el Admin sobre todo el circuito operativo: propiedades, personas,
 contratos, plantillas, liquidaciones, pagos, rendiciones, comprobantes, tickets,
-proveedores, leads, embudos, reportes, importación y auditoría. Puede invitar
-usuarios, pero no cambiarles el rol ni desactivarlos. No accede a los endpoints
-administrativos de índices, punitorios ni certificados fiscales.
+proveedores, leads, embudos, reportes, importación y auditoría. Condona
+punitorios igual que el Admin. Ve el equipo en solo lectura: no invita usuarios,
+no les cambia el rol ni los desactiva. Tampoco carga índices, ni cambia la regla
+de punitorios de la inmobiliaria, ni toca el certificado fiscal.
 
 Sobre el panel, Admin y Gerente son los únicos que ven los bloques de
 priorización diaria y de analítica de cartera, junto con la tendencia de
@@ -76,15 +89,18 @@ ocupación y la rentabilidad por propiedad.
 
 ### Ventas
 
-Su terreno es la cartera y el embudo. Da de alta y edita propiedades —incluidas
-las fotos, las operaciones de venta o alquiler y sus transiciones de estado—,
+Trabaja sobre la cartera y el embudo. Da de alta y edita propiedades (con sus
+fotos, sus operaciones de venta o alquiler y los cambios de estado),
 personas con sus roles y documentos, tasaciones, proveedores y servicios. Crea,
 edita y activa contratos, puede calcular un ajuste y generar el documento del
 contrato a partir de una plantilla, pero no aplica el ajuste ni rescinde el
 contrato: esas dos operaciones quedan en Admin y Gerente.
 
 Es uno de los tres roles que entran al tablero del embudo (`/pipeline`), junto
-con Admin y Gerente. Sobre leads carga, edita, mueve de etapa, asigna, registra
+con Admin y Gerente. **Leads** (`/leads`) lista a los interesados con su etapa, la
+próxima acción («Hacer el primer contacto», «Retomar el contacto», «Asignar un
+responsable») y a quién están asignados, con pestañas *Todos*, *Activos*,
+*Convertidos* y *Perdidos* y filtros por pipeline, etapa, origen y usuario. Sobre leads carga, edita, mueve de etapa, asigna, registra
 interacciones y visitas, convierte y descarta. Sobre facturación tiene acceso de
 lectura y puede exportar propiedades y personas a CSV y a Excel.
 
@@ -97,7 +113,7 @@ y la anulación de un estado son de Admin y Gerente); las rendiciones por contra
 quedan como histórico de consulta. Emite facturas y notas de
 crédito, administra emisores y puntos de venta. Accede a los reportes financieros
 y a los indicadores de flujo de caja y morosidad del panel. No aprueba ni envía
-liquidaciones en lote —eso es de Admin y Gerente— ni borra una liquidación.
+liquidaciones en lote (eso es de Admin y Gerente) ni borra una liquidación.
 
 ### Soporte
 
@@ -120,12 +136,29 @@ pantallas de liquidaciones lo tratan como solo lectura.
 
 ## El panel
 
-`/dashboard` es la pantalla de entrada. Arriba muestra la masa de alquileres de
-la cartera y la tendencia de facturación; debajo, las fichas de ocupación,
-cobranzas, morosidad y tickets. La sección que más se usa en el día a día es la
-de lo que requiere atención: contratos por vencer, cobranzas pendientes y tickets
-prioritarios, cada uno con acceso directo al registro. Admin y Gerente ven además
-la priorización diaria y la composición de la cartera.
+`/dashboard` es la pantalla de entrada. Arriba hay cuatro indicadores: *Ocupación*
+(cuántas propiedades están ocupadas sobre el total), *Cobrado en* el mes en curso
+(con el porcentaje sobre lo liquidado), *Saldo vencido* (de todos los períodos) y
+*Tickets abiertos* (con los de prioridad alta).
+
+Debajo, *Alquileres de la cartera* suma por mes los contratos activos y muestra la
+cantidad de contratos, el alquiler promedio y *Cobranza de* el último mes cerrado:
+lo cobrado sobre lo liquidado de ese mes, que no cambia mientras avanza el mes en
+curso. Al lado, el gráfico *Liquidado y cobrado por mes* compara los últimos seis
+meses y marca el mes actual como «en curso».
+
+La parte que más se usa en el día a día es la *Agenda* de los próximos 90 días:
+contratos por vencer, liquidaciones sin cobrar y tickets prioritarios, cada uno con
+un botón que lleva al registro (*Renovar*, *Cobrar*, *Atender*). *Estado de la
+cobranza* separa lo cobrado y lo que falta cobrar del mes de lo vencido acumulado.
+Completa el panel *Propiedades por tipo*. Admin y Gerente ven además *Prioridades
+del día*, *Ocupación con contrato vigente* de los últimos doce meses e *Ingresos y
+gastos por propiedad*.
+
+**Notificaciones** (`/notifications`, y la campana de la barra superior) lista los
+avisos del sistema agrupados por día, con dos pestañas, *Todas* y *Sin leer*. Cada
+aviso se marca como leído por separado o todos juntos con *Marcar todas como
+leídas*; los que se refieren a un registro tienen un botón *Ver* que lo abre.
 
 ## Recorridos habituales
 
@@ -134,15 +167,15 @@ la priorización diaria y la composición de la cartera.
 Desde **Propiedades** (`/properties`), el botón *Nueva propiedad* lleva al
 formulario de alta (`/properties/new`). Se cargan el título y la descripción, el
 tipo de propiedad, la dirección completa con provincia y código postal, y las
-características —superficie total y cubierta, ambientes, y el resto de los
-atributos del inmueble—.
+características: superficie total y cubierta, ambientes y el resto de los
+atributos del inmueble.
 
 Guardado el inmueble, el detalle (`/properties/[id]`) es donde se completa el
 resto. Ahí se suben las fotos, que el servidor redimensiona a un original de
 1920 píxeles de ancho y una miniatura de 400, y se reordenan arrastrándolas. En
-el mismo detalle se agregan las operaciones —alquiler, alquiler temporario o
-venta— con su precio, y cada operación tiene su propia máquina de estados: el
-cambio de estado se hace sobre la operación, no sobre la propiedad. También se
+el mismo detalle se agregan las operaciones (alquiler, alquiler temporario o
+venta) con su precio. Cada operación tiene sus propios estados: el cambio de
+estado se hace sobre la operación, no sobre la propiedad. También se
 vinculan las personas relacionadas, se consulta el historial de precios y se
 cargan las tasaciones, que ofrecen comparables de la propia cartera por ciudad,
 tipo y ambientes.
@@ -155,19 +188,19 @@ Ventas.
 El detalle de la propiedad tiene una tarjeta **Publicación** que dice, para cada
 operación (alquiler, venta, temporario), en qué portales está el aviso. Los
 portales son los que la inmobiliaria cargó (por defecto Zonaprop, Argenprop,
-MercadoLibre y Clasificados La Voz) más el **micrositio propio**, que siempre
-está. Cada fila muestra el estado —*No publicado*, *Publicado*, *Pausado* o
-*Vencido*—, la fecha de vencimiento, quién lo actualizó y, si se cargó, el enlace
+MercadoLibre y Clasificados La Voz) más el micrositio propio, que siempre
+está. Cada fila muestra el estado (*No publicado*, *Publicado*, *Pausado* o
+*Vencido*), la fecha de vencimiento, quién lo actualizó y, si se cargó, el enlace
 al aviso.
 
-La publicación en los portales sigue siendo manual: el sistema no publica en
-ellos. Lo que hace es ordenar el trabajo y dejar el texto listo.
+La publicación en los portales es manual: el sistema no publica en ellos, deja
+el texto listo y lleva el registro de qué está publicado y dónde.
 
 1. **Copiar el aviso.** El botón *Copiar aviso* de un portal arma el título, la
    descripción y el orden de las fotos con los datos de la ficha, respetando los
    límites de caracteres y de fotos del portal. Cada parte tiene su botón
    *Copiar*, y hay uno para el título y la descripción juntos. El texto sale
-   siempre igual para la misma ficha y **no lleva datos de personas**: no usa el
+   siempre igual para la misma ficha y no lleva datos de personas: no usa el
    título interno de la ficha, quita teléfonos, mails y links que alguien haya
    escrito en la descripción y, mientras la inmobiliaria no cambie la
    configuración, muestra solo la zona y nunca la calle ni la altura. Si algo se
@@ -190,7 +223,7 @@ requiere una acción:
 - **Publicados pero no disponibles:** avisos de unidades que ya se alquilaron, se
   vendieron o se dieron de baja. Hay que bajarlos del portal; *Pausar todos* los
   marca como pausados en el sistema.
-- **Avisos vencidos** y **por vencer** (por defecto, dentro de 7 días).
+- **Avisos vencidos** y por vencer (por defecto, dentro de 7 días).
 - **Disponibles sin publicar:** unidades disponibles que no están publicadas en
   ningún portal ni en el micrositio.
 
@@ -204,12 +237,15 @@ cuántos días de anticipación se avisa de un vencimiento.
 
 **Personas** (`/persons`) es el directorio único: propietarios, inquilinos,
 garantes, proveedores, compradores y leads convertidos son todos registros de
-persona. El alta (`/persons/new`) pide los datos base, y el detalle
-(`/persons/[id]`) es donde se hace el trabajo importante: asignar roles.
+persona. El listado muestra a cada persona con sus roles y sus datos de contacto,
+con accesos para llamarla o escribirle un correo; se busca por nombre, apellido o
+CUIT y se filtra por rol. **Proveedores** (`/providers`) tiene un listado del mismo
+tipo, con filtros por rubro, zona y *Solo activos*. El alta (`/persons/new`) pide
+los datos base, y el detalle (`/persons/[id]`) es donde se le asignan los roles.
 
 Una misma persona puede tener varios roles a la vez, y cada asignación puede
-apuntar a una propiedad o a un contrato concreto —el mismo registro puede ser
-propietario de un inmueble e inquilino de otro—. En el detalle se cargan también
+apuntar a una propiedad o a un contrato concreto: el mismo registro puede ser
+propietario de un inmueble e inquilino de otro. En el detalle se cargan también
 los datos fiscales y bancarios, que después alimentan el pago al locador, y los
 documentos adjuntos. Admin y Gerente ven además la sección de puntaje del
 inquilino.
@@ -246,15 +282,23 @@ portal, que es la operación que le habilita el acceso a la autogestión.
 
 ### Cargar un contrato
 
-**Contratos** (`/contracts`) → *Nuevo Contrato* (`/contracts/new`). El formulario
-resuelve en un solo paso lo que en papel son varias hojas: la propiedad, el tipo
+**Contratos** (`/contracts`) lista los contratos en filas, con el inquilino y el
+locador, la propiedad, la vigencia, el próximo ajuste, el alquiler actual y el
+estado. La vigencia se ve como una barra que avanza con los meses transcurridos
+(«Mes 10 de 24») y avisa cuando el contrato está por vencer («Vence en 34 días»)
+o ya terminó. Se busca por inquilino, locador o dirección y se filtra por estado y
+por tipo de ajuste.
+
+*Nuevo contrato* abre el formulario
+(`/contracts/new`), que pide la propiedad, el tipo
 de contrato (alquiler, alquiler temporario o venta), las fechas de inicio y fin,
 el monto inicial, las partes con su rol en el contrato, las garantías y el
 esquema de ajuste.
 
 El ajuste se define por tipo y por periodicidad. Los tipos disponibles son IPC,
-ICL, CCP, porcentaje fijo y personalizado (UVA y escalonado se podrán elegir cuando el cálculo los soporte); la periodicidad va de mensual a anual.
-Con eso el sistema arma el cronograma de ajustes del contrato.
+ICL, CCP, porcentaje fijo y personalizado (UVA y escalonado no se ofrecen al
+crear un contrato: su cálculo todavía no está resuelto); la periodicidad va de
+mensual a anual. Con eso el sistema arma el cronograma de ajustes del contrato.
 
 El último paso del formulario ofrece dos salidas. *Guardar como borrador* deja el
 contrato cargado pero sin efecto: un borrador no genera liquidaciones, no se le
@@ -266,7 +310,7 @@ después.
 
 Un contrato en borrador se activa desde su detalle con *Activar contrato*, que
 pide confirmación antes de hacer el cambio. Activar es una operación de Admin,
-Gerente y Ventas —los mismos roles que pueden cargar un contrato—. Para que un
+Gerente y Ventas, los mismos roles que pueden cargar un contrato. Para que un
 contrato se pueda activar:
 
 - la propiedad tiene que existir y no estar dada de baja;
@@ -294,16 +338,16 @@ acción de activar, que es la que hace las verificaciones.
 
 En el detalle (`/contracts/[id]`) se ven las partes, las garantías, la línea de
 tiempo de ajustes y la comisión pactada. Desde ahí se calcula el próximo ajuste
-—cualquiera de los tres roles operativos puede hacerlo— y se lo aplica, que es
-una operación de Admin o Gerente. La comisión del contrato es la que después
+(Admin, Gerente y Ventas) y se lo aplica, que es una operación de Admin o
+Gerente. La comisión del contrato es la que después
 determina qué se le descuenta al locador en su cuenta corriente, así que conviene
-cargarla junto con el contrato. En la misma comisión se puede pactar un **honorario
-por gestión de reparaciones** (un porcentaje): cada reparación a cargo del locador
+cargarla junto con el contrato. En la misma comisión se puede pactar un honorario
+por gestión de reparaciones (un porcentaje): cada reparación a cargo del locador
 que se descuenta en su estado de cuenta suma ese honorario. Sin porcentaje no se
 cobra.
 
 El documento del contrato se genera desde el mismo detalle, eligiendo una de las
-plantillas disponibles, en PDF o en Word, y, si hace falta, la **fecha de firma**
+plantillas disponibles, en PDF o en Word, y, si hace falta, la fecha de firma
 que va en el texto. Las plantillas se administran aparte y son de Admin y Gerente
 (ver «Plantillas de contrato»); para empezar existe una carga de plantillas por
 defecto.
@@ -319,7 +363,7 @@ contrato activo se marca como vencido o renovado.
 
 Desde *Configuración*, *Plantillas de contrato* (Admin y Gerente) se crean, editan
 y borran las plantillas con las que se genera el documento de un contrato. Una
-plantilla es un texto con **variables** entre llaves dobles, como
+plantilla es un texto con variables entre llaves dobles, como
 `{{contrato.monto}}`. Al lado del cuerpo está el catálogo de variables, con qué es
 cada una; un clic en una variable la inserta donde está el cursor. Una variable sin
 dato en el contrato queda escrita tal cual (`{{propiedad.catastro}}`) en el
@@ -331,8 +375,8 @@ cada fecha tiene también su versión en letras (`contrato.montoEnLetras`,
 `contrato.fechaInicioEnLetras`: «primero de julio de dos mil veintiséis»). Del
 inmueble: dirección, descripción, nomenclatura catastral, la cuenta de Rentas y la
 unidad de Aguas (salen de los servicios e impuestos cargados en la propiedad, con
-el número de cuenta). De la inmobiliaria: nombre, CUIT, provincia, **matrícula** y
-**domicilio** (se cargan en *Configuración*, datos de la inmobiliaria). De cada
+el número de cuenta). De la inmobiliaria: nombre, CUIT, provincia, matrícula y
+domicilio (se cargan en *Configuración*, datos de la inmobiliaria). De cada
 persona: nombre, documento (`documento` tal cual y `dniConPuntos`: 6.678.901),
 CUIT, teléfono, mail, domicilio, estado civil y nacionalidad.
 
@@ -384,8 +428,8 @@ período de ajuste, base del ajuste (sobre el alquiler original o sobre el vigen
 rezago del índice, día de vencimiento, quién cobra (se reparte, todo la inmobiliaria
 o todo el locador) y los descuentos o el alquiler acordado, si los hay, con la fecha
 desde la que rigen y cuántas versiones tuvo, las cuatro convenciones de liquidación
-pactadas y, si el contrato lo pacta, **qué debe el locador cuando cobra él
-directamente** (todo lo ajeno, o solo lo de la inmobiliaria si él paga los entes);
+pactadas y, si el contrato lo pacta, qué debe el locador cuando cobra él
+directamente (todo lo ajeno, o solo lo de la inmobiliaria si él paga los entes);
 sin pactar rige lo que eligió la inmobiliaria en *Caja y cobros*. Se pacta al crear
 el contrato o con un convenio de cambio de reglas. Debajo, *Acuerdos* lista los convenios
 registrados (renegociación, rebaja, bonificación, cambio de reglas, de reparto o de
@@ -414,8 +458,14 @@ calcula con el fin efectivo (el fin real si se cargó una prórroga y si no el f
 pactado): *En plazo* (verde), *Por vencer* (amarillo, hasta los días de aviso),
 *Urgente* (rojo, hasta los días del umbral rojo, 30 de fábrica) y *Vencido* (el fin
 efectivo ya pasó). Se filtra por color, tipo (renovación o devolución), estado
-(abierto o cerrado) y *Solo los míos*; cada fila muestra el inquilino, el fin, los
-días que faltan, el avance del checklist y el responsable.
+(abierto o cerrado) y *Solo los míos*.
+
+La pantalla es una agenda. Un resumen arriba cuenta los seguimientos por plazo
+(*Vencidos*, *Hoy*, *7 días*, *30 días*, *Después*) y debajo aparecen agrupados en
+ese orden: *Ya vencieron*, *Vencen hoy*, *En los próximos 7 días*, *En los próximos
+30 días* y *Más adelante*. Cada renglón muestra la fecha de fin, la propiedad y el
+inquilino, cuánto falta o hace cuánto venció, el tipo con su semáforo, el avance
+del checklist y el responsable.
 
 **Trabajar un seguimiento.** *Abrir* muestra el seguimiento: el responsable (Admin,
 Gerente y Ventas lo asignan; quien no ve la lista de usuarios puede asignárselo a
@@ -472,7 +522,7 @@ En la ficha de una propiedad (o de un edificio), *Servicios e impuestos* lista l
 cuentas de luz, gas, agua, tasas e impuestos con su proveedor, número de cuenta,
 importe vigente, día de vencimiento y frecuencia (mensual, bimestral, trimestral o
 anual). Quien tiene permiso de gestión comercial (Admin, Gerente y Ventas) puede
-**agregar** un servicio, **editarlo** y **reactivarlo**; **dar de baja** es de Admin
+agregar un servicio, editarlo y reactivarlo; dar de baja es de Admin
 y Gerente. La baja es lógica: el servicio deja de ofrecerse en las reglas de los
 contratos nuevos y se conserva su historial y sus reglas.
 
@@ -482,7 +532,7 @@ contratos nuevos y se conserva su historial y sus reglas.
   (si no corresponde, avisa «El número de cuenta no tiene el formato del proveedor
   elegido»). Un proveedor solo se acepta para su tipo de servicio (por ejemplo, Ecogas
   para gas). Con otro proveedor se escribe su nombre y no hay obtención automática.
-- En la ficha de una **unidad** se ven aparte, sin edición, los servicios activos del
+- En la ficha de una unidad se ven aparte, sin edición, los servicios activos del
   edificio; se cambian desde la ficha del edificio.
 
 Para corregir la cuenta de un servicio que no encuentra sus boletas: *Editar*,
@@ -498,25 +548,25 @@ cargan antes en la ficha de la propiedad:
 
 - **Inquilino**: paga directo al ente; no pasa por la inmobiliaria y no aparece en
   su liquidación.
-- **Inmobiliaria**: el inquilino le paga el importe a la inmobiliaria y ésta paga
+- **Inmobiliaria**: el inquilino le paga el importe a la inmobiliaria y esta paga
   al ente. Sale como un renglón *Servicio* o *Impuesto* de la liquidación del
   inquilino, a nombre del ente, y no cuenta para la comisión.
 - **Propietario**: el inquilino lo paga junto con el alquiler y todo pasa al
   locador (por cuenta y orden). Sale como renglón a nombre del locador, con la
   leyenda «por cuenta y orden del locador», y tampoco cuenta para la comisión.
 
-El reparto es un **porcentaje** de la boleta (el que le toca al inquilino), **por
-consumo** (la parte del consumo de la unidad sobre el total de la boleta, por
-ejemplo el agua de un edificio) o un **importe fijo** (nunca más que la boleta). Un
+El reparto es un porcentaje de la boleta (el que le toca al inquilino), por
+consumo (la parte del consumo de la unidad sobre el total de la boleta, por
+ejemplo el agua de un edificio) o un importe fijo (nunca más que la boleta). Un
 servicio con opción anual (tasa municipal, impuesto inmobiliario) puede cobrarse
-**mensual** o **anual**. En el plan anual se elige cómo se recupera la boleta: **en
-cuotas** mensuales iguales (lo habitual; de 1 a 12, de fábrica 12) o **de una vez** en
-el mes de la boleta. También se elige **a quién va el descuento por pago anual**: al
+mensual o anual. En el plan anual se elige cómo se recupera la boleta: en
+cuotas mensuales iguales (lo habitual; de 1 a 12, de fábrica 12) o de una vez en
+el mes de la boleta. También se elige a quién va el descuento por pago anual: al
 inquilino (se le cobra lo que efectivamente se pagó), o al locador o a la
 inmobiliaria (se le cobra el importe sin descuento y la diferencia sale como un
 renglón aparte a nombre de ese beneficiario, sin comisión). Y qué pasa si el contrato
-termina antes de la última cuota: **cobrar lo que queda en la liquidación final** (se
-suma a la cuota del último mes) o **descartar** las cuotas restantes.
+termina antes de la última cuota: cobrar lo que queda en la liquidación final (se
+suma a la cuota del último mes) o descartar las cuotas restantes.
 
 Quien administra la facturación (Admin, Gerente y Liquidaciones) usa *Agregar o
 cambiar regla*: elige el servicio, quién paga, el reparto, el plan y desde qué fecha
@@ -530,16 +580,22 @@ usó en una liquidación no se corrige: se crea una versión nueva.
 ### Cargar las boletas del mes
 
 **Boletas del mes** (`/boletas`, Admin, Gerente y Liquidaciones). Se elige el mes y la
-pantalla muestra una fila por servicio activo (o por boleta ya cargada), con la
-propiedad, el servicio, **quién paga** según las reglas de los contratos, la cuota
-(`MM/AAAA` si no se indica otra), el importe, el vencimiento (propuesto con el día de
-vencimiento del servicio) y el consumo.
+pantalla muestra primero el avance: cuántas boletas del mes ya están cargadas sobre
+el total y cuántas faltan, con una lista por tipo de servicio (expensas,
+electricidad, gas, agua, municipal) donde cada servicio figura con su importe y su
+vencimiento, o como *Falta*.
+
+Debajo, *Cargar importes* es la planilla: una fila por servicio activo (o por boleta
+ya cargada), con la propiedad, el servicio, quién paga según las reglas de los
+contratos, la cuota (`MM/AAAA` si no se indica otra), el importe, el vencimiento
+(propuesto con el día de vencimiento del servicio), el consumo y el estado (*Sin
+cargar*, *Cargada*, *Pagada*).
 
 La carga es como una planilla: se escribe en las celdas, con las flechas y Enter para
-moverse, o se **pega desde Excel o Sheets** a partir de la celda activa (importe,
+moverse, o se pega desde Excel o Sheets a partir de la celda activa (importe,
 vencimiento y consumo en ese orden, una fila por servicio). El importe admite coma
 decimal (hasta 2 decimales), el vencimiento se escribe `AAAA-MM-DD` o `D/M/AAAA`, y
-cada celda con error se marca. *Guardar* envía solo las filas con importe que se
+cada celda con error se marca. *Guardar boletas* envía solo las filas con importe que se
 tocaron, en una sola carga masiva: se informa cuántas boletas se guardaron, y las
 filas rechazadas quedan listadas con el motivo, con lo escrito intacto para
 corregirlas. Cargar dos veces lo mismo no duplica nada.
@@ -555,19 +611,19 @@ comprobante) se usa `PATCH /service-bills/:id`.
 ### Consumo por unidad (edificios con una boleta para varias unidades)
 
 Cuando una sola boleta (agua, municipal, rentas) cubre varias unidades de un edificio, o
-cuando el servicio tiene reglas **por consumo**, debajo de la planilla aparece el panel
+cuando el servicio tiene reglas por consumo, debajo de la planilla aparece el panel
 **Consumo por unidad** de esa fila: una línea por unidad del edificio, con su consumo
-(el que dice la boleta; admite coma decimal y hasta 3 decimales), y la **suma** de las
+(el que dice la boleta; admite coma decimal y hasta 3 decimales), y la suma de las
 unidades. Reglas para cargarlo:
 
-- Una unidad vacía o sin contrato se carga con **0**: ocupa su parte del reparto pero no
+- Una unidad vacía o sin contrato se carga con 0: ocupa su parte del reparto pero no
   paga. Una unidad sin cargar no cuenta como 0.
-- Si varias unidades se reparten por consumo, hace falta el consumo de **todas** ellas;
+- Si varias unidades se reparten por consumo, hace falta el consumo de todas ellas;
   sin eso no se puede guardar y la unidad que falta queda marcada.
 - Si en la columna *Consumo* se escribe el total de la boleta y es mayor a la suma, la
   diferencia (áreas comunes, unidades sin contrato) no se traslada a nadie; si es menor,
   el reparto usa la suma.
-- **Ver reparto** muestra, antes de guardar, cuánto le toca a cada unidad con las reglas
+- *Ver reparto* muestra, antes de guardar, cuánto le toca a cada unidad con las reglas
   vigentes y cómo se calculó, y avisa si alguna unidad no paga o si no se puede repartir.
   Hace falta haber escrito el importe de la boleta.
 
@@ -576,14 +632,14 @@ descuento y las notas.
 
 ### Boletas que se leen solas de un PDF
 
-Además de cargarlas a mano, las boletas se pueden **leer de un PDF**: el cedulón de la
+Además de cargarlas a mano, las boletas se pueden leer de un PDF: el cedulón de la
 Municipalidad, el cedulón del Impuesto Inmobiliario de Rentas y la factura o el resumen
 de cuenta de Aguas Cordobesas se reconocen y se cargan solos. Los de EPEC y Ecogas se
 reconocen pero, hasta ajustar la lectura con una boleta real, quedan siempre para
 revisión.
 
 Para que una boleta se cargue sola, el servicio de la propiedad tiene que tener su
-**proveedor** y su **número de cuenta** (la Unidad de Facturación del agua, el número de
+proveedor y su número de cuenta (la Unidad de Facturación del agua, el número de
 cuenta de Rentas, el objeto o la identificación tributaria de la Municipalidad): se
 guardan con el formato del proveedor. El sistema busca el servicio por ese número y,
 si la boleta es del mes (o de los tres meses anteriores o siguientes) y los importes y
@@ -594,7 +650,7 @@ Los PDF entran por la pantalla **Boletas recibidas** (o por la API,
 `POST /bills-intake/documents`) y por mail: la casilla `boletas+<inmobiliaria>@...`
 recibe la factura digital que el proveedor manda por mail y procesa el PDF adjunto.
 Mandar dos veces el mismo PDF no duplica nada. Lo que el sistema no puede resolver
-**queda en revisión con el motivo** (no encontró el servicio, la lectura es dudosa, ya
+queda en revisión con el motivo (no encontró el servicio, la lectura es dudosa, ya
 hay una boleta con otro importe, el mail no traía PDF). Una boleta ya cargada con otro
 importe nunca se pisa: se corrige en la planilla del mes.
 
@@ -603,18 +659,19 @@ importe nunca se pisa: se corrige en la planilla del mes.
 **Boletas recibidas** (`/boletas/recibidas`) está en el menú junto a *Boletas del mes*.
 La ven Admin, Gerente, Liquidaciones y Lectura; suben, aceptan y rechazan Admin, Gerente
 y Liquidaciones (los mismos permisos que la carga de boletas). El menú muestra un
-número con las boletas **en revisión**, y *Boletas del mes* avisa lo mismo arriba de la
+número con las boletas en revisión, y *Boletas del mes* avisa lo mismo arriba de la
 planilla, con un enlace para revisarlas.
 
 1. **Subir.** Se arrastran uno o varios PDF a la zona punteada o se eligen con *Elegir
-   archivos* (sólo PDF, hasta 10 MB cada uno). Cada archivo se procesa por separado y
+   archivos* (solo PDF, hasta 10 MB cada uno). Cada archivo se procesa por separado y
    muestra su resultado: el estado, cuántas boletas se cargaron, si ya estaba cargado
    (*Ya estaba cargado*) o por qué no se pudo subir (*No es un PDF*, *Pesa más de
    10 MB*). La barra indica cuántos archivos se procesaron.
-2. **Lista.** Debajo se ven los documentos, los que esperan revisión primero. Se filtra
-   por **estado** (Recibida, Procesada, Requiere revisión, Rechazada, Duplicada) y por
-   **canal** (archivo subido, mail, consulta al proveedor). Cada fila muestra el
-   proveedor y la cuenta que se leyeron, la confianza de la lectura, el **motivo** por el
+2. **Lista.** A la izquierda de la zona de subida se ven los documentos; al entrar, el
+   filtro de estado viene en *Requiere revisión*. Se filtra
+   por estado (Recibida, Procesada, Requiere revisión, Rechazada, Duplicada) y por
+   canal (archivo subido, mail, consulta al proveedor). Cada fila muestra el
+   proveedor y la cuenta que se leyeron, la confianza de la lectura, el motivo por el
    que quedó en revisión, escrito en palabras (por ejemplo «Ningún servicio cargado tiene
    esa cuenta», «La lectura no es lo bastante confiable para cargarla sola») y las
    boletas que dio de alta, con enlace al documento.
@@ -622,15 +679,15 @@ planilla, con un enlace para revisarlas.
    se leyó: proveedor, cuenta, servicio sugerido, avisos de la lectura y cada boleta
    (período, cuota, importe y vencimiento). Los documentos en revisión ofrecen dos
    acciones.
-4. **Aceptar…** abre un formulario: se elige el **servicio** (se busca escribiendo la
+4. **Aceptar…** abre un formulario: se elige el servicio (se busca escribiendo la
    propiedad, el proveedor, el tipo o la cuenta) y se corrigen, si hace falta, el
-   período (`AAAA-MM`), la cuota, el importe y el vencimiento. Sólo se mandan los datos
+   período (`AAAA-MM`), la cuota, el importe y el vencimiento. Solo se mandan los datos
    que se cambiaron. Si el documento no trae ninguna boleta legible, período e importe
    son obligatorios; si trae varias (un resumen de cuenta), se aceptan tal como se
    leyeron, sin correcciones. Al aceptar, el documento queda *Procesada* (o *Duplicada*
    si la boleta ya estaba) y la boleta entra como pendiente, con el mismo reparto al
    inquilino que una cargada a mano.
-5. **Rechazar…** pide un **motivo** (hasta 500 caracteres) y deja el documento
+5. **Rechazar…** pide un motivo (hasta 500 caracteres) y deja el documento
    *Rechazada*, sin generar ninguna boleta. El motivo queda a la vista en la lista.
 
 Si alguien resolvió el documento antes, el sistema lo avisa («ya no está en revisión») y
@@ -638,7 +695,7 @@ hay que actualizar la pantalla. Un usuario con permiso de lectura ve todo pero n
 aceptar ni rechazar.
 
 La consulta directa a los sitios de los proveedores está apagada y todavía no tiene
-conectores: no se consulta nada. Se prende en *Configuración → Valores por defecto*, en la
+conectores: no se consulta nada. Se prende en *Configuración*, *Valores por defecto*, en la
 sección **Obtención automática de boletas**: un interruptor («Consultar a los
 proveedores todos los días») y la lista de proveedores del catálogo (Aguas Cordobesas,
 Ecogas, EPEC, Municipalidad de Córdoba, Rentas de Córdoba) de los que se consulta; se
@@ -650,7 +707,7 @@ o por mail se procesa siempre, con esto prendido o no.
 **Centro de carga** (`/cargos`, Admin, Gerente y Liquidaciones). Acá se cargan los gastos
 que aparecen durante el mes: reparaciones, expensas extraordinarias con la unidad
 vacía, devoluciones al inquilino y honorarios por la gestión de una reparación. Cada
-gasto se imputa **una sola vez**.
+gasto se imputa una sola vez.
 
 - *Cargar un gasto* abre el formulario: a cargo de quién va (inquilino, locador o
   inmobiliaria), la clase, el contrato (o la propiedad, si está vacía), la descripción,
@@ -660,10 +717,17 @@ gasto se imputa **una sola vez**.
 - *Carga por planilla* permite escribir o pegar varias filas desde Excel o Sheets. Las
   filas guardadas salen de la planilla y las que fallan quedan, con el motivo, para
   corregirlas.
-- Un gasto **al inquilino** entra como renglón de su próxima liquidación, sin comisión.
-  Uno **al locador** se descuenta en su estado, no en la liquidación del inquilino. Uno
-  **a la inmobiliaria** solo queda registrado.
+- Un gasto al inquilino entra como renglón de su próxima liquidación, sin comisión.
+  Uno al locador se descuenta en su estado, no en la liquidación del inquilino. Uno
+  a la inmobiliaria solo queda registrado.
 - El detalle de cada contrato muestra sus *Cargos pendientes*.
+
+El listado es una planilla con un renglón por gasto: mes, propiedad, concepto con su
+clase, a cargo de quién, estado, importe y acciones (*Imputar*, *Ya cobrado*, *Pasar a
+gasto*, *Anular* o *Liberar*, según el caso). Se filtra por estado (*Pendiente*,
+*Imputado*, *Cobrado por adelantado*, *Anulado*), por a cargo de quién, por clase y por
+mes, y con *Solo los que piden anticipo*. Al pie figura la cantidad de renglones y el
+total por moneda.
 
 **Anticipo.** Si el gasto al inquilino supera el umbral de anticipo de la inmobiliaria
 (por defecto, 2 comisiones mensuales del contrato), queda marcado *Pide anticipo* y no
@@ -686,14 +750,14 @@ un locador (los vigentes del contrato o los titulares de la propiedad) o, sin el
 es de todos según su porcentaje. Un gasto a cargo de la inmobiliaria queda
 registrado como pendiente hasta que se paga: *Registrar como gasto* pide la cuenta de
 la inmobiliaria de la que sale el dinero (y, si hace falta, la fecha) y lo cierra como
-un **Gasto** en la caja (ver *Caja de la inmobiliaria*). Se cierra una sola vez y, una
+un Gasto en la caja (ver *Caja de la inmobiliaria*). Se cierra una sola vez y, una
 vez cerrado, ya no vuelve a pendiente.
 
 ### Cargar los locadores de un contrato y su porcentaje de cobro
 
 El locador es quien alquila y cobra, y es una relación del contrato: una persona
 no necesita tener un rol especial para serlo. En *Nuevo contrato*, el paso de
-personas pide los **locadores**: se busca a cada persona y se la agrega; el
+personas pide los locadores: se busca a cada persona y se la agrega; el
 sistema reparte el 100 % en partes iguales y cada porcentaje se puede corregir
 (mientras se editó alguno, agregar o quitar locadores ya no reparte solo). El
 aviso debajo de la lista dice si el reparto suma 100 %. Con otra suma se puede
@@ -708,21 +772,21 @@ vez. Mientras se edita, el indicador muestra la suma de los locadores vigentes:
 el botón *Guardar locadores* solo se habilita con 100,0000 % exacto en cada fecha
 del contrato, y si falta o sobra, el aviso dice cuánto. Para cada locador se elige:
 
-- el **porcentaje de cobro**, con hasta 4 decimales (se acepta coma);
+- el porcentaje de cobro, con hasta 4 decimales (se acepta coma);
 - **quién cobra**: por defecto el propio locador, o un apoderado que tenga un poder
   de cobro vigente de ese locador (la lista solo ofrece a esos);
-- la **cuenta** de cobro, entre las cuentas del locador;
-- la **vigencia** (desde y hasta). Una cesión se carga cerrando a un locador con
+- la cuenta de cobro, entre las cuentas del locador;
+- la vigencia (desde y hasta). Una cesión se carga cerrando a un locador con
   su fecha de fin y agregando al nuevo con esa misma fecha de inicio.
 
 Si el sistema rechaza el reparto, el aviso lo explica y, cuando las fechas no
 cierran, lista los días en que la suma no da 100 %.
 
 **Contratos migrados.** Los contratos que tenían varios propietarios se pasaron a
-locadores con partes iguales y quedaron marcados **A revisar**: ese reparto es
+locadores con partes iguales y quedaron marcados *A revisar*: ese reparto es
 una suposición. Hay que confirmar los porcentajes reales en *Editar locadores* y
 guardar; al cambiar el porcentaje de un locador la marca se baja. Un contrato
-que todavía muestra propietarios sueltos con la etiqueta **A migrar** se carga
+que todavía muestra propietarios sueltos con la etiqueta *A migrar* se carga
 desde *Cargar locadores*, que parte de esos propietarios con reparto igual.
 
 La sección **Apoderados** del contrato lista los poderes vigentes que aplican: los
@@ -734,7 +798,7 @@ de firma y un enlace a la ficha del poderdante. Se cargan desde la pestaña
 
 En el detalle de la propiedad, la sección **Titulares** registra quién figura
 como dueño del inmueble: persona, porcentaje (opcional), título y fechas. Es
-informativo: no decide pagos —el reparto del cobro se define en cada contrato— y
+informativo: no decide pagos (el reparto del cobro se define en cada contrato) y
 no se exige que los porcentajes sumen 100. Si los porcentajes cargados no suman
 100 %, aparece un aviso que no impide guardar. Agregar y quitar titulares es de
 Admin, Gerente y Ventas; quitar pide confirmación.
@@ -743,22 +807,22 @@ Admin, Gerente y Ventas; quitar pide confirmación.
 
 **Ventas** (`/ventas`) sigue cada operación de venta desde que se capta la propiedad hasta la
 escritura. La ven Admin, Gerente, Ventas y Lectura; cargan y mueven las operaciones Admin,
-Gerente y Ventas. La escritura **no se gestiona** en el sistema: se registra como estado final
+Gerente y Ventas. La escritura no se gestiona en el sistema: se registra como estado final
 y fecha.
 
 1. **Abrir la operación.** *Nueva operación de venta* (o *Iniciar venta* en la ficha de la
    propiedad) pide la propiedad, el precio de publicación y si es exclusiva (por ahora la
    inmobiliaria no trabaja con exclusividad: se puede marcar a futuro). Una propiedad tiene una
-   sola operación abierta. Se crea sola la lista de **documentación del inmueble**.
+   sola operación abierta. Se crea sola la lista de documentación del inmueble.
 2. **Partes.** En el detalle, *Editar partes* suma compradores y vendedores. Si hay más de uno de
    un lado, cada uno lleva su parte y el lado suma 100 %.
 3. **Reserva.** *Agregar reserva o seña* carga la reserva con su importe, su moneda, quién guarda
-   el dinero (la inmobiliaria, el vendedor o el escribano) y su **vencimiento** (siete días por
+   el dinero (la inmobiliaria, el vendedor o el escribano) y su vencimiento (siete días por
    defecto, se cambia en *Valores por defecto*). *Recibir* registra que el dinero entró: si lo guarda
-   la inmobiliaria, entra a la caja como movimiento de **seña**; si lo guarda el vendedor o el escribano,
+   la inmobiliaria, entra a la caja como movimiento de seña; si lo guarda el vendedor o el escribano,
    solo se anota. Con un comprador y una reserva cargada, *Reservar* pasa la operación a reservada. Una
-   reserva vence al día siguiente de su fecha; se puede **prorrogar** antes de recibir el dinero. Cada
-   noche el sistema marca vencidas las reservas pasadas y, si no queda otra reserva o seña, **libera**
+   reserva vence al día siguiente de su fecha; se puede prorrogar antes de recibir el dinero. Cada
+   noche el sistema marca vencidas las reservas pasadas y, si no queda otra reserva o seña, libera
    la operación (vuelve a publicada).
 4. **Seña.** Se carga igual que la reserva; al recibirla, *Registrar seña recibida* pasa la operación
    a ese estado.
@@ -774,10 +838,10 @@ y fecha.
    para el comprador y otro para el vendedor, y lo crea vinculado a la operación (solo Admin y
    Gerente). Se cobra en **Honorarios**.
 
-**Devolver o retener una seña** (solo Admin y Gerente). El sistema **registra, no decide**: *Devolver*
+**Devolver o retener una seña** (solo Admin y Gerente). El sistema registra, no decide: *Devolver*
 anota la devolución al comprador (completa o parcial, nunca más de lo recibido) y, si el dinero lo
 guardaba la inmobiliaria, lo saca de la misma cuenta de caja; *Retener* anota la pérdida de la seña
-con su motivo y **no mueve la caja**. Las reglas de la pérdida de la seña y de la devolución en doble
+con su motivo y no mueve la caja. Las reglas de la pérdida de la seña y de la devolución en doble
 las define la inmobiliaria con su abogado y se arreglan fuera del sistema. Mientras haya dinero
 recibido sin devolver ni retener, la operación no se puede volver a publicar ni cancelar.
 
@@ -789,8 +853,11 @@ de vencimiento (vencida, vence hoy, vence pronto).
 baulera) con sus copias, el lugar donde se guarda en la oficina y quién lo tiene hoy. *Registrar
 salida* anota a quién se entrega (un empleado, el propietario, el inquilino o un tercero como un
 escribano o un plomero), para qué y cuándo debería volver; *Registrar devolución* lo deja de nuevo en
-la oficina. **Llaves fuera** (`/llaves`) lista todas las salidas abiertas, filtra por quién las tiene
-y marca en rojo las atrasadas con los días de atraso. Cargan y mueven Admin, Gerente y Ventas; ven
+la oficina. **Llaves fuera** (`/llaves`) es un tablero con las salidas abiertas, en cuatro columnas
+según quién tiene el juego: *Propietarios*, *Inquilinos*, *Personal* y *Terceros*. Cada tarjeta
+muestra quién lo tiene, la propiedad y el juego, desde cuándo, para qué y cuándo vuelve, y el botón
+*Registrar devolución*; las atrasadas llevan la marca con los días de atraso. Arriba figura cuántos
+juegos hay fuera y cuántos atrasados, y *Solo atrasadas* deja a la vista esos. Cargan y mueven Admin, Gerente y Ventas; ven
 también Soporte y Lectura.
 
 ### Depósito del contrato y liquidación de egreso
@@ -805,7 +872,7 @@ El importe del depósito se carga al crear el contrato y después se cambia solo
 
 ### Generar la liquidación del mes
 
-La inmobiliaria no tiene que acordarse de abrir el mes: todos los días a las 7:30 de
+Las liquidaciones del mes se generan solas: todos los días a las 7:30 de
 la mañana (después de leer los índices y de aplicar los ajustes del día) el sistema
 revisa cada inmobiliaria y, cuando faltan diez días o menos
 para el mes siguiente (los días de anticipación de *Valores por defecto*; de
@@ -813,7 +880,7 @@ fábrica, el día 20), genera las liquidaciones de ese mes. Si ya existían no l
 repite.
 
 El botón hace lo mismo a pedido: **Liquidaciones** (`/liquidaciones`) → *Generar
-Mes*. Elegido el período, crea las liquidaciones de los contratos que rigen ese
+mes*. Elegido el período, crea las liquidaciones de los contratos que rigen ese
 mes, informa cuántas generó, cuántas omitió porque ya existían y cuántos
 contratos quedaron fuera por no regir (todavía no empezaron o ya terminaron)
 y cuántos primeros meses quedaron sin liquidar porque el contrato los cobra al firmar o
@@ -825,7 +892,7 @@ de él: la liquidación de diciembre que se genera el 20 de noviembre ya lleva e
 ajuste del 1 de diciembre, porque su índice (con el rezago del contrato) ya está
 publicado. Si falta el índice y no hay estimado (o el pago a cuenta está apagado),
 el ajuste queda pendiente y la liquidación sale con el alquiler anterior, marcada
-**Ajuste pendiente**: no se puede aprobar hasta aplicar el ajuste. Al generar se
+*Ajuste pendiente*: no se puede aprobar hasta aplicar el ajuste. Al generar se
 informa cuántas quedaron así. Cuando el ajuste se aplica (desde *Ajustes del mes*,
 desde el contrato o solo, en la corrida del día siguiente si ya se publicó el
 índice), las liquidaciones del contrato todavía en Borrador o En Revisión se
@@ -873,11 +940,20 @@ por defecto de la inmobiliaria), se corrigen mientras el contrato no tenga acuer
 y, después, cambian por acuerdo con fecha. Las liquidaciones ya generadas no se
 tocan.
 
+El listado es un libro por mes. Cada mes tiene su encabezado con cuatro totales
+(*Emitido*, *Cobrado*, *Pendiente* y *Vencido*) y una barra que muestra qué parte
+de lo emitido ya se cobró; debajo, un renglón por liquidación con la propiedad y el
+inquilino, el vencimiento (y cuándo se cobró o hace cuánto venció), el estado, el
+importe y la descarga del PDF. Arriba se filtra por estado, mes y año, y *Para
+atender* lleva directo a las vencidas y a las que están sin aprobar.
+
 Cada liquidación nace en Borrador y recorre En Revisión, Aprobada, Enviada y
 Pagada; puede quedar Vencida o Anulada. En el detalle (`/liquidaciones/[id]`) se
-ven las líneas —alquiler, ajuste, extras, descuentos, multas— y se agregan,
-editan o quitan las que hagan falta antes de aprobar. Aprobar y enviar en lote
-desde el listado es una acción reservada a Admin y Gerente.
+ven los conceptos (alquiler, ajuste, extras, descuentos, multas) con el subtotal y
+el total, los pagos con el saldo pendiente y el seguimiento (generada, enviada al
+inquilino, pagada); antes de aprobar se agregan, editan o quitan los conceptos que
+hagan falta. Aprobar y enviar en lote desde el listado, marcando las liquidaciones
+o con *Seleccionar todas* las del mes, es una acción reservada a Admin y Gerente.
 
 Cada renglón muestra a quién le corresponde (locador, inmobiliaria o ente o
 proveedor) y si es comisionable: la comisión solo corre sobre el alquiler, sus
@@ -899,10 +975,10 @@ cargaron, sin correrse un día.
 ### Registrar un pago
 
 El pago se registra contra la liquidación, no como un movimiento suelto. En el
-detalle de la liquidación, *Registrar Pago* pide la fecha, el monto, el medio
-—transferencia, efectivo, MercadoPago o cheque—, una referencia y observaciones.
+detalle de la liquidación, *Registrar pago* pide la fecha, el monto, el medio
+(transferencia, efectivo, Mercado Pago o cheque), una referencia y observaciones.
 El sistema imputa el monto y recalcula el saldo pendiente; si el pago es parcial,
-la liquidación queda con su saldo a la vista y la tarjeta lo indica.
+la liquidación queda con su saldo a la vista.
 
 **Quién recibió el cobro.** El mismo formulario pregunta quién recibió el dinero. Sin
 elegir, rige el flujo de pago del contrato (*Reglas vigentes*): *Todo al locador* lo
@@ -929,7 +1005,7 @@ recibido por la inmobiliaria. Cómo registrar cada caso:
 - **El inquilino le transfirió a otro locador** (compensación): se registra el cobro
   como recibido por el locador y después se carga la compensación (ver más abajo).
 
-Cada cobro que recibe la inmobiliaria emite un **recibo de cobro** con número propio
+Cada cobro que recibe la inmobiliaria emite un recibo de cobro con número propio
 (una serie distinta de la del recibo de la liquidación, que no cambia), y queda el
 botón para imprimirlo. El cobro guarda cuánto le tocó a la inmobiliaria, a los entes
 y a cada locador según su porcentaje; en los pagos parciales el reparto es
@@ -938,27 +1014,37 @@ Una referencia externa (del sistema anterior o del banco) no se puede repetir. C
 cobro con reparto deja además sus asientos en la cuenta corriente de cada locador
 (ver *Cuenta corriente del locador*).
 
-**Pagos** (`/pagos`) es la mirada agregada: deuda pendiente, deuda vencida y los
-pagos recientes con su medio y su período. Es una pantalla de consulta; el
-registro siempre ocurre en la liquidación.
+**Pagos** (`/pagos`, con el título *Pagos y deuda*) es el extracto de cobros de un
+mes, que se cambia con las flechas. El resumen de arriba muestra lo cobrado en el
+mes, el reparto por medio de pago y *Por cobrar hoy* (deuda vencida y deuda
+pendiente, con el enlace *Ir a cobranza*). Debajo, los cobros se agrupan por día:
+cada uno con la propiedad, la liquidación a la que corresponde, el inquilino, la
+referencia, el medio y el importe, el total de cada día y el total del mes al pie.
+Es una pantalla de consulta; el registro siempre ocurre en la liquidación.
 
 ### Caja de la inmobiliaria
 
 **Caja** (`/caja`; la ven Admin, Gerente, Liquidaciones y Lectura) reúne el dinero que
-pasa por la inmobiliaria.
+pasa por la inmobiliaria. Arriba figura el saldo por moneda, que separa lo de la
+inmobiliaria de lo que guarda en custodia; la custodia suma en el total solo si la
+inmobiliaria lo eligió en los valores por defecto. Debajo hay cuatro pestañas: *Libro
+de caja*, *Cuentas*, *Custodia* y *Recibos*.
 
-- **Cuentas**: cajas (efectivo), bancos y la custodia de cada locador, cada una en una
-  sola moneda (pesos, dólares o euros), con su saldo. Los totales por moneda separan lo
-  de la inmobiliaria de lo que guarda en custodia; la custodia suma en el total solo si
-  la inmobiliaria lo eligió en los valores por defecto. Las cuentas las crean, renombran
-  o desactivan Admin y Gerente; una cuenta con saldo no se desactiva.
-- **Movimientos**: el libro de la inmobiliaria, con filtros por cuenta, categoría,
-  fechas y contrato. Los cobros, la custodia, las compensaciones y las conversiones se
-  escriben solos. A mano (Admin, Gerente y Liquidaciones) se cargan los pagos a
+- **Libro de caja**: los movimientos de la inmobiliaria con fecha, concepto, ingresos,
+  egresos y, cuando se elige una cuenta, el saldo después de cada movimiento. Se filtra
+  por cuenta, categoría, contrato y fechas (con filtros de categoría, contrato o fechas
+  el saldo fila por fila no se muestra). Al pie están los totales de la página y el
+  saldo anterior a esos movimientos. Con una cuenta elegida aparece al costado el
+  *Arqueo*: se escribe lo contado y la pantalla lo compara con el saldo del sistema
+  (*Coincide*, *Sobran* o *Faltan*); la comparación no se guarda. Los cobros, la
+  custodia, las compensaciones y las conversiones se escriben solos. A mano (Admin, Gerente y Liquidaciones) se cargan los pagos a
   entes y proveedores, los honorarios, los gastos, las comisiones del personal y las
   señas, siempre en una caja o un banco. Los pagos a locadores se registran desde su
-  cuenta corriente (*Pagar al locador*), que escribe el egreso y descuenta su saldo
-  a la vez.
+  cuenta corriente (*Registrar pago al locador*), que escribe el egreso y descuenta
+  su saldo a la vez.
+- **Cuentas**: cajas (efectivo), bancos y la custodia de cada locador, cada una en una
+  sola moneda (pesos, dólares o euros), con su saldo. Las crean, renombran o desactivan
+  Admin y Gerente; una cuenta con saldo no se desactiva.
 - **Conversión de moneda**: de una cuenta a otra de distinta moneda, con el tipo de
   cambio escrito a mano. El sistema nunca convierte solo.
 - **Recibos**: los recibos de cobro con número, fecha, inquilino, propiedad e importe,
@@ -968,9 +1054,9 @@ pasa por la inmobiliaria.
 activa (Admin y Gerente) carga lo que la cuenta ya tenía al arrancar con el sistema, en
 la moneda de la cuenta: el arqueo de una caja, el saldo de un banco o el efectivo que se
 guarda en custodia para un locador (en pesos, dólares o euros). Pide el importe, la
-fecha de corte (vacía, hoy) y un **motivo**, que queda en la auditoría. Hay uno por
+fecha de corte (vacía, hoy) y un motivo, que queda en la auditoría. Hay uno por
 cuenta: si ya existe, se corrige, y volver a cargar lo mismo no cambia nada. Un importe
-negativo (sólo en caja o banco) es un descubierto y cero quita el saldo inicial. Lo
+negativo (solo en caja o banco) es un descubierto y cero quita el saldo inicial. Lo
 cargado aparece en el saldo de la cuenta, en los totales y en el libro como *Saldo
 inicial*. Cargarlo en una custodia no toca la cuenta corriente del locador: lo que se
 le debe se carga aparte en su *Saldo inicial* del estado de cuenta.
@@ -999,14 +1085,19 @@ moneda o por cuenta), si se emite recibo cuando cobra el locador y entre quiéne
 admiten compensaciones.
 
 Cuando una liquidación pasa su vencimiento sin pago, el cálculo de punitorios
-corre por su cuenta según la configuración de la inmobiliaria. **Morosos**
-(`/delinquency`) reúne a los inquilinos con liquidaciones vencidas, con la deuda,
-la multa acumulada y los días de atraso; desde ahí se condona una multa, que es
-una operación de Admin y Gerente. La pantalla es de Admin y Gerente.
+corre por su cuenta según la configuración de la inmobiliaria. **Morosidad**
+(`/delinquency`) muestra la deuda vencida total, los punitorios acumulados y la
+deuda repartida en cuatro tramos de antigüedad (1 a 30 días, 31 a 60, 61 a 90 y más
+de 90), con el importe y la cantidad de deudores de cada uno; cada deuda cuenta en
+el tramo de su vencimiento impago más viejo. Debajo, *Deudores* lista a los
+inquilinos del más atrasado al menos atrasado, con los días de mora, la propiedad,
+los punitorios y la deuda. *Ir a cobranza* lleva a la gestión de cada caso. La
+pantalla es de Admin y Gerente; la condonación de una multa, que también es de
+Admin y Gerente, se hace desde la liquidación o el contrato (ver «Punitorios»).
 
 #### Punitorios
 
-El punitorio corre cada día sobre el **saldo impago** (no sobre el total) desde
+El punitorio corre cada día sobre el saldo impago (no sobre el total) desde
 el día siguiente al vencimiento, descontando los días de gracia, y tiene un tope.
 La regla se elige en `/configuracion/valores-por-defecto` → *Punitorios* (la cambia
 el Admin) y rige en todos los contratos que no fijan la suya. Los cálculos son:
@@ -1053,12 +1144,20 @@ Admin y Gerente; uno ya cobrado en una liquidación no se puede condonar.
 
 ### Emitir un comprobante
 
-Antes del primer comprobante hay que dejar la facturación configurada, y eso es
-trabajo de Admin: en `/configuracion/fiscal` se carga el certificado de ARCA, se
-dan de alta los emisores —propios o delegados— y se sincronizan sus puntos de
+Antes del primer comprobante hay que dejar la facturación configurada en
+`/configuracion/fiscal` (Admin y Gerente; el certificado lo carga solo el Admin):
+se carga el certificado de ARCA, se
+dan de alta los emisores, propios o delegados, y se sincronizan sus puntos de
 venta.
 
-Con eso listo, **Facturación** (`/invoices`) → *Emitir Factura* abre el
+**Facturación** (`/invoices`) lista los comprobantes emitidos en una tabla:
+comprobante (tipo y número), emisión, receptor con su CUIT, CAE con su vencimiento,
+importe y estado en ARCA, con el total de la página al pie y un filtro por tipo.
+Cuando se opera contra el ambiente de prueba de ARCA, un aviso de *Homologación* lo
+indica arriba. *Pendientes por cuenta del locador* abre los cobros que todavía no
+tienen su factura.
+
+Con la configuración lista, *Nueva factura* abre el
 asistente (`/invoices/new`), que va por pasos: emisor, receptor, ítems y opciones
 avanzadas. Antes de confirmar se puede pedir una vista previa. El sistema emite
 facturas A, B y C, y devuelve el CAE con su vencimiento; hasta que ARCA lo
@@ -1075,11 +1174,16 @@ verificar la condición fiscal del receptor antes de emitir.
 
 ### Cuenta corriente del locador
 
-**Locadores** (`/locadores`; la ven Admin, Gerente, Liquidaciones y Lectura) lista a
-cada locador con su saldo por moneda, cuánto de ese saldo está en custodia, cuánto
-falta pagarle y su último estado emitido. Al abrir uno se ve su **cuenta corriente**:
-los movimientos de una moneda, del más viejo al más nuevo, con el saldo después de
-cada uno. Se filtra por fechas; el saldo anterior a la fecha *Desde* abre la lista.
+**Locadores** (`/locadores`; la ven Admin, Gerente, Liquidaciones y Lectura) tiene dos
+partes. A la izquierda, la lista de locadores con su saldo por moneda (si la
+inmobiliaria le debe o él le debe), cuánto falta pagarle y su último estado emitido,
+y el total que falta pagar arriba. Al elegir uno, a la derecha se ve su cuenta
+corriente sin salir de la pantalla: el saldo actual, el efectivo en custodia y el
+saldo inicial del período, y los movimientos de una moneda, del más viejo al más
+nuevo, con las columnas Debe, Haber y Saldo y el estado de cuenta en el que quedó
+cada uno (o *Sin emitir*). Se filtra por fechas; el saldo anterior a la fecha *Desde*
+abre la lista. *Abrir en página completa* muestra la misma cuenta sola, y desde ahí
+o desde el panel se usan *Saldo inicial* y *Registrar pago al locador*.
 
 **Cómo se lee el saldo.** Positivo: la inmobiliaria le debe al locador. Negativo: el
 locador le debe a la inmobiliaria. Los movimientos se escriben solos:
@@ -1087,20 +1191,20 @@ locador le debe a la inmobiliaria. Los movimientos se escriben solos:
 - Un cobro que recibe la inmobiliaria suma la parte del locador de cada concepto
   (alquiler, punitorios, impuestos y servicios que le corresponden) y resta la
   comisión y los gastos administrativos. Con dos locadores al 50 %, un alquiler de
-  100000 y comisión del 7 %, cada uno queda con +50000 −3500 = **46500 a favor**.
-- Si el efectivo queda en **custodia**, es lo mismo: es dinero del locador que
+  100000 y comisión del 7 %, cada uno queda con +50000 −3500 = 46500 a favor.
+- Si el efectivo queda en custodia, es lo mismo: es dinero del locador que
   guarda la oficina, y la pantalla muestra cuánto del saldo está en custodia.
-- Si el inquilino le pagó **al locador**, se ven los mismos conceptos y, además,
+- Si el inquilino le pagó al locador, se ven los mismos conceptos y, además,
   *Cobrado directamente* por lo que ya tiene en mano: el saldo queda en lo que le
-  debe a la inmobiliaria (en el ejemplo, **−3500**, la comisión).
-- Una **compensación** resta a quien cobró y suma al locador al que le correspondía.
+  debe a la inmobiliaria (en el ejemplo, −3500, la comisión).
+- Una compensación resta a quien cobró y suma al locador al que le correspondía.
 - Una boleta que el inquilino paga con el alquiler para el locador y que pagó la
   inmobiliaria resta como *Pago a ente*.
 - Los gastos al locador del centro de carga restan al generar su estado de cuenta.
 
 **Saldo inicial.** Cada locador arranca con un saldo inicial por moneda (el del último
 acumulador). *Saldo inicial* lo carga o lo corrige: pide la moneda, el importe
-(negativo si el locador le debe a la inmobiliaria), la fecha y un **motivo**, y queda
+(negativo si el locador le debe a la inmobiliaria), la fecha y un motivo, y queda
 en la auditoría con el antes y el después. Es una operación de Admin y Gerente. Un
 saldo inicial que ya está en un estado emitido no se corrige: hay que anular el
 estado primero.
@@ -1109,28 +1213,28 @@ estado primero.
 una transferencia o una entrega de efectivo desde una caja o un banco de la
 inmobiliaria: sale de la cuenta como *Pago a locador* y resta de su saldo, en una
 sola operación. Puede dejar el saldo negativo (un adelanto). El efectivo que está en
-custodia no se paga desde acá: se **entrega** desde la caja (*Custodia* →
+custodia no se paga desde acá: se entrega desde la caja (*Custodia* →
 *Entregar*), y también resta del saldo.
 
 ### Estado de cuenta mensual
 
 **Estados de cuenta** (`/estados-de-cuenta`) reemplaza a los acumuladores: un estado
-por locador, mes y moneda, con **todas sus unidades** y el saldo que viene del mes
+por locador, mes y moneda, con todas sus unidades y el saldo que viene del mes
 anterior.
 
-- *Generar el mes* (Admin, Gerente y Liquidaciones) arma un **borrador** para cada
+- *Generar estados del mes* (Admin, Gerente y Liquidaciones) arma un borrador para cada
   locador con movimientos o con saldo; volver a generar recalcula los borradores. Al
   generar se descuentan los gastos al locador del centro de carga de ese mes (o
   hasta ese mes): cada uno queda *Imputado* en el estado.
-- El detalle muestra el **saldo anterior**, el saldo inicial (si lo hay), los
-  **créditos**, los **descuentos**, los **pagos** (transferencias, entregas y lo que
-  cobró directamente) y el **saldo al cierre**, con los movimientos agrupados por
+- El detalle muestra el saldo anterior, el saldo inicial (si lo hay), los
+  créditos, los descuentos, los pagos (transferencias, entregas y lo que
+  cobró directamente) y el saldo al cierre, con los movimientos agrupados por
   unidad.
 - *Emitir* cierra el mes: los movimientos quedan fijos en ese estado y el mes
   siguiente arranca de su saldo al cierre. Un estado emitido no se vuelve a generar.
 - *Descargar PDF* baja el estado para imprimirlo o compartirlo a mano.
 - *Enviar* (Admin, Gerente y Liquidaciones), en un estado emitido, se lo manda al
-  locador **por mail** o **por WhatsApp** con el PDF adjunto (ver «Enviar recibos y
+  locador por mail o por WhatsApp con el PDF adjunto (ver «Enviar recibos y
   estados de cuenta»). Pasa a *Enviado* recién cuando el mensaje sale.
 - *Anular* (Admin y Gerente) pide un motivo y libera los movimientos, que vuelven a
   entrar en el próximo estado que se genere. Solo se anula el último emitido de cada
@@ -1142,7 +1246,7 @@ inicial del locador.
 ### Facturar por cuenta del locador
 
 El alquiler lo factura el locador, no la inmobiliaria: la inmobiliaria emite la
-factura **por su cuenta**, con la delegación que el locador le dio en ARCA. Los
+factura por su cuenta, con la delegación que el locador le dio en ARCA. Los
 honorarios y comisiones de la inmobiliaria se siguen facturando con su emisor propio.
 
 **Configurar la delegación** (Admin y Gerente), en la ficha del locador
@@ -1155,9 +1259,9 @@ honorarios y comisiones de la inmobiliaria se siguen facturando con su emisor pr
    facturar).
 3. *Verificar delegación* confirma en ARCA que quedó activa y *Traer puntos de
    venta* los carga. Sin un punto de venta no se puede emitir.
-4. Definir **qué se factura** (solo el alquiler, alquiler y punitorios, o todo lo que
-   es del locador), **cuándo** (a pedido, al registrar cada cobro o al emitir el
-   estado de cuenta) y el **IVA incluido**. Lo que no se define sale de los valores
+4. Definir qué se factura (solo el alquiler, alquiler y punitorios, o todo lo que
+   es del locador), cuándo (a pedido, al registrar cada cobro o al emitir el
+   estado de cuenta) y el IVA incluido. Lo que no se define sale de los valores
    de la inmobiliaria (*Configuración → Valores por defecto → Facturación por cuenta
    del locador*). De fábrica: solo el alquiler, a pedido y sin IVA discriminado.
    Estos criterios los define el contador: confirmarlos antes de activar la
@@ -1175,7 +1279,7 @@ honorarios y comisiones de la inmobiliaria se siguen facturando con su emisor pr
 - Si ARCA falla, el cobro y el estado quedan como estaban y la factura queda en
   *Facturas → Pendientes por cuenta del locador*, con el motivo. *Emitir pendientes*
   reintenta todo.
-- Al **anular un estado de cuenta**, sus facturas quedan en cola para la nota de
+- Al anular un estado de cuenta, sus facturas quedan en cola para la nota de
   crédito, que se emite sola o con *Emitir pendientes*. Un alquiler en dólares todavía
   no se factura.
 
@@ -1186,7 +1290,7 @@ detalle) tienen el botón **Enviar**, que abre una ventana con *Enviar por mail*
 *Enviar por WhatsApp*. El recibo va al inquilino del contrato (o a quien pagó, si
 es una cuota de honorarios) y el estado de cuenta, al locador. El PDF va adjunto.
 
-El sistema no lo manda en el momento: lo pone en la **bandeja de salida** y lo
+El sistema no lo manda en el momento: lo pone en la bandeja de salida y lo
 despacha en el minuto siguiente. La ventana muestra el *Último envío* con su estado
 y el motivo, y la lista de *Mensajes de este documento* (con *Ver en la bandeja de
 salida*):
@@ -1203,7 +1307,7 @@ salida*):
 Pedir el envío dos veces por el mismo canal no lo manda dos veces: muestra el
 mismo mensaje. Si la persona no tiene mail o celular cargado, el sistema avisa y no encola
 nada: corregí la ficha y volvé a intentar. Por WhatsApp solo sale si la persona dio
-el **alta** (ver «Consentimiento de mensajes»).
+el alta (ver «Consentimiento de mensajes»).
 
 La liquidación del mes le llega al inquilino por mail cuando pasa a *Enviada*,
 también por la bandeja de salida.
@@ -1213,9 +1317,9 @@ también por la bandeja de salida.
 *Mensajería* (`/mensajeria`, todos los roles salvo Marketing) lista los mensajes de
 la inmobiliaria, del más nuevo al más viejo, con la persona, la dirección, el canal, qué se mandó, el estado y el motivo.
 Se filtra por estado y canal; desde la ficha de una persona, *Ver mensajes* abre la
-bandeja filtrada por ella. Admin y Gerente pueden **reintentar** uno fallido,
+bandeja filtrada por ella. Admin y Gerente pueden reintentar uno fallido,
 bloqueado o cancelado (se revisan otra vez el modo, el consentimiento y el horario)
-y **cancelar** uno pendiente o bloqueado. Un mensaje con un enlace de un solo uso
+y cancelar uno pendiente o bloqueado. Un mensaje con un enlace de un solo uso
 (una invitación) no se reintenta: se reenvía la invitación.
 
 ### Consentimiento de mensajes
@@ -1240,35 +1344,41 @@ Registran el consentimiento Admin, Gerente, Ventas y Liquidaciones.
 ### Cobranza
 
 *Cobranza* (`/cobranza`, Admin, Gerente, Liquidaciones y Lectura) sigue los
-contratos con alquileres vencidos impagos. **Viene apagada**: se prende en
+contratos con alquileres vencidos impagos. Viene apagada: se prende en
 *Configuración → Valores por defecto → Cobranza* con *Activar la cobranza
 escalonada*. Ahí también se elige cuántos recordatorios se mandan (de 1 a 3), el
 primero a los 5 días del vencimiento y los siguientes cada 5, y el plazo de la
 carta documento (10 días corridos).
 
-Cuando está prendida, todos los días a las 10 el sistema abre **un caso por
-contrato** con alquileres vencidos con saldo y sigue este camino:
+Cuando está prendida, todos los días a las 10 el sistema abre un caso por
+contrato con alquileres vencidos con saldo y sigue este camino:
 
 1. **Recordatorio.** A los 5 días del vencimiento sale un aviso amable; cada 5 días
    uno más firme (hasta tres); después se repite el tercero cada 5 días hasta que el caso pasa a prejudicial (se puede apagar en *Valores por defecto*). Salen por WhatsApp si el inquilino dio el alta y por
-   mail si no pidió la baja, con **el importe exacto de ese día** (saldo más
+   mail si no pidió la baja, con el importe exacto de ese día (saldo más
    punitorios) y el período adeudado. Se ven en *Mensajería* y en la línea de
    tiempo del caso, con su estado (entregado, bloqueado, etc.). Con el envío apagado
    en el ambiente quedan encolados y no sale ninguno.
 2. **Prejudicial.** Al vencer el alquiler siguiente sin pagarse, el caso pasa a
-   *Prejudicial* y el sistema **prepara el borrador de la carta documento** y avisa a
-   la gerencia. **No la manda.**
+   *Prejudicial* y el sistema prepara el borrador de la carta documento y avisa a
+   la gerencia. No la manda.
 3. **Con el abogado y judicial.** Pasados los 10 días corridos desde que se mandó la
-   carta, el sistema avisa y sugiere derivar. **Derivar y pasar a la vía judicial los
-   decide una persona** (Admin y Gerente).
+   carta, el sistema avisa y sugiere derivar. Derivar y pasar a la vía judicial los
+   decide una persona (Admin y Gerente).
 
-La lista muestra cada caso con su etapa, los días de mora, el saldo vencido, lo que
-se debe hoy y lo que toca. Se filtra por etapa, por mora mínima y por *Mis casos*.
-El detalle del contrato muestra su caso abierto.
+La pantalla es una cola ordenada con la mora más vieja primero. Cada caso muestra la
+propiedad y el inquilino, quién lo lleva, la etapa con su avance, los días de mora,
+lo que se debe hoy con el saldo vencido y la próxima gestión (por ejemplo «Mandar un
+recordatorio», «Esperar el pago prometido», «Confirmar el envío de la carta» o
+«Pedir novedades al abogado»), con su fecha cuando está programada; *Abrir* lleva al
+caso. Arriba figura la cantidad de casos y el total que se debe hoy. Se filtra por
+etapa, por mora mínima y por responsable (*Mis casos*). Si la cobranza está apagada,
+un aviso lo dice y enlaza a *Valores por defecto* y a Morosidad. El detalle del
+contrato muestra su caso abierto.
 
 En el detalle de un caso (Admin, Gerente y Liquidaciones):
 
-- **Agregar una nota** y **asignarte** el caso o quitar el responsable.
+- **Agregar una nota** y asignarte el caso o quitar el responsable.
 - **Registrar un acuerdo de pago** con la fecha prometida: los avisos se pausan hasta
   esa fecha y, si sigue la deuda, retoman al día siguiente.
 - **Carta documento (borrador).** Revisá los datos, corregilos con *Editar el
@@ -1277,11 +1387,11 @@ En el detalle de un caso (Admin, Gerente y Liquidaciones):
   revisar por un profesional si hace falta y mandala en papel por correo
   certificado; recién después tocá *Confirmar que se envió* con la fecha de envío
   (y la pieza de correo). Desde esa fecha corre el plazo.
-- **Derivar a un abogado** y **Pasar a la vía judicial** (solo Admin y Gerente), cada
-  uno con una nota, y **Cerrar el caso** con un motivo (por ejemplo, un arreglo fuera
+- **Derivar a un abogado** y Pasar a la vía judicial (solo Admin y Gerente), cada
+  uno con una nota, y Cerrar el caso con un motivo (por ejemplo, un arreglo fuera
   del sistema).
 
-Un **pago total** cierra el caso solo en la pasada siguiente; un **pago parcial** lo
+Un pago total cierra el caso solo en la pasada siguiente; un pago parcial lo
 deja abierto y queda anotado. Si nadie tiene un mail o un WhatsApp con alta, el aviso
 queda registrado «sin medio de contacto» y la gerencia recibe una notificación: hay
 que avisar por otra vía y, si hace falta, registrar el alta del canal en la ficha de la
@@ -1289,21 +1399,21 @@ persona. Un caso cerrado no admite más acciones; una mora nueva abre otro.
 
 ### Bandeja de consultas
 
-**Bandeja** (`/bandeja`, Admin, Gerente, Ventas, Marketing y Soporte) junta en un solo
-lugar lo que escriben los clientes: WhatsApp, mails a la casilla de consultas, el
+**Bandeja de consultas** (`/bandeja`, Admin, Gerente, Ventas, Marketing y Soporte) junta
+lo que escriben los clientes: WhatsApp, mails a la casilla de consultas, el
 formulario del micrositio y las llamadas que alguien anota. El número del menú son los
 mensajes sin leer propios o sin responsable; se pone rojo si hay consultas con el plazo
 vencido.
 
 - **La lista** muestra cada consulta con el canal, quién escribió, el último mensaje, el
-  estado, el responsable y el **plazo de primera respuesta** con una cuenta regresiva
+  estado, el responsable y el plazo de primera respuesta con una cuenta regresiva
   (15 minutos por defecto). Se filtra por estado (por defecto, las abiertas), canal,
   responsable (*Mis consultas*, *Sin responsable*) y *Plazo vencido*, y se busca por
   nombre, dirección o asunto.
 - **El hilo** (a la derecha, o en pantalla completa en el celular) muestra los mensajes
   del cliente y las respuestas con su estado de entrega; la autorrespuesta lleva su
-  etiqueta. Debajo, el cuadro para **responder** dice por dónde sale (WhatsApp o mail) y
-  ofrece las **respuestas rápidas**, que completan el nombre de pila.
+  etiqueta. Debajo, el cuadro para responder dice por dónde sale (WhatsApp o mail) y
+  ofrece las respuestas rápidas, que completan el nombre de pila.
 - **Responsable y estado.** Admin y Gerente eligen a quién asignar; el resto puede
   *Tomar* la consulta. Quien contesta una consulta sin responsable se la queda. El
   estado pasa a *Esperando al cliente* al responder y vuelve a *En curso* cuando el
@@ -1318,7 +1428,7 @@ vencido.
 **La autorrespuesta** sale sola a las consultas nuevas por WhatsApp, mail y micrositio
 (una vez por consulta) por la bandeja de salida: respeta la baja de la persona, el modo
 de envío del ambiente y, por WhatsApp, solo sale dentro de las 24 horas del mensaje del
-cliente. **No detiene el plazo**: ese es para una persona. Si la mensajería está apagada
+cliente. No detiene el plazo: ese es para una persona. Si la mensajería está apagada
 en el ambiente, queda pendiente con el motivo en el hilo.
 
 **WhatsApp y las 24 horas.** Meta solo permite texto libre dentro de las 24 horas del
@@ -1330,40 +1440,46 @@ Si la persona pidió la baja, no se le puede responder desde la bandeja.
 atención (días y horas; fuera de él el plazo corre desde que abre), ventana del hilo,
 responsable por defecto, texto de la autorrespuesta por canal y las respuestas rápidas.
 Los mails entrantes necesitan que el despliegue arme el reenvío de la casilla de
-consultas (ver *Despliegue*); sin eso la bandeja funciona con WhatsApp, el micrositio y
+consultas (ver [despliegue.md](./despliegue.md)); sin eso la bandeja funciona con WhatsApp, el micrositio y
 las llamadas.
 
 ### Honorarios
 
-**Honorarios** (`/honorarios`) reúne los honorarios de cada operación —alta de un
-alquiler, renovación, venta y tasación—, sus cuotas y las comisiones del personal. La
+**Honorarios** (`/honorarios`) reúne los honorarios de cada operación (alta de un
+alquiler, renovación, venta y tasación), sus cuotas y las comisiones del personal. La
 ven Admin, Gerente, Liquidaciones, Lectura, Ventas y Soporte; cargar y anular es de
 Admin y Gerente, y cobrar cuotas también de Liquidaciones.
+
+Arriba, el resumen *Honorarios del período* muestra el total de las cuotas que vencen
+en los últimos meses, lo cobrado, lo que falta cobrar y, de eso, lo ya vencido, junto
+a un gráfico por mes de vencimiento. Debajo hay tres pestañas con sus tablas:
+*Cuotas* (vencimiento, honorario, quién paga, importe a cobrar, estado y el botón
+*Cobrar*), *Honorarios* y *Comisiones del personal*.
 
 **Cargar un honorario.** *Nuevo honorario* pide la operación y propone los valores de
 la inmobiliaria (ver *Valores por defecto*), que se pueden cambiar antes de guardar:
 
 - **Alta de un alquiler:** se elige el contrato (también desde la sección
   *Honorarios* de la ficha del contrato, con *Cargar honorario de alta* o *Cargar
-  honorario de renovación*). La base es el **total del contrato**: los alquileres de
+  honorario de renovación*). La base es el total del contrato: los alquileres de
   todo el plazo. Si el contrato se ajusta con un porcentaje fijo, personalizado o
   escalonado, se suman con esos ajustes; si se ajusta por un índice (IPC, ICL…), que
   no se conoce al firmar, se suma el alquiler inicial por los meses. El porcentaje de
-  fábrica es el **5 %**. Ejemplo: 500000 por 24 meses con IPC suman 12000000 y el
+  fábrica es el 5 %. Ejemplo: 500000 por 24 meses con IPC suman 12000000 y el
   honorario es 600000.
 - **Renovación:** igual, sobre el período renovado del contrato. Si al renovar el
   contrato (*Vencimientos* → *Renovar*) se anotan los honorarios pactados, el
   honorario de renovación se carga solo, por ese importe, a cargo de quien paga
   según la inmobiliaria y con sus cuotas desde el inicio del período.
-- **Venta:** sobre el valor real de la operación, **3 % por parte** si es una
-  propiedad construida o **5 % por parte** si es un lote. Comprador y vendedor pagan
+- **Venta:** sobre el valor real de la operación, 3 % por parte si es una
+  propiedad construida o 5 % por parte si es un lote. Comprador y vendedor pagan
   cada uno el suyo.
-- **Tasación:** **USD 100** o sin cargo (con importe cero queda *Sin cargo* y no
+- **Tasación:** USD 100 o sin cargo (con importe cero queda *Sin cargo* y no
   tiene cuotas).
 
 **Quién paga.** El inquilino, el locador o los dos con su parte (de fábrica, la mitad
 cada uno). Cuando pagan dos se crea un honorario para cada uno, con sus propias
-cuotas. También se elige el **IVA** (no corresponde, incluido o sumado).
+cuotas. También se elige el IVA (no corresponde, incluido o sumado).
 
 **Cuotas.** El honorario se cobra en una o más cuotas mensuales iguales desde la
 fecha elegida; los centavos que sobran van a las primeras. Con *Cuotas con ajuste*,
@@ -1376,11 +1492,11 @@ mes, operación, quién paga y estado, con el importe a cobrar.
 honorario) registra el cobro de una cuota pendiente:
 
 - **En la caja o el banco**: entra a la cuenta elegida (o a la caja o el banco de la
-  moneda) como *Honorario* y se emite un **recibo** con la numeración de los recibos
+  moneda) como *Honorario* y se emite un recibo con la numeración de los recibos
   de cobro, que se reimprime desde *Caja* → *Recibos*.
 - **Descontado de la cuenta del locador**: si el honorario lo paga un locador del
   contrato y la inmobiliaria se lo cobra de lo que le debe, no entra dinero: se
-  descuenta de su **cuenta corriente** como *Honorario* y aparece en su próximo
+  descuenta de su cuenta corriente como *Honorario* y aparece en su próximo
   estado de cuenta.
 
 El honorario queda *Parcial* hasta cobrar la última cuota y después *Pagado*. Una
@@ -1404,7 +1520,10 @@ motivo; sus cuotas pendientes quedan anuladas.
 
 ### Rendiciones (histórico)
 
-**Rendiciones** (`/renditions`) quedó como **histórico**: muestra y descarga en PDF
+**Rendiciones** (`/renditions`) quedó como histórico. Cada rendición se ve como un
+talón: a la izquierda el mes, el número y el estado (Borrador, Aprobada, Enviada o
+Transferida), y a la derecha el locador, la propiedad y la cuenta de lo cobrado menos
+honorarios y gastos, con el neto a transferir. La pantalla muestra y descarga en PDF
 las rendiciones por contrato hechas antes de la cuenta corriente, pero ya no se
 generan, no cambian de estado, no se editan ni se envían. Lo que se le liquida a cada
 locador está ahora en su cuenta corriente y su estado de cuenta mensual.
@@ -1416,7 +1535,12 @@ carga la inmobiliaria desde **Tickets** (`/tickets`) → *Nuevo ticket*, indican
 título, descripción, propiedad, categoría, prioridad y, si corresponde, el
 usuario responsable. Las categorías las administran Admin y Gerente.
 
-El detalle (`/tickets/[id]`) es donde vive el circuito. El ticket recorre
+El listado ordena los tickets por plazo, en tres grupos: *Fuera de plazo*, *En curso*
+y *Cerrados*. Cada renglón muestra la prioridad, el título, la categoría y la
+propiedad, el estado, el plazo (o hace cuánto está fuera de plazo) y el responsable.
+Se filtra por estado y por prioridad.
+
+El circuito se sigue en el detalle (`/tickets/[id]`). El ticket recorre
 Abierto, Asignado, En progreso, Proveedor asignado, Proveedor en camino, Trabajo
 realizado, Resuelto y Cerrado, con Cancelado y Reabierto como salidas; el cambio
 de estado se hace desde el propio detalle y solo ofrece las transiciones válidas
@@ -1430,8 +1554,8 @@ Gestionar tickets es de Admin, Gerente y Soporte. Los demás roles los ven.
 ### Gestionar una reparación (incidencias)
 
 Cuando el reclamo es una reparación que cuesta dinero, el detalle del ticket
-(`/tickets/[id]`) suma el circuito completo: **caso → preautorización →
-presupuesto → ejecución → pago al proveedor → imputación**. Arriba muestra el
+(`/tickets/[id]`) suma el circuito completo: caso → preautorización →
+presupuesto → ejecución → pago al proveedor → imputación. Arriba muestra el
 avance por etapas (Abierto, Pendiente de autorización, Presupuestado, Presupuesto
 aprobado, En progreso, Resuelto y Cerrado); si el ticket se cancela, el avance se
 reemplaza por un aviso.
@@ -1473,8 +1597,8 @@ estado es siempre la que ofrece el botón del detalle.
    del límite sigue sin consultar.
 2. **Presupuestar.** Se cargan los presupuestos de los proveedores (proveedor,
    importe, nota). Se pueden corregir, descartar o quitar mientras estén pendientes.
-3. **Aprobar.** *Aprobar* abre un diálogo que pide **quién aprueba** y **por qué
-   canal**; ambos son obligatorios y quedan registrados con la fecha. El proveedor y
+3. **Aprobar.** *Aprobar* abre un diálogo que pide quién aprueba y por qué
+   canal; ambos son obligatorios y quedan registrados con la fecha. El proveedor y
    el importe del presupuesto aprobado pasan al ticket, los otros presupuestos se
    descartan y el ticket pasa a *Presupuesto aprobado*.
 4. **Ejecutar.** Se asigna el proveedor y el ticket sigue por los estados de siempre
@@ -1485,15 +1609,15 @@ estado es siempre la que ofrece el botón del detalle.
    egreso *Pago a proveedor* en la caja. Se puede pagar en partes (un anticipo y el
    saldo), sin pasarse de lo aprobado.
 6. **Imputar.** Con el trabajo terminado, *Imputar el gasto* carga lo pagado a quien
-   lo soporta, **una sola vez**: **el inquilino** (entra en su próxima liquidación,
-   sin comisión), **el locador** (se descuenta en su estado) o **la inmobiliaria**
+   lo soporta, una sola vez: el inquilino (entra en su próxima liquidación,
+   sin comisión), el locador (se descuenta en su estado) o la inmobiliaria
    (queda como gasto propio; el egreso ya está en la caja, no se repite). El gasto se
    confirma antes de enviarse.
 
 **Honorario por gestión.** Al imputar, la inmobiliaria puede sumar un honorario por
 gestionar la reparación: un porcentaje de lo pagado (el que se deje vacío usa el de
 *Valores por defecto*) o un importe fijo. Se carga como otro gasto puntual a favor
-de la inmobiliaria, a cargo de quien paga la reparación; **nunca es comisión** y no
+de la inmobiliaria, a cargo de quien paga la reparación; nunca es comisión y no
 se cobra cuando paga la propia inmobiliaria. Es siempre opcional y no lleva IVA. El porcentaje
 que se deja vacío es el del contrato (su honorario por gestión de reparaciones) y, si el contrato
 no lo pacta, el de *Valores por defecto*. Cuando paga el locador y el contrato pacta el
@@ -1522,16 +1646,21 @@ conviene corregir el archivo y volver a subirlo antes de confirmar. Es una
 operación de Admin y Gerente. La exportación de propiedades y personas a CSV y
 Excel está además disponible para Ventas.
 
-**Reportes** (`/reports`) genera estado de cuenta del propietario (desde la cuenta
-corriente, con las rendiciones históricas marcadas como tales), rentabilidad
-por propiedad, flujo de caja mensual, resumen de comisiones, analítica del embudo
-y morosidad, y los descarga en Excel o PDF. La pantalla es de Admin, Gerente y
+**Reportes** (`/reports`) ofrece seis reportes: estado de cuenta del propietario
+(desde la cuenta corriente, con las rendiciones históricas marcadas como tales),
+rentabilidad por propiedad, flujo de caja mensual, resumen de comisiones, leads por
+etapa y morosidad. Al elegir uno se genera solo, salvo el estado de cuenta, que
+espera a que se elija el propietario. El propietario, la propiedad, el contrato o
+el embudo se eligen por nombre de una lista y vuelven a generar el reporte; después
+de cambiar el período se usa *Generar reporte*, y *Restablecer filtros* vuelve a
+los valores iniciales. El resultado muestra los totales del período, un gráfico y la tabla, y se
+descarga con *Descargar Excel* o *Descargar PDF*. La pantalla es de Admin, Gerente y
 Liquidaciones; programar un envío periódico es de Admin y Gerente.
 
 ## El portal del inquilino
 
 El portal es una aplicación aparte dentro de la misma web, con su propia
-navegación de tres secciones y su propio acceso.
+navegación (Inicio, Facturas y Reclamos) y su propio acceso.
 
 El inquilino no se registra. La inmobiliaria genera la invitación desde el
 detalle de la persona, el inquilino recibe un enlace con un token y en
@@ -1545,7 +1674,7 @@ la cantidad de reclamos abiertos, las últimas facturas, los últimos reclamos y
 resumen de su contrato. Desde acá también puede abrir un reclamo nuevo.
 
 **Facturas** (`/portal/liquidaciones`) lista todas sus liquidaciones con su
-estado —a pagar, pagada, vencida, en preparación o anulada—, el aviso del saldo
+estado (a pagar, pagada, vencida, en preparación o anulada), el aviso del saldo
 pendiente si lo hay, y el PDF de cada una.
 
 **Reclamos** (`/portal/tickets`) lista sus reclamos abiertos y cerrados, y
@@ -1554,16 +1683,17 @@ reclamo que abre desde acá entra directamente al listado de tickets de la
 inmobiliaria.
 
 El inquilino no tiene rol: su acceso no pasa por el sistema de permisos de los
-usuarios internos. Lo que ve está delimitado por su propia identidad —las
-consultas del portal se acotan a la persona autenticada—, de modo que solo llega
-a sus contratos, sus liquidaciones y sus reclamos.
+usuarios internos. Las consultas del portal se acotan a la persona
+autenticada, de modo que solo llega a sus contratos, sus liquidaciones y sus
+reclamos.
 
 ## El sitio público de la inmobiliaria
 
 Cada inmobiliaria tiene un micrositio público, sin necesidad de ninguna sesión.
-Es el portal propio: se entra por `/es/p/[slug]` o, si la inmobiliaria tiene un
-dominio propio (por ejemplo `www.inmobiliariademo.com.ar`), directamente por ese
-dominio (ver `despliegue.md`). Muestra el nombre y la provincia de la
+Se entra por `/es/p/[slug]`, en el ambiente piloto también por el subdominio
+`<slug>.sitios.realfy.app` y, si la inmobiliaria tiene un dominio propio (por
+ejemplo `www.inmobiliariademo.com.ar`), directamente por ese dominio (ver
+[despliegue.md](./despliegue.md)). Muestra el nombre y la provincia de la
 inmobiliaria con sus colores y su logo, y una grilla filtrable por operación,
 tipo, zona o ciudad y rango de precio. Cada propiedad tiene su ficha con la
 galería, el precio, las características, las amenidades y la ficha técnica.
@@ -1581,8 +1711,8 @@ ubicación redondeada a unos 100 metros.
 
 Tanto la portada como la ficha tienen un formulario de consulta. Una consulta
 enviada desde ahí entra como interesado (lead, origen *Consulta web*) al embudo
-comercial de la inmobiliaria, ligada a la propiedad cuando viene de una ficha, y
-es la puerta de entrada del circuito de CRM. El formulario tiene un campo señuelo
+comercial de la inmobiliaria, ligada a la propiedad cuando viene de una ficha.
+El formulario tiene un campo señuelo
 invisible contra programas automáticos y un límite de 10 consultas por minuto por
 conexión.
 
@@ -1594,16 +1724,23 @@ buscadores.
 
 `/configuracion` reúne los datos de la inmobiliaria: nombre, CUIT, provincia,
 matrícula y domicilio (que salen en los contratos generados desde una plantilla),
-colores de marca y logo —los mismos que usa el micrositio público—. Editar es de
+colores de marca y logo, que son los que usa el micrositio público. Editar es de
 Admin y Gerente; los demás la ven en modo lectura. Desde ahí se llega a las
-pantallas de configuración específicas: la fiscal (`/configuracion/fiscal`),
-las etapas del embudo (`/configuracion/pipeline`), los pesos del puntaje de
-inquilinos (`/configuracion/scoring`) y los índices de ajuste
-(`/configuracion/indices`) y los valores por defecto
-(`/configuracion/valores-por-defecto`), las plantillas de contrato
-(`/configuracion/plantillas`); y, además, la del equipo
-(`/configuracion/usuarios`), la de permisos de lectura (`/configuracion/permisos`) y
-la de mensajería (`/configuracion/mensajeria`).
+pantallas de configuración específicas:
+
+| Pantalla | Ruta |
+|---|---|
+| Configuración fiscal | `/configuracion/fiscal` |
+| Etapas del embudo | `/configuracion/pipeline` |
+| Pesos del puntaje de inquilinos | `/configuracion/scoring` |
+| Índices de ajuste | `/configuracion/indices` |
+| Valores por defecto | `/configuracion/valores-por-defecto` |
+| Plantillas de contrato | `/configuracion/plantillas` |
+| Bandeja de consultas | `/configuracion/bandeja` |
+| Mensajería | `/configuracion/mensajeria` |
+| Usuarios | `/configuracion/usuarios` |
+| Permisos de lectura | `/configuracion/permisos` |
+| Importaciones desde el sistema anterior | `/configuracion/importaciones` |
 
 ### Valores por defecto
 
@@ -1621,27 +1758,27 @@ después de emitir el mes; de fábrica, días reales, desde el período siguient
 el día de inicio, proporcional y la diferencia se cobra en la próxima), el límite de
 reparaciones sin consultar al locador (de fábrica 0: siempre se consulta) y el porcentaje
 del honorario por gestión de una reparación (0: no se propone). La sección
-*Cuenta corriente del locador* fija el **día de cierre** del estado (vacío = fin de
-mes; con un día, lo posterior va al estado del mes siguiente) y **cuándo se descuentan
-los gastos al locador** (al generar el estado, de fábrica, o recién al emitirlo; en
+*Cuenta corriente del locador* fija el día de cierre del estado (vacío = fin de
+mes; con un día, lo posterior va al estado del mes siguiente) y cuándo se descuentan
+los gastos al locador (al generar el estado, de fábrica, o recién al emitirlo; en
 ese caso el borrador los muestra como previstos). La sección de honorarios suma, para
-cargar un honorario: en cuántas **cuotas** (1), si las cuotas **siguen los ajustes**
-del alquiler (sí), **quién paga** (el inquilino; o el locador, o los dos con la
-**parte del locador**, 50 %), qué se suma como **total del contrato** (los alquileres
+cargar un honorario: en cuántas cuotas (1), si las cuotas siguen los ajustes
+del alquiler (sí), quién paga (el inquilino; o el locador, o los dos con la
+parte del locador, 50 %), qué se suma como total del contrato (los alquileres
 con los ajustes que se conocen al firmar, o el alquiler inicial por los meses), el
-**IVA** (no corresponde; 21 % si se incluye o se suma) y la **comisión del personal**
+IVA (no corresponde; 21 % si se incluye o se suma) y la comisión del personal
 (0 %, sobre lo que le queda a la inmobiliaria después del coorretaje o sobre el
 honorario completo). Cada campo muestra debajo el valor de fábrica. Cambiá lo que necesites y
 tocá *Guardar valores*; *Volver a los valores de fábrica* los restaura en el
 formulario (hay que guardar para aplicarlo).
 
-La sección **Ventas** fija los **días de vigencia de una reserva** (7), **quién guarda el dinero** de una reserva o seña cuando no se indica (la inmobiliaria) y si el boleto **exige la documentación obligatoria** (sí). Son convenciones conservadoras: el sistema registra las señas pero nunca devuelve ni retiene una por su cuenta.
+La sección **Ventas** fija los días de vigencia de una reserva (7), quién guarda el dinero de una reserva o seña cuando no se indica (la inmobiliaria) y si el boleto exige la documentación obligatoria (sí). Son convenciones conservadoras: el sistema registra las señas pero nunca devuelve ni retiene una por su cuenta.
 
 Cambiar un valor por defecto no toca los contratos que ya existen: rige para los
 que se carguen desde ese momento, y cada contrato o acuerdo puede después fijar
 el suyo.
 
-La sección *Mensajería* fija el **horario permitido** para los mensajes a la cartera
+La sección *Mensajería* fija el horario permitido para los mensajes a la cartera
 (de fábrica, de 9 a 20, hora de Buenos Aires): fuera de ese horario quedan
 pendientes y salen cuando abre. Los avisos al personal y las invitaciones salen a
 cualquier hora.
@@ -1665,7 +1802,7 @@ el sistema.
 
 ### Importaciones desde el sistema anterior
 
-`/configuracion/importaciones` (solo Admin) muestra los lotes que los scripts de migración enviaron a la API: cada uno con su fecha, su origen, el modo (*Ensayo*, *Ejecución* o *Todo o nada*), su estado y la cantidad de filas y de errores. Al abrir un lote se ve el resumen por entidad (personas, propiedades y contratos, con cuántas filas fueron creadas, actualizadas, sin cambios o con error) y el registro de cada fila, con el código y el mensaje de cada error. El selector *Mostrar filas* deja solo las que tuvieron error y *Descargar errores (CSV)* baja ese listado para corregir el origen. Un ensayo no escribe nada; un lote *Todo o nada* que quedó *Fallido* tampoco: no se cargó ninguna fila. El procedimiento completo está en `docs/tesis/32-migracion.md`.
+`/configuracion/importaciones` (solo Admin) muestra los lotes que los scripts de migración enviaron a la API: cada uno con su fecha, su origen, el modo (*Ensayo*, *Ejecución* o *Todo o nada*), su estado y la cantidad de filas y de errores. Al abrir un lote se ve el resumen por entidad (personas, propiedades y contratos, con cuántas filas fueron creadas, actualizadas, sin cambios o con error) y el registro de cada fila, con el código y el mensaje de cada error. El selector *Mostrar filas* deja solo las que tuvieron error y *Descargar errores (CSV)* baja ese listado para corregir el origen. Un ensayo no escribe nada; un lote *Todo o nada* que quedó *Fallido* tampoco: no se cargó ninguna fila. El procedimiento completo está en [la guía de migración](./tesis/32-migracion.md).
 
 ### Calidad de datos
 
@@ -1704,11 +1841,11 @@ equipo; el Gerente lo ve en solo lectura y los demás roles no tienen la pantall
 Se llega desde *Usuarios* en el menú o desde la tarjeta en `/configuracion`.
 
 **Invitar a alguien.** *Invitar usuario*, correo y rol. Al crear la invitación se
-abre una ventana con el **enlace para compartir**. Si el servicio de correo está
+abre una ventana con el enlace para compartir. Si el servicio de correo está
 configurado, la invitación además queda en la bandeja de salida y sale por mail
 según el modo de envío del ambiente (se ve en *Mensajería*). Si no, es el Admin
-quien lo manda a mano —por WhatsApp o el medio que prefiera— con *Copiar enlace*. El enlace sirve **una sola vez**, vence a los
-7 días y se muestra en esa ventana una única vez: no queda guardado en claro, así
+quien lo manda a mano, por WhatsApp o el medio que prefiera, con *Copiar enlace*.
+El enlace sirve una sola vez, vence a los 7 días y se muestra en esa ventana una única vez: no queda guardado en claro, así
 que si se pierde hay que usar *Reenviar invitación* en la fila, que genera uno
 nuevo e invalida el anterior. La persona abre el enlace, escribe nombre, apellido
 y una contraseña de al menos 8 caracteres, y entra directamente con el rol que se
@@ -1724,7 +1861,7 @@ Admin activo: en ese caso avisa el motivo.
 en la pantalla de ingreso, escribe su correo y recibe siempre el mismo mensaje,
 tenga o no cuenta. Mientras no haya correo configurado no le va a llegar nada: en
 ese caso el Admin usa *Enlace para cambiar contraseña* en la fila de la persona,
-copia el enlace y se lo comparte. Ese enlace sirve **una sola vez** y vence a la
+copia el enlace y se lo comparte. Ese enlace sirve una sola vez y vence a la
 hora; al usarlo, la persona elige una contraseña nueva y se cierran todas sus
 sesiones.
 
@@ -1761,7 +1898,7 @@ Cada fila tiene un estado:
 La columna *Variación del índice* es la del índice del período; *Variación del alquiler*
 es lo que de verdad cambia el alquiler vigente, y puede ser distinta (por ejemplo
 cuando el contrato ajusta sobre el alquiler original). Si el alquiler nuevo es
-**menor** que el vigente, la fila lo advierte («El alquiler baja…»), *Elegir todos*
+menor que el vigente, la fila lo advierte («El alquiler baja…»), *Elegir todos*
 no la toma y el proceso diario tampoco la aplica: queda pendiente hasta que alguien
 la revise, la elija a mano y confirme al aplicar. Una liquidación del mes con un
 ajuste así sin aplicar lleva la advertencia que impide aprobarla.
@@ -1782,8 +1919,8 @@ de índices de las 6; esta pantalla es para hacerlo a mano y a la vista.
 
 ### Índices de ajuste
 
-`/configuracion/indices` muestra el último valor de cada índice —IPC, ICL, UVA,
-CVS y CER— con su período y de dónde salió: INDEC, BCRA o carga manual. Si el
+`/configuracion/indices` muestra el último valor de cada índice (IPC, ICL, UVA,
+CVS y CER) con su período y de dónde salió: INDEC, BCRA o carga manual. Si el
 último dato es más viejo de lo normal (un índice mensual sin el mes de hace dos
 meses, o uno diario con más de una semana), la tarjeta lo marca como
 desactualizado. Debajo está el historial de cada índice, de a 24 valores por
@@ -1799,9 +1936,9 @@ descarga sin esperar a la mañana siguiente. El CVS y el CER no se descargan: se
 cargan a mano.
 
 Para cargar o corregir un valor, *Cargar valor* (o el lápiz en una fila del
-historial). El IPC, el CVS y el CER se cargan como **variación mensual en
-porcentaje** —1,9 para una suba de 1,9 % en el mes—, por mes; el ICL y la UVA,
-como el **valor del índice** publicado ese día. Para cargar varios meses de una
+historial). El IPC, el CVS y el CER se cargan como variación mensual en
+porcentaje (1,9 para una suba de 1,9 % en el mes), por mes; el ICL y la UVA,
+como el valor del índice publicado ese día. Para cargar varios meses de una
 vez, *Pegar varios*: una línea por período, con el período, una coma, punto y
 coma o tabulación, y el valor (`2026-09, 1,9`). Se puede copiar directo de una
 planilla. La pantalla marca las líneas que no entiende y no guarda nada hasta
@@ -1811,5 +1948,7 @@ Un valor cargado a mano tiene prioridad sobre el del sistema para el mismo
 índice y período, y vale solo para la inmobiliaria que lo cargó. Si después se
 lo borra, el ajuste vuelve a usar el valor del sistema.
 
-`/perfil` es la pantalla propia de cada usuario, donde edita su nombre y apellido
-y consulta su rol.
+### Perfil
+
+`/perfil` es la pantalla propia de cada usuario, donde edita su nombre y apellido,
+cambia su contraseña y consulta su rol.

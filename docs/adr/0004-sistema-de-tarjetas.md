@@ -1,7 +1,12 @@
-# ADR 0004 — Sistema de tarjetas para pantallas con registros repetidos
+# ADR-0004: Sistema de tarjetas para pantallas con registros repetidos
 
-- Estado: aceptada
-- Fecha: 2026-08-13
+## Estado
+
+Aceptado.
+
+## Fecha
+
+2026-08-13.
 
 ## Contexto
 
@@ -29,9 +34,9 @@ Se incorpora un vocabulario compartido en `apps/web/src/components/ui/`:
 | Pieza | Rol |
 |---|---|
 | `EntityCard` / `EntityRow` | La tarjeta de registro y su variante horizontal |
-| `CardGrid` / `RowList` | Contenedores: son dueños de la transición carga → contenido → vacío |
+| `CardGrid` / `RowList` | Contenedores: son dueños de la transición entre carga, contenido y vacío |
 | `EntityCover` / `GeneratedCover` / `SmartImage` | Portadas: foto real, o arte generado a partir del id |
-| `Avatar` / `AvatarStack` | Identidad de personas y proveedores (no tienen foto) |
+| `Avatar` | Identidad de personas y proveedores (no tienen foto) |
 | `ProgressRing` / `Sparkline` / `Meter` / `TrendDelta` | Marcas de datos que le dan peso informativo a las tarjetas sin foto |
 | `StatTile` | Métrica accionable, con acceso directo al listado que la explica |
 | `Badge` | Chapa de estado, derivada de los tokens `--color-*` |
@@ -41,12 +46,12 @@ Se incorpora un vocabulario compartido en `apps/web/src/components/ui/`:
 
 ### Identidad vs. estado
 
-La **identidad** la da la portada. Los registros sin foto reciben un degradado,
+La identidad la da la portada. Los registros sin foto reciben un degradado,
 una textura y un ícono fantasma derivados de su id (`lib/entity-visuals.ts`),
 de modo que el mismo contrato se ve siempre igual y una grilla se lee como un
 conjunto de objetos distintos.
 
-El **estado** lo dan la chapa y la barra de acento lateral. Mantenerlos
+El estado lo dan la chapa y la barra de acento lateral. Mantenerlos
 separados es lo que permite que el color siga siendo informativo mientras la
 identidad varía.
 
@@ -83,3 +88,22 @@ color de identidad y la repisa de chapas, y le devuelve el alto al contenido.
 - `SmartImage` se queda con un `<img>` plano en lugar de `next/image`: las URLs
   de media son enlaces firmados que se generan por request, así que el host no
   se conoce en build time y `images.remotePatterns` no puede cubrirlo.
+
+## Addendum (27/11/2026): tarjetas para propiedades, estructuras propias para el resto
+
+Con el sistema en uso, casi todos los listados terminaron siendo la misma grilla
+de tarjetas con portada generada, y eso escondía que cada pantalla sirve para una
+tarea distinta. Se decide:
+
+- Las tarjetas con portada quedan para las propiedades, que son las únicas con
+  fotos en el modelo de datos.
+- Los listados de dinero y de trabajo usan la estructura que corresponde a su
+  tarea: libro por mes con totales (liquidaciones), extracto por día (pagos),
+  libro con saldo por fila y arqueo (caja), planilla (centro de carga), cola con
+  la próxima gestión (cobranza), tramos de antigüedad (morosidad), agenda
+  (vencimientos) y tablero por tenedor (llaves). Contratos, personas, proveedores,
+  tickets y leads pasan a listas de filas.
+- Los tokens de color y tipografía, los estados de carga y vacío y las chapas de
+  estado de este ADR siguen vigentes para todas las pantallas.
+
+El resto del ADR se conserva como registro de la decisión original.

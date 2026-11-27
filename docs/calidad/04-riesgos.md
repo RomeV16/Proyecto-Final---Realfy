@@ -24,7 +24,7 @@ cronograma y la columna "estado" registra si el riesgo se materializó.
 
 ## Riesgos ordenados por prioridad
 
-1. R-03 (25) — ya materializado, es el primer defecto que se corrige.
+1. R-03 (25): ya materializado, fue el primer defecto que se corrigió.
 2. R-01, R-13 (15)
 3. R-02, R-14 (12)
 4. R-04, R-05, R-12 (10)
