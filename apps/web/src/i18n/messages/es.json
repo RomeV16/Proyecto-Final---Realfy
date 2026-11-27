@@ -4525,7 +4525,7 @@
  },
  "payments": {
   "title": "Pagos y deuda",
-  "subtitle": "Cobranzas registradas y saldos pendientes",
+  "subtitle": "Lo que se cobró cada día, por qué medio, y lo que todavía falta cobrar.",
   "pendingDebt": "Deuda pendiente",
   "overdueDebt": "Deuda vencida",
   "settlements": "liquidaciones",
@@ -4537,9 +4537,45 @@
   "amount": "Monto",
   "collected": "Total cobrado",
   "collectedHint": "{count, plural, =0 {Sin pagos registrados} one {# pago registrado} other {# pagos registrados}}",
-  "noPaymentsSubtitle": "Cuando registres cobranzas vas a verlas acá con su medio de pago y período.",
+  "noPaymentsSubtitle": "Los cobros se registran desde cada liquidación. Cuando registres el primero, vas a ver acá el extracto del mes.",
   "invoicing": "Facturación",
-  "invoicingTitle": "Facturación del cobro por cuenta del locador"
+  "invoicingTitle": "Facturación del cobro por cuenta del locador",
+  "loadError": "No se pudieron cargar los pagos.",
+  "retry": "Reintentar",
+  "loading": "Cargando los pagos",
+  "methods": {
+   "Transferencia": "Transferencia",
+   "Efectivo": "Efectivo",
+   "MercadoPago": "Mercado Pago",
+   "Cheque": "Cheque",
+   "AplicacionDeposito": "Depósito aplicado"
+  },
+  "summary": {
+   "label": "Resumen del mes",
+   "collected": "Cobrado en el mes",
+   "alsoIn": "{count, plural, one {Además, {amount} en # pago} other {Además, {amount} en # pagos}}",
+   "byMethod": "Por medio de pago",
+   "noMethods": "Sin cobros en este mes.",
+   "count": "{count, plural, one {# pago} other {# pagos}}",
+   "toCollect": "Por cobrar hoy",
+   "loadingDebt": "Calculando…",
+   "debtError": "No se pudo calcular la deuda.",
+   "settlements": "{count, plural, =0 {sin liquidaciones} one {# liquidación} other {# liquidaciones}}",
+   "goToCollections": "Ir a cobranza"
+  },
+  "statement": {
+   "label": "Extracto de cobros",
+   "older": "Mes anterior",
+   "newer": "Mes siguiente",
+   "thisMonth": "Mes en curso",
+   "rentOf": "Liquidación de {period}",
+   "noPeriod": "Cobro sin liquidación asociada",
+   "reference": "Ref. {reference}",
+   "noDetail": "Sin referencia",
+   "dayTotal": "{count, plural, one {Total del día · # pago} other {Total del día · # pagos}}",
+   "monthTotal": "{count, plural, one {Total del mes · # pago} other {Total del mes · # pagos}}",
+   "truncated": "El extracto cubre los últimos {shown} pagos de {total}."
+  }
  },
  "perfil": {
   "title": "Mi perfil",
