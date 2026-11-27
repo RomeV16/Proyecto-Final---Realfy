@@ -126,7 +126,7 @@ function TicketRow({ ticket, group, now }: { ticket: TicketItem; group: GroupKey
           )}
           <p className="mt-0.5 text-[var(--color-muted)]">
             {deadline && group !== 'closed'
-              ? t('list.deadlineOn', { date: formatLocalDate(deadline, { day: '2-digit', month: 'short' }) })
+              ? t('list.deadlineOn', { date: formatLocalDate(deadline, 'dayMonth') })
               : t('list.openedAgo', { time: elapsed(msSince(ticket.createdAt, now)) })}
           </p>
         </div>
