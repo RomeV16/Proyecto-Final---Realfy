@@ -3727,7 +3727,7 @@
   "list": {
    "groups": {
     "overdue": "Overdue",
-    "open": "On time",
+    "open": "In progress",
     "closed": "Closed"
    },
    "overdueFor": "Overdue by {time}",

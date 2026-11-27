@@ -87,12 +87,6 @@ export function OutboxCenter({ initialFilters = EMPTY_OUTBOX_FILTERS }: { initia
             <p className="text-sm font-semibold text-[var(--color-text)]">{t(`modeBanner.${mode}.title`)}</p>
             <p className="mt-0.5 text-sm text-[var(--color-muted)]">{t(`modeBanner.${mode}.body`)}</p>
           </div>
-          <Link
-            href="/configuracion/mensajeria"
-            className="shrink-0 text-sm font-medium text-[var(--color-brand-600)] hover:underline"
-          >
-            {t('modeBanner.link')}
-          </Link>
         </div>
       )}
 

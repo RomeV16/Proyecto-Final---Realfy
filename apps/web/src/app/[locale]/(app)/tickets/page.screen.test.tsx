@@ -88,7 +88,7 @@ describe('TicketListPage', () => {
     renderEs(<TicketListPage />);
     expect(await screen.findByText('Pérdida de agua de prueba')).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Fuera de plazo' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'En plazo' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'En curso' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Cerrados' })).toBeInTheDocument();
     expect(screen.getByText(/^Fuera de plazo hace \d+ (meses|años?)$/)).toBeInTheDocument();
     expect(screen.queryByText(/SLA/)).not.toBeInTheDocument();

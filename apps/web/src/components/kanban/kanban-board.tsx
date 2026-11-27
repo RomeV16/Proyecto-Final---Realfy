@@ -505,6 +505,9 @@ function MobileLeadCard({ lead, tSources, staleDays }: { lead: KanbanLead; tSour
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-[var(--color-text)]">{fullName}</p>
         <p className="truncate text-xs text-[var(--color-muted)]">{propertyName}</p>
+        <p className="truncate text-[11px] tabular-nums text-[var(--color-muted)]">
+          {t('unchanged', { time: elapsed(msSince(lead.updatedAt)) })}
+        </p>
       </div>
       <div className="shrink-0 text-right">
         <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[11px] font-medium text-[var(--color-muted)]">
@@ -522,9 +525,6 @@ function MobileLeadCard({ lead, tSources, staleDays }: { lead: KanbanLead; tSour
               {t('stale')}
             </span>
           )}
-          <p className="text-[11px] tabular-nums text-[var(--color-muted)]">
-            {t('unchanged', { time: elapsed(msSince(lead.updatedAt)) })}
-          </p>
         </div>
       </div>
     </Link>

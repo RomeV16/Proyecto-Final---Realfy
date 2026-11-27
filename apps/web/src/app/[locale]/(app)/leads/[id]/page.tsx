@@ -227,7 +227,7 @@ export default function LeadDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [leadId]);
+  }, [leadId, t]);
 
   useEffect(() => {
     void loadData();

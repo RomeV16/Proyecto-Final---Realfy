@@ -130,7 +130,7 @@ describe('Mensajería: bandeja de salida', () => {
     const banner = await screen.findByRole('status');
     expect(banner).toHaveTextContent('El envío de mensajes está apagado');
     expect(banner).toHaveTextContent('no sale ningún mail ni WhatsApp');
-    expect(screen.getByRole('link', { name: 'Ver la configuración' })).toHaveAttribute('href', '/es/configuracion/mensajeria');
+    expect(screen.getByRole('link', { name: 'Configuración de mensajería' })).toHaveAttribute('href', '/es/configuracion/mensajeria');
   });
 
   it('en modo de prueba avisa que solo sale la lista de prueba, y con el envío activo no avisa nada', async () => {
