@@ -3409,16 +3409,20 @@
   "filters": {
    "from": "Desde",
    "to": "Hasta",
-   "ownerId": "ID Propietario",
+   "ownerId": "Owner",
    "ownerIdPlaceholder": "UUID del propietario",
-   "propertyId": "ID Propiedad",
+   "propertyId": "Property",
    "propertyIdPlaceholder": "UUID de la propiedad (opcional)",
-   "contractId": "ID Contrato",
+   "contractId": "Contract",
    "contractIdPlaceholder": "UUID del contrato (opcional)",
    "clear": "Limpiar filtros",
    "required": "Obligatorio",
-   "pipelineId": "ID Pipeline",
-   "pipelineIdPlaceholder": "UUID del pipeline (opcional)"
+   "pipelineId": "Pipeline",
+   "pipelineIdPlaceholder": "UUID del pipeline (opcional)",
+   "ownerIdChoose": "Choose an owner",
+   "propertyIdAll": "All properties",
+   "contractIdAll": "All contracts",
+   "pipelineIdAll": "All pipelines"
   },
   "columns": {
    "ownerStatement": {
@@ -3483,11 +3487,11 @@
    "noType": "Seleccioná un tipo de reporte para comenzar"
   },
   "generatedAt": "Generado el",
-  "rowCount": "{count} filas",
+  "rowCount": "{count, plural, one {# row} other {# rows}}",
   "errors": {
    "loadFailed": "Error al generar el reporte",
    "downloadFailed": "Error al descargar el archivo",
-   "ownerIdRequired": "El ID del propietario es obligatorio para este reporte",
+   "ownerIdRequired": "Choose an owner to see their statement",
    "invalidFilters": "Los filtros ingresados no son válidos"
   },
   "scheduling": {
@@ -3529,6 +3533,15 @@
    "totalLeads": "Total leads",
    "totalConvertidos": "Converted leads",
    "tasaConversionGeneral": "Overall conversion rate"
+  },
+  "commissionTypes": {
+   "FixedPercent": "Percentage",
+   "FixedAmount": "Fixed amount",
+   "Mixed": "Percentage and fixed amount"
+  },
+  "chart": {
+   "money": "In pesos, for the chosen period",
+   "count": "Number of leads, for the chosen period"
   }
  },
  "tickets": {

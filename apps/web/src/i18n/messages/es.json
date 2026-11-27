@@ -3386,39 +3386,43 @@
   }
  },
  "reports": {
-  "title": "Reportes Financieros",
-  "subtitle": "Generá y descargá reportes de estado de cuenta, rentabilidad, flujo de caja y comisiones",
-  "selectType": "Seleccioná un tipo de reporte",
+  "title": "Reportes",
+  "subtitle": "Elegí un reporte, ajustá el período y descargalo en Excel o PDF.",
+  "selectType": "Tipo de reporte",
   "generate": "Generar reporte",
   "types": {
-   "ownerStatement": "Estado de cuenta propietario",
+   "ownerStatement": "Estado de cuenta del propietario",
    "propertyProfitability": "Rentabilidad por propiedad",
    "cashFlow": "Flujo de caja mensual",
    "commissionSummary": "Resumen de comisiones",
-   "pipelineAnalytics": "Analítica de Pipeline",
+   "pipelineAnalytics": "Leads por etapa",
    "morosidad": "Morosidad"
   },
   "typeDescriptions": {
-   "ownerStatement": "Detalle de cobros, comisiones, honorarios y depósitos netos por propietario",
-   "propertyProfitability": "Análisis de ingresos, facturación y comisiones por propiedad",
-   "cashFlow": "Ingresos vs. egresos mensuales con saldo neto",
-   "commissionSummary": "Desglose de comisiones y honorarios por rendición",
-   "pipelineAnalytics": "Leads por etapa, tasa de conversión y tiempos promedio por pipeline",
-   "morosidad": "Liquidaciones vencidas con días de atraso y montos adeudados"
+   "ownerStatement": "Cobros, comisiones, honorarios y depósito neto de un propietario",
+   "propertyProfitability": "Lo cobrado, lo facturado y las comisiones de cada propiedad",
+   "cashFlow": "Ingresos y egresos de cada mes, con su saldo",
+   "commissionSummary": "Comisiones y honorarios de cada rendición",
+   "pipelineAnalytics": "Cuántos leads hay en cada etapa y cuántos se convirtieron",
+   "morosidad": "Liquidaciones vencidas, con los días de atraso y el importe adeudado"
   },
   "filters": {
    "from": "Desde",
    "to": "Hasta",
-   "ownerId": "ID Propietario",
+   "ownerId": "Propietario",
    "ownerIdPlaceholder": "UUID del propietario",
-   "propertyId": "ID Propiedad",
+   "propertyId": "Propiedad",
    "propertyIdPlaceholder": "UUID de la propiedad (opcional)",
-   "contractId": "ID Contrato",
+   "contractId": "Contrato",
    "contractIdPlaceholder": "UUID del contrato (opcional)",
-   "clear": "Limpiar filtros",
+   "clear": "Restablecer filtros",
    "required": "Obligatorio",
-   "pipelineId": "ID Pipeline",
-   "pipelineIdPlaceholder": "UUID del pipeline (opcional)"
+   "pipelineId": "Embudo",
+   "pipelineIdPlaceholder": "UUID del pipeline (opcional)",
+   "ownerIdChoose": "Elegí un propietario",
+   "propertyIdAll": "Todas las propiedades",
+   "contractIdAll": "Todos los contratos",
+   "pipelineIdAll": "Todos los embudos"
   },
   "columns": {
    "ownerStatement": {
@@ -3428,50 +3432,50 @@
     "comision": "Comisión",
     "honorarios": "Honorarios",
     "deducciones": "Deducciones",
-    "depositoNeto": "Depósito Neto"
+    "depositoNeto": "Depósito neto"
    },
    "propertyProfitability": {
     "propiedad": "Propiedad",
     "cobrado": "Cobrado",
     "facturado": "Facturado",
     "comisiones": "Comisiones",
-    "ingresoNeto": "Ingreso Neto"
+    "ingresoNeto": "Ingreso neto"
    },
    "cashFlow": {
     "mes": "Mes",
     "ingresos": "Ingresos",
     "egresos": "Egresos",
     "facturado": "Facturado",
-    "saldoNeto": "Saldo Neto"
+    "saldoNeto": "Saldo neto"
    },
    "commissionSummary": {
     "propiedad": "Propiedad",
     "propietario": "Propietario",
     "periodo": "Período",
-    "tipoComision": "Tipo Comisión",
+    "tipoComision": "Tipo de comisión",
     "comision": "Comisión",
     "honorarios": "Honorarios",
     "total": "Total"
    },
    "pipelineAnalytics": {
     "etapa": "Etapa",
-    "leadsActuales": "Leads Actuales",
+    "leadsActuales": "Leads en la etapa",
     "convertidos": "Convertidos",
     "perdidos": "Perdidos",
-    "tasaConversion": "Tasa Conversión",
-    "promedioConversionDias": "Promedio Días Conversión"
+    "tasaConversion": "Tasa de conversión",
+    "promedioConversionDias": "Días promedio hasta convertir"
    },
    "morosidad": {
     "propiedad": "Propiedad",
     "inquilino": "Inquilino",
     "periodo": "Período",
     "vencimiento": "Vencimiento",
-    "diasVencidos": "Días Vencidos",
+    "diasVencidos": "Días de atraso",
     "monto": "Monto",
     "moneda": "Moneda"
    }
   },
-  "summary": "Total",
+  "summary": "Totales del período",
   "download": {
    "excel": "Descargar Excel",
    "pdf": "Descargar PDF",
@@ -3483,16 +3487,16 @@
    "noType": "Seleccioná un tipo de reporte para comenzar"
   },
   "generatedAt": "Generado el",
-  "rowCount": "{count} filas",
+  "rowCount": "{count, plural, one {# fila} other {# filas}}",
   "errors": {
-   "loadFailed": "Error al generar el reporte",
-   "downloadFailed": "Error al descargar el archivo",
-   "ownerIdRequired": "El ID del propietario es obligatorio para este reporte",
+   "loadFailed": "No se pudo generar el reporte",
+   "downloadFailed": "No se pudo descargar el archivo",
+   "ownerIdRequired": "Elegí un propietario para ver su estado de cuenta",
    "invalidFilters": "Los filtros ingresados no son válidos"
   },
   "scheduling": {
-   "title": "Programar Reportes",
-   "subtitle": "Configurá el envío automático de reportes por email",
+   "title": "Envío programado",
+   "subtitle": "Recibí los reportes por mail con la frecuencia que elijas",
    "create": "Crear programación",
    "edit": "Editar",
    "delete": "Eliminar",
@@ -3501,8 +3505,8 @@
    "format": "Formato",
    "reportType": "Tipo de reporte",
    "noSchedules": "No hay programaciones configuradas",
-   "nextRun": "Próxima ejecución",
-   "lastRun": "Última ejecución",
+   "nextRun": "Próximo envío",
+   "lastRun": "Último envío",
    "active": "Activo",
    "inactive": "Inactivo",
    "frequencies": {
@@ -3514,7 +3518,7 @@
     "excel": "Excel",
     "pdf": "PDF"
    },
-   "confirmDelete": "¿Estás seguro de eliminar esta programación?",
+   "confirmDelete": "¿Eliminar esta programación?",
    "saved": "Programación guardada",
    "deleted": "Programación eliminada",
    "recipientsRequired": "Ingresá al menos un destinatario",
@@ -3529,6 +3533,15 @@
    "totalLeads": "Leads totales",
    "totalConvertidos": "Leads convertidos",
    "tasaConversionGeneral": "Tasa de conversión general"
+  },
+  "commissionTypes": {
+   "FixedPercent": "Porcentaje",
+   "FixedAmount": "Monto fijo",
+   "Mixed": "Porcentaje y monto fijo"
+  },
+  "chart": {
+   "money": "En pesos, para el período elegido",
+   "count": "Cantidad de leads, para el período elegido"
   }
  },
  "tickets": {
@@ -4758,10 +4771,10 @@
    "filteredSubtitle": "No se encontraron tickets con los filtros aplicados"
   },
   "reports": {
-   "noTypeTitle": "Seleccioná un tipo de reporte",
-   "noTypeSubtitle": "Elegí el tipo de reporte en el panel de filtros para visualizar los datos",
-   "emptyResultTitle": "Sin resultados",
-   "emptyResultSubtitle": "No se encontraron datos con los filtros aplicados. Intentá ajustar los filtros."
+   "noTypeTitle": "Elegí un tipo de reporte",
+   "noTypeSubtitle": "Elegí un tipo de reporte para verlo acá. Después lo podés descargar en Excel o PDF.",
+   "emptyResultTitle": "No hay datos para ese período",
+   "emptyResultSubtitle": "Probá con otras fechas o quitá el filtro."
   },
   "persons": {
    "title": "No hay personas",
