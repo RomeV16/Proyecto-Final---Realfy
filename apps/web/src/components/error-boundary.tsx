@@ -40,9 +40,10 @@ export class ErrorBoundary extends Component<Props, State> {
           className="flex items-center justify-center min-h-[60vh] px-4"
         >
           <div className="max-w-md w-full text-center space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-sunken)] flex items-center justify-center mx-auto">
               <svg
-                className="w-8 h-8 text-red-500"
+                aria-hidden="true"
+                className="w-7 h-7 text-[var(--color-danger)]"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -55,18 +56,19 @@ export class ErrorBoundary extends Component<Props, State> {
                 />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              Algo salió mal
+            <h2 className="text-lg font-semibold text-[var(--color-text)]">
+              No pudimos mostrar esta pantalla
             </h2>
-            <p className="text-sm text-slate-500">
-              Algo salió mal. Intentá de nuevo.
+            <p className="text-sm text-[var(--color-muted)]">
+              Probá de nuevo. Si sigue pasando, recargá la página.
             </p>
             {this.state.error && (
-              <p className="text-xs text-slate-400 font-mono bg-slate-50 rounded-lg p-3 text-left break-all">
+              <p className="text-xs text-[var(--color-muted)] font-mono bg-[var(--color-surface-sunken)] rounded-lg p-3 text-left break-all">
                 {this.state.error.message}
               </p>
             )}
             <button
+              type="button"
               onClick={() => this.setState({ hasError: false, error: null })}
               className="px-5 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
             >

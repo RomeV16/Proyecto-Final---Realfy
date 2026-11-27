@@ -37,7 +37,7 @@ function PortalHeader() {
       {person && (
         <button
           type="button"
-          onClick={() => logout()}
+          onClick={() => void logout()}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-lg)] px-2.5 py-1.5 text-sm text-[var(--color-muted)] transition-colors hover:bg-[var(--color-surface-sunken)] hover:text-[var(--color-text)]"
         >
           <Icon name="logout" className="h-4 w-4" strokeWidth={1.9} />
@@ -71,7 +71,7 @@ function PortalNav() {
   ];
 
   return (
-    <nav className="px-2 sm:px-4">
+    <nav className="px-2 sm:px-4" aria-label={t('portal.common.brand')}>
       <div className="mx-auto flex max-w-4xl items-center gap-1">
         {items.map((item) => {
           const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);

@@ -314,7 +314,11 @@
    "retry": "Reintentar",
    "home": "Ir al panel",
    "notFoundTitle": "No encontramos lo que buscás",
-   "notFoundMessage": "El registro no existe o ya no está disponible."
+   "notFoundMessage": "El registro no existe o ya no está disponible.",
+   "pageNotFoundTitle": "Esta página no existe",
+   "pageNotFoundMessage": "Puede que el enlace esté mal escrito o que la página ya no esté disponible.",
+   "pageHome": "Volver al inicio",
+   "pageErrorMessage": "Algo falló al mostrar la página. Podés reintentar o volver al inicio."
   }
  },
  "common": {

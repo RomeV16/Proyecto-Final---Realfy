@@ -4,7 +4,9 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ApiRequestError } from '@/lib/api-client';
 import { renderEs } from '../index-data/test-utils';
-import { SegmentError, SegmentLoading, SegmentNotFound } from './segment-states';
+import { PageError, PageNotFound, SegmentError, SegmentLoading, SegmentNotFound } from './segment-states';
+import NotFoundLocale from '@/app/[locale]/not-found';
+import ErrorLocale from '@/app/[locale]/error';
 
 vi.mock('next/navigation', async (importOriginal) => ({
   ...(await importOriginal<typeof import('next/navigation')>()),
@@ -27,6 +29,25 @@ import NotFoundPersons from '@/app/[locale]/(app)/persons/not-found';
 import LoadingLiquidaciones from '@/app/[locale]/(app)/liquidaciones/loading';
 import ErrorLiquidaciones from '@/app/[locale]/(app)/liquidaciones/error';
 import NotFoundLiquidaciones from '@/app/[locale]/(app)/liquidaciones/not-found';
+
+describe('estados de página fuera del panel', () => {
+  it('no encontrado: explica y vuelve al inicio del sitio', () => {
+    expect(NotFoundLocale).toBe(PageNotFound);
+    renderEs(<PageNotFound />);
+    expect(screen.getByText('Esta página no existe')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/es');
+  });
+
+  it('error: permite reintentar y volver al inicio', async () => {
+    expect(ErrorLocale).toBe(PageError);
+    const reset = vi.fn();
+    renderEs(<PageError error={new Error('falló')} reset={reset} />);
+    expect(screen.getByRole('heading', { name: 'No pudimos cargar esta sección' })).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(reset).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('link', { name: 'Volver al inicio' })).toHaveAttribute('href', '/es');
+  });
+});
 
 describe('estados de segmento', () => {
   it('cargando: se anuncia como estado ocupado con texto para lectores de pantalla', () => {

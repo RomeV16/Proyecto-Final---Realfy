@@ -9,6 +9,7 @@ import { PortalApiRequestError } from '@/lib/portal-api-client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { useDocumentTitle } from '@/lib/use-document-title';
 
 export default function PortalLoginPage() {
   const t = useTranslations();
@@ -19,6 +20,7 @@ export default function PortalLoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  useDocumentTitle(t('portal.auth.login.title'));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,13 +48,12 @@ export default function PortalLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)] p-4">
+    <main className="min-h-screen flex items-center justify-center bg-[var(--color-bg)] p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-500 text-white font-bold text-xl mb-5">
+          <div aria-hidden="true" className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-500 text-white font-display italic text-2xl mb-5">
             R
           </div>
-          <p className="eyebrow mb-2">{t('portal.common.brand')}</p>
           <h1 className="h2">{t('portal.auth.login.title')}</h1>
           <p className="lead mt-2 text-sm">
             {t('portal.auth.login.subtitle')}
@@ -65,7 +66,7 @@ export default function PortalLoginPage() {
           className="card-lux p-6 space-y-5"
         >
           {error && (
-            <div className="bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] text-[var(--color-danger)] text-sm rounded-lg px-4 py-3 border border-[color-mix(in_srgb,var(--color-danger)_30%,transparent)] animate-[fade-in_0.4s_var(--ease-luxe)]">
+            <div role="alert" className="bg-[color-mix(in_srgb,var(--color-danger)_10%,transparent)] text-[var(--color-danger)] text-sm rounded-lg px-4 py-3 border border-[color-mix(in_srgb,var(--color-danger)_30%,transparent)] animate-[fade-in_0.4s_var(--ease-luxe)]">
               {error}
             </div>
           )}
@@ -100,6 +101,6 @@ export default function PortalLoginPage() {
           </Button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }
