@@ -835,9 +835,11 @@ y los reportes.
 describen. Los avisos de reclamos se persisten: desde el pedido #172 el servicio
 crea el aviso para el personal y le avisa al inquilino por la bandeja de salida.
 La cobertura de líneas de la API pasó de 42,44 % a más de 80 % (sección 9.10).
-Y varias tareas programadas tienen prueba unitaria propia (el servicio de tareas
-con contexto de inmobiliaria, la obtención de índices, el proceso fiscal y el
-plazo de respuesta de la bandeja de consultas). El resto sigue vigente.
+Y las tareas programadas tienen más prueba unitaria: a las que ya existían al
+28/10 (obtención de índices, proceso fiscal, avisos y punitorios) el piloto sumó
+la del recorrido por inmobiliaria y las de liquidaciones, reportes, ventas y plazo
+de respuesta de la bandeja de consultas; el disparo por horario sigue sin
+probarse en un ambiente levantado. El resto sigue vigente.
 
 ---
 
