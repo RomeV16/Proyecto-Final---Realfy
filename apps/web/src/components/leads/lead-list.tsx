@@ -704,19 +704,20 @@ export function LeadList() {
   const canCreate = useCan('leads.manage');
 
   useEffect(() => {
-    async function loadRefs() {
+    // Cada lista se carga por separado: `/users` es solo para Admin y Gerente y su 403 no debe vaciar las otras dos.
+    async function loadRef<T>(path: string, apply: (res: T) => void) {
       try {
-        const [pRes, uRes, prRes] = await Promise.all([
-          apiClient<PipelineOption[] | { items: PipelineOption[] }>('/pipelines'),
-          apiClient<UserOption[] | { items: UserOption[] }>('/users'),
-          apiClient<{ items: PropertyOption[] }>('/properties?limit=100'),
-        ]);
-        setPipelines(listOf(pRes));
-        setUsers(listOf(uRes));
-        setProperties(prRes.items || []);
+        apply(await apiClient<T>(path));
       } catch (err) {
-        console.error('[LeadList] ref data error:', err);
+        console.error(`[LeadList] ref data error (${path}):`, err);
       }
+    }
+    async function loadRefs() {
+      await Promise.all([
+        loadRef<PipelineOption[] | { items: PipelineOption[] }>('/pipelines', (res) => setPipelines(listOf(res))),
+        loadRef<UserOption[] | { items: UserOption[] }>('/users', (res) => setUsers(listOf(res))),
+        loadRef<{ items: PropertyOption[] }>('/properties?limit=100', (res) => setProperties(res.items || [])),
+      ]);
     }
     void loadRefs();
   }, []);

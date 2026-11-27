@@ -89,7 +89,7 @@ function setup(list: unknown = paged(ITEMS), write?: (path: string, init: { meth
       if (list instanceof Error) throw list;
       return list;
     }
-    if (path === '/users') return { items: [{ id: 'u2', firstName: 'Beatriz', lastName: 'Gerente' }] };
+    if (path === '/users') return [{ id: 'u2', firstName: 'Beatriz', lastName: 'Gerente' }];
     throw new Error(`unexpected ${path}`);
   });
   return renderEs(<FollowUpsScreen />);

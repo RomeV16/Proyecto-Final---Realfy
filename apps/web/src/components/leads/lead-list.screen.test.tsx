@@ -302,6 +302,20 @@ describe('LeadList', () => {
     spy.mockRestore();
   });
 
+  it('sin permiso para listar usuarios igual carga los pipelines para filtrar', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    auth.role = 'Ventas';
+    apiClient.mockImplementation((path: string) => {
+      if (path === '/users') return Promise.reject(new ApiRequestError(403, 'FORBIDDEN', 'sin permiso'));
+      if (path === '/pipelines') return Promise.resolve(pipelines);
+      if (path.startsWith('/properties')) return Promise.resolve({ items: [] });
+      return Promise.resolve(page());
+    });
+    renderEs(<LeadList />);
+    expect(await screen.findByRole('option', { name: 'Pipeline de prueba' })).toBeInTheDocument();
+    spy.mockRestore();
+  });
+
   it('crea un lead con pipeline preseleccionado y etapa inicial', async () => {
     mockApi();
     const user = await renderList();
