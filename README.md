@@ -1,244 +1,264 @@
-# Realfy — Real Estate SaaS CRM
+# Realfy
 
 [![CI](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/workflows/ci.yml/badge.svg)](https://github.com/RomeV16/Proyecto-Final---Realfy/actions/workflows/ci.yml)
 
-Multi-tenant SaaS CRM for Argentine real estate agencies — the full monthly rental cycle (contracts with lessors and negotiable rules, index adjustments, liquidations, collections, cash and owner statements, invoicing on behalf of lessors), plus contract lifecycle, incidents, messaging, publication and sales. Since October 2026 it is being validated in a pilot with a real agency.
+Realfy es un sistema de gestión para inmobiliarias argentinas que administran
+alquileres. Cubre el ciclo mensual completo: contratos con sus locadores y sus
+reglas, ajustes por índice, liquidaciones, cobros, caja, estados de cuenta del
+locador y facturación por cuenta del locador. Varias inmobiliarias usan la misma
+instalación sin ver los datos de las otras.
 
-> **Documentación:** manual de usuario, guía de despliegue, referencia de API,
-> manual de pruebas y guion de la demostración están en [`docs/`](./docs/) —
-> ver el índice al final de este archivo.
+Es el trabajo final de carrera de Manuel Ferreras, Romeo Valdomero y Mariano
+Nallar. Desde octubre de 2026 se valida en un piloto con una inmobiliaria real.
 
----
+Hay una demostración con datos sintéticos en <https://demo.realfy.app>; el guion
+para recorrerla está en [docs/demo.md](./docs/demo.md).
 
-## Features
+## Qué hace
 
-Grouped by area; each one is described in the [user manual](./docs/manual-de-usuario.md) and its decision, where there is one, in the [ADR index](./docs/adr/README.md).
+Cada función está descripta en el [manual de usuario](./docs/manual-de-usuario.md)
+y, cuando hubo una decisión de diseño, en un [ADR](./docs/adr/README.md).
 
-**Parties and contracts**
-- Properties with operations, prices, media, valuations, ownership and keys.
-- People with several roles, bank accounts and identity data; contracts with one or more **lessors**, each with a collection percentage, and **attorneys-in-fact** (ADR-0007).
-- **Negotiable rules**: agency defaults, versioned contract rules and dated agreements (ADR-0010); index adjustments (IPC, ICL, CCP, UVA, fixed, stepped) with lag, estimate and later correction (ADR-0011).
-- **Expirations**: traffic-light follow-ups with checklist, verbal extension, renewal as a contract period; **deposits** with currency, holder, instalments and move-out settlement.
+Contratos y partes:
 
-**Monthly cycle and money**
-- Liquidations generated ahead of the month, with taxes and services split among three payers (ADR-0008), one-off charges, late-payment penalties and numbered receipts.
-- **Cash**: collections through three flows (split, all to the agency, all to the lessor), custody of lessors' cash, compensations between lessors, ARS/USD/EUR accounts (ADR-0012).
-- **Owner statements**: a current account per lessor and a consolidated monthly statement across all their units, with carried-over balance (ADR-0009).
-- **Invoicing on behalf of lessors** through ARCA with a delegated issuer, idempotent queue and credit notes (ADR-0017); the agency's own invoicing with several issuers.
-- **Fees**: letting, renewal, sale and valuation fees, adjustable instalments and staff commissions.
-- **Collections**: staged reminders, pre-litigation stage with a draft formal notice and suggested referral to a lawyer, off by default (ADR-0013).
+- Propiedades con operaciones, precios, fotos, tasaciones, titularidad y llaves.
+- Personas con varios roles, cuentas bancarias y datos de identidad. Un contrato
+  puede tener varios locadores, cada uno con su porcentaje de cobro, y apoderados
+  (ADR-0007).
+- Reglas negociables: valores por defecto de la inmobiliaria, reglas del contrato
+  versionadas y acuerdos con fecha (ADR-0010).
+- Ajustes por IPC, ICL, CCP, porcentaje fijo o personalizado, con rezago,
+  estimación y corrección posterior (ADR-0011). UVA y escalonado están en el
+  modelo, pero el alta de contratos todavía no los ofrece.
+- Vencimientos con semáforo y seguimiento, prórroga de palabra y renovación;
+  depósitos con moneda, tenedor, cuotas y liquidación de egreso.
 
-**Operations and communication**
-- **Incidents and repairs**: pre-authorisation, quotes, provider payment and allocation to tenant or lessor; tenant portal with tickets.
-- **Messaging**: idempotent outbox for email (Resend) and WhatsApp Cloud API, per-channel consent, signed webhooks and three sending modes (off, allow-list, live), off by default (ADR-0013).
-- **Inquiries inbox**: WhatsApp, email, microsite form and logged calls in one place, with an owner, a first-response deadline (15 minutes by default) and an auto-reply sent through the outbox.
-- **Publication**: status per portal, ready-to-copy listing text and the agency's public microsite, also under its own domain.
-- **Sales and keys**: reservation, deposit, signing and deed, pending deposits, property documentation, sale fees and key movements.
-- Leads pipeline, reports, dashboard and two model-assisted features with deterministic fallback.
+Ciclo mensual y dinero:
 
-**Data and quality**
-- **Migration** from the previous system: idempotent batches with dry run and per-row log (ADR-0015); **data quality** panel with duplicate detection and audited merge of people.
-- **Reconciliation** suite: a synthetic monthly cycle checked to the cent, through the engines and through the API, on every change.
-- Users with invitations and password recovery, role-filtered navigation and configurable read policy per role; tenant isolation that fails closed (ADR-0006).
+- Liquidaciones generadas antes del mes, con impuestos y servicios repartidos
+  entre tres pagadores (ADR-0008), cargos puntuales, punitorios y recibos
+  numerados.
+- Caja con tres flujos de cobro (repartido, todo a la inmobiliaria, todo al
+  locador), custodia de efectivo de los locadores, compensaciones y cuentas en
+  pesos, dólares y euros (ADR-0012).
+- Cuenta corriente por locador y estado de cuenta mensual consolidado, con saldo
+  arrastrado (ADR-0009).
+- Facturación por cuenta del locador a través de ARCA con emisor delegado, cola
+  idempotente y notas de crédito (ADR-0017), además de la facturación propia de
+  la inmobiliaria.
+- Honorarios de alta, renovación, venta y tasación, con cuotas y comisiones del
+  personal.
+- Cobranza escalonada con recordatorios y etapa prejudicial, apagada por defecto
+  (ADR-0013).
 
----
+Operación y comunicación:
 
-## Stack
+- Incidencias y reparaciones con preautorización, presupuestos, pago al proveedor
+  e imputación al inquilino o al locador. Portal del inquilino con reclamos.
+- Mensajería por correo (Resend) y WhatsApp Cloud API a través de una bandeja de
+  salida, con consentimiento por canal y tres modos de envío: apagado, lista
+  permitida y en vivo. Viene apagada (ADR-0013).
+- Bandeja de consultas que reúne WhatsApp, correo, formulario del micrositio y
+  llamadas registradas, con responsable y plazo de primera respuesta (15 minutos
+  por defecto).
+- Publicación: estado por portal, texto del aviso listo para copiar y micrositio
+  público de la inmobiliaria, también con dominio propio.
+- Ventas y llaves: reserva, seña, boleto y escritura, documentación de la
+  propiedad y movimientos de llaves.
+- Embudo de interesados, reportes, panel y dos funciones asistidas por un modelo
+  de lenguaje, con alternativa determinística cuando el modelo no está.
 
-| Layer | Technology |
+Datos:
+
+- Importación desde el sistema anterior por lotes idempotentes, con ensayo sin
+  escritura y registro por fila (ADR-0015).
+- Panel de calidad de datos con detección de duplicados y unión auditada de
+  personas.
+- Obtención automática de boletas de servicios por archivo o por correo
+  (ADR-0018).
+- Usuarios con invitación y recupero de contraseña, menú filtrado por rol y
+  política de lectura configurable. El aislamiento entre inmobiliarias falla
+  cerrado (ADR-0006).
+
+## Tecnología
+
+| Capa | Tecnología |
 |---|---|
-| Language | TypeScript |
-| Backend | NestJS |
-| Frontend | Next.js 15 |
-| ORM | Prisma |
-| Database | PostgreSQL 16 |
-| Object storage | S3-compatible (MinIO en desarrollo) |
-| Messaging | Resend (email) and WhatsApp Cloud API, through an outbox |
-| External APIs | ARCA (facturación), BCRA / INDEC (inflation indices) |
-| Monorepo | Turborepo |
-| Testing | Jest (API and shared, unit and API e2e on Postgres), Vitest (web) |
-| CI/CD | GitHub Actions |
+| Lenguaje | TypeScript |
+| API | NestJS 11, REST bajo `/api` |
+| Web | Next.js 15 (App Router), Tailwind |
+| ORM y base | Prisma 6, PostgreSQL 16 |
+| Archivos | Almacenamiento compatible con S3 (MinIO en desarrollo) |
+| Mensajería | Resend y WhatsApp Cloud API, por bandeja de salida |
+| Servicios externos | ARCA (facturación), BCRA e INDEC (índices) |
+| Monorepo | pnpm y Turborepo |
+| Pruebas | Jest (API y paquete compartido), Vitest (web) |
+| Integración continua | GitHub Actions y SonarCloud |
 
----
-
-## Architecture
+## Arquitectura
 
 ```mermaid
 flowchart LR
-    subgraph users["Users"]
-        staff["Agency staff"]
-        tenant["Tenant portal"]
-        visitor["Microsite visitor<br/>agency slug or own domain"]
+    subgraph users["Usuarios"]
+        staff["Personal de la inmobiliaria"]
+        tenant["Inquilino (portal)"]
+        visitor["Visitante del micrositio"]
     end
     staff --> web
     tenant --> web
     visitor --> web
-    web["apps/web<br/>Next.js 15, port 3000"] -- "HTTP JSON" --> api["apps/api<br/>NestJS 11, REST under /api, port 3001"]
-    web --> shared["packages/shared<br/>types, Zod schemas<br/>and money engines"]
+    web["apps/web<br/>Next.js 15, puerto 3000"] -- "HTTP JSON" --> api["apps/api<br/>NestJS 11, REST bajo /api, puerto 3001"]
+    web --> shared["packages/shared<br/>tipos, esquemas Zod<br/>y motores de dinero"]
     api --> shared
-    api --> db[("PostgreSQL 16<br/>Prisma ORM")]
-    api --> s3[("S3-compatible storage<br/>media and attachments")]
-    api --> outbox["Outbox<br/>off, allow-list or live"]
-    outbox --> resend["Resend<br/>email"]
+    api --> db[("PostgreSQL 16<br/>Prisma")]
+    api --> s3[("Almacenamiento S3<br/>fotos y adjuntos")]
+    api --> outbox["Bandeja de salida<br/>apagada, lista permitida o en vivo"]
+    outbox --> resend["Resend<br/>correo"]
     outbox --> wa["WhatsApp Cloud API"]
-    resend -.->|signed webhooks| api
-    wa -.->|signed webhooks| api
-    api --> arca["ARCA<br/>own and delegated issuers"]
-    api --> idx["BCRA and INDEC<br/>adjustment indices"]
-    api --> llm["Language model provider<br/>with deterministic fallback"]
+    resend -.->|webhooks firmados| api
+    wa -.->|webhooks firmados| api
+    api --> arca["ARCA<br/>emisores propios y delegados"]
+    api --> idx["BCRA e INDEC<br/>índices de ajuste"]
+    api --> llm["Proveedor de modelo de lenguaje<br/>con alternativa determinística"]
 ```
 
-The outbox is a table in the same database, written in the business transaction and drained by a scheduled job, so a failed send never rolls back the operation. The detailed context and deployment diagrams are in [docs/tesis/03-arquitectura.md](./docs/tesis/03-arquitectura.md).
+La bandeja de salida es una tabla de la misma base: se escribe en la transacción
+del negocio y la vacía una tarea programada, de modo que un envío fallido no
+deshace la operación. Los diagramas de contexto y de despliegue están en
+[docs/tesis/03-arquitectura.md](./docs/tesis/03-arquitectura.md).
 
-**Environments.** The Railway project has two environments with the same four services (`web`, `api`, `db`, `storage`) and nothing shared in data or secrets: `production`, the demo used for the thesis defence, with synthetic data only, and `piloto`, used by the pilot real-estate agency with real data. Deploys are manual (`railway up` from a clean copy of a merged commit), `production` first and `piloto` after verification, with a database backup before every `piloto` deploy. Messaging (Resend and WhatsApp) goes through the outbox and is set to `MESSAGING_MODE=off` in `piloto` until the agency approves sending to its clients and the domain and WhatsApp account are verified. See [docs/despliegue.md](./docs/despliegue.md) and [docs/operacion-piloto.md](./docs/operacion-piloto.md).
+Todas las inmobiliarias comparten una base. Cada consulta de Prisma se filtra por
+el `tenantId` que viene en el token de sesión, y si no hay inmobiliaria en el
+contexto la consulta se rechaza en lugar de ejecutarse
+([ADR-0003](./docs/adr/0003-multi-tenant-row-level.md),
+[ADR-0006](./docs/adr/0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md)).
 
-**Multi-tenancy model:** single database, every Prisma query is scoped by `tenantId` injected from the JWT claim, and the Prisma extension fails closed when there is no tenant in context. See [docs/adr/0003-multi-tenant-row-level.md](./docs/adr/0003-multi-tenant-row-level.md) and [docs/adr/0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md](./docs/adr/0006-aislamiento-entre-inmobiliarias-fallando-cerrado.md).
+El sistema corre en Railway, en dos ambientes con los mismos cuatro servicios
+(`web`, `api`, `db`, `storage`) y sin datos ni secretos compartidos: `production`
+es la demostración, con datos sintéticos, y `piloto` es el que usa la
+inmobiliaria, con datos reales. El despliegue es manual (`railway up` desde un
+commit ya integrado), primero a `production` y después a `piloto`, con una copia
+de la base antes de cada despliegue al piloto. En `piloto` la mensajería está
+apagada hasta que la inmobiliaria apruebe los envíos a sus clientes. El detalle
+está en [docs/despliegue.md](./docs/despliegue.md) y
+[docs/operacion-piloto.md](./docs/operacion-piloto.md).
 
----
-
-## Project Structure
+## Estructura del repositorio
 
 ```
 apps/
-  api/           NestJS backend API
-  web/           Next.js 15 frontend
+  api/           API NestJS
+  web/           Aplicación web Next.js
 packages/
-  shared/        Zod schemas, TypeScript types, shared constants
-docs/
-  adr/           Architecture Decision Records
-  tesis/         Documentación de tesis (alcance, arquitectura, hitos)
+  shared/        Tipos, esquemas Zod y motores de cálculo compartidos
+infra/
+  email-worker/  Worker de Cloudflare que recibe los mails entrantes
+docs/            Documentación (ver el índice al final)
+scripts/         Ensayo de migraciones y controles de código muerto y duplicación
 ```
 
----
+## Cómo correrlo
 
-## Setup
-
-### Prerequisites
-
-- **Node.js** 22 (the version CI and both Dockerfiles use)
-- **pnpm** (version from `package.json#packageManager`)
-- **Docker** (for PostgreSQL + MinIO)
-
-### Install dependencies
+Hace falta Node.js 22, pnpm (la versión que fija `package.json`) y Docker para
+PostgreSQL y MinIO.
 
 ```bash
 pnpm install
-```
-
-### Environment variables
-
-Copy the example and fill in the blanks:
-
-```bash
 cp apps/api/.env.example apps/api/.env
-```
-
-Key variables for `apps/api/.env`:
-
-```env
-DATABASE_URL=postgresql://realfy:realfy_dev@localhost:5432/realfy_dev
-JWT_SECRET=change_me_in_production
-CORS_ORIGINS=http://localhost:3000
-S3_ENDPOINT=http://localhost:9000
-MESSAGING_MODE=off        # off | allowlist | live
-ARCA_MOCK=1               # local ARCA simulator
-```
-
-`apps/web` has no `.env` file: `NEXT_PUBLIC_API_URL` y `API_PROXY_TARGET` tienen
-valores por defecto apuntando al backend local. La lista completa de variables,
-por servicio, está en [docs/despliegue.md](./docs/despliegue.md).
-
-### Start services
-
-```bash
 docker compose up -d postgres minio
-cd apps/api && npx prisma migrate deploy && cd ../..
+pnpm --filter @realfy/api exec prisma migrate deploy
 pnpm dev
 ```
 
-Open `http://localhost:3000`. No hay datos precargados: la primera inmobiliaria y
-su usuario Admin se crean desde `/es/auth/register`.
+En `apps/api/.env` hay que ajustar al menos estas variables para que coincidan
+con `docker-compose.yml`:
 
----
+```env
+DATABASE_URL=postgresql://realfy:realfy_dev@localhost:5432/realfy_dev
+JWT_SECRET=un_valor_propio
+CORS_ORIGINS=http://localhost:3000
+S3_ENDPOINT=http://localhost:9000
+MESSAGING_MODE=off        # off | allowlist | live
+ARCA_MOCK=1               # simulador local de ARCA
+```
 
-## Commands
+La web queda en `http://localhost:3000` y la API en `http://localhost:3001/api`.
+No hay datos precargados: la primera inmobiliaria y su usuario Admin se crean
+desde `/es/auth/register`. La web no necesita archivo `.env`, porque
+`NEXT_PUBLIC_API_URL` y `API_PROXY_TARGET` apuntan por defecto a la API local. La
+lista completa de variables por servicio está en
+[docs/despliegue.md](./docs/despliegue.md).
 
-| Command | What it does |
+| Comando | Qué hace |
 |---|---|
-| `pnpm build` | Compile all packages via Turborepo |
-| `pnpm dev` | Start API + web in watch mode |
-| `pnpm test` | Run Jest unit tests across all packages |
-| `pnpm test:e2e` | Run the API e2e suite (needs a Postgres database) |
-| `pnpm lint` | ESLint across all packages |
+| `pnpm dev` | Levanta la API y la web en modo desarrollo |
+| `pnpm build` | Compila todos los paquetes |
+| `pnpm lint` | Corre ESLint en todos los paquetes |
+| `pnpm typecheck` | Controla los tipos, archivos de prueba incluidos |
+| `pnpm test` | Corre las pruebas unitarias de todos los paquetes |
+| `pnpm test:e2e` | Corre las pruebas de integración de la API (necesita PostgreSQL) |
 
----
+## Pruebas
 
-## Tests
+Hay cuatro niveles y todos corren en cada pedido de incorporación de cambios:
 
-Four levels, all run on every pull request:
-
-- **Unitarios** — `apps/api/src/**/*.spec.ts`, `apps/api/test/unit/**` y
-  `packages/shared/src/**/*.spec.ts`, sin base de datos. Incluyen las pruebas
-  "golden" de los motores de dinero del paquete compartido.
-- **Web** — `apps/web/**/*.test.ts(x)` con vitest: funciones, hooks y pantallas, y la
-  paridad de claves entre `es.json` y `en.json`.
-- **E2E de API** — `apps/api/test/**/*.e2e-spec.ts`: levantan la aplicación Nest
-  completa y pegan contra una base PostgreSQL real, con las migraciones aplicadas
-  desde cero. Cubren sesión, aislamiento entre inmobiliarias, permisos por rol,
-  auditoría y cada módulo, del contrato a la cuenta corriente del locador.
-- **Reconciliación** — un ciclo mensual sintético con la forma de la cartera real,
-  comparado al centavo contra lo calculado a mano: con los motores
-  (`packages/shared/src/reconciliation`) y cargado por la API
-  (`apps/api/test/e2e/reconciliacion.e2e-spec.ts`).
+- Unitarias de la API y del paquete compartido, sin base de datos. Incluyen las
+  pruebas de valores conocidos de los motores de dinero.
+- De la web, con Vitest: funciones, hooks y pantallas, y la paridad de claves
+  entre `es.json` y `en.json`.
+- De integración de la API: levantan la aplicación completa y le pegan por HTTP
+  contra un PostgreSQL real con las migraciones aplicadas desde cero. Cubren
+  sesión, aislamiento entre inmobiliarias, permisos por rol, auditoría y cada
+  módulo.
+- De reconciliación: un ciclo mensual sintético con la forma de la cartera real,
+  comparado al centavo contra lo calculado a mano, con los motores y por la API.
 
 ```bash
-# unitarios + cobertura
 pnpm --filter @realfy/api test:coverage
 pnpm --filter @realfy/shared test
 pnpm --filter @realfy/web test
 
-# e2e de API contra una base propia
+# integración, contra una base propia y vacía
 createdb realfy_e2e
-cd apps/api
 export DATABASE_URL=postgresql://localhost:5432/realfy_e2e
-npx prisma migrate deploy
+pnpm --filter @realfy/api exec prisma migrate deploy
 NODE_ENV=test RATE_LIMIT_DISABLED=1 pnpm test:e2e
 ```
 
 `RATE_LIMIT_DISABLED=1` apaga el límite de peticiones, que de otro modo corta la
-suite con 429 porque cada caso abre su propia sesión contra el mismo host. Se
-ignora cuando `NODE_ENV=production`.
+suite con 429; se ignora cuando `NODE_ENV=production`.
 
-El piso de cobertura está en `apps/api/jest.config.ts` y hoy es **38 % de líneas,
-funciones y sentencias, y 27 % de ramas**. Es un piso contra regresiones, no una
-meta: la medición al fijarlo fue 42 % de líneas y 32 % de ramas. Las cifras vigentes
-de pruebas y cobertura, con su fecha y su fuente, están en una sola tabla:
-[docs/tesis/29-informe-final.md](./docs/tesis/29-informe-final.md), sección 9.10.
-
-El detalle de cada suite y de los trabajos de integración continua está en
+La integración continua exige un piso de cobertura en la API (38 % de líneas,
+funciones y sentencias y 27 % de ramas, en `apps/api/jest.config.ts`) y SonarCloud
+exige 80 % sobre el código nuevo de cada cambio. La cobertura medida está muy por
+encima del piso. Las cantidades de pruebas y la cobertura vigentes, con su fecha y
+la ejecución de la que salen, están en
+[docs/tesis/29-informe-final.md](./docs/tesis/29-informe-final.md) (sección 9.10)
+y en [docs/calidad/09-metricas.md](./docs/calidad/09-metricas.md). El detalle de
+cada suite y de los trabajos del pipeline está en
 [docs/pruebas.md](./docs/pruebas.md).
 
----
+## Documentación
 
-## Documentation
+| Documento | Contenido |
+|---|---|
+| [docs/manual-de-usuario.md](./docs/manual-de-usuario.md) | Qué ve y qué puede hacer cada rol, y los recorridos habituales |
+| [docs/demo.md](./docs/demo.md) | Guion de la demostración |
+| [docs/api.md](./docs/api.md) | Endpoints por módulo, con sus roles y la forma de los errores |
+| [docs/pruebas.md](./docs/pruebas.md) | Cómo correr las pruebas, qué cubre cada suite y qué hace el pipeline |
+| [docs/despliegue.md](./docs/despliegue.md) | Servicios, ambientes, variables de entorno, base de datos, almacenamiento, copias y restauración |
+| [docs/operacion-piloto.md](./docs/operacion-piloto.md) | Operación del ambiente piloto: despliegue controlado, copias, cierre de mes e incidentes |
+| [docs/privacidad-datos.md](./docs/privacidad-datos.md) | Datos personales del piloto: base legal, accesos, retención y anonimización |
+| [docs/adr/](./docs/adr/README.md) | Registros de decisiones de arquitectura, con su índice |
+| [docs/calidad/](./docs/calidad/README.md) | Proceso de calidad: plan de pruebas, matriz ISO 25010, riesgos, casos, defectos, métricas, stress y aceptación en campo del piloto |
+| [docs/tesis/](./docs/tesis/) | Documentación de la tesis: alcance, casos de uso, arquitectura, modelo de datos e hitos |
+| [docs/tesis/29-informe-final.md](./docs/tesis/29-informe-final.md) | Informe final, con el capítulo del piloto y la tabla única de cifras del sistema |
+| [docs/tesis/30-piloto.md](./docs/tesis/30-piloto.md) | El piloto en una inmobiliaria real: objetivos, fases, reconciliación y gobernanza de datos |
 
-- [docs/manual-de-usuario.md](./docs/manual-de-usuario.md) — Qué ve y qué puede hacer cada rol, y los recorridos habituales
-- [docs/despliegue.md](./docs/despliegue.md) — Servicios, ambientes, variables de entorno, base de datos, almacenamiento, copias y restauración
-- [docs/operacion-piloto.md](./docs/operacion-piloto.md) — Runbook del ambiente piloto: despliegue controlado, copias, restauración, cierre de mes e incidentes
-- [docs/privacidad-datos.md](./docs/privacidad-datos.md) — Datos personales del piloto: base legal, accesos, retención y anonimización
-- [docs/api.md](./docs/api.md) — Referencia de endpoints por módulo, con roles y forma de error
-- [docs/pruebas.md](./docs/pruebas.md) — Cómo correr las pruebas y qué cubre cada suite
-- [docs/demo.md](./docs/demo.md) — Guion de la demostración
-- [docs/adr/](./docs/adr/README.md) — Architecture Decision Records, con su índice
-- [docs/tesis/](./docs/tesis/) — Documentación de tesis: alcance, arquitectura, modelo de datos e hitos
-- [docs/tesis/29-informe-final.md](./docs/tesis/29-informe-final.md) — Informe final, con el capítulo del piloto y la tabla única de cifras del sistema
-- [docs/tesis/30-piloto.md](./docs/tesis/30-piloto.md) — Piloto en una inmobiliaria real: objetivos, fases, ciclo mensual, flujos de cobro, reconciliación y gobernanza de datos
-- [docs/calidad/](./docs/calidad/) — Proceso de calidad: plan de pruebas, matriz ISO 25010, riesgos, defectos, integración externa, stress y pruebas de aceptación en campo del piloto
+## Licencia
 
----
+Software propietario, todos los derechos reservados.
 
-## License
-
-Proprietary — All rights reserved.
-
-The repository is public but contains no real data from the pilot: no names, documents, amounts or figures. Real data lives only in the `piloto` environment.
+El repositorio es público pero no contiene datos reales del piloto: ni nombres,
+ni documentos, ni importes. Los datos reales están únicamente en el ambiente
+`piloto`.
