@@ -109,11 +109,16 @@ const INITIAL_FILTERS: Filters = {
 
 const LIMIT = 12;
 
-/** Mapea las pestañas de estado al filtro que espera la API. */
+/** Estados de un lead en curso: los que muestra la pestaña "Activos". */
+const ACTIVE_STATUSES = ['Nuevo', 'Contactado', 'Calificado'];
+
+/** Tamaño de página al traer todos los leads para filtrarlos acá (el máximo que acepta la API). */
+const ALL_LIMIT = 500;
+const ALL_MAX_PAGES = 10;
+
+/** Mapea las pestañas de estado al filtro que espera la API, que acepta un solo estado. */
 function statusTabToFilter(tab: StatusTab): string | undefined {
   switch (tab) {
-    case 'active':
-      return 'Nuevo,Contactado,Calificado';
     case 'Convertido':
       return 'Convertido';
     case 'Perdido':
@@ -717,8 +722,9 @@ export function LeadList() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set('page', String(f.page));
-      params.set('limit', String(LIMIT));
+      const activeTab = f.statusTab === 'active';
+      params.set('page', activeTab ? '1' : String(f.page));
+      params.set('limit', String(activeTab ? ALL_LIMIT : LIMIT));
       if (f.search) params.set('search', f.search);
       if (f.pipelineId) params.set('pipelineId', f.pipelineId);
       if (f.currentStageId) params.set('currentStageId', f.currentStageId);
@@ -728,7 +734,28 @@ export function LeadList() {
       if (statusVal) params.set('status', statusVal);
 
       const res = await apiClient<PaginatedLeads>(`/leads?${params.toString()}`);
-      setData(res);
+      if (!activeTab) {
+        setData(res);
+        return;
+      }
+
+      // "Activos" reúne tres estados: se trae todo y se filtra y pagina acá.
+      const all = [...res.items];
+      for (let next = 2; next <= Math.min(res.totalPages, ALL_MAX_PAGES); next++) {
+        params.set('page', String(next));
+        const more = await apiClient<PaginatedLeads>(`/leads?${params.toString()}`);
+        all.push(...more.items);
+      }
+      const active = all.filter((lead) => ACTIVE_STATUSES.includes(lead.status));
+      const totalPages = Math.ceil(active.length / LIMIT);
+      const page = Math.min(f.page, Math.max(totalPages, 1));
+      setData({
+        items: active.slice((page - 1) * LIMIT, page * LIMIT),
+        total: active.length,
+        page,
+        limit: LIMIT,
+        totalPages,
+      });
     } catch (err) {
       if (err instanceof ApiRequestError) {
         console.error(`[LeadList] fetch error: ${err.statusCode} ${err.errorCode}`);
