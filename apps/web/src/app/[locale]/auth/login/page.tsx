@@ -4,12 +4,13 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { loginSchema } from '@realfy/shared/schemas';
-import { setStoredUser, ApiRequestError } from '@/lib/api-client';
+import { setStoredUser, safeRedirectTarget, ApiRequestError } from '@/lib/api-client';
 import type { AuthResponse } from '@realfy/shared';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { transition } from '@/lib/transition-store';
+import { assignLocation } from '@/lib/hard-navigation';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -55,11 +56,17 @@ export default function LoginPage() {
       }
       const res = await loginRes.json() as AuthResponse;
       setStoredUser(res.user);
-      localStorage.setItem('user', JSON.stringify(res.user));
+      // Si llegó acá desde una pantalla del panel, vuelve a ella.
+      const back = safeRedirectTarget(window.location.search);
+      if (back) {
+        assignLocation(back);
+        return;
+      }
       // Play the cinematic login → panel transition; it covers the navigation.
       transition.start({
         firstName: res.user.firstName,
         lastName: res.user.lastName,
+        role: res.user.role,
       });
       setExiting(true);
       router.push('/');

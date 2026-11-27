@@ -18,10 +18,34 @@ export function getStoredUser(): { id: string; email: string; firstName: string;
   if (typeof window === 'undefined') return null;
   try {
     const stored = localStorage.getItem('user');
-    return stored ? JSON.parse(stored) : null;
+    const parsed: unknown = stored ? JSON.parse(stored) : null;
+    if (!parsed || typeof parsed !== 'object') return null;
+    const u = parsed as Record<string, unknown>;
+    // Un valor a medias (otra versión, edición manual) se trata como si no hubiera usuario.
+    if (typeof u.id !== 'string' || typeof u.role !== 'string') return null;
+    const text = (value: unknown) => (typeof value === 'string' ? value : '');
+    return {
+      id: u.id,
+      role: u.role,
+      email: text(u.email),
+      firstName: text(u.firstName),
+      lastName: text(u.lastName),
+      tenantId: text(u.tenantId),
+    };
   } catch {
     return null;
   }
+}
+
+/**
+ * Destino interno al que volver después de ingresar, tomado de `?redirect=`.
+ * Solo acepta rutas propias de la web y nunca las de autenticación.
+ */
+export function safeRedirectTarget(search: string): string | null {
+  const target = new URLSearchParams(search).get('redirect');
+  if (!target || !target.startsWith('/') || target.startsWith('//') || target.includes('\\')) return null;
+  if (/^\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?auth(?:\/|$)/.test(target)) return null;
+  return target;
 }
 
 export function setStoredUser(user: { id: string; email: string; firstName: string; lastName: string; role: string; tenantId: string }) {

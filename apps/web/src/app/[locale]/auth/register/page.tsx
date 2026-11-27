@@ -82,7 +82,6 @@ export default function RegisterPage() {
       });
 
       setStoredUser(res.user);
-      localStorage.setItem('user', JSON.stringify(res.user));
 
       // Redirect to onboarding (future) or dashboard
       router.push('/');

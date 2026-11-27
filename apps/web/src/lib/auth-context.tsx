@@ -16,6 +16,7 @@ import {
   ApiRequestError,
 } from './api-client';
 import { localizedPath } from '@/i18n/locale-path';
+import { replaceLocation } from './hard-navigation';
 import type { AuthResponse } from '@realfy/shared';
 
 interface User {
@@ -70,8 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const persisted = getStoredUser();
     if (persisted) {
       setUser(persisted);
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
+    // Hay cookie de sesión (el middleware dejó pasar) pero este navegador no
+    // guarda quién es el usuario, y la API no expone el perfil propio: en vez
+    // de dejar el panel sin nombre y cargando para siempre, se pide el ingreso
+    // de nuevo y se vuelve a la pantalla en la que estaba.
+    clearStoredUser();
+    const back = encodeURIComponent(window.location.pathname + window.location.search);
+    replaceLocation(`${localizedPath('/auth/login')}?redirect=${back}`);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
