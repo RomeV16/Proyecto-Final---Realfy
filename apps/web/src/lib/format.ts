@@ -247,3 +247,64 @@ export function formatYearShort(value?: string | Date | null, locale?: string): 
 export function formatCompNumber(pdv: number, num: number): string {
   return `${String(pdv).padStart(4, '0')}-${String(num).padStart(8, '0')}`;
 }
+
+/* ──────────── Duraciones y tiempo relativo ──────────── */
+
+const HOURS_PER_DAY = 24;
+const DAYS_PER_MONTH = 30;
+const DAYS_PER_YEAR = 365;
+
+function unit(value: number, name: 'hour' | 'day' | 'month' | 'year', locale?: string): string {
+  return new Intl.NumberFormat(intlLocale(locale), {
+    style: 'unit',
+    unit: name,
+    unitDisplay: name === 'hour' ? 'short' : 'long',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+/**
+ * Una cantidad de horas dicha como la diría una persona: `5` → "5 h",
+ * `60` → "2 días", `2520` → "3 meses", `20000` → "2 años". Hasta dos días se
+ * cuenta en horas, hasta dos meses en días y hasta dos años en meses; siempre
+ * redondea hacia abajo, para no decir "3 meses" antes de que se cumplan.
+ */
+export function formatDuration(hours: number | null | undefined, locale?: string): string {
+  if (hours == null || !Number.isFinite(hours)) return EMPTY;
+  const total = Math.abs(hours);
+  if (total < 1) return intlLocale(locale) === 'en-US' ? 'under 1 hr' : 'menos de 1 h';
+  if (total < 2 * HOURS_PER_DAY) return unit(Math.floor(total), 'hour', locale);
+  const days = Math.floor(total / HOURS_PER_DAY);
+  if (days < 2 * DAYS_PER_MONTH) return unit(days, 'day', locale);
+  if (days < 2 * DAYS_PER_YEAR) return unit(Math.floor(days / DAYS_PER_MONTH), 'month', locale);
+  return unit(Math.floor(days / DAYS_PER_YEAR), 'year', locale);
+}
+
+/** Lo mismo que `formatDuration`, a partir de días: `105` → "3 meses". */
+export function formatDurationDays(days: number | null | undefined, locale?: string): string {
+  if (days == null || !Number.isFinite(days)) return EMPTY;
+  return formatDuration(days * HOURS_PER_DAY, locale);
+}
+
+/**
+ * Cuánto hace (o cuánto falta) desde un instante: "hace 3 meses", "ayer",
+ * "hace 5 minutos", "dentro de 2 días". `now` se puede fijar en las pruebas.
+ */
+export function formatRelativeTime(
+  value?: string | Date | null,
+  options: { now?: Date; locale?: string } = {},
+): string {
+  const date = toInstant(value);
+  if (!date) return EMPTY;
+  const rtf = new Intl.RelativeTimeFormat(intlLocale(options.locale), { numeric: 'auto' });
+  const seconds = (date.getTime() - (options.now ?? new Date()).getTime()) / 1000;
+  const abs = Math.abs(seconds);
+  const sign = seconds < 0 ? -1 : 1;
+  const amount = (size: number) => sign * Math.floor(abs / size);
+  if (abs < 60) return rtf.format(0, 'second');
+  if (abs < 3600) return rtf.format(amount(60), 'minute');
+  if (abs < 86_400) return rtf.format(amount(3600), 'hour');
+  if (abs < DAYS_PER_MONTH * 86_400) return rtf.format(amount(86_400), 'day');
+  if (abs < DAYS_PER_YEAR * 86_400) return rtf.format(amount(DAYS_PER_MONTH * 86_400), 'month');
+  return rtf.format(amount(DAYS_PER_YEAR * 86_400), 'year');
+}
