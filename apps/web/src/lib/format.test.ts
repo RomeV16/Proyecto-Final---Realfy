@@ -66,9 +66,17 @@ describe('variantes de dinero', () => {
   it('formatMoneyCompact abrevia miles y millones', () => {
     expect(formatMoneyCompact(2_500_000)).toBe('$2,5M');
     expect(formatMoneyCompact(2_500_000, 'en')).toBe('$2.5M');
-    expect(formatMoneyCompact(-1_500_000)).toBe('$-1,5M');
+    expect(formatMoneyCompact(-1_500_000)).toBe('-$1,5M');
     expect(formatMoneyCompact(45_000)).toBe('$45K');
+    expect(formatMoneyCompact(-45_000)).toBe('-$45K');
     expect(formatMoneyCompact(900)).toBe('$900');
+    expect(formatMoneyCompact(-900)).toBe('-$900');
+  });
+
+  it('formatMoneyCompact no muestra mil miles: pasa a millones', () => {
+    expect(formatMoneyCompact(999_400)).toBe('$999K');
+    expect(formatMoneyCompact(999_600)).toBe('$1,0M');
+    expect(formatMoneyCompact(-999_600)).toBe('-$1,0M');
   });
 });
 

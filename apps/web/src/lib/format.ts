@@ -74,11 +74,14 @@ export function formatMoneyRounded(
 /** `$1,5M`, `$250K`: ejes y etiquetas chicas de los gráficos. */
 export function formatMoneyCompact(value: number, locale?: string): string {
   const decimalSeparator = intlLocale(locale) === 'en-US' ? '.' : ',';
-  if (Math.abs(value) >= 1_000_000) {
-    return `$${(value / 1_000_000).toFixed(1).replace('.', decimalSeparator)}M`;
+  const sign = value < 0 ? '-' : '';
+  const abs = Math.abs(value);
+  // Desde 999.500 el redondeo a miles daría "$1000K": pasa a millones.
+  if (Math.round(abs / 1000) >= 1000) {
+    return `${sign}$${(abs / 1_000_000).toFixed(1).replace('.', decimalSeparator)}M`;
   }
-  if (Math.abs(value) >= 1_000) return `$${Math.round(value / 1000)}K`;
-  return `$${value}`;
+  if (abs >= 1_000) return `${sign}$${Math.round(abs / 1000)}K`;
+  return `${sign}$${abs}`;
 }
 
 /** Número sin símbolo, con miles y decimales del locale. */
