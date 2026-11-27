@@ -119,12 +119,46 @@ describe('DashboardPage', () => {
     await screen.findByRole('heading', { level: 1, name: /Ana/ });
     expect(screen.getByText('Inmobiliaria Prueba')).toBeInTheDocument();
     expect(norm(document.body.textContent)).toContain('$ 1.250.000');
-    expect(norm(document.body.textContent)).toContain('$ 250.000');
+    expect(document.body.textContent).toContain('$250K');
     expect(norm(document.body.textContent)).toContain('$ 100.000');
-    expect(screen.getByText('60%', { selector: 'p' })).toBeInTheDocument();
     expect(screen.getByText('Pérdida de agua')).toBeInTheDocument();
-    expect(screen.getAllByText('20 d').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('20 días').length).toBeGreaterThan(0);
     expect(screen.getByText('Departamento')).toBeInTheDocument();
+  });
+
+  it('saluda sin género y cada indicador dice su unidad y su período', async () => {
+    mockApi(stats());
+    renderEs(<DashboardPage />);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Hola, Ana' })).toBeInTheDocument();
+    expect(screen.getByText('5 de 8 propiedades ocupadas')).toBeInTheDocument();
+    expect(screen.getByText(/^Cobrado en /)).toBeInTheDocument();
+    // El mes en curso es el último punto de la serie: 1.000.000 de 1.100.000.
+    expect(screen.getByText('91% de $1,1M liquidados')).toBeInTheDocument();
+    expect(screen.getByText('Saldo vencido')).toBeInTheDocument();
+    expect(screen.getByText('Sin cobrar, de todos los períodos')).toBeInTheDocument();
+    expect(screen.getByText('1 urgente o de prioridad alta')).toBeInTheDocument();
+    // La cobranza del último mes cerrado sale del punto anterior: 900.000 de 1.000.000.
+    expect(screen.getByText('90%', { selector: 'p' })).toBeInTheDocument();
+    expect(screen.getByText(/^Cobranza de /)).toBeInTheDocument();
+    expect(screen.queryByText(/Tasa de cobranza/)).not.toBeInTheDocument();
+  });
+
+  it('sin liquidaciones en el mes no muestra un porcentaje de cobranza', async () => {
+    mockApi(
+      stats({
+        collections: { total: 150000, pagada: 0, pendiente: 0, vencida: 150000, rate: 0 },
+        revenueTrend: [
+          { month: 'Oct', expected: 0, collected: 0 },
+          { month: 'Nov', expected: 0, collected: 0 },
+        ],
+      }),
+    );
+    renderEs(<DashboardPage />);
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.getByText('Sin liquidaciones del mes todavía')).toBeInTheDocument();
+    expect(screen.getByText('sin liquidaciones ese mes')).toBeInTheDocument();
+    expect(screen.getByText('Todavía no hay liquidaciones para graficar.')).toBeInTheDocument();
+    expect(norm(document.body.textContent)).not.toContain('0%');
   });
 
   it('limita la agenda a tres filas y ofrece Ver todos con prefijo de idioma', async () => {
@@ -182,6 +216,9 @@ describe('DashboardPage', () => {
     expect(screen.getByText('No hay cobranzas pendientes.')).toBeInTheDocument();
     expect(screen.getByText('No hay tickets abiertos.')).toBeInTheDocument();
     expect(screen.getByText(/Sin contratos por vencer/)).toBeInTheDocument();
+    expect(screen.getByText('No hay liquidaciones del mes ni deuda vencida.')).toBeInTheDocument();
+    expect(screen.getByText('No hay deuda vencida')).toBeInTheDocument();
+    expect(screen.getByText('Ninguno urgente ni de prioridad alta')).toBeInTheDocument();
     expect(screen.queryByText('Inmobiliaria Prueba')).not.toBeInTheDocument();
   });
 

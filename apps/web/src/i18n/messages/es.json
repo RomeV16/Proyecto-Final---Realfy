@@ -366,7 +366,7 @@
    "noCollections": "Sin liquidaciones este mes"
   },
   "loading": "Cargando métricas...",
-  "errorLoading": "Error al cargar las métricas",
+  "errorLoading": "No se pudieron cargar los datos del panel",
   "retry": "Reintentar",
   "currency": "ARS",
   "percentSign": "%",
@@ -386,23 +386,23 @@
    "collections": "Estado de cobranzas"
   },
   "analytics": {
-   "occupancyTitle": "Tendencia de ocupación",
-   "occupancyLabel": "Ocupación",
+   "occupancyTitle": "Ocupación con contrato vigente",
+   "occupancyLabel": "Propiedades con contrato vigente",
    "occupancyEmpty": "Todavía no hay ocupación para graficar",
-   "occupancyEmptyHint": "Cargá operaciones de alquiler para ver cómo evoluciona la cartera.",
-   "profitabilityTitle": "Rentabilidad por propiedad",
+   "occupancyEmptyHint": "Cargá contratos de alquiler para ver cómo evoluciona la cartera.",
+   "profitabilityTitle": "Ingresos y gastos por propiedad",
    "profitabilityEmpty": "Todavía no hay rentabilidad para graficar",
    "profitabilityEmptyHint": "Registrá cobranzas del período para comparar ingresos y gastos.",
-   "lastTwelveMonths": "Últimos 12 meses",
-   "topProperties": "Top {count} del período",
+   "lastTwelveMonths": "Al cierre de cada mes · 12 meses",
+   "topProperties": "Últimos 12 meses · las de mayor neto",
    "revenue": "Ingresos",
    "expenses": "Gastos",
-   "loadError": "No se pudieron cargar las métricas de cartera"
+   "loadError": "No se pudieron cargar los gráficos de la cartera"
   },
   "priorities": {
    "title": "Prioridades del día",
-   "hint": "Ordenadas por urgencia",
-   "sourceModel": "Orden sugerido por {model}",
+   "hint": "Lo más urgente primero",
+   "sourceModel": "Orden sugerido por el asistente ({model})",
    "sourceRules": "Orden calculado con las reglas del sistema",
    "urgency": {
     "alta": "Alta",
@@ -423,8 +423,92 @@
    "overSla": "fuera de plazo",
    "withoutContact": "sin contacto",
    "emptyTitle": "No hay nada urgente para hoy",
-   "emptySubtitle": "Las cobranzas están al día, no hay reclamos fuera de plazo ni contratos por vencer. Buen momento para trabajar la cartera con calma.",
-   "loadError": "No se pudieron cargar las prioridades del día"
+   "emptySubtitle": "Las cobranzas están al día, no hay reclamos fuera de plazo ni contratos por vencer.",
+   "loadError": "No se pudieron cargar las prioridades del día",
+   "overdueFor": "vencida hace {elapsed}",
+   "overSlaFor": "Fuera de plazo hace {elapsed}",
+   "today": "Hoy",
+   "expires": "vence"
+  },
+  "panel": {
+   "greeting": "Hola, {name}",
+   "greetingNoName": "Hola",
+   "kpi": {
+    "occupancy": "Ocupación",
+    "occupancyHint": "{occupied} de {total} propiedades ocupadas",
+    "collected": "Cobrado en {month}",
+    "collectedNoMonth": "Cobrado este mes",
+    "collectedHint": "{pct}% de {amount} liquidados",
+    "collectedNone": "Sin liquidaciones del mes todavía",
+    "overdue": "Saldo vencido",
+    "overdueHint": "Sin cobrar, de todos los períodos",
+    "overdueNone": "No hay deuda vencida",
+    "tickets": "Tickets abiertos",
+    "ticketsHint": "{count, plural, =0 {Ninguno urgente ni de prioridad alta} one {# urgente o de prioridad alta} other {# urgentes o de prioridad alta}}"
+   },
+   "rentRoll": "Alquileres de la cartera",
+   "rentRollHint": "Por mes, sumando los contratos activos",
+   "activeContracts": "Contratos activos",
+   "avgRent": "Alquiler promedio",
+   "perMonth": "por mes",
+   "closedRate": "Cobranza de {month}",
+   "closedRateNoMonth": "Cobranza del mes anterior",
+   "closedRateHint": "cobrado sobre lo liquidado",
+   "closedRateNone": "sin liquidaciones ese mes",
+   "chart": {
+    "title": "Liquidado y cobrado por mes",
+    "subtitle": "Últimos 6 meses, en pesos, según el período de cada liquidación",
+    "expected": "Liquidado",
+    "collected": "Cobrado",
+    "inProgress": "en curso",
+    "currentNote": "{month} todavía no cerró: lo cobrado puede seguir subiendo.",
+    "currentEmpty": "Todavía no se emitieron las liquidaciones de {month}.",
+    "empty": "Todavía no hay liquidaciones para graficar."
+   },
+   "status": {
+    "overdue": "Vencida",
+    "sent": "Enviada",
+    "approved": "Aprobada",
+    "pending": "Pendiente"
+   },
+   "agenda": {
+    "title": "Agenda",
+    "window": "Próximos 90 días",
+    "seeAll": "Ver todos ({count})",
+    "expiring": "Contratos por vencer",
+    "expiringEmpty": "Sin contratos por vencer en los próximos 90 días.",
+    "days": "{count, plural, =0 {Hoy} one {# día} other {# días}}",
+    "toExpiry": "para vencer",
+    "renew": "Renovar",
+    "collections": "Liquidaciones sin cobrar",
+    "collectionsEmpty": "No hay cobranzas pendientes.",
+    "overdue": "vencida",
+    "pending": "pendiente",
+    "collect": "Cobrar",
+    "tickets": "Tickets prioritarios",
+    "ticketsEmpty": "No hay tickets abiertos.",
+    "attend": "Atender"
+   },
+   "collectionStatus": {
+    "title": "Estado de la cobranza",
+    "link": "Ver liquidaciones",
+    "collected": "Cobrado",
+    "pending": "Por cobrar",
+    "overdue": "Vencido",
+    "thisMonth": "del mes",
+    "allPeriods": "acumulado",
+    "empty": "No hay liquidaciones del mes ni deuda vencida."
+   },
+   "composition": {
+    "title": "Propiedades por tipo",
+    "count": "{count, plural, one {# propiedad} other {# propiedades}}"
+   }
+  },
+  "elapsed": {
+   "hours": "{count, plural, one {# hora} other {# horas}}",
+   "days": "{count, plural, one {# día} other {# días}}",
+   "months": "{count, plural, one {# mes} other {# meses}}",
+   "years": "{count, plural, one {# año} other {# años}}"
   }
  },
  "users": {

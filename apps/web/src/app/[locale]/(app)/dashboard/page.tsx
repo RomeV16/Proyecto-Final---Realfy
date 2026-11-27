@@ -5,7 +5,6 @@ import { Link } from '@/i18n/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
 import { useEffect, useState } from 'react';
-import { Reveal } from '@/components/ui/reveal';
 import { AnimatePresence, motion } from 'framer-motion';
 import { EntityRow } from '@/components/ui/entity-card';
 import { StatTile } from '@/components/ui/stat-tile';
@@ -13,19 +12,9 @@ import { TicketPriorityBadge } from '@/components/tickets/ticket-priority-badge'
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton';
 import { DailyPriorities } from '@/components/dashboard/daily-priorities';
 import { PortfolioAnalytics } from '@/components/dashboard/portfolio-analytics';
+import { CollectionChart } from '@/components/dashboard/collection-chart';
 import { Icon, type IconName } from '@/components/ui/icon';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-} from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatMoneyRounded, formatMoneyCompact, formatDate, formatLocalDate } from '@/lib/format';
 import { useCan } from '@/lib/permissions';
 
@@ -62,12 +51,12 @@ interface Stats {
   };
 }
 
-/* ──────────────── Formatting ──────────────── */
-
-
-
-
 const TYPE_COLORS = ['#bd5a32', '#3d5f49', '#c58a2b', '#8a7e6d', '#a4481f', '#5f8168', '#d8926f'];
+
+const monthName = (date: Date) => formatLocalDate(date, { month: 'long' });
+
+const percentOf = (part: number, whole: number) =>
+  whole > 0 ? Math.round((part / whole) * 100) : null;
 
 /* ──────────────── Small pieces ──────────────── */
 
@@ -93,18 +82,15 @@ function RowIcon({
 function SectionCard({
   title,
   action,
-  minHeight,
   children,
 }: {
   title: string;
   action?: React.ReactNode;
-  /** Se iguala al alto del esqueleto para que el relevo no mueva la pagina. */
-  minHeight?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className={`card-lux p-6 ${minHeight ?? ''}`}>
-      <div className="flex items-center justify-between mb-4">
+    <div className="card-lux p-5 sm:p-6">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h3 className="h3">{title}</h3>
         {action}
       </div>
@@ -118,12 +104,14 @@ function AgendaGroup({
   count,
   href,
   emptyText,
+  seeAll,
   children,
 }: {
   title: string;
   count: number;
   href: string;
   emptyText: string;
+  seeAll: string;
   children?: React.ReactNode;
 }) {
   return (
@@ -132,7 +120,7 @@ function AgendaGroup({
         <p className="micro">{title}</p>
         {count > 3 && (
           <Link href={href} className="text-xs font-medium text-brand-600 link-underline">
-            Ver todos ({count})
+            {seeAll}
           </Link>
         )}
       </div>
@@ -147,22 +135,49 @@ function AgendaGroup({
   );
 }
 
+/** Un dato chico del bloque de cartera: valor, nombre y aclaración. */
+function Fact({
+  value,
+  label,
+  hint,
+  href,
+}: {
+  value: React.ReactNode;
+  label: string;
+  hint?: string;
+  href?: string;
+}) {
+  const body = (
+    <>
+      <p className="numeric-xl !text-[1.4rem]">{value}</p>
+      <p className="mt-0.5 text-xs font-medium text-[var(--color-text)]">{label}</p>
+      {hint && <p className="text-[11px] text-[var(--color-muted)]">{hint}</p>}
+    </>
+  );
+  return href ? (
+    <Link href={href} className="block transition-opacity hover:opacity-75">
+      {body}
+    </Link>
+  ) : (
+    <div>{body}</div>
+  );
+}
+
 /* ──────────────── Page ──────────────── */
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
+  const tp = useTranslations('dashboard.panel');
   const { user, isLoading } = useAuth();
 
   const [tenant, setTenant] = useState<TenantData | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [today, setToday] = useState('');
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
-    setToday(
-      formatLocalDate(new Date(), { weekday: 'long', day: 'numeric', month: 'long' }),
-    );
+    setNow(new Date());
   }, []);
 
   useEffect(() => {
@@ -186,7 +201,7 @@ export default function DashboardPage() {
     }
     // Wait for the auth context to hydrate the user before fetching; the guard
     // below keeps the skeleton on screen until then (no premature error state).
-    if (user) load();
+    if (user) void load();
     return () => {
       cancelled = true;
     };
@@ -217,11 +232,22 @@ export default function DashboardPage() {
   const overduePct = s && s.collections.total > 0 ? (s.collections.vencida / s.collections.total) * 100 : 0;
 
   const statusLabel: Record<string, string> = {
-    Vencida: 'Vencida',
-    Enviada: 'Enviada',
-    Aprobada: 'Aprobada',
-    Pendiente: 'Pendiente',
+    Vencida: tp('status.overdue'),
+    Enviada: tp('status.sent'),
+    Aprobada: tp('status.approved'),
+    Pendiente: tp('status.pending'),
   };
+
+  const today = now ? formatLocalDate(now, { weekday: 'long', day: 'numeric', month: 'long' }) : '';
+  const currentMonth = now ? monthName(now) : '';
+  const previousMonth = now ? monthName(new Date(now.getFullYear(), now.getMonth() - 1, 1)) : '';
+
+  // La serie termina en el mes en curso; el anterior es el último mes cerrado.
+  const trend = s?.revenueTrend ?? [];
+  const currentPoint = trend.at(-1);
+  const closedPoint = trend.at(-2);
+  const currentRate = currentPoint ? percentOf(currentPoint.collected, currentPoint.expected) : null;
+  const closedRate = closedPoint ? percentOf(closedPoint.collected, closedPoint.expected) : null;
 
   return (
     <div className="relative">
@@ -242,328 +268,308 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       {s && (
-        <div className="space-y-6 pb-6">
+        <div className="space-y-5 pb-6">
           {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="eyebrow mb-3">Centro de operaciones</p>
-          <h1 className="h1">{t('welcome', { name: user?.firstName || '' })}</h1>
-          {tenant?.name && <p className="mt-2 text-sm text-[var(--color-muted)]">{tenant.name}</p>}
-        </div>
-        {today && (
-          <p className="text-sm text-[var(--color-muted)] first-letter:uppercase">{today}</p>
-        )}
-      </div>
-
-      {/* Prioridades del día — arranca la jornada por lo que no puede esperar */}
-      {canSeeAnalytics && <DailyPriorities />}
-
-      {/* Hero — rent roll + revenue trend */}
-      <Reveal>
-        <div className="card-lux overflow-hidden grid lg:grid-cols-[minmax(240px,0.9fr)_1.6fr] min-h-[288px]">
-          <div className="p-7 lg:border-r border-[var(--color-border)] flex flex-col justify-center">
-            <p className="micro">Renta mensual de cartera</p>
-            <p className="font-display text-[clamp(2.4rem,4vw,3.4rem)] leading-none mt-3" style={{ color: accent }}>
-              {formatMoneyRounded(s.monthlyRentRoll)}
-            </p>
-            <div className="mt-5 flex flex-wrap gap-x-8 gap-y-3">
-              <div>
-                <p className="numeric-xl text-[1.4rem]">{s.activeContracts}</p>
-                <p className="text-xs text-[var(--color-muted)] mt-0.5">Contratos activos</p>
-              </div>
-              <div>
-                <p className="numeric-xl text-[1.4rem]">{formatMoneyRounded(s.avgRent)}</p>
-                <p className="text-xs text-[var(--color-muted)] mt-0.5">Alquiler promedio</p>
-              </div>
-              <div>
-                <p className="numeric-xl text-[1.4rem]">{s.collections.rate}%</p>
-                <p className="text-xs text-[var(--color-muted)] mt-0.5">Tasa de cobranza</p>
-              </div>
+          <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
+            <div>
+              <h1 className="h1">
+                {user?.firstName ? tp('greeting', { name: user.firstName }) : tp('greetingNoName')}
+              </h1>
+              {tenant?.name && <p className="mt-1 text-sm text-[var(--color-muted)]">{tenant.name}</p>}
             </div>
+            {today && <p className="text-sm text-[var(--color-muted)] first-letter:uppercase">{today}</p>}
           </div>
-          <div className="p-6 pt-7 min-h-[240px]">
-            <div className="flex items-center justify-between mb-2">
-              <p className="micro">Ingresos · últimos 6 meses</p>
-              <div className="flex items-center gap-4 text-xs text-[var(--color-muted)]">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ background: accent }} /> Cobrado
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-[#d3c6ac]" /> Facturado
-                </span>
-              </div>
-            </div>
-            <div className="h-[190px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={s.revenueTrend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="gCol" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={accent} stopOpacity={0.28} />
-                      <stop offset="100%" stopColor={accent} stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="gExp" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#d3c6ac" stopOpacity={0.22} />
-                      <stop offset="100%" stopColor="#d3c6ac" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid vertical={false} stroke="#e4dac7" strokeDasharray="2 4" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#8a7e6d' }} axisLine={false} tickLine={false} />
-                  <YAxis hide />
-                  <Tooltip
-                    formatter={(v, n) => [formatMoneyRounded(Number(v)), n === 'collected' ? 'Cobrado' : 'Facturado']}
-                    contentStyle={{ borderRadius: 10, border: '1px solid #e4dac7', background: '#fbf8f1', fontSize: 12 }}
-                    cursor={{ stroke: '#d3c6ac' }}
-                  />
-                  <Area type="monotone" dataKey="expected" stroke="#c9bca2" strokeWidth={1.5} fill="url(#gExp)" />
-                  <Area type="monotone" dataKey="collected" stroke={accent} strokeWidth={2.5} fill="url(#gCol)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+
+          {/* Indicadores: cada uno con su unidad, su período y el listado al que lleva */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <StatTile
+              label={tp('kpi.occupancy')}
+              value={`${s.occupancyRate}%`}
+              progress={s.occupancyRate}
+              tone="brand"
+              hint={tp('kpi.occupancyHint', { occupied: s.occupiedUnits, total: s.totalProperties })}
+              href={'/properties'}
+            />
+            <StatTile
+              label={currentMonth ? tp('kpi.collected', { month: currentMonth }) : tp('kpi.collectedNoMonth')}
+              value={formatMoneyCompact(s.collections.pagada)}
+              icon="wallet"
+              tone="success"
+              hint={
+                currentPoint && currentRate !== null
+                  ? tp('kpi.collectedHint', {
+                      pct: currentRate,
+                      amount: formatMoneyCompact(currentPoint.expected),
+                    })
+                  : tp('kpi.collectedNone')
+              }
+              href={'/liquidaciones'}
+            />
+            <StatTile
+              label={tp('kpi.overdue')}
+              value={formatMoneyCompact(s.delinquency.overdueAmount)}
+              icon="alert"
+              tone={s.delinquency.overdueAmount > 0 ? 'danger' : 'success'}
+              hint={s.delinquency.overdueAmount > 0 ? tp('kpi.overdueHint') : tp('kpi.overdueNone')}
+              href={'/delinquency'}
+            />
+            <StatTile
+              label={tp('kpi.tickets')}
+              value={s.tickets.open}
+              icon="tickets"
+              tone={s.tickets.urgent > 0 ? 'warning' : 'neutral'}
+              hint={tp('kpi.ticketsHint', { count: s.tickets.urgent })}
+              href={'/tickets'}
+            />
           </div>
-        </div>
-      </Reveal>
 
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Reveal delay={0}>
-          <StatTile
-            label="Ocupación"
-            value={`${s.occupancyRate}%`}
-            progress={s.occupancyRate}
-            tone="brand"
-            hint={`${s.occupiedUnits} ocupadas · ${s.vacantUnits} libres`}
-            href={'/properties'}
-            className="min-h-[128px]"
-          />
-        </Reveal>
-        <Reveal delay={1}>
-          <StatTile
-            label="Cobrado este ciclo"
-            value={formatMoneyCompact(s.collections.pagada)}
-            icon="wallet"
-            tone="success"
-            hint={`${s.collections.rate}% de lo facturado`}
-            href={'/liquidaciones'}
-            className="min-h-[128px]"
-          />
-        </Reveal>
-        <Reveal delay={2}>
-          <StatTile
-            label="Mora"
-            value={formatMoneyCompact(s.delinquency.overdueAmount)}
-            icon="alert"
-            tone={s.delinquency.overdueAmount > 0 ? 'danger' : 'success'}
-            hint={`${s.delinquency.rate}% de la cartera`}
-            href={'/delinquency'}
-            className="min-h-[128px]"
-          />
-        </Reveal>
-        <Reveal delay={3}>
-          <StatTile
-            label="Tickets abiertos"
-            value={s.tickets.open}
-            icon="tickets"
-            tone={s.tickets.urgent > 0 ? 'warning' : 'neutral'}
-            hint={`${s.tickets.urgent} de prioridad alta`}
-            href={'/tickets'}
-            className="min-h-[128px]"
-          />
-        </Reveal>
-      </div>
-
-      {/* Lower grid: agenda (left) + composition & collections (right) */}
-      <div className="grid lg:grid-cols-[1.5fr_1fr] gap-6">
-        {/* Agenda */}
-        <Reveal className="space-y-6">
-          <SectionCard
-            title="Requiere tu atención"
-            action={<span className="micro">Próximos 90 días</span>}
-          >
-            <div className="space-y-5 min-h-[420px]">
-              <AgendaGroup
-                title="Vencimientos de contrato"
-                count={s.agenda.expiring.length}
-                href={'/contracts'}
-                emptyText="Sin contratos por vencer en los próximos 90 días."
+          {/* Cartera: alquiler mensual, y liquidado y cobrado por mes */}
+          <div className="card-lux grid overflow-hidden lg:grid-cols-[minmax(260px,0.8fr)_1.6fr]">
+            <div className="flex flex-col justify-center border-b border-[var(--color-border)] p-5 sm:p-6 lg:border-b-0 lg:border-r">
+              <p className="micro">{tp('rentRoll')}</p>
+              <p
+                className="font-display mt-2.5 text-[clamp(2.1rem,3.6vw,3rem)] leading-none"
+                style={{ color: accent }}
               >
-                {s.agenda.expiring.slice(0, 3).map((c) => (
-                  <EntityRow
-                    key={c.id}
-                    href={`/contracts/${c.id}`}
-                    label={c.property}
-                    accent={c.daysLeft <= 30 ? 'danger' : 'warning'}
-                    leading={<RowIcon icon="contracts" tone={c.daysLeft <= 30 ? 'danger' : 'warning'} />}
-                    title={c.property}
-                    subtitle={c.tenant}
-                    trailing={
-                      <EntityRow.Amount
-                        value={`${c.daysLeft} d`}
-                        hint="para vencer"
-                        tone={c.daysLeft <= 30 ? 'danger' : 'default'}
-                      />
-                    }
-                    actions={
-                      <EntityRow.Action
+                {formatMoneyRounded(s.monthlyRentRoll)}
+              </p>
+              <p className="mt-1.5 text-xs text-[var(--color-muted)]">{tp('rentRollHint')}</p>
+              <div className="mt-5 grid grid-cols-3 gap-4">
+                <Fact value={s.activeContracts} label={tp('activeContracts')} href={'/contracts'} />
+                <Fact value={formatMoneyCompact(s.avgRent)} label={tp('avgRent')} hint={tp('perMonth')} />
+                <Fact
+                  value={closedRate === null ? '—' : `${closedRate}%`}
+                  label={previousMonth ? tp('closedRate', { month: previousMonth }) : tp('closedRateNoMonth')}
+                  hint={closedRate === null ? tp('closedRateNone') : tp('closedRateHint')}
+                />
+              </div>
+            </div>
+            <div className="p-5 sm:p-6">
+              <CollectionChart trend={trend} accent={accent} currentMonthName={currentMonth} />
+            </div>
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
+            <div className="min-w-0 space-y-5">
+              {/* Prioridades del día — arranca la jornada por lo que no puede esperar */}
+              {canSeeAnalytics && <DailyPriorities />}
+
+              <SectionCard
+                title={tp('agenda.title')}
+                action={<span className="micro">{tp('agenda.window')}</span>}
+              >
+                <div className="space-y-5">
+                  <AgendaGroup
+                    title={tp('agenda.expiring')}
+                    count={s.agenda.expiring.length}
+                    href={'/contracts'}
+                    emptyText={tp('agenda.expiringEmpty')}
+                    seeAll={tp('agenda.seeAll', { count: s.agenda.expiring.length })}
+                  >
+                    {s.agenda.expiring.slice(0, 3).map((c) => (
+                      <EntityRow
+                        key={c.id}
                         href={`/contracts/${c.id}`}
-                        icon="arrowRight"
-                        variant="ghost"
-                      >
-                        Renovar
-                      </EntityRow.Action>
-                    }
-                  />
-                ))}
-              </AgendaGroup>
+                        label={c.property}
+                        accent={c.daysLeft <= 30 ? 'danger' : 'warning'}
+                        leading={<RowIcon icon="contracts" tone={c.daysLeft <= 30 ? 'danger' : 'warning'} />}
+                        title={c.property}
+                        subtitle={c.tenant}
+                        trailing={
+                          <EntityRow.Amount
+                            value={tp('agenda.days', { count: c.daysLeft })}
+                            hint={tp('agenda.toExpiry')}
+                            tone={c.daysLeft <= 30 ? 'danger' : 'default'}
+                          />
+                        }
+                        actions={
+                          <EntityRow.Action href={`/contracts/${c.id}`} icon="arrowRight" variant="ghost">
+                            {tp('agenda.renew')}
+                          </EntityRow.Action>
+                        }
+                      />
+                    ))}
+                  </AgendaGroup>
 
-              <AgendaGroup
-                title="Cobranzas pendientes"
-                count={s.agenda.collections.length}
-                href={'/liquidaciones'}
-                emptyText="No hay cobranzas pendientes."
-              >
-                {s.agenda.collections.slice(0, 3).map((c) => {
-                  const overdue = c.status === 'Vencida';
-                  return (
-                    <EntityRow
-                      key={c.id}
-                      href={'/liquidaciones'}
-                      label={c.property}
-                      accent={overdue ? 'danger' : 'warning'}
-                      leading={<RowIcon icon="liquidaciones" tone={overdue ? 'danger' : 'warning'} />}
-                      title={c.property}
-                      subtitle={`${formatDate(c.period, { month: 'short', year: '2-digit' })} · ${statusLabel[c.status] ?? c.status}`}
-                      trailing={
-                        <EntityRow.Amount
-                          value={formatMoneyRounded(c.amount)}
-                          hint={overdue ? 'vencida' : 'pendiente'}
-                          tone={overdue ? 'danger' : 'default'}
-                        />
-                      }
-                      actions={
-                        <EntityRow.Action
+                  <AgendaGroup
+                    title={tp('agenda.collections')}
+                    count={s.agenda.collections.length}
+                    href={'/liquidaciones'}
+                    emptyText={tp('agenda.collectionsEmpty')}
+                    seeAll={tp('agenda.seeAll', { count: s.agenda.collections.length })}
+                  >
+                    {s.agenda.collections.slice(0, 3).map((c) => {
+                      const overdue = c.status === 'Vencida';
+                      return (
+                        <EntityRow
+                          key={c.id}
                           href={'/liquidaciones'}
-                          icon="arrowRight"
-                          variant="ghost"
-                        >
-                          Cobrar
-                        </EntityRow.Action>
-                      }
-                    />
-                  );
-                })}
-              </AgendaGroup>
+                          label={c.property}
+                          accent={overdue ? 'danger' : 'warning'}
+                          leading={<RowIcon icon="liquidaciones" tone={overdue ? 'danger' : 'warning'} />}
+                          title={c.property}
+                          subtitle={`${formatDate(c.period, { month: 'long', year: 'numeric' })} · ${statusLabel[c.status] ?? c.status}`}
+                          trailing={
+                            <EntityRow.Amount
+                              value={formatMoneyRounded(c.amount)}
+                              hint={overdue ? tp('agenda.overdue') : tp('agenda.pending')}
+                              tone={overdue ? 'danger' : 'default'}
+                            />
+                          }
+                          actions={
+                            <EntityRow.Action href={'/liquidaciones'} icon="arrowRight" variant="ghost">
+                              {tp('agenda.collect')}
+                            </EntityRow.Action>
+                          }
+                        />
+                      );
+                    })}
+                  </AgendaGroup>
 
-              <AgendaGroup
-                title="Tickets prioritarios"
-                count={s.agenda.tickets.length}
-                href={'/tickets'}
-                emptyText="No hay tickets abiertos."
+                  <AgendaGroup
+                    title={tp('agenda.tickets')}
+                    count={s.agenda.tickets.length}
+                    href={'/tickets'}
+                    emptyText={tp('agenda.ticketsEmpty')}
+                    seeAll={tp('agenda.seeAll', { count: s.agenda.tickets.length })}
+                  >
+                    {s.agenda.tickets.slice(0, 3).map((tk) => (
+                      <EntityRow
+                        key={tk.id}
+                        href={`/tickets/${tk.id}`}
+                        label={tk.title}
+                        accent={tk.priority === 'Urgente' ? 'danger' : 'brand'}
+                        leading={
+                          <RowIcon icon="tickets" tone={tk.priority === 'Urgente' ? 'danger' : 'brand'} />
+                        }
+                        title={tk.title}
+                        subtitle={tk.property}
+                        meta={
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <TicketPriorityBadge priority={tk.priority} />
+                          </div>
+                        }
+                        actions={
+                          <EntityRow.Action href={`/tickets/${tk.id}`} icon="arrowRight" variant="ghost">
+                            {tp('agenda.attend')}
+                          </EntityRow.Action>
+                        }
+                      />
+                    ))}
+                  </AgendaGroup>
+                </div>
+              </SectionCard>
+            </div>
+
+            <div className="min-w-0 space-y-5">
+              <SectionCard
+                title={tp('collectionStatus.title')}
+                action={
+                  <Link href={'/liquidaciones'} className="text-xs font-medium text-brand-600 link-underline">
+                    {tp('collectionStatus.link')}
+                  </Link>
+                }
               >
-                {s.agenda.tickets.slice(0, 3).map((tk) => (
-                  <EntityRow
-                    key={tk.id}
-                    href={`/tickets/${tk.id}`}
-                    label={tk.title}
-                    accent={tk.priority === 'Urgente' ? 'danger' : 'brand'}
-                    leading={
-                      <RowIcon icon="tickets" tone={tk.priority === 'Urgente' ? 'danger' : 'brand'} />
-                    }
-                    title={tk.title}
-                    subtitle={tk.property}
-                    meta={
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <TicketPriorityBadge priority={tk.priority} />
-                      </div>
-                    }
-                    actions={
-                      <EntityRow.Action href={`/tickets/${tk.id}`} icon="arrowRight" variant="ghost">
-                        Atender
-                      </EntityRow.Action>
-                    }
-                  />
-                ))}
-              </AgendaGroup>
-            </div>
-          </SectionCard>
-        </Reveal>
-
-        {/* Composition + collections */}
-        <Reveal delay={1} className="space-y-6">
-          <SectionCard title="Composición de cartera" minHeight="min-h-[220px]">
-            <div className="flex items-center gap-5">
-              <div className="h-[150px] w-[150px] shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={s.propertiesByType}
-                      dataKey="count"
-                      nameKey="type"
-                      innerRadius="58%"
-                      outerRadius="98%"
-                      paddingAngle={2}
-                      stroke="none"
-                    >
-                      {s.propertiesByType.map((_, i) => (
-                        <Cell key={i} fill={TYPE_COLORS[i % TYPE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(v, n) => [`${v}`, String(n)]}
-                      contentStyle={{ borderRadius: 10, border: '1px solid #e4dac7', background: '#fbf8f1', fontSize: 12 }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex-1 space-y-1.5 min-w-0">
-                {s.propertiesByType.map((p, i) => (
-                  <div key={p.type} className="flex items-center gap-2 text-sm">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full shrink-0"
-                      style={{ background: TYPE_COLORS[i % TYPE_COLORS.length] }}
-                    />
-                    <span className="text-[var(--color-text)] truncate flex-1">{p.type}</span>
-                    <span className="tabular-nums text-[var(--color-muted)]">{p.count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </SectionCard>
-
-          <SectionCard title="Cobranzas" minHeight="min-h-[168px]">
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-1.5">
-                  <span className="text-[var(--color-muted)]">Cobrado</span>
-                  <span className="font-medium tabular-nums">{formatMoneyRounded(s.collections.pagada)}</span>
-                </div>
-                <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-sunken)]">
-                  <span className="h-full bg-[#3d5f49]" style={{ width: `${collectedPct}%` }} />
-                  <span className="h-full bg-[#c58a2b]" style={{ width: `${pendingPct}%` }} />
-                  <span className="h-full bg-[#b23a2b]" style={{ width: `${overduePct}%` }} />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                {[
-                  { label: 'Cobrado', v: s.collections.pagada, c: '#3d5f49' },
-                  { label: 'Pendiente', v: s.collections.pendiente, c: '#c58a2b' },
-                  { label: 'Vencido', v: s.collections.vencida, c: '#b23a2b' },
-                ].map((x) => (
-                  <div key={x.label}>
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full" style={{ background: x.c }} />
-                      <span className="text-xs text-[var(--color-muted)]">{x.label}</span>
+                {s.collections.total > 0 ? (
+                  <div className="space-y-4">
+                    <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-sunken)]">
+                      <span className="h-full bg-[var(--color-success)]" style={{ width: `${collectedPct}%` }} />
+                      <span className="h-full bg-[var(--color-warning)]" style={{ width: `${pendingPct}%` }} />
+                      <span className="h-full bg-[var(--color-danger)]" style={{ width: `${overduePct}%` }} />
                     </div>
-                    <p className="text-sm font-medium tabular-nums mt-0.5">{formatMoneyCompact(x.v)}</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        {
+                          label: tp('collectionStatus.collected'),
+                          hint: tp('collectionStatus.thisMonth'),
+                          v: s.collections.pagada,
+                          c: 'var(--color-success)',
+                        },
+                        {
+                          label: tp('collectionStatus.pending'),
+                          hint: tp('collectionStatus.thisMonth'),
+                          v: s.collections.pendiente,
+                          c: 'var(--color-warning)',
+                        },
+                        {
+                          label: tp('collectionStatus.overdue'),
+                          hint: tp('collectionStatus.allPeriods'),
+                          v: s.collections.vencida,
+                          c: 'var(--color-danger)',
+                        },
+                      ].map((x) => (
+                        <div key={x.label}>
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full" style={{ background: x.c }} />
+                            <span className="text-xs text-[var(--color-muted)]">{x.label}</span>
+                          </div>
+                          <p className="mt-0.5 text-sm font-medium tabular-nums">{formatMoneyCompact(x.v)}</p>
+                          <p className="text-[11px] text-[var(--color-muted)]">{x.hint}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </SectionCard>
-        </Reveal>
-      </div>
+                ) : (
+                  <p className="rounded-[var(--radius-lg)] bg-[var(--color-surface-sunken)] px-3 py-3 text-sm text-[var(--color-muted)]">
+                    {tp('collectionStatus.empty')}
+                  </p>
+                )}
+              </SectionCard>
 
-      {/* Ocupación y rentabilidad — sólo para quienes ven las métricas de cartera */}
-      {canSeeAnalytics && <PortfolioAnalytics />}
+              <SectionCard
+                title={tp('composition.title')}
+                action={<span className="micro">{tp('composition.count', { count: s.totalProperties })}</span>}
+              >
+                <div className="flex items-center gap-5">
+                  <div className="h-[132px] w-[132px] shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={s.propertiesByType}
+                          dataKey="count"
+                          nameKey="type"
+                          innerRadius="58%"
+                          outerRadius="98%"
+                          paddingAngle={2}
+                          stroke="none"
+                        >
+                          {s.propertiesByType.map((p, i) => (
+                            <Cell key={p.type} fill={TYPE_COLORS[i % TYPE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          formatter={(v, n) => [`${v}`, String(n)]}
+                          contentStyle={{
+                            borderRadius: 10,
+                            border: '1px solid var(--color-border)',
+                            background: 'var(--color-surface)',
+                            color: 'var(--color-text)',
+                            fontSize: 12,
+                          }}
+                          itemStyle={{ color: 'var(--color-text)' }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    {s.propertiesByType.map((p, i) => (
+                      <div key={p.type} className="flex items-center gap-2 text-sm">
+                        <span
+                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{ background: TYPE_COLORS[i % TYPE_COLORS.length] }}
+                        />
+                        <span className="flex-1 truncate text-[var(--color-text)]">{p.type}</span>
+                        <span className="tabular-nums text-[var(--color-muted)]">{p.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Ocupación y rentabilidad — sólo para quienes ven las métricas de cartera */}
+              {canSeeAnalytics && <PortfolioAnalytics />}
+            </div>
+          </div>
         </div>
       )}
     </div>

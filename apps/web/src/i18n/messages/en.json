@@ -366,7 +366,7 @@
    "noCollections": "Sin liquidaciones este mes"
   },
   "loading": "Cargando métricas...",
-  "errorLoading": "Error al cargar las métricas",
+  "errorLoading": "The dashboard data could not be loaded",
   "retry": "Reintentar",
   "currency": "ARS",
   "percentSign": "%",
@@ -386,23 +386,23 @@
    "collections": "Collections status"
   },
   "analytics": {
-   "occupancyTitle": "Occupancy trend",
-   "occupancyLabel": "Occupancy",
+   "occupancyTitle": "Occupancy with a contract in force",
+   "occupancyLabel": "Properties with a contract in force",
    "occupancyEmpty": "No occupancy data to chart yet",
-   "occupancyEmptyHint": "Add rental operations to see how the portfolio evolves.",
-   "profitabilityTitle": "Profitability by property",
+   "occupancyEmptyHint": "Add rental contracts to see how the portfolio evolves.",
+   "profitabilityTitle": "Income and expenses by property",
    "profitabilityEmpty": "No profitability data to chart yet",
    "profitabilityEmptyHint": "Record collections for the period to compare revenue and expenses.",
-   "lastTwelveMonths": "Last 12 months",
-   "topProperties": "Top {count} of the period",
+   "lastTwelveMonths": "At each month end · 12 months",
+   "topProperties": "Last 12 months · highest net first",
    "revenue": "Revenue",
    "expenses": "Expenses",
-   "loadError": "Could not load portfolio metrics"
+   "loadError": "The portfolio charts could not be loaded"
   },
   "priorities": {
    "title": "Today's priorities",
-   "hint": "Sorted by urgency",
-   "sourceModel": "Order suggested by {model}",
+   "hint": "Most urgent first",
+   "sourceModel": "Order suggested by the assistant ({model})",
    "sourceRules": "Order computed with the system's own rules",
    "urgency": {
     "alta": "High",
@@ -423,8 +423,92 @@
    "overSla": "past SLA",
    "withoutContact": "without contact",
    "emptyTitle": "Nothing urgent for today",
-   "emptySubtitle": "Collections are up to date, no claim is past its SLA and no lease is about to expire. A good moment to work the portfolio calmly.",
-   "loadError": "Could not load today's priorities"
+   "emptySubtitle": "Collections are up to date, no tickets are past due and no contracts are about to expire.",
+   "loadError": "Could not load today's priorities",
+   "overdueFor": "overdue for {elapsed}",
+   "overSlaFor": "Past due for {elapsed}",
+   "today": "Today",
+   "expires": "expires"
+  },
+  "panel": {
+   "greeting": "Hello, {name}",
+   "greetingNoName": "Hello",
+   "kpi": {
+    "occupancy": "Occupancy",
+    "occupancyHint": "{occupied} of {total} properties occupied",
+    "collected": "Collected in {month}",
+    "collectedNoMonth": "Collected this month",
+    "collectedHint": "{pct}% of {amount} billed",
+    "collectedNone": "No statements for this month yet",
+    "overdue": "Overdue balance",
+    "overdueHint": "Unpaid, across all periods",
+    "overdueNone": "No overdue debt",
+    "tickets": "Open tickets",
+    "ticketsHint": "{count, plural, =0 {None urgent or high priority} one {# urgent or high priority} other {# urgent or high priority}}"
+   },
+   "rentRoll": "Portfolio rent",
+   "rentRollHint": "Per month, adding up active contracts",
+   "activeContracts": "Active contracts",
+   "avgRent": "Average rent",
+   "perMonth": "per month",
+   "closedRate": "Collection in {month}",
+   "closedRateNoMonth": "Collection last month",
+   "closedRateHint": "collected over billed",
+   "closedRateNone": "no statements that month",
+   "chart": {
+    "title": "Billed and collected by month",
+    "subtitle": "Last 6 months, in pesos, by statement period",
+    "expected": "Billed",
+    "collected": "Collected",
+    "inProgress": "in progress",
+    "currentNote": "{month} is not closed yet: the collected amount can still grow.",
+    "currentEmpty": "Statements for {month} have not been issued yet.",
+    "empty": "There are no statements to chart yet."
+   },
+   "status": {
+    "overdue": "Overdue",
+    "sent": "Sent",
+    "approved": "Approved",
+    "pending": "Pending"
+   },
+   "agenda": {
+    "title": "Agenda",
+    "window": "Next 90 days",
+    "seeAll": "See all ({count})",
+    "expiring": "Contracts about to expire",
+    "expiringEmpty": "No contracts expiring in the next 90 days.",
+    "days": "{count, plural, =0 {Today} one {# day} other {# days}}",
+    "toExpiry": "to expiry",
+    "renew": "Renew",
+    "collections": "Unpaid statements",
+    "collectionsEmpty": "No pending collections.",
+    "overdue": "overdue",
+    "pending": "pending",
+    "collect": "Collect",
+    "tickets": "Priority tickets",
+    "ticketsEmpty": "No open tickets.",
+    "attend": "Open"
+   },
+   "collectionStatus": {
+    "title": "Collection status",
+    "link": "See statements",
+    "collected": "Collected",
+    "pending": "To collect",
+    "overdue": "Overdue",
+    "thisMonth": "this month",
+    "allPeriods": "accumulated",
+    "empty": "No statements this month and no overdue debt."
+   },
+   "composition": {
+    "title": "Properties by type",
+    "count": "{count, plural, one {# property} other {# properties}}"
+   }
+  },
+  "elapsed": {
+   "hours": "{count, plural, one {# hour} other {# hours}}",
+   "days": "{count, plural, one {# day} other {# days}}",
+   "months": "{count, plural, one {# month} other {# months}}",
+   "years": "{count, plural, one {# year} other {# years}}"
   }
  },
  "users": {
