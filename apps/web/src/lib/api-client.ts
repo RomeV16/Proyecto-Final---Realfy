@@ -44,6 +44,13 @@ export function getStoredUser(): { id: string; email: string; firstName: string;
 export function safeRedirectTarget(search: string): string | null {
   const target = new URLSearchParams(search).get('redirect');
   if (!target || !target.startsWith('/') || target.startsWith('//') || target.includes('\\')) return null;
+  // El navegador descarta tabulaciones y saltos de línea al resolver la dirección: `/<tab>/otro.sitio` es `//otro.sitio`.
+  if (/\s/.test(target)) return null;
+  try {
+    if (new URL(target, 'http://realfy.invalid').origin !== 'http://realfy.invalid') return null;
+  } catch {
+    return null;
+  }
   if (/^\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?auth(?:\/|$)/.test(target)) return null;
   return target;
 }

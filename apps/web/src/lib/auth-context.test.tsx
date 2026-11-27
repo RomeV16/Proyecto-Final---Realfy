@@ -115,6 +115,9 @@ describe('safeRedirectTarget', () => {
     expect(safeRedirectTarget('?redirect=https://otro.example')).toBeNull();
     expect(safeRedirectTarget('?redirect=//otro.example')).toBeNull();
     expect(safeRedirectTarget('?redirect=/%5Cotro.example')).toBeNull();
+    expect(safeRedirectTarget('?redirect=/%09/otro.example')).toBeNull();
+    expect(safeRedirectTarget('?redirect=/%0A/otro.example')).toBeNull();
+    expect(safeRedirectTarget('?redirect=/%20/otro.example')).toBeNull();
     expect(safeRedirectTarget('?redirect=/es/auth/login')).toBeNull();
     expect(safeRedirectTarget('?redirect=/auth/register')).toBeNull();
   });
